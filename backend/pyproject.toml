@@ -1,0 +1,21 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "decouple>=0.0.7",
+    "django>=6.1.1",
+    "django-cockroachdb>=6.1",
+    "django-cors-headers>=4.9.0",
+    "django-rest-framework>=0.1.0",
+    "psycopg[binary]>=3.3.5",
+]
+
+[project.scripts]
+backend = "backend:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
