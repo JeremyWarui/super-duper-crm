@@ -1,9 +1,4 @@
-"""The session dependency FastAPI will use once routers exist.
-
-Pointed at SQLite rather than the configured CockroachDB DSN, so the test needs
-no server. What is under test is the wiring - caching, and the rollback on error
-- not the driver.
-"""
+"""The session dependency: caching, and the rollback when a request fails."""
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,11 +9,8 @@ from backend.db.session import get_engine, get_session, get_sessionmaker
 
 @pytest.fixture(autouse=True)
 def sqlite_dsn(monkeypatch: pytest.MonkeyPatch):
-    """Repoint the app's DSN, and leave the caches empty afterwards.
-
-    `get_settings`, `get_engine` and `get_sessionmaker` are all `lru_cache`d, so
-    a stale entry here would leak a SQLite engine into every later test.
-    """
+    """Point the app at a test database, and clear the caches on the way in and
+    out so no engine leaks into another test."""
     monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite://")
     for cached in (get_settings, get_engine, get_sessionmaker):
         cached.cache_clear()
@@ -37,8 +29,7 @@ async def test_get_session_yields_a_usable_session() -> None:
 
 
 async def test_get_session_rolls_back_and_re_raises() -> None:
-    """A failed request must not leave a half-finished transaction on the
-    connection for the next request that borrows it from the pool."""
+    """A failed request must not leave an open transaction behind."""
     agen = get_session()
     session = await anext(agen)
 

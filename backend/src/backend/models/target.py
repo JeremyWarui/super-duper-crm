@@ -1,17 +1,4 @@
-"""The win number: how many votes this campaign must bank in one unit.
-
-Three bugs in the Django original are fixed here:
-
-1. The foreign key pointed at `"RegistrationCenter"`, a model that never
-   existed - the class is spelled `RegistrationCentre`. That FK could not
-   resolve, so the app could not start.
-2. `compute_win_number` read `self.registered_voters`, which is not a field on
-   Target. It is always `None`, so the method could never compute anything.
-   Registered voters live on the ward or the registration centre; the property
-   below resolves whichever one this target is scoped to.
-3. The field was named `registration_center` here but `registration_centre` on
-   Mobilizer and Event. Unified on the British spelling used everywhere else.
-"""
+"""The win number: how many votes a campaign needs in one ward or centre."""
 
 import uuid
 from decimal import Decimal
@@ -31,14 +18,11 @@ def compute_win_number(
     registered_voters: int | None,
     projected_turnout_pct: Decimal | None,
 ) -> int | None:
-    """50% + 1 of the projected votes cast.
+    """Half the projected votes cast, plus one.
 
-    `floor(registered_voters * turnout_pct / 100 / 2) + 1`
-
-    Returns None when either input is missing or zero - with nothing projected
-    to be cast there is no number to beat. Decimal throughout, because this is
-    money-shaped arithmetic and float rounding at the .5 boundary would move
-    the answer by a whole vote.
+    `floor(registered_voters * turnout_pct / 100 / 2) + 1`, or None when nothing
+    is projected to be cast. Decimal rather than float, because float rounding
+    at the halfway point shifts the answer by a whole vote.
     """
     if not registered_voters or not projected_turnout_pct:
         return None
@@ -47,9 +31,11 @@ def compute_win_number(
 
 
 class Target(UUIDPrimaryKeyMixin, Base):
+    """A vote goal for one ward, or for one registration centre inside it."""
+
     __tablename__ = "targets"
     __table_args__ = (
-        # One target per ward when the campaign targets at ward level.
+        # A campaign gets one ward-level target per ward...
         Index(
             "uq_targets_campaign_ward",
             "campaign_id",
@@ -58,7 +44,8 @@ class Target(UUIDPrimaryKeyMixin, Base):
             postgresql_where=text("registration_centre_id IS NULL"),
             sqlite_where=text("registration_centre_id IS NULL"),
         ),
-        # One per registration centre when it targets at centre level.
+        # ...and one target per registration centre. The WHERE clauses keep
+        # these two rules from colliding with each other.
         Index(
             "uq_targets_campaign_registration_centre",
             "campaign_id",
@@ -84,6 +71,7 @@ class Target(UUIDPrimaryKeyMixin, Base):
     ward_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("wards.id", ondelete="CASCADE"), index=True
     )
+    # Set for a centre-level target, empty for a ward-level one.
     registration_centre_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid,
         ForeignKey("registration_centres.id", ondelete="CASCADE"),
@@ -106,11 +94,10 @@ class Target(UUIDPrimaryKeyMixin, Base):
 
     @property
     def registered_voters(self) -> int | None:
-        """Voters in whichever unit this target is scoped to.
+        """Voters on the roll of whichever unit this target covers.
 
-        A target with a registration centre is a centre-level target and counts
-        that centre's roll; otherwise it counts the whole ward's. Requires the
-        relevant relationship to be loaded.
+        The centre for a centre-level target, otherwise the whole ward. That
+        relationship must be loaded.
         """
         if self.registration_centre_id is not None:
             require_loaded(self, "registration_centre")
@@ -120,22 +107,20 @@ class Target(UUIDPrimaryKeyMixin, Base):
         return self.ward.registered_voters if self.ward is not None else None
 
     def recompute_win_number(self) -> int | None:
-        """Recalculate `votes_needed` in place.
-
-        Django's version took `save=True` and called `self.save()`. There is no
-        equivalent here: the change is flushed with the rest of the session.
-        """
+        """Recalculate `votes_needed`. Saved when the session is committed."""
         self.votes_needed = compute_win_number(self.registered_voters, self.projected_turnout_pct)
         return self.votes_needed
 
     @property
     def votes_remaining(self) -> int | None:
+        """How many more votes to commit, never below zero."""
         if self.votes_needed is None:
             return None
         return max(self.votes_needed - self.votes_committed, 0)
 
     @property
     def progress_pct(self) -> float:
+        """Votes committed as a percentage of votes needed."""
         if not self.votes_needed:
             return 0.0
         return round(self.votes_committed / self.votes_needed * 100, 1)

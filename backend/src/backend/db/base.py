@@ -1,4 +1,4 @@
-"""Declarative base, shared column mixins, and the constraint naming scheme."""
+"""Declarative base and the column mixins every model uses."""
 
 import uuid
 from datetime import UTC, datetime
@@ -7,8 +7,8 @@ from sqlalchemy import DateTime, MetaData, Uuid, func, inspect
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-# Deterministic constraint names. Without this, Alembic autogenerate cannot
-# emit a DROP for an unnamed constraint the database invented for itself.
+# Gives every constraint and index a predictable name, which Alembic needs in
+# order to alter or drop one.
 NAMING_CONVENTION = {
     "ix": "ix_%(table_name)s_%(column_0_N_name)s",
     "uq": "uq_%(table_name)s_%(column_0_N_name)s",
@@ -26,21 +26,10 @@ class Base(DeclarativeBase):
 
 
 class UUIDPrimaryKeyMixin:
-    """UUID primary key, generated client-side.
+    """A UUID primary key, generated in Python when the object is created.
 
-    CockroachDB spreads writes by key range, so a monotonically increasing
-    integer key funnels every insert into one range. `sqlalchemy.Uuid` maps to
-    native `UUID` on Postgres/CockroachDB and to `CHAR(32)` on SQLite, so the
-    same models run against the test database.
-
-    Generated in Python, not by a server default, and generated in `__init__`
-    rather than at flush time: a new object therefore has its id the moment it
-    is constructed, so a caller can reference it before anything touches the
-    database. `mapped_column(default=...)` alone would not do this - a column
-    default only fires during the INSERT.
-
-    SQLAlchemy does not call `__init__` when it loads a row, so this cannot
-    overwrite an id that came from the database.
+    Set in `__init__` rather than on insert, so an object has its id before it
+    is saved.
     """
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -53,7 +42,7 @@ class UUIDPrimaryKeyMixin:
 
 
 class TimestampMixin:
-    """`created_at` set by the database clock, matching Django's auto_now_add."""
+    """`created_at`, set by the database clock on insert."""
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -65,13 +54,7 @@ class TimestampMixin:
 
 
 def choice_type(enum_cls: type, name: str, length: int = 20) -> "SAEnum":
-    """VARCHAR + CHECK constraint for a `StrEnum`, not a native database enum.
-
-    Django stored choices as `varchar(max_length)` with validation in Python
-    only. Keeping VARCHAR preserves that column type (so no data migration) and
-    avoids CockroachDB's awkward `ALTER TYPE` path, while the CHECK constraint
-    moves the validation Django never enforced into the database.
-    """
+    """Store an enum as VARCHAR with a CHECK constraint listing the valid values."""
     return SAEnum(
         enum_cls,
         name=name,
@@ -84,11 +67,10 @@ def choice_type(enum_cls: type, name: str, length: int = 20) -> "SAEnum":
 
 
 def require_loaded(instance: object, *attributes: str) -> None:
-    """Fail loudly when a derived property needs an unloaded relationship.
+    """Raise a readable error when a property needs a relationship that was not loaded.
 
-    Under an AsyncSession a lazy load from attribute access raises
-    `MissingGreenlet`, which reads like a concurrency bug rather than a missing
-    `selectinload`. This turns it into a sentence that names the fix.
+    Reading an unloaded relationship on an async session fails with
+    `MissingGreenlet`; this names the missing `selectinload` instead.
     """
     unloaded = inspect(instance).unloaded
     missing = [name for name in attributes if name in unloaded]

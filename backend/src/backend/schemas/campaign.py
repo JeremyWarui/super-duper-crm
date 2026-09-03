@@ -1,10 +1,7 @@
-"""Read schemas for Campaign, Target, Mobilizer, Event and Supporter.
+"""What Campaign, Target, Mobilizer, Event and Supporter look like in a response.
 
-Derived values that need no relationship loaded are included (`operational_grain`,
-`votes_remaining`, `progress_pct`, `turnout_pct`). `Campaign.area` and
-`Target.registered_voters` are not: both read a related row, so serializing them
-by default would turn every response into a silent extra query - or, under an
-AsyncSession, an error.
+Calculated values are included where they need no extra query. `Campaign.area`
+and `Target.registered_voters` are left out because both read a related row.
 """
 
 import uuid

@@ -1,15 +1,10 @@
-"""Choice sets, ported from Django's `TextChoices`.
-
-`StrEnum` keeps the stored value a plain string, so the columns stay VARCHAR
-exactly as Django wrote them and JSON serialization is the value itself. The
-human label that `get_FOO_display()` used to return lives on `.label`.
-"""
+"""The choice sets used by the models."""
 
 from enum import StrEnum
 
 
 class LabelledStrEnum(StrEnum):
-    """A StrEnum carrying Django-style display labels."""
+    """A string enum where each member also carries a display label."""
 
     label: str
 
@@ -21,6 +16,7 @@ class LabelledStrEnum(StrEnum):
 
     @classmethod
     def choices(cls) -> list[tuple[str, str]]:
+        """Every member as a (value, label) pair."""
         return [(member.value, member.label) for member in cls]
 
 
@@ -37,7 +33,7 @@ class OfficeLevel(LabelledStrEnum):
 
 
 class OperationalGrain(StrEnum):
-    """Whichever unit a campaign organizes on, derived from its office level."""
+    """The unit a campaign organizes on."""
 
     CENTRE = "centre"
     WARD = "ward"

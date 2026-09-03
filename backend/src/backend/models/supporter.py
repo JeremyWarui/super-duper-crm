@@ -1,4 +1,4 @@
-"""A supporter, captured by public self-registration or by a mobilizer."""
+"""Someone who signed up for a campaign, and where they stand."""
 
 import uuid
 from typing import TYPE_CHECKING
@@ -16,11 +16,6 @@ if TYPE_CHECKING:
 
 
 class Supporter(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """Django called the timestamp `registered_at`; it is `created_at` here, from
-    the shared mixin, so every table names its creation time the same way.
-    Default ordering was `-registered_at`.
-    """
-
     __tablename__ = "supporters"
 
     campaign_id: Mapped[uuid.UUID] = mapped_column(
@@ -29,6 +24,7 @@ class Supporter(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     ward_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("wards.id", ondelete="SET NULL"), default=None, index=True
     )
+    # The mobilizer who signed them up, if anyone did.
     mobilizer_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("mobilizers.id", ondelete="SET NULL"), default=None, index=True
     )
@@ -39,7 +35,7 @@ class Supporter(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         choice_type(SupportLevel, "support_level"), default=SupportLevel.UNDECIDED
     )
 
-    # Data Protection Act 2019 - consent captured at sign-up.
+    # Consent to hold their data, required by the Data Protection Act 2019.
     consent_given: Mapped[bool] = mapped_column(Boolean, default=False)
 
     campaign: Mapped["Campaign"] = relationship(back_populates="supporters")

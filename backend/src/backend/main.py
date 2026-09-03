@@ -1,8 +1,4 @@
-"""ASGI application. Replaces `config/asgi.py`, `config/wsgi.py` and `config/urls.py`.
-
-No routers are mounted: nothing but models exists yet. `/health` is the one
-endpoint, so `uvicorn backend.main:app` can be verified to actually serve.
-"""
+"""The ASGI application."""
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -14,15 +10,13 @@ from backend import __version__
 from backend.config import get_settings
 from backend.db.session import get_engine
 
-# Imported for the side effect of populating Base.metadata.
+# Imported so every model is registered on Base.metadata.
 from backend.models import Base  # noqa: F401
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
-    # Return pooled connections on shutdown; without this, uvicorn's reloader
-    # leaks a pool per reload.
     await get_engine().dispose()
 
 

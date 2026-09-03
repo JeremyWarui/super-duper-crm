@@ -1,4 +1,4 @@
-"""Minimal object builders, so each test states only what it cares about."""
+"""Object builders, so each test only spells out what it cares about."""
 
 from backend.models import (
     Campaign,

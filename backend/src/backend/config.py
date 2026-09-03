@@ -1,10 +1,4 @@
-"""Runtime settings, read from the environment (and `.env` in development).
-
-Replaces `config/settings.py`. Everything Django needed a settings module for
-(installed apps, middleware, template engines, password validators) is either
-gone with Django or lives in `main.py` now, so this file holds only what the
-process genuinely reads at boot.
-"""
+"""Settings, read from the environment and from `.env`."""
 
 from functools import lru_cache
 
@@ -21,34 +15,31 @@ class Settings(BaseSettings):
 
     debug: bool = False
 
-    # Secret used to sign tokens/sessions. No default: a hardcoded fallback is
-    # how the Django scaffold shipped a live-looking key in source control.
+    # Signs tokens and sessions. No default, so it cannot be forgotten.
     secret_key: str = Field(min_length=32)
 
-    # Individual parts, kept because .env already carries them.
     db_name: str = "campaign_crm"
-    db_user: str = "root"
+    db_user: str = "postgres"
     db_password: str = ""
     db_host: str = "localhost"
-    db_port: int = 26257
+    db_port: int = 5432
 
-    # Set DATABASE_URL to override the parts above wholesale. Use
-    # `cockroachdb+asyncpg://` with the `cockroachdb` extra installed to get
-    # CockroachDB's retry/savepoint handling; `postgresql+asyncpg://` works for
-    # plain Postgres and for basic CockroachDB use.
+    # A full DSN, which overrides the DB_* parts above.
     database_url: str = ""
 
-    # Origins allowed to call this API from a browser (the Vite dev server).
+    # Browser origins allowed to call this API.
     cors_allow_origins: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
 
+    # Log every SQL statement.
     echo_sql: bool = False
 
     @field_validator("database_url", mode="after")
     @classmethod
     def _assemble_database_url(cls, value: str, info: ValidationInfo) -> str:
+        """Build the DSN from the DB_* parts when DATABASE_URL is not set."""
         if value:
             return value
         d = info.data
@@ -65,5 +56,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Cached so the environment is read once per process."""
+    """Cached, so the environment is read once per process."""
     return Settings()  # type: ignore[call-arg]

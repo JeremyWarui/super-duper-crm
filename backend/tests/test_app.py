@@ -1,4 +1,4 @@
-"""The ASGI app boots and serves. No routers exist yet, by design."""
+"""The app starts and serves. There are no data routes yet."""
 
 import httpx
 import pytest

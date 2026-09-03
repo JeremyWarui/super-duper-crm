@@ -1,14 +1,7 @@
-"""The migration must build the same schema the models describe.
+"""The migrations build the same schema the models describe.
 
-This is the check that catches the most expensive routine mistake: adding a
-column and forgetting `alembic revision --autogenerate`. Tests use
-`create_all`, so without this every test would still pass while the migration
-quietly fell behind and production drifted from the code.
-
-The revision's `upgrade()` is executed against an in-memory SQLite database
-through Alembic's own operations proxy - no async loop, no alembic.ini, no
-subprocess. Names are compared, not types: SQLite reflects `Uuid` as `CHAR(32)`
-and comparing those would fail for a reason that has nothing to do with drift.
+Catches a column added to a model but never migrated. Names are compared, not
+column types, which differ harmlessly across databases.
 """
 
 import importlib.util
@@ -38,7 +31,7 @@ def _load(path: Path):
 
 @pytest.fixture
 def migrated_metadata() -> sa.MetaData:
-    """Every revision applied in order, then reflected."""
+    """Every migration applied in order, then read back."""
     engine = sa.create_engine("sqlite://")
     with engine.begin() as connection:
         context = MigrationContext.configure(connection)
@@ -78,8 +71,8 @@ def test_migration_creates_every_column(migrated_metadata: sa.MetaData) -> None:
 
 
 def test_migration_preserves_nullability(migrated_metadata: sa.MetaData) -> None:
-    """A column that is NOT NULL in the models but nullable in the migration
-    fails only later, on the first insert that omits it."""
+    """A required column that the migration made optional fails only later, on
+    the first insert that leaves it out."""
     for name, model_table in Base.metadata.tables.items():
         migrated = {c.name: c.nullable for c in migrated_metadata.tables[name].columns}
         for column in model_table.columns:
@@ -96,9 +89,8 @@ def test_migration_creates_every_index(migrated_metadata: sa.MetaData) -> None:
 def test_migration_creates_the_partial_unique_indexes(
     migrated_metadata: sa.MetaData,
 ) -> None:
-    """These two carry a WHERE clause. If a revision ever drops the clause the
-    schema still builds, and a campaign silently loses the ability to hold both
-    a ward-level target and its centre-level targets."""
+    """Losing the WHERE clause on these still builds, but stops a campaign from
+    holding a ward target and its centre targets at the same time."""
     names = {i.name for i in migrated_metadata.tables["targets"].indexes}
     assert "uq_targets_campaign_ward" in names
     assert "uq_targets_campaign_registration_centre" in names

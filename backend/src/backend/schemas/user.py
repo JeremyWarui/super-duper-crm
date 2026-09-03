@@ -1,10 +1,4 @@
-"""Read schema for User.
-
-`password_hash`, `is_superuser` and `last_login_at` are deliberately absent.
-This is the whole reason the schema layer is separate from the mapped class: a
-single class that is both table and wire format has no way to keep a credential
-out of a response except by remembering to exclude it at every call site.
-"""
+"""What a User looks like in a response."""
 
 import uuid
 from datetime import datetime
@@ -14,6 +8,8 @@ from backend.schemas.common import ORMModel
 
 
 class UserRead(ORMModel):
+    """Excludes password_hash, is_superuser and last_login_at."""
+
     id: uuid.UUID
     username: str
     email: str

@@ -1,8 +1,4 @@
-"""Async engine and session wiring.
-
-The engine is created lazily and cached, so importing the models never opens a
-connection (tests build their own engine against SQLite).
-"""
+"""Async engine and session factory."""
 
 from collections.abc import AsyncIterator
 from functools import lru_cache
@@ -19,6 +15,7 @@ from backend.config import get_settings
 
 @lru_cache
 def get_engine() -> AsyncEngine:
+    """The connection pool. Created on first use, then reused."""
     settings = get_settings()
     return create_async_engine(
         settings.database_url,
@@ -37,7 +34,7 @@ def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
-    """FastAPI dependency. One session per request, rolled back on error."""
+    """FastAPI dependency giving one session per request, rolled back on error."""
     async with get_sessionmaker()() as session:
         try:
             yield session

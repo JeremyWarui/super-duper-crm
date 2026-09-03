@@ -1,9 +1,4 @@
-"""Gate-test fixtures: in-memory SQLite, real DDL, no network.
-
-SQLite rather than a Postgres container so the suite stays free and under two
-seconds. What that costs, and what covers the gap, is written down in
-`tests/README.md`.
-"""
+"""Fixtures: an in-memory database built from the real schema."""
 
 import os
 from collections.abc import AsyncIterator
@@ -21,8 +16,7 @@ from backend.models import Base  # noqa: E402  - after the env var is set
 async def engine() -> AsyncIterator[AsyncEngine]:
     engine = create_async_engine("sqlite+aiosqlite://")
 
-    # SQLite ignores foreign keys unless asked, and every cascade/SET NULL test
-    # here would pass vacuously without this.
+    # SQLite ignores foreign keys unless this is on.
     @event.listens_for(engine.sync_engine, "connect")
     def _enable_foreign_keys(dbapi_connection, _record):  # type: ignore[no-untyped-def]
         cursor = dbapi_connection.cursor()
@@ -43,6 +37,6 @@ async def session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
 
 @pytest.fixture
 async def fk_check(session: AsyncSession) -> None:
-    """Assert the connection really has FK enforcement on."""
+    """Confirm foreign keys are enforced on this connection."""
     result = await session.execute(text("PRAGMA foreign_keys"))
     assert result.scalar() == 1

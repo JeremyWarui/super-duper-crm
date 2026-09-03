@@ -1,4 +1,4 @@
-"""Ground organizer, assigned to a ward (and optionally a registration centre)."""
+"""A ground organizer working a ward, and optionally one registration centre."""
 
 import uuid
 from typing import TYPE_CHECKING
@@ -32,7 +32,8 @@ class Mobilizer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         index=True,
     )
 
-    # Optional login: a mobilizer may report through the app, or not.
+    # A mobilizer may report through the app, or not. Deleting the login keeps
+    # the person.
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None, unique=True
     )
@@ -49,9 +50,6 @@ class Mobilizer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     events: Mapped[list["Event"]] = relationship(back_populates="mobilizer")
     supporters: Mapped[list["Supporter"]] = relationship(back_populates="mobilizer")
-
-    # One per ward to start. The Django model left this open on purpose; add a
-    # unique constraint on (campaign_id, ward_id) if you decide to enforce it.
 
     def __str__(self) -> str:
         return f"{self.full_name} - {self.ward.name}"

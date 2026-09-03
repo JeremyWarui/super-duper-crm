@@ -14,9 +14,6 @@ dependencies = [
     "uvicorn[standard]>=0.37",
 ]
 
-[project.optional-dependencies]
-cockroachdb = ["sqlalchemy-cockroachdb>=2.0.2"]
-
 [dependency-groups]
 dev = [
     "aiosqlite>=0.21",

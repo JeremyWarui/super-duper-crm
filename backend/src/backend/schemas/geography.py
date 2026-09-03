@@ -1,8 +1,6 @@
-"""Read schemas for the geographic hierarchy.
+"""What the geographic models look like in a response.
 
-Flat: each schema carries its parent's id, not a nested parent object. Nesting
-is a query decision (which relationships were eager-loaded), so it belongs with
-the endpoints rather than baked into the default read shape.
+Each schema carries its parent's id rather than a nested parent object.
 """
 
 import uuid

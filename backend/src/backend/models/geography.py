@@ -1,9 +1,4 @@
-"""County -> Constituency -> Ward -> (RegistrationCentre | PollingStation).
-
-`Meta.ordering` has no SQLAlchemy equivalent at the model level; ordering
-belongs on the query and moves there when the query layer is written. The old
-default (`ordering = ["name"]`) is noted on each class so it is not lost.
-"""
+"""The geographic hierarchy: county, constituency, ward, and where people vote."""
 
 import uuid
 from decimal import Decimal
@@ -21,16 +16,13 @@ if TYPE_CHECKING:
     from backend.models.supporter import Supporter
     from backend.models.target import Target
 
+NON_NEGATIVE_VOTERS = "registered_voters IS NULL OR registered_voters >= 0"
+
 
 class County(UUIDPrimaryKeyMixin, Base):
-    """Default ordering was `name`."""
-
     __tablename__ = "counties"
     __table_args__ = (
-        CheckConstraint(
-            "registered_voters IS NULL OR registered_voters >= 0",
-            name="registered_voters_non_negative",
-        ),
+        CheckConstraint(NON_NEGATIVE_VOTERS, name="registered_voters_non_negative"),
         CheckConstraint(
             "turnout_2022_pct IS NULL OR (turnout_2022_pct >= 0 AND turnout_2022_pct <= 100)",
             name="turnout_pct_range",
@@ -54,8 +46,6 @@ class County(UUIDPrimaryKeyMixin, Base):
 
 
 class Constituency(UUIDPrimaryKeyMixin, Base):
-    """Default ordering was `name`."""
-
     __tablename__ = "constituencies"
 
     county_id: Mapped[uuid.UUID] = mapped_column(
@@ -77,15 +67,8 @@ class Constituency(UUIDPrimaryKeyMixin, Base):
 
 
 class Ward(UUIDPrimaryKeyMixin, Base):
-    """Default ordering was `name`."""
-
     __tablename__ = "wards"
-    __table_args__ = (
-        CheckConstraint(
-            "registered_voters IS NULL OR registered_voters >= 0",
-            name="registered_voters_non_negative",
-        ),
-    )
+    __table_args__ = (CheckConstraint(NON_NEGATIVE_VOTERS, name="registered_voters_non_negative"),)
 
     constituency_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("constituencies.id", ondelete="CASCADE"), index=True
@@ -118,19 +101,13 @@ class Ward(UUIDPrimaryKeyMixin, Base):
 
 
 class RegistrationCentre(UUIDPrimaryKeyMixin, Base):
-    """The physical venue (school, church hall) holding several polling
-    stations. The operating unit for a ward (MCA) race.
+    """A venue such as a school or church hall, holding several polling stations.
 
-    Default ordering was `name`.
+    This is the unit a ward (MCA) campaign organizes on.
     """
 
     __tablename__ = "registration_centres"
-    __table_args__ = (
-        CheckConstraint(
-            "registered_voters IS NULL OR registered_voters >= 0",
-            name="registered_voters_non_negative",
-        ),
-    )
+    __table_args__ = (CheckConstraint(NON_NEGATIVE_VOTERS, name="registered_voters_non_negative"),)
 
     ward_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("wards.id", ondelete="CASCADE"), index=True
@@ -151,23 +128,14 @@ class RegistrationCentre(UUIDPrimaryKeyMixin, Base):
 
 
 class PollingStation(UUIDPrimaryKeyMixin, Base):
-    """A polling station under a ward.
+    """A single voting stream within a ward.
 
-    `centre_code` / `centre_name` are carried over verbatim from the Django
-    model. They duplicate `RegistrationCentre`; see README "Known data-model
-    issues" - this should become a foreign key, which is a schema change and so
-    is out of scope for the port.
-
-    Default ordering was `centre_name, name`.
+    `centre_code` and `centre_name` name the venue as free text rather than
+    linking to `RegistrationCentre`. See the README.
     """
 
     __tablename__ = "polling_stations"
-    __table_args__ = (
-        CheckConstraint(
-            "registered_voters IS NULL OR registered_voters >= 0",
-            name="registered_voters_non_negative",
-        ),
-    )
+    __table_args__ = (CheckConstraint(NON_NEGATIVE_VOTERS, name="registered_voters_non_negative"),)
 
     ward_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("wards.id", ondelete="CASCADE"), index=True

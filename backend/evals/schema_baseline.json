@@ -1,0 +1,238 @@
+{
+  "_comment": "The fields this schema is expected to have. A record, not a wish list: do not edit it to make a failing check pass.",
+  "renamed": {
+    "_comment": "old name -> current column name",
+    "Target.registration_center": "registration_centre_id",
+    "Supporter.registered_at": "created_at",
+    "User.password": "password_hash"
+  },
+  "dropped": {
+    "_comment": "field -> why it is gone",
+    "User.is_staff": "only ever gated the old admin site",
+    "User.groups": "permission tables, replaced by User.role",
+    "User.user_permissions": "permission tables, replaced by User.role",
+    "User.date_joined": "now created_at, the same name every table uses",
+    "User.last_login": "now last_login_at, matching the other timestamps"
+  },
+  "models": {
+    "User": {
+      "table": "users",
+      "fields": {
+        "role": "text",
+        "phone": "text",
+        "username": "text",
+        "email": "text",
+        "first_name": "text",
+        "last_name": "text",
+        "password": "text",
+        "is_active": "boolean",
+        "is_superuser": "boolean",
+        "is_staff": "boolean",
+        "date_joined": "timestamp",
+        "last_login": "timestamp",
+        "groups": "link table",
+        "user_permissions": "link table"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "County": {
+      "table": "counties",
+      "fields": {
+        "name": "text",
+        "code": "text",
+        "registered_voters": "integer",
+        "turnout_2022_pct": "decimal"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "Constituency": {
+      "table": "constituencies",
+      "fields": {
+        "county": "reference",
+        "name": "text",
+        "code": "text"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "Ward": {
+      "table": "wards",
+      "fields": {
+        "constituency": "reference",
+        "name": "text",
+        "code": "text",
+        "registered_voters": "integer"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "PollingStation": {
+      "table": "polling_stations",
+      "fields": {
+        "ward": "reference",
+        "centre_code": "text",
+        "centre_name": "text",
+        "code": "text",
+        "name": "text",
+        "registered_voters": "integer"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "RegistrationCentre": {
+      "table": "registration_centres",
+      "fields": {
+        "ward": "reference",
+        "code": "text",
+        "name": "text",
+        "registered_voters": "integer"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "Campaign": {
+      "table": "campaigns",
+      "fields": {
+        "candidate": "reference",
+        "title": "text",
+        "office_level": "text",
+        "county": "reference",
+        "constituency": "reference",
+        "ward": "reference",
+        "election_date": "date",
+        "created_at": "timestamp"
+      },
+      "properties": [
+        "area",
+        "operational_grain"
+      ],
+      "methods": []
+    },
+    "Target": {
+      "table": "targets",
+      "fields": {
+        "campaign": "reference",
+        "ward": "reference",
+        "registration_center": "reference",
+        "projected_turnout_pct": "decimal",
+        "votes_needed": "integer",
+        "votes_committed": "integer"
+      },
+      "properties": [
+        "progress_pct",
+        "votes_remaining"
+      ],
+      "methods": [
+        "compute_win_number"
+      ]
+    },
+    "Mobilizer": {
+      "table": "mobilizers",
+      "fields": {
+        "campaign": "reference",
+        "ward": "reference",
+        "registration_centre": "reference",
+        "user": "unique reference",
+        "full_name": "text",
+        "phone": "text",
+        "created_at": "timestamp"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "Event": {
+      "table": "events",
+      "fields": {
+        "campaign": "reference",
+        "ward": "reference",
+        "registration_centre": "reference",
+        "mobilizer": "reference",
+        "title": "text",
+        "venue": "text",
+        "scheduled_date": "timestamp",
+        "status": "text",
+        "number_reached": "integer",
+        "number_attended": "integer"
+      },
+      "properties": [
+        "turnout_pct"
+      ],
+      "methods": []
+    },
+    "Supporter": {
+      "table": "supporters",
+      "fields": {
+        "campaign": "reference",
+        "ward": "reference",
+        "mobilizer": "reference",
+        "full_name": "text",
+        "phone": "text",
+        "support_level": "text",
+        "consent_given": "boolean",
+        "registered_at": "timestamp"
+      },
+      "properties": [],
+      "methods": []
+    }
+  },
+  "choices": {
+    "UserRole": [
+      [
+        "candidate",
+        "Candidate"
+      ],
+      [
+        "manager",
+        "Campaign Manager"
+      ],
+      [
+        "mobilizer",
+        "Mobilizer"
+      ]
+    ],
+    "OfficeLevel": [
+      [
+        "ward",
+        "Ward (MCA)"
+      ],
+      [
+        "constituency",
+        "Constituency (MP)"
+      ],
+      [
+        "county",
+        "County (Governor / Senator / Women Rep)"
+      ]
+    ],
+    "EventStatus": [
+      [
+        "planned",
+        "Planned"
+      ],
+      [
+        "done",
+        "Done"
+      ],
+      [
+        "cancelled",
+        "Cancelled"
+      ]
+    ],
+    "SupportLevel": [
+      [
+        "supporter",
+        "Supporter"
+      ],
+      [
+        "undecided",
+        "Undecided"
+      ],
+      [
+        "opposed",
+        "Opposed"
+      ]
+    ]
+  }
+}

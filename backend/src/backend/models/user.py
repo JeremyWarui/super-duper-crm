@@ -1,13 +1,4 @@
-"""The single login model, ported from Django's `AbstractUser`.
-
-Dropped along with Django: `is_staff`, `groups`, and `user_permissions`. All
-three existed to drive `django.contrib.admin` and `django.contrib.auth`'s
-permission tables, neither of which survives the move. `role` is the
-authorization signal this application actually uses.
-
-Kept: `password` is stored as `password_hash` under its real name. Hashing is
-not wired up here because no auth code exists yet; the column is the contract.
-"""
+"""Anyone who signs in: candidate, campaign manager, or mobilizer."""
 
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -32,11 +23,13 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     last_name: Mapped[str] = mapped_column(String(150), default="")
     phone: Mapped[str] = mapped_column(String(20), default="")
 
+    # What this user is allowed to do.
     role: Mapped[UserRole] = mapped_column(
         choice_type(UserRole, "user_role"),
         default=UserRole.MANAGER,
     )
 
+    # Hashing is added with the auth code; this column is the place for it.
     password_hash: Mapped[str] = mapped_column(String(128), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
