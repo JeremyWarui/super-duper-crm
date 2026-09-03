@@ -16,6 +16,7 @@ every commit.
 | `test_migrations.py` | The migration builds the schema the models describe, and downgrade reverses it |
 | `test_schemas.py` | Read schemas validate off mapped instances and never carry `password_hash` |
 | `test_app.py` | The ASGI app boots, serves `/health`, exposes no data routes yet |
+| `test_session.py` | The session dependency: engine caching, and rollback on a failed request |
 | `../evals/test_django_parity.py` | Every field of the pre-port Django schema is mapped, renamed, or dropped with a written reason |
 
 ## SQLite, not a Postgres container
