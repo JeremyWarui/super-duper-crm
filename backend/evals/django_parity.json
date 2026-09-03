@@ -1,0 +1,186 @@
+{
+  "_comment": [
+    "Frozen inventory of the Django models this backend was ported from, at commit 366b0d2.",
+    "Extracted by AST from backend/campaign/models.py rather than transcribed by hand.",
+    "This file is the reference the port is graded against. It is a record of what the",
+    "schema WAS - do not edit it to make a failing eval pass. New fields added after the",
+    "port belong in the models and the migration, and are allowed to have no entry here."
+  ],
+  "renamed": {
+    "_comment": "Django name -> SQLAlchemy name. Every rename needs a reason recorded in README.",
+    "Target.registration_center": "registration_centre_id",
+    "Supporter.registered_at": "created_at",
+    "User.password": "password_hash"
+  },
+  "dropped": {
+    "_comment": "Django name -> why it did not survive the port.",
+    "User.is_staff": "drove django.contrib.admin, which no longer exists",
+    "User.groups": "django.contrib.auth permission tables, replaced by User.role",
+    "User.user_permissions": "django.contrib.auth permission tables, replaced by User.role",
+    "User.date_joined": "renamed to created_at, from the shared TimestampMixin",
+    "User.last_login": "renamed to last_login_at, for consistency with other timestamps"
+  },
+  "models": {
+    "User": {
+      "table": "users",
+      "fields": {
+        "role": "CharField",
+        "phone": "CharField",
+        "username": "CharField (AbstractUser)",
+        "email": "EmailField (AbstractUser)",
+        "first_name": "CharField (AbstractUser)",
+        "last_name": "CharField (AbstractUser)",
+        "password": "CharField (AbstractUser)",
+        "is_active": "BooleanField (AbstractUser)",
+        "is_superuser": "BooleanField (AbstractUser)",
+        "is_staff": "BooleanField (AbstractUser)",
+        "date_joined": "DateTimeField (AbstractUser)",
+        "last_login": "DateTimeField (AbstractUser)",
+        "groups": "ManyToManyField (AbstractUser)",
+        "user_permissions": "ManyToManyField (AbstractUser)"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "County": {
+      "table": "counties",
+      "fields": {
+        "name": "CharField",
+        "code": "CharField",
+        "registered_voters": "PositiveIntegerField",
+        "turnout_2022_pct": "DecimalField"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "Constituency": {
+      "table": "constituencies",
+      "fields": {
+        "county": "ForeignKey",
+        "name": "CharField",
+        "code": "CharField"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "Ward": {
+      "table": "wards",
+      "fields": {
+        "constituency": "ForeignKey",
+        "name": "CharField",
+        "code": "CharField",
+        "registered_voters": "PositiveIntegerField"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "PollingStation": {
+      "table": "polling_stations",
+      "fields": {
+        "ward": "ForeignKey",
+        "centre_code": "CharField",
+        "centre_name": "CharField",
+        "code": "CharField",
+        "name": "CharField",
+        "registered_voters": "PositiveIntegerField"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "RegistrationCentre": {
+      "table": "registration_centres",
+      "fields": {
+        "ward": "ForeignKey",
+        "code": "CharField",
+        "name": "CharField",
+        "registered_voters": "PositiveIntegerField"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "Campaign": {
+      "table": "campaigns",
+      "fields": {
+        "candidate": "ForeignKey",
+        "title": "CharField",
+        "office_level": "CharField",
+        "county": "ForeignKey",
+        "constituency": "ForeignKey",
+        "ward": "ForeignKey",
+        "election_date": "DateField",
+        "created_at": "DateTimeField"
+      },
+      "properties": ["area", "operational_grain"],
+      "methods": []
+    },
+    "Target": {
+      "table": "targets",
+      "fields": {
+        "campaign": "ForeignKey",
+        "ward": "ForeignKey",
+        "registration_center": "ForeignKey",
+        "projected_turnout_pct": "DecimalField",
+        "votes_needed": "PositiveIntegerField",
+        "votes_committed": "PositiveIntegerField"
+      },
+      "properties": ["progress_pct", "votes_remaining"],
+      "methods": ["compute_win_number"]
+    },
+    "Mobilizer": {
+      "table": "mobilizers",
+      "fields": {
+        "campaign": "ForeignKey",
+        "ward": "ForeignKey",
+        "registration_centre": "ForeignKey",
+        "user": "OneToOneField",
+        "full_name": "CharField",
+        "phone": "CharField",
+        "created_at": "DateTimeField"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "Event": {
+      "table": "events",
+      "fields": {
+        "campaign": "ForeignKey",
+        "ward": "ForeignKey",
+        "registration_centre": "ForeignKey",
+        "mobilizer": "ForeignKey",
+        "title": "CharField",
+        "venue": "CharField",
+        "scheduled_date": "DateTimeField",
+        "status": "CharField",
+        "number_reached": "PositiveIntegerField",
+        "number_attended": "PositiveIntegerField"
+      },
+      "properties": ["turnout_pct"],
+      "methods": []
+    },
+    "Supporter": {
+      "table": "supporters",
+      "fields": {
+        "campaign": "ForeignKey",
+        "ward": "ForeignKey",
+        "mobilizer": "ForeignKey",
+        "full_name": "CharField",
+        "phone": "CharField",
+        "support_level": "CharField",
+        "consent_given": "BooleanField",
+        "registered_at": "DateTimeField"
+      },
+      "properties": [],
+      "methods": []
+    }
+  },
+  "unique_constraints": {
+    "_comment": "Django Meta.constraints that must survive as partial unique indexes.",
+    "targets": ["uniq_ward_target", "uniq_center_target"]
+  },
+  "choices": {
+    "User.Role": [["candidate", "Candidate"], ["manager", "Campaign Manager"], ["mobilizer", "Mobilizer"]],
+    "Campaign.OfficeLevel": [["ward", "Ward (MCA)"], ["constituency", "Constituency (MP)"], ["county", "County (Governor / Senator / Women Rep)"]],
+    "Event.Status": [["planned", "Planned"], ["done", "Done"], ["cancelled", "Cancelled"]],
+    "Supporter.SupportLevel": [["supporter", "Supporter"], ["undecided", "Undecided"], ["opposed", "Opposed"]]
+  }
+}
