@@ -1,4 +1,4 @@
-"""Alembic environment. Async engine, DSN and metadata pulled from the app."""
+"""Alembic environment. Reads the database URL and the schema from the app."""
 
 import asyncio
 from logging.config import fileConfig
@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from backend.config import get_settings
-from backend.models import Base  # noqa: F401  - populates Base.metadata
+from backend.models import Base  # noqa: F401  - registers every model
 
 config = context.config
 
@@ -25,14 +25,14 @@ def _configure(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
-        # Without these two, autogenerate ignores a changed VARCHAR length or a
-        # changed server default and emits an empty migration.
+        # Also notice changed column types and changed defaults.
         compare_type=True,
         compare_server_default=True,
     )
 
 
 def run_migrations_offline() -> None:
+    """Print the SQL instead of running it."""
     context.configure(
         url=config.get_main_option("sqlalchemy.url"),
         target_metadata=target_metadata,

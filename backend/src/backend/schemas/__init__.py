@@ -1,4 +1,4 @@
-"""Pydantic v2 read schemas, one per mapped class."""
+"""Read schemas, one per model."""
 
 from backend.schemas.campaign import (
     CampaignRead,

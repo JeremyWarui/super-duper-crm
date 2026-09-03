@@ -1,4 +1,4 @@
-"""Meeting or rally, with mobilization counts."""
+"""A meeting or rally, with how many people it reached and how many turned up."""
 
 import uuid
 from datetime import datetime
@@ -17,8 +17,6 @@ if TYPE_CHECKING:
 
 
 class Event(UUIDPrimaryKeyMixin, Base):
-    """Default ordering was `-scheduled_date`."""
-
     __tablename__ = "events"
     __table_args__ = (
         CheckConstraint("number_reached >= 0", name="number_reached_non_negative"),
@@ -49,6 +47,7 @@ class Event(UUIDPrimaryKeyMixin, Base):
     status: Mapped[EventStatus] = mapped_column(
         choice_type(EventStatus, "event_status"), default=EventStatus.PLANNED
     )
+    # People invited, and people who showed up.
     number_reached: Mapped[int] = mapped_column(Integer, default=0)
     number_attended: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -62,7 +61,7 @@ class Event(UUIDPrimaryKeyMixin, Base):
 
     @property
     def turnout_pct(self) -> float:
-        """Attendance against how many were reached to invite them."""
+        """Attendance as a percentage of the people reached."""
         if not self.number_reached:
             return 0.0
         return round(self.number_attended / self.number_reached * 100, 1)

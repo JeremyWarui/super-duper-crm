@@ -1,9 +1,4 @@
-"""`compute_win_number` - the one piece of real arithmetic in the model layer.
-
-It was broken in the Django version (it read a field that did not exist), so it
-gets the table-driven treatment: the boundary where floor() flips, the zero and
-None guards, and the odd/even split.
-"""
+"""`compute_win_number`: the vote goal for a ward or a registration centre."""
 
 from decimal import Decimal
 
@@ -52,16 +47,14 @@ def test_win_number_is_none_when_nothing_is_projected_to_be_cast(
 
 
 def test_win_number_uses_exact_decimal_arithmetic() -> None:
-    """The float version of this formula lands on the wrong side of the floor.
+    """Float arithmetic lands on the wrong side of the floor and loses a vote.
 
-    Django computed `registered_voters * float(pct) / 100`. For a 375-voter
-    centre at 36.8% turnout that is 137.99999999999997 rather than 138, so the
-    floor drops to 68 and the win number comes out one vote short: 69, not 70.
-    Under-stating a win number is the expensive direction to be wrong in.
+    375 voters at 36.8% is 137.99999999999997 in float, not 138, so the goal
+    comes out as 69 instead of 70.
     """
     registered_voters, turnout = 375, Decimal("36.8")
 
-    django_float_result = int((registered_voters * float(turnout) / 100) // 2) + 1
-    assert django_float_result == 69, "the float trap, reproduced"
+    float_result = int((registered_voters * float(turnout) / 100) // 2) + 1
+    assert float_result == 69
 
     assert compute_win_number(registered_voters, turnout) == 70

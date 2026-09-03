@@ -1,8 +1,4 @@
-"""Every mapped class, imported here so `Base.metadata` is complete.
-
-Alembic and `create_all` both need one module that pulls in the whole mapping;
-a class missing from this file silently stops being migrated.
-"""
+"""Every model, imported here so `Base.metadata` holds the full schema."""
 
 from backend.db.base import Base
 from backend.models.campaign import Campaign

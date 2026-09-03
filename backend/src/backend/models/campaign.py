@@ -1,4 +1,4 @@
-"""A campaign: one candidate contesting one office in one geographic unit."""
+"""One candidate contesting one office in one place."""
 
 import uuid
 from datetime import date
@@ -34,8 +34,7 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(150))
     office_level: Mapped[OfficeLevel] = mapped_column(choice_type(OfficeLevel, "office_level"))
 
-    # Exactly one of these is meaningful, chosen by `office_level`. Nullable and
-    # SET NULL on delete, as in the Django model.
+    # office_level decides which one of these three applies.
     county_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("counties.id", ondelete="SET NULL"), default=None, index=True
     )
@@ -71,9 +70,9 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     @property
     def area(self) -> "County | Constituency | Ward | None":
-        """The geographic unit this campaign contests.
+        """The place this campaign contests, picked by its office level.
 
-        Requires the matching relationship to be loaded.
+        The matching relationship must be loaded.
         """
         attribute = {
             OfficeLevel.WARD: "ward",
@@ -85,9 +84,7 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     @property
     def operational_grain(self) -> OperationalGrain:
-        """Ward (MCA) campaigns organize by registration centre; every higher
-        office organizes by ward.
-        """
+        """Ward races organize by registration centre, higher offices by ward."""
         if self.office_level is OfficeLevel.WARD:
             return OperationalGrain.CENTRE
         return OperationalGrain.WARD

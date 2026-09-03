@@ -1,50 +1,36 @@
 # Tests
 
 ```bash
-uv run pytest                      # everything, ~6s
-uv run pytest tests                # gate tests only
-uv run pytest evals                # the Django parity check only
+uv run pytest          # everything, ~6s
+uv run pytest tests    # tests only
+uv run pytest evals    # the schema guard only
 ```
 
-Deterministic, local, free, no network and no database server. Safe to run on
-every commit.
+They build an in-memory database from the real schema, so no Postgres server is
+needed and nothing touches the network.
 
-| File | What it holds the line on |
+| File | What it covers |
 |---|---|
-| `test_models.py` | DDL, UUID keys, cascade and SET NULL behavior, unique and check constraints, derived properties, enum values |
-| `test_win_number.py` | The one piece of real arithmetic, table-driven, including the float bug it replaced |
-| `test_migrations.py` | The migration builds the schema the models describe, and downgrade reverses it |
-| `test_schemas.py` | Read schemas validate off mapped instances and never carry `password_hash` |
-| `test_app.py` | The ASGI app boots, serves `/health`, exposes no data routes yet |
-| `test_session.py` | The session dependency: engine caching, and rollback on a failed request |
-| `../evals/test_django_parity.py` | Every field of the pre-port Django schema is mapped, renamed, or dropped with a written reason |
+| `test_models.py` | Keys, deletes, unique and check constraints, calculated values, enums |
+| `test_win_number.py` | The vote goal, across the edge cases |
+| `test_migrations.py` | The migrations build the schema the models describe, and reverse cleanly |
+| `test_schemas.py` | Response schemas expose their listed fields and nothing else |
+| `test_session.py` | Engine caching, and the rollback when a request fails |
+| `test_app.py` | The app starts and serves |
+| `../evals/test_schema_baseline.py` | No field leaves the schema without a recorded reason |
 
-## SQLite, not a Postgres container
+## What the in-memory database does not cover
 
-The suite runs on in-memory SQLite so it stays free and finishes in seconds.
-`sqlalchemy.Uuid`, `Numeric`, `DateTime(timezone=True)` and the partial unique
-indexes all work there, and `conftest.py` turns on `PRAGMA foreign_keys` - SQLite
-ignores foreign keys by default, and without it every cascade and SET NULL test
-here would pass while proving nothing.
+Driver behaviour and Postgres-specific SQL. To check the migration produces
+valid Postgres without running a server:
 
-What that does not cover, and what covers it instead:
-
-- **Dialect-specific DDL** (native `UUID`, `DEFAULT now()`, quoting of `role`,
-  which is reserved in CockroachDB). Checked by compiling the migration offline
-  against both dialects, which needs no server:
-  ```bash
-  DATABASE_URL=postgresql+asyncpg://u:p@h:5432/d  uv run alembic upgrade head --sql
-  DATABASE_URL=cockroachdb+asyncpg://u:p@h:26257/d uv run alembic upgrade head --sql
-  ```
-- **Real asyncpg driver behavior and CockroachDB transaction retries.** Not
-  covered by anything yet. It needs a running node, so it belongs in a
-  integration lane once one exists.
+```bash
+DATABASE_URL=postgresql+asyncpg://u:p@h:5432/d uv run alembic upgrade head --sql
+```
 
 ## Conventions
 
-- Test names are sentences: what must be true, not which function is called.
-- Anything asserting a database rule inserts to prove the rule is in the DDL, not
-  just in Python. `test_the_database_rejects_an_unknown_role` uses raw SQL for
-  exactly this reason - the ORM-level check above it would pass with no
-  constraint in the schema at all.
-- Fixtures live in `conftest.py`, object builders in `factories.py`.
+- Test names say what must be true, not which function is called.
+- A test of a database rule inserts a row to prove the rule is in the schema and
+  not only in Python.
+- Fixtures in `conftest.py`, object builders in `factories.py`.

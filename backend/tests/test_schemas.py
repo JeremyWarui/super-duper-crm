@@ -1,4 +1,4 @@
-"""Read schemas: they validate off a mapped instance, and they leak nothing."""
+"""Read schemas build from a model object and expose only their listed fields."""
 
 from decimal import Decimal
 
@@ -42,7 +42,7 @@ async def test_user_read_never_carries_the_password_hash(session: AsyncSession) 
         is_superuser=True,
     )
     session.add(user)
-    await session.commit()  # column defaults only fire on INSERT
+    await session.commit()  # defaults are filled in on insert
 
     schema = UserRead.model_validate(user)
     dumped = schema.model_dump()
@@ -55,7 +55,7 @@ async def test_user_read_never_carries_the_password_hash(session: AsyncSession) 
 
 
 def test_user_read_rejects_an_unexpected_field() -> None:
-    """`extra="forbid"` is what stops a stray key from being accepted silently."""
+    """An unlisted field is an error, not something quietly ignored."""
     with pytest.raises(ValueError, match="password_hash"):
         UserRead(
             id="00000000-0000-0000-0000-000000000001",
@@ -98,8 +98,7 @@ async def test_campaign_read_includes_the_derived_grain(session: AsyncSession) -
 async def test_target_read_includes_derived_progress_but_not_registered_voters(
     session: AsyncSession,
 ) -> None:
-    """`registered_voters` reads a related row, so it stays out of the default
-    read shape - see the module docstring in schemas/campaign.py."""
+    """`registered_voters` is left out because it reads a related row."""
     _, _, ward, _ = await make_geography(session)
     campaign = await make_campaign(session, ward)
     target = Target(

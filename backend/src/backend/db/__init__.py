@@ -1,3 +1,5 @@
+"""Database engine, session and declarative base."""
+
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from backend.db.session import get_engine, get_session, get_sessionmaker
 
