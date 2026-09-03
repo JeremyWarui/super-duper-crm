@@ -19,7 +19,7 @@ uv run uvicorn backend.main:app --reload  # http://127.0.0.1:8000/docs
 Checks:
 
 ```bash
-uv run pytest        # 115 tests, ~6s, no network, no database server
+uv run pytest        # 119 tests, ~6s, no network, no database server
 uv run ruff check .
 uv run ruff format .
 ```
