@@ -189,3 +189,20 @@ body {
     zoom: 0.85;
   }
 }
+
+/* --- wide screens --------------------------------------------------------
+ *
+ * App.jsx caps the shell and the top rail at 1200px, which was the canvas the
+ * design was drawn on. On a 1920 window that leaves the page sitting in the
+ * middle of 700px of empty paper. Above 1440 the cap becomes the window less a
+ * gutter, so the tables get the width they want.
+ *
+ * Below 1440 the 1200px cap stays and the scale tiers above keep doing the
+ * work: a 1366 laptop has no room to spare, and widening it there is what made
+ * it feel cramped in the first place.
+ */
+@media (min-width: 1441px) {
+  .mx-auto {
+    max-width: min(1720px, calc(100vw - 96px)) !important;
+  }
+}

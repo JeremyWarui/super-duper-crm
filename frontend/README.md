@@ -19,7 +19,7 @@ npm run dev        # http://localhost:5173
 Checks:
 
 ```bash
-npm test           # 126 tests, jsdom, no server needed
+npm test           # 129 tests, jsdom, no server needed
 npm run build
 npm run lint
 ```
@@ -118,3 +118,6 @@ Renaming a field on one side fails on both until the other side is updated.
    those classes do nothing.
 3. `Btn` and `Select` are declared inside `Onboarding`, so they are new component
    types on every render. `npm run lint` warns about it.
+4. The shell widens above 1440px and scales below it, so dragging a window
+   across that boundary is a visible step. Both sizes are right on their own;
+   only the transition is abrupt.
