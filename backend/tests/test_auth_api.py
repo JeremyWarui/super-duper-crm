@@ -4,7 +4,7 @@ import httpx
 from sqlalchemy import select
 
 from backend.models import AuthToken, UserRole
-from tests.factories import auth, make_user, sign_in
+from tests.factories import TEST_PASSWORD, auth, make_user, sign_in
 
 
 async def test_signing_in_returns_a_token_and_the_caller(
@@ -13,7 +13,7 @@ async def test_signing_in_returns_a_token_and_the_caller(
     await make_user(session, username="amina", role=UserRole.MANAGER)
 
     response = await client.post(
-        "/api/auth/login/", json={"username": "amina", "password": "correct-horse-battery"}
+        "/api/auth/login/", json={"username": "amina", "password": TEST_PASSWORD}
     )
 
     assert response.status_code == 200
@@ -27,7 +27,7 @@ async def test_signing_in_returns_a_token_and_the_caller(
 async def test_the_response_carries_no_password_hash(client: httpx.AsyncClient, session) -> None:
     await make_user(session, username="amina")
     response = await client.post(
-        "/api/auth/login/", json={"username": "amina", "password": "correct-horse-battery"}
+        "/api/auth/login/", json={"username": "amina", "password": TEST_PASSWORD}
     )
     assert "password_hash" not in response.text
 
@@ -67,7 +67,7 @@ async def test_an_unknown_username_gets_the_same_message_as_a_wrong_password(
 async def test_a_deactivated_user_cannot_sign_in(client: httpx.AsyncClient, session) -> None:
     await make_user(session, username="amina", is_active=False)
     response = await client.post(
-        "/api/auth/login/", json={"username": "amina", "password": "correct-horse-battery"}
+        "/api/auth/login/", json={"username": "amina", "password": TEST_PASSWORD}
     )
     assert response.status_code == 400
 

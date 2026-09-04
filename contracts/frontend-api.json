@@ -1,0 +1,92 @@
+{
+  "_comment": "The fields the SPA actually reads and sends. Both services check themselves against this file: the backend proves its OpenAPI still offers them (backend/evals/test_frontend_contract.py), and the frontend proves its test doubles still match (frontend/tests/contract.test.js). Renaming a field on one side fails on both until the other side is updated.",
+  "base": "/api",
+  "reads": {
+    "POST /api/auth/login/": ["token", "user"],
+    "GET /api/counties/": ["id", "name"],
+    "GET /api/constituencies/": ["id", "name"],
+    "GET /api/wards/": ["id", "name"],
+    "GET /api/centres/": ["id", "name"],
+    "GET /api/campaigns/": ["id", "title"],
+    "POST /api/campaigns/setup/": ["id", "title", "setup"],
+    "GET /api/targets/": [
+      "id",
+      "ward",
+      "ward_name",
+      "centre_name",
+      "registered_voters",
+      "projected_turnout_pct",
+      "votes_needed"
+    ],
+    "GET /api/mobilizers/": ["id", "full_name", "ward_name", "phone"],
+    "GET /api/events/": [
+      "id",
+      "title",
+      "venue",
+      "ward_name",
+      "scheduled_date",
+      "status",
+      "number_reached",
+      "number_attended",
+      "turnout_pct"
+    ],
+    "GET /api/supporters/": ["id", "full_name", "phone", "support_level", "consent_given"],
+    "GET /api/strategy/": [
+      "win_number",
+      "committed",
+      "progress_pct",
+      "total_registered",
+      "total_cast",
+      "units",
+      "notes"
+    ]
+  },
+  "nested_reads": {
+    "POST /api/auth/login/.user": ["id", "username", "full_name", "role"],
+    "POST /api/campaigns/setup/.setup": [
+      "grain",
+      "units",
+      "total_registered",
+      "win_number",
+      "note"
+    ],
+    "GET /api/strategy/.units": [
+      "unit",
+      "needed",
+      "committed",
+      "gap",
+      "progress",
+      "events",
+      "has_mobilizer",
+      "share"
+    ],
+    "GET /api/strategy/.notes": ["tone", "title", "text"]
+  },
+  "writes": {
+    "POST /api/auth/login/": ["username", "password"],
+    "POST /api/campaigns/setup/": [
+      "title",
+      "office_level",
+      "election_date",
+      "county",
+      "constituency",
+      "ward"
+    ],
+    "POST /api/mobilizers/": ["campaign", "ward", "full_name", "phone"],
+    "POST /api/events/": ["campaign", "ward", "title", "venue", "scheduled_date", "status"],
+    "POST /api/events/{event_id}/record/": ["number_reached", "number_attended"],
+    "POST /api/supporters/": ["campaign", "ward", "full_name", "phone", "consent_given"],
+    "PATCH /api/targets/{target_id}/": ["projected_turnout_pct"]
+  },
+  "enums": {
+    "user.role": ["candidate", "manager", "mobilizer"],
+    "campaign.office_level": ["ward", "constituency", "county"],
+    "event.status": ["planned", "done", "cancelled"],
+    "supporter.support_level": ["supporter", "undecided", "opposed"],
+    "setup.grain": ["centre", "ward"]
+  },
+  "error_shape": {
+    "_comment": "src/api/client.js reads detail first, then the first value of the first field. Login also reads non_field_errors[0].",
+    "detail": "string"
+  }
+}

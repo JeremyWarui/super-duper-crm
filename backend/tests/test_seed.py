@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 
 from backend.models import Campaign, Constituency, County, Mobilizer, Target, User, Ward
 from backend.security import verify_password
-from backend.seed.demo import DEMO_PASSWORDS, seed_demo
+from backend.seed.demo import seed_demo
 from backend.seed.reference import (
     CAW_CSV,
     COUNTY_RESULTS_CSV,
@@ -169,11 +169,47 @@ async def test_the_demo_builds_one_campaign_with_one_sign_in_per_role(
     ]
 
 
-async def test_every_demo_password_signs_that_user_in(session: AsyncSession) -> None:
+async def test_every_password_it_prints_signs_that_user_in(session: AsyncSession) -> None:
+    """The printed password is the only copy, so it has to be the right one."""
     await import_geography(session)
-    await seed_demo(session)
 
-    for username, password in DEMO_PASSWORDS.items():
+    summary = await seed_demo(session)
+
+    for username, password, _ in summary.sign_ins:
+        user = (await session.execute(select(User).where(User.username == username))).scalar_one()
+        assert verify_password(password, user.password_hash), username
+
+
+async def test_each_account_gets_its_own_password(session: AsyncSession) -> None:
+    await import_geography(session)
+
+    summary = await seed_demo(session)
+
+    printed = [password for _, password, _ in summary.sign_ins]
+    assert len(set(printed)) == 3
+    assert all(len(password) >= 12 for password in printed)
+
+
+async def test_a_given_password_is_used_for_all_three(session: AsyncSession) -> None:
+    """So a scripted demo can sign in without scraping the output."""
+    await import_geography(session)
+
+    summary = await seed_demo(session, password="pinned-for-this-run")
+
+    assert {password for _, password, _ in summary.sign_ins} == {"pinned-for-this-run"}
+    user = (await session.execute(select(User).where(User.username == "manager"))).scalar_one()
+    assert verify_password("pinned-for-this-run", user.password_hash)
+
+
+async def test_re_running_resets_the_passwords(session: AsyncSession) -> None:
+    """The old ones were printed once and are gone; the new ones must work."""
+    await import_geography(session)
+    first = await seed_demo(session)
+
+    second = await seed_demo(session)
+
+    assert {p for _, p, _ in first.sign_ins} != {p for _, p, _ in second.sign_ins}
+    for username, password, _ in second.sign_ins:
         user = (await session.execute(select(User).where(User.username == username))).scalar_one()
         assert verify_password(password, user.password_hash), username
 

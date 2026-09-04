@@ -1,0 +1,28 @@
+version: 2
+
+secret:
+  show-secrets: false
+
+  ignored-paths:
+    # Variable names, no values. The real .env is gitignored; these say what to set.
+    - "**/.env.example"
+    # Fixtures. Test passwords are generated per run (backend/tests/factories.py)
+    # and the tokens are literal strings of zeroes.
+    - "backend/tests/**"
+    - "frontend/tests/**"
+
+  ignored-matches:
+    # These were seed values for local demo accounts, never credentials for
+    # anything that exists. They are gone from the working tree - the demo now
+    # generates a password per account per run - but they stay reachable in the
+    # commits that introduced them. Rewriting those blobs would leave the
+    # commits unable to run, which is a worse trade than naming the strings
+    # here.
+    - name: former demo account seed, backend/src/backend/seed/demo.py
+      match: demo-aspirant-2027
+    - name: former demo account seed, backend/src/backend/seed/demo.py
+      match: demo-manager-2027
+    - name: former demo account seed, backend/src/backend/seed/demo.py
+      match: demo-mobilizer-2027
+    - name: former test fixture, backend/tests/factories.py
+      match: correct-horse-battery

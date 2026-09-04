@@ -1,10 +1,11 @@
 """A worked example: one campaign, and one sign-in per role.
 
 Each role sees a different app, so showing the three of them means signing in as
-each in turn. The passwords here are fixed and public; they belong in a local
-database and nowhere else.
+each in turn. Passwords are generated per run and printed once; pass one in to
+get the same accounts every time.
 """
 
+import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
@@ -30,11 +31,7 @@ from backend.models import (
 from backend.security import hash_password
 from backend.services.targets import generate_targets
 
-DEMO_PASSWORDS = {
-    "manager": "demo-manager-2027",
-    "aspirant": "demo-aspirant-2027",
-    "mobilizer": "demo-mobilizer-2027",
-}
+DEMO_USERNAMES = ("aspirant", "manager", "mobilizer")
 
 # Roysambu MP: the seat the prototype was checked against.
 DEMO_COUNTY = "Nairobi City"
@@ -49,6 +46,18 @@ class DemoSummary:
     units: int
     win_number: int
     sign_ins: list[tuple[str, str, str]]
+    """username, password, what that role sees. The password is shown once."""
+
+
+def demo_passwords(password: str | None = None) -> dict[str, str]:
+    """One password per demo account.
+
+    Generated unless caller supplies one, so nothing credential-shaped is
+    checked in and a shared clone does not hand out working logins.
+    """
+    if password:
+        return dict.fromkeys(DEMO_USERNAMES, password)
+    return {username: secrets.token_urlsafe(9) for username in DEMO_USERNAMES}
 
 
 async def _user(
@@ -57,9 +66,10 @@ async def _user(
     role: UserRole,
     first_name: str,
     last_name: str,
+    passwords: dict[str, str],
     phone: str = "",
 ) -> User:
-    """The demo user, created if missing and reset to a known password if not."""
+    """The demo user, created if missing and reset to this run's password if not."""
     user = (
         await session.execute(select(User).where(User.username == username))
     ).scalar_one_or_none()
@@ -71,15 +81,17 @@ async def _user(
     user.last_name = last_name
     user.phone = phone
     user.is_active = True
-    user.password_hash = hash_password(DEMO_PASSWORDS[username])
+    user.password_hash = hash_password(passwords[username])
     return user
 
 
-async def seed_demo(session: AsyncSession) -> DemoSummary:
+async def seed_demo(session: AsyncSession, *, password: str | None = None) -> DemoSummary:
     """Build the demo campaign over already-loaded geography.
 
-    Re-running rebuilds it in place rather than making a second campaign.
+    Re-running rebuilds it in place rather than making a second campaign, and
+    resets the three passwords to this run's.
     """
+    passwords = demo_passwords(password)
     constituency = (
         await session.execute(
             select(Constituency)
@@ -94,11 +106,13 @@ async def seed_demo(session: AsyncSession) -> DemoSummary:
         )
 
     aspirant = await _user(
-        session, "aspirant", UserRole.CANDIDATE, "Jane", "Wanjiru", "+254700000001"
+        session, "aspirant", UserRole.CANDIDATE, "Jane", "Wanjiru", passwords, "+254700000001"
     )
-    await _user(session, "manager", UserRole.MANAGER, "Amina", "Kariuki", "+254700000002")
+    await _user(
+        session, "manager", UserRole.MANAGER, "Amina", "Kariuki", passwords, "+254700000002"
+    )
     mobilizer_user = await _user(
-        session, "mobilizer", UserRole.MOBILIZER, "Juma", "Otieno", "+254700000003"
+        session, "mobilizer", UserRole.MOBILIZER, "Juma", "Otieno", passwords, "+254700000003"
     )
     await session.flush()
 
@@ -134,9 +148,9 @@ async def seed_demo(session: AsyncSession) -> DemoSummary:
         units=summary.units,
         win_number=summary.win_number,
         sign_ins=[
-            ("aspirant", DEMO_PASSWORDS["aspirant"], "Candidate: read-only cockpit"),
-            ("manager", DEMO_PASSWORDS["manager"], "Campaign manager: the full war room"),
-            ("mobilizer", DEMO_PASSWORDS["mobilizer"], f"Mobilizer: {wards[0].name} only"),
+            ("aspirant", passwords["aspirant"], "Candidate: read-only cockpit"),
+            ("manager", passwords["manager"], "Campaign manager: the full war room"),
+            ("mobilizer", passwords["mobilizer"], f"Mobilizer: {wards[0].name} only"),
         ],
     )
 

@@ -1,5 +1,7 @@
 """Object builders, so each test only spells out what it cares about."""
 
+import secrets
+
 from backend.models import (
     Campaign,
     Constituency,
@@ -12,6 +14,10 @@ from backend.models import (
     Ward,
 )
 from backend.security import hash_password
+
+# Generated per run: the value never matters, and a literal here reads as a
+# credential to a secret scanner.
+TEST_PASSWORD = secrets.token_urlsafe(16)
 
 
 async def make_geography(session, *, ward_voters: int | None = 10_000):
@@ -56,7 +62,7 @@ async def make_user(
     *,
     username: str = "manager",
     role: UserRole = UserRole.MANAGER,
-    password: str = "correct-horse-battery",
+    password: str = TEST_PASSWORD,
     **fields,
 ) -> User:
     """A user who can sign in, with the password already hashed."""
@@ -73,7 +79,7 @@ async def make_user(
     return user
 
 
-async def sign_in(client, username: str, password: str = "correct-horse-battery") -> str:
+async def sign_in(client, username: str, password: str = TEST_PASSWORD) -> str:
     """The token for a user, ready to put in an Authorization header."""
     response = await client.post(
         "/api/auth/login/", json={"username": username, "password": password}
@@ -92,7 +98,7 @@ async def make_mobilizer_user(
     ward: Ward,
     *,
     username: str = "juma",
-    password: str = "correct-horse-battery",
+    password: str = TEST_PASSWORD,
 ) -> tuple[User, Mobilizer]:
     """A mobilizer who can sign in, and the profile that scopes them to one ward."""
     user = await make_user(

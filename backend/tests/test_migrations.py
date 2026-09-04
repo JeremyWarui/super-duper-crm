@@ -4,6 +4,7 @@ Catches a column added to a model but never migrated. Names are compared, not
 column types, which differ harmlessly across databases.
 """
 
+import functools
 import importlib.util
 from pathlib import Path
 
@@ -110,3 +111,70 @@ def test_downgrade_removes_everything_upgrade_created() -> None:
         left_over.reflect(bind=connection)
     engine.dispose()
     assert set(left_over.tables) == set()
+
+
+@functools.cache
+def _postgres_sql() -> str:
+    """The migrations rendered as Postgres, without connecting to one.
+
+    The in-memory tests all run on SQLite, which silently accepts things
+    Postgres rejects and ignores the dialect-specific clauses entirely.
+    """
+    import io
+    import os
+    from contextlib import redirect_stdout
+
+    from alembic.config import Config
+
+    from alembic import command
+
+    root = Path(__file__).resolve().parent.parent
+    previous = os.environ.get("DATABASE_URL")
+    os.environ["DATABASE_URL"] = "postgresql+asyncpg://u:p@localhost:5432/campaign_crm"
+    try:
+        from backend.config import get_settings
+
+        get_settings.cache_clear()
+        config = Config(str(root / "alembic.ini"))
+        config.set_main_option("script_location", str(root / "alembic"))
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            command.upgrade(config, "head", sql=True)
+        return buffer.getvalue()
+    finally:
+        if previous is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = previous
+        from backend.config import get_settings
+
+        get_settings.cache_clear()
+
+
+def test_the_migrations_render_as_valid_postgres() -> None:
+    sql = _postgres_sql()
+    assert sql.strip().startswith("BEGIN;")
+    assert sql.strip().endswith("COMMIT;")
+    for table in Base.metadata.tables:
+        assert f"CREATE TABLE {table}" in sql, f"{table} is missing from the Postgres output"
+
+
+def test_the_partial_unique_indexes_keep_their_where_clause_in_postgres() -> None:
+    """Without the WHERE, a campaign could not hold a ward target and its
+    centre targets at the same time."""
+    sql = _postgres_sql()
+    assert (
+        "CREATE UNIQUE INDEX uq_targets_campaign_ward ON targets "
+        "(campaign_id, ward_id) WHERE registration_centre_id IS NULL" in sql
+    )
+    assert (
+        "CREATE UNIQUE INDEX uq_targets_campaign_registration_centre ON targets "
+        "(campaign_id, registration_centre_id) WHERE registration_centre_id IS NOT NULL" in sql
+    )
+
+
+def test_cascading_deletes_survive_into_postgres() -> None:
+    """SQLite ignores ON DELETE unless a pragma is on, so it cannot prove this."""
+    sql = _postgres_sql()
+    assert "ON DELETE CASCADE" in sql
+    assert "ON DELETE SET NULL" in sql
