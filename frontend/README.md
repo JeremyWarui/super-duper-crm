@@ -19,7 +19,7 @@ npm run dev        # http://localhost:5173
 Checks:
 
 ```bash
-npm test           # 143 tests, jsdom, no server needed
+npm test           # 153 tests, jsdom, no server needed
 npm run build
 npm run lint
 ```
@@ -95,6 +95,11 @@ lists what it will be worked on: every ward in the county or constituency, or
 every registration centre in the ward, each with its register and a total. A
 ward with no centres loaded says so there, rather than looking ready and coming
 back with a win number of zero.
+
+**Setup knows whose campaign it is.** A manager is asked first who they are
+running for, and can pick an aspirant already on the system or create one; the
+campaign belongs to that aspirant, not to the manager who typed it in. A
+candidate signing up gets the shorter flow and their own campaign.
 
 **Setup creates the team.** The screen that shows the win number also adds the
 campaign manager and the mobilizers, each with a generated password shown once.

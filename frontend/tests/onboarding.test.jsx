@@ -406,3 +406,139 @@ describe("adding the team once the campaign exists", () => {
     expect(onDone).toHaveBeenCalled();
   });
 });
+
+describe("a manager setting up for an aspirant", () => {
+  const ASPIRANTS = [
+    { id: "a1", username: "jane", full_name: "Jane Wanjiru", role: "candidate", phone: "" },
+  ];
+  const REPLY_WITH_LOGIN = {
+    ...SETUP_REPLY,
+    candidate_login: { id: "a2", username: "peter", full_name: "Peter Kimani", password: "Kx8fQ2mNpR4w" },
+  };
+
+  function startAsManager(routes = {}) {
+    signIn("manager");
+    const calls = stubApi({ ...GEOGRAPHY, "GET /users/": ASPIRANTS, ...routes });
+    const onDone = vi.fn();
+    return { calls, onDone, ...renderApp(<Onboarding onDone={onDone} />) };
+  }
+
+  async function walk(user, { existing = true } = {}) {
+    if (existing) {
+      await user.selectOptions(await screen.findByRole("combobox"), "a1");
+    } else {
+      await user.click(await screen.findByRole("button", { name: "Someone new" }));
+      await user.type(screen.getByPlaceholderText("jane"), "peter");
+    }
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    await user.type(await screen.findByPlaceholderText(/Jane for Roysambu/), "Peter for Roysambu");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(await screen.findByText("MP", { selector: "div" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    const selects = await screen.findAllByRole("combobox");
+    await user.selectOptions(selects[0], "cty1");
+    await user.selectOptions((await screen.findAllByRole("combobox"))[1], "k1");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+  }
+
+  it("asks who the campaign is for, before anything else", async () => {
+    startAsManager();
+    expect(await screen.findByText(/Who are you running this campaign for/)).toBeInTheDocument();
+    expect(screen.getByText(/step 1 of 5/)).toBeInTheDocument();
+  });
+
+  it("gives the candidate four steps, not five", async () => {
+    signIn("candidate");
+    stubApi(GEOGRAPHY);
+    renderApp(<Onboarding onDone={vi.fn()} />);
+
+    expect(await screen.findByText(/step 1 of 4/)).toBeInTheDocument();
+    expect(screen.queryByText(/Who are you running this campaign for/)).toBeNull();
+  });
+
+  it("lists the aspirants already on the system", async () => {
+    startAsManager();
+    expect(await screen.findByRole("option", { name: "Jane Wanjiru" })).toBeInTheDocument();
+  });
+
+  it("will not move on until an aspirant is chosen", async () => {
+    startAsManager();
+    expect(await screen.findByRole("button", { name: "Next" })).toBeDisabled();
+  });
+
+  it("sends the chosen aspirant as the campaign's owner", async () => {
+    const user = userEvent.setup();
+    const { calls } = startAsManager({ "POST /campaigns/setup/": SETUP_REPLY });
+
+    await walk(user);
+    await user.click(await screen.findByRole("button", { name: "Create campaign" }));
+
+    await waitFor(() => {
+      const posted = calls.find((c) => c.path === "/campaigns/setup/");
+      expect(posted.body.candidate).toBe("a1");
+      expect(posted.body.new_candidate).toBeUndefined();
+    });
+  });
+
+  it("can create the aspirant instead", async () => {
+    const user = userEvent.setup();
+    const { calls } = startAsManager({ "POST /campaigns/setup/": REPLY_WITH_LOGIN });
+
+    await walk(user, { existing: false });
+    await user.click(await screen.findByRole("button", { name: "Create campaign" }));
+
+    await waitFor(() => {
+      const posted = calls.find((c) => c.path === "/campaigns/setup/");
+      expect(posted.body.new_candidate).toMatchObject({ username: "peter" });
+      expect(posted.body.candidate).toBeUndefined();
+    });
+  });
+
+  it("shows the new aspirant's password once", async () => {
+    const user = userEvent.setup();
+    startAsManager({ "POST /campaigns/setup/": REPLY_WITH_LOGIN });
+
+    await walk(user, { existing: false });
+    await user.click(await screen.findByRole("button", { name: "Create campaign" }));
+
+    expect(await screen.findByText("Kx8fQ2mNpR4w")).toBeInTheDocument();
+    expect(screen.getByText(/Peter Kimani signs in with/)).toBeInTheDocument();
+  });
+
+  it("shows no login when an existing aspirant was chosen", async () => {
+    const user = userEvent.setup();
+    startAsManager({ "POST /campaigns/setup/": SETUP_REPLY });
+
+    await walk(user);
+    await user.click(await screen.findByRole("button", { name: "Create campaign" }));
+
+    await screen.findByText("YOUR CAMPAIGN IS SET UP");
+    expect(screen.queryByText(/signs in with/)).toBeNull();
+  });
+
+  it("can step back to change the aspirant", async () => {
+    const user = userEvent.setup();
+    startAsManager();
+
+    await user.selectOptions(await screen.findByRole("combobox"), "a1");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.type(await screen.findByPlaceholderText(/Jane for Roysambu/), "Peter");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(await screen.findByRole("button", { name: "Back" }));
+
+    expect(await screen.findByPlaceholderText(/Jane for Roysambu/)).toHaveValue("Peter");
+  });
+
+  it("shows the server's refusal to name somebody who is not an aspirant", async () => {
+    const user = userEvent.setup();
+    startAsManager({
+      "POST /campaigns/setup/": { status: 400, body: { detail: "juma is not an aspirant." } },
+    });
+
+    await walk(user);
+    await user.click(await screen.findByRole("button", { name: "Create campaign" }));
+
+    expect(await screen.findByText("juma is not an aspirant.")).toBeInTheDocument();
+  });
+});

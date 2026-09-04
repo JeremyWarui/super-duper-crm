@@ -9,6 +9,9 @@ _hasher = PasswordHasher()
 
 TOKEN_KEY_BYTES = 20
 
+# Readable down a phone line once, worth nothing to a guesser.
+PASSWORD_BYTES = 9
+
 
 def hash_password(password: str) -> str:
     """Argon2id hash, salt included."""
@@ -35,3 +38,8 @@ def needs_rehash(password_hash: str) -> bool:
 
 def new_token_key() -> str:
     return secrets.token_hex(TOKEN_KEY_BYTES)
+
+
+def new_password() -> str:
+    """A password for an account somebody else is creating."""
+    return secrets.token_urlsafe(PASSWORD_BYTES)
