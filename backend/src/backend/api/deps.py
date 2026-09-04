@@ -95,6 +95,13 @@ def require_writer(*, mobilizer_writable: bool = False):
     return dependency
 
 
+Writer = Annotated[User, Depends(require_writer())]
+"""A caller allowed to change campaign data: managers only."""
+
+MobilizerWriter = Annotated[User, Depends(require_writer(mobilizer_writable=True))]
+"""A caller allowed to change events, which mobilizers report through."""
+
+
 def mobilizer_ward_id(user: User) -> uuid.UUID | None:
     """The one ward a mobilizer may see, or None for every other role.
 

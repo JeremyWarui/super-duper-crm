@@ -2,13 +2,13 @@
 
 import uuid
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from backend.models.enums import UserRole
-from backend.schemas.common import ORMModel
+from backend.schemas.common import ORMModel, WriteModel
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(WriteModel):
     username: str = Field(min_length=1, max_length=150)
     password: str = Field(min_length=1)
 
@@ -22,6 +22,6 @@ class LoginUser(ORMModel):
     role: UserRole
 
 
-class LoginResponse(BaseModel):
+class LoginResponse(ORMModel):
     token: str
     user: LoginUser

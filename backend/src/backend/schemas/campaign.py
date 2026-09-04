@@ -11,10 +11,10 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import AliasPath, BaseModel, Field, ValidationInfo, field_validator
+from pydantic import AliasPath, Field, ValidationInfo, field_validator
 
 from backend.models.enums import EventStatus, OfficeLevel, OperationalGrain, SupportLevel
-from backend.schemas.common import ORMModel
+from backend.schemas.common import ORMModel, WriteModel
 
 # ------------------------------------------------------------------ campaign
 
@@ -32,7 +32,7 @@ class CampaignRead(ORMModel):
     created_at: datetime
 
 
-class CampaignSetup(BaseModel):
+class CampaignSetup(WriteModel):
     """Everything needed to stand a campaign up: the seat, and where it is."""
 
     title: str = Field(min_length=1, max_length=150)
@@ -43,7 +43,7 @@ class CampaignSetup(BaseModel):
     ward: uuid.UUID | None = None
 
 
-class SetupSummary(BaseModel):
+class SetupSummary(ORMModel):
     """What generating the targets produced."""
 
     grain: OperationalGrain
@@ -79,7 +79,7 @@ class TargetRead(ORMModel):
     progress_pct: float
 
 
-class TargetCreate(BaseModel):
+class TargetCreate(WriteModel):
     campaign: uuid.UUID
     ward: uuid.UUID
     registration_centre: uuid.UUID | None = None
@@ -87,7 +87,7 @@ class TargetCreate(BaseModel):
     votes_committed: int = Field(default=0, ge=0)
 
 
-class TargetUpdate(BaseModel):
+class TargetUpdate(WriteModel):
     """Every field optional; the win number is recomputed from what changed."""
 
     projected_turnout_pct: Decimal | None = Field(default=None, ge=0, le=100)
@@ -111,7 +111,7 @@ class MobilizerRead(ORMModel):
     created_at: datetime
 
 
-class MobilizerCreate(BaseModel):
+class MobilizerCreate(WriteModel):
     campaign: uuid.UUID
     ward: uuid.UUID
     registration_centre: uuid.UUID | None = None
@@ -141,7 +141,7 @@ class EventRead(ORMModel):
     turnout_pct: float
 
 
-class EventCreate(BaseModel):
+class EventCreate(WriteModel):
     campaign: uuid.UUID
     ward: uuid.UUID
     registration_centre: uuid.UUID | None = None
@@ -152,7 +152,7 @@ class EventCreate(BaseModel):
     status: EventStatus = EventStatus.PLANNED
 
 
-class EventRecord(BaseModel):
+class EventRecord(WriteModel):
     """Closing an event: who was invited, and who came."""
 
     number_reached: int = Field(ge=0)
@@ -182,7 +182,7 @@ class SupporterRead(ORMModel):
     created_at: datetime
 
 
-class SupporterCreate(BaseModel):
+class SupporterCreate(WriteModel):
     campaign: uuid.UUID
     ward: uuid.UUID | None = None
     mobilizer: uuid.UUID | None = None

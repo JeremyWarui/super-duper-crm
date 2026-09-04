@@ -2,6 +2,9 @@
 
 import os
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
+from decimal import Decimal
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
@@ -11,6 +14,17 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engin
 os.environ.setdefault("SECRET_KEY", "test-secret-key-at-least-32-characters-long")
 
 from backend.models import Base  # noqa: E402  - after the env var is set
+
+if TYPE_CHECKING:
+    from backend.models import (
+        Campaign,
+        Constituency,
+        County,
+        Mobilizer,
+        RegistrationCentre,
+        User,
+        Ward,
+    )
 
 
 @pytest.fixture
@@ -57,3 +71,96 @@ async def client(session: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as http_client:
         yield http_client
     app.dependency_overrides.clear()
+
+
+@dataclass
+class World:
+    """One campaign with all three roles signed in, which most API tests need."""
+
+    county: "County"
+    constituency: "Constituency"
+    ward: "Ward"
+    other_ward: "Ward"
+    centre: "RegistrationCentre"
+    campaign: "Campaign"
+    candidate: "User"
+    manager: "User"
+    mobilizer_user: "User"
+    mobilizer: "Mobilizer"
+    tokens: dict[str, str]
+
+    def headers(self, role: str) -> dict[str, str]:
+        return {"Authorization": f"Token {self.tokens[role]}"}
+
+
+@pytest.fixture
+async def world(session: AsyncSession, client: httpx.AsyncClient) -> World:
+    """Roysambu MP: two wards, one staffed by a mobilizer, targets already built."""
+    from backend.models import (
+        Campaign,
+        Constituency,
+        County,
+        Mobilizer,
+        OfficeLevel,
+        RegistrationCentre,
+        UserRole,
+        Ward,
+    )
+    from backend.services.targets import generate_targets
+    from tests.factories import make_user, sign_in
+
+    county = County(
+        name="Nairobi City",
+        code="047",
+        registered_voters=2_400_000,
+        turnout_2022_pct=Decimal("60.00"),
+    )
+    constituency = Constituency(county=county, name="Roysambu", code="279")
+    ward = Ward(constituency=constituency, name="Zimmerman", code="1393", registered_voters=30_701)
+    other_ward = Ward(
+        constituency=constituency, name="Githurai", code="1391", registered_voters=35_899
+    )
+    centre = RegistrationCentre(
+        ward=ward, name="Zimmerman Primary", code="001", registered_voters=2_500
+    )
+    session.add_all([county, ward, other_ward, centre])
+    await session.commit()
+
+    candidate = await make_user(session, username="jane", role=UserRole.CANDIDATE)
+    manager = await make_user(session, username="amina", role=UserRole.MANAGER)
+    mobilizer_user = await make_user(session, username="juma", role=UserRole.MOBILIZER)
+
+    campaign = Campaign(
+        candidate=candidate,
+        title="Jane for Roysambu",
+        office_level=OfficeLevel.CONSTITUENCY,
+        constituency_id=constituency.id,
+    )
+    session.add(campaign)
+    await session.commit()
+    await generate_targets(session, campaign)
+
+    mobilizer = Mobilizer(
+        campaign=campaign, ward=ward, full_name="Juma Otieno", user=mobilizer_user
+    )
+    session.add(mobilizer)
+    await session.commit()
+
+    tokens = {
+        "candidate": await sign_in(client, "jane"),
+        "manager": await sign_in(client, "amina"),
+        "mobilizer": await sign_in(client, "juma"),
+    }
+    return World(
+        county=county,
+        constituency=constituency,
+        ward=ward,
+        other_ward=other_ward,
+        centre=centre,
+        campaign=campaign,
+        candidate=candidate,
+        manager=manager,
+        mobilizer_user=mobilizer_user,
+        mobilizer=mobilizer,
+        tokens=tokens,
+    )
