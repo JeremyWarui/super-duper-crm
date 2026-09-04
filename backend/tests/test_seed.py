@@ -11,11 +11,22 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.models import Campaign, Constituency, County, Mobilizer, Target, User, Ward
+from backend.models import (
+    Campaign,
+    Constituency,
+    County,
+    Mobilizer,
+    OfficeLevel,
+    Target,
+    User,
+    UserRole,
+    Ward,
+)
 from backend.security import verify_password
 from backend.seed.demo import seed_demo
 from backend.seed.reference import (
     CAW_CSV,
+    CENTRES_CSV,
     COUNTY_RESULTS_CSV,
     COUNTY_VOTERS_CSV,
     import_centres,
@@ -166,6 +177,7 @@ async def test_the_demo_builds_one_campaign_with_one_sign_in_per_role(
         "aspirant",
         "manager",
         "mobilizer",
+        "newaspirant",
     ]
 
 
@@ -186,7 +198,7 @@ async def test_each_account_gets_its_own_password(session: AsyncSession) -> None
     summary = await seed_demo(session)
 
     printed = [password for _, password, _ in summary.sign_ins]
-    assert len(set(printed)) == 3
+    assert len(set(printed)) == len(printed)
     assert all(len(password) >= 12 for password in printed)
 
 
@@ -253,7 +265,7 @@ async def test_running_the_demo_twice_leaves_one_campaign(session: AsyncSession)
 
     assert await session.scalar(select(func.count()).select_from(Campaign)) == 1
     assert await session.scalar(select(func.count()).select_from(Target)) == before
-    assert await session.scalar(select(func.count()).select_from(User)) == 3
+    assert await session.scalar(select(func.count()).select_from(User)) == 4
 
 
 async def test_the_demo_campaign_targets_every_ward_in_roysambu(session: AsyncSession) -> None:
@@ -268,3 +280,209 @@ async def test_the_demo_campaign_targets_every_ward_in_roysambu(session: AsyncSe
         )
     ).scalar_one()
     assert summary.units == len(roysambu.wards)
+
+
+async def test_one_demo_account_has_no_campaign_so_setup_can_be_seen(
+    session: AsyncSession,
+) -> None:
+    """Every other account lands on the dashboard, where setup is unreachable."""
+    await import_geography(session)
+    await seed_demo(session)
+
+    fresh = (await session.execute(select(User).where(User.username == "newaspirant"))).scalar_one()
+    theirs = (
+        (await session.execute(select(Campaign).where(Campaign.candidate_id == fresh.id)))
+        .scalars()
+        .all()
+    )
+
+    assert fresh.role is UserRole.CANDIDATE
+    assert theirs == []
+
+
+async def test_re_running_does_not_hand_that_account_a_campaign(session: AsyncSession) -> None:
+    await import_geography(session)
+    await seed_demo(session)
+    await seed_demo(session)
+
+    fresh = (await session.execute(select(User).where(User.username == "newaspirant"))).scalar_one()
+    assert (
+        await session.scalar(
+            select(func.count()).select_from(Campaign).where(Campaign.candidate_id == fresh.id)
+        )
+        == 0
+    )
+
+
+# ------------------------------------------------- matching the two sources
+
+
+def test_the_two_sources_spell_a_ward_differently_and_still_match() -> None:
+    """KNBS writes a typographic apostrophe and a forward slash; the IEBC
+    extraction writes an ASCII one and a backslash. Folding them is the
+    difference between 151 centres landing and being dropped."""
+    assert normalise("Ziwa la Ng\u2019ombe") == normalise("ZIWA LA NG'OMBE")
+    assert normalise("Njabini/Kiburu") == normalise("NJABINI\\KIBURU")
+    assert normalise("Ziwani/Kariokor") == normalise("ZIWANI/KARIOKOR")
+
+
+def test_the_bundled_centres_file_is_present() -> None:
+    assert CENTRES_CSV.exists(), "data/centres.csv is missing"
+
+
+async def test_every_centre_that_belongs_to_a_ward_lands(session: AsyncSession) -> None:
+    """The whole IEBC extraction, against the whole KNBS geography."""
+    await import_geography(session)
+
+    summary = await import_centres(session, CENTRES_CSV)
+
+    assert summary.unmatched == []
+    assert summary.wards_covered == KENYA_WARDS
+    assert summary.centres > 27_000
+
+
+async def test_the_diaspora_and_prisons_are_left_out_rather_than_failing(
+    session: AsyncSession,
+) -> None:
+    """Counties 48 and 49 are IEBC voting categories, not places with wards.
+    No ward or constituency campaign organizes on them."""
+    await import_geography(session)
+
+    summary = await import_centres(session, CENTRES_CSV)
+
+    assert summary.skipped_special > 100
+    assert summary.unmatched == []
+
+
+async def test_a_ward_name_the_pdf_cut_short_still_matches(session: AsyncSession, tmp_path) -> None:
+    """The IEBC PDF clips a long name to its column width."""
+    await import_geography(session)
+    csv_path = tmp_path / "centres.csv"
+    csv_path.write_text(
+        "county_code,const_name,ward_name,centre_code,centre_name,registered_voters\n"
+        "47,KIBRA,WOODLEY/KENYATTA GOLF COU,001,Upper Hill Sec Sch,900\n"
+    )
+
+    summary = await import_centres(session, csv_path)
+
+    assert summary.centres == 1
+    assert summary.unmatched == []
+    ward = (
+        await session.execute(
+            select(Ward)
+            .where(Ward.name == "Woodley/Kenyatta Golf Course")
+            .options(selectinload(Ward.centres))
+        )
+    ).scalar_one()
+    assert [c.name for c in ward.centres] == ["Upper Hill Sec Sch"]
+
+
+async def test_a_name_too_short_to_be_sure_of_is_not_guessed_at(
+    session: AsyncSession, tmp_path
+) -> None:
+    """A short prefix could mean several wards, and a wrong one is worse than none."""
+    await import_geography(session)
+    csv_path = tmp_path / "centres.csv"
+    csv_path.write_text(
+        "county_code,const_name,ward_name,centre_code,centre_name,registered_voters\n"
+        "47,KIBRA,WOOD,001,Somewhere,900\n"
+    )
+
+    summary = await import_centres(session, csv_path)
+
+    assert summary.centres == 0
+    assert len(summary.unmatched) == 1
+
+
+async def test_an_ambiguous_prefix_is_not_guessed_at(session: AsyncSession, tmp_path) -> None:
+    """Two wards could be meant, so neither is chosen."""
+    await import_geography(session)
+    constituency = (
+        await session.execute(select(Constituency).where(Constituency.name == "Roysambu"))
+    ).scalar_one()
+    session.add_all(
+        [
+            Ward(constituency=constituency, name="Kahawa Sukari", registered_voters=1),
+            Ward(constituency=constituency, name="Kahawa Squatters", registered_voters=1),
+        ]
+    )
+    await session.commit()
+    csv_path = tmp_path / "centres.csv"
+    csv_path.write_text(
+        "county_code,const_name,ward_name,centre_code,centre_name,registered_voters\n"
+        "47,ROYSAMBU,KAHAWA S,001,Somewhere,900\n"
+    )
+
+    summary = await import_centres(session, csv_path)
+
+    assert summary.centres == 0
+    assert len(summary.unmatched) == 1
+
+
+async def test_a_ward_s_centres_add_up_to_its_register(session: AsyncSession) -> None:
+    """The two sources are independent; that they reconcile is the check that
+    the join is right."""
+    await import_geography(session)
+    await import_centres(session, CENTRES_CSV)
+
+    ward = (
+        await session.execute(
+            select(Ward).where(Ward.name == "Zimmerman").options(selectinload(Ward.centres))
+        )
+    ).scalar_one()
+
+    assert sum(c.registered_voters or 0 for c in ward.centres) == ward.registered_voters
+
+
+async def test_a_ward_campaign_now_has_centres_to_target(session: AsyncSession) -> None:
+    """This is what the setup preview said was missing."""
+    from backend.models import Campaign, OfficeLevel
+    from backend.services.targets import generate_targets
+
+    await import_geography(session)
+    await import_centres(session, CENTRES_CSV)
+    ward = (await session.execute(select(Ward).where(Ward.name == "Zimmerman"))).scalar_one()
+    candidate = User(username="peter", role=UserRole.CANDIDATE)
+    campaign = Campaign(
+        candidate=candidate, title="Peter for Zimmerman", office_level=OfficeLevel.WARD, ward=ward
+    )
+    session.add(campaign)
+    await session.commit()
+
+    summary = await generate_targets(session, campaign)
+
+    assert summary.units == 3
+    assert summary.note is None
+    assert summary.total_registered == ward.registered_voters
+    assert summary.win_number > 0
+
+
+async def test_re_seeding_puts_the_fresh_account_back_to_no_campaign(
+    session: AsyncSession,
+) -> None:
+    """Walking through setup spends the demo; re-running has to restore it."""
+    await import_geography(session)
+    await seed_demo(session)
+    fresh = (await session.execute(select(User).where(User.username == "newaspirant"))).scalar_one()
+    constituency = (
+        await session.execute(select(Constituency).where(Constituency.name == "Roysambu"))
+    ).scalar_one()
+    session.add(
+        Campaign(
+            candidate_id=fresh.id,
+            title="Peter for Roysambu",
+            office_level=OfficeLevel.CONSTITUENCY,
+            constituency_id=constituency.id,
+        )
+    )
+    await session.commit()
+
+    await seed_demo(session)
+
+    assert (
+        await session.scalar(
+            select(func.count()).select_from(Campaign).where(Campaign.candidate_id == fresh.id)
+        )
+        == 0
+    )
+    assert await session.scalar(select(func.count()).select_from(Campaign)) == 1

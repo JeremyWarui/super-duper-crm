@@ -17,7 +17,7 @@ uv sync --group dev
 createdb campaign_crm
 cp .env.example .env                      # set SECRET_KEY and your Postgres password
 uv run alembic upgrade head
-uv run campaign-crm seed                  # 47 counties, 290 constituencies, 1450 wards
+uv run campaign-crm seed                  # 47 counties, 290 constituencies, 1450 wards, 27,273 centres
 uv run campaign-crm demo                  # the demo campaign and its three logins
 uv run uvicorn backend.main:app --reload  # http://127.0.0.1:8000/docs
 ```
@@ -39,6 +39,7 @@ same campaign, so you sign out and back in to switch.
 | `aspirant` | **Candidate.** Overview, ward performance, events, strategy. Reads only. |
 | `manager` | **Campaign manager.** All of that plus targets, mobilizers and supporters, and every write. |
 | `mobilizer` | **Mobilizer.** One ward. Record events, register supporters, nothing else. |
+| `newaspirant` | **Candidate with no campaign.** Starts at setup, so the onboarding flow can be shown. |
 
 `campaign-crm demo` prints the three passwords; they are generated per run, so
 nothing credential-shaped is committed. `--password <value>` pins them.
@@ -77,7 +78,7 @@ disagree with the rows underneath it.
 ## Checks
 
 ```bash
-cd backend  && uv run pytest && uv run ruff check .   # 374 tests
+cd backend  && uv run pytest && uv run ruff check .   # 386 tests
 cd frontend && npm test && npm run build              # 126 tests
 ```
 
@@ -89,7 +90,9 @@ Neither suite needs a database server or the network.
 wards, registered voters, county results), from
 [nyimbi/kenya_election_data_2022](https://github.com/nyimbi/kenya_election_data_2022).
 
-Registration centres come from the IEBC's per-polling-station PDF, which is a
-browser download - see `backend/README.md`. Without `data/centres.csv` a ward
-(MCA) campaign has no centres to target, and setup says so rather than reporting
-a win number of zero.
+`data/centres.csv` holds 27,396 registration centres extracted from the IEBC's
+per-polling-station PDF. A ward's centres add up to the register KNBS reports for
+that ward, which is how the two independent sources check each other.
+
+Polling stations are not loaded. Targets are centre-level, so nothing needs them
+until election-day work does.
