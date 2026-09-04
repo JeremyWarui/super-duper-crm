@@ -31,7 +31,7 @@ from backend.models import (
 from backend.security import hash_password
 from backend.services.targets import generate_targets
 
-DEMO_USERNAMES = ("aspirant", "manager", "mobilizer")
+DEMO_USERNAMES = ("aspirant", "manager", "mobilizer", "newaspirant")
 
 # Roysambu MP: the seat the prototype was checked against.
 DEMO_COUNTY = "Nairobi City"
@@ -85,6 +85,21 @@ async def _user(
     return user
 
 
+async def _clear_campaigns(session: AsyncSession, user: User) -> None:
+    """Put the fresh-start account back to having nothing.
+
+    Walking through setup gives them a campaign, which sends them to the
+    dashboard from then on and spends the demo. Re-running this restores it.
+    """
+    await session.flush()
+    theirs = (
+        await session.execute(select(Campaign).where(Campaign.candidate_id == user.id))
+    ).scalars()
+    for campaign in theirs:
+        await session.delete(campaign)
+    await session.flush()
+
+
 async def seed_demo(session: AsyncSession, *, password: str | None = None) -> DemoSummary:
     """Build the demo campaign over already-loaded geography.
 
@@ -114,6 +129,13 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     mobilizer_user = await _user(
         session, "mobilizer", UserRole.MOBILIZER, "Juma", "Otieno", passwords, "+254700000003"
     )
+    # A candidate with no campaign, so there is a way to see setup. Everyone
+    # else lands on the dashboard, which is where onboarding stops being
+    # reachable at all.
+    fresh = await _user(
+        session, "newaspirant", UserRole.CANDIDATE, "Peter", "Kimani", passwords, "+254700000004"
+    )
+    await _clear_campaigns(session, fresh)
     await session.flush()
 
     campaign = (
@@ -151,6 +173,11 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
             ("aspirant", passwords["aspirant"], "Candidate: read-only cockpit"),
             ("manager", passwords["manager"], "Campaign manager: the full war room"),
             ("mobilizer", passwords["mobilizer"], f"Mobilizer: {wards[0].name} only"),
+            (
+                "newaspirant",
+                passwords["newaspirant"],
+                "Candidate with no campaign: starts at setup",
+            ),
         ],
     )
 

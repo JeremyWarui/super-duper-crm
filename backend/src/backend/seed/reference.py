@@ -38,6 +38,8 @@ class CentreSummary:
     centres: int
     wards_covered: int
     unmatched: list[tuple[str, str]]
+    # Diaspora and prison rows, which are correct to leave out.
+    skipped_special: int = 0
 
 
 def rows(path: Path) -> Iterator[dict[str, str]]:
@@ -54,6 +56,16 @@ def rows(path: Path) -> Iterator[dict[str, str]]:
             yield {k: (v.strip() if isinstance(v, str) else "") for k, v in row.items()}
 
 
+# The IEBC files carry two categories past the 47 counties: 48 is the diaspora,
+# voting at embassies, and 49 is prisons. Neither sits in a ward, and no ward or
+# constituency campaign organizes on them, so their centres are left out rather
+# than reported as a failure to match.
+SPECIAL_COUNTY_CODES = {"48", "49"}
+
+# A ward name shorter than this is too little to match a longer one on.
+MIN_PREFIX_LENGTH = 8
+
+
 def to_int(value: str | None) -> int:
     """A count from the CSV, where blanks mean zero and thousands carry commas."""
     if value in (None, ""):
@@ -61,9 +73,30 @@ def to_int(value: str | None) -> int:
     return int(str(value).replace(",", ""))
 
 
+# The two sources spell the same ward differently. KNBS writes Ziwa la Ng’ombe
+# with a typographic apostrophe and Njabini/Kiburu with a forward slash; the
+# IEBC extraction writes NG'OMBE and NJABINI\KIBURU. Folding these is the
+# difference between 151 centres landing and being dropped on the floor.
+PUNCTUATION_VARIANTS = str.maketrans(
+    {
+        "’": "'",  # right single quotation mark
+        "‘": "'",  # left single quotation mark
+        "ʼ": "'",  # modifier letter apostrophe
+        "´": "'",  # acute accent, used as one
+        "`": "'",
+        "\\": "/",
+    }
+)
+
+
 def normalise(name: str | None) -> str:
-    """A name flattened for matching: one space between words, upper case."""
-    return " ".join((name or "").split()).strip().upper()
+    """A name flattened for matching: one space between words, upper case.
+
+    Punctuation that the two sources disagree about is folded to one spelling,
+    so a ward is matched by its name rather than by which file typed it.
+    """
+    folded = (name or "").translate(PUNCTUATION_VARIANTS)
+    return " ".join(folded.split()).strip().upper()
 
 
 async def import_geography(
@@ -185,18 +218,19 @@ async def import_centres(session: AsyncSession, csv_path: Path = CENTRES_CSV) ->
     }
 
     loaded = 0
+    skipped_special = 0
     unmatched: list[tuple[str, str]] = []
     with csv_path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
         if reader.fieldnames is not None:
             reader.fieldnames = [name.strip().lower() for name in reader.fieldnames]
         for row in reader:
-            key = (
-                str(to_int(row.get("county_code"))),
-                normalise(row.get("const_name")),
-                normalise(row.get("ward_name")),
-            )
-            ward = ward_by_key.get(key)
+            county_code = str(to_int(row.get("county_code")))
+            if county_code in SPECIAL_COUNTY_CODES:
+                skipped_special += 1
+                continue
+            key = (county_code, normalise(row.get("const_name")), normalise(row.get("ward_name")))
+            ward = ward_by_key.get(key) or _match_truncated(ward_by_key, key)
             if ward is None:
                 unmatched.append((row.get("ward_name") or "", row.get("centre_name") or ""))
                 continue
@@ -215,4 +249,26 @@ async def import_centres(session: AsyncSession, csv_path: Path = CENTRES_CSV) ->
         centres=loaded,
         wards_covered=len({ward_id for ward_id, _ in existing}),
         unmatched=unmatched,
+        skipped_special=skipped_special,
     )
+
+
+def _match_truncated(
+    ward_by_key: dict[tuple[str, str, str], Ward], key: tuple[str, str, str]
+) -> Ward | None:
+    """The ward a name was cut short of, when only one could have been meant.
+
+    The IEBC PDF clips a long ward name to its column width, so
+    "Woodley/Kenyatta Golf Course" arrives as "WOODLEY/KENYATTA GOLF COU".
+    Matched only inside the same constituency, and only when exactly one ward
+    there begins with it, so a short or ambiguous name never guesses.
+    """
+    county_code, constituency, ward_name = key
+    if len(ward_name) < MIN_PREFIX_LENGTH:
+        return None
+    candidates = [
+        ward
+        for (code, const, name), ward in ward_by_key.items()
+        if code == county_code and const == constituency and name.startswith(ward_name)
+    ]
+    return candidates[0] if len(candidates) == 1 else None

@@ -51,7 +51,12 @@ async def _seed(args: argparse.Namespace, session: AsyncSession) -> int:
     if centres_csv.exists():
         print("Loading registration centres...")
         centres = await import_centres(session, centres_csv)
-        print(f"  {centres.centres} centres across {centres.wards_covered} wards.")
+        print(f"  {centres.centres:,} centres across {centres.wards_covered:,} wards.")
+        if centres.skipped_special:
+            print(
+                f"  {centres.skipped_special:,} diaspora and prison rows left out: "
+                "neither sits in a ward."
+            )
         if centres.unmatched:
             print(f"  {len(centres.unmatched)} rows matched no ward, e.g. {centres.unmatched[:3]}")
     else:

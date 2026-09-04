@@ -20,7 +20,7 @@ uv run uvicorn backend.main:app --reload  # http://127.0.0.1:8000/docs
 Checks:
 
 ```bash
-uv run pytest        # 374 tests, ~1 min, no database server needed
+uv run pytest        # 386 tests, ~3 min, no database server needed
 uv run ruff check .
 uv run ruff format .
 ```
@@ -33,10 +33,18 @@ uv run campaign-crm demo          # one campaign, one account per role
 uv run campaign-crm createuser -u amina -r manager
 ```
 
-`seed` reads the CSVs in `data/` and loads 47 counties, 290 constituencies and
-1450 wards with their 2022 registered voters, plus each county's turnout. Add a
-`data/centres.csv` and it loads registration centres too; without one, ward (MCA)
-campaigns have no centres to target and setup says so.
+`seed` reads the CSVs in `data/` and loads the whole 2022 register: 47 counties,
+290 constituencies, 1450 wards and 27,273 registration centres, with each
+county's turnout.
+
+Centres come from the IEBC's per-polling-station PDF rather than the KNBS files,
+and the two sources spell some wards differently, so the import folds the
+punctuation they disagree about (`Ng’ombe` against `NG'OMBE`, `Njabini/Kiburu`
+against `NJABINI\KIBURU`) and matches a name the PDF clipped to its column width
+when exactly one ward could have been meant. Rows in counties 48 and 49 are the
+diaspora and prisons, which sit in no ward, and are left out rather than counted
+as failures. Every remaining row lands: a ward's centres add up to the register
+that KNBS reports for it, which is the check that the join is right.
 
 `demo` builds the Roysambu MP campaign - 5 wards, win number 43,050 - with
 mobilizers, events and supporters on some wards and not others, so the strategy
@@ -220,8 +228,8 @@ by registration centre.
    the system. Fixing it means a membership table.
 5. `POST /api/supporters/` is open by design, for field self-registration. That
    also makes it the one route an anonymous caller can write through.
-6. `data/centres.csv` is not in the repo, so ward (MCA) campaigns generate no
-   targets until it is extracted and loaded.
+6. Polling stations are still empty. Targets are centre-level, so nothing needs
+   them yet; `PollingStation` exists for when election-day work does.
 7. The Africa's Talking adapter has never run against the live gateway - there
    is no subscription. Its request shape and its parsing are covered against
    recorded replies; what is unproven is the network call itself.
