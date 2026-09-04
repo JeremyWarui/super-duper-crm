@@ -84,3 +84,26 @@ async def sign_in(client, username: str, password: str = "correct-horse-battery"
 
 def auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Token {token}"}
+
+
+async def make_mobilizer_user(
+    session,
+    campaign: Campaign,
+    ward: Ward,
+    *,
+    username: str = "juma",
+    password: str = "correct-horse-battery",
+) -> tuple[User, Mobilizer]:
+    """A mobilizer who can sign in, and the profile that scopes them to one ward."""
+    user = await make_user(
+        session,
+        username=username,
+        role=UserRole.MOBILIZER,
+        password=password,
+        first_name="Juma",
+        last_name="Otieno",
+    )
+    mobilizer = Mobilizer(campaign=campaign, ward=ward, full_name="Juma Otieno", user=user)
+    session.add(mobilizer)
+    await session.commit()
+    return user, mobilizer

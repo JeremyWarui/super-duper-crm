@@ -15,6 +15,9 @@ dependencies = [
     "uvicorn[standard]>=0.37",
 ]
 
+[project.scripts]
+campaign-crm = "backend.cli:main"
+
 [dependency-groups]
 dev = [
     "aiosqlite>=0.21",

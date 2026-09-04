@@ -1,10 +1,13 @@
 """What the geographic models look like in a response.
 
-Each schema carries its parent's id rather than a nested parent object.
+Each schema carries its parent's id under the parent's bare name, plus the
+parent's name for display, so a list needs no second request to be readable.
 """
 
 import uuid
 from decimal import Decimal
+
+from pydantic import AliasPath, Field
 
 from backend.schemas.common import ORMModel
 
@@ -19,14 +22,16 @@ class CountyRead(ORMModel):
 
 class ConstituencyRead(ORMModel):
     id: uuid.UUID
-    county_id: uuid.UUID
+    county: uuid.UUID = Field(validation_alias="county_id")
+    county_name: str = Field(validation_alias=AliasPath("county", "name"))
     name: str
     code: str
 
 
 class WardRead(ORMModel):
     id: uuid.UUID
-    constituency_id: uuid.UUID
+    constituency: uuid.UUID = Field(validation_alias="constituency_id")
+    constituency_name: str = Field(validation_alias=AliasPath("constituency", "name"))
     name: str
     code: str
     registered_voters: int | None
@@ -34,7 +39,8 @@ class WardRead(ORMModel):
 
 class RegistrationCentreRead(ORMModel):
     id: uuid.UUID
-    ward_id: uuid.UUID
+    ward: uuid.UUID = Field(validation_alias="ward_id")
+    ward_name: str = Field(validation_alias=AliasPath("ward", "name"))
     code: str
     name: str
     registered_voters: int | None
@@ -42,7 +48,7 @@ class RegistrationCentreRead(ORMModel):
 
 class PollingStationRead(ORMModel):
     id: uuid.UUID
-    ward_id: uuid.UUID
+    ward: uuid.UUID = Field(validation_alias="ward_id")
     centre_code: str
     centre_name: str
     code: str
