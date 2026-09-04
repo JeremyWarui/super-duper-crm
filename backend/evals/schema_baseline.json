@@ -4,7 +4,8 @@
     "_comment": "old name -> current column name",
     "Target.registration_center": "registration_centre_id",
     "Supporter.registered_at": "created_at",
-    "User.password": "password_hash"
+    "User.password": "password_hash",
+    "AuthToken.created": "created_at"
   },
   "dropped": {
     "_comment": "field -> why it is gone",
@@ -32,6 +33,16 @@
         "last_login": "timestamp",
         "groups": "link table",
         "user_permissions": "link table"
+      },
+      "properties": [],
+      "methods": []
+    },
+    "AuthToken": {
+      "table": "auth_tokens",
+      "fields": {
+        "key": "text",
+        "user": "unique reference",
+        "created": "timestamp"
       },
       "properties": [],
       "methods": []

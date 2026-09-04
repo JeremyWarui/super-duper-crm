@@ -3,6 +3,7 @@
 import os
 from collections.abc import AsyncIterator
 
+import httpx
 import pytest
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
@@ -40,3 +41,19 @@ async def fk_check(session: AsyncSession) -> None:
     """Confirm foreign keys are enforced on this connection."""
     result = await session.execute(text("PRAGMA foreign_keys"))
     assert result.scalar() == 1
+
+
+@pytest.fixture
+async def client(session: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
+    """The real app, with every request served by the in-memory session."""
+    from backend.db.session import get_session
+    from backend.main import app
+
+    async def _use_the_test_session() -> AsyncIterator[AsyncSession]:
+        yield session
+
+    app.dependency_overrides[get_session] = _use_the_test_session
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as http_client:
+        yield http_client
+    app.dependency_overrides.clear()

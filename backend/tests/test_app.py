@@ -1,4 +1,4 @@
-"""The app starts and serves. There are no data routes yet."""
+"""The app starts, serves, and keeps every data route under /api."""
 
 import httpx
 import pytest
@@ -19,12 +19,15 @@ async def test_health(client: httpx.AsyncClient) -> None:
     assert response.json()["status"] == "ok"
 
 
-async def test_openapi_is_served_and_exposes_no_data_routes(
+async def test_every_route_but_health_is_under_the_api_prefix(
     client: httpx.AsyncClient,
 ) -> None:
+    """The frontend points VITE_API_URL at /api; a route outside it is unreachable."""
     response = await client.get("/openapi.json")
     assert response.status_code == 200
-    assert set(response.json()["paths"]) == {"/health"}
+    paths = set(response.json()["paths"])
+    assert "/health" in paths
+    assert {p for p in paths if p != "/health"} == {p for p in paths if p.startswith("/api/")}
 
 
 async def test_cors_headers_are_sent_for_the_vite_dev_server(
