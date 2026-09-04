@@ -19,7 +19,7 @@ npm run dev        # http://localhost:5173
 Checks:
 
 ```bash
-npm test           # 92 tests, jsdom, no server needed
+npm test           # 126 tests, jsdom, no server needed
 npm run build
 npm run lint
 ```
@@ -83,10 +83,24 @@ npm test
 | `auth.test.js` | Sign in, sign out, and staying signed in across a reload |
 | `hooks.test.js` | Which query each hook sends, and what a write refreshes |
 | `login.test.jsx` | The sign-in form, including the rejected password |
-| `onboarding.test.jsx` | The four steps, the cascading pickers, and the win number that comes back |
-| `app.test.jsx` | The dashboard, what each role is shown, and the four forms |
+| `onboarding.test.jsx` | The four steps, the cascading pickers, the unit preview, and the win number |
+| `app.test.jsx` | The dashboard, what each role is shown, the four forms, and inviting |
 | `gate.test.jsx` | Which of the three screens you land on |
 | `contract.test.js` | The fixtures and the source still match `contracts/frontend-api.json` |
+
+## Two things the prototype did not have
+
+**Setup previews its units.** Before the campaign is created, the review step
+lists what it will be worked on: every ward in the county or constituency, or
+every registration centre in the ward, each with its register and a total. A
+ward with no centres loaded says so there, rather than looking ready and coming
+back with a win number of zero.
+
+**Events can be invited.** Each event on the Events page has an Invite button.
+The modal drafts a message from the event, counts the SMS parts it will be
+billed at, filters by where people stand, and previews the recipients before
+sending. It says plainly when nothing was sent, which is the case until there
+is an Africa's Talking subscription.
 
 ## The contract
 

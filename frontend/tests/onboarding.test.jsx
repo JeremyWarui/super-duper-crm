@@ -43,7 +43,10 @@ async function walkToReview(user, { office = "MP", ward = false } = {}) {
 
   const selects = await screen.findAllByRole("combobox");
   await user.selectOptions(selects[0], "cty1");
-  await user.selectOptions((await screen.findAllByRole("combobox"))[1], "k1");
+  // A county-wide seat needs no constituency, so it has only the one picker.
+  if (office !== "Governor / Senator / Woman Rep") {
+    await user.selectOptions((await screen.findAllByRole("combobox"))[1], "k1");
+  }
   if (ward) {
     await user.selectOptions((await screen.findAllByRole("combobox"))[2], "w1");
   }
@@ -202,5 +205,87 @@ describe("setting a campaign up", () => {
     await user.click(await screen.findByRole("button", { name: "Back" }));
 
     expect(screen.getByPlaceholderText(/Jane for Roysambu/)).toHaveValue("Jane for Roysambu");
+  });
+});
+
+describe("previewing the units before anything is created", () => {
+  const WARDS = [
+    { id: "w1", name: "Zimmerman", registered_voters: 30701 },
+    { id: "w2", name: "Githurai", registered_voters: 35899 },
+  ];
+  const CENTRES = [
+    { id: "rc1", name: "Zimmerman Primary", registered_voters: 2500 },
+    { id: "rc2", name: "Roysambu Social Hall", registered_voters: 1800 },
+  ];
+
+  it("lists the wards an MP campaign will target, with the register", async () => {
+    const user = userEvent.setup();
+    start({ "GET /wards/": WARDS });
+
+    await walkToReview(user);
+
+    expect(await screen.findByText("2 wards")).toBeInTheDocument();
+    expect(screen.getByText("66,600 registered voters")).toBeInTheDocument();
+    expect(screen.getByText("Zimmerman")).toBeInTheDocument();
+    expect(screen.getByText("30,701")).toBeInTheDocument();
+  });
+
+  it("lists the registration centres an MCA campaign will target", async () => {
+    const user = userEvent.setup();
+    start({ "GET /centres/": CENTRES });
+
+    await walkToReview(user, { office: "MCA", ward: true });
+
+    expect(await screen.findByText("2 registration centres")).toBeInTheDocument();
+    expect(screen.getByText("Zimmerman Primary")).toBeInTheDocument();
+    expect(screen.getByText("4,300 registered voters")).toBeInTheDocument();
+  });
+
+  it("asks for the centres by the chosen ward", async () => {
+    const user = userEvent.setup();
+    const { calls } = start({ "GET /centres/": CENTRES });
+
+    await walkToReview(user, { office: "MCA", ward: true });
+
+    await waitFor(() => expect(calls.some((c) => c.path === "/centres/?ward=w1")).toBe(true));
+  });
+
+  it("asks for every ward in the county for a county-wide seat", async () => {
+    const user = userEvent.setup();
+    const { calls } = start({ "GET /wards/": WARDS });
+
+    await walkToReview(user, { office: "Governor / Senator / Woman Rep" });
+
+    await waitFor(() => expect(calls.some((c) => c.path === "/wards/?county=cty1")).toBe(true));
+  });
+
+  it("says so when a ward has no centres loaded, rather than looking ready", async () => {
+    const user = userEvent.setup();
+    start({ "GET /centres/": [] });
+
+    await walkToReview(user, { office: "MCA", ward: true });
+
+    expect(await screen.findByText("No registration centres loaded")).toBeInTheDocument();
+    expect(screen.getByText(/nothing to target until they are imported/)).toBeInTheDocument();
+  });
+
+  it("still lets the campaign be created when there are no centres", async () => {
+    /* The campaign is real; only its targets are waiting on data. */
+    const user = userEvent.setup();
+    start({ "GET /centres/": [] });
+
+    await walkToReview(user, { office: "MCA", ward: true });
+
+    expect(await screen.findByRole("button", { name: "Create campaign" })).toBeEnabled();
+  });
+
+  it("names the unit registration centre, not polling station", async () => {
+    const user = userEvent.setup();
+    start({ "GET /centres/": CENTRES });
+
+    await walkToReview(user, { office: "MCA", ward: true });
+
+    expect(await screen.findByText(/registration centre in your ward/)).toBeInTheDocument();
+    expect(screen.queryByText(/polling station/)).toBeNull();
   });
 });

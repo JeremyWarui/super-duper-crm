@@ -3,7 +3,7 @@
 // On create it calls /campaigns/setup/, which builds every target and returns
 // the win number, then hands the campaign back to the app to show the dashboard.
 import React, { useState } from "react";
-import { useCounties, useConstituencies, useWardsIn, useSetupCampaign } from "../api/hooks";
+import { useCounties, useConstituencies, useWardsIn, useSetupCampaign, useUnitsPreview } from "../api/hooks";
 
 const C = { ink: "#171C1F", paper: "#E9EBE6", panel: "#FFFFFF", green: "#0B6B3A", red: "#B4231F", amber: "#B9791A", line: "#D7DBD4", sub: "#5C655F" };
 const DISPLAY = { fontFamily: "Oswald, Impact, sans-serif" };
@@ -19,6 +19,58 @@ const Label = ({ children }) => <div style={{ fontSize: 13, fontWeight: 600 }}>{
 const Select = ({ value, onChange, disabled, children }) => (
   <select value={value || ""} onChange={(e) => onChange(e.target.value)} disabled={disabled} style={{ ...FIELD, opacity: disabled ? 0.5 : 1 }}>{children}</select>
 );
+
+
+const fmt = (n) => Number(n || 0).toLocaleString();
+
+// The units this seat will be worked on, listed before anything is created:
+// every ward in the county or constituency, or every registration centre in
+// the ward. A ward with no centres loaded says so, rather than looking ready.
+function UnitsPreview({ form }) {
+  const { grain, units, isLoading, error } = useUnitsPreview(form);
+  const noun = grain === "centre" ? "registration centre" : "ward";
+  const registered = units.reduce((total, u) => total + (u.registered_voters || 0), 0);
+
+  const box = { marginTop: 16, border: `1px solid ${C.line}`, borderRadius: 10, overflow: "hidden" };
+  const head = { padding: "10px 14px", background: C.paper, borderBottom: `1px solid ${C.line}` };
+
+  if (isLoading) return <div style={{ ...box, ...head }}><span style={{ fontSize: 13, color: C.sub }}>Loading your {noun}s…</span></div>;
+  if (error) return <div style={{ ...box, ...head }}><span style={{ fontSize: 13, color: C.red }}>{error.message}</span></div>;
+
+  if (units.length === 0) {
+    return (
+      <div style={box}>
+        <div style={head}><span style={{ ...DISPLAY, fontSize: 14, fontWeight: 600 }}>No {noun}s loaded</span></div>
+        <div style={{ padding: "12px 14px", fontSize: 12.5, color: C.amber, lineHeight: 1.5 }}>
+          {grain === "centre"
+            ? "This ward has no registration centres yet. The campaign will be created, but it will have nothing to target until they are imported."
+            : "Nothing was found for this area. Check the selection on the previous step."}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={box}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2" style={head}>
+        <span style={{ ...DISPLAY, fontSize: 14, fontWeight: 600 }}>{units.length} {noun}{units.length === 1 ? "" : "s"}</span>
+        <span style={{ fontSize: 12.5, color: C.sub }}>{fmt(registered)} registered voters</span>
+      </div>
+      <div style={{ maxHeight: 190, overflowY: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <tbody>
+            {units.map((u, i) => (
+              <tr key={u.id} style={i ? { borderTop: `1px solid ${C.line}` } : undefined}>
+                <td style={{ padding: "9px 14px", fontWeight: 500 }}>{u.name}</td>
+                <td style={{ padding: "9px 14px", textAlign: "right", color: C.sub }}>{u.registered_voters ? fmt(u.registered_voters) : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 export default function Onboarding({ onDone }) {
   const [step, setStep] = useState(0);
@@ -134,9 +186,10 @@ export default function Onboarding({ onDone }) {
           <>
             <div style={{ fontSize: 14, lineHeight: 1.6 }}>
               You're setting up <b>{form.title}</b> for a <b>{OFFICES.find((o) => o.key === form.office_level)?.label}</b> seat.
-              We'll pull in every {form.office_level === "ward" ? "polling station in your ward" : "ward in your area"},
+              We'll pull in every {form.office_level === "ward" ? "registration centre in your ward" : "ward in your area"},
               set each turnout to its county's 2022 figure, and compute your win number.
             </div>
+            <UnitsPreview form={form} />
             {setup.isError && <div style={{ color: C.red, fontSize: 13, marginTop: 12 }}>{setup.error.message}</div>}
             <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between" }}>
               <Btn onClick={() => setStep(2)} disabled={setup.isPending}>Back</Btn>

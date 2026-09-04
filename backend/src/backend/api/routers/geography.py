@@ -53,11 +53,21 @@ async def list_constituencies(
 
 @router.get("/wards/", response_model=list[WardRead])
 async def list_wards(
-    session: SessionDep, user: CurrentUser, constituency: uuid.UUID | None = None
+    session: SessionDep,
+    user: CurrentUser,
+    constituency: uuid.UUID | None = None,
+    county: uuid.UUID | None = None,
 ) -> list[Ward]:
+    """Every ward, or the ones inside one constituency or one county.
+
+    A county-wide race organizes on every ward in the county, so setup shows
+    them before it builds a target for each.
+    """
     statement = select(Ward).options(selectinload(Ward.constituency)).order_by(Ward.name)
     if constituency is not None:
         statement = statement.where(Ward.constituency_id == constituency)
+    if county is not None:
+        statement = statement.join(Constituency).where(Constituency.county_id == county)
     own_ward = mobilizer_ward_id(user)
     if own_ward is not None:
         statement = statement.where(Ward.id == own_ward)
