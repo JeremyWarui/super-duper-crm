@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from backend.models import (
+    AuthToken,
     Campaign,
     Constituency,
     County,
@@ -31,6 +32,7 @@ BASELINE = json.loads((Path(__file__).resolve().parent / "schema_baseline.json")
 
 MODELS = {
     "User": User,
+    "AuthToken": AuthToken,
     "County": County,
     "Constituency": Constituency,
     "Ward": Ward,

@@ -8,8 +8,10 @@ from backend.models import (
     OfficeLevel,
     RegistrationCentre,
     User,
+    UserRole,
     Ward,
 )
+from backend.security import hash_password
 
 
 async def make_geography(session, *, ward_voters: int | None = 10_000):
@@ -47,3 +49,38 @@ async def make_mobilizer(session, campaign: Campaign, ward: Ward) -> Mobilizer:
     session.add(mobilizer)
     await session.commit()
     return mobilizer
+
+
+async def make_user(
+    session,
+    *,
+    username: str = "manager",
+    role: UserRole = UserRole.MANAGER,
+    password: str = "correct-horse-battery",
+    **fields,
+) -> User:
+    """A user who can sign in, with the password already hashed."""
+    user = User(
+        username=username,
+        role=role,
+        password_hash=hash_password(password),
+        first_name=fields.pop("first_name", "Amina"),
+        last_name=fields.pop("last_name", "Kariuki"),
+        **fields,
+    )
+    session.add(user)
+    await session.commit()
+    return user
+
+
+async def sign_in(client, username: str, password: str = "correct-horse-battery") -> str:
+    """The token for a user, ready to put in an Authorization header."""
+    response = await client.post(
+        "/api/auth/login/", json={"username": username, "password": password}
+    )
+    assert response.status_code == 200, response.text
+    return response.json()["token"]
+
+
+def auth(token: str) -> dict[str, str]:
+    return {"Authorization": f"Token {token}"}

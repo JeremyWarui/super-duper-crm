@@ -10,6 +10,7 @@ from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_ty
 from backend.models.enums import UserRole
 
 if TYPE_CHECKING:
+    from backend.models.auth_token import AuthToken
     from backend.models.campaign import Campaign
     from backend.models.mobilizer import Mobilizer
 
@@ -41,6 +42,9 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         passive_deletes=True,
     )
     mobilizer_profile: Mapped["Mobilizer | None"] = relationship(back_populates="user")
+    auth_token: Mapped["AuthToken | None"] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
 
     @property
     def full_name(self) -> str:

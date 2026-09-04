@@ -7,6 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend import __version__
+from backend.api.errors import register_error_handlers
+from backend.api.routers import api_router
 from backend.config import get_settings
 from backend.db.session import get_engine
 
@@ -35,6 +37,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    register_error_handlers(app)
+    app.include_router(api_router)
 
     @app.get("/health", tags=["meta"])
     async def health() -> dict[str, str]:

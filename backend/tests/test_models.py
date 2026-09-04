@@ -32,6 +32,7 @@ from tests.factories import make_campaign, make_geography, make_mobilizer
 
 EXPECTED_TABLES = {
     "users",
+    "auth_tokens",
     "counties",
     "constituencies",
     "wards",
