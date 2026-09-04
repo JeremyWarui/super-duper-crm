@@ -1,11 +1,21 @@
-"""Read schemas, one per model."""
+"""The request and response schemas, one module per resource."""
 
+from backend.schemas.auth import LoginRequest, LoginResponse, LoginUser
 from backend.schemas.campaign import (
     CampaignRead,
+    CampaignSetup,
+    CampaignSetupResponse,
+    EventCreate,
     EventRead,
+    EventRecord,
+    MobilizerCreate,
     MobilizerRead,
+    SetupSummary,
+    SupporterCreate,
     SupporterRead,
+    TargetCreate,
     TargetRead,
+    TargetUpdate,
 )
 from backend.schemas.common import ORMModel
 from backend.schemas.geography import (
@@ -19,15 +29,27 @@ from backend.schemas.user import UserRead
 
 __all__ = [
     "CampaignRead",
+    "CampaignSetup",
+    "CampaignSetupResponse",
     "ConstituencyRead",
     "CountyRead",
+    "EventCreate",
     "EventRead",
+    "EventRecord",
+    "LoginRequest",
+    "LoginResponse",
+    "LoginUser",
+    "MobilizerCreate",
     "MobilizerRead",
     "ORMModel",
     "PollingStationRead",
     "RegistrationCentreRead",
+    "SetupSummary",
+    "SupporterCreate",
     "SupporterRead",
+    "TargetCreate",
     "TargetRead",
+    "TargetUpdate",
     "UserRead",
     "WardRead",
 ]

@@ -81,9 +81,12 @@ async def test_geography_schemas_validate_off_mapped_instances(
     await session.commit()
 
     assert CountyRead.model_validate(county).turnout_2022_pct is None
-    assert ConstituencyRead.model_validate(constituency).county_id == county.id
-    assert WardRead.model_validate(ward).constituency_id == constituency.id
-    assert RegistrationCentreRead.model_validate(centre).ward_id == ward.id
+    assert ConstituencyRead.model_validate(constituency).county == county.id
+    assert ConstituencyRead.model_validate(constituency).county_name == "Nairobi"
+    assert WardRead.model_validate(ward).constituency == constituency.id
+    assert WardRead.model_validate(ward).constituency_name == "Westlands"
+    assert RegistrationCentreRead.model_validate(centre).ward == ward.id
+    assert RegistrationCentreRead.model_validate(centre).ward_name == "Parklands"
     assert PollingStationRead.model_validate(station).centre_name == ""
 
 
@@ -95,10 +98,10 @@ async def test_campaign_read_includes_the_derived_grain(session: AsyncSession) -
     assert schema.office_level is OfficeLevel.COUNTY
 
 
-async def test_target_read_includes_derived_progress_but_not_registered_voters(
+async def test_target_read_carries_the_unit_it_covers_and_its_progress(
     session: AsyncSession,
 ) -> None:
-    """`registered_voters` is left out because it reads a related row."""
+    """The targets table shows a unit name and its register, so both travel with the row."""
     _, _, ward, _ = await make_geography(session)
     campaign = await make_campaign(session, ward)
     target = Target(
@@ -112,9 +115,29 @@ async def test_target_read_includes_derived_progress_but_not_registered_voters(
     await session.commit()
 
     dumped = TargetRead.model_validate(target).model_dump()
+
+    assert dumped["ward"] == ward.id
+    assert dumped["ward_name"] == "Parklands"
+    assert dumped["centre_name"] is None
+    assert dumped["registered_voters"] == 10_000
     assert dumped["votes_remaining"] == 750
     assert dumped["progress_pct"] == 25.0
-    assert "registered_voters" not in dumped
+
+
+async def test_a_centre_target_names_the_centre_rather_than_the_ward(
+    session: AsyncSession,
+) -> None:
+    _, _, ward, centre = await make_geography(session)
+    campaign = await make_campaign(session, ward)
+    target = Target(campaign=campaign, ward=ward, registration_centre=centre)
+    session.add(target)
+    await session.commit()
+
+    dumped = TargetRead.model_validate(target).model_dump()
+
+    assert dumped["registration_centre"] == centre.id
+    assert dumped["centre_name"] == "Parklands Primary"
+    assert dumped["registered_voters"] == 2_000
 
 
 async def test_mobilizer_and_event_and_supporter_schemas(session: AsyncSession) -> None:
