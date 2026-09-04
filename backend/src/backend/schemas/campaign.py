@@ -198,3 +198,42 @@ class SupporterCreate(WriteModel):
         if not value:
             raise ValueError("Consent is required before we can store these details.")
         return value
+
+
+class EventInvite(WriteModel):
+    """Who to invite to an event, and what to say to them."""
+
+    message: str = Field(min_length=1, max_length=918)  # six SMS parts
+    # Blank invites every supporter in the event's ward. Narrow it by where
+    # people stand, to spend the send on those worth reaching.
+    support_levels: list[SupportLevel] = Field(default_factory=list)
+    # The whole campaign rather than just the event's ward.
+    whole_campaign: bool = False
+    # Work out the recipients and the cost, and send nothing.
+    dry_run: bool = False
+
+
+class InviteRecipient(ORMModel):
+    phone: str
+    status: str
+    detail: str = ""
+
+
+class EventInviteResult(ORMModel):
+    """What the send did, and what it would have cost.
+
+    `delivered` is False whenever nothing left, which is the case until an SMS
+    gateway is configured. The screen shows it rather than assuming.
+    """
+
+    provider: str
+    delivered: bool
+    dry_run: bool
+    message: str
+    parts: int
+    supporters_matched: int
+    requested: int
+    accepted: list[InviteRecipient]
+    rejected: list[InviteRecipient]
+    detail: str
+    number_reached: int

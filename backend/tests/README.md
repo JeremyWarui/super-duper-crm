@@ -26,6 +26,8 @@ needed and nothing touches the network.
 | `test_strategy_api.py` | The computed dashboard and its three flags |
 | `test_targets_service.py` | Turning a seat into targets |
 | `test_seed.py` | The bundled CSVs, against the real files |
+| `test_sms.py` | Phone normalising, and both SMS providers |
+| `test_invite_api.py` | Inviting an event's supporters, and who may |
 | `../evals/test_schema_baseline.py` | No field leaves the schema without a recorded reason |
 | `../evals/test_frontend_contract.py` | The API still offers what the SPA reads and accepts what it sends |
 
