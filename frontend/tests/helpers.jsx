@@ -154,6 +154,21 @@ export const EVENTS = [
   },
 ];
 
+export const INVITE_RESULT = {
+  provider: "console",
+  delivered: false,
+  dry_run: false,
+  message: "Town hall this Saturday.",
+  parts: 1,
+  supporters_matched: 3,
+  requested: 2,
+  accepted: [{ phone: "+254712345678", status: "skipped", detail: "" }],
+  rejected: [{ phone: "not a phone", status: "invalid", detail: "Not a usable number." }],
+  detail:
+    "No SMS gateway is configured, so nothing was sent. Set SMS_PROVIDER=africastalking with AT_USERNAME and AT_API_KEY to send.",
+  number_reached: 0,
+};
+
 /** Everything App reads on first render. */
 export function dashboardRoutes(overrides = {}) {
   return {
@@ -163,6 +178,7 @@ export function dashboardRoutes(overrides = {}) {
     "GET /events/": EVENTS,
     "GET /mobilizers/": [],
     "GET /supporters/": [],
+    "POST /events/e1/invite/": INVITE_RESULT,
     ...overrides,
   };
 }

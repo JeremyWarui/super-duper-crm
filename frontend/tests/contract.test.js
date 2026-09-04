@@ -9,13 +9,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  CAMPAIGN,
-  EVENTS,
-  STRATEGY,
-  TARGETS,
-  dashboardRoutes,
-} from "./helpers";
+import { CAMPAIGN, EVENTS, INVITE_RESULT, STRATEGY, TARGETS, dashboardRoutes } from "./helpers";
 
 // vitest runs from the frontend directory; the contract sits beside it.
 const CONTRACT = JSON.parse(
@@ -62,6 +56,24 @@ describe("the fixtures against the contract", () => {
       CONTRACT.nested_reads["GET /api/strategy/.notes"],
       "a strategy note",
     );
+  });
+
+  it("an invitation result carries what the modal reads", () => {
+    expectHasAll(
+      INVITE_RESULT,
+      fieldsFor("POST /api/events/{event_id}/invite/"),
+      "the invite fixture",
+    );
+  });
+
+  it("an invitation's recipients carry what the modal lists", () => {
+    for (const key of ["accepted", "rejected"]) {
+      expectHasAll(
+        INVITE_RESULT[key][0],
+        CONTRACT.nested_reads[`POST /api/events/{event_id}/invite/.${key}`],
+        `an invite ${key} entry`,
+      );
+    }
   });
 
   it("stubs every route the dashboard loads", () => {
@@ -118,7 +130,10 @@ describe("the source against the contract", () => {
     const source = read("api/hooks.js") + read("store/auth.js");
     for (const route of Object.keys(CONTRACT.reads)) {
       const path = route.split(" ")[1].replace("/api", "");
-      expect(source, `nothing calls ${path}`).toContain(path.replace(/\/$/, "/"));
+      // A path parameter is a template literal in the source: {id} -> ${...}.
+      const escaped = path.replace(/[.*+?^$()|[\]\\]/g, "\\$&");
+      const pattern = new RegExp(escaped.replace(/\{[^}]+\}/g, "\\$\\{[^}]+\\}"));
+      expect(source, `nothing calls ${path}`).toMatch(pattern);
     }
   });
 

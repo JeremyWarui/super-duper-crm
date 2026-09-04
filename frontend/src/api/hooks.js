@@ -109,3 +109,34 @@ export function useUpdateTarget() {
 // Ward drill-down for MCA races: the ward's registration centres + their voters.
 export const useCentres = (wardId) =>
   useQuery({ queryKey: ["centres", wardId], queryFn: () => api(`/centres/?ward=${wardId}`), enabled: !!wardId });
+
+// Every ward in a county: a county-wide race organizes on all of them.
+export const useWardsInCounty = (countyId) =>
+  useQuery({ queryKey: ["wardsInCounty", countyId], queryFn: () => api(`/wards/?county=${countyId}`), enabled: !!countyId });
+
+// Setup preview: the units a chosen seat will get a target for, before it is
+// created. Wards for a county or constituency race, centres for a ward race.
+export function useUnitsPreview({ office_level, county, constituency, ward }) {
+  const wardsInCounty = useWardsInCounty(office_level === "county" ? county : null);
+  const wardsInConstituency = useWardsIn(office_level === "constituency" ? constituency : null);
+  const centres = useCentres(office_level === "ward" ? ward : null);
+
+  const source = office_level === "county" ? wardsInCounty : office_level === "constituency" ? wardsInConstituency : centres;
+  return {
+    grain: office_level === "ward" ? "centre" : "ward",
+    units: source.data || [],
+    isLoading: source.isLoading,
+    error: source.error,
+  };
+}
+
+// Text an event's supporters. A dry run works out the recipients and sends nothing.
+export function useInviteToEvent() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, ...body }) => api(`/events/${id}/invite/`, { method: "POST", body }),
+    onSuccess: (_data, variables) => {
+      if (!variables.dry_run) invalidate("events", "strategy");
+    },
+  });
+}

@@ -207,3 +207,36 @@ async def test_a_mobilizer_with_no_profile_sees_no_wards(
 
     assert (await client.get("/api/wards/", headers=auth(token))).json() == []
     assert (await client.get("/api/centres/", headers=auth(token))).json() == []
+
+
+async def test_wards_filter_by_county(client: httpx.AsyncClient, session: AsyncSession) -> None:
+    """A county-wide race organizes on every ward in the county, across all of
+    its constituencies."""
+    county, constituency, ward, _ = await make_geography(session)
+    second = Constituency(county=county, name="Dagoretti North", code="275")
+    session.add(Ward(constituency=second, name="Kilimani", code="1372", registered_voters=20_000))
+    elsewhere = County(name="Kisumu", code="042")
+    other_constituency = Constituency(county=elsewhere, name="Kisumu Central", code="241")
+    session.add(Ward(constituency=other_constituency, name="Railways", code="0001"))
+    await session.commit()
+    token = await _manager_token(client, session)
+
+    body = (await client.get(f"/api/wards/?county={county.id}", headers=auth(token))).json()
+
+    assert sorted(w["name"] for w in body) == ["Kilimani", "Parklands"]
+    assert str(ward.id) in {w["id"] for w in body}
+
+
+async def test_a_mobilizer_asking_for_a_whole_county_still_gets_one_ward(
+    client: httpx.AsyncClient, session: AsyncSession
+) -> None:
+    county, constituency, ward, _ = await make_geography(session)
+    session.add(Ward(constituency=constituency, name="Highridge", code="1371"))
+    await session.commit()
+    campaign = await make_campaign(session, ward)
+    await make_mobilizer_user(session, campaign, ward)
+    token = await sign_in(client, "juma")
+
+    body = (await client.get(f"/api/wards/?county={county.id}", headers=auth(token))).json()
+
+    assert [w["name"] for w in body] == ["Parklands"]

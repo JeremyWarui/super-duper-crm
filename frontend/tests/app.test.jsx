@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
@@ -319,5 +319,128 @@ describe("the forms", () => {
 
     expect(screen.getByText("Attendance can't exceed those reached.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save & mark done" })).toBeDisabled();
+  });
+});
+
+describe("inviting supporters to an event", () => {
+  it("offers an invite on each event, but not to a candidate", async () => {
+    await open("manager");
+    await userEvent.setup().click(screen.getByRole("button", { name: "Events" }));
+    expect(await screen.findByRole("button", { name: "Invite" })).toBeInTheDocument();
+
+    cleanup();
+    await open("candidate");
+    await userEvent.setup().click(screen.getByRole("button", { name: "Events" }));
+    await screen.findByText("Zimmerman town hall");
+    expect(screen.queryByRole("button", { name: "Invite" })).toBeNull();
+  });
+
+  it("opens with a message drafted from the event", async () => {
+    const user = userEvent.setup();
+    await open("manager");
+
+    await user.click(screen.getByRole("button", { name: "Events" }));
+    await user.click(await screen.findByRole("button", { name: "Invite" }));
+
+    const box = await screen.findByRole("textbox");
+    expect(box.value).toContain("Zimmerman town hall");
+    expect(box.value).toContain("Social hall");
+  });
+
+  it("counts the SMS parts the message will be billed at", async () => {
+    const user = userEvent.setup();
+    await open("manager");
+
+    await user.click(screen.getByRole("button", { name: "Events" }));
+    await user.click(await screen.findByRole("button", { name: "Invite" }));
+    const box = await screen.findByRole("textbox");
+    await user.clear(box);
+    await user.type(box, "x".repeat(50));
+
+    expect(screen.getByText(/50 characters · 1 SMS part per person/)).toBeInTheDocument();
+  });
+
+  it("previews without sending", async () => {
+    const user = userEvent.setup();
+    const { calls } = await open("manager");
+
+    await user.click(screen.getByRole("button", { name: "Events" }));
+    await user.click(await screen.findByRole("button", { name: "Invite" }));
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+
+    await waitFor(() => {
+      const posted = calls.find((c) => c.path === "/events/e1/invite/");
+      expect(posted.body.dry_run).toBe(true);
+      expect(posted.body.support_levels).toEqual(["supporter", "undecided"]);
+      expect(posted.body.whole_campaign).toBe(false);
+    });
+  });
+
+  it("sends to the levels that are selected", async () => {
+    const user = userEvent.setup();
+    const { calls } = await open("manager");
+
+    await user.click(screen.getByRole("button", { name: "Events" }));
+    await user.click(await screen.findByRole("button", { name: "Invite" }));
+    await user.click(screen.getByRole("button", { name: "Opposed" }));
+    await user.click(screen.getByRole("button", { name: "Undecided" }));
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      const posted = calls.find((c) => c.path === "/events/e1/invite/" && !c.body.dry_run);
+      expect(posted.body.support_levels).toEqual(["supporter", "opposed"]);
+    });
+  });
+
+  it("can widen the send to the whole campaign", async () => {
+    const user = userEvent.setup();
+    const { calls } = await open("manager");
+
+    await user.click(screen.getByRole("button", { name: "Events" }));
+    await user.click(await screen.findByRole("button", { name: "Invite" }));
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      const posted = calls.find((c) => c.path === "/events/e1/invite/");
+      expect(posted.body.whole_campaign).toBe(true);
+    });
+  });
+
+  it("says plainly when nothing was sent", async () => {
+    /* There is no gateway yet; the screen must not imply otherwise. */
+    const user = userEvent.setup();
+    await open("manager");
+
+    await user.click(screen.getByRole("button", { name: "Events" }));
+    await user.click(await screen.findByRole("button", { name: "Invite" }));
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByText("Not sent")).toBeInTheDocument();
+    expect(screen.getByText(/No SMS gateway is configured/)).toBeInTheDocument();
+  });
+
+  it("reports the numbers it could not use", async () => {
+    const user = userEvent.setup();
+    await open("manager");
+
+    await user.click(screen.getByRole("button", { name: "Events" }));
+    await user.click(await screen.findByRole("button", { name: "Invite" }));
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByText(/1 number unusable: not a phone/)).toBeInTheDocument();
+    expect(screen.getByText(/3 supporters matched/)).toBeInTheDocument();
+  });
+
+  it("will not send an empty message", async () => {
+    const user = userEvent.setup();
+    await open("manager");
+
+    await user.click(screen.getByRole("button", { name: "Events" }));
+    await user.click(await screen.findByRole("button", { name: "Invite" }));
+    await user.clear(await screen.findByRole("textbox"));
+
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Preview" })).toBeDisabled();
   });
 });

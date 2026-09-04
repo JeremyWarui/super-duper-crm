@@ -96,6 +96,7 @@ def test_the_stored_choice_strings_are_unchanged(key: str) -> None:
         "campaign.office_level": OfficeLevel,
         "event.status": EventStatus,
         "supporter.support_level": SupportLevel,
+        "invite.support_levels": SupportLevel,
         "setup.grain": Grain,
     }[key]
     assert sorted(m.value for m in live) == sorted(CONTRACT["enums"][key])

@@ -77,8 +77,8 @@ disagree with the rows underneath it.
 ## Checks
 
 ```bash
-cd backend  && uv run pytest && uv run ruff check .   # 308 tests
-cd frontend && npm test && npm run build              # 92 tests
+cd backend  && uv run pytest && uv run ruff check .   # 374 tests
+cd frontend && npm test && npm run build              # 126 tests
 ```
 
 Neither suite needs a database server or the network.

@@ -6,6 +6,7 @@ import { useAuth } from "./store/auth";
 import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
+  useInviteToEvent,
 } from "./api/hooks";
 
 const C = {
@@ -205,8 +206,83 @@ function RecordForm({ event, onClose }) {
   );
 }
 
+
+const LEVELS = [["supporter", "Supporters"], ["undecided", "Undecided"], ["opposed", "Opposed"]];
+const SMS_PART = 160;
+
+function InviteForm({ event, onClose }) {
+  const invite = useInviteToEvent();
+  const [message, setMessage] = useState(`${event.title}${event.venue ? ` at ${event.venue}` : ""}. Come through.`);
+  const [levels, setLevels] = useState(["supporter", "undecided"]);
+  const [wholeCampaign, setWholeCampaign] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const parts = message.length === 0 ? 0 : Math.floor((message.length - 1) / SMS_PART) + 1;
+  const ok = message.trim().length > 0 && !invite.isPending;
+  const toggle = (key) => setLevels((L) => (L.includes(key) ? L.filter((k) => k !== key) : [...L, key]));
+  const send = (dry) =>
+    invite.mutate(
+      { id: event.id, message: message.trim(), support_levels: levels, whole_campaign: wholeCampaign, dry_run: dry },
+      { onSuccess: setResult },
+    );
+
+  return (
+    <Modal title="Invite supporters" sub={`${event.title} · ${wholeCampaign ? "whole campaign" : event.ward_name}`} onClose={onClose}>
+      <Label>Message</Label>
+      <textarea style={{ ...FIELD, minHeight: 90, resize: "vertical" }} value={message} onChange={(e) => { setMessage(e.target.value); setResult(null); }} />
+      <div style={{ fontSize: 12, color: C.sub, marginTop: 4 }}>{message.length} characters · {parts} SMS part{parts === 1 ? "" : "s"} per person</div>
+
+      <div style={{ height: 14 }} /><Label>Send to</Label>
+      <div className="flex flex-wrap gap-1" style={{ marginTop: 6, fontSize: 12 }}>
+        {LEVELS.map(([key, label]) => (
+          <button key={key} onClick={() => { toggle(key); setResult(null); }}
+            style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", border: `1px solid ${levels.includes(key) ? C.ink : C.line}`, background: levels.includes(key) ? C.ink : "transparent", color: levels.includes(key) ? "#fff" : C.sub }}>{label}</button>
+        ))}
+      </div>
+      <label className="flex items-start gap-2" style={{ marginTop: 12, fontSize: 12.5, color: C.sub, cursor: "pointer" }}>
+        <input type="checkbox" checked={wholeCampaign} onChange={(e) => { setWholeCampaign(e.target.checked); setResult(null); }} style={{ marginTop: 2, accentColor: C.green }} />
+        Everyone on the campaign, not just {event.ward_name}
+      </label>
+
+      {result && <InviteResult result={result} />}
+      {invite.isError && <div style={{ color: C.red, fontSize: 12.5, marginTop: 10 }}>{invite.error.message}</div>}
+
+      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+        <Btn onClick={onClose}>Close</Btn>
+        <Btn onClick={() => send(true)} disabled={!ok}>{invite.isPending ? "Working…" : "Preview"}</Btn>
+        <PrimaryBtn disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</PrimaryBtn>
+      </div>
+    </Modal>
+  );
+}
+
+function InviteResult({ result }) {
+  const tone = result.delivered ? C.green : C.amber;
+  const soft = result.delivered ? C.greenSoft : C.amberSoft;
+  return (
+    <div style={{ marginTop: 16, borderLeft: `3px solid ${tone}`, paddingLeft: 12 }}>
+      <div style={{ ...DISPLAY, fontSize: 15, fontWeight: 600 }}>
+        {result.dry_run ? "Preview" : result.delivered ? "Sent" : "Not sent"}
+        <span style={{ marginLeft: 8 }}><Badge text={result.provider} color={tone} soft={soft} /></span>
+      </div>
+      <div style={{ fontSize: 13, color: C.sub, marginTop: 4, lineHeight: 1.45 }}>
+        {fmt(result.supporters_matched)} supporter{result.supporters_matched === 1 ? "" : "s"} matched ·
+        {" "}{fmt(result.requested)} usable number{result.requested === 1 ? "" : "s"} ·
+        {" "}{result.parts} part{result.parts === 1 ? "" : "s"} each
+      </div>
+      {result.rejected.length > 0 && (
+        <div style={{ fontSize: 12.5, color: C.red, marginTop: 6 }}>
+          {result.rejected.length} number{result.rejected.length === 1 ? "" : "s"} unusable: {result.rejected.slice(0, 4).map((r) => r.phone || "(blank)").join(", ")}
+        </div>
+      )}
+      {result.detail && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>{result.detail}</div>}
+      {!result.dry_run && result.delivered && <div style={{ fontSize: 12.5, color: C.green, marginTop: 6 }}>Reached is now {fmt(result.number_reached)}.</div>}
+    </div>
+  );
+}
+
 // ---- events + supporters lists -------------------------------------------
-function EventList({ events, showActions, onRecord }) {
+function EventList({ events, showActions, onRecord, onInvite }) {
   return (
     <Card pad={0}><div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
@@ -215,6 +291,7 @@ function EventList({ events, showActions, onRecord }) {
           <th style={{ padding: "10px 8px", fontWeight: 500 }}>Date</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Status</th>
           <th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Reached</th><th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Attended</th>
           <th style={{ padding: "10px 18px", fontWeight: 500, textAlign: "right" }}>Turnout</th>
+          {showActions && <th style={{ padding: "10px 18px", fontWeight: 500, textAlign: "right" }}>Invite</th>}
         </tr></thead>
         <tbody>
           {events.map((e) => {
@@ -228,10 +305,11 @@ function EventList({ events, showActions, onRecord }) {
                 <td style={{ padding: "12px 8px", textAlign: "right" }}>{done ? fmt(e.number_reached) : (showActions ? <Btn onClick={() => onRecord(e)}>Record</Btn> : "—")}</td>
                 <td style={{ padding: "12px 8px", textAlign: "right" }}>{done ? fmt(e.number_attended) : "—"}</td>
                 <td style={{ padding: "12px 18px", textAlign: "right", ...DISPLAY, fontWeight: 600 }}>{done ? `${e.turnout_pct}%` : "—"}</td>
+                {showActions && <td style={{ padding: "12px 18px", textAlign: "right" }}><Btn onClick={() => onInvite(e)}>Invite</Btn></td>}
               </tr>
             );
           })}
-          {events.length === 0 && <tr><td colSpan={7} style={{ padding: 20, color: C.sub }}>No events yet.</td></tr>}
+          {events.length === 0 && <tr><td colSpan={showActions ? 8 : 7} style={{ padding: 20, color: C.sub }}>No events yet.</td></tr>}
         </tbody>
       </table>
     </div></Card>
@@ -388,7 +466,7 @@ export default function App() {
       case "events":
       case "myevents":
         if (events.isLoading) return <Loading />; if (events.error) return <ErrorMsg error={events.error} />;
-        return (<><PageTitle title={page === "myevents" ? "My events" : "Events"} sub="Rallies and meetings, with mobilization counts." action={role !== "candidate" ? <Btn primary onClick={() => setModal({ type: "event" })}>Schedule event</Btn> : null} /><EventList events={events.data || []} showActions={role !== "candidate"} onRecord={(e) => setModal({ type: "record", event: e })} /></>);
+        return (<><PageTitle title={page === "myevents" ? "My events" : "Events"} sub="Rallies and meetings, with mobilization counts." action={role !== "candidate" ? <Btn primary onClick={() => setModal({ type: "event" })}>Schedule event</Btn> : null} /><EventList events={events.data || []} showActions={role !== "candidate"} onRecord={(e) => setModal({ type: "record", event: e })} onInvite={(e) => setModal({ type: "invite", event: e })} /></>);
       case "register": return (<><PageTitle title="Register a supporter" sub="Quick capture in the field." /><RegisterSupporterForm campaignId={campaignId} wardOptions={wardOptions} /></>);
       case "mysupporters": return <SupportersView campaignId={campaignId} />;
       default: return null;
@@ -425,6 +503,7 @@ export default function App() {
       {modal?.type === "mobilizer" && <AddMobilizerForm campaignId={campaignId} wardOptions={wardOptions} onClose={() => setModal(null)} />}
       {modal?.type === "event" && <ScheduleEventForm campaignId={campaignId} wardOptions={wardOptions} onClose={() => setModal(null)} />}
       {modal?.type === "record" && <RecordForm event={modal.event} onClose={() => setModal(null)} />}
+      {modal?.type === "invite" && <InviteForm event={modal.event} onClose={() => setModal(null)} />}
     </div>
   );
 }
