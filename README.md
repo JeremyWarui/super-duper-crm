@@ -34,11 +34,14 @@ Each role gets a different app, and the difference is enforced on the server, no
 just hidden in the UI. `campaign-crm demo` seeds one account per role against the
 same campaign, so you sign out and back in to switch.
 
-| Sign in as | Password | What you get |
-|---|---|---|
-| `aspirant` | `demo-aspirant-2027` | **Candidate.** Overview, ward performance, events, strategy. Reads only. |
-| `manager` | `demo-manager-2027` | **Campaign manager.** All of that plus targets, mobilizers and supporters, and every write. |
-| `mobilizer` | `demo-mobilizer-2027` | **Mobilizer.** One ward. Record events, register supporters, nothing else. |
+| Sign in as | What you get |
+|---|---|
+| `aspirant` | **Candidate.** Overview, ward performance, events, strategy. Reads only. |
+| `manager` | **Campaign manager.** All of that plus targets, mobilizers and supporters, and every write. |
+| `mobilizer` | **Mobilizer.** One ward. Record events, register supporters, nothing else. |
+
+`campaign-crm demo` prints the three passwords; they are generated per run, so
+nothing credential-shaped is committed. `--password <value>` pins them.
 
 The demo builds the Roysambu MP seat: 5 wards, 153,772 registered voters, a win
 number of 43,050. Some wards are staffed and worked and some are not, so the
@@ -48,10 +51,16 @@ strategy read has real gaps to point at.
 
 ```
 ├── backend/     FastAPI + SQLAlchemy 2.0 + Pydantic v2, Postgres, uv
-└── frontend/    React 19 + Vite, React Query, Zustand
+├── frontend/    React 19 + Vite, React Query, Zustand
+└── contracts/   what the two agree on, checked from both sides
 ```
 
-Each has its own README, its own tests, and runs on its own.
+Each service has its own README, its own tests, and runs on its own.
+
+`contracts/frontend-api.json` lists every field the SPA reads and sends.
+`backend/evals/test_frontend_contract.py` checks the API still offers them;
+`frontend/tests/contract.test.js` checks the SPA's fixtures and source still
+match. Rename a field on one side and both fail until the other catches up.
 
 ## The idea
 
@@ -68,8 +77,8 @@ disagree with the rows underneath it.
 ## Checks
 
 ```bash
-cd backend  && uv run pytest && uv run ruff check .   # 272 tests
-cd frontend && npm test && npm run build              # 77 tests
+cd backend  && uv run pytest && uv run ruff check .   # 308 tests
+cd frontend && npm test && npm run build              # 92 tests
 ```
 
 Neither suite needs a database server or the network.

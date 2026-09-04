@@ -20,7 +20,7 @@ uv run uvicorn backend.main:app --reload  # http://127.0.0.1:8000/docs
 Checks:
 
 ```bash
-uv run pytest        # 272 tests, ~2 min, no database server needed
+uv run pytest        # 308 tests, ~1 min, no database server needed
 uv run ruff check .
 uv run ruff format .
 ```
@@ -40,13 +40,23 @@ campaigns have no centres to target and setup says so.
 
 `demo` builds the Roysambu MP campaign - 5 wards, win number 43,050 - with
 mobilizers, events and supporters on some wards and not others, so the strategy
-read has real gaps to point at. It prints one sign-in per role:
+read has real gaps to point at. It creates three accounts, `aspirant` (candidate),
+`manager` and `mobilizer`, and prints their passwords:
 
-| Username | Password | Role |
-|---|---|---|
-| `aspirant` | `demo-aspirant-2027` | Candidate |
-| `manager` | `demo-manager-2027` | Campaign manager |
-| `mobilizer` | `demo-mobilizer-2027` | Mobilizer, one ward |
+```
+Sign in at http://localhost:5173 as (shown once, re-run to reset):
+  aspirant   Kx8fQ2mNpR4w   Candidate: read-only cockpit
+  manager    7bTzY9vLwE3k   Campaign manager: the full war room
+  mobilizer  Qn5jH8sVdA2c   Mobilizer: Githurai only
+```
+
+Each password is generated per run, so nothing that looks like a credential is
+committed and a clone of this repo hands out no working logins. Re-running the
+command resets them. To pin them instead:
+
+```bash
+uv run campaign-crm demo --password whatever-you-like
+```
 
 ## Layout
 
@@ -70,7 +80,7 @@ backend/
 │   ├── seed/              the CSV loaders and the demo
 │   └── services/          the win number, and the strategy read
 ├── tests/
-└── evals/                 guards the schema against fields going missing
+└── evals/                 guards the schema, and the contract with the SPA
 ```
 
 ## The API

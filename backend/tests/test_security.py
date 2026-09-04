@@ -1,4 +1,9 @@
-"""Password hashing and token keys."""
+"""Password hashing and token keys, at the parameters production uses.
+
+The rest of the suite hashes cheaply; this module opts back out.
+"""
+
+import pytest
 
 from backend.security import (
     hash_password,
@@ -6,19 +11,27 @@ from backend.security import (
     new_token_key,
     verify_password,
 )
+from tests.factories import TEST_PASSWORD
+
+
+@pytest.fixture(autouse=True)
+def real_password_hashing(monkeypatch: pytest.MonkeyPatch) -> None:
+    from argon2 import PasswordHasher
+
+    monkeypatch.setattr("backend.security._hasher", PasswordHasher())
 
 
 def test_the_hash_is_argon2id_and_hides_the_password() -> None:
-    digest = hash_password("correct-horse-battery")
+    digest = hash_password(TEST_PASSWORD)
     assert digest.startswith("$argon2id$")
-    assert "correct-horse-battery" not in digest
+    assert TEST_PASSWORD not in digest
 
 
 def test_the_hash_fits_the_column() -> None:
     """User.password_hash is VARCHAR(128); a longer hash would be truncated."""
     from backend.models import User
 
-    assert len(hash_password("correct-horse-battery")) <= User.__table__.c.password_hash.type.length
+    assert len(hash_password(TEST_PASSWORD)) <= User.__table__.c.password_hash.type.length
 
 
 def test_the_same_password_hashes_differently_each_time() -> None:
@@ -27,11 +40,11 @@ def test_the_same_password_hashes_differently_each_time() -> None:
 
 
 def test_the_right_password_verifies() -> None:
-    assert verify_password("correct-horse-battery", hash_password("correct-horse-battery"))
+    assert verify_password(TEST_PASSWORD, hash_password(TEST_PASSWORD))
 
 
 def test_the_wrong_password_does_not() -> None:
-    assert not verify_password("wrong", hash_password("correct-horse-battery"))
+    assert not verify_password("wrong", hash_password(TEST_PASSWORD))
 
 
 def test_an_empty_stored_hash_rejects_every_password() -> None:
@@ -45,7 +58,7 @@ def test_a_corrupt_stored_hash_rejects_rather_than_raising() -> None:
 
 
 def test_a_fresh_hash_does_not_need_rehashing() -> None:
-    assert not needs_rehash(hash_password("correct-horse-battery"))
+    assert not needs_rehash(hash_password(TEST_PASSWORD))
 
 
 def test_a_hash_from_weaker_parameters_needs_rehashing() -> None:

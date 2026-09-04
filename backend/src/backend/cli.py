@@ -59,11 +59,11 @@ async def _seed(args: argparse.Namespace, session: AsyncSession) -> int:
     return 0
 
 
-async def _demo(_: argparse.Namespace, session: AsyncSession) -> int:
-    summary = await seed_demo(session)
+async def _demo(args: argparse.Namespace, session: AsyncSession) -> int:
+    summary = await seed_demo(session, password=args.password)
     print(f"{summary.campaign_title} - {summary.office}")
     print(f"  {summary.units} units, win number {summary.win_number:,}")
-    print("\nSign in at http://localhost:5173 as:")
+    print("\nSign in at http://localhost:5173 as (shown once, re-run to reset):")
     width = max(len(username) for username, _, _ in summary.sign_ins)
     for username, password, description in summary.sign_ins:
         print(f"  {username:<{width}}  {password:<20}  {description}")
@@ -115,6 +115,9 @@ def build_parser() -> argparse.ArgumentParser:
     seed.set_defaults(handler=_seed)
 
     demo = subparsers.add_parser("demo", help="build the demo campaign and its three sign-ins")
+    demo.add_argument(
+        "-p", "--password", help="use this for all three accounts; generated per account otherwise"
+    )
     demo.set_defaults(handler=_demo)
 
     createuser = subparsers.add_parser("createuser", help="add a user who can sign in")

@@ -1,7 +1,7 @@
 """Fixtures: an in-memory database built from the real schema."""
 
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import TYPE_CHECKING
@@ -25,6 +25,26 @@ if TYPE_CHECKING:
         User,
         Ward,
     )
+
+
+@pytest.fixture(autouse=True, scope="session")
+def cheap_password_hashing() -> Iterator[None]:
+    """Hash at a fraction of the real cost, so the suite is not mostly Argon2.
+
+    Argon2's real parameters spend ~64MB and ~100ms per hash on purpose. Almost
+    every API test signs somebody in, so paying that here buys nothing: the
+    parameters themselves are checked directly in `test_security.py`, against
+    the hasher this replaces. Kept above the weak-hash fixture there, so
+    `needs_rehash` still has something to reject.
+    """
+    from argon2 import PasswordHasher
+
+    import backend.security as security
+
+    real = security._hasher
+    security._hasher = PasswordHasher(time_cost=1, memory_cost=1024, parallelism=1)
+    yield
+    security._hasher = real
 
 
 @pytest.fixture

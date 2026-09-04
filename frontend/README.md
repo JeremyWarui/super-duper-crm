@@ -19,7 +19,7 @@ npm run dev        # http://localhost:5173
 Checks:
 
 ```bash
-npm test           # 77 tests, jsdom, no server needed
+npm test           # 92 tests, jsdom, no server needed
 npm run build
 npm run lint
 ```
@@ -29,11 +29,14 @@ npm run lint
 Each role sees a different app, so `campaign-crm demo` seeds one account per role
 against the same campaign. Sign out and back in to switch between them.
 
-| Username | Password | What they get |
-|---|---|---|
-| `aspirant` | `demo-aspirant-2027` | Candidate: overview, ward performance, events, strategy. Read-only. |
-| `manager` | `demo-manager-2027` | Campaign manager: the above plus targets, mobilizers and supporters, and every write. |
-| `mobilizer` | `demo-mobilizer-2027` | Mobilizer: their own ward only - my events, register supporter, my supporters. |
+| Username | What they get |
+|---|---|
+| `aspirant` | Candidate: overview, ward performance, events, strategy. Read-only. |
+| `manager` | Campaign manager: the above plus targets, mobilizers and supporters, and every write. |
+| `mobilizer` | Mobilizer: their own ward only - my events, register supporter, my supporters. |
+
+The passwords are generated per run and printed by `campaign-crm demo`. Pass
+`--password <value>` to pin all three instead.
 
 ## Layout
 
@@ -83,6 +86,14 @@ npm test
 | `onboarding.test.jsx` | The four steps, the cascading pickers, and the win number that comes back |
 | `app.test.jsx` | The dashboard, what each role is shown, and the four forms |
 | `gate.test.jsx` | Which of the three screens you land on |
+| `contract.test.js` | The fixtures and the source still match `contracts/frontend-api.json` |
+
+## The contract
+
+`../contracts/frontend-api.json` lists every field this app reads and sends.
+`contract.test.js` checks the fixtures and the source against it;
+`backend/evals/test_frontend_contract.py` checks the API against the same file.
+Renaming a field on one side fails on both until the other side is updated.
 
 ## Known gaps
 

@@ -1,7 +1,7 @@
 # Tests
 
 ```bash
-uv run pytest          # everything, ~2 min
+uv run pytest          # everything, ~1 min; test_seed.py loads the real CSVs
 uv run pytest tests    # tests only
 uv run pytest evals    # the schema guard only
 ```
@@ -27,15 +27,22 @@ needed and nothing touches the network.
 | `test_targets_service.py` | Turning a seat into targets |
 | `test_seed.py` | The bundled CSVs, against the real files |
 | `../evals/test_schema_baseline.py` | No field leaves the schema without a recorded reason |
+| `../evals/test_frontend_contract.py` | The API still offers what the SPA reads and accepts what it sends |
 
 ## What the in-memory database does not cover
 
-Driver behaviour and Postgres-specific SQL. To check the migration produces
-valid Postgres without running a server:
+Driver behaviour. Postgres-specific SQL is covered: `test_migrations.py` renders
+the migrations offline for the Postgres dialect and checks the pieces SQLite
+cannot prove - the partial `WHERE` clauses on the target indexes, and the
+`ON DELETE` rules SQLite ignores unless a pragma is on. To read that SQL
+yourself:
 
 ```bash
 DATABASE_URL=postgresql+asyncpg://u:p@h:5432/d uv run alembic upgrade head --sql
 ```
+
+What is left is the driver: asyncpg's type handling, and anything that only
+shows up against a running server.
 
 ## Conventions
 
