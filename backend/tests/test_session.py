@@ -29,7 +29,6 @@ async def test_get_session_yields_a_usable_session() -> None:
 
 
 async def test_get_session_rolls_back_and_re_raises() -> None:
-    """A failed request must not leave an open transaction behind."""
     agen = get_session()
     session = await anext(agen)
 

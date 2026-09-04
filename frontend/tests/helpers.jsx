@@ -5,11 +5,7 @@ import { useAuth } from "../src/store/auth";
 
 export const API = "http://localhost:8000/api";
 
-/** Stub fetch with a table of `"METHOD /path"` -> body.
- *
- * To answer with a failure, give both keys: `{ status, body }`. A body that
- * happens to carry a `status` field of its own is still just a body.
- */
+/** Stub fetch with `"METHOD /path"` -> body, or -> `{ status, body }` to fail. */
 export function stubApi(routes) {
   const calls = [];
   const fetchMock = vi.fn(async (url, options = {}) => {
@@ -44,7 +40,7 @@ export function signIn(role = "manager") {
   });
 }
 
-/** Render inside a fresh query client, so no test sees another's cache. */
+/** Render inside a fresh query client. */
 export function renderApp(ui) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -169,6 +165,17 @@ export const INVITE_RESULT = {
   number_reached: 0,
 };
 
+export const CREATED_USER = {
+  id: "u9",
+  username: "wanjiku",
+  full_name: "Wanjiku Njeri",
+  role: "mobilizer",
+  phone: "+254700333444",
+  password: "Kx8fQ2mNpR4w",
+  mobilizer: "m9",
+  ward_name: "Githurai",
+};
+
 /** Everything App reads on first render. */
 export function dashboardRoutes(overrides = {}) {
   return {
@@ -179,6 +186,8 @@ export function dashboardRoutes(overrides = {}) {
     "GET /mobilizers/": [],
     "GET /supporters/": [],
     "POST /events/e1/invite/": INVITE_RESULT,
+    "POST /users/": CREATED_USER,
+    "GET /users/": [],
     ...overrides,
   };
 }

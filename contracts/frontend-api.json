@@ -87,6 +87,22 @@
       "rejected",
       "detail",
       "number_reached"
+    ],
+    "GET /api/users/": [
+      "id",
+      "username",
+      "full_name",
+      "role",
+      "phone"
+    ],
+    "POST /api/users/": [
+      "id",
+      "username",
+      "full_name",
+      "role",
+      "password",
+      "mobilizer",
+      "ward_name"
     ]
   },
   "nested_reads": {
@@ -175,6 +191,15 @@
       "support_levels",
       "whole_campaign",
       "dry_run"
+    ],
+    "POST /api/users/": [
+      "username",
+      "role",
+      "first_name",
+      "last_name",
+      "phone",
+      "campaign",
+      "ward"
     ]
   },
   "enums": {
@@ -206,6 +231,10 @@
       "supporter",
       "undecided",
       "opposed"
+    ],
+    "user.create_role": [
+      "manager",
+      "mobilizer"
     ]
   },
   "error_shape": {

@@ -72,8 +72,6 @@ def test_migration_creates_every_column(migrated_metadata: sa.MetaData) -> None:
 
 
 def test_migration_preserves_nullability(migrated_metadata: sa.MetaData) -> None:
-    """A required column that the migration made optional fails only later, on
-    the first insert that leaves it out."""
     for name, model_table in Base.metadata.tables.items():
         migrated = {c.name: c.nullable for c in migrated_metadata.tables[name].columns}
         for column in model_table.columns:
@@ -90,8 +88,6 @@ def test_migration_creates_every_index(migrated_metadata: sa.MetaData) -> None:
 def test_migration_creates_the_partial_unique_indexes(
     migrated_metadata: sa.MetaData,
 ) -> None:
-    """Losing the WHERE clause on these still builds, but stops a campaign from
-    holding a ward target and its centre targets at the same time."""
     names = {i.name for i in migrated_metadata.tables["targets"].indexes}
     assert "uq_targets_campaign_ward" in names
     assert "uq_targets_campaign_registration_centre" in names
@@ -160,8 +156,6 @@ def test_the_migrations_render_as_valid_postgres() -> None:
 
 
 def test_the_partial_unique_indexes_keep_their_where_clause_in_postgres() -> None:
-    """Without the WHERE, a campaign could not hold a ward target and its
-    centre targets at the same time."""
     sql = _postgres_sql()
     assert (
         "CREATE UNIQUE INDEX uq_targets_campaign_ward ON targets "
@@ -174,7 +168,6 @@ def test_the_partial_unique_indexes_keep_their_where_clause_in_postgres() -> Non
 
 
 def test_cascading_deletes_survive_into_postgres() -> None:
-    """SQLite ignores ON DELETE unless a pragma is on, so it cannot prove this."""
     sql = _postgres_sql()
     assert "ON DELETE CASCADE" in sql
     assert "ON DELETE SET NULL" in sql

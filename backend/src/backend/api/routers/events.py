@@ -1,7 +1,4 @@
-"""Rallies and meetings, the invitations sent for them, and the attendance after.
-
-Mobilizers write here: running events in their own ward is their job.
-"""
+"""Rallies and meetings, their invitations, and the attendance after."""
 
 import uuid
 
@@ -65,7 +62,7 @@ async def create_event(
         campaign_id=payload.campaign,
         ward_id=payload.ward,
         registration_centre_id=payload.registration_centre,
-        # A mobilizer's own event is credited to them without being asked for.
+        # A mobilizer's own event is credited to them.
         mobilizer_id=payload.mobilizer or (profile.id if profile is not None else None),
         title=payload.title,
         venue=payload.venue,
@@ -85,7 +82,7 @@ async def record_event(
     user: CurrentUser,
     _: MobilizerWriter,
 ) -> Event:
-    """Close an event: how many were reached, how many came, and mark it done."""
+    """Close an event with its attendance."""
     event = await _visible_event(session, user, event_id)
     event.number_reached = payload.number_reached
     event.number_attended = payload.number_attended
@@ -132,11 +129,9 @@ async def invite_to_event(
     user: CurrentUser,
     _: MobilizerWriter,
 ) -> EventInviteResult:
-    """Text the event's supporters, and record how many were reached.
+    """Text the event's supporters and set `number_reached`.
 
-    `number_reached` is what the attendance form later divides by, so the send
-    sets it rather than leaving someone to count the register by hand. A
-    dry run works out the recipients and the cost and sends nothing.
+    A dry run works out the recipients and sends nothing.
     """
     event = await _visible_event(session, user, event_id)
 

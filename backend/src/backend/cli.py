@@ -1,9 +1,4 @@
-"""Command line jobs: load the reference data, build the demo, add a user.
-
-uv run campaign-crm seed          # geography, then centres if the CSV is there
-uv run campaign-crm demo          # the worked campaign and its three sign-ins
-uv run campaign-crm createuser -u amina -r manager
-"""
+"""Command line jobs: seed, demo, createuser."""
 
 import argparse
 import asyncio

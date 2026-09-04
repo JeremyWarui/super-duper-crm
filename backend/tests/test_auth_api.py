@@ -33,7 +33,6 @@ async def test_the_response_carries_no_password_hash(client: httpx.AsyncClient, 
 
 
 async def test_signing_in_twice_reuses_the_same_token(client: httpx.AsyncClient, session) -> None:
-    """A second device signs in without logging the first one out."""
     await make_user(session, username="amina")
     first = await sign_in(client, "amina")
     second = await sign_in(client, "amina")
@@ -56,7 +55,6 @@ async def test_a_wrong_password_is_rejected_in_the_shape_the_form_reads(
 async def test_an_unknown_username_gets_the_same_message_as_a_wrong_password(
     client: httpx.AsyncClient, session
 ) -> None:
-    """Otherwise the response says which usernames exist."""
     await make_user(session, username="amina")
     unknown = await client.post("/api/auth/login/", json={"username": "ghost", "password": "x"})
     wrong = await client.post("/api/auth/login/", json={"username": "amina", "password": "x"})
@@ -81,7 +79,6 @@ async def test_signing_in_records_the_time(client: httpx.AsyncClient, session) -
 
 
 async def test_a_missing_field_is_one_readable_sentence(client: httpx.AsyncClient) -> None:
-    """FastAPI's default is a list of objects, which the frontend prints as [object Object]."""
     response = await client.post("/api/auth/login/", json={"username": "amina"})
     assert response.status_code == 400
     detail = response.json()["detail"]
@@ -124,7 +121,6 @@ async def test_an_unknown_token_is_401(client: httpx.AsyncClient) -> None:
 async def test_the_wrong_scheme_is_401_rather_than_treated_as_anonymous(
     client: httpx.AsyncClient, session
 ) -> None:
-    """A Bearer header is a caller trying to authenticate, not an anonymous one."""
     await make_user(session, username="amina")
     token = await sign_in(client, "amina")
     response = await client.post("/api/auth/logout/", headers={"Authorization": f"Bearer {token}"})

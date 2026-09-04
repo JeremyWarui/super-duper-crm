@@ -47,11 +47,6 @@ def test_win_number_is_none_when_nothing_is_projected_to_be_cast(
 
 
 def test_win_number_uses_exact_decimal_arithmetic() -> None:
-    """Float arithmetic lands on the wrong side of the floor and loses a vote.
-
-    375 voters at 36.8% is 137.99999999999997 in float, not 138, so the goal
-    comes out as 69 instead of 70.
-    """
     registered_voters, turnout = 375, Decimal("36.8")
 
     float_result = int((registered_voters * float(turnout) / 100) // 2) + 1

@@ -1,18 +1,4 @@
-"""Sending SMS, behind one interface with two providers.
-
-The campaign sends invitations to supporters' phones. Africa's Talking is the
-gateway that would carry them, and there is no subscription yet, so the default
-provider records what it was asked to send and reports that nothing left the
-building. Everything above this module is written against `SMSProvider` and
-does not know which one is in use; switching is a setting, not a code change.
-
-    SMS_PROVIDER=console          # the default: records, never sends
-    SMS_PROVIDER=africastalking   # needs AT_USERNAME and AT_API_KEY
-
-The recipient list is normalised to E.164 first, because a register filled in
-by hand holds `0712 345678`, `+254712345678` and `254-712-345-678` for the same
-person, and a gateway bills for each one it accepts.
-"""
+"""Sending SMS. `SMS_PROVIDER` picks the provider; `console` records and sends nothing."""
 
 import logging
 import re
@@ -23,17 +9,16 @@ from backend.config import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
-# Kenya. The country this is built for, and the only one the register holds.
 DEFAULT_COUNTRY_CODE = "254"
 NATIONAL_NUMBER_LENGTH = 9
 
-# Africa's Talking counts a message in 160-character parts, and bills per part.
+# Billed per part, per recipient.
 SMS_PART_LENGTH = 160
 
 
 @dataclass(frozen=True)
 class Recipient:
-    """One phone number, and what the gateway made of it."""
+    """One number and what the gateway made of it."""
 
     phone: str
     status: str
@@ -42,11 +27,7 @@ class Recipient:
 
 @dataclass
 class SendResult:
-    """What one send attempt did.
-
-    `delivered` is False whenever nothing actually left, which is the normal
-    case until there is a subscription. Callers show it rather than assuming.
-    """
+    """`delivered` is False whenever nothing left."""
 
     provider: str
     delivered: bool
@@ -58,14 +39,14 @@ class SendResult:
 
     @property
     def parts(self) -> int:
-        """How many 160-character parts each recipient would be billed."""
+        """Parts each recipient is billed."""
         if not self.message:
             return 0
         return (len(self.message) - 1) // SMS_PART_LENGTH + 1
 
 
 class SMSProvider(Protocol):
-    """What the rest of the app is allowed to know about sending a message."""
+    """What the app knows about sending a message."""
 
     name: str
 
@@ -80,10 +61,7 @@ _NON_DIGITS = re.compile(r"[^\d+]")
 def normalise_phone(raw: str | None, country_code: str = DEFAULT_COUNTRY_CODE) -> str | None:
     """A number as E.164, or None when it cannot be one.
 
-    Accepts what people actually type: `0712 345678`, `+254 712 345 678`,
-    `254-712-345678`, `712345678`. Returns `+254712345678` for all of them.
-    Anything left over is rejected rather than guessed at, because a wrong
-    number is a message delivered to a stranger.
+    Accepts `0712 345678`, `+254 712 345 678`, `254-712-345678`, `712345678`.
     """
     if not raw:
         return None
@@ -112,10 +90,7 @@ def normalise_phone(raw: str | None, country_code: str = DEFAULT_COUNTRY_CODE) -
 
 
 def normalise_all(raw_numbers: list[str | None]) -> tuple[list[str], list[Recipient]]:
-    """Split a register's phone column into numbers worth sending to, and the rest.
-
-    Duplicates collapse: one person listed twice is one message, billed once.
-    """
+    """Usable numbers and the rest. Duplicates collapse to one."""
     keep: list[str] = []
     seen: set[str] = set()
     rejected: list[Recipient] = []
@@ -139,11 +114,7 @@ def normalise_all(raw_numbers: list[str | None]) -> tuple[list[str], list[Recipi
 
 
 class ConsoleSMSProvider:
-    """Records the request and sends nothing.
-
-    The default, and what runs until there is an Africa's Talking subscription.
-    It reports `delivered=False` so no screen can claim a message went out.
-    """
+    """Records the request and sends nothing."""
 
     name = "console"
 
@@ -167,17 +138,7 @@ class ConsoleSMSProvider:
 
 
 class AfricasTalkingSMSProvider:
-    """Sends through Africa's Talking.
-
-    Built to their bulk SMS endpoint: a form post carrying `username`, `to` as
-    a comma-separated list, and `message`, authenticated by an `apiKey` header.
-    Their reply carries one recipient object per number with a `status` of
-    `Success` or a reason it was not taken.
-
-    Untested against the live gateway: there is no subscription yet. The
-    request shape and the parsing are covered against recorded responses, so
-    what remains unproven is the network call itself.
-    """
+    """Africa's Talking bulk SMS. Never run against the live gateway."""
 
     name = "africastalking"
 
@@ -194,11 +155,11 @@ class AfricasTalkingSMSProvider:
         self.username = username
         self.api_key = api_key
         self.sender_id = sender_id
-        # Their sandbox only accepts the literal username "sandbox".
+        # Their sandbox only answers to the username "sandbox".
         self.url = self.SANDBOX_URL if sandbox or username == "sandbox" else self.LIVE_URL
 
     def build_request(self, recipients: list[str], message: str) -> tuple[dict, dict]:
-        """The form fields and headers for one send. Separated so it is testable."""
+        """Form fields and headers for one send."""
         data = {"username": self.username, "to": ",".join(recipients), "message": message}
         if self.sender_id:
             data["from"] = self.sender_id
@@ -211,7 +172,7 @@ class AfricasTalkingSMSProvider:
 
     @staticmethod
     def parse_response(payload: dict, message: str, requested: int) -> SendResult:
-        """Their reply, split into what they took and what they would not."""
+        """Their reply, split into taken and refused."""
         recipients = payload.get("SMSMessageData", {}).get("Recipients", []) or []
         accepted, rejected = [], []
         for entry in recipients:

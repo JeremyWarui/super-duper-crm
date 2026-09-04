@@ -11,10 +11,21 @@ from backend.api.routers import (
     strategy,
     supporters,
     targets,
+    users,
 )
 
 api_router = APIRouter(prefix="/api")
-for module in (auth, geography, campaigns, targets, mobilizers, events, supporters, strategy):
+for module in (
+    auth,
+    geography,
+    campaigns,
+    targets,
+    mobilizers,
+    events,
+    supporters,
+    strategy,
+    users,
+):
     api_router.include_router(module.router)
 
 __all__ = ["api_router"]

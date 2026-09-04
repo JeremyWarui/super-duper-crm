@@ -48,7 +48,6 @@ def test_the_bundled_csvs_are_present() -> None:
 
 
 def test_headers_are_read_with_their_double_space_squeezed_out() -> None:
-    """The source spells one header "Constituency  Name"."""
     first = next(rows(CAW_CSV))
     assert "Constituency Name" in first
     assert first["County Name"] == "Mombasa"
@@ -182,7 +181,6 @@ async def test_the_demo_builds_one_campaign_with_one_sign_in_per_role(
 
 
 async def test_every_password_it_prints_signs_that_user_in(session: AsyncSession) -> None:
-    """The printed password is the only copy, so it has to be the right one."""
     await import_geography(session)
 
     summary = await seed_demo(session)
@@ -203,7 +201,6 @@ async def test_each_account_gets_its_own_password(session: AsyncSession) -> None
 
 
 async def test_a_given_password_is_used_for_all_three(session: AsyncSession) -> None:
-    """So a scripted demo can sign in without scraping the output."""
     await import_geography(session)
 
     summary = await seed_demo(session, password="pinned-for-this-run")
@@ -214,7 +211,6 @@ async def test_a_given_password_is_used_for_all_three(session: AsyncSession) -> 
 
 
 async def test_re_running_resets_the_passwords(session: AsyncSession) -> None:
-    """The old ones were printed once and are gone; the new ones must work."""
     await import_geography(session)
     first = await seed_demo(session)
 
@@ -227,7 +223,6 @@ async def test_re_running_resets_the_passwords(session: AsyncSession) -> None:
 
 
 async def test_the_demo_mobilizer_is_tied_to_exactly_one_ward(session: AsyncSession) -> None:
-    """Their whole app is scoped to it, so an unlinked mobilizer sees nothing."""
     await import_geography(session)
     await seed_demo(session)
 
@@ -245,7 +240,6 @@ async def test_the_demo_mobilizer_is_tied_to_exactly_one_ward(session: AsyncSess
 async def test_the_demo_leaves_some_wards_unstaffed_and_some_targets_met(
     session: AsyncSession,
 ) -> None:
-    """The strategy read has nothing to say when every unit looks the same."""
     await import_geography(session)
     await seed_demo(session)
 
@@ -285,7 +279,6 @@ async def test_the_demo_campaign_targets_every_ward_in_roysambu(session: AsyncSe
 async def test_one_demo_account_has_no_campaign_so_setup_can_be_seen(
     session: AsyncSession,
 ) -> None:
-    """Every other account lands on the dashboard, where setup is unreachable."""
     await import_geography(session)
     await seed_demo(session)
 
@@ -318,9 +311,6 @@ async def test_re_running_does_not_hand_that_account_a_campaign(session: AsyncSe
 
 
 def test_the_two_sources_spell_a_ward_differently_and_still_match() -> None:
-    """KNBS writes a typographic apostrophe and a forward slash; the IEBC
-    extraction writes an ASCII one and a backslash. Folding them is the
-    difference between 151 centres landing and being dropped."""
     assert normalise("Ziwa la Ng\u2019ombe") == normalise("ZIWA LA NG'OMBE")
     assert normalise("Njabini/Kiburu") == normalise("NJABINI\\KIBURU")
     assert normalise("Ziwani/Kariokor") == normalise("ZIWANI/KARIOKOR")
@@ -331,7 +321,6 @@ def test_the_bundled_centres_file_is_present() -> None:
 
 
 async def test_every_centre_that_belongs_to_a_ward_lands(session: AsyncSession) -> None:
-    """The whole IEBC extraction, against the whole KNBS geography."""
     await import_geography(session)
 
     summary = await import_centres(session, CENTRES_CSV)
@@ -344,8 +333,6 @@ async def test_every_centre_that_belongs_to_a_ward_lands(session: AsyncSession) 
 async def test_the_diaspora_and_prisons_are_left_out_rather_than_failing(
     session: AsyncSession,
 ) -> None:
-    """Counties 48 and 49 are IEBC voting categories, not places with wards.
-    No ward or constituency campaign organizes on them."""
     await import_geography(session)
 
     summary = await import_centres(session, CENTRES_CSV)
@@ -355,7 +342,6 @@ async def test_the_diaspora_and_prisons_are_left_out_rather_than_failing(
 
 
 async def test_a_ward_name_the_pdf_cut_short_still_matches(session: AsyncSession, tmp_path) -> None:
-    """The IEBC PDF clips a long name to its column width."""
     await import_geography(session)
     csv_path = tmp_path / "centres.csv"
     csv_path.write_text(
@@ -380,7 +366,6 @@ async def test_a_ward_name_the_pdf_cut_short_still_matches(session: AsyncSession
 async def test_a_name_too_short_to_be_sure_of_is_not_guessed_at(
     session: AsyncSession, tmp_path
 ) -> None:
-    """A short prefix could mean several wards, and a wrong one is worse than none."""
     await import_geography(session)
     csv_path = tmp_path / "centres.csv"
     csv_path.write_text(
@@ -395,7 +380,6 @@ async def test_a_name_too_short_to_be_sure_of_is_not_guessed_at(
 
 
 async def test_an_ambiguous_prefix_is_not_guessed_at(session: AsyncSession, tmp_path) -> None:
-    """Two wards could be meant, so neither is chosen."""
     await import_geography(session)
     constituency = (
         await session.execute(select(Constituency).where(Constituency.name == "Roysambu"))
@@ -420,8 +404,6 @@ async def test_an_ambiguous_prefix_is_not_guessed_at(session: AsyncSession, tmp_
 
 
 async def test_a_ward_s_centres_add_up_to_its_register(session: AsyncSession) -> None:
-    """The two sources are independent; that they reconcile is the check that
-    the join is right."""
     await import_geography(session)
     await import_centres(session, CENTRES_CSV)
 
@@ -435,7 +417,6 @@ async def test_a_ward_s_centres_add_up_to_its_register(session: AsyncSession) ->
 
 
 async def test_a_ward_campaign_now_has_centres_to_target(session: AsyncSession) -> None:
-    """This is what the setup preview said was missing."""
     from backend.models import Campaign, OfficeLevel
     from backend.services.targets import generate_targets
 
@@ -460,7 +441,6 @@ async def test_a_ward_campaign_now_has_centres_to_target(session: AsyncSession) 
 async def test_re_seeding_puts_the_fresh_account_back_to_no_campaign(
     session: AsyncSession,
 ) -> None:
-    """Walking through setup spends the demo; re-running has to restore it."""
     await import_geography(session)
     await seed_demo(session)
     fresh = (await session.execute(select(User).where(User.username == "newaspirant"))).scalar_one()

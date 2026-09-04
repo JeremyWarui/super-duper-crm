@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     debug: bool = False
 
-    # Signs tokens and sessions. No default, so it cannot be forgotten.
+    # No default, so it cannot be forgotten.
     secret_key: str = Field(min_length=32)
 
     db_name: str = "campaign_crm"
@@ -37,12 +37,10 @@ class Settings(BaseSettings):
     # Log every SQL statement.
     echo_sql: bool = False
 
-    # Which SMS gateway carries invitations. "console" records and sends
-    # nothing, which is the default until there is a subscription.
+    # "console" records and sends nothing.
     at_username: str = ""
     at_api_key: str = ""
-    # The registered alphanumeric sender, if there is one. Blank uses the
-    # shared short code.
+    # Blank uses the shared short code.
     at_sender_id: str = ""
     at_sandbox: bool = False
     sms_provider: Literal["console", "africastalking"] = "console"
@@ -50,7 +48,7 @@ class Settings(BaseSettings):
     @field_validator("sms_provider", mode="after")
     @classmethod
     def _gateway_needs_credentials(cls, value: str, info: ValidationInfo) -> str:
-        """Fail at startup rather than on the first invitation nobody receives."""
+        """Fail at startup rather than on the first invitation."""
         if value == "africastalking" and not (
             info.data.get("at_username") and info.data.get("at_api_key")
         ):
@@ -77,5 +75,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Cached, so the environment is read once per process."""
+    """Read once per process."""
     return Settings()  # type: ignore[call-arg]

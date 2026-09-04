@@ -1,13 +1,5 @@
-"""Turn a chosen seat into a full set of vote targets.
-
-One target per unit the campaign organizes on, each starting at its county's
-2022 turnout:
-
-  Governor / senator / woman rep -> one target per ward in the county
-  MP                             -> one target per ward in the constituency
-  MCA                            -> one target per registration centre in the ward
-
-Re-running updates the existing targets rather than adding more.
+"""Turn a chosen seat into vote targets: a ward each, or a registration centre
+each for a ward race. Re-running updates rather than adding.
 """
 
 from dataclasses import dataclass
@@ -30,7 +22,7 @@ from backend.models import (
 
 @dataclass
 class TargetSummary:
-    """What a run produced. `note` says why there are no units, when there are none."""
+    """`note` says why there are no units, when there are none."""
 
     grain: OperationalGrain
     units: int
@@ -66,10 +58,9 @@ async def _existing_targets(session: AsyncSession, campaign: Campaign) -> dict[t
 
 
 async def generate_targets(session: AsyncSession, campaign: Campaign) -> TargetSummary:
-    """Create or refresh every target for a campaign, and total the win number.
+    """Create or refresh every target, and total the win number.
 
-    Committed votes on an existing target are left alone; only the projected
-    turnout and the resulting win number are rewritten.
+    Committed votes are left alone.
     """
     grain = campaign.operational_grain
     existing = await _existing_targets(session, campaign)

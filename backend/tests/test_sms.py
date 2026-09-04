@@ -37,7 +37,6 @@ def settings(**overrides) -> Settings:
     ],
 )
 def test_the_ways_a_register_spells_one_number(raw: str) -> None:
-    """All of these are the same person, typed by different hands."""
     assert normalise_phone(raw) == "+254712345678"
 
 
@@ -57,7 +56,6 @@ def test_the_ways_a_register_spells_one_number(raw: str) -> None:
     ],
 )
 def test_what_is_not_a_number_is_refused_rather_than_guessed_at(raw) -> None:
-    """A wrong number is a message delivered to a stranger, and billed for."""
     assert normalise_phone(raw) is None
 
 
@@ -68,7 +66,6 @@ def test_a_safaricom_and_an_airtel_number_both_pass() -> None:
 
 
 def test_the_same_person_listed_twice_is_messaged_once() -> None:
-    """Both spellings are one number, and a gateway bills per number."""
     keep, rejected = normalise_all(["0712345678", "+254712345678", "254 712 345 678"])
     assert keep == ["+254712345678"]
     assert rejected == []
@@ -89,7 +86,6 @@ def test_an_empty_register_sends_to_nobody() -> None:
 
 
 async def test_the_default_provider_sends_nothing(caplog) -> None:
-    """There is no subscription; a screen must not be able to claim otherwise."""
     result = await ConsoleSMSProvider().send(["+254712345678"], "Rally on Saturday")
 
     assert result.provider == "console"
@@ -109,7 +105,6 @@ def test_the_console_provider_is_what_a_fresh_install_gets() -> None:
 
 
 def test_choosing_the_gateway_needs_its_credentials() -> None:
-    """Fail at startup, not on the first invitation nobody receives."""
     with pytest.raises(ValueError, match="AT_USERNAME"):
         settings(sms_provider="africastalking")
 
@@ -144,7 +139,6 @@ def test_the_request_carries_what_the_gateway_expects() -> None:
 
 
 def test_a_registered_sender_is_sent_and_a_blank_one_is_not() -> None:
-    """Blank falls back to the shared short code; an empty `from` is refused."""
     with_id, _ = AfricasTalkingSMSProvider("u", "k", sender_id="MZIGO").build_request(
         ["+254712345678"], "x"
     )
@@ -155,7 +149,6 @@ def test_a_registered_sender_is_sent_and_a_blank_one_is_not() -> None:
 
 
 def test_the_sandbox_username_never_hits_the_live_gateway() -> None:
-    """Their sandbox only answers to the literal username "sandbox"."""
     assert AfricasTalkingSMSProvider("sandbox", "k").url.startswith(
         AfricasTalkingSMSProvider.SANDBOX_URL
     )
@@ -207,7 +200,6 @@ def test_a_reply_taking_nobody_is_not_a_delivery() -> None:
 
 
 def test_a_reply_with_nothing_in_it_does_not_raise() -> None:
-    """Their errors do not always match the documented shape."""
     result = AfricasTalkingSMSProvider.parse_response({}, "x", 1)
     assert result.delivered is False
     assert result.requested == 1
@@ -223,6 +215,5 @@ def test_a_reply_with_nothing_in_it_does_not_raise() -> None:
 def test_a_message_is_billed_in_one_hundred_and_sixty_character_parts(
     length: int, parts: int
 ) -> None:
-    """The cost of a send is per part per recipient, so the count is shown."""
     result = SendResult(provider="console", delivered=False, message="x" * length, requested=1)
     assert result.parts == parts

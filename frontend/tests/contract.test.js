@@ -1,17 +1,17 @@
-/**
- * The test doubles still match the shape the backend promises.
- *
- * Read from `contracts/frontend-api.json`, the same file
- * `backend/evals/test_frontend_contract.py` checks the API against. Without
- * this, a backend field rename would leave every test here green against a
- * fixture that no longer resembles the real response.
- */
+/** The fixtures and the source still match `contracts/frontend-api.json`. */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CAMPAIGN, EVENTS, INVITE_RESULT, STRATEGY, TARGETS, dashboardRoutes } from "./helpers";
+import {
+  CAMPAIGN,
+  CREATED_USER,
+  EVENTS,
+  INVITE_RESULT,
+  STRATEGY,
+  TARGETS,
+  dashboardRoutes,
+} from "./helpers";
 
-// vitest runs from the frontend directory; the contract sits beside it.
 const CONTRACT = JSON.parse(
   readFileSync(resolve(process.cwd(), "../contracts/frontend-api.json"), "utf8"),
 );
@@ -76,6 +76,10 @@ describe("the fixtures against the contract", () => {
     }
   });
 
+  it("a new login carries what the team screens read", () => {
+    expectHasAll(CREATED_USER, fieldsFor("POST /api/users/"), "the created-user fixture");
+  });
+
   it("stubs every route the dashboard loads", () => {
     const stubbed = Object.keys(dashboardRoutes()).map((key) => {
       const [method, path] = key.split(" ");
@@ -121,7 +125,6 @@ describe("the source against the contract", () => {
   });
 
   it("reads the error field the backend fills in", () => {
-    /* The client shows `detail`; anything else renders as [object Object]. */
     expect(CONTRACT.error_shape.detail).toBe("string");
     expect(read("api/client.js")).toContain("data?.detail");
   });
@@ -130,7 +133,7 @@ describe("the source against the contract", () => {
     const source = read("api/hooks.js") + read("store/auth.js");
     for (const route of Object.keys(CONTRACT.reads)) {
       const path = route.split(" ")[1].replace("/api", "");
-      // A path parameter is a template literal in the source: {id} -> ${...}.
+      // {id} in the contract is ${...} in the source.
       const escaped = path.replace(/[.*+?^$()|[\]\\]/g, "\\$&");
       const pattern = new RegExp(escaped.replace(/\{[^}]+\}/g, "\\$\\{[^}]+\\}"));
       expect(source, `nothing calls ${path}`).toMatch(pattern);
@@ -138,7 +141,6 @@ describe("the source against the contract", () => {
   });
 
   it("names the centre field the API returns, not the prototype's", () => {
-    /* A ward race targets registration centres now, not polling stations. */
     const source = read("App.jsx");
     expect(source).toContain("centre_name");
     expect(source).not.toContain("station_name");

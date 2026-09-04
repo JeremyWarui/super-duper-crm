@@ -23,7 +23,6 @@ async def test_listing_targets_needs_a_token(client: httpx.AsyncClient) -> None:
 async def test_a_target_names_its_unit_and_carries_its_register(
     client: httpx.AsyncClient, world: World
 ) -> None:
-    """The targets table shows the name and the register, so neither is a second call."""
     rows = await _targets(client, world)
 
     zimmerman = next(r for r in rows if r["ward_name"] == "Zimmerman")
@@ -59,7 +58,6 @@ async def test_a_candidate_may_read_targets_but_not_change_them(
 async def test_moving_the_turnout_slider_recomputes_the_win_number(
     client: httpx.AsyncClient, world: World
 ) -> None:
-    """30,701 at 70% is 21,490.7 cast, so 10,746 wins it."""
     zimmerman = next(r for r in await _targets(client, world) if r["ward_name"] == "Zimmerman")
 
     response = await client.patch(
@@ -75,7 +73,6 @@ async def test_moving_the_turnout_slider_recomputes_the_win_number(
 async def test_the_client_cannot_set_the_win_number_itself(
     client: httpx.AsyncClient, world: World
 ) -> None:
-    """It is derived; accepting it would let the browser move the goalposts."""
     zimmerman = next(r for r in await _targets(client, world) if r["ward_name"] == "Zimmerman")
 
     response = await client.patch(
@@ -146,7 +143,6 @@ async def test_a_mobilizer_sees_only_their_own_ward_s_target(
 
 
 async def test_a_mobilizer_may_not_change_a_target(client: httpx.AsyncClient, world: World) -> None:
-    """Targets are the manager's call, even in the mobilizer's own ward."""
     zimmerman = next(r for r in await _targets(client, world) if r["ward_name"] == "Zimmerman")
 
     response = await client.patch(

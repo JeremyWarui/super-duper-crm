@@ -1,8 +1,4 @@
-"""The strategy read: what the numbers say to do next.
-
-Derived from targets, events and mobilizers on every request. Nothing here is
-stored, so it can never disagree with the rows it is built from.
-"""
+"""The strategy read, derived from targets, events and mobilizers on every request."""
 
 import uuid
 from dataclasses import dataclass, field
@@ -13,7 +9,6 @@ from sqlalchemy.orm import selectinload
 
 from backend.models import Event, Mobilizer, Target
 
-# Enough events that more of them are better spent somewhere else.
 WELL_WORKED = 4
 
 
@@ -54,11 +49,7 @@ async def read_strategy(
     campaign_id: uuid.UUID | None = None,
     ward_id: uuid.UUID | None = None,
 ) -> Strategy:
-    """Roll the campaign's targets up, then say what stands out.
-
-    `campaign_ids` limits it to the campaigns the caller may see, `campaign_id`
-    to the one they asked for, and `ward_id` to a mobilizer's own ward.
-    """
+    """Roll the campaign's targets up, then say what stands out."""
     statement = select(Target).options(
         selectinload(Target.ward), selectinload(Target.registration_centre)
     )
@@ -121,10 +112,9 @@ def _unit_key(target: Target) -> tuple[str, str | None]:
 async def _events_per_unit(
     session: AsyncSession, targets: list[Target]
 ) -> dict[tuple[str, str | None], int]:
-    """Events counted against the same unit each target covers.
+    """Events counted against the unit each target covers.
 
-    A ward-level target counts only ward-level events; a centre's events belong
-    to the centre, not to the ward around it.
+    A centre's events belong to the centre, not the ward around it.
     """
     if not targets:
         return {}
@@ -158,7 +148,7 @@ async def _staffed_units(
 
 
 def _notes(units: list[Unit]) -> list[Note]:
-    """Three flags at most: where to go next, where to ease off, what is unstaffed."""
+    """Where to go next, where to ease off, what is unstaffed."""
     notes: list[Note] = []
 
     behind = sorted((u for u in units if u.progress < 1), key=lambda u: -u.gap)

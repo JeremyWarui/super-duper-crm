@@ -164,7 +164,6 @@ async def test_a_campaign_with_no_area_set_says_so(session: AsyncSession) -> Non
 async def test_a_county_with_no_recorded_turnout_leaves_the_win_number_open(
     session: AsyncSession,
 ) -> None:
-    """No projection means no goal, rather than a goal of zero."""
     county = await _county(session, turnout=None)
     constituency = Constituency(county=county, name="Roysambu")
     session.add(Ward(constituency=constituency, name="Zimmerman", registered_voters=30_701))
@@ -197,7 +196,6 @@ async def test_running_it_again_updates_the_targets_rather_than_adding_more(
 async def test_running_it_again_keeps_the_votes_already_committed(
     session: AsyncSession,
 ) -> None:
-    """Re-running after loading new data must not wipe the ground team's work."""
     county = await _county(session)
     constituency = Constituency(county=county, name="Roysambu")
     session.add(Ward(constituency=constituency, name="Zimmerman", registered_voters=30_701))

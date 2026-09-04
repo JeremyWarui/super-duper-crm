@@ -1,4 +1,4 @@
-/** The query hooks: what they ask for, and what they refresh after a write. */
+/** What each hook asks for, and what a write refreshes. */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -75,7 +75,6 @@ describe("the query hooks", () => {
   });
 
   it("refreshes the strategy after an event is scheduled", async () => {
-    /* The strategy is computed from events, so a stale read would contradict itself. */
     signIn();
     stubApi({ "GET /strategy/": STRATEGY, "POST /events/": { id: "e2" } });
     const { queryClient, wrapper } = wrap();

@@ -1,4 +1,4 @@
-/** What the app shows before the dashboard: sign in, then set a campaign up. */
+/** Which of the three screens you land on. */
 import { screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../src/store/auth";
@@ -8,7 +8,7 @@ import Login from "../src/components/Login";
 import Onboarding from "../src/components/Onboarding";
 import { CAMPAIGN, dashboardRoutes, renderApp, signIn, stubApi } from "./helpers";
 
-// The gate from src/main.jsx, which cannot be imported without mounting the app.
+// The gate from src/main.jsx.
 function SignedIn() {
   const role = useAuth((s) => s.user?.role);
   const campaigns = useCampaigns();

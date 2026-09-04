@@ -94,7 +94,6 @@ def test_every_calculated_value_still_exists(model_name: str) -> None:
 
 
 def test_compute_win_number_is_available() -> None:
-    """Available both as a plain function and as a method on Target."""
     from backend.models import compute_win_number
 
     assert callable(compute_win_number)
@@ -111,7 +110,6 @@ def test_renames_point_at_columns_that_exist() -> None:
 
 
 def test_target_keeps_both_uniqueness_rules() -> None:
-    """One target per ward, and one per registration centre."""
     indexes = {i for i in Target.__table__.indexes if i.unique}
     by_columns = {tuple(sorted(c.name for c in i.columns)): i for i in indexes}
 
@@ -135,6 +133,5 @@ def test_target_keeps_both_uniqueness_rules() -> None:
     ],
 )
 def test_choices_keep_their_stored_values(key: str, enum_cls: type) -> None:
-    """These strings are stored in rows, so changing one orphans existing data."""
     expected = [tuple(pair) for pair in BASELINE["choices"][key]]
     assert enum_cls.choices() == expected

@@ -208,7 +208,6 @@ async def test_one_centre_level_target_per_campaign_and_centre(
 async def test_centre_targets_do_not_collide_with_the_ward_target(
     session: AsyncSession,
 ) -> None:
-    """One ward-level target and several centre-level ones can share a ward."""
     _, _, ward, centre = await make_geography(session)
     campaign = await make_campaign(session, ward)
     other_centre = RegistrationCentre(ward=ward, name="Aga Khan Hall", registered_voters=1_500)
@@ -335,8 +334,6 @@ async def test_target_rejects_turnout_above_one_hundred_percent(
 
 
 async def test_a_user_holds_at_most_one_mobilizer_profile(session: AsyncSession) -> None:
-    """The second mobilizer sets `user_id` directly, because assigning the same
-    `user` object would move it off the first one and never reach the database."""
     _, _, ward, _ = await make_geography(session)
     campaign = await make_campaign(session, ward)
     user = User(username="juma", role=UserRole.MOBILIZER)
@@ -351,7 +348,6 @@ async def test_a_user_holds_at_most_one_mobilizer_profile(session: AsyncSession)
 async def test_deleting_a_mobilizers_user_keeps_the_mobilizer(
     session: AsyncSession,
 ) -> None:
-    """Losing the login must not lose the person."""
     _, _, ward, _ = await make_geography(session)
     campaign = await make_campaign(session, ward)
     user = User(username="juma", role=UserRole.MOBILIZER)
@@ -461,7 +457,6 @@ def test_enum_members_serialize_as_their_plain_string_value() -> None:
 
 
 async def test_user_defaults_to_manager(session: AsyncSession) -> None:
-    """A user with no role given is a campaign manager."""
     user = User(username="asha", first_name="Asha", last_name="Mwangi")
     session.add(user)
     await session.commit()
@@ -476,8 +471,6 @@ async def test_the_orm_rejects_an_unknown_role(session: AsyncSession) -> None:
 
 
 async def test_the_database_rejects_an_unknown_role(session: AsyncSession) -> None:
-    """Raw SQL, so this checks the constraint is in the database itself and not
-    only in the Python layer above it."""
     statement = text(
         "INSERT INTO users (id, username, email, first_name, last_name, phone, "
         "role, password_hash, is_active, is_superuser, created_at) VALUES "

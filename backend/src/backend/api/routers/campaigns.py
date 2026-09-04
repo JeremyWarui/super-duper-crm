@@ -18,7 +18,6 @@ from backend.services.targets import generate_targets
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
-# The one geography column each office level fills in.
 AREA_FIELD = {
     OfficeLevel.COUNTY: "county",
     OfficeLevel.CONSTITUENCY: "constituency",
@@ -28,7 +27,7 @@ AREA_FIELD = {
 
 @router.get("/", response_model=list[CampaignRead])
 async def list_campaigns(session: SessionDep, user: CurrentUser) -> list[Campaign]:
-    """The caller's campaigns. The SPA takes the first one and works on that."""
+    """The caller's campaigns."""
     statement = select(Campaign).order_by(Campaign.created_at)
     visible = await visible_campaign_ids(session, user)
     statement = limit_to_campaigns(statement, Campaign.id, visible)
@@ -43,11 +42,7 @@ async def list_campaigns(session: SessionDep, user: CurrentUser) -> list[Campaig
 async def setup_campaign(
     payload: CampaignSetup, session: SessionDep, user: CurrentUser
 ) -> CampaignSetupResponse:
-    """Create the campaign and every one of its targets in one call.
-
-    Returns the campaign plus the summary the onboarding screen shows: how many
-    units it covers, and the win number across them.
-    """
+    """Create the campaign and every one of its targets in one call."""
     if user.role is UserRole.MOBILIZER:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "A mobilizer may not create a campaign.")
 
@@ -88,7 +83,7 @@ async def regenerate_targets(
     user: CurrentUser,
     _: Writer,
 ) -> SetupSummary:
-    """Rebuild the targets, for after new centres or wards have been loaded."""
+    """Rebuild the targets after new centres or wards are loaded."""
     campaign = await require_visible_campaign(session, user, campaign_id)
     summary = await generate_targets(session, campaign)
     return SetupSummary.model_validate(summary)

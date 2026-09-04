@@ -28,7 +28,7 @@ from backend.schemas.geography import (
     RegistrationCentreRead,
     WardRead,
 )
-from backend.schemas.user import UserRead
+from backend.schemas.user import UserCreate, UserCreated, UserRead
 
 __all__ = [
     "CampaignRead",
@@ -56,6 +56,8 @@ __all__ = [
     "TargetCreate",
     "TargetRead",
     "TargetUpdate",
+    "UserCreate",
+    "UserCreated",
     "UserRead",
     "WardRead",
 ]

@@ -1,8 +1,4 @@
-"""What the geographic models look like in a response.
-
-Each schema carries its parent's id under the parent's bare name, plus the
-parent's name for display, so a list needs no second request to be readable.
-"""
+"""The geographic models in a response, each carrying its parent's id and name."""
 
 import uuid
 from decimal import Decimal

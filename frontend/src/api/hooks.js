@@ -110,12 +110,10 @@ export function useUpdateTarget() {
 export const useCentres = (wardId) =>
   useQuery({ queryKey: ["centres", wardId], queryFn: () => api(`/centres/?ward=${wardId}`), enabled: !!wardId });
 
-// Every ward in a county: a county-wide race organizes on all of them.
 export const useWardsInCounty = (countyId) =>
   useQuery({ queryKey: ["wardsInCounty", countyId], queryFn: () => api(`/wards/?county=${countyId}`), enabled: !!countyId });
 
-// Setup preview: the units a chosen seat will get a target for, before it is
-// created. Wards for a county or constituency race, centres for a ward race.
+// The units a chosen seat will get a target for, before it is created.
 export function useUnitsPreview({ office_level, county, constituency, ward }) {
   const wardsInCounty = useWardsInCounty(office_level === "county" ? county : null);
   const wardsInConstituency = useWardsIn(office_level === "constituency" ? constituency : null);
@@ -130,7 +128,7 @@ export function useUnitsPreview({ office_level, county, constituency, ward }) {
   };
 }
 
-// Text an event's supporters. A dry run works out the recipients and sends nothing.
+// Text an event's supporters. A dry run sends nothing.
 export function useInviteToEvent() {
   const invalidate = useInvalidator();
   return useMutation({
@@ -138,5 +136,17 @@ export function useInviteToEvent() {
     onSuccess: (_data, variables) => {
       if (!variables.dry_run) invalidate("events", "strategy");
     },
+  });
+}
+
+export const useTeam = () =>
+  useQuery({ queryKey: ["team"], queryFn: () => api("/users/") });
+
+// Creates a login. The password comes back once and is never fetchable again.
+export function useCreateUser() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (payload) => api("/users/", { method: "POST", body: payload }),
+    onSuccess: () => invalidate("team", "mobilizers", "strategy"),
   });
 }

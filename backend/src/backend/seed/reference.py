@@ -1,9 +1,6 @@
-"""Load Kenya's electoral geography and the 2022 registered-voter figures.
+"""Load the geography and registration centres from the CSVs in `backend/data`.
 
-Source: the processed GE2022 CSVs in `backend/data`
-(github.com/nyimbi/kenya_election_data_2022, data/processed/csv).
-
-Re-running matches rows and updates them, so it never duplicates.
+Re-running matches rows and updates them.
 """
 
 import csv
@@ -38,15 +35,11 @@ class CentreSummary:
     centres: int
     wards_covered: int
     unmatched: list[tuple[str, str]]
-    # Diaspora and prison rows, which are correct to leave out.
     skipped_special: int = 0
 
 
 def rows(path: Path) -> Iterator[dict[str, str]]:
-    """Rows with whitespace squeezed out of the headers and the values.
-
-    The source spells one header "Constituency  Name", with two spaces.
-    """
+    """Rows, with whitespace squeezed out of headers and values."""
     with path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
         if reader.fieldnames is None:
@@ -62,12 +55,11 @@ def rows(path: Path) -> Iterator[dict[str, str]]:
 # than reported as a failure to match.
 SPECIAL_COUNTY_CODES = {"48", "49"}
 
-# A ward name shorter than this is too little to match a longer one on.
 MIN_PREFIX_LENGTH = 8
 
 
 def to_int(value: str | None) -> int:
-    """A count from the CSV, where blanks mean zero and thousands carry commas."""
+    """A count. Blank is zero; thousands may carry commas."""
     if value in (None, ""):
         return 0
     return int(str(value).replace(",", ""))
@@ -90,11 +82,7 @@ PUNCTUATION_VARIANTS = str.maketrans(
 
 
 def normalise(name: str | None) -> str:
-    """A name flattened for matching: one space between words, upper case.
-
-    Punctuation that the two sources disagree about is folded to one spelling,
-    so a ward is matched by its name rather than by which file typed it.
-    """
+    """A name flattened for matching: one space between words, upper case."""
     folded = (name or "").translate(PUNCTUATION_VARIANTS)
     return " ".join(folded.split()).strip().upper()
 
@@ -108,9 +96,7 @@ async def import_geography(
 ) -> GeographySummary:
     """Counties, constituencies and wards, with registered voters and turnout.
 
-    `caw` carries the whole tree. The two county files are optional and add the
-    county voter totals and the 2022 turnout, which every win number defaults to.
-    Computing turnout needs `county_voters`, because it is the denominator.
+    Turnout needs `county_voters` as its denominator.
     """
     if county_results is not None and county_voters is None:
         raise ValueError("county_results needs county_voters: turnout divides by it.")
@@ -177,7 +163,7 @@ async def import_geography(
     if county_results is not None:
         for row in rows(county_results):
             county = counties.get(str(to_int(row["County Code"])))
-            # The file ends with diaspora and prison summary rows that match no county.
+            # Diaspora and prison rows match no county.
             if county is None or not county.registered_voters:
                 continue
             cast = to_int(row.get("Total Valid Votes")) + to_int(row.get("Rejected"))
@@ -195,12 +181,7 @@ async def import_geography(
 
 
 async def import_centres(session: AsyncSession, csv_path: Path = CENTRES_CSV) -> CentreSummary:
-    """Registration centres, attached to their ward.
-
-    Expects the columns `extract_polling_stations.py --centres` writes:
-    county_code, const_name, ward_name, centre_code, centre_name, registered_voters.
-    Run `import_geography` first, so there are wards to attach to.
-    """
+    """Registration centres, attached to their ward. Run `import_geography` first."""
     ward_by_key: dict[tuple[str, str, str], Ward] = {}
     statement = select(Ward).options(
         selectinload(Ward.constituency).selectinload(Constituency.county)
@@ -256,13 +237,7 @@ async def import_centres(session: AsyncSession, csv_path: Path = CENTRES_CSV) ->
 def _match_truncated(
     ward_by_key: dict[tuple[str, str, str], Ward], key: tuple[str, str, str]
 ) -> Ward | None:
-    """The ward a name was cut short of, when only one could have been meant.
-
-    The IEBC PDF clips a long ward name to its column width, so
-    "Woodley/Kenyatta Golf Course" arrives as "WOODLEY/KENYATTA GOLF COU".
-    Matched only inside the same constituency, and only when exactly one ward
-    there begins with it, so a short or ambiguous name never guesses.
-    """
+    """The ward a clipped name was cut short of, when exactly one could be meant."""
     county_code, constituency, ward_name = key
     if len(ward_name) < MIN_PREFIX_LENGTH:
         return None

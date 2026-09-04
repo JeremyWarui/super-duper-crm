@@ -1,16 +1,11 @@
-/* The layout the markup already asks for.
+/* The layout the markup asks for.
  *
- * App.jsx, Login.jsx and Onboarding.jsx size and colour everything inline, but
- * reach for a handful of Tailwind class names to place it. Tailwind is not
- * installed, so those names resolve to nothing: flex rows stack, the overview
- * grid ignores its columns, and the 1200px shell sits against the left edge.
- * Seventeen rules is a smaller thing to carry than the framework.
+ * App.jsx, Login.jsx and Onboarding.jsx style everything inline but place it
+ * with Tailwind class names, and Tailwind is not installed. These are those
+ * names, plus the resets the inline styles assume.
  */
 
-/* Inputs are width:100% inside a padded card. Without this they are wider than
- * the card by their own padding and border, and sit over its edge. App.jsx
- * declares this for itself; the sign-in and setup screens never did.
- */
+/* Inputs are width:100% inside a padded card; without this they overflow it. */
 *,
 *::before,
 *::after {
@@ -19,16 +14,13 @@
 
 body {
   margin: 0;
+  background: #e9ebe6;
 }
 
-/* App.jsx asks its root for min-height 100%, which resolves against a body of
- * no set height and comes to nothing. This is what it meant.
- */
+/* App.jsx asks its root for min-height 100%. */
 #root {
   min-height: 100vh;
 }
-
-/* --- the utility names the components use ------------------------------- */
 
 .flex {
   display: flex;
@@ -71,7 +63,6 @@ body {
   justify-content: flex-end;
 }
 
-/* Tailwind's spacing scale, at the four steps the components ask for. */
 .gap-1 {
   gap: 0.25rem;
 }
@@ -100,39 +91,10 @@ body {
   row-gap: 0.5rem;
 }
 
-/* --- narrow screens ------------------------------------------------------ */
-
-/* The shell is a 210px rail beside the page. Below this there is not enough
- * room for both, and the overview's two columns stop being two columns.
- */
-@media (max-width: 720px) {
-  .grid {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-}
-
-/* --- fitting the design to the window ------------------------------------
- *
- * Every size in App.jsx is a fixed pixel value, drawn for a roomy canvas: a
- * 1200px shell, a 210px rail beside it, a 58px hero number. On a 1366px laptop
- * that shell fills the window edge to edge, and on a phone the rail refuses to
- * shrink because it is flexShrink: 0.
- *
- * Scaling the whole page keeps every proportion the design has, which
- * rewriting a hundred inline pixel values in rem would not. Below 860px the
- * shell also stops being a row: the rail becomes a scrolling strip of nav
- * above the page, which is the only way the content column gets usable width
- * on a phone.
- *
- * The shell is `.mx-auto` without `.flex`; the top rail carries both.
+/* Fitting a fixed-pixel design to the window. The shell is `.mx-auto` without
+ * `.flex`; the top rail carries both.
  */
 
-/* Paper, so the strip a scaled page leaves at the edge is not white. */
-body {
-  background: #e9ebe6;
-}
-
-/* 1440 and up is the drawing as authored. */
 @media (max-width: 1439px) {
   #root {
     zoom: 0.9;
@@ -162,7 +124,6 @@ body {
     padding: 10px 12px !important;
   }
 
-  /* Its nav runs across, and scrolls when it runs out of room. */
   .mx-auto:not(.flex) > div:first-child > .flex {
     flex-direction: row !important;
     overflow-x: auto;
@@ -171,6 +132,12 @@ body {
 
   .mx-auto:not(.flex) > div:first-child > .flex > button {
     flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
 
@@ -190,17 +157,7 @@ body {
   }
 }
 
-/* --- wide screens --------------------------------------------------------
- *
- * App.jsx caps the shell and the top rail at 1200px, which was the canvas the
- * design was drawn on. On a 1920 window that leaves the page sitting in the
- * middle of 700px of empty paper. Above 1440 the cap becomes the window less a
- * gutter, so the tables get the width they want.
- *
- * Below 1440 the 1200px cap stays and the scale tiers above keep doing the
- * work: a 1366 laptop has no room to spare, and widening it there is what made
- * it feel cramped in the first place.
- */
+/* App.jsx caps the shell at 1200px, which leaves a wide window mostly empty. */
 @media (min-width: 1441px) {
   .mx-auto {
     max-width: min(1720px, calc(100vw - 96px)) !important;

@@ -1,4 +1,4 @@
-"""The computed strategy read. No table of its own."""
+"""The computed strategy read."""
 
 import uuid
 

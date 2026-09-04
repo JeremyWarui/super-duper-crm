@@ -7,7 +7,6 @@ from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatc
 
 _hasher = PasswordHasher()
 
-# Hex, so the key is safe in a header and in a URL. 40 characters.
 TOKEN_KEY_BYTES = 20
 
 
@@ -27,7 +26,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def needs_rehash(password_hash: str) -> bool:
-    """True when the hash was made with weaker parameters than we use now."""
+    """True when the hash uses weaker parameters than the current ones."""
     try:
         return _hasher.check_needs_rehash(password_hash)
     except InvalidHashError:

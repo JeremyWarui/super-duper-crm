@@ -1,8 +1,4 @@
-"""Vote targets: the win number per ward or per registration centre.
-
-`votes_needed` is never taken from the client. It is recomputed from the
-register and the projected turnout on every write.
-"""
+"""Vote targets. `votes_needed` is recomputed on every write, never taken from the client."""
 
 import uuid
 
@@ -72,7 +68,7 @@ async def update_target(
     user: CurrentUser,
     _: Writer,
 ) -> Target:
-    """Change the turnout assumption or the votes committed; the goal follows."""
+    """Change the turnout or the votes committed; the goal follows."""
     target = await _visible_target(session, user, target_id)
     changes = payload.model_dump(exclude_unset=True)
     for field, value in changes.items():
