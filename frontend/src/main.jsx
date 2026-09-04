@@ -1,6 +1,7 @@
 // src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuth } from "./store/auth";
 import { useCampaigns } from "./api/hooks";

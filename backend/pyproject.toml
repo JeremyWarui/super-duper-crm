@@ -5,6 +5,7 @@ description = "Campaign CRM backend - FastAPI + SQLAlchemy 2.0 + Pydantic v2"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "aiosqlite>=0.21",
     "alembic>=1.16",
     "argon2-cffi>=25.1.0",
     "asyncpg>=0.30",
@@ -20,7 +21,6 @@ campaign-crm = "backend.cli:main"
 
 [dependency-groups]
 dev = [
-    "aiosqlite>=0.21",
     "anyio>=4.11",
     "httpx>=0.28",
     "pytest>=8.4",

@@ -1,0 +1,191 @@
+/* The layout the markup already asks for.
+ *
+ * App.jsx, Login.jsx and Onboarding.jsx size and colour everything inline, but
+ * reach for a handful of Tailwind class names to place it. Tailwind is not
+ * installed, so those names resolve to nothing: flex rows stack, the overview
+ * grid ignores its columns, and the 1200px shell sits against the left edge.
+ * Seventeen rules is a smaller thing to carry than the framework.
+ */
+
+/* Inputs are width:100% inside a padded card. Without this they are wider than
+ * the card by their own padding and border, and sit over its edge. App.jsx
+ * declares this for itself; the sign-in and setup screens never did.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+/* App.jsx asks its root for min-height 100%, which resolves against a body of
+ * no set height and comes to nothing. This is what it meant.
+ */
+#root {
+  min-height: 100vh;
+}
+
+/* --- the utility names the components use ------------------------------- */
+
+.flex {
+  display: flex;
+}
+
+.grid {
+  display: grid;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.items-end {
+  align-items: flex-end;
+}
+
+.items-baseline {
+  align-items: baseline;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-end {
+  justify-content: flex-end;
+}
+
+/* Tailwind's spacing scale, at the four steps the components ask for. */
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-3 {
+  gap: 0.75rem;
+}
+
+.gap-5 {
+  gap: 1.25rem;
+}
+
+.gap-6 {
+  gap: 1.5rem;
+}
+
+.gap-x-8 {
+  column-gap: 2rem;
+}
+
+.gap-y-2 {
+  row-gap: 0.5rem;
+}
+
+/* --- narrow screens ------------------------------------------------------ */
+
+/* The shell is a 210px rail beside the page. Below this there is not enough
+ * room for both, and the overview's two columns stop being two columns.
+ */
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* --- fitting the design to the window ------------------------------------
+ *
+ * Every size in App.jsx is a fixed pixel value, drawn for a roomy canvas: a
+ * 1200px shell, a 210px rail beside it, a 58px hero number. On a 1366px laptop
+ * that shell fills the window edge to edge, and on a phone the rail refuses to
+ * shrink because it is flexShrink: 0.
+ *
+ * Scaling the whole page keeps every proportion the design has, which
+ * rewriting a hundred inline pixel values in rem would not. Below 860px the
+ * shell also stops being a row: the rail becomes a scrolling strip of nav
+ * above the page, which is the only way the content column gets usable width
+ * on a phone.
+ *
+ * The shell is `.mx-auto` without `.flex`; the top rail carries both.
+ */
+
+/* Paper, so the strip a scaled page leaves at the edge is not white. */
+body {
+  background: #e9ebe6;
+}
+
+/* 1440 and up is the drawing as authored. */
+@media (max-width: 1439px) {
+  #root {
+    zoom: 0.9;
+  }
+}
+
+@media (max-width: 1099px) {
+  #root {
+    zoom: 0.85;
+  }
+}
+
+@media (max-width: 860px) {
+  #root {
+    zoom: 0.95;
+  }
+
+  /* Rail above the page instead of beside it. */
+  .mx-auto:not(.flex) {
+    display: block !important;
+  }
+
+  .mx-auto:not(.flex) > div:first-child {
+    width: auto !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid #d7dbd4;
+    padding: 10px 12px !important;
+  }
+
+  /* Its nav runs across, and scrolls when it runs out of room. */
+  .mx-auto:not(.flex) > div:first-child > .flex {
+    flex-direction: row !important;
+    overflow-x: auto;
+    gap: 4px;
+  }
+
+  .mx-auto:not(.flex) > div:first-child > .flex > button {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 600px) {
+  #root {
+    zoom: 0.9;
+  }
+
+  .mx-auto:not(.flex) > div:last-child {
+    padding: 16px 12px 40px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  #root {
+    zoom: 0.85;
+  }
+}
