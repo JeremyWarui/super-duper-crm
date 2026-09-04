@@ -28,6 +28,7 @@ needed and nothing touches the network.
 | `test_seed.py` | The bundled CSVs, against the real files |
 | `test_sms.py` | Phone normalising, and both SMS providers |
 | `test_invite_api.py` | Inviting an event's supporters, and who may |
+| `test_users_api.py` | Creating team logins, and what the password does |
 | `../evals/test_schema_baseline.py` | No field leaves the schema without a recorded reason |
 | `../evals/test_frontend_contract.py` | The API still offers what the SPA reads and accepts what it sends |
 

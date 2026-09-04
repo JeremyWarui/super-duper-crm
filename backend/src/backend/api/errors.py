@@ -1,8 +1,4 @@
-"""Every error leaves as {"detail": "<one readable sentence>"}.
-
-FastAPI's own validation errors are a list of objects; the frontend shows
-`detail` directly, so they are flattened here.
-"""
+"""Every error leaves as {"detail": "<one readable sentence>"}."""
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError

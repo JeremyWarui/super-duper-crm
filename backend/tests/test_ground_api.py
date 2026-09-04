@@ -116,7 +116,6 @@ async def test_a_manager_can_schedule_an_event(client: httpx.AsyncClient, world:
 
 
 async def test_a_date_without_a_time_is_accepted(client: httpx.AsyncClient, world: World) -> None:
-    """The form sends what an <input type="date"> produces."""
     response = await _schedule(client, world, "manager", scheduled_date="2027-06-12")
     assert response.status_code == 201
 
@@ -124,7 +123,6 @@ async def test_a_date_without_a_time_is_accepted(client: httpx.AsyncClient, worl
 async def test_a_mobilizer_can_schedule_in_their_own_ward(
     client: httpx.AsyncClient, world: World
 ) -> None:
-    """Running events is the mobilizer's job, so this route lets them write."""
     response = await _schedule(client, world, "mobilizer")
     assert response.status_code == 201
 
@@ -282,7 +280,6 @@ async def test_a_mobilizer_can_register_a_supporter(
 async def test_signing_up_without_consent_is_refused(
     client: httpx.AsyncClient, world: World
 ) -> None:
-    """The Data Protection Act 2019 is the reason, not a UI preference."""
     response = await client.post(
         "/api/supporters/",
         headers=world.headers("mobilizer"),
@@ -296,7 +293,6 @@ async def test_signing_up_without_consent_is_refused(
 async def test_anyone_may_sign_themselves_up_without_an_account(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    """A field form has to work for someone who has never signed in."""
     response = await client.post("/api/supporters/", json=_supporter(world))
 
     assert response.status_code == 201
@@ -312,7 +308,6 @@ async def test_the_register_is_not_readable_without_an_account(
 async def test_a_candidate_may_not_read_the_supporter_register(
     client: httpx.AsyncClient, world: World
 ) -> None:
-    """It holds personal details the candidate has no operational need for."""
     response = await client.get("/api/supporters/", headers=world.headers("candidate"))
     assert response.status_code == 403
 

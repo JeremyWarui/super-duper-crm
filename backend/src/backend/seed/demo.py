@@ -1,9 +1,4 @@
-"""A worked example: one campaign, and one sign-in per role.
-
-Each role sees a different app, so showing the three of them means signing in as
-each in turn. Passwords are generated per run and printed once; pass one in to
-get the same accounts every time.
-"""
+"""One campaign and one sign-in per role. Passwords are generated per run."""
 
 import secrets
 from dataclasses import dataclass
@@ -33,7 +28,6 @@ from backend.services.targets import generate_targets
 
 DEMO_USERNAMES = ("aspirant", "manager", "mobilizer", "newaspirant")
 
-# Roysambu MP: the seat the prototype was checked against.
 DEMO_COUNTY = "Nairobi City"
 DEMO_CONSTITUENCY = "Roysambu"
 DEMO_CAMPAIGN_TITLE = "Jane for Roysambu"
@@ -46,15 +40,11 @@ class DemoSummary:
     units: int
     win_number: int
     sign_ins: list[tuple[str, str, str]]
-    """username, password, what that role sees. The password is shown once."""
+    """username, password, what that role sees."""
 
 
 def demo_passwords(password: str | None = None) -> dict[str, str]:
-    """One password per demo account.
-
-    Generated unless caller supplies one, so nothing credential-shaped is
-    checked in and a shared clone does not hand out working logins.
-    """
+    """One password per demo account, generated unless one is supplied."""
     if password:
         return dict.fromkeys(DEMO_USERNAMES, password)
     return {username: secrets.token_urlsafe(9) for username in DEMO_USERNAMES}
@@ -69,7 +59,7 @@ async def _user(
     passwords: dict[str, str],
     phone: str = "",
 ) -> User:
-    """The demo user, created if missing and reset to this run's password if not."""
+    """The demo user, with this run's password."""
     user = (
         await session.execute(select(User).where(User.username == username))
     ).scalar_one_or_none()
@@ -86,11 +76,7 @@ async def _user(
 
 
 async def _clear_campaigns(session: AsyncSession, user: User) -> None:
-    """Put the fresh-start account back to having nothing.
-
-    Walking through setup gives them a campaign, which sends them to the
-    dashboard from then on and spends the demo. Re-running this restores it.
-    """
+    """Drop this user's campaigns, so setup is reachable again."""
     await session.flush()
     theirs = (
         await session.execute(select(Campaign).where(Campaign.candidate_id == user.id))
@@ -101,11 +87,7 @@ async def _clear_campaigns(session: AsyncSession, user: User) -> None:
 
 
 async def seed_demo(session: AsyncSession, *, password: str | None = None) -> DemoSummary:
-    """Build the demo campaign over already-loaded geography.
-
-    Re-running rebuilds it in place rather than making a second campaign, and
-    resets the three passwords to this run's.
-    """
+    """Build the demo campaign over already-loaded geography. Re-running rebuilds it."""
     passwords = demo_passwords(password)
     constituency = (
         await session.execute(
@@ -129,9 +111,7 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     mobilizer_user = await _user(
         session, "mobilizer", UserRole.MOBILIZER, "Juma", "Otieno", passwords, "+254700000003"
     )
-    # A candidate with no campaign, so there is a way to see setup. Everyone
-    # else lands on the dashboard, which is where onboarding stops being
-    # reachable at all.
+    # A candidate with no campaign, so setup is reachable.
     fresh = await _user(
         session, "newaspirant", UserRole.CANDIDATE, "Peter", "Kimani", passwords, "+254700000004"
     )
@@ -188,11 +168,7 @@ async def _seed_ground_game(
     wards: list[Ward],
     mobilizer_user: User,
 ) -> None:
-    """Enough mobilizers, events and supporters that the strategy read has something to say.
-
-    Deliberately uneven: the first wards are staffed and worked, the rest are
-    not, so the "go next" and "unstaffed" notes have real gaps to point at.
-    """
+    """Mobilizers, events and supporters, spread unevenly across the wards."""
     already = (
         await session.execute(
             select(func.count()).select_from(Mobilizer).where(Mobilizer.campaign_id == campaign.id)
@@ -270,11 +246,7 @@ async def _seed_ground_game(
 async def _commit_some_votes(
     session: AsyncSession, campaign: Campaign, staffed: list[Ward]
 ) -> None:
-    """Spread progress across the staffed wards, from met to barely started.
-
-    The dashboard colours a unit by progress, so a demo where everything sits at
-    zero shows only one of the three states.
-    """
+    """Spread progress across the staffed wards, from met to barely started."""
     shares = [1.05, 0.8, 0.55, 0.3]
     targets = (
         await session.execute(select(Target).where(Target.campaign_id == campaign.id))

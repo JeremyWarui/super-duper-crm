@@ -19,7 +19,7 @@ npm run dev        # http://localhost:5173
 Checks:
 
 ```bash
-npm test           # 129 tests, jsdom, no server needed
+npm test           # 143 tests, jsdom, no server needed
 npm run build
 npm run lint
 ```
@@ -96,6 +96,10 @@ every registration centre in the ward, each with its register and a total. A
 ward with no centres loaded says so there, rather than looking ready and coming
 back with a win number of zero.
 
+**Setup creates the team.** The screen that shows the win number also adds the
+campaign manager and the mobilizers, each with a generated password shown once.
+The Mobilizers page can do the same later, with a login or without one.
+
 **Events can be invited.** Each event on the Events page has an Invite button.
 The modal drafts a message from the event, counts the SMS parts it will be
 billed at, filters by where people stand, and previews the recipients before
@@ -116,8 +120,8 @@ Renaming a field on one side fails on both until the other side is updated.
 2. `App.jsx` carries Tailwind-style class names (`flex`, `gap-3`) inherited from
    the prototype. Tailwind is not installed; the inline styles do the layout and
    those classes do nothing.
-3. `Btn` and `Select` are declared inside `Onboarding`, so they are new component
-   types on every render. `npm run lint` warns about it.
+3. `Select` is declared inside `Onboarding`, so it is a new component type on
+   every render. `npm run lint` warns about it.
 4. The shell widens above 1440px and scales below it, so dragging a window
    across that boundary is a visible step. Both sizes are right on their own;
    only the transition is abrupt.

@@ -1,8 +1,4 @@
-"""Reference geography: counties, constituencies, wards and registration centres.
-
-Read-only. The rows are loaded once by the seeder, not created through the API.
-A mobilizer sees only their own ward and the centres inside it.
-"""
+"""Reference geography, read-only. A mobilizer sees only their own ward."""
 
 import uuid
 
@@ -58,11 +54,7 @@ async def list_wards(
     constituency: uuid.UUID | None = None,
     county: uuid.UUID | None = None,
 ) -> list[Ward]:
-    """Every ward, or the ones inside one constituency or one county.
-
-    A county-wide race organizes on every ward in the county, so setup shows
-    them before it builds a target for each.
-    """
+    """Every ward, or the ones inside one constituency or one county."""
     statement = select(Ward).options(selectinload(Ward.constituency)).order_by(Ward.name)
     if constituency is not None:
         statement = statement.where(Ward.constituency_id == constituency)

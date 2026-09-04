@@ -1,9 +1,4 @@
-"""The supporter register.
-
-Signing up is open, so a form can be handed to someone in the field without an
-account. Reading the register is not: it holds personal details, and only the
-manager and the mobilizers who collected them may see it.
-"""
+"""The supporter register. Signing up is open; reading it is not."""
 
 import uuid
 
@@ -57,7 +52,7 @@ async def list_supporters(
 async def register_supporter(
     payload: SupporterCreate, session: SessionDep, user: OptionalUser
 ) -> Supporter:
-    """Sign someone up. Open to anyone, so a signed-out form still works."""
+    """Sign someone up. Open, so a signed-out field form works."""
     mobilizer_id = payload.mobilizer
     if user is not None:
         await require_visible_campaign(session, user, payload.campaign)
@@ -85,7 +80,7 @@ async def register_supporter(
 async def delete_supporter(
     supporter_id: uuid.UUID, session: SessionDep, user: OptionalUser
 ) -> Response:
-    """Erasing someone's details on request. The team only, never anonymously."""
+    """Erase someone's details. The team only."""
     if user is None:
         raise NOT_AUTHENTICATED
     if user.role not in READERS:

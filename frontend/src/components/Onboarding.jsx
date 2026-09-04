@@ -3,7 +3,7 @@
 // On create it calls /campaigns/setup/, which builds every target and returns
 // the win number, then hands the campaign back to the app to show the dashboard.
 import React, { useState } from "react";
-import { useCounties, useConstituencies, useWardsIn, useSetupCampaign, useUnitsPreview } from "../api/hooks";
+import { useCounties, useConstituencies, useWardsIn, useSetupCampaign, useUnitsPreview, useCreateUser, useWardsInCounty } from "../api/hooks";
 
 const C = { ink: "#171C1F", paper: "#E9EBE6", panel: "#FFFFFF", green: "#0B6B3A", red: "#B4231F", amber: "#B9791A", line: "#D7DBD4", sub: "#5C655F" };
 const DISPLAY = { fontFamily: "Oswald, Impact, sans-serif" };
@@ -21,11 +21,13 @@ const Select = ({ value, onChange, disabled, children }) => (
 );
 
 
+const Btn = ({ children, onClick, disabled, primary }) => (
+  <button onClick={onClick} disabled={disabled} style={{ padding: "10px 18px", borderRadius: 8, border: primary ? "none" : `1px solid ${C.line}`, background: disabled ? C.line : primary ? C.green : C.panel, color: primary ? "#fff" : C.ink, ...DISPLAY, fontWeight: 600, fontSize: 14, cursor: disabled ? "default" : "pointer" }}>{children}</button>
+);
+
 const fmt = (n) => Number(n || 0).toLocaleString();
 
-// The units this seat will be worked on, listed before anything is created:
-// every ward in the county or constituency, or every registration centre in
-// the ward. A ward with no centres loaded says so, rather than looking ready.
+// The units this seat will be worked on, listed before anything is created.
 function UnitsPreview({ form }) {
   const { grain, units, isLoading, error } = useUnitsPreview(form);
   const noun = grain === "centre" ? "registration centre" : "ward";
@@ -72,6 +74,114 @@ function UnitsPreview({ form }) {
   );
 }
 
+
+const ROLES = [
+  { key: "manager", label: "Campaign manager", sub: "Runs the whole campaign and every write" },
+  { key: "mobilizer", label: "Mobilizer", sub: "One ward: events and supporters" },
+];
+
+// Logins for the rest of the team. The password is shown once and never again.
+function TeamStep({ campaign, form }) {
+  const create = useCreateUser();
+  const wardsInCounty = useWardsInCounty(form.office_level === "county" ? form.county : null);
+  const wardsInConstituency = useWardsIn(form.office_level === "constituency" ? form.constituency : null);
+  const [role, setRole] = useState("manager");
+  const [fields, setFields] = useState({ username: "", first_name: "", last_name: "", phone: "", ward: "" });
+  const [made, setMade] = useState([]);
+
+  const wards =
+    form.office_level === "ward"
+      ? [{ id: form.ward, name: "your ward" }]
+      : (form.office_level === "county" ? wardsInCounty.data : wardsInConstituency.data) || [];
+  const ward = fields.ward || wards[0]?.id || form.ward;
+  const ok = fields.username.trim().length >= 3 && (role === "manager" || !!ward);
+
+  const set = (patch) => setFields((f) => ({ ...f, ...patch }));
+  const add = () =>
+    create.mutate(
+      {
+        username: fields.username.trim().toLowerCase(),
+        role,
+        first_name: fields.first_name.trim(),
+        last_name: fields.last_name.trim(),
+        phone: fields.phone.trim(),
+        ...(role === "mobilizer" ? { campaign: campaign.id, ward } : {}),
+      },
+      {
+        onSuccess: (person) => {
+          setMade((m) => [...m, person]);
+          setFields({ username: "", first_name: "", last_name: "", phone: "", ward: "" });
+        },
+      },
+    );
+
+  return (
+    <div style={{ marginTop: 22, borderTop: `1px solid ${C.line}`, paddingTop: 18 }}>
+      <div style={{ ...DISPLAY, fontSize: 16, fontWeight: 600 }}>Add your team</div>
+      <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>
+        You are the candidate. A campaign manager runs the day to day; mobilizers work a ward each.
+      </div>
+
+      <div className="flex flex-wrap gap-1" style={{ marginTop: 12, fontSize: 12 }}>
+        {ROLES.map((r) => (
+          <button key={r.key} onClick={() => setRole(r.key)} title={r.sub}
+            style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", border: `1px solid ${role === r.key ? C.ink : C.line}`, background: role === r.key ? C.ink : "transparent", color: role === r.key ? "#fff" : C.sub }}>{r.label}</button>
+        ))}
+      </div>
+
+      <div style={{ height: 12 }} /><Label>Username</Label>
+      <input style={FIELD} value={fields.username} onChange={(e) => set({ username: e.target.value })} placeholder="amina" />
+      <div style={{ height: 10 }} />
+      <div className="flex gap-2">
+        <div style={{ flex: 1 }}><Label>First name</Label><input style={FIELD} value={fields.first_name} onChange={(e) => set({ first_name: e.target.value })} /></div>
+        <div style={{ flex: 1 }}><Label>Last name</Label><input style={FIELD} value={fields.last_name} onChange={(e) => set({ last_name: e.target.value })} /></div>
+      </div>
+      <div style={{ height: 10 }} /><Label>Phone</Label>
+      <input style={FIELD} value={fields.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="0712 345678" />
+
+      {role === "mobilizer" && wards.length > 1 && (
+        <>
+          <div style={{ height: 10 }} /><Label>Ward</Label>
+          <Select value={ward} onChange={(v) => set({ ward: v })}>
+            {wards.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+          </Select>
+        </>
+      )}
+
+      {create.isError && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{create.error.message}</div>}
+      <div style={{ marginTop: 14 }}>
+        <Btn onClick={add} disabled={!ok || create.isPending}>{create.isPending ? "Adding…" : "Add to the team"}</Btn>
+      </div>
+
+      {made.length > 0 && <TeamMade made={made} />}
+    </div>
+  );
+}
+
+// The only copy of each password there will be.
+function TeamMade({ made }) {
+  return (
+    <div style={{ marginTop: 16, border: `1px solid ${C.line}`, borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ padding: "9px 14px", background: C.paper, borderBottom: `1px solid ${C.line}` }}>
+        <span style={{ ...DISPLAY, fontSize: 13, fontWeight: 600 }}>Write these down now</span>
+        <span style={{ fontSize: 12, color: C.amber, marginLeft: 8 }}>shown once</span>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <tbody>
+          {made.map((p, i) => (
+            <tr key={p.id} style={i ? { borderTop: `1px solid ${C.line}` } : undefined}>
+              <td style={{ padding: "9px 14px", fontWeight: 600 }}>{p.username}
+                <div style={{ fontSize: 11.5, color: C.sub, fontWeight: 400 }}>{p.role === "manager" ? "Campaign manager" : `Mobilizer · ${p.ward_name || ""}`}</div>
+              </td>
+              <td style={{ padding: "9px 14px", textAlign: "right", fontFamily: "ui-monospace, monospace", fontSize: 12.5 }}>{p.password}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function Onboarding({ onDone }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({ title: "", election_date: "2027-08-10", office_level: "", county: "", constituency: "", ward: "" });
@@ -96,9 +206,6 @@ export default function Onboarding({ onDone }) {
 
   const wrap = { minHeight: "100vh", background: C.paper, color: C.ink, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "Inter, system-ui, sans-serif" };
   const card = { width: "100%", maxWidth: 460, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 24 };
-  const Btn = ({ children, onClick, disabled, primary }) => (
-    <button onClick={onClick} disabled={disabled} style={{ padding: "10px 18px", borderRadius: 8, border: primary ? "none" : `1px solid ${C.line}`, background: disabled ? C.line : primary ? C.green : C.panel, color: primary ? "#fff" : C.ink, ...DISPLAY, fontWeight: 600, fontSize: 14, cursor: disabled ? "default" : "pointer" }}>{children}</button>
-  );
 
   // success screen (after setup returns)
   if (setup.isSuccess) {
@@ -108,10 +215,11 @@ export default function Onboarding({ onDone }) {
         <style>{`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');`}</style>
         <div style={card}>
           <div style={{ ...DISPLAY, fontSize: 13, letterSpacing: 1.5, color: C.green, fontWeight: 600 }}>YOUR CAMPAIGN IS SET UP</div>
-          <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>Win number across {s.units} {s.grain === "polling_station" ? "polling stations" : "wards"}:</div>
+          <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>Win number across {s.units} {s.grain === "centre" ? "registration centres" : "wards"}:</div>
           <div style={{ ...DISPLAY, fontSize: 60, fontWeight: 700, lineHeight: 1, marginTop: 6 }}>{Number(s.win_number).toLocaleString()}</div>
           <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>from {Number(s.total_registered).toLocaleString()} registered voters, at the county's 2022 turnout.</div>
           {s.note && <div style={{ fontSize: 12.5, color: C.amber, marginTop: 12 }}>{s.note}</div>}
+          <TeamStep campaign={setup.data} form={form} />
           <div style={{ marginTop: 20 }}><Btn primary onClick={() => onDone(setup.data)}>Go to my dashboard →</Btn></div>
         </div>
       </div>

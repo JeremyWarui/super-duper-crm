@@ -79,7 +79,6 @@ def test_every_nested_field_the_spa_reads_is_still_returned(route: str) -> None:
 
 @pytest.mark.parametrize("route", WRITES)
 def test_every_field_the_spa_sends_is_still_accepted(route: str) -> None:
-    """Request bodies forbid unknown fields, so a rename makes the SPA's write a 400."""
     properties = _request_properties(route)
     unknown = [name for name in CONTRACT["writes"][route] if name not in properties]
     assert not unknown, f"{route} would reject {unknown}"
@@ -87,9 +86,13 @@ def test_every_field_the_spa_sends_is_still_accepted(route: str) -> None:
 
 @pytest.mark.parametrize("key", ENUMS)
 def test_the_stored_choice_strings_are_unchanged(key: str) -> None:
-    """The SPA switches on these strings, and rows already hold them."""
     from backend.models.enums import EventStatus, OfficeLevel, SupportLevel, UserRole
     from backend.models.enums import OperationalGrain as Grain
+
+    if key == "user.create_role":
+        assert set(CONTRACT["enums"][key]) < {m.value for m in UserRole}
+        assert UserRole.CANDIDATE.value not in CONTRACT["enums"][key]
+        return
 
     live = {
         "user.role": UserRole,
@@ -97,21 +100,19 @@ def test_the_stored_choice_strings_are_unchanged(key: str) -> None:
         "event.status": EventStatus,
         "supporter.support_level": SupportLevel,
         "invite.support_levels": SupportLevel,
+        "user.create_role": None,
         "setup.grain": Grain,
     }[key]
     assert sorted(m.value for m in live) == sorted(CONTRACT["enums"][key])
 
 
 def test_the_routes_the_spa_calls_all_exist() -> None:
-    """One list, so a route dropped from the API cannot slip past the per-route checks."""
     called = set(CONTRACT["reads"]) | set(CONTRACT["writes"])
     for route in sorted(called):
         _operation(route)
 
 
 def test_errors_arrive_as_one_readable_sentence() -> None:
-    """src/api/client.js shows `detail` to the user; a list of objects renders
-    as [object Object]."""
     from backend.api.errors import _describe
 
     sentence = _describe({"loc": ["body", "consent_given"], "msg": "Consent is required."})

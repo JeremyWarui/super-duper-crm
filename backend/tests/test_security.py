@@ -35,7 +35,6 @@ def test_the_hash_fits_the_column() -> None:
 
 
 def test_the_same_password_hashes_differently_each_time() -> None:
-    """Each hash carries its own salt, so equal passwords are not equal rows."""
     assert hash_password("same") != hash_password("same")
 
 
@@ -48,7 +47,6 @@ def test_the_wrong_password_does_not() -> None:
 
 
 def test_an_empty_stored_hash_rejects_every_password() -> None:
-    """A user created without a password cannot be signed in as."""
     assert not verify_password("", "")
     assert not verify_password("anything", "")
 

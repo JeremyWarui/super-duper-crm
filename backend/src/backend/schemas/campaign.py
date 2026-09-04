@@ -1,9 +1,6 @@
 """Campaign, Target, Mobilizer, Event and Supporter, in and out of the API.
 
-A foreign key travels under the related model's bare name (`campaign`, `ward`),
-and read schemas add the related row's name for display. Calculated values are
-read-only: the win number is worked out on the server and never taken from the
-client.
+A foreign key travels under the related model's bare name: `ward`, not `ward_id`.
 """
 
 import uuid
@@ -33,7 +30,7 @@ class CampaignRead(ORMModel):
 
 
 class CampaignSetup(WriteModel):
-    """Everything needed to stand a campaign up: the seat, and where it is."""
+    """The seat, and where it is."""
 
     title: str = Field(min_length=1, max_length=150)
     office_level: OfficeLevel
@@ -88,7 +85,7 @@ class TargetCreate(WriteModel):
 
 
 class TargetUpdate(WriteModel):
-    """Every field optional; the win number is recomputed from what changed."""
+    """The win number is recomputed from whatever changed."""
 
     projected_turnout_pct: Decimal | None = Field(default=None, ge=0, le=100)
     votes_committed: int | None = Field(default=None, ge=0)
@@ -153,7 +150,7 @@ class EventCreate(WriteModel):
 
 
 class EventRecord(WriteModel):
-    """Closing an event: who was invited, and who came."""
+    """Who was invited, and who came."""
 
     number_reached: int = Field(ge=0)
     number_attended: int = Field(ge=0)
@@ -194,22 +191,19 @@ class SupporterCreate(WriteModel):
     @field_validator("consent_given")
     @classmethod
     def _consent_is_required(cls, value: bool) -> bool:
-        # Data Protection Act 2019: no personal details without consent.
+        # Data Protection Act 2019.
         if not value:
             raise ValueError("Consent is required before we can store these details.")
         return value
 
 
 class EventInvite(WriteModel):
-    """Who to invite to an event, and what to say to them."""
+    """Who to invite, and what to say."""
 
     message: str = Field(min_length=1, max_length=918)  # six SMS parts
-    # Blank invites every supporter in the event's ward. Narrow it by where
-    # people stand, to spend the send on those worth reaching.
+    # Blank invites everyone in the event's ward.
     support_levels: list[SupportLevel] = Field(default_factory=list)
-    # The whole campaign rather than just the event's ward.
     whole_campaign: bool = False
-    # Work out the recipients and the cost, and send nothing.
     dry_run: bool = False
 
 
@@ -220,11 +214,7 @@ class InviteRecipient(ORMModel):
 
 
 class EventInviteResult(ORMModel):
-    """What the send did, and what it would have cost.
-
-    `delivered` is False whenever nothing left, which is the case until an SMS
-    gateway is configured. The screen shows it rather than assuming.
-    """
+    """`delivered` is False whenever nothing left."""
 
     provider: str
     delivered: bool

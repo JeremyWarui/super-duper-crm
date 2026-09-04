@@ -13,8 +13,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
 });
 
-// Signed in with no campaign yet -> set one up first. A mobilizer cannot create
-// one, so they go straight to App, which tells them there is nothing to work on.
+// Signed in with no campaign -> set one up. A mobilizer cannot, so they skip it.
 function SignedIn() {
   const role = useAuth((s) => s.user?.role);
   const campaigns = useCampaigns();

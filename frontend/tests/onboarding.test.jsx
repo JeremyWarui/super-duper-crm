@@ -289,3 +289,120 @@ describe("previewing the units before anything is created", () => {
     expect(screen.queryByText(/polling station/)).toBeNull();
   });
 });
+
+describe("adding the team once the campaign exists", () => {
+  const CREATED = {
+    id: "u9",
+    username: "amina",
+    full_name: "Amina Kariuki",
+    role: "manager",
+    phone: "",
+    password: "Kx8fQ2mNpR4w",
+    mobilizer: null,
+    ward_name: null,
+  };
+
+  async function reachTeamStep(user, routes = {}) {
+    const started = start({ "POST /campaigns/setup/": SETUP_REPLY, ...routes });
+    await walkToReview(user);
+    await user.click(await screen.findByRole("button", { name: "Create campaign" }));
+    await screen.findByText("YOUR CAMPAIGN IS SET UP");
+    return started;
+  }
+
+  it("offers the team step on the same screen as the win number", async () => {
+    const user = userEvent.setup();
+    await reachTeamStep(user);
+
+    expect(screen.getByText("Add your team")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Campaign manager" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mobilizer" })).toBeInTheDocument();
+  });
+
+  it("creates a campaign manager", async () => {
+    const user = userEvent.setup();
+    const { calls } = await reachTeamStep(user, { "POST /users/": CREATED });
+
+    await user.type(screen.getByPlaceholderText("amina"), "Amina");
+    await user.click(screen.getByRole("button", { name: "Add to the team" }));
+
+    await waitFor(() => {
+      const posted = calls.find((c) => c.path === "/users/");
+      expect(posted.body.username).toBe("amina");
+      expect(posted.body.role).toBe("manager");
+      expect(posted.body.campaign).toBeUndefined();
+    });
+  });
+
+  it("puts a mobilizer on the campaign and a ward", async () => {
+    const user = userEvent.setup();
+    const { calls } = await reachTeamStep(user, {
+      "POST /users/": { ...CREATED, role: "mobilizer", ward_name: "Zimmerman" },
+      "GET /wards/": [{ id: "w1", name: "Zimmerman", registered_voters: 30701 }],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Mobilizer" }));
+    await user.type(screen.getByPlaceholderText("amina"), "juma");
+    await user.click(screen.getByRole("button", { name: "Add to the team" }));
+
+    await waitFor(() => {
+      const posted = calls.find((c) => c.path === "/users/");
+      expect(posted.body.role).toBe("mobilizer");
+      expect(posted.body.campaign).toBe("c1");
+      expect(posted.body.ward).toBe("w1");
+    });
+  });
+
+  it("shows each password once, and says so", async () => {
+    const user = userEvent.setup();
+    await reachTeamStep(user, { "POST /users/": CREATED });
+
+    await user.type(screen.getByPlaceholderText("amina"), "Amina");
+    await user.click(screen.getByRole("button", { name: "Add to the team" }));
+
+    expect(await screen.findByText("Kx8fQ2mNpR4w")).toBeInTheDocument();
+    expect(screen.getByText("Write these down now")).toBeInTheDocument();
+    expect(screen.getByText("shown once")).toBeInTheDocument();
+  });
+
+  it("clears the form so the next person can be added", async () => {
+    const user = userEvent.setup();
+    await reachTeamStep(user, { "POST /users/": CREATED });
+
+    await user.type(screen.getByPlaceholderText("amina"), "Amina");
+    await user.click(screen.getByRole("button", { name: "Add to the team" }));
+    await screen.findByText("Kx8fQ2mNpR4w");
+
+    expect(screen.getByPlaceholderText("amina")).toHaveValue("");
+  });
+
+  it("will not add anyone without a usable username", async () => {
+    const user = userEvent.setup();
+    await reachTeamStep(user);
+
+    expect(screen.getByRole("button", { name: "Add to the team" })).toBeDisabled();
+    await user.type(screen.getByPlaceholderText("amina"), "ab");
+    expect(screen.getByRole("button", { name: "Add to the team" })).toBeDisabled();
+  });
+
+  it("shows the server's refusal", async () => {
+    const user = userEvent.setup();
+    await reachTeamStep(user, {
+      "POST /users/": { status: 400, body: { detail: "The username amina is already taken." } },
+    });
+
+    await user.type(screen.getByPlaceholderText("amina"), "amina");
+    await user.click(screen.getByRole("button", { name: "Add to the team" }));
+
+    expect(await screen.findByText("The username amina is already taken.")).toBeInTheDocument();
+  });
+
+  it("still lets the campaign owner skip straight to the dashboard", async () => {
+    const user = userEvent.setup();
+    const { onDone } = await reachTeamStep(user);
+
+    await user.click(screen.getByRole("button", { name: /Go to my dashboard/ }));
+
+    expect(onDone).toHaveBeenCalled();
+  });
+});

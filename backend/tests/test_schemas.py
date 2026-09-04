@@ -55,7 +55,6 @@ async def test_user_read_never_carries_the_password_hash(session: AsyncSession) 
 
 
 def test_user_read_rejects_an_unexpected_field() -> None:
-    """An unlisted field is an error, not something quietly ignored."""
     with pytest.raises(ValueError, match="password_hash"):
         UserRead(
             id="00000000-0000-0000-0000-000000000001",
@@ -101,7 +100,6 @@ async def test_campaign_read_includes_the_derived_grain(session: AsyncSession) -
 async def test_target_read_carries_the_unit_it_covers_and_its_progress(
     session: AsyncSession,
 ) -> None:
-    """The targets table shows a unit name and its register, so both travel with the row."""
     _, _, ward, _ = await make_geography(session)
     campaign = await make_campaign(session, ward)
     target = Target(

@@ -74,7 +74,6 @@ async def test_an_unknown_county_is_404_not_500(
 async def test_a_constituency_names_its_county_without_a_second_request(
     client: httpx.AsyncClient, session: AsyncSession
 ) -> None:
-    """The onboarding pickers list these; a nested id alone would not be readable."""
     county, constituency, *_ = await make_geography(session)
     token = await _manager_token(client, session)
 
@@ -181,7 +180,6 @@ async def test_a_mobilizer_sees_only_the_centres_in_their_ward(
 async def test_asking_for_another_ward_still_returns_only_their_own(
     client: httpx.AsyncClient, session: AsyncSession
 ) -> None:
-    """The filter narrows the scope; it cannot widen it."""
     _, constituency, ward, _ = await make_geography(session)
     elsewhere = Ward(constituency=constituency, name="Highridge", code="1371")
     session.add(elsewhere)
@@ -200,7 +198,6 @@ async def test_asking_for_another_ward_still_returns_only_their_own(
 async def test_a_mobilizer_with_no_profile_sees_no_wards(
     client: httpx.AsyncClient, session: AsyncSession
 ) -> None:
-    """Empty, rather than everything: the scope has to fail closed."""
     await make_geography(session)
     await make_user(session, username="stray", role=UserRole.MOBILIZER)
     token = await sign_in(client, "stray")
@@ -210,8 +207,6 @@ async def test_a_mobilizer_with_no_profile_sees_no_wards(
 
 
 async def test_wards_filter_by_county(client: httpx.AsyncClient, session: AsyncSession) -> None:
-    """A county-wide race organizes on every ward in the county, across all of
-    its constituencies."""
     county, constituency, ward, _ = await make_geography(session)
     second = Constituency(county=county, name="Dagoretti North", code="275")
     session.add(Ward(constituency=second, name="Kilimani", code="1372", registered_voters=20_000))

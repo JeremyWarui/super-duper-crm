@@ -72,7 +72,6 @@ async def test_a_mobilizer_with_no_profile_sees_no_campaign(
 async def test_fetching_a_campaign_that_is_not_yours_is_404(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    """404 rather than 403: whether it exists is not a stranger's business."""
     rival = await make_user(session, username="rival", role=UserRole.CANDIDATE)
     other = Campaign(
         candidate=rival,
@@ -146,7 +145,6 @@ async def test_the_setup_summary_totals_the_win_number(
 async def test_a_candidate_may_set_their_own_campaign_up(
     client: httpx.AsyncClient, world: World
 ) -> None:
-    """The onboarding screen is the candidate's; a read-only role could not use it."""
     response = await client.post(
         "/api/campaigns/setup/",
         headers=world.headers("candidate"),
@@ -180,7 +178,6 @@ async def test_a_mobilizer_may_not_set_a_campaign_up(
 async def test_setup_needs_the_area_that_matches_the_office(
     client: httpx.AsyncClient, world: World
 ) -> None:
-    """An MP campaign with only a county set would silently target nothing."""
     response = await client.post(
         "/api/campaigns/setup/",
         headers=world.headers("manager"),
@@ -211,7 +208,6 @@ async def test_an_unknown_office_level_is_one_readable_sentence(
 async def test_an_mca_campaign_with_no_centres_says_so_in_the_summary(
     client: httpx.AsyncClient, world: World
 ) -> None:
-    """Zimmerman has one centre loaded; Githurai has none."""
     body = (
         await client.post(
             "/api/campaigns/setup/",

@@ -110,7 +110,6 @@ async def test_a_mobilizer_cannot_invite_another_ward_s_event(
 async def test_a_mobilizer_asking_for_the_whole_campaign_still_gets_their_ward(
     client: httpx.AsyncClient, session, world: World
 ) -> None:
-    """The body cannot widen a reach the role narrows."""
     event = await _event(session, world)
     await _supporters(
         session,
@@ -187,7 +186,6 @@ async def test_the_whole_campaign_can_be_invited(
 async def test_it_can_be_narrowed_to_where_people_stand(
     client: httpx.AsyncClient, session, world: World, gateway: DeliveringProvider
 ) -> None:
-    """Spending a send on someone who opposes you is spending it twice over."""
     event = await _event(session, world)
     await _supporters(
         session,
@@ -287,7 +285,6 @@ async def test_a_register_with_no_usable_numbers_says_so(
 async def test_nothing_is_sent_until_a_gateway_is_configured(
     client: httpx.AsyncClient, session, world: World
 ) -> None:
-    """The default provider records the request and reports no delivery."""
     event = await _event(session, world)
     await _supporters(
         session, world, [("Wanjiku", "0712345678", SupportLevel.SUPPORTER, world.ward)]
@@ -309,7 +306,6 @@ async def test_nothing_is_sent_until_a_gateway_is_configured(
 async def test_a_send_that_did_not_happen_does_not_move_the_reach(
     client: httpx.AsyncClient, session, world: World
 ) -> None:
-    """Otherwise the attendance rate is divided by people nobody contacted."""
     event = await _event(session, world)
     await _supporters(
         session, world, [("Wanjiku", "0712345678", SupportLevel.SUPPORTER, world.ward)]
@@ -331,7 +327,6 @@ async def test_a_send_that_did_not_happen_does_not_move_the_reach(
 async def test_a_delivered_invitation_sets_the_number_reached(
     client: httpx.AsyncClient, session, world: World, gateway: DeliveringProvider
 ) -> None:
-    """It is what the attendance form divides by, so the send fills it in."""
     event = await _event(session, world)
     await _supporters(
         session,

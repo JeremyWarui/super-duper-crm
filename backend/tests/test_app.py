@@ -22,7 +22,6 @@ async def test_health(client: httpx.AsyncClient) -> None:
 async def test_every_route_but_health_is_under_the_api_prefix(
     client: httpx.AsyncClient,
 ) -> None:
-    """The frontend points VITE_API_URL at /api; a route outside it is unreachable."""
     response = await client.get("/openapi.json")
     assert response.status_code == 200
     paths = set(response.json()["paths"])

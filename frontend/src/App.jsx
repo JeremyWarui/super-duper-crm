@@ -6,7 +6,7 @@ import { useAuth } from "./store/auth";
 import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
-  useInviteToEvent,
+  useInviteToEvent, useCreateUser,
 } from "./api/hooks";
 
 const C = {
@@ -148,19 +148,63 @@ const StrategyPanel = ({ notes, dark }) => (
 // ---- forms (fire mutations) ----------------------------------------------
 function AddMobilizerForm({ campaignId, wardOptions, onClose }) {
   const add = useAddMobilizer();
+  const createUser = useCreateUser();
   const [name, setName] = useState(""); const [phone, setPhone] = useState("");
   const [ward, setWard] = useState(wardOptions[0]?.id || "");
-  const ok = name.trim() && ward;
+  const [withLogin, setWithLogin] = useState(false);
+  const [username, setUsername] = useState("");
+  const [made, setMade] = useState(null);
+  const busy = add.isPending || createUser.isPending;
+  const error = add.error || createUser.error;
+  const ok = name.trim() && ward && (!withLogin || username.trim().length >= 3);
+
+  const save = () => {
+    const [first, ...rest] = name.trim().split(/\s+/);
+    if (withLogin) {
+      createUser.mutate(
+        { username: username.trim().toLowerCase(), role: "mobilizer", first_name: first, last_name: rest.join(" "), phone: phone.trim(), campaign: campaignId, ward },
+        { onSuccess: setMade },
+      );
+    } else {
+      add.mutate({ campaign: campaignId, ward, full_name: name.trim(), phone: phone.trim() }, { onSuccess: onClose });
+    }
+  };
+
+  if (made) {
+    return (
+      <Modal title="Mobilizer added" sub="Write the password down now — it is shown once." onClose={onClose}>
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          <b>{made.username}</b> can now sign in and work {made.ward_name}.
+        </div>
+        <div style={{ marginTop: 12, padding: "12px 14px", background: C.paper, border: `1px solid ${C.line}`, borderRadius: 10 }}>
+          <div style={{ fontSize: 12, color: C.sub }}>Password</div>
+          <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, marginTop: 2 }}>{made.password}</div>
+        </div>
+        <div className="flex justify-end gap-2" style={{ marginTop: 22 }}><PrimaryBtn onClick={onClose}>Done</PrimaryBtn></div>
+      </Modal>
+    );
+  }
+
   return (
     <Modal title="Add mobilizer" sub="One ground organiser per ward." onClose={onClose}>
       <Label>Full name</Label><input style={FIELD} value={name} onChange={(e) => setName(e.target.value)} />
       <div style={{ height: 14 }} /><Label>Phone</Label><input style={FIELD} value={phone} onChange={(e) => setPhone(e.target.value)} />
       <div style={{ height: 14 }} /><Label>Ward</Label>
       <select style={FIELD} value={ward} onChange={(e) => setWard(e.target.value)}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
-      {add.isError && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{add.error.message}</div>}
+      <label className="flex items-start gap-2" style={{ marginTop: 14, fontSize: 12.5, color: C.sub, cursor: "pointer" }}>
+        <input type="checkbox" checked={withLogin} onChange={(e) => setWithLogin(e.target.checked)} style={{ marginTop: 2, accentColor: C.green }} />
+        Give them a login, so they can record their own events and supporters.
+      </label>
+      {withLogin && (
+        <>
+          <div style={{ height: 10 }} /><Label>Username</Label>
+          <input style={FIELD} value={username} onChange={(e) => setUsername(e.target.value)} placeholder="juma" />
+        </>
+      )}
+      {error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{error.message}</div>}
       <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
         <Btn onClick={onClose}>Cancel</Btn>
-        <PrimaryBtn disabled={!ok || add.isPending} onClick={() => add.mutate({ campaign: campaignId, ward, full_name: name.trim(), phone: phone.trim() }, { onSuccess: onClose })}>{add.isPending ? "Saving…" : "Save mobilizer"}</PrimaryBtn>
+        <PrimaryBtn disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : "Save mobilizer"}</PrimaryBtn>
       </div>
     </Modal>
   );

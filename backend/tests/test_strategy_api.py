@@ -79,7 +79,6 @@ async def test_each_unit_carries_its_gap_and_its_share_of_the_win_number(
 async def test_a_unit_past_its_goal_reports_no_gap(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    """Never a negative number: the table renders it as a shortfall."""
     await _commit(session, "Zimmerman", 20_000)
 
     zimmerman = next(
@@ -114,7 +113,6 @@ async def test_a_unit_counts_its_events_and_whether_anyone_is_working_it(
 async def test_a_centre_s_events_do_not_count_towards_the_ward_around_it(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    """A ward target and a centre target are different units, not nested ones."""
     session.add(
         Event(
             campaign_id=world.campaign.id,
@@ -195,7 +193,6 @@ async def test_a_well_worked_unit_that_has_met_its_goal_says_to_ease_off(
 async def test_a_unit_that_met_its_goal_without_much_work_is_not_flagged(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    """Meeting the goal on one event is a reason to keep going, not to stop."""
     await _commit(session, "Zimmerman", 10_000)
     session.add(Event(campaign_id=world.campaign.id, ward_id=world.ward.id, title="Rally"))
     await session.commit()

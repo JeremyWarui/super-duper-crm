@@ -20,7 +20,7 @@ uv run uvicorn backend.main:app --reload  # http://127.0.0.1:8000/docs
 Checks:
 
 ```bash
-uv run pytest        # 386 tests, ~3 min, no database server needed
+uv run pytest        # 414 tests, ~3 min, no database server needed
 uv run ruff check .
 uv run ruff format .
 ```
@@ -114,6 +114,7 @@ Everything lives under `/api`, with a trailing slash, and needs a
 | `POST /api/events/{id}/invite/` | Text the event's supporters, and set how many were reached. |
 | `GET POST /api/supporters/`, `DELETE …/{id}/` | The register. **POST is open**, so a field form works signed out. |
 | `GET /api/strategy/?campaign=` | The computed dashboard. |
+| `GET POST /api/users/`, `DELETE …/{id}/` | Logins for the team. The password is generated and returned once. |
 
 A foreign key travels under the related model's bare name - `ward`, not
 `ward_id` - and reads carry the parent's name alongside it, so a list is
@@ -128,6 +129,7 @@ Enforced per route, not in the UI.
 | Read the campaign and its strategy | yes | yes | their ward only |
 | Read the supporter register | no | yes | their ward only |
 | Set a campaign up | yes | yes | no |
+| Add or remove a login | yes | yes | no |
 | Change targets, mobilizers | no | yes | no |
 | Schedule and record events | no | yes | their ward only |
 | Register supporters | no | yes | their ward only |
@@ -178,6 +180,18 @@ The app refuses to start if the gateway is selected without credentials, rather
 than failing on the first invitation nobody receives. `services/sms.py` holds
 the provider interface; everything above it is written against that and does not
 know which one is in use.
+
+## Adding the team
+
+`POST /api/users/` makes a login for a manager or a mobilizer. The password is
+generated, returned once and never stored in the clear, so it cannot be fetched
+again; the account has to be recreated if it is lost. A mobilizer also gets the
+`Mobilizer` row that scopes them to a ward, because without one they sign in to
+an empty app. A campaign has one candidate, whoever set it up, so this route
+will not make another.
+
+Deleting a login leaves the mobilizer row behind, minus its `user_id`: the
+person still worked that ward.
 
 ## The models
 
