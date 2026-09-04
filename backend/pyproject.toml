@@ -10,6 +10,7 @@ dependencies = [
     "argon2-cffi>=25.1.0",
     "asyncpg>=0.30",
     "fastapi>=0.118",
+    "httpx>=0.28",
     "pydantic>=2.11",
     "pydantic-settings>=2.11",
     "sqlalchemy[asyncio]>=2.0.43",
@@ -22,7 +23,6 @@ campaign-crm = "backend.cli:main"
 [dependency-groups]
 dev = [
     "anyio>=4.11",
-    "httpx>=0.28",
     "pytest>=8.4",
     "pytest-asyncio>=1.2",
     "ruff>=0.14",

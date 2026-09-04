@@ -1,6 +1,7 @@
 """Settings, read from the environment and from `.env`."""
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, PostgresDsn, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -35,6 +36,26 @@ class Settings(BaseSettings):
 
     # Log every SQL statement.
     echo_sql: bool = False
+
+    # Which SMS gateway carries invitations. "console" records and sends
+    # nothing, which is the default until there is a subscription.
+    at_username: str = ""
+    at_api_key: str = ""
+    # The registered alphanumeric sender, if there is one. Blank uses the
+    # shared short code.
+    at_sender_id: str = ""
+    at_sandbox: bool = False
+    sms_provider: Literal["console", "africastalking"] = "console"
+
+    @field_validator("sms_provider", mode="after")
+    @classmethod
+    def _gateway_needs_credentials(cls, value: str, info: ValidationInfo) -> str:
+        """Fail at startup rather than on the first invitation nobody receives."""
+        if value == "africastalking" and not (
+            info.data.get("at_username") and info.data.get("at_api_key")
+        ):
+            raise ValueError("SMS_PROVIDER=africastalking needs AT_USERNAME and AT_API_KEY.")
+        return value
 
     @field_validator("database_url", mode="after")
     @classmethod

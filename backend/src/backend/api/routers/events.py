@@ -1,6 +1,6 @@
-"""Rallies and meetings, and the attendance recorded after they happen.
+"""Rallies and meetings, the invitations sent for them, and the attendance after.
 
-Mobilizers write here: scheduling and recording in their own ward is their job.
+Mobilizers write here: running events in their own ward is their job.
 """
 
 import uuid
@@ -17,8 +17,16 @@ from backend.api.scope import (
     require_visible_campaign,
     visible_campaign_ids,
 )
-from backend.models import Event, EventStatus, User
-from backend.schemas.campaign import EventCreate, EventRead, EventRecord
+from backend.models import Event, EventStatus, Supporter, User
+from backend.schemas.campaign import (
+    EventCreate,
+    EventInvite,
+    EventInviteResult,
+    EventRead,
+    EventRecord,
+    InviteRecipient,
+)
+from backend.services.sms import Recipient, SendResult, get_sms_provider, normalise_all
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -114,3 +122,71 @@ async def _reload(session: SessionDep, event_id: uuid.UUID) -> Event:
     return (
         await session.execute(select(Event).where(Event.id == event_id).options(*LOADED))
     ).scalar_one()
+
+
+@router.post("/{event_id}/invite/", response_model=EventInviteResult)
+async def invite_to_event(
+    event_id: uuid.UUID,
+    payload: EventInvite,
+    session: SessionDep,
+    user: CurrentUser,
+    _: MobilizerWriter,
+) -> EventInviteResult:
+    """Text the event's supporters, and record how many were reached.
+
+    `number_reached` is what the attendance form later divides by, so the send
+    sets it rather than leaving someone to count the register by hand. A
+    dry run works out the recipients and the cost and sends nothing.
+    """
+    event = await _visible_event(session, user, event_id)
+
+    statement = select(Supporter).where(Supporter.campaign_id == event.campaign_id)
+    if not payload.whole_campaign:
+        statement = statement.where(Supporter.ward_id == event.ward_id)
+    if payload.support_levels:
+        statement = statement.where(Supporter.support_level.in_(payload.support_levels))
+    # A mobilizer's reach ends at their ward, whatever the body asks for.
+    own_ward = mobilizer_ward_id(user)
+    if own_ward is not None:
+        statement = statement.where(Supporter.ward_id == own_ward)
+
+    supporters = list((await session.execute(statement)).scalars().all())
+    numbers, unusable = normalise_all([s.phone for s in supporters])
+
+    if payload.dry_run:
+        result = SendResult(
+            provider=get_sms_provider().name,
+            delivered=False,
+            message=payload.message,
+            requested=len(numbers),
+            accepted=[Recipient(phone=n, status="would send") for n in numbers],
+            detail="Nothing was sent: this was a dry run.",
+        )
+    elif not numbers:
+        result = SendResult(
+            provider=get_sms_provider().name,
+            delivered=False,
+            message=payload.message,
+            requested=0,
+            detail="Nobody on this register has a usable phone number.",
+        )
+    else:
+        result = await get_sms_provider().send(numbers, payload.message)
+
+    if result.delivered and not payload.dry_run:
+        event.number_reached = len(result.accepted)
+        await session.commit()
+
+    return EventInviteResult(
+        provider=result.provider,
+        delivered=result.delivered,
+        dry_run=payload.dry_run,
+        message=result.message,
+        parts=result.parts,
+        supporters_matched=len(supporters),
+        requested=result.requested,
+        accepted=[InviteRecipient(**vars(r)) for r in result.accepted],
+        rejected=[InviteRecipient(**vars(r)) for r in [*result.rejected, *unusable]],
+        detail=result.detail,
+        number_reached=event.number_reached,
+    )

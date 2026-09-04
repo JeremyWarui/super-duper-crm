@@ -78,7 +78,7 @@ backend/
 │   ├── models/            the tables
 │   ├── schemas/           request and response shapes
 │   ├── seed/              the CSV loaders and the demo
-│   └── services/          the win number, and the strategy read
+│   └── services/          the win number, the strategy read, and sending SMS
 ├── tests/
 └── evals/                 guards the schema, and the contract with the SPA
 ```
@@ -103,6 +103,7 @@ Everything lives under `/api`, with a trailing slash, and needs a
 | `GET POST /api/mobilizers/`, `DELETE …/{id}/` | Who is working which ward. |
 | `GET POST /api/events/`, `DELETE …/{id}/` | Rallies and meetings. |
 | `POST /api/events/{id}/record/` | Close an event with its attendance. |
+| `POST /api/events/{id}/invite/` | Text the event's supporters, and set how many were reached. |
 | `GET POST /api/supporters/`, `DELETE …/{id}/` | The register. **POST is open**, so a field form works signed out. |
 | `GET /api/strategy/?campaign=` | The computed dashboard. |
 
@@ -126,6 +127,49 @@ Enforced per route, not in the UI.
 A campaign the caller has no route into answers 404, not 403, so an outsider
 cannot probe for one. A mobilizer with no profile row sees nothing rather than
 everything.
+
+## Sending invitations
+
+`POST /api/events/{id}/invite/` texts an event's supporters and sets the event's
+`number_reached`, which is what the attendance form later divides by. Sending it
+is what fills that number in; before, somebody counted the register by hand.
+
+```jsonc
+{
+  "message": "Town hall this Saturday, 2pm, Zimmerman social hall.",
+  "support_levels": ["supporter", "undecided"],  // default: everyone
+  "whole_campaign": false,                        // default: the event's ward
+  "dry_run": false                                // work out the cost, send nothing
+}
+```
+
+The reply says which numbers the gateway took, which it would not, which rows
+had no usable number, and how many 160-character parts each message is billed at.
+
+**Nothing is sent yet.** There is no Africa's Talking subscription, so the
+default provider records the request, reports `delivered: false`, and says in
+`detail` what to set to change that. `number_reached` only moves on a real
+delivery, so the attendance rate is never divided by people nobody contacted.
+
+Numbers are normalised to E.164 first. A register filled in by hand holds
+`0712 345678`, `+254712345678` and `254-712-345-678` for one person; the gateway
+would bill for three. Anything that cannot be read as a Kenyan number is
+reported back rather than guessed at, because a wrong number is a message
+delivered to a stranger.
+
+To send for real:
+
+```bash
+SMS_PROVIDER=africastalking
+AT_USERNAME=your-username     # or "sandbox" for their test gateway
+AT_API_KEY=your-key
+AT_SENDER_ID=                 # blank uses the shared short code
+```
+
+The app refuses to start if the gateway is selected without credentials, rather
+than failing on the first invitation nobody receives. `services/sms.py` holds
+the provider interface; everything above it is written against that and does not
+know which one is in use.
 
 ## The models
 
@@ -178,6 +222,11 @@ by registration centre.
    also makes it the one route an anonymous caller can write through.
 6. `data/centres.csv` is not in the repo, so ward (MCA) campaigns generate no
    targets until it is extracted and loaded.
+7. The Africa's Talking adapter has never run against the live gateway - there
+   is no subscription. Its request shape and its parsing are covered against
+   recorded replies; what is unproven is the network call itself.
+8. Invitations are not recorded. The reply says what happened, and nothing
+   stores it, so there is no history of what was sent to whom.
 
 ## Migrations
 
