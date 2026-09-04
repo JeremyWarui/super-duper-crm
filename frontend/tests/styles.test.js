@@ -146,3 +146,28 @@ describe("fitting the design to the window", () => {
     expect(html).toContain("width=device-width");
   });
 });
+
+describe("filling a wide window", () => {
+  it("lets the shell past the 1200px the design was drawn at", () => {
+    /* 1200 of 1920 is the page adrift in 700px of empty paper. */
+    expect(src("App.jsx")).toContain("maxWidth: 1200");
+    expect(STYLESHEET).toMatch(/@media\s*\(min-width:\s*1441px\)/);
+    expect(STYLESHEET).toMatch(/max-width:\s*min\(1720px,\s*calc\(100vw - 96px\)\)\s*!important/);
+  });
+
+  it("keeps a gutter rather than running to the edge", () => {
+    const [, gutter] = STYLESHEET.match(/calc\(100vw - (\d+)px\)/);
+    expect(Number(gutter)).toBeGreaterThan(0);
+  });
+
+  it("widens only above the width the scale tiers cover", () => {
+    /* Below 1441 the cap stays at 1200 and the tiers scale instead; widening a
+     * 1366 laptop is what made it cramped. */
+    const widen = STYLESHEET.indexOf("min-width: 1441px");
+    expect(widen).toBeGreaterThan(-1);
+    const zoomTiers = [...STYLESHEET.matchAll(/@media\s*\(max-width:\s*(\d+)px\)\s*\{\s*#root\s*\{\s*zoom:/g)];
+    for (const [, width] of zoomTiers) {
+      expect(Number(width)).toBeLessThan(1441);
+    }
+  });
+});

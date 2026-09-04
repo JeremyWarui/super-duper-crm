@@ -79,7 +79,7 @@ disagree with the rows underneath it.
 
 ```bash
 cd backend  && uv run pytest && uv run ruff check .   # 386 tests
-cd frontend && npm test && npm run build              # 126 tests
+cd frontend && npm test && npm run build              # 129 tests
 ```
 
 Neither suite needs a database server or the network.
