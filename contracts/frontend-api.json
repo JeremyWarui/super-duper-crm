@@ -31,7 +31,9 @@
     "POST /api/campaigns/setup/": [
       "id",
       "title",
-      "setup"
+      "setup",
+      "candidate",
+      "candidate_login"
     ],
     "GET /api/targets/": [
       "id",
@@ -143,6 +145,12 @@
       "phone",
       "status",
       "detail"
+    ],
+    "POST /api/campaigns/setup/.candidate_login": [
+      "id",
+      "username",
+      "full_name",
+      "password"
     ]
   },
   "writes": {
@@ -156,7 +164,9 @@
       "election_date",
       "county",
       "constituency",
-      "ward"
+      "ward",
+      "candidate",
+      "new_candidate"
     ],
     "POST /api/mobilizers/": [
       "campaign",
@@ -200,6 +210,12 @@
       "phone",
       "campaign",
       "ward"
+    ],
+    "POST /api/campaigns/setup/.new_candidate": [
+      "username",
+      "first_name",
+      "last_name",
+      "phone"
     ]
   },
   "enums": {

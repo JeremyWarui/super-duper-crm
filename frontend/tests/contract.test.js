@@ -133,6 +133,7 @@ describe("the source against the contract", () => {
     const source = read("api/hooks.js") + read("store/auth.js");
     for (const route of Object.keys(CONTRACT.reads)) {
       const path = route.split(" ")[1].replace("/api", "");
+      if (path.includes(".")) continue; // a field inside a body, not a route
       // {id} in the contract is ${...} in the source.
       const escaped = path.replace(/[.*+?^$()|[\]\\]/g, "\\$&");
       const pattern = new RegExp(escaped.replace(/\{[^}]+\}/g, "\\$\\{[^}]+\\}"));

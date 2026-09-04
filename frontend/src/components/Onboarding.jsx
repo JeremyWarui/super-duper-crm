@@ -3,7 +3,8 @@
 // On create it calls /campaigns/setup/, which builds every target and returns
 // the win number, then hands the campaign back to the app to show the dashboard.
 import React, { useState } from "react";
-import { useCounties, useConstituencies, useWardsIn, useSetupCampaign, useUnitsPreview, useCreateUser, useWardsInCounty } from "../api/hooks";
+import { useCounties, useConstituencies, useWardsIn, useSetupCampaign, useUnitsPreview, useCreateUser, useWardsInCounty, useTeam } from "../api/hooks";
+import { useAuth } from "../store/auth";
 
 const C = { ink: "#171C1F", paper: "#E9EBE6", panel: "#FFFFFF", green: "#0B6B3A", red: "#B4231F", amber: "#B9791A", line: "#D7DBD4", sub: "#5C655F" };
 const DISPLAY = { fontFamily: "Oswald, Impact, sans-serif" };
@@ -182,10 +183,85 @@ function TeamMade({ made }) {
   );
 }
 
+
+// A manager sets the campaign up for an aspirant, so it has to say which one.
+// Inferring it from whoever filled the form in leaves the campaign owned by its
+// manager and invisible to its candidate.
+function AspirantStep({ form, set }) {
+  const aspirants = useTeam("candidate");
+  const existing = aspirants.data || [];
+  const mode = form.aspirant_mode || (existing.length ? "existing" : "new");
+
+  return (
+    <>
+      <Label>Who are you running this campaign for?</Label>
+      {existing.length > 0 && (
+        <div className="flex flex-wrap gap-1" style={{ marginTop: 8, marginBottom: 4, fontSize: 12 }}>
+          {[["existing", "An aspirant already here"], ["new", "Someone new"]].map(([key, label]) => (
+            <button key={key} onClick={() => set({ aspirant_mode: key, candidate: "" })}
+              style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", border: `1px solid ${mode === key ? C.ink : C.line}`, background: mode === key ? C.ink : "transparent", color: mode === key ? "#fff" : C.sub }}>{label}</button>
+          ))}
+        </div>
+      )}
+
+      {mode === "existing" ? (
+        <Select value={form.candidate} onChange={(v) => set({ candidate: v })}>
+          <option value="">Select the aspirant…</option>
+          {existing.map((a) => <option key={a.id} value={a.id}>{a.full_name || a.username}</option>)}
+        </Select>
+      ) : (
+        <>
+          <div style={{ height: 10 }} />
+          <div className="flex gap-2">
+            <div style={{ flex: 1 }}><Label>First name</Label><input style={FIELD} value={form.aspirant_first} onChange={(e) => set({ aspirant_first: e.target.value })} /></div>
+            <div style={{ flex: 1 }}><Label>Last name</Label><input style={FIELD} value={form.aspirant_last} onChange={(e) => set({ aspirant_last: e.target.value })} /></div>
+          </div>
+          <div style={{ height: 10 }} /><Label>Username</Label>
+          <input style={FIELD} value={form.aspirant_username} onChange={(e) => set({ aspirant_username: e.target.value })} placeholder="jane" />
+          <div style={{ height: 10 }} /><Label>Phone</Label>
+          <input style={FIELD} value={form.aspirant_phone} onChange={(e) => set({ aspirant_phone: e.target.value })} placeholder="0712 345678" />
+          <div style={{ fontSize: 12, color: C.sub, marginTop: 8 }}>
+            They get a login, and the campaign belongs to them. Their password is shown once at the end.
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+// The aspirant's login, shown once after setup.
+function CandidateLogin({ login }) {
+  return (
+    <div style={{ marginTop: 16, border: `1px solid ${C.line}`, borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ padding: "9px 14px", background: C.paper, borderBottom: `1px solid ${C.line}` }}>
+        <span style={{ ...DISPLAY, fontSize: 13, fontWeight: 600 }}>{login.full_name || login.username} signs in with</span>
+        <span style={{ fontSize: 12, color: C.amber, marginLeft: 8 }}>shown once</span>
+      </div>
+      <div className="flex items-center justify-between gap-2" style={{ padding: "10px 14px" }}>
+        <span style={{ fontWeight: 600, fontSize: 13.5 }}>{login.username}</span>
+        <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13 }}>{login.password}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Onboarding({ onDone }) {
+  const role = useAuth((s) => s.user?.role);
+  const forAspirant = role === "manager";
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState({ title: "", election_date: "2027-08-10", office_level: "", county: "", constituency: "", ward: "" });
+  const [form, setForm] = useState({ title: "", election_date: "2027-08-10", office_level: "", county: "", constituency: "", ward: "", candidate: "", aspirant_mode: "", aspirant_first: "", aspirant_last: "", aspirant_username: "", aspirant_phone: "" });
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
+
+  // A manager names the aspirant first, so their flow has one more step.
+  const steps = forAspirant
+    ? ["aspirant", "basics", "office", "area", "review"]
+    : ["basics", "office", "area", "review"];
+  const at = steps[step];
+  const aspirantReady =
+    !forAspirant ||
+    (form.aspirant_mode === "new"
+      ? form.aspirant_username.trim().length >= 3
+      : !!form.candidate || form.aspirant_mode === "new");
 
   const counties = useCounties();
   const constituencies = useConstituencies(form.county);
@@ -201,6 +277,18 @@ export default function Onboarding({ onDone }) {
     if (form.office_level === "county") payload.county = form.county;
     if (form.office_level === "constituency") payload.constituency = form.constituency;
     if (form.office_level === "ward") payload.ward = form.ward;
+    if (forAspirant) {
+      if (form.aspirant_mode === "new") {
+        payload.new_candidate = {
+          username: form.aspirant_username.trim().toLowerCase(),
+          first_name: form.aspirant_first.trim(),
+          last_name: form.aspirant_last.trim(),
+          phone: form.aspirant_phone.trim(),
+        };
+      } else {
+        payload.candidate = form.candidate;
+      }
+    }
     setup.mutate(payload);
   };
 
@@ -219,6 +307,7 @@ export default function Onboarding({ onDone }) {
           <div style={{ ...DISPLAY, fontSize: 60, fontWeight: 700, lineHeight: 1, marginTop: 6 }}>{Number(s.win_number).toLocaleString()}</div>
           <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>from {Number(s.total_registered).toLocaleString()} registered voters, at the county's 2022 turnout.</div>
           {s.note && <div style={{ fontSize: 12.5, color: C.amber, marginTop: 12 }}>{s.note}</div>}
+          {setup.data.candidate_login && <CandidateLogin login={setup.data.candidate_login} />}
           <TeamStep campaign={setup.data} form={form} />
           <div style={{ marginTop: 20 }}><Btn primary onClick={() => onDone(setup.data)}>Go to my dashboard →</Btn></div>
         </div>
@@ -231,20 +320,27 @@ export default function Onboarding({ onDone }) {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');`}</style>
       <div style={card}>
         <div style={{ ...DISPLAY, fontSize: 22, fontWeight: 700 }}>MZIGO<span style={{ color: C.green }}>·</span>CRM</div>
-        <div style={{ fontSize: 12.5, color: C.sub, marginBottom: 16 }}>Set up your campaign · step {Math.min(step + 1, 4)} of 4</div>
+        <div style={{ fontSize: 12.5, color: C.sub, marginBottom: 16 }}>Set up your campaign · step {step + 1} of {steps.length}</div>
 
-        {step === 0 && (
+        {at === "aspirant" && (
+          <>
+            <AspirantStep form={form} set={set} />
+            <div style={{ marginTop: 20, textAlign: "right" }}><Btn primary disabled={!aspirantReady} onClick={() => setStep(step + 1)}>Next</Btn></div>
+          </>
+        )}
+
+        {at === "basics" && (
           <>
             <Label>Campaign name</Label>
             <input style={FIELD} value={form.title} onChange={(e) => set({ title: e.target.value })} placeholder="e.g. Jane for Roysambu" autoFocus />
             <div style={{ height: 14 }} />
             <Label>Election date</Label>
             <input type="date" style={FIELD} value={form.election_date} onChange={(e) => set({ election_date: e.target.value })} />
-            <div style={{ marginTop: 20, textAlign: "right" }}><Btn primary disabled={!form.title.trim()} onClick={() => setStep(1)}>Next</Btn></div>
+            <div style={{ marginTop: 20, textAlign: "right" }}><Btn primary disabled={!form.title.trim()} onClick={() => setStep(step + 1)}>Next</Btn></div>
           </>
         )}
 
-        {step === 1 && (
+        {at === "office" && (
           <>
             <Label>What seat are you running for?</Label>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
@@ -257,11 +353,11 @@ export default function Onboarding({ onDone }) {
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between" }}><Btn onClick={() => setStep(0)}>Back</Btn><Btn primary disabled={!form.office_level} onClick={() => setStep(2)}>Next</Btn></div>
+            <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between" }}><Btn onClick={() => setStep(step - 1)}>Back</Btn><Btn primary disabled={!form.office_level} onClick={() => setStep(step + 1)}>Next</Btn></div>
           </>
         )}
 
-        {step === 2 && (
+        {at === "area" && (
           <>
             <Label>County</Label>
             <Select value={form.county} onChange={(v) => set({ county: v, constituency: "", ward: "" })}>
@@ -286,11 +382,11 @@ export default function Onboarding({ onDone }) {
                 </Select>
               </>
             )}
-            <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between" }}><Btn onClick={() => setStep(1)}>Back</Btn><Btn primary disabled={!areaReady} onClick={() => setStep(3)}>Next</Btn></div>
+            <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between" }}><Btn onClick={() => setStep(step - 1)}>Back</Btn><Btn primary disabled={!areaReady} onClick={() => setStep(step + 1)}>Next</Btn></div>
           </>
         )}
 
-        {step === 3 && (
+        {at === "review" && (
           <>
             <div style={{ fontSize: 14, lineHeight: 1.6 }}>
               You're setting up <b>{form.title}</b> for a <b>{OFFICES.find((o) => o.key === form.office_level)?.label}</b> seat.
@@ -300,7 +396,7 @@ export default function Onboarding({ onDone }) {
             <UnitsPreview form={form} />
             {setup.isError && <div style={{ color: C.red, fontSize: 13, marginTop: 12 }}>{setup.error.message}</div>}
             <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between" }}>
-              <Btn onClick={() => setStep(2)} disabled={setup.isPending}>Back</Btn>
+              <Btn onClick={() => setStep(step - 1)} disabled={setup.isPending}>Back</Btn>
               <Btn primary onClick={create} disabled={setup.isPending}>{setup.isPending ? "Building…" : "Create campaign"}</Btn>
             </div>
           </>

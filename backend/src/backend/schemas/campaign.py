@@ -29,8 +29,21 @@ class CampaignRead(ORMModel):
     created_at: datetime
 
 
+class NewCandidate(WriteModel):
+    """An aspirant being created by whoever is setting the campaign up."""
+
+    username: str = Field(min_length=3, max_length=150, pattern=r"^[A-Za-z0-9._-]+$")
+    first_name: str = Field(default="", max_length=150)
+    last_name: str = Field(default="", max_length=150)
+    phone: str = Field(default="", max_length=20)
+
+
 class CampaignSetup(WriteModel):
-    """The seat, and where it is."""
+    """The seat, where it is, and whose it is.
+
+    A campaign belongs to its candidate, never to whoever filled the form in.
+    A manager must name one; a candidate gets themselves.
+    """
 
     title: str = Field(min_length=1, max_length=150)
     office_level: OfficeLevel
@@ -38,6 +51,8 @@ class CampaignSetup(WriteModel):
     county: uuid.UUID | None = None
     constituency: uuid.UUID | None = None
     ward: uuid.UUID | None = None
+    candidate: uuid.UUID | None = None
+    new_candidate: NewCandidate | None = None
 
 
 class SetupSummary(ORMModel):
@@ -50,8 +65,18 @@ class SetupSummary(ORMModel):
     note: str | None = None
 
 
+class CandidateLogin(ORMModel):
+    """A candidate created during setup. `password` is shown once."""
+
+    id: uuid.UUID
+    username: str
+    full_name: str
+    password: str
+
+
 class CampaignSetupResponse(CampaignRead):
     setup: SetupSummary
+    candidate_login: CandidateLogin | None = None
 
 
 # -------------------------------------------------------------------- target

@@ -79,6 +79,14 @@ def test_every_nested_field_the_spa_reads_is_still_returned(route: str) -> None:
 
 @pytest.mark.parametrize("route", WRITES)
 def test_every_field_the_spa_sends_is_still_accepted(route: str) -> None:
+    if "." in route.split(" ", 1)[1]:
+        outer, field = route.rsplit(".", 1)
+        parent = _request_properties(outer)
+        assert field in parent, f"{outer} no longer accepts {field}"
+        properties = _resolve(parent[field]).get("properties", {})
+        unknown = [n for n in CONTRACT["writes"][route] if n not in properties]
+        assert not unknown, f"{route} would reject {unknown}"
+        return
     properties = _request_properties(route)
     unknown = [name for name in CONTRACT["writes"][route] if name not in properties]
     assert not unknown, f"{route} would reject {unknown}"
@@ -109,7 +117,9 @@ def test_the_stored_choice_strings_are_unchanged(key: str) -> None:
 def test_the_routes_the_spa_calls_all_exist() -> None:
     called = set(CONTRACT["reads"]) | set(CONTRACT["writes"])
     for route in sorted(called):
-        _operation(route)
+        # A "." names a field inside a body, not a route of its own.
+        if "." not in route.split(" ", 1)[1]:
+            _operation(route)
 
 
 def test_errors_arrive_as_one_readable_sentence() -> None:

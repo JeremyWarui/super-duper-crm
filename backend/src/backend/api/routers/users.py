@@ -1,6 +1,5 @@
 """Logins for the campaign team. Passwords are generated and shown once."""
 
-import secrets
 import uuid
 
 from fastapi import APIRouter, HTTPException, status
@@ -11,27 +10,29 @@ from backend.api.deps import CurrentUser, SessionDep
 from backend.api.scope import require_visible_campaign
 from backend.models import Mobilizer, User, UserRole, Ward
 from backend.schemas.user import UserCreate, UserCreated, UserRead
+from backend.security import hash_password, new_password
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-GENERATED_PASSWORD_BYTES = 9
 
 MAY_CREATE = {UserRole.CANDIDATE, UserRole.MANAGER}
 
 
 @router.get("/", response_model=list[UserRead])
-async def list_users(session: SessionDep, user: CurrentUser) -> list[User]:
-    """The team."""
+async def list_users(
+    session: SessionDep, user: CurrentUser, role: UserRole | None = None
+) -> list[User]:
+    """The team, or just one role of it."""
     if user.role not in MAY_CREATE:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the campaign team may see this.")
-    return list((await session.execute(select(User).order_by(User.username))).scalars().all())
+    statement = select(User).order_by(User.username)
+    if role is not None:
+        statement = statement.where(User.role == role)
+    return list((await session.execute(statement)).scalars().all())
 
 
 @router.post("/", response_model=UserCreated, status_code=status.HTTP_201_CREATED)
 async def create_user(payload: UserCreate, session: SessionDep, user: CurrentUser) -> UserCreated:
     """Create a login. The password is not stored and cannot be fetched again."""
-    from backend.security import hash_password
-
     if user.role not in MAY_CREATE:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, "Only a candidate or a campaign manager may add people."
@@ -57,7 +58,7 @@ async def create_user(payload: UserCreate, session: SessionDep, user: CurrentUse
         if ward is None:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such ward.")
 
-    password = secrets.token_urlsafe(GENERATED_PASSWORD_BYTES)
+    password = new_password()
     created = User(
         username=payload.username,
         role=payload.role,

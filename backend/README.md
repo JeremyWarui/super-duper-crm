@@ -20,7 +20,7 @@ uv run uvicorn backend.main:app --reload  # http://127.0.0.1:8000/docs
 Checks:
 
 ```bash
-uv run pytest        # 414 tests, ~3 min, no database server needed
+uv run pytest        # 428 tests, ~2 min, no database server needed
 uv run ruff check .
 uv run ruff format .
 ```
@@ -105,7 +105,7 @@ Everything lives under `/api`, with a trailing slash, and needs a
 | `GET /api/wards/?constituency=` | A mobilizer sees only their own ward. |
 | `GET /api/centres/?ward=` | Same. |
 | `GET /api/campaigns/` `…/{id}/` | The caller's campaigns. |
-| `POST /api/campaigns/setup/` | Create a campaign and all of its targets in one call. |
+| `POST /api/campaigns/setup/` | Create a campaign and all of its targets in one call. Names the candidate. |
 | `POST /api/campaigns/{id}/generate_targets/` | Rebuild them after loading new data. |
 | `GET POST /api/targets/`, `PATCH DELETE …/{id}/` | The win number per unit. |
 | `GET POST /api/mobilizers/`, `DELETE …/{id}/` | Who is working which ward. |
@@ -180,6 +180,18 @@ The app refuses to start if the gateway is selected without credentials, rather
 than failing on the first invitation nobody receives. `services/sms.py` holds
 the provider interface; everything above it is written against that and does not
 know which one is in use.
+
+## Whose campaign it is
+
+A campaign belongs to its candidate, and `POST /api/campaigns/setup/` says so
+explicitly rather than inferring it from whoever filled the form in.
+
+- A **candidate** gets themselves. Naming anyone else is refused.
+- A **manager** must name an aspirant, or create one inline with
+  `new_candidate`. The reply carries that new login's password once.
+
+Without this the manager becomes the campaign's candidate, and the aspirant
+cannot see their own campaign.
 
 ## Adding the team
 
