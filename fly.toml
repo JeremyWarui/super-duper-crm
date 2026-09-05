@@ -1,5 +1,5 @@
 app = "mzigo-crm"
-primary_region = "jnb"
+primary_region = "bom"
 
 [build]
   dockerfile = "Dockerfile"
