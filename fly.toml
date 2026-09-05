@@ -1,0 +1,40 @@
+app = "mzigo-crm"
+primary_region = "jnb"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Migrations run on every deploy, before the new machine takes traffic.
+# The reference seed is not here: 27,273 centres take longer than a release
+# command should, so it is a one-off over `flyctl ssh console`.
+[deploy]
+  release_command = "alembic upgrade head"
+
+[env]
+  STATIC_DIR = "/app/static"
+  # The SPA is served from this same origin, so no browser origin is allowed in.
+  CORS_ALLOW_ORIGINS = "[]"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  # One machine stays warm, so the link a friend clicks answers immediately.
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 250
+    soft_limit = 200
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "10s"
+  method = "GET"
+  path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

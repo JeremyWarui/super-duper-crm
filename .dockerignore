@@ -1,0 +1,19 @@
+.git
+.gitguardian.yaml
+
+# Never let a local secret reach the image. Fly holds these as secrets.
+**/.env
+**/.env.*
+!**/.env.example
+
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/*.sqlite3
+backend/tests
+backend/evals
+frontend/tests

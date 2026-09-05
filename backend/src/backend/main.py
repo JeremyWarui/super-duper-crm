@@ -2,9 +2,11 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from backend import __version__
 from backend.api.errors import register_error_handlers
@@ -45,7 +47,22 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, str]:
         return {"status": "ok", "version": __version__}
 
+    _mount_spa(app, settings.static_dir)
     return app
+
+
+def _mount_spa(app: FastAPI, static_dir: str) -> None:
+    """Serve the built SPA at "/", under the API rather than beside it.
+
+    Mounted last, so /api and /docs still win. `html=True` returns index.html
+    for a path with no file, which is what a refreshed SPA route needs.
+    """
+    if not static_dir:
+        return
+    directory = Path(static_dir)
+    if not directory.is_dir():
+        raise RuntimeError(f"STATIC_DIR is set to {directory}, which is not a directory.")
+    app.mount("/", StaticFiles(directory=directory, html=True), name="spa")
 
 
 app = create_app()
