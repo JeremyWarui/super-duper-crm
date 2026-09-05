@@ -23,6 +23,13 @@ const FIELD = {
   fontFamily: "inherit",
 };
 
+// Who is holding the laptop. The campaign belongs to its aspirant either way;
+// a manager is asked which aspirant on the next screen.
+const ROLES = [
+  { key: "candidate", label: "I'm the aspirant", sub: "The campaign is mine" },
+  { key: "manager", label: "I run the campaign", sub: "For an aspirant" },
+];
+
 // Feather's eye and eye-off, drawn at the size of the field's text.
 function EyeIcon({ open }) {
   return (
@@ -55,24 +62,67 @@ function EyeIcon({ open }) {
   );
 }
 
+function Field({ label, value, onChange, onEnter, ...rest }) {
+  return (
+    <>
+      <div style={{ fontSize: 13, fontWeight: 600 }}>{label}</div>
+      <input
+        style={FIELD}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && onEnter()}
+        {...rest}
+      />
+    </>
+  );
+}
+
 export default function Login() {
   const login = useAuth((s) => s.login);
+  const register = useAuth((s) => s.register);
+
+  const [signingUp, setSigningUp] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState("candidate");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // The API refuses a password under 8 characters; saying so here beats a round trip.
+  const tooShort = signingUp && password.length > 0 && password.length < 8;
+  const ready = username.trim().length >= (signingUp ? 3 : 1) && password.length > 0 && !tooShort;
+
   const submit = async () => {
+    if (!ready) return;
     setError("");
     setBusy(true);
     try {
-      await login(username.trim(), password);
+      if (signingUp) {
+        await register({
+          username: username.trim(),
+          password,
+          role,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          phone: phone.trim(),
+        });
+      } else {
+        await login(username.trim(), password);
+      }
     } catch (e) {
       setError(e.message);
     } finally {
       setBusy(false);
     }
+  };
+
+  const swap = () => {
+    setSigningUp(!signingUp);
+    setError("");
   };
 
   return (
@@ -110,7 +160,7 @@ export default function Login() {
             marginBottom: 20,
           }}
         >
-          Sign in to the war room
+          {signingUp ? "Start a campaign" : "Sign in to the war room"}
         </div>
         <div
           style={{
@@ -120,12 +170,69 @@ export default function Login() {
             padding: 22,
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 600 }}>Username</div>
-          <input
-            style={FIELD}
+          {signingUp && (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Which are you?</div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                {ROLES.map((r) => (
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={() => setRole(r.key)}
+                    aria-pressed={role === r.key}
+                    style={{
+                      flex: 1,
+                      padding: "10px 8px",
+                      borderRadius: 8,
+                      textAlign: "left",
+                      border: `1px solid ${role === r.key ? C.ink : C.line}`,
+                      background: role === r.key ? C.ink : "transparent",
+                      color: role === r.key ? "#fff" : C.ink,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{r.label}</div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        marginTop: 2,
+                        color: role === r.key ? "#C9D2CC" : C.sub,
+                      }}
+                    >
+                      {r.sub}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <Field
+                    label="First name"
+                    value={firstName}
+                    onChange={setFirstName}
+                    onEnter={submit}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Field
+                    label="Last name"
+                    value={lastName}
+                    onChange={setLastName}
+                    onEnter={submit}
+                  />
+                </div>
+              </div>
+              <div style={{ height: 14 }} />
+            </>
+          )}
+
+          <Field
+            label="Username"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
+            onChange={setUsername}
+            onEnter={submit}
             autoFocus
           />
           <div style={{ height: 14 }} />
@@ -164,21 +271,28 @@ export default function Login() {
               <EyeIcon open={showPassword} />
             </button>
           </div>
-          {error && (
-            <div style={{ color: C.red, fontSize: 12.5, marginTop: 10 }}>
-              {error}
-            </div>
+          {tooShort && (
+            <div style={{ color: C.sub, fontSize: 12, marginTop: 6 }}>At least 8 characters.</div>
           )}
+
+          {signingUp && (
+            <>
+              <div style={{ height: 14 }} />
+              <Field label="Phone" value={phone} onChange={setPhone} onEnter={submit} />
+            </>
+          )}
+
+          {error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 10 }}>{error}</div>}
           <button
             onClick={submit}
-            disabled={busy || !username || !password}
+            disabled={busy || !ready}
             style={{
               width: "100%",
               marginTop: 18,
               padding: 12,
               borderRadius: 8,
               border: "none",
-              background: busy || !username || !password ? C.line : C.green,
+              background: busy || !ready ? C.line : C.green,
               color: "#fff",
               ...DISPLAY,
               fontSize: 16,
@@ -186,7 +300,33 @@ export default function Login() {
               cursor: busy ? "default" : "pointer",
             }}
           >
-            {busy ? "Signing in…" : "Sign in"}
+            {busy
+              ? signingUp
+                ? "Creating…"
+                : "Signing in…"
+              : signingUp
+                ? "Create account"
+                : "Sign in"}
+          </button>
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: C.sub }}>
+          {signingUp ? "Already have a login?" : "No account yet?"}{" "}
+          <button
+            type="button"
+            onClick={swap}
+            style={{
+              border: "none",
+              background: "transparent",
+              padding: 0,
+              color: C.green,
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            {signingUp ? "Sign in" : "Start a campaign"}
           </button>
         </div>
       </div>

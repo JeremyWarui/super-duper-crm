@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # Log every SQL statement.
     echo_sql: bool = False
 
+    # Whether POST /api/auth/register/ answers. Off closes self-serve sign-up
+    # without a deploy, leaving the invite routes working.
+    allow_registration: bool = True
+
     # Given to every account the app creates, instead of a generated password.
     # Blank generates one per account, which is the only safe setting outside a demo.
     default_user_password: str = ""

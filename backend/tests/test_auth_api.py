@@ -1,9 +1,13 @@
-"""Signing in, signing out, and what an unknown or stale token gets."""
+"""Signing up, signing in, signing out, and what an unknown or stale token gets."""
 
 import httpx
+import pytest
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AuthToken, UserRole
+from backend.config import get_settings
+from backend.models import AuthToken, User, UserRole
+from backend.security import verify_password
 from tests.factories import TEST_PASSWORD, auth, make_user, sign_in
 
 
@@ -133,3 +137,100 @@ async def test_deleting_a_user_deletes_their_token(client: httpx.AsyncClient, se
     await session.delete(user)
     await session.commit()
     assert (await session.execute(select(AuthToken))).scalars().all() == []
+
+
+# --------------------------------------------------------------- signing up
+
+
+def _signup(**overrides) -> dict:
+    body = {
+        "username": "newaspirant2",
+        "password": "a-real-password",
+        "role": "candidate",
+        "first_name": "Jane",
+        "last_name": "Wanjiru",
+    }
+    body.update(overrides)
+    return body
+
+
+async def test_signing_up_creates_the_account_and_signs_it_in(
+    client: httpx.AsyncClient, session: AsyncSession
+) -> None:
+    response = await client.post("/api/auth/register/", json=_signup())
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["user"]["username"] == "newaspirant2"
+    assert body["user"]["role"] == "candidate"
+    assert body["token"]
+
+    created = (
+        await session.execute(select(User).where(User.username == "newaspirant2"))
+    ).scalar_one()
+    assert created.role is UserRole.CANDIDATE
+    assert not created.is_superuser
+
+
+async def test_the_token_it_returns_works_straight_away(client: httpx.AsyncClient) -> None:
+    """The browser goes to setup without a second round trip."""
+    token = (await client.post("/api/auth/register/", json=_signup())).json()["token"]
+
+    assert (
+        await client.get("/api/campaigns/", headers={"Authorization": f"Token {token}"})
+    ).status_code == 200
+
+
+async def test_a_manager_may_sign_up_too(client: httpx.AsyncClient) -> None:
+    response = await client.post("/api/auth/register/", json=_signup(role="manager"))
+
+    assert response.status_code == 201
+    assert response.json()["user"]["role"] == "manager"
+
+
+async def test_a_mobilizer_cannot_sign_up(client: httpx.AsyncClient) -> None:
+    """They need a campaign and a ward, so they are invited from inside one."""
+    assert (
+        await client.post("/api/auth/register/", json=_signup(role="mobilizer"))
+    ).status_code == 400
+
+
+async def test_signing_up_on_a_taken_username_is_refused(client: httpx.AsyncClient) -> None:
+    assert (await client.post("/api/auth/register/", json=_signup())).status_code == 201
+
+    response = await client.post("/api/auth/register/", json=_signup(role="manager"))
+
+    assert response.status_code == 400
+    assert "already taken" in response.json()["detail"]
+
+
+async def test_the_password_it_stores_is_hashed(
+    client: httpx.AsyncClient, session: AsyncSession
+) -> None:
+    await client.post("/api/auth/register/", json=_signup())
+
+    created = (
+        await session.execute(select(User).where(User.username == "newaspirant2"))
+    ).scalar_one()
+    assert "a-real-password" not in created.password_hash
+    assert verify_password("a-real-password", created.password_hash)
+
+
+async def test_a_short_password_is_refused(client: httpx.AsyncClient) -> None:
+    assert (
+        await client.post("/api/auth/register/", json=_signup(password="short"))
+    ).status_code == 400
+
+
+async def test_sign_up_can_be_closed_without_touching_the_invite_routes(
+    client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("ALLOW_REGISTRATION", "false")
+    get_settings.cache_clear()
+    try:
+        response = await client.post("/api/auth/register/", json=_signup())
+    finally:
+        get_settings.cache_clear()
+
+    assert response.status_code == 403
+    assert "invitation" in response.json()["detail"]
