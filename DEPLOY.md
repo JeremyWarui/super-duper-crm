@@ -40,7 +40,7 @@ non-transactional DDL.
 ## 2. Create the app and set its secrets
 
 ```bash
-flyctl launch --no-deploy --copy-config --name mzigo-crm --region jnb
+flyctl launch --no-deploy --copy-config --name mzigo-crm --region bom
 flyctl secrets set DATABASE_URL="cockroachdb+asyncpg://...?ssl=require"
 flyctl secrets set SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
 ```
@@ -48,11 +48,10 @@ flyctl secrets set SECRET_KEY="$(python -c 'import secrets; print(secrets.token_
 Leave `DEFAULT_USER_PASSWORD` unset. Set on a public deploy, it hands the same
 password to every account anyone creates, including through the open sign-up.
 
-Pick a region near the cluster. Yours is in `aws-ap-south-1` (Mumbai), so
-`bom` keeps the round trips short; the dashboard makes several per render, and
-a database on another continent shows. `fly.toml` currently says `jnb`, which
-is closer to your users but roughly 60ms further from the data. Change
-`primary_region` to whichever you would rather pay for.
+`fly.toml` runs in `bom`, next to the cluster in `aws-ap-south-1` (Mumbai).
+The dashboard makes several round trips per render, so the app sits with the
+data rather than with the audience. Kenyan users pay one slower trip to Mumbai
+instead of one per query.
 
 ## 3. Deploy
 
