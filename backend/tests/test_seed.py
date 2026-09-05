@@ -210,6 +210,42 @@ async def test_a_given_password_is_used_for_all_three(session: AsyncSession) -> 
     assert verify_password("pinned-for-this-run", user.password_hash)
 
 
+async def test_the_default_password_is_used_when_no_password_is_given(
+    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """DEFAULT_USER_PASSWORD makes `campaign-crm demo` repeatable without a flag."""
+    from backend.config import get_settings
+
+    await import_geography(session)
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    get_settings.cache_clear()
+    try:
+        summary = await seed_demo(session)
+    finally:
+        get_settings.cache_clear()
+
+    assert {password for _, password, _ in summary.sign_ins} == {"campaign1234"}
+    for username, _, _ in summary.sign_ins:
+        user = (await session.execute(select(User).where(User.username == username))).scalar_one()
+        assert verify_password("campaign1234", user.password_hash), username
+
+
+async def test_an_explicit_password_beats_the_default(
+    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from backend.config import get_settings
+
+    await import_geography(session)
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    get_settings.cache_clear()
+    try:
+        summary = await seed_demo(session, password="pinned-for-this-run")
+    finally:
+        get_settings.cache_clear()
+
+    assert {password for _, password, _ in summary.sign_ins} == {"pinned-for-this-run"}
+
+
 async def test_re_running_resets_the_passwords(session: AsyncSession) -> None:
     await import_geography(session)
     first = await seed_demo(session)

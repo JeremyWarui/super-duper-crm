@@ -3,9 +3,11 @@
 import uuid
 
 import httpx
+import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.config import get_settings
 from backend.models import Campaign, Target, User, UserRole
 from tests.conftest import World
 from tests.factories import auth, make_user, sign_in
@@ -342,6 +344,24 @@ async def test_a_manager_creates_the_aspirant_and_gets_their_password_once(
 
     created = (await session.execute(select(User).where(User.username == "peter"))).scalar_one()
     assert created.role is UserRole.CANDIDATE
+
+
+async def test_the_default_password_reaches_the_aspirant_created_at_setup(
+    client: httpx.AsyncClient, world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    get_settings.cache_clear()
+    try:
+        response = await client.post(
+            "/api/campaigns/setup/",
+            headers=world.headers("manager"),
+            json=_setup_body(world, new_candidate={"username": "peter"}),
+        )
+    finally:
+        get_settings.cache_clear()
+
+    assert response.status_code == 201
+    assert response.json()["candidate_login"]["password"] == "campaign1234"
 
 
 async def test_that_new_aspirant_can_sign_in_and_see_their_campaign(

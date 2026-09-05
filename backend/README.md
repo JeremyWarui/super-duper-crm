@@ -69,6 +69,23 @@ command resets them. To pin them instead:
 uv run campaign-crm demo --password whatever-you-like
 ```
 
+### One password for the whole demo
+
+`DEFAULT_USER_PASSWORD` in `.env` is handed to every account the app creates,
+not only the four the demo builds: the team members added through
+`POST /api/users/`, and an aspirant created inline by `POST /api/campaigns/setup/`.
+A demo then has one credential somebody can be told over the phone.
+
+```bash
+DEFAULT_USER_PASSWORD=campaign1234
+```
+
+`demo --password` still wins over it. Blank, which is the default and what
+`.env.example` ships, generates one password per account. **Leave it blank
+anywhere real**: one shared password means whoever knows it can sign in as
+every account created since it was set. The test suite forces it blank, so the
+generated path is the one under test.
+
 ## Layout
 
 ```

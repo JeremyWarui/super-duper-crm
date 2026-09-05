@@ -1,4 +1,4 @@
-"""One campaign and one sign-in per role. Passwords are generated per run."""
+"""One campaign and one sign-in per role."""
 
 import secrets
 from dataclasses import dataclass
@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.config import get_settings
 from backend.models import (
     Campaign,
     Constituency,
@@ -44,9 +45,14 @@ class DemoSummary:
 
 
 def demo_passwords(password: str | None = None) -> dict[str, str]:
-    """One password per demo account, generated unless one is supplied."""
-    if password:
-        return dict.fromkeys(DEMO_USERNAMES, password)
+    """One password per demo account.
+
+    The argument wins, then DEFAULT_USER_PASSWORD; otherwise one is generated
+    per account.
+    """
+    shared = password or get_settings().default_user_password
+    if shared:
+        return dict.fromkeys(DEMO_USERNAMES, shared)
     return {username: secrets.token_urlsafe(9) for username in DEMO_USERNAMES}
 
 
