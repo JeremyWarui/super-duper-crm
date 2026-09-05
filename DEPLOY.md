@@ -40,7 +40,7 @@ non-transactional DDL.
 ## 2. Create the app and set its secrets
 
 ```bash
-flyctl launch --no-deploy --copy-config --name mzigo-crm --region bom
+flyctl launch --no-deploy --copy-config --name mzigo-crm --region sin
 flyctl secrets set DATABASE_URL="cockroachdb+asyncpg://...?ssl=require"
 flyctl secrets set SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
 ```
@@ -48,10 +48,12 @@ flyctl secrets set SECRET_KEY="$(python -c 'import secrets; print(secrets.token_
 Leave `DEFAULT_USER_PASSWORD` unset. Set on a public deploy, it hands the same
 password to every account anyone creates, including through the open sign-up.
 
-`fly.toml` runs in `bom`, next to the cluster in `aws-ap-south-1` (Mumbai).
-The dashboard makes several round trips per render, so the app sits with the
-data rather than with the audience. Kenyan users pay one slower trip to Mumbai
-instead of one per query.
+`fly.toml` runs in `sin`. Fly has deprecated `bom` and will not provision new
+resources there, so Singapore is the closest it still offers to the cluster in
+`aws-ap-south-1`. A dashboard render makes several database round trips, so the
+app sits near the data: Kenyan users pay one slower trip to Singapore rather
+than one slow trip per query. `jnb` is the alternative if that trade ever
+inverts.
 
 ## 3. Deploy
 
@@ -77,10 +79,10 @@ flyctl ssh console -C "campaign-crm demo --password <the-demo-password>"
 whoever you are showing it to; without it each account gets its own generated
 password.
 
-**The seed has not been run against CockroachDB.** Migrations have. Watch this
-step: 27k inserts under Cockroach's serializable isolation is the part most
-likely to be slow or to raise a retryable error. If it does, that is the thing
-to fix before showing anyone.
+Both ran against CockroachDB on 2026-09-06: 47 counties, 290 constituencies,
+1,450 wards and 27,273 centres in 68 seconds, no retryable errors. On Windows
+`flyctl ssh console -C` prints `Error: The handle is invalid` as it tears the
+session down, after the command has already finished. Read the output above it.
 
 ## 5. Check it
 
@@ -94,10 +96,13 @@ Then open `https://mzigo-crm.fly.dev` and sign in.
 
 ## Known gaps
 
-- The image build has not been run. There is no Docker or `flyctl` on the
-  machine this was written on, so `Dockerfile` and `fly.toml` are unverified
-  against a real build. Expect to iterate on the first `flyctl deploy`.
-- The 27,273-row seed is unverified on CockroachDB, as above.
+- Fly's Depot builder failed with `authentication handshake failed: EOF` on
+  the first attempt. `--depot=false` builds on a Fly builder machine instead
+  and works. Reach for it when a build hangs on "Waiting for depot builder".
+- The app runs one `shared-cpu-1x` 512MB machine. It is not free. With
+  `min_machines_running = 1` it bills around the clock; set it to 0 and the
+  machine suspends when idle, billing only its rootfs, and resumes on the next
+  request.
 - Cockroach runs serializable by default and returns retryable errors under
   write contention. Nothing here retries. One person clicking around will not
   hit it; concurrent writers might.
