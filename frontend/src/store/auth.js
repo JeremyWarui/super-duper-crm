@@ -28,6 +28,20 @@ export const useAuth = create(
         return data.user;
       },
 
+      async register(details) {
+        const res = await fetch(`${BASE}/auth/register/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(details),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data?.detail || "Could not create the account.");
+        }
+        set({ token: data.token, user: data.user });
+        return data.user;
+      },
+
       logout: () => set({ token: null, user: null }),
     }),
     { name: "campaign-auth" }

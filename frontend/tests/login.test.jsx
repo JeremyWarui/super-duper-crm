@@ -147,3 +147,113 @@ describe("the sign-in screen", () => {
     expect(useAuth.getState().token).toBeNull();
   });
 });
+
+describe("signing up", () => {
+  const NEW_USER = {
+    token: "signup-token",
+    user: { id: "u2", username: "jane", full_name: "Jane Wanjiru", role: "candidate" },
+  };
+
+  async function openSignUp(user) {
+    const rendered = renderApp(<Login />);
+    await user.click(screen.getByRole("button", { name: "Start a campaign" }));
+    return rendered;
+  }
+
+  it("is reachable from the sign-in screen and goes back", async () => {
+    const user = userEvent.setup({ delay: null });
+    await openSignUp(user);
+
+    expect(screen.getByRole("button", { name: "Create account" })).toBeInTheDocument();
+    expect(screen.getByText("Which are you?")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(screen.queryByText("Which are you?")).not.toBeInTheDocument();
+  });
+
+  it("offers the aspirant and the manager, starting on the aspirant", async () => {
+    const user = userEvent.setup({ delay: null });
+    await openSignUp(user);
+
+    expect(screen.getByRole("button", { name: /I'm the aspirant/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: /I run the campaign/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("sends the role the aspirant picked, and signs them straight in", async () => {
+    const user = userEvent.setup({ delay: null });
+    const calls = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url, options) => {
+        calls.push({ url, body: JSON.parse(options.body) });
+        return { ok: true, status: 201, json: async () => NEW_USER };
+      }),
+    );
+    const { container } = await openSignUp(user);
+
+    await user.type(container.querySelectorAll("input")[0], "Jane");
+    await user.type(container.querySelectorAll("input")[1], "Wanjiru");
+    await user.type(container.querySelectorAll("input")[2], "jane");
+    await user.type(container.querySelectorAll("input")[3], "a-real-password");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    await waitFor(() => expect(useAuth.getState().token).toBe("signup-token"));
+    expect(calls[0].url).toContain("/auth/register/");
+    expect(calls[0].body).toMatchObject({
+      username: "jane",
+      role: "candidate",
+      first_name: "Jane",
+      last_name: "Wanjiru",
+    });
+  });
+
+  it("sends role manager when that is the one picked", async () => {
+    const user = userEvent.setup({ delay: null });
+    const calls = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url, options) => {
+        calls.push(JSON.parse(options.body));
+        return { ok: true, status: 201, json: async () => NEW_USER };
+      }),
+    );
+    const { container } = await openSignUp(user);
+
+    await user.click(screen.getByRole("button", { name: /I run the campaign/ }));
+    await user.type(container.querySelectorAll("input")[2], "amina");
+    await user.type(container.querySelectorAll("input")[3], "a-real-password");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    await waitFor(() => expect(calls[0].role).toBe("manager"));
+  });
+
+  it("will not submit a password the API would reject", async () => {
+    const user = userEvent.setup({ delay: null });
+    const { container } = await openSignUp(user);
+
+    await user.type(container.querySelectorAll("input")[2], "jane");
+    await user.type(container.querySelectorAll("input")[3], "short");
+
+    expect(screen.getByText("At least 8 characters.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create account" })).toBeDisabled();
+  });
+
+  it("shows the server's reason when the username is taken", async () => {
+    const user = userEvent.setup({ delay: null });
+    stubLogin(400, { detail: "The username jane is already taken." });
+    const { container } = await openSignUp(user);
+
+    await user.type(container.querySelectorAll("input")[2], "jane");
+    await user.type(container.querySelectorAll("input")[3], "a-real-password");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(await screen.findByText("The username jane is already taken.")).toBeInTheDocument();
+    expect(useAuth.getState().token).toBeNull();
+  });
+});

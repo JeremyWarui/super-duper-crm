@@ -1,14 +1,15 @@
-"""Signing in and out."""
+"""Signing up, in, and out."""
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import delete, select
 
 from backend.api.deps import CurrentUser, SessionDep
+from backend.config import get_settings
 from backend.models import AuthToken, User
-from backend.schemas.auth import LoginRequest, LoginResponse
+from backend.schemas.auth import LoginRequest, LoginResponse, RegisterRequest
 from backend.security import hash_password, needs_rehash, new_token_key, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -48,6 +49,50 @@ async def login(payload: LoginRequest, session: SessionDep) -> object:
         token = AuthToken(user_id=user.id, key=new_token_key())
         session.add(token)
 
+    user.last_login_at = datetime.now(UTC)
+    await session.commit()
+
+    return {"token": token.key, "user": user}
+
+
+@router.post(
+    "/register/",
+    response_model=LoginResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={400: {"description": "Username taken"}, 403: {"description": "Sign-up is closed"}},
+)
+async def register(payload: RegisterRequest, session: SessionDep) -> object:
+    """Create the first account for a campaign, and sign it in.
+
+    The reply is a login, so the browser goes straight to setup. The role
+    decides what setup asks for: a candidate owns the campaign it creates, a
+    manager has to name the aspirant it belongs to.
+    """
+    if not get_settings().allow_registration:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Sign-up is closed. Ask for an invitation.")
+
+    taken = (
+        await session.execute(select(User).where(User.username == payload.username))
+    ).scalar_one_or_none()
+    if taken is not None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, f"The username {payload.username} is already taken."
+        )
+
+    user = User(
+        username=payload.username,
+        role=payload.role,
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        phone=payload.phone,
+        email=payload.email,
+        password_hash=hash_password(payload.password),
+    )
+    session.add(user)
+    await session.flush()
+
+    token = AuthToken(user_id=user.id, key=new_token_key())
+    session.add(token)
     user.last_login_at = datetime.now(UTC)
     await session.commit()
 
