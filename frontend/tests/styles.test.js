@@ -1,5 +1,6 @@
 /** src/index.css covers every class name the components use, and nothing more. */
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { globSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -7,6 +8,7 @@ const src = (path) => readFileSync(resolve(process.cwd(), "src", path), "utf8");
 
 const SOURCES = ["App.jsx", "main.jsx", "components/Login.jsx", "components/Onboarding.jsx"];
 const STYLESHEET = src("index.css");
+const CSS_TARGET = readFileSync(resolve(process.cwd(), "vite.config.js"), "utf8");
 
 function classesUsed() {
   const found = new Set();
@@ -149,5 +151,36 @@ describe("filling a wide window", () => {
     for (const [, width] of zoomTiers) {
       expect(Number(width)).toBeLessThan(1441);
     }
+  });
+});
+
+/* The minifier must not rewrite the media queries into range syntax.
+ *
+ * esbuild turns `max-width: 860px` into `width<=860px` when the build target
+ * allows it. Safari parses that from 16.4; an iPhone 7 stops at iOS 15, drops
+ * the whole query as invalid, and renders the desktop layout on a phone.
+ * `build.cssTarget` in vite.config.js is what holds this.
+ */
+describe("the built stylesheet", () => {
+  it("keeps media queries in syntax Safari 15 can parse", () => {
+    const target = CSS_TARGET.match(/cssTarget:\s*\[([^\]]+)\]/)[1].replace(/["'\s]/g, "");
+
+    // The platform binary, not the JS API: the API will not start under jsdom,
+    // and node refuses to spawn the .cmd shim without a shell.
+    const [binary] = globSync("node_modules/@esbuild/*/esbuild*", { cwd: process.cwd() });
+    const built = execFileSync(resolve(process.cwd(), binary), [
+      "--loader=css",
+      "--minify",
+      `--target=${target}`,
+    ], { input: STYLESHEET, encoding: "utf8" });
+
+    expect(built).toContain("max-width:860px");
+    expect(built).not.toMatch(/width\s*<=/);
+    expect(built).not.toMatch(/width\s*>=/);
+  });
+
+  it("names a target old enough to matter", () => {
+    expect(CSS_TARGET).toMatch(/cssTarget/);
+    expect(CSS_TARGET).toMatch(/safari1[0-5]/);
   });
 });
