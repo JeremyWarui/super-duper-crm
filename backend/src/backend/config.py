@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # Log every SQL statement.
     echo_sql: bool = False
 
+    # A built SPA to serve at "/", so the API and the app share one origin and
+    # CORS stops mattering. Blank serves the API alone, which is how dev runs.
+    static_dir: str = ""
+
     # Whether POST /api/auth/register/ answers. Off closes self-serve sign-up
     # without a deploy, leaving the invite routes working.
     allow_registration: bool = True
