@@ -26,6 +26,8 @@ dev = [
     "pytest>=8.4",
     "pytest-asyncio>=1.2",
     "ruff>=0.14",
+    # The dev server's reloader; uvicorn's own hangs on Windows. See the README.
+    "watchfiles>=1.2",
 ]
 
 [build-system]

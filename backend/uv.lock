@@ -170,6 +170,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
+    { name = "watchfiles" },
 ]
 
 [package.metadata]
@@ -192,6 +193,7 @@ dev = [
     { name = "pytest", specifier = ">=8.4" },
     { name = "pytest-asyncio", specifier = ">=1.2" },
     { name = "ruff", specifier = ">=0.14" },
+    { name = "watchfiles", specifier = ">=1.2" },
 ]
 
 [[package]]
