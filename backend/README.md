@@ -37,14 +37,17 @@ uv run campaign-crm createuser -u amina -r manager
 290 constituencies, 1450 wards and 27,273 registration centres, with each
 county's turnout.
 
-Centres come from the IEBC's per-polling-station PDF rather than the KNBS files,
-and the two sources spell some wards differently, so the import folds the
-punctuation they disagree about (`Ng’ombe` against `NG'OMBE`, `Njabini/Kiburu`
-against `NJABINI\KIBURU`) and matches a name the PDF clipped to its column width
-when exactly one ward could have been meant. Rows in counties 48 and 49 are the
-diaspora and prisons, which sit in no ward, and are left out rather than counted
-as failures. Every remaining row lands: a ward's centres add up to the register
-that KNBS reports for it, which is the check that the join is right.
+Both sides are IEBC 2022 files, but different ones: wards and their voters come
+from the gazetted register (`ke_ge22_01_grv_caw_v100.csv`), centres from the
+per-polling-station PDF. The two spell some wards differently, so the import
+folds the punctuation they disagree about (`Ng’ombe` against `NG'OMBE`,
+`Njabini/Kiburu` against `NJABINI\KIBURU`) and matches a name the PDF clipped to
+its column width when exactly one ward could have been meant. Rows in counties 48
+and 49 are the diaspora and prisons, which sit in no ward, and are left out
+rather than counted as failures. Every remaining row lands: a ward's centres add
+up to its gazetted register, which is the check that the join is right. Two
+Kimilili wards are the exception, and the source disagrees with itself there: 87
+voters sit in Kibingei in the PDF and in Kimilili in the gazette.
 
 `demo` builds the Roysambu MP campaign - 5 wards, win number 43,050 - with
 mobilizers, events and supporters on some wards and not others, so the strategy
