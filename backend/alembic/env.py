@@ -8,7 +8,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from backend.config import get_settings
+from backend.config import alembic_url
 from backend.models import Base  # noqa: F401  - registers every model
 
 config = context.config
@@ -16,7 +16,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+config.set_main_option("sqlalchemy.url", alembic_url())
 
 target_metadata = Base.metadata
 

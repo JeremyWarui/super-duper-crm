@@ -65,10 +65,11 @@ def to_int(value: str | None) -> int:
     return int(str(value).replace(",", ""))
 
 
-# The two sources spell the same ward differently. KNBS writes Ziwa la Ng’ombe
-# with a typographic apostrophe and Njabini/Kiburu with a forward slash; the
-# IEBC extraction writes NG'OMBE and NJABINI\KIBURU. Folding these is the
-# difference between 151 centres landing and being dropped on the floor.
+# The two IEBC files spell the same ward differently. The gazetted register
+# writes Ziwa la Ng’ombe with a typographic apostrophe and Njabini/Kiburu with a
+# forward slash; the polling-station extraction writes NG'OMBE and
+# NJABINI\KIBURU. Folding these is the difference between 151 centres landing
+# and being dropped on the floor.
 PUNCTUATION_VARIANTS = str.maketrans(
     {
         "’": "'",  # right single quotation mark

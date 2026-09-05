@@ -10,9 +10,11 @@ from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
+from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 
+from backend.config import alembic_url, get_settings
 from backend.models import Base
 
 VERSIONS_DIR = Path(__file__).resolve().parent.parent / "alembic" / "versions"
@@ -171,3 +173,22 @@ def test_cascading_deletes_survive_into_postgres() -> None:
     sql = _postgres_sql()
     assert "ON DELETE CASCADE" in sql
     assert "ON DELETE SET NULL" in sql
+
+
+def test_a_password_with_a_percent_survives_the_alembic_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Alembic reads its url through configparser, which treats `%` as interpolation.
+
+    A Postgres password containing `@` arrives percent-encoded, so an unescaped
+    url makes `alembic upgrade head` raise "invalid interpolation syntax".
+    """
+    dsn = "postgresql+asyncpg://postgres:root%40root@localhost:5432/campaign_crm"
+    monkeypatch.setenv("DATABASE_URL", dsn)
+    get_settings.cache_clear()
+    try:
+        config = Config()
+        config.set_main_option("sqlalchemy.url", alembic_url())
+        assert config.get_main_option("sqlalchemy.url") == dsn
+    finally:
+        get_settings.cache_clear()

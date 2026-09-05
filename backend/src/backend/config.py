@@ -77,3 +77,12 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Read once per process."""
     return Settings()  # type: ignore[call-arg]
+
+
+def alembic_url() -> str:
+    """The DSN with every `%` doubled.
+
+    Alembic holds it in a configparser, which reads `%` as interpolation, and a
+    password containing `@`, `%`, `:` or `/` arrives percent-encoded.
+    """
+    return get_settings().database_url.replace("%", "%%")
