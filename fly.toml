@@ -20,8 +20,9 @@ primary_region = "sin"
   force_https = true
   auto_stop_machines = "suspend"
   auto_start_machines = true
-  # One machine stays warm, so the link a friend clicks answers immediately.
-  min_machines_running = 1
+  # Suspended when idle, billing its rootfs rather than its CPU. Fly resumes a
+  # suspended machine in well under a second, so the link still answers fast.
+  min_machines_running = 0
 
   [http_service.concurrency]
     type = "requests"

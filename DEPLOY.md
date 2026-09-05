@@ -99,10 +99,10 @@ Then open `https://mzigo-crm.fly.dev` and sign in.
 - Fly's Depot builder failed with `authentication handshake failed: EOF` on
   the first attempt. `--depot=false` builds on a Fly builder machine instead
   and works. Reach for it when a build hangs on "Waiting for depot builder".
-- The app runs one `shared-cpu-1x` 512MB machine. It is not free. With
-  `min_machines_running = 1` it bills around the clock; set it to 0 and the
-  machine suspends when idle, billing only its rootfs, and resumes on the next
-  request.
+- The app runs one `shared-cpu-1x` 512MB machine, suspended when idle
+  (`min_machines_running = 0`), so it bills its rootfs rather than a CPU that
+  is doing nothing. Fly is not free; raise this to 1 to keep it warm, at
+  roughly $3/month.
 - Cockroach runs serializable by default and returns retryable errors under
   write contention. Nothing here retries. One person clicking around will not
   hit it; concurrent writers might.
