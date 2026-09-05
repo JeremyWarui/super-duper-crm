@@ -3,9 +3,11 @@
 import uuid
 
 import httpx
+import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.config import get_settings
 from backend.models import Mobilizer, User, UserRole
 from tests.conftest import World
 from tests.factories import auth, sign_in
@@ -113,6 +115,23 @@ async def test_two_accounts_do_not_share_a_password(
 
     assert first["password"] != second["password"]
     assert len(first["password"]) >= 12
+
+
+async def test_the_default_password_is_handed_to_everyone_onboarded(
+    client: httpx.AsyncClient, world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """DEFAULT_USER_PASSWORD gives a demo one credential for the whole team."""
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    get_settings.cache_clear()
+    try:
+        created = (
+            await client.post("/api/users/", headers=world.headers("candidate"), json=_manager())
+        ).json()
+    finally:
+        get_settings.cache_clear()
+
+    assert created["password"] == "campaign1234"
+    assert await sign_in(client, "brian", "campaign1234")
 
 
 async def test_the_password_is_not_readable_afterwards(

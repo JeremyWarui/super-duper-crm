@@ -3,11 +3,15 @@
 The rest of the suite hashes cheaply; this module opts back out.
 """
 
+from collections.abc import Iterator
+
 import pytest
 
+from backend.config import get_settings
 from backend.security import (
     hash_password,
     needs_rehash,
+    new_password,
     new_token_key,
     verify_password,
 )
@@ -72,3 +76,41 @@ def test_a_token_key_is_forty_hex_characters_and_unique() -> None:
     keys = {new_token_key() for _ in range(100)}
     assert len(keys) == 100
     assert all(len(k) == 40 and int(k, 16) >= 0 for k in keys)
+
+
+# ------------------------------------------------- the password a route hands out
+
+
+@pytest.fixture
+def fresh_settings() -> Iterator[None]:
+    """Read the environment again, either side of the test."""
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+def test_a_blank_default_generates_a_different_password_each_time(
+    monkeypatch: pytest.MonkeyPatch, fresh_settings: None
+) -> None:
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "")
+    get_settings.cache_clear()
+    assert len({new_password() for _ in range(20)}) == 20
+
+
+def test_the_default_password_is_handed_to_every_account(
+    monkeypatch: pytest.MonkeyPatch, fresh_settings: None
+) -> None:
+    """DEFAULT_USER_PASSWORD gives a demo logins somebody can be told."""
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    get_settings.cache_clear()
+    assert {new_password() for _ in range(5)} == {"campaign1234"}
+
+
+def test_the_default_password_still_hashes_and_verifies(
+    monkeypatch: pytest.MonkeyPatch, fresh_settings: None
+) -> None:
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    get_settings.cache_clear()
+    digest = hash_password(new_password())
+    assert verify_password("campaign1234", digest)
+    assert not verify_password("campaign1235", digest)

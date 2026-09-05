@@ -48,6 +48,50 @@ describe("the sign-in screen", () => {
     expect(container.querySelectorAll("input")[1]).toHaveAttribute("type", "password");
   });
 
+  it("reveals the password when the eye is clicked, and hides it again", async () => {
+    const user = userEvent.setup();
+    const { container } = renderApp(<Login />);
+    const field = () => container.querySelectorAll("input")[1];
+
+    await user.type(field(), "campaign1234");
+    expect(field()).toHaveAttribute("type", "password");
+
+    await user.click(screen.getByRole("button", { name: "Show password" }));
+    expect(field()).toHaveAttribute("type", "text");
+    expect(field()).toHaveValue("campaign1234");
+
+    await user.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(field()).toHaveAttribute("type", "password");
+    expect(field()).toHaveValue("campaign1234");
+  });
+
+  it("says whether the password is showing, for a screen reader", async () => {
+    const user = userEvent.setup();
+    renderApp(<Login />);
+
+    const eye = screen.getByRole("button", { name: "Show password" });
+    expect(eye).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(eye);
+    expect(screen.getByRole("button", { name: "Hide password" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("does not sign in when the eye is clicked", async () => {
+    const user = userEvent.setup();
+    stubLogin(200, OK);
+    const { container } = renderApp(<Login />);
+
+    await user.type(container.querySelectorAll("input")[0], "amina");
+    await user.type(container.querySelectorAll("input")[1], "secret");
+    await user.click(screen.getByRole("button", { name: "Show password" }));
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(useAuth.getState().token).toBeNull();
+  });
+
   it("signs in and leaves the token in the store", async () => {
     const user = userEvent.setup();
     stubLogin(200, OK);

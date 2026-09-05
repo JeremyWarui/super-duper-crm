@@ -5,6 +5,8 @@ import secrets
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 
+from backend.config import get_settings
+
 _hasher = PasswordHasher()
 
 TOKEN_KEY_BYTES = 20
@@ -41,5 +43,9 @@ def new_token_key() -> str:
 
 
 def new_password() -> str:
-    """A password for an account somebody else is creating."""
-    return secrets.token_urlsafe(PASSWORD_BYTES)
+    """A password for an account somebody else is creating.
+
+    DEFAULT_USER_PASSWORD hands the same one to every account, so a demo has
+    logins somebody can be told over the phone. Blank generates one per account.
+    """
+    return get_settings().default_user_password or secrets.token_urlsafe(PASSWORD_BYTES)

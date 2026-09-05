@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # Log every SQL statement.
     echo_sql: bool = False
 
+    # Given to every account the app creates, instead of a generated password.
+    # Blank generates one per account, which is the only safe setting outside a demo.
+    default_user_password: str = ""
+
     # "console" records and sends nothing.
     at_username: str = ""
     at_api_key: str = ""
