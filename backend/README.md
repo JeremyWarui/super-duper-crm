@@ -14,8 +14,22 @@ cp .env.example .env                      # fill in SECRET_KEY and your Postgres
 uv run alembic upgrade head               # create the tables
 uv run campaign-crm seed                  # load the 2022 geography
 uv run campaign-crm demo                  # build the demo campaign and its three logins
-uv run uvicorn backend.main:app --reload  # http://127.0.0.1:8000/docs
+uv run watchfiles "uvicorn backend.main:app" src .env   # http://127.0.0.1:8000/docs
 ```
+
+### Why not `uvicorn --reload`
+
+On Windows its reloader restarts the worker with
+`os.kill(pid, signal.CTRL_C_EVENT)`. That routes through
+`GenerateConsoleCtrlEvent`, which wants a console process group id, and the
+worker is a `multiprocessing` child that is not a group leader. The event lands
+nowhere, `process.join()` blocks, and the server prints `Reloading...` and then
+keeps serving the old code with no error. Reproduced on uvicorn 0.52.4 with a
+three-line ASGI app, so it is the reloader rather than anything here.
+
+`watchfiles` restarts the child by terminating it, which works. Watching `.env`
+alongside `src` is what `--reload` does not do at all: settings are read once
+per process, so a changed password or DSN needs the restart either way.
 
 Checks:
 
