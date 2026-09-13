@@ -7,8 +7,9 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.api.scope import add_member
 from backend.config import get_settings
-from backend.models import Campaign, Target, User, UserRole
+from backend.models import Campaign, CampaignMember, Target, User, UserRole
 from tests.conftest import World
 from tests.factories import auth, make_user, sign_in
 
@@ -40,14 +41,14 @@ async def test_a_candidate_does_not_see_somebody_else_s_campaign(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     rival = await make_user(session, username="rival", role=UserRole.CANDIDATE)
-    session.add(
-        Campaign(
-            candidate=rival,
-            title="Rival for Roysambu",
-            office_level=world.campaign.office_level,
-            constituency_id=world.constituency.id,
-        )
+    theirs = Campaign(
+        title="Rival for Roysambu",
+        office_level=world.campaign.office_level,
+        constituency_id=world.constituency.id,
     )
+    session.add(theirs)
+    await session.flush()
+    await add_member(session, theirs.id, rival.id)
     await session.commit()
 
     body = (await client.get("/api/campaigns/", headers=world.headers("candidate"))).json()
@@ -76,12 +77,13 @@ async def test_fetching_a_campaign_that_is_not_yours_is_404(
 ) -> None:
     rival = await make_user(session, username="rival", role=UserRole.CANDIDATE)
     other = Campaign(
-        candidate=rival,
         title="Rival for Roysambu",
         office_level=world.campaign.office_level,
         constituency_id=world.constituency.id,
     )
     session.add(other)
+    await session.flush()
+    await add_member(session, other.id, rival.id)
     await session.commit()
 
     response = await client.get(f"/api/campaigns/{other.id}/", headers=world.headers("candidate"))
@@ -470,3 +472,168 @@ async def test_a_candidate_cannot_create_another_candidate(
         json=_setup_body(world, new_candidate={"username": "peter"}),
     )
     assert response.status_code == 400
+
+
+async def test_a_fresh_manager_owns_nothing_so_the_browser_sends_them_to_setup(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """An empty list is what makes the sign-up flow ask who the campaign is for."""
+    await make_user(session, username="newmanager", role=UserRole.MANAGER)
+    token = await sign_in(client, "newmanager")
+
+    body = (await client.get("/api/campaigns/", headers=auth(token))).json()
+
+    assert body == []
+
+
+async def test_a_manager_does_not_see_another_manager_s_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await make_user(session, username="rival", role=UserRole.MANAGER)
+    token = await sign_in(client, "rival")
+
+    body = (await client.get("/api/campaigns/", headers=auth(token))).json()
+
+    assert [c["id"] for c in body] == []
+    assert (
+        await client.get(f"/api/campaigns/{world.campaign.id}/", headers=auth(token))
+    ).status_code == 404
+
+
+async def _members(session: AsyncSession, campaign_id: uuid.UUID) -> dict[str, str]:
+    """username -> role on that campaign."""
+    rows = await session.execute(
+        select(User.username, CampaignMember.role)
+        .join(CampaignMember, CampaignMember.user_id == User.id)
+        .where(CampaignMember.campaign_id == campaign_id)
+    )
+    return {username: role.value for username, role in rows}
+
+
+async def test_setting_a_campaign_up_puts_its_candidate_and_its_manager_on_it(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    reply = await client.post(
+        "/api/campaigns/setup/",
+        headers=world.headers("manager"),
+        json={
+            "title": "Amina for Githurai",
+            "office_level": "ward",
+            "ward": str(world.other_ward.id),
+            "new_candidate": {"username": "peter", "first_name": "Peter"},
+        },
+    )
+
+    assert reply.status_code == 201, reply.text
+    members = await _members(session, uuid.UUID(reply.json()["id"]))
+    assert members == {"peter": "candidate", "amina": "manager"}
+
+
+async def test_a_manager_sees_the_campaign_they_just_set_up_and_no_other(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await make_user(session, username="newmanager", role=UserRole.MANAGER)
+    token = await sign_in(client, "newmanager")
+    reply = await client.post(
+        "/api/campaigns/setup/",
+        headers=auth(token),
+        json={
+            "title": "Peter for Githurai",
+            "office_level": "ward",
+            "ward": str(world.other_ward.id),
+            "new_candidate": {"username": "peter", "first_name": "Peter"},
+        },
+    )
+    assert reply.status_code == 201, reply.text
+
+    body = (await client.get("/api/campaigns/", headers=auth(token))).json()
+
+    assert [c["title"] for c in body] == ["Peter for Githurai"]
+
+
+async def test_a_campaign_a_candidate_stood_up_alone_has_only_them_on_it(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    reply = await client.post(
+        "/api/campaigns/setup/",
+        headers=world.headers("candidate"),
+        json={
+            "title": "Jane for Githurai",
+            "office_level": "ward",
+            "ward": str(world.other_ward.id),
+        },
+    )
+
+    assert reply.status_code == 201, reply.text
+    assert await _members(session, uuid.UUID(reply.json()["id"])) == {"jane": "candidate"}
+
+
+async def test_the_aspirant_still_sees_a_campaign_their_manager_set_up(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    """Scoping the manager must not take the campaign away from whose it is."""
+    body = (await client.get("/api/campaigns/", headers=world.headers("candidate"))).json()
+
+    assert [c["id"] for c in body] == [str(world.campaign.id)]
+
+
+async def test_adding_somebody_already_on_the_campaign_neither_duplicates_nor_moves_them(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await add_member(session, world.campaign.id, world.candidate.id)
+    await session.commit()
+
+    rows = await session.execute(
+        select(func.count())
+        .select_from(CampaignMember)
+        .where(
+            CampaignMember.campaign_id == world.campaign.id,
+            CampaignMember.user_id == world.candidate.id,
+        )
+    )
+
+    assert rows.scalar_one() == 1
+    body = (await client.get("/api/campaigns/", headers=world.headers("candidate"))).json()
+    assert [c["id"] for c in body] == [str(world.campaign.id)]
+    assert await _members(session, world.campaign.id) == {
+        "jane": "candidate",
+        "amina": "manager",
+        "juma": "mobilizer",
+    }
+
+
+async def test_a_manager_may_run_more_than_one_campaign(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    """A single column could not hold this; a membership row can."""
+    made = await client.post(
+        "/api/campaigns/setup/",
+        headers=world.headers("manager"),
+        json={
+            "title": "Amina for Githurai",
+            "office_level": "ward",
+            "ward": str(world.other_ward.id),
+            "new_candidate": {"username": "peter"},
+        },
+    )
+    assert made.status_code == 201, made.text
+
+    listed = (await client.get("/api/campaigns/", headers=world.headers("manager"))).json()
+
+    assert sorted(c["title"] for c in listed) == ["Amina for Githurai", "Jane for Roysambu"]
+
+
+async def test_deleting_a_manager_leaves_their_campaign_standing(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """Losing a member must not take the campaign with them."""
+    manager = await session.get(User, world.manager.id)
+    assert manager is not None
+    await session.delete(manager)
+    await session.commit()
+
+    row = (
+        await session.execute(select(Campaign.id).where(Campaign.id == world.campaign.id))
+    ).one_or_none()
+    assert row is not None, "the campaign was deleted with its manager"
+    assert await _members(session, world.campaign.id) == {"jane": "candidate", "juma": "mobilizer"}

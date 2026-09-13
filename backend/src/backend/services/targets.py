@@ -2,6 +2,7 @@
 each for a ward race. Re-running updates rather than adding.
 """
 
+import uuid
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -42,6 +43,31 @@ async def _wards_for(session: AsyncSession, campaign: Campaign) -> list[Ward]:
     else:
         return []
     return list((await session.execute(statement.order_by(Ward.name))).scalars().all())
+
+
+async def ward_in_area(session: AsyncSession, campaign: Campaign, ward_id: uuid.UUID) -> bool:
+    """Whether a ward lies inside the seat a campaign contests.
+
+    A ward race holds only its own ward, whether or not its centres are loaded.
+    """
+    if campaign.office_level is OfficeLevel.WARD:
+        return campaign.ward_id == ward_id
+    statement = select(Ward.id).where(Ward.id == ward_id)
+    if campaign.office_level is OfficeLevel.COUNTY and campaign.county_id is not None:
+        statement = statement.join(Constituency).where(Constituency.county_id == campaign.county_id)
+    elif campaign.office_level is OfficeLevel.CONSTITUENCY and campaign.constituency_id is not None:
+        statement = statement.where(Ward.constituency_id == campaign.constituency_id)
+    else:
+        return False
+    return await session.scalar(statement) is not None
+
+
+async def wards_in_area(session: AsyncSession, campaign: Campaign) -> list[Ward]:
+    """Every ward inside the seat a campaign contests, by name."""
+    if campaign.office_level is OfficeLevel.WARD:
+        ward = await _campaign_ward(session, campaign)
+        return [ward] if ward is not None else []
+    return await _wards_for(session, campaign)
 
 
 async def _existing_targets(session: AsyncSession, campaign: Campaign) -> dict[tuple, Target]:

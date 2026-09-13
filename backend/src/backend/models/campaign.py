@@ -4,7 +4,7 @@ import uuid
 from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, ForeignKey, String, Uuid
+from sqlalchemy import Date, ForeignKey, String, Uuid, and_
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import (
@@ -14,7 +14,9 @@ from backend.db.base import (
     choice_type,
     require_loaded,
 )
-from backend.models.enums import OfficeLevel, OperationalGrain
+from backend.models.enums import OfficeLevel, OperationalGrain, UserRole
+from backend.models.membership import CampaignMember
+from backend.models.user import User
 
 if TYPE_CHECKING:
     from backend.models.event import Event
@@ -22,15 +24,11 @@ if TYPE_CHECKING:
     from backend.models.mobilizer import Mobilizer
     from backend.models.supporter import Supporter
     from backend.models.target import Target
-    from backend.models.user import User
 
 
 class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "campaigns"
 
-    candidate_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
     title: Mapped[str] = mapped_column(String(150))
     office_level: Mapped[OfficeLevel] = mapped_column(choice_type(OfficeLevel, "office_level"))
 
@@ -47,7 +45,22 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     election_date: Mapped[date | None] = mapped_column(Date, default=None)
 
-    candidate: Mapped["User"] = relationship(back_populates="campaigns")
+    # Who the campaign is for: the member whose place is candidate. Read-only,
+    # because `campaign_members` is the one record of it.
+    candidate: Mapped[User | None] = relationship(
+        secondary=CampaignMember.__table__,
+        primaryjoin=lambda: and_(
+            Campaign.id == CampaignMember.campaign_id,
+            CampaignMember.role == UserRole.CANDIDATE,
+        ),
+        secondaryjoin=lambda: User.id == CampaignMember.user_id,
+        viewonly=True,
+        uselist=False,
+    )
+
+    members: Mapped[list[CampaignMember]] = relationship(
+        back_populates="campaign", cascade="all, delete-orphan", passive_deletes=True
+    )
     county: Mapped["County | None"] = relationship(back_populates="campaigns")
     constituency: Mapped["Constituency | None"] = relationship(back_populates="campaigns")
     ward: Mapped["Ward | None"] = relationship(back_populates="campaigns")

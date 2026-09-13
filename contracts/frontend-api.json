@@ -1,5 +1,5 @@
 {
-  "_comment": "The fields the SPA actually reads and sends. Both services check themselves against this file: the backend proves its OpenAPI still offers them (backend/evals/test_frontend_contract.py), and the frontend proves its test doubles still match (frontend/tests/contract.test.js). Renaming a field on one side fails on both until the other side is updated.",
+  "_comment": "The fields the SPA actually reads and sends, and only those. Both services check themselves against this file: the backend proves its OpenAPI still offers them (backend/evals/test_frontend_contract.py), and the frontend proves its test doubles and its source still match (frontend/tests/contract.test.js). Renaming a field on one side fails on both until the other side is updated. Routes the SPA does not call are deliberately absent - the admin GETs an operator reaches with curl are covered by backend/tests/test_admin_api.py, which derives its list from the app itself.",
   "base": "/api",
   "reads": {
     "POST /api/auth/login/": [
@@ -26,7 +26,11 @@
     ],
     "GET /api/campaigns/": [
       "id",
-      "title"
+      "title",
+      "candidate_name",
+      "candidate_username",
+      "seat",
+      "area_name"
     ],
     "POST /api/campaigns/setup/": [
       "id",
@@ -105,6 +109,78 @@
       "password",
       "mobilizer",
       "ward_name"
+    ],
+    "GET /api/admin/overview/": [
+      "totals",
+      "campaigns"
+    ],
+    "GET /api/admin/users/": [
+      "id",
+      "username",
+      "full_name",
+      "email",
+      "phone",
+      "role",
+      "is_active",
+      "is_superuser",
+      "last_login_at",
+      "campaigns"
+    ],
+    "POST /api/admin/users/{user_id}/reset-password/": [
+      "username",
+      "password"
+    ],
+    "POST /api/admin/users/{user_id}/active/": [
+      "id",
+      "username",
+      "is_active"
+    ],
+    "POST /api/admin/campaigns/{campaign_id}/members/": [
+      "id",
+      "title",
+      "office_level",
+      "candidate",
+      "election_date",
+      "members",
+      "targets",
+      "mobilizers",
+      "events",
+      "supporters",
+      "votes_needed",
+      "votes_committed",
+      "wards"
+    ],
+    "POST /api/auth/register/": [
+      "token",
+      "user"
+    ],
+    "POST /api/targets/": [
+      "id",
+      "ward",
+      "ward_name",
+      "votes_needed"
+    ],
+    "POST /api/admin/users/": [
+      "id",
+      "username",
+      "full_name",
+      "role",
+      "password"
+    ],
+    "PATCH /api/admin/campaigns/{campaign_id}/": [
+      "id",
+      "title",
+      "office_level",
+      "candidate",
+      "election_date",
+      "members",
+      "targets",
+      "mobilizers",
+      "events",
+      "supporters",
+      "votes_needed",
+      "votes_committed",
+      "wards"
     ]
   },
   "nested_reads": {
@@ -112,7 +188,8 @@
       "id",
       "username",
       "full_name",
-      "role"
+      "role",
+      "is_superuser"
     ],
     "POST /api/campaigns/setup/.setup": [
       "grain",
@@ -151,6 +228,43 @@
       "username",
       "full_name",
       "password"
+    ],
+    "GET /api/admin/overview/.totals": [
+      "campaigns",
+      "users",
+      "members",
+      "targets",
+      "mobilizers",
+      "events",
+      "supporters"
+    ],
+    "GET /api/admin/overview/.campaigns": [
+      "id",
+      "title",
+      "office_level",
+      "candidate",
+      "election_date",
+      "members",
+      "targets",
+      "mobilizers",
+      "events",
+      "supporters",
+      "votes_needed",
+      "votes_committed",
+      "wards"
+    ],
+    "POST /api/admin/campaigns/{campaign_id}/members/.members": [
+      "user_id",
+      "username",
+      "full_name",
+      "role"
+    ],
+    "POST /api/auth/register/.user": [
+      "id",
+      "username",
+      "full_name",
+      "role",
+      "is_superuser"
     ]
   },
   "writes": {
@@ -215,7 +329,46 @@
       "username",
       "first_name",
       "last_name",
-      "phone"
+      "phone",
+      "email"
+    ],
+    "POST /api/admin/users/{user_id}/reset-password/": [
+      "password"
+    ],
+    "POST /api/admin/users/{user_id}/active/": [
+      "active"
+    ],
+    "POST /api/admin/campaigns/{campaign_id}/members/": [
+      "user"
+    ],
+    "POST /api/auth/register/": [
+      "username",
+      "password",
+      "role",
+      "first_name",
+      "last_name",
+      "phone",
+      "email"
+    ],
+    "POST /api/targets/": [
+      "campaign",
+      "ward",
+      "registration_centre",
+      "projected_turnout_pct",
+      "votes_committed"
+    ],
+    "POST /api/admin/users/": [
+      "username",
+      "role",
+      "first_name",
+      "last_name",
+      "email",
+      "phone",
+      "campaign",
+      "ward"
+    ],
+    "PATCH /api/admin/campaigns/{campaign_id}/": [
+      "title"
     ]
   },
   "enums": {
@@ -256,5 +409,11 @@
   "error_shape": {
     "_comment": "src/api/client.js reads detail first, then the first value of the first field. Login also reads non_field_errors[0].",
     "detail": "string"
+  },
+  "no_content": {
+    "_comment": "Routes that answer 204 with no body. Only that they still exist is checked.",
+    "routes": [
+      "DELETE /api/admin/campaigns/{campaign_id}/members/{user_id}/"
+    ]
   }
 }

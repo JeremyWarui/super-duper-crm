@@ -37,6 +37,9 @@ class LoginUser(ORMModel):
     username: str
     full_name: str
     role: UserRole
+    # Decides whether the browser shows the admin console at all. The routes
+    # check the flag again themselves.
+    is_superuser: bool
 
 
 class LoginResponse(ORMModel):

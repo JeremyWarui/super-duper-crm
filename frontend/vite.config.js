@@ -21,5 +21,10 @@ export default defineConfig(({ mode }) => ({
     globals: true,
     setupFiles: "./tests/setup.js",
     include: ["tests/**/*.test.{js,jsx}"],
+    // A userEvent test that types through a form takes about two seconds here,
+    // and several seconds on a loaded machine. The 5s default leaves no room
+    // and the suite fails on timing rather than on behaviour.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
   },
 }));

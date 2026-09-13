@@ -94,3 +94,36 @@ describe("the gate", () => {
     expect(await screen.findAllByText("Amina for Kasarani")).not.toHaveLength(0);
   });
 });
+
+// The half of the reported bug this file can see. That the server stops handing
+// a fresh manager somebody else's campaign is a backend test
+// (test_campaigns_api.py, test_manager_signup_flow.py); what the gate owes is
+// the aspirant question once that list comes back empty.
+describe("the gate for a campaign manager who owns nothing", () => {
+  it("sends a manager with no campaign to set one up, not to somebody else's", async () => {
+    signIn("manager");
+    stubApi({
+      ...dashboardRoutes({ "GET /campaigns/": [] }),
+      "GET /counties/": [],
+      "GET /users/": [],
+    });
+    renderApp(<Root />);
+
+    expect(await screen.findByText(/Set up your campaign/)).toBeInTheDocument();
+    expect(await screen.findByText(/Who are you running this campaign for/)).toBeInTheDocument();
+    expect(screen.queryByText("VOTES TO WIN THE SEAT")).toBeNull();
+  });
+
+  it("asks the manager first, before the campaign name", async () => {
+    signIn("manager");
+    stubApi({
+      ...dashboardRoutes({ "GET /campaigns/": [] }),
+      "GET /counties/": [],
+      "GET /users/": [],
+    });
+    renderApp(<Root />);
+
+    expect(await screen.findByText(/step 1 of 5/)).toBeInTheDocument();
+    expect(screen.queryByText("Campaign name")).toBeNull();
+  });
+});

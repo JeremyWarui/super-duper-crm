@@ -93,6 +93,8 @@ def test_migration_creates_the_partial_unique_indexes(
     names = {i.name for i in migrated_metadata.tables["targets"].indexes}
     assert "uq_targets_campaign_ward" in names
     assert "uq_targets_campaign_registration_centre" in names
+    members = {i.name for i in migrated_metadata.tables["campaign_members"].indexes}
+    assert "uq_campaign_members_one_candidate" in members
 
 
 def test_downgrade_removes_everything_upgrade_created() -> None:
@@ -166,6 +168,10 @@ def test_the_partial_unique_indexes_keep_their_where_clause_in_postgres() -> Non
     assert (
         "CREATE UNIQUE INDEX uq_targets_campaign_registration_centre ON targets "
         "(campaign_id, registration_centre_id) WHERE registration_centre_id IS NOT NULL" in sql
+    )
+    assert (
+        "CREATE UNIQUE INDEX uq_campaign_members_one_candidate ON campaign_members "
+        "(campaign_id) WHERE role = 'candidate'" in sql
     )
 
 

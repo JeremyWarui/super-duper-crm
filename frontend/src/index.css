@@ -75,6 +75,10 @@ body {
   gap: 0.75rem;
 }
 
+.gap-4 {
+  gap: 1rem;
+}
+
 .gap-5 {
   gap: 1.25rem;
 }
@@ -87,8 +91,16 @@ body {
   column-gap: 2rem;
 }
 
+.gap-x-10 {
+  column-gap: 2.5rem;
+}
+
 .gap-y-2 {
   row-gap: 0.5rem;
+}
+
+.gap-y-4 {
+  row-gap: 1rem;
 }
 
 /* Fitting a fixed-pixel design to the window. The shell is `.mx-auto` without

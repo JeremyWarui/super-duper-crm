@@ -28,6 +28,9 @@ def _configure(connection: Connection) -> None:
         # Also notice changed column types and changed defaults.
         compare_type=True,
         compare_server_default=True,
+        # One transaction per revision, so a revision that depends on the one
+        # before it sees committed schema rather than uncommitted DDL.
+        transaction_per_migration=True,
     )
 
 
@@ -39,6 +42,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        transaction_per_migration=True,
     )
     with context.begin_transaction():
         context.run_migrations()

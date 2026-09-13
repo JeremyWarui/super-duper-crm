@@ -2,6 +2,7 @@
 
 import secrets
 
+from backend.api.scope import add_member
 from backend.models import (
     Campaign,
     Constituency,
@@ -36,14 +37,20 @@ async def make_geography(session, *, ward_voters: int | None = 10_000):
 
 
 async def make_campaign(session, ward: Ward, *, office_level=OfficeLevel.WARD) -> Campaign:
-    candidate = User(username=f"candidate-{ward.code}", first_name="Asha", last_name="Mwangi")
+    candidate = User(
+        username=f"candidate-{ward.code}",
+        role=UserRole.CANDIDATE,
+        first_name="Asha",
+        last_name="Mwangi",
+    )
     campaign = Campaign(
-        candidate=candidate,
         title=f"{ward.name} MCA 2027",
         office_level=office_level,
         ward=ward,
     )
-    session.add(campaign)
+    session.add_all([candidate, campaign])
+    await session.flush()
+    await add_member(session, campaign.id, candidate.id)
     await session.commit()
     return campaign
 

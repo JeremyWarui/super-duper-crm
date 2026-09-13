@@ -19,7 +19,7 @@ npm run dev        # http://localhost:5173
 Checks:
 
 ```bash
-npm test           # 153 tests, jsdom, no server needed
+npm test           # 267 tests, jsdom, no server needed
 npm run build
 npm run lint
 ```
@@ -97,13 +97,42 @@ ward with no centres loaded says so there, rather than looking ready and coming
 back with a win number of zero.
 
 **Setup knows whose campaign it is.** A manager is asked first who they are
-running for, and can pick an aspirant already on the system or create one; the
-campaign belongs to that aspirant, not to the manager who typed it in. A
-candidate signing up gets the shorter flow and their own campaign.
+running for. Aspirants they already set up are offered in a picker, so a second
+campaign for one of them reuses that login rather than colliding with the
+username; otherwise they name a new one, with first and last name, username,
+email and phone. Either way the campaign belongs to that aspirant, not to the
+manager who typed it in, and the review screen says which of the two is about to
+happen. A new aspirant never signs up: they get a login whose password is shown
+once on the screen that follows. Nothing is emailed yet, so the address is only
+kept on record. A candidate signing up gets the shorter flow and their own
+campaign.
 
 **Setup creates the team.** The screen that shows the win number also adds the
 campaign manager and the mobilizers, each with a generated password shown once.
 The Mobilizers page can do the same later, with a login or without one.
+
+**A superuser gets the console, not a campaign.** `main.jsx` sends an account
+with `is_superuser` to `Admin.jsx` instead of the campaign gate: every campaign
+on the deployment with its team and its size, every login and where it reaches,
+and the repairs that cannot be done from inside a campaign (reset a password,
+disable a login, put somebody on a campaign or take them off). A campaign with
+nobody on it is called out in red, because nobody can see it until somebody is
+put on. The flag only decides what the browser draws; every route it calls
+checks it again.
+
+**The console makes logins.** The Logins tab creates a campaign manager, an
+aspirant or a mobilizer, with the password shown once. A manager can be put on a
+campaign as it is made, or left unplaced; a mobilizer must be given a campaign
+and one of its wards, or they sign in scoped to nothing. An aspirant is made on
+their own: a campaign belongs to the one candidate it names, so theirs is set up
+afterwards and becomes theirs then.
+
+Nothing destructive fires on one click: taking somebody off, disabling a login
+and resetting a password each ask first, naming who they are about. A reset
+password is collected by the console itself rather than by the row that asked
+for it, so switching tabs mid-request cannot lose the one copy that exists. The
+operator's own row offers neither Disable nor Reset password, because both would
+end their session before they could act on the result.
 
 **Events can be invited.** Each event on the Events page has an Invite button.
 The modal drafts a message from the event, counts the SMS parts it will be
@@ -117,16 +146,3 @@ is an Africa's Talking subscription.
 `contract.test.js` checks the fixtures and the source against it;
 `backend/evals/test_frontend_contract.py` checks the API against the same file.
 Renaming a field on one side fails on both until the other side is updated.
-
-## Known gaps
-
-1. The dashboard works on the first campaign the API returns. A user with two
-   campaigns has no way to pick between them.
-2. `App.jsx` carries Tailwind-style class names (`flex`, `gap-3`) inherited from
-   the prototype. Tailwind is not installed; the inline styles do the layout and
-   those classes do nothing.
-3. `Select` is declared inside `Onboarding`, so it is a new component type on
-   every render. `npm run lint` warns about it.
-4. The shell widens above 1440px and scales below it, so dragging a window
-   across that boundary is a visible step. Both sizes are right on their own;
-   only the transition is abrupt.

@@ -38,6 +38,7 @@ EXPECTED_TABLES = {
     "wards",
     "registration_centres",
     "polling_stations",
+    "campaign_members",
     "campaigns",
     "targets",
     "mobilizers",
@@ -166,16 +167,82 @@ async def test_deleting_a_ward_nulls_the_campaign_but_keeps_it(
     assert campaign.ward_id is None
 
 
-async def test_deleting_the_candidate_deletes_their_campaigns(
+async def test_a_campaign_s_candidate_is_the_member_whose_place_is_candidate(
     session: AsyncSession,
 ) -> None:
+    from sqlalchemy.orm import selectinload
+
     _, _, ward, _ = await make_geography(session)
     campaign = await make_campaign(session, ward)
-    candidate = await session.get(User, campaign.candidate_id)
-    assert candidate is not None
-    await session.delete(candidate)
+
+    loaded = await session.scalar(
+        select(Campaign).where(Campaign.id == campaign.id).options(selectinload(Campaign.candidate))
+    )
+
+    assert loaded.candidate is not None
+    assert loaded.candidate.username == f"candidate-{ward.code}"
+
+
+async def test_a_campaign_cannot_hold_a_second_candidate(session: AsyncSession) -> None:
+    from backend.models import CampaignMember, UserRole
+
+    _, _, ward, _ = await make_geography(session)
+    campaign = await make_campaign(session, ward)
+    other = User(username="second-candidate", role=UserRole.CANDIDATE)
+    session.add(other)
+    await session.flush()
+
+    session.add(CampaignMember(campaign_id=campaign.id, user_id=other.id, role=UserRole.CANDIDATE))
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
+async def test_a_campaign_may_hold_many_managers(session: AsyncSession) -> None:
+    """The index is partial: it limits the candidate, not the team."""
+    from sqlalchemy import func
+
+    from backend.models import CampaignMember, UserRole
+
+    _, _, ward, _ = await make_geography(session)
+    campaign = await make_campaign(session, ward)
+    for name in ("amina", "otieno"):
+        manager = User(username=name, role=UserRole.MANAGER)
+        session.add(manager)
+        await session.flush()
+        session.add(
+            CampaignMember(campaign_id=campaign.id, user_id=manager.id, role=UserRole.MANAGER)
+        )
     await session.commit()
-    assert (await session.execute(select(Campaign))).scalars().all() == []
+
+    managers = await session.scalar(
+        select(func.count())
+        .select_from(CampaignMember)
+        .where(CampaignMember.campaign_id == campaign.id, CampaignMember.role == UserRole.MANAGER)
+    )
+    assert managers == 2
+
+
+async def test_deleting_the_candidate_takes_their_place_and_leaves_the_campaign(
+    session: AsyncSession,
+) -> None:
+    """The API refuses this outright; at the database only the membership goes."""
+    from sqlalchemy.orm import selectinload
+
+    _, _, ward, _ = await make_geography(session)
+    campaign_id = (await make_campaign(session, ward)).id
+    loaded = await session.scalar(
+        select(Campaign).where(Campaign.id == campaign_id).options(selectinload(Campaign.candidate))
+    )
+
+    await session.delete(loaded.candidate)
+    await session.commit()
+    session.expire_all()
+
+    left = await session.scalar(
+        select(Campaign).where(Campaign.id == campaign_id).options(selectinload(Campaign.candidate))
+    )
+    assert left is not None
+    assert left.candidate is None
 
 
 # ------------------------------------------------------------------ target

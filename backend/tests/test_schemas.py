@@ -91,10 +91,29 @@ async def test_geography_schemas_validate_off_mapped_instances(
 
 async def test_campaign_read_includes_the_derived_grain(session: AsyncSession) -> None:
     _, _, ward, _ = await make_geography(session)
-    campaign = await make_campaign(session, ward, office_level=OfficeLevel.COUNTY)
-    schema = CampaignRead.model_validate(campaign)
+    made = await make_campaign(session, ward, office_level=OfficeLevel.COUNTY)
+    schema = CampaignRead.model_validate(await _with_candidate(session, made.id))
     assert schema.operational_grain is OperationalGrain.WARD
     assert schema.office_level is OfficeLevel.COUNTY
+
+
+async def _with_candidate(session: AsyncSession, campaign_id):
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from backend.models import Campaign
+
+    return await session.scalar(
+        select(Campaign).where(Campaign.id == campaign_id).options(selectinload(Campaign.candidate))
+    )
+
+
+async def test_campaign_read_sends_the_candidate_member_as_an_id(session: AsyncSession) -> None:
+    _, _, ward, _ = await make_geography(session)
+    made = await make_campaign(session, ward)
+    campaign = await _with_candidate(session, made.id)
+
+    assert CampaignRead.model_validate(campaign).candidate == campaign.candidate.id
 
 
 async def test_target_read_carries_the_unit_it_covers_and_its_progress(

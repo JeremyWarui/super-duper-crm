@@ -18,7 +18,13 @@ from backend.schemas.common import ORMModel, WriteModel
 
 class CampaignRead(ORMModel):
     id: uuid.UUID
-    candidate: uuid.UUID = Field(validation_alias="candidate_id")
+    candidate: uuid.UUID | None = None
+    # Who it is for and where it is fought, in words. The ids alone cannot be
+    # shown to anybody, and every screen that names the campaign needs these.
+    candidate_name: str = ""
+    candidate_username: str = ""
+    seat: str = ""
+    area_name: str = ""
     title: str
     office_level: OfficeLevel
     county: uuid.UUID | None = Field(default=None, validation_alias="county_id")
@@ -28,14 +34,25 @@ class CampaignRead(ORMModel):
     operational_grain: OperationalGrain
     created_at: datetime
 
+    @field_validator("candidate", mode="before")
+    @classmethod
+    def _candidate_id(cls, value: object) -> object:
+        """The candidate arrives as the related login; the API sends its id."""
+        return getattr(value, "id", value)
+
 
 class NewCandidate(WriteModel):
-    """An aspirant being created by whoever is setting the campaign up."""
+    """An aspirant being created by whoever is setting the campaign up.
+
+    `email` is where the invitation to claim the account will be sent; nothing
+    sends it yet, so the password still comes back once.
+    """
 
     username: str = Field(min_length=3, max_length=150, pattern=r"^[A-Za-z0-9._-]+$")
     first_name: str = Field(default="", max_length=150)
     last_name: str = Field(default="", max_length=150)
     phone: str = Field(default="", max_length=20)
+    email: str = Field(default="", max_length=254)
 
 
 class CampaignSetup(WriteModel):

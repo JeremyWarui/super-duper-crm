@@ -523,7 +523,7 @@ export default function App() {
 
       <div style={{ background: C.railBg, color: "#fff", padding: "10px 18px" }}>
         <div className="mx-auto flex flex-wrap items-center justify-between gap-3" style={{ maxWidth: 1200 }}>
-          <div className="flex items-center gap-3"><div style={{ ...DISPLAY, fontSize: 18, fontWeight: 700 }}>MZIGO<span style={{ color: C.green }}>·</span>CRM</div><div style={{ fontSize: 12, color: "#8E968F" }}>{campaign.title}</div></div>
+          <div className="flex items-center gap-3"><div style={{ ...DISPLAY, fontSize: 18, fontWeight: 700 }}>MZIGO<span style={{ color: C.green }}>·</span>CRM</div><div><div style={{ fontSize: 12, color: "#C7CDC8" }}>{campaign.title}</div><div style={{ fontSize: 11, color: "#8E968F", marginTop: 1 }}>{[campaign.candidate_name && `for ${campaign.candidate_name}`, campaign.seat, campaign.area_name].filter(Boolean).join(" · ")}</div></div></div>
           <div className="flex items-center gap-3" style={{ fontSize: 12 }}><span style={{ color: "#8E968F" }}>{user?.full_name || user?.username} · {ROLE_LABEL[role]}</span><button onClick={logout} style={{ background: "transparent", border: "1px solid #2A322D", color: "#C7CDC8", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>Sign out</button></div>
         </div>
       </div>

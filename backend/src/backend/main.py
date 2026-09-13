@@ -31,6 +31,14 @@ def create_app() -> FastAPI:
         version=__version__,
         debug=settings.debug,
         lifespan=lifespan,
+        # The interactive docs describe every route, field and schema, which is
+        # a map of the deployment to anybody who asks. They are a development
+        # tool, so they are served only when DEBUG says this is development.
+        # `app.openapi()` still builds the schema in-process, which is what the
+        # contract checks read.
+        docs_url="/docs" if settings.debug else None,
+        redoc_url="/redoc" if settings.debug else None,
+        openapi_url="/openapi.json" if settings.debug else None,
     )
     app.add_middleware(
         CORSMiddleware,

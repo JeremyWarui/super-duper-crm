@@ -11,7 +11,7 @@ from backend.models.enums import UserRole
 
 if TYPE_CHECKING:
     from backend.models.auth_token import AuthToken
-    from backend.models.campaign import Campaign
+    from backend.models.membership import CampaignMember
     from backend.models.mobilizer import Mobilizer
 
 
@@ -36,10 +36,10 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
-    campaigns: Mapped[list["Campaign"]] = relationship(
-        back_populates="candidate",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
+    # Every campaign this user works on, in any capacity, including the ones they
+    # stand in as the candidate. What scoping reads.
+    memberships: Mapped[list["CampaignMember"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
     )
     mobilizer_profile: Mapped["Mobilizer | None"] = relationship(back_populates="user")
     auth_token: Mapped["AuthToken | None"] = relationship(
@@ -52,3 +52,21 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     def __str__(self) -> str:
         return f"{self.full_name or self.username} ({self.role.label})"
+
+
+def member_refusal(named: "User") -> str | None:
+    """Why this login may not be put on a campaign, or None if it may.
+
+    One rule in one place: `api.scope.add_member` builds a team from inside a
+    campaign and `services.admin.add_member` does it from the console, and the
+    two must not drift. It lives here because those two do not import each
+    other, and both already import this.
+    """
+    if named.is_superuser:
+        return (
+            "A superuser reaches every campaign through the console, and would lose the "
+            "campaign app by being put on one."
+        )
+    if not named.is_active:
+        return f"{named.username} is disabled, so they could not sign in to work on it."
+    return None

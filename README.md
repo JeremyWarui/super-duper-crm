@@ -19,7 +19,7 @@ cp .env.example .env                      # set SECRET_KEY and your Postgres pas
 uv run alembic upgrade head
 uv run campaign-crm seed                  # 47 counties, 290 constituencies, 1450 wards, 27,273 centres
 uv run campaign-crm demo                  # the demo campaign and its three logins
-uv run uvicorn backend.main:app --reload  # http://127.0.0.1:8000/docs
+uv run watchfiles "uvicorn backend.main:app" src .env   # http://127.0.0.1:8000/docs
 ```
 
 ```bash
@@ -40,8 +40,15 @@ same campaign, so you sign out and back in to switch.
 | `manager` | **Campaign manager.** All of that plus targets, mobilizers and supporters, and every write. |
 | `mobilizer` | **Mobilizer.** One ward. Record events, register supporters, nothing else. |
 | `newaspirant` | **Candidate with no campaign.** Starts at setup, so the onboarding flow can be shown. |
+| `newmanager` | **Manager with no campaign.** Starts at setup, and names the aspirant it is for. |
 
-`campaign-crm demo` prints the three passwords; they are generated per run, so
+The demo makes no superuser. Create one to see the admin console:
+
+```bash
+uv run campaign-crm createuser -u root -r manager --superuser
+```
+
+`campaign-crm demo` prints every password; they are generated per run, so
 nothing credential-shaped is committed. `--password <value>` pins them.
 
 The demo builds the Roysambu MP seat: 5 wards, 153,772 registered voters, a win
@@ -78,8 +85,8 @@ disagree with the rows underneath it.
 ## Checks
 
 ```bash
-cd backend  && uv run pytest && uv run ruff check .   # 428 tests
-cd frontend && npm test && npm run build              # 153 tests
+cd backend  && uv run pytest && uv run ruff check .   # 644 tests
+cd frontend && npm test && npm run build              # 267 tests
 ```
 
 Neither suite needs a database server or the network.

@@ -3,7 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
 import { useAuth } from "../src/store/auth";
-import { STRATEGY, dashboardRoutes, renderApp, signIn, stubApi } from "./helpers";
+import {
+  STRATEGY,
+  dashboardRoutes,
+  renderApp,
+  signIn,
+  stubApi,
+} from "./helpers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -82,7 +88,14 @@ describe("what each role is shown", () => {
     await open("manager");
 
     expect(screen.getByText(/· Campaign Manager/)).toBeInTheDocument();
-    for (const page of ["Targets", "Wards", "Events", "Mobilizers", "Supporters", "Strategy"]) {
+    for (const page of [
+      "Targets",
+      "Wards",
+      "Events",
+      "Mobilizers",
+      "Supporters",
+      "Strategy",
+    ]) {
       expect(screen.getByRole("button", { name: page })).toBeInTheDocument();
     }
   });
@@ -91,7 +104,9 @@ describe("what each role is shown", () => {
     await open("candidate");
 
     expect(screen.getByText(/· Candidate/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ward performance" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Ward performance" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Targets" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Mobilizers" })).toBeNull();
   });
@@ -131,7 +146,9 @@ describe("moving around", () => {
 
     await user.click(screen.getByRole("button", { name: "Targets" }));
 
-    expect(await screen.findByText("Targets — the win number")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Targets — the win number"),
+    ).toBeInTheDocument();
     expect(screen.getByText("TOTAL WIN NUMBER")).toBeInTheDocument();
   });
 
@@ -207,17 +224,23 @@ describe("the forms", () => {
     const { calls } = await open("manager", { "POST /events/": { id: "e2" } });
 
     await user.click(screen.getByRole("button", { name: "Events" }));
-    await user.click(await screen.findByRole("button", { name: "Schedule event" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Schedule event" }),
+    );
 
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Githurai rally");
     await user.selectOptions(screen.getByRole("combobox"), "w2");
     await user.type(boxes[1], "Githurai grounds");
     await user.type(document.querySelector('input[type="date"]'), "2027-06-12");
-    await user.click(screen.getAllByRole("button", { name: "Schedule event" }).at(-1));
+    await user.click(
+      screen.getAllByRole("button", { name: "Schedule event" }).at(-1),
+    );
 
     await waitFor(() => {
-      const posted = calls.find((c) => c.method === "POST" && c.path === "/events/");
+      const posted = calls.find(
+        (c) => c.method === "POST" && c.path === "/events/",
+      );
       expect(posted.body).toEqual({
         campaign: "c1",
         ward: "w2",
@@ -231,10 +254,14 @@ describe("the forms", () => {
 
   it("adds a mobilizer against a ward", async () => {
     const user = userEvent.setup();
-    const { calls } = await open("manager", { "POST /mobilizers/": { id: "m2" } });
+    const { calls } = await open("manager", {
+      "POST /mobilizers/": { id: "m2" },
+    });
 
     await user.click(screen.getByRole("button", { name: "Mobilizers" }));
-    await user.click(await screen.findByRole("button", { name: "Add mobilizer" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Add mobilizer" }),
+    );
 
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Wanjiku Njeri");
@@ -242,7 +269,9 @@ describe("the forms", () => {
     await user.click(screen.getByRole("button", { name: "Save mobilizer" }));
 
     await waitFor(() => {
-      const posted = calls.find((c) => c.method === "POST" && c.path === "/mobilizers/");
+      const posted = calls.find(
+        (c) => c.method === "POST" && c.path === "/mobilizers/",
+      );
       expect(posted.body).toEqual({
         campaign: "c1",
         ward: "w1",
@@ -256,27 +285,39 @@ describe("the forms", () => {
     const user = userEvent.setup();
     await open("mobilizer");
 
-    await user.click(screen.getByRole("button", { name: "Register supporter" }));
+    await user.click(
+      screen.getByRole("button", { name: "Register supporter" }),
+    );
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Wanjiku Njeri");
 
     // The nav item shares the name; the form's button is last.
-    expect(screen.getAllByRole("button", { name: "Register supporter" }).at(-1)).toBeDisabled();
+    expect(
+      screen.getAllByRole("button", { name: "Register supporter" }).at(-1),
+    ).toBeDisabled();
   });
 
   it("registers a supporter once consent is ticked", async () => {
     const user = userEvent.setup();
-    const { calls } = await open("mobilizer", { "POST /supporters/": { id: "s1" } });
+    const { calls } = await open("mobilizer", {
+      "POST /supporters/": { id: "s1" },
+    });
 
-    await user.click(screen.getByRole("button", { name: "Register supporter" }));
+    await user.click(
+      screen.getByRole("button", { name: "Register supporter" }),
+    );
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Wanjiku Njeri");
     await user.type(boxes[1], "+254700333444");
     await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getAllByRole("button", { name: "Register supporter" }).at(-1));
+    await user.click(
+      screen.getAllByRole("button", { name: "Register supporter" }).at(-1),
+    );
 
     await waitFor(() => {
-      const posted = calls.find((c) => c.method === "POST" && c.path === "/supporters/");
+      const posted = calls.find(
+        (c) => c.method === "POST" && c.path === "/supporters/",
+      );
       expect(posted.body).toEqual({
         campaign: "c1",
         full_name: "Wanjiku Njeri",
@@ -289,7 +330,9 @@ describe("the forms", () => {
 
   it("records attendance against the event it was opened from", async () => {
     const user = userEvent.setup();
-    const { calls } = await open("manager", { "POST /events/e1/record/": { id: "e1" } });
+    const { calls } = await open("manager", {
+      "POST /events/e1/record/": { id: "e1" },
+    });
 
     await user.click(screen.getByRole("button", { name: "Events" }));
     await user.click(await screen.findByRole("button", { name: "Record" }));
@@ -300,8 +343,13 @@ describe("the forms", () => {
     await user.click(screen.getByRole("button", { name: "Save & mark done" }));
 
     await waitFor(() => {
-      const posted = calls.find((c) => c.method === "POST" && c.path === "/events/e1/record/");
-      expect(posted.body).toEqual({ number_reached: 400, number_attended: 300 });
+      const posted = calls.find(
+        (c) => c.method === "POST" && c.path === "/events/e1/record/",
+      );
+      expect(posted.body).toEqual({
+        number_reached: 400,
+        number_attended: 300,
+      });
     });
   });
 
@@ -316,20 +364,30 @@ describe("the forms", () => {
     await user.type(numbers[0], "100");
     await user.type(numbers[1], "200");
 
-    expect(screen.getByText("Attendance can't exceed those reached.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save & mark done" })).toBeDisabled();
+    expect(
+      screen.getByText("Attendance can't exceed those reached."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Save & mark done" }),
+    ).toBeDisabled();
   });
 });
 
 describe("inviting supporters to an event", () => {
   it("offers an invite on each event, but not to a candidate", async () => {
     await open("manager");
-    await userEvent.setup().click(screen.getByRole("button", { name: "Events" }));
-    expect(await screen.findByRole("button", { name: "Invite" })).toBeInTheDocument();
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Events" }));
+    expect(
+      await screen.findByRole("button", { name: "Invite" }),
+    ).toBeInTheDocument();
 
     cleanup();
     await open("candidate");
-    await userEvent.setup().click(screen.getByRole("button", { name: "Events" }));
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Events" }));
     await screen.findByText("Zimmerman town hall");
     expect(screen.queryByRole("button", { name: "Invite" })).toBeNull();
   });
@@ -356,7 +414,9 @@ describe("inviting supporters to an event", () => {
     await user.clear(box);
     await user.type(box, "x".repeat(50));
 
-    expect(screen.getByText(/50 characters · 1 SMS part per person/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/50 characters · 1 SMS part per person/),
+    ).toBeInTheDocument();
   });
 
   it("previews without sending", async () => {
@@ -386,7 +446,9 @@ describe("inviting supporters to an event", () => {
     await user.click(screen.getByRole("button", { name: "Send" }));
 
     await waitFor(() => {
-      const posted = calls.find((c) => c.path === "/events/e1/invite/" && !c.body.dry_run);
+      const posted = calls.find(
+        (c) => c.path === "/events/e1/invite/" && !c.body.dry_run,
+      );
       expect(posted.body.support_levels).toEqual(["supporter", "opposed"]);
     });
   });
@@ -415,7 +477,9 @@ describe("inviting supporters to an event", () => {
     await user.click(screen.getByRole("button", { name: "Send" }));
 
     expect(await screen.findByText("Not sent")).toBeInTheDocument();
-    expect(screen.getByText(/No SMS gateway is configured/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/No SMS gateway is configured/),
+    ).toBeInTheDocument();
   });
 
   it("reports the numbers it could not use", async () => {
@@ -426,7 +490,9 @@ describe("inviting supporters to an event", () => {
     await user.click(await screen.findByRole("button", { name: "Invite" }));
     await user.click(screen.getByRole("button", { name: "Send" }));
 
-    expect(await screen.findByText(/1 number unusable: not a phone/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/1 number unusable: not a phone/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/3 supporters matched/)).toBeInTheDocument();
   });
 
@@ -446,7 +512,9 @@ describe("inviting supporters to an event", () => {
 describe("adding a mobilizer", () => {
   async function openForm(user) {
     await user.click(screen.getByRole("button", { name: "Mobilizers" }));
-    await user.click(await screen.findByRole("button", { name: "Add mobilizer" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Add mobilizer" }),
+    );
   }
 
   it("creates a ground-team row with no login by default", async () => {
@@ -459,7 +527,9 @@ describe("adding a mobilizer", () => {
     await user.click(screen.getByRole("button", { name: "Save mobilizer" }));
 
     await waitFor(() => {
-      expect(calls.some((c) => c.path === "/mobilizers/" && c.method === "POST")).toBe(true);
+      expect(
+        calls.some((c) => c.path === "/mobilizers/" && c.method === "POST"),
+      ).toBe(true);
       expect(calls.some((c) => c.path === "/users/")).toBe(false);
     });
   });
@@ -524,6 +594,28 @@ describe("adding a mobilizer", () => {
     await user.click(screen.getByRole("checkbox"));
     await user.type(await screen.findByPlaceholderText("juma"), "ab");
 
-    expect(screen.getByRole("button", { name: "Save mobilizer" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Save mobilizer" }),
+    ).toBeDisabled();
   });
+});
+
+describe("knowing whose campaign this is", () => {
+  for (const role of ["candidate", "manager", "mobilizer"]) {
+    it(`tells a ${role} the name, the aspirant and the seat`, async () => {
+      signIn(role);
+      stubApi(dashboardRoutes());
+      renderApp(<App />);
+
+      // The rail names it once; other screens may repeat it, so read the line
+      // that carries all three facts together.
+      const line = await screen.findByText(
+        (_, el) =>
+          el?.textContent ===
+          "for Jane Wanjiku · Constituency (MP) · Roysambu",
+      );
+      expect(line).toBeInTheDocument();
+      expect(screen.getAllByText("Jane for Roysambu").length).toBeGreaterThan(0);
+    });
+  }
 });

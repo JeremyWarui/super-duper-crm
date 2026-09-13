@@ -11,15 +11,26 @@ export function stubApi(routes) {
   const fetchMock = vi.fn(async (url, options = {}) => {
     const method = options.method || "GET";
     const path = String(url).replace(API, "");
-    calls.push({ method, path, body: options.body ? JSON.parse(options.body) : null, options });
+    calls.push({
+      method,
+      path,
+      body: options.body ? JSON.parse(options.body) : null,
+      options,
+    });
 
-    const match = routes[`${method} ${path}`] ?? routes[`${method} ${path.split("?")[0]}`];
+    const match =
+      routes[`${method} ${path}`] ?? routes[`${method} ${path.split("?")[0]}`];
     if (match === undefined) {
       return jsonResponse(404, { detail: `No stub for ${method} ${path}` });
     }
     const override =
-      match !== null && typeof match === "object" && "status" in match && "body" in match;
-    return override ? jsonResponse(match.status, match.body) : jsonResponse(200, match);
+      match !== null &&
+      typeof match === "object" &&
+      "status" in match &&
+      "body" in match;
+    return override
+      ? jsonResponse(match.status, match.body)
+      : jsonResponse(200, match);
   });
   vi.stubGlobal("fetch", fetchMock);
   return calls;
@@ -29,7 +40,12 @@ function jsonResponse(status, body) {
   return {
     ok: status >= 200 && status < 300,
     status,
-    json: async () => body,
+    // A 204 carries no body, and the client must not read one. Throwing here is
+    // what a real Response does.
+    json: async () => {
+      if (status === 204) throw new SyntaxError("Unexpected end of JSON input");
+      return body;
+    },
   };
 }
 
@@ -47,13 +63,19 @@ export function renderApp(ui) {
   });
   return {
     queryClient,
-    ...render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>),
+    ...render(
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+    ),
   };
 }
 
 export const CAMPAIGN = {
   id: "c1",
   candidate: "u1",
+  candidate_name: "Jane Wanjiku",
+  candidate_username: "jane",
+  seat: "Constituency (MP)",
+  area_name: "Roysambu",
   title: "Jane for Roysambu",
   office_level: "constituency",
   county: null,
@@ -159,7 +181,9 @@ export const INVITE_RESULT = {
   supporters_matched: 3,
   requested: 2,
   accepted: [{ phone: "+254712345678", status: "skipped", detail: "" }],
-  rejected: [{ phone: "not a phone", status: "invalid", detail: "Not a usable number." }],
+  rejected: [
+    { phone: "not a phone", status: "invalid", detail: "Not a usable number." },
+  ],
   detail:
     "No SMS gateway is configured, so nothing was sent. Set SMS_PROVIDER=africastalking with AT_USERNAME and AT_API_KEY to send.",
   number_reached: 0,
@@ -191,3 +215,101 @@ export function dashboardRoutes(overrides = {}) {
     ...overrides,
   };
 }
+
+// ---- admin console -------------------------------------------------------
+export const ADMIN_TOTALS = {
+  campaigns: 2,
+  users: 5,
+  members: 4,
+  targets: 12,
+  mobilizers: 3,
+  events: 7,
+  supporters: 41,
+};
+
+export const ADMIN_CAMPAIGN = {
+  id: "c1",
+  title: "Jane for Roysambu",
+  office_level: "constituency",
+  candidate: "jane",
+  election_date: "2027-08-10",
+  members: [
+    {
+      user_id: "u-jane",
+      username: "jane",
+      full_name: "Jane W",
+      role: "candidate",
+    },
+    {
+      user_id: "u-amina",
+      username: "amina",
+      full_name: "Amina K",
+      role: "manager",
+    },
+  ],
+  wards: [
+    { id: "w1", name: "Zimmerman" },
+    { id: "w2", name: "Githurai" },
+  ],
+  targets: 5,
+  mobilizers: 2,
+  events: 4,
+  supporters: 30,
+  votes_needed: 43050,
+  votes_committed: 1200,
+};
+
+export const ADMIN_ORPHAN = {
+  id: "c2",
+  title: "Peter for Juja",
+  office_level: "constituency",
+  candidate: "peter",
+  election_date: null,
+  members: [],
+  wards: [{ id: "w3", name: "Juja" }],
+  targets: 7,
+  mobilizers: 1,
+  events: 3,
+  supporters: 11,
+  votes_needed: 43867,
+  votes_committed: 0,
+};
+
+export const ADMIN_USERS = [
+  {
+    id: "u-amina",
+    username: "amina",
+    full_name: "Amina K",
+    email: "amina@example.com",
+    phone: "",
+    role: "manager",
+    is_active: true,
+    is_superuser: false,
+    last_login_at: "2026-09-10T08:00:00+00:00",
+    campaigns: [["c1", "Jane for Roysambu", "manager"]],
+  },
+  {
+    id: "u-jane",
+    username: "jane",
+    full_name: "Jane W",
+    email: "",
+    phone: "",
+    role: "candidate",
+    is_active: false,
+    is_superuser: false,
+    last_login_at: null,
+    campaigns: [["c1", "Jane for Roysambu", "candidate"]],
+  },
+  {
+    id: "root",
+    username: "root",
+    full_name: "The Operator",
+    email: "",
+    phone: "",
+    role: "manager",
+    is_active: true,
+    is_superuser: true,
+    last_login_at: "2026-09-12T09:00:00+00:00",
+    campaigns: [],
+  },
+];

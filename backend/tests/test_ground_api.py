@@ -1,11 +1,19 @@
 """Mobilizers, events and the supporter register: the ground team's routes."""
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Event, EventStatus, Mobilizer, Supporter
+from backend.models import (
+    CampaignMember,
+    Event,
+    EventStatus,
+    Mobilizer,
+    Supporter,
+    UserRole,
+)
 from tests.conftest import World
+from tests.factories import auth, make_user, sign_in
 
 # ---------------------------------------------------------------- mobilizers
 
@@ -290,13 +298,14 @@ async def test_signing_up_without_consent_is_refused(
     assert "Consent" in response.json()["detail"]
 
 
-async def test_anyone_may_sign_themselves_up_without_an_account(
+async def test_the_register_cannot_be_written_to_without_an_account(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
+    """The campaign is named in the body, so an open route is an open register."""
     response = await client.post("/api/supporters/", json=_supporter(world))
 
-    assert response.status_code == 201
-    assert await session.scalar(select(Supporter).where(Supporter.full_name == "Wanjiku Njeri"))
+    assert response.status_code == 401
+    assert not await session.scalar(select(Supporter).where(Supporter.full_name == "Wanjiku Njeri"))
 
 
 async def test_the_register_is_not_readable_without_an_account(
@@ -397,3 +406,278 @@ async def test_a_done_event_reports_its_turnout(
     body = (await client.get("/api/events/", headers=world.headers("manager"))).json()
 
     assert body[0]["turnout_pct"] == 75.0
+
+
+async def test_a_mobilizer_row_cannot_attach_a_login_the_caller_cannot_see(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """Otherwise naming any user here makes them visible, and then removable."""
+    from tests.factories import make_user
+
+    victim = await make_user(session, username="victim", role=UserRole.MANAGER)
+    await make_user(session, username="rival", role=UserRole.MANAGER)
+    token = await sign_in(client, "rival")
+    setup = await client.post(
+        "/api/campaigns/setup/",
+        headers=auth(token),
+        json={
+            "title": "Rival for Githurai",
+            "office_level": "ward",
+            "ward": str(world.other_ward.id),
+            "new_candidate": {"username": "theirs"},
+        },
+    )
+    assert setup.status_code == 201, setup.text
+    mine = setup.json()["id"]
+
+    hijack = await client.post(
+        "/api/mobilizers/",
+        headers=auth(token),
+        json={
+            "campaign": mine,
+            "ward": str(world.other_ward.id),
+            "user": str(victim.id),
+            "full_name": "Not Really Them",
+        },
+    )
+
+    assert hijack.status_code == 400
+    assert "not a mobilizer" in hijack.json()["detail"]
+    team = (await client.get("/api/users/", headers=auth(token))).json()
+    assert "victim" not in [u["username"] for u in team]
+    assert (await client.delete(f"/api/users/{victim.id}/", headers=auth(token))).status_code == 404
+
+
+async def test_a_mobilizer_row_cannot_name_somebody_who_is_not_a_mobilizer(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    response = await client.post(
+        "/api/mobilizers/",
+        headers=world.headers("manager"),
+        json={
+            "campaign": str(world.campaign.id),
+            "ward": str(world.ward.id),
+            "user": str(world.candidate.id),
+            "full_name": "Jane Again",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "not a mobilizer" in response.json()["detail"]
+
+
+async def test_an_unattached_mobilizer_login_can_be_put_on_the_ground(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """The `user` field has to still work; tightening it to nothing is not a fix."""
+    from tests.factories import make_user
+
+    spare = await make_user(session, username="spare", role=UserRole.MOBILIZER)
+
+    response = await client.post(
+        "/api/mobilizers/",
+        headers=world.headers("manager"),
+        json={
+            "campaign": str(world.campaign.id),
+            "ward": str(world.other_ward.id),
+            "user": str(spare.id),
+            "full_name": "Spare Organizer",
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["user"] == str(spare.id)
+
+    # Being on the ground is no use without being on the campaign: reads are
+    # scoped by membership, so without one they sign in to an empty app.
+    token = await sign_in(client, "spare")
+    seen = await client.get("/api/campaigns/", headers=auth(token))
+    assert [c["id"] for c in seen.json()] == [str(world.campaign.id)]
+
+
+async def test_a_login_already_on_the_ground_is_refused_not_a_500(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    """Mobilizer.user_id is unique, so a second row would be an integrity error."""
+    response = await client.post(
+        "/api/mobilizers/",
+        headers=world.headers("manager"),
+        json={
+            "campaign": str(world.campaign.id),
+            "ward": str(world.other_ward.id),
+            "user": str(world.mobilizer_user.id),
+            "full_name": "Juma Again",
+        },
+    )
+
+    assert response.status_code == 409
+    assert "already on the ground" in response.json()["detail"]
+
+
+async def test_an_event_cannot_name_another_campaign_s_mobilizer(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    from tests.factories import make_user
+
+    await make_user(session, username="rival", role=UserRole.MANAGER)
+    token = await sign_in(client, "rival")
+    setup = await client.post(
+        "/api/campaigns/setup/",
+        headers=auth(token),
+        json={
+            "title": "Rival for Githurai",
+            "office_level": "ward",
+            "ward": str(world.other_ward.id),
+            "new_candidate": {"username": "theirs"},
+        },
+    )
+    assert setup.status_code == 201, setup.text
+
+    response = await client.post(
+        "/api/events/",
+        headers=auth(token),
+        json={
+            "campaign": setup.json()["id"],
+            "ward": str(world.other_ward.id),
+            "mobilizer": str(world.mobilizer.id),
+            "title": "Borrowed Organizer",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "No such mobilizer on this campaign." in response.json()["detail"]
+
+
+async def test_a_signed_out_write_cannot_reach_a_campaign_nobody_is_on(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """A campaign with no members is the superuser's to repair, not the internet's."""
+    await session.execute(
+        delete(CampaignMember).where(CampaignMember.campaign_id == world.campaign.id)
+    )
+    await session.commit()
+
+    response = await client.post(
+        "/api/supporters/",
+        json={
+            "campaign": str(world.campaign.id),
+            "full_name": "Walk In",
+            "consent_given": True,
+        },
+    )
+
+    assert response.status_code == 401
+    assert not await session.scalar(select(Supporter).where(Supporter.full_name == "Walk In"))
+
+
+async def test_a_rival_campaign_cannot_write_into_this_register_with_its_id(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await make_user(session, username="rival", role=UserRole.MANAGER)
+    await session.commit()
+    token = await sign_in(client, "rival")
+
+    response = await client.post(
+        "/api/supporters/",
+        headers=auth(token),
+        json={
+            "campaign": str(world.campaign.id),
+            "full_name": "Planted",
+            "consent_given": True,
+        },
+    )
+
+    assert response.status_code == 404
+    assert not await session.scalar(select(Supporter).where(Supporter.full_name == "Planted"))
+
+
+async def test_a_mobilizer_login_from_another_campaign_cannot_be_planted_here(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """Their ward scoping lives on their own campaign; a second row would break it."""
+    from backend.api.scope import add_member
+    from backend.models import Campaign, OfficeLevel
+
+    outsider = await make_user(session, username="theirs", role=UserRole.MOBILIZER)
+    owner = await make_user(session, username="rival_boss", role=UserRole.CANDIDATE)
+    await session.flush()
+    theirs = Campaign(
+        title="Rival for Githurai",
+        office_level=OfficeLevel.WARD,
+        ward_id=world.other_ward.id,
+    )
+    session.add(theirs)
+    await session.flush()
+    await add_member(session, theirs.id, owner.id)
+    await add_member(session, theirs.id, outsider.id)
+    await session.commit()
+
+    refused = await client.post(
+        "/api/mobilizers/",
+        headers=world.headers("manager"),
+        json={
+            "campaign": str(world.campaign.id),
+            "ward": str(world.ward.id),
+            "user": str(outsider.id),
+            "full_name": "Planted Organizer",
+            "phone": "+254700999888",
+        },
+    )
+
+    assert refused.status_code == 400
+    assert not await session.scalar(
+        select(Mobilizer).where(Mobilizer.full_name == "Planted Organizer")
+    )
+
+
+async def test_taking_a_mobilizer_off_the_ground_takes_the_campaign_with_it(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """Their ward went with the row, so the campaign would read as empty."""
+    token = await sign_in(client, "juma")
+    assert (await client.get("/api/campaigns/", headers=auth(token))).json() != []
+
+    gone = await client.delete(
+        f"/api/mobilizers/{world.mobilizer.id}/", headers=world.headers("manager")
+    )
+
+    assert gone.status_code == 204
+    again = await sign_in(client, "juma")
+    assert (await client.get("/api/campaigns/", headers=auth(again))).json() == []
+
+
+async def test_taking_a_ground_row_off_does_not_take_the_candidate_off_their_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """A legacy ground row can belong to a candidate or a manager.
+
+    The route that wrote `mobilizers.user_id` never checked the role, so the
+    backfill puts such a person on as what their login says. Deleting the ground
+    row must take the ward away, not the campaign.
+    """
+    session.add(
+        Mobilizer(
+            campaign_id=world.campaign.id,
+            ward_id=world.ward.id,
+            user_id=world.candidate.id,
+            full_name="Jane On The Ground",
+            phone="+254700555666",
+        )
+    )
+    await session.commit()
+    theirs = await session.scalar(select(Mobilizer).where(Mobilizer.user_id == world.candidate.id))
+
+    gone = await client.delete(f"/api/mobilizers/{theirs.id}/", headers=world.headers("manager"))
+
+    assert gone.status_code == 204
+    still_on = await session.scalar(
+        select(CampaignMember).where(
+            CampaignMember.campaign_id == world.campaign.id,
+            CampaignMember.user_id == world.candidate.id,
+        )
+    )
+    assert still_on is not None, "the candidate was taken off their own campaign"
+    token = await sign_in(client, "jane")
+    assert [c["id"] for c in (await client.get("/api/campaigns/", headers=auth(token))).json()] == [
+        str(world.campaign.id)
+    ]

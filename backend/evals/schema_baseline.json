@@ -13,7 +13,8 @@
     "User.groups": "permission tables, replaced by User.role",
     "User.user_permissions": "permission tables, replaced by User.role",
     "User.date_joined": "now created_at, the same name every table uses",
-    "User.last_login": "now last_login_at, matching the other timestamps"
+    "User.last_login": "now last_login_at, matching the other timestamps",
+    "Campaign.candidate": "now the campaign_members row whose role is candidate"
   },
   "models": {
     "User": {

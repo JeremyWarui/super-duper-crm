@@ -57,9 +57,7 @@ async def test_a_cockroach_dsn_builds_an_async_engine(monkeypatch: pytest.Monkey
     cannot read "CockroachDB CCL v26.2.5 ..." as a version. No connection is
     made here; this only proves the dialect resolves and is async.
     """
-    monkeypatch.setenv(
-        "DATABASE_URL", "cockroachdb+asyncpg://u:p@host:26257/defaultdb?ssl=require"
-    )
+    monkeypatch.setenv("DATABASE_URL", "cockroachdb+asyncpg://u:p@host:26257/defaultdb?ssl=require")
     for cached in (get_settings, get_engine, get_sessionmaker):
         cached.cache_clear()
 

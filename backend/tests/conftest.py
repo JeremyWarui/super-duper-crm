@@ -119,6 +119,7 @@ class World:
 @pytest.fixture
 async def world(session: AsyncSession, client: httpx.AsyncClient) -> World:
     """Roysambu MP: two wards, one staffed by a mobilizer, targets already built."""
+    from backend.api.scope import add_member
     from backend.models import (
         Campaign,
         Constituency,
@@ -154,12 +155,14 @@ async def world(session: AsyncSession, client: httpx.AsyncClient) -> World:
     mobilizer_user = await make_user(session, username="juma", role=UserRole.MOBILIZER)
 
     campaign = Campaign(
-        candidate=candidate,
         title="Jane for Roysambu",
         office_level=OfficeLevel.CONSTITUENCY,
         constituency_id=constituency.id,
     )
     session.add(campaign)
+    await session.flush()
+    for member in (candidate, manager, mobilizer_user):
+        await add_member(session, campaign.id, member.id)
     await session.commit()
     await generate_targets(session, campaign)
 

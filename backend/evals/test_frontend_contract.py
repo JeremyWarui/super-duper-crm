@@ -22,6 +22,7 @@ READS = sorted(CONTRACT["reads"])
 NESTED = sorted(CONTRACT["nested_reads"])
 WRITES = sorted(CONTRACT["writes"])
 ENUMS = sorted(CONTRACT["enums"])
+NO_CONTENT = sorted(CONTRACT["no_content"]["routes"])
 
 
 def _resolve(schema: dict[str, Any]) -> dict[str, Any]:
@@ -114,8 +115,14 @@ def test_the_stored_choice_strings_are_unchanged(key: str) -> None:
     assert sorted(m.value for m in live) == sorted(CONTRACT["enums"][key])
 
 
+@pytest.mark.parametrize("route", NO_CONTENT)
+def test_every_route_that_answers_with_nothing_still_does(route: str) -> None:
+    operation = _operation(route)
+    assert "204" in operation["responses"], f"{route} no longer answers 204"
+
+
 def test_the_routes_the_spa_calls_all_exist() -> None:
-    called = set(CONTRACT["reads"]) | set(CONTRACT["writes"])
+    called = set(CONTRACT["reads"]) | set(CONTRACT["writes"]) | set(NO_CONTENT)
     for route in sorted(called):
         # A "." names a field inside a body, not a route of its own.
         if "." not in route.split(" ", 1)[1]:

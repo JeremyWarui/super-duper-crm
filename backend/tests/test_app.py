@@ -39,12 +39,10 @@ async def test_health(client: httpx.AsyncClient) -> None:
     assert response.json()["status"] == "ok"
 
 
-async def test_every_route_but_health_is_under_the_api_prefix(
-    client: httpx.AsyncClient,
-) -> None:
-    response = await client.get("/openapi.json")
-    assert response.status_code == 200
-    paths = set(response.json()["paths"])
+async def test_every_route_but_health_is_under_the_api_prefix() -> None:
+    """Read in the process: the schema is not served at all outside development."""
+    paths = set(app.openapi()["paths"])
+
     assert "/health" in paths
     assert {p for p in paths if p != "/health"} == {p for p in paths if p.startswith("/api/")}
 
@@ -82,7 +80,6 @@ async def test_the_spa_does_not_shadow_the_api_or_the_docs(tmp_path: Path) -> No
     async for built in _client_with_static(tmp_path):
         assert (await built.get("/health")).json()["status"] == "ok"
         assert (await built.get("/api/campaigns/")).status_code == 401
-        assert (await built.get("/openapi.json")).status_code == 200
 
 
 async def test_a_missing_static_dir_fails_at_startup(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -92,5 +89,68 @@ async def test_a_missing_static_dir_fails_at_startup(monkeypatch: pytest.MonkeyP
     try:
         with pytest.raises(RuntimeError, match="not a directory"):
             create_app()
+    finally:
+        get_settings.cache_clear()
+
+
+# --------------------------------------------------- what a deploy serves
+
+
+async def _built(monkeypatch: pytest.MonkeyPatch, *, debug: str) -> httpx.AsyncClient:
+    monkeypatch.setenv("DEBUG", debug)
+    get_settings.cache_clear()
+    built = create_app()
+    return built
+
+
+@pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
+async def test_the_interactive_docs_are_a_development_tool(
+    monkeypatch: pytest.MonkeyPatch, path: str
+) -> None:
+    """They describe every route and field, so a deploy does not serve them."""
+    try:
+        on = await _built(monkeypatch, debug="true")
+        transport = httpx.ASGITransport(app=on)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            assert (await client.get(path)).status_code == 200, f"{path} in development"
+
+        off = await _built(monkeypatch, debug="false")
+        transport = httpx.ASGITransport(app=off)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            assert (await client.get(path)).status_code == 404, f"{path} on a deploy"
+    finally:
+        get_settings.cache_clear()
+
+
+async def test_the_schema_is_still_built_in_the_process_with_the_docs_off(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The contract checks read it this way, so closing the route must not close it."""
+    try:
+        off = await _built(monkeypatch, debug="false")
+        paths = off.openapi()["paths"]
+    finally:
+        get_settings.cache_clear()
+
+    assert "/api/campaigns/" in paths
+    assert len(paths) > 20
+
+
+async def test_a_deploy_does_not_answer_the_route_the_docs_are_built_from(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """With the SPA mounted at "/", an unknown path must not fall through to it."""
+    (tmp_path / "index.html").write_text("<h1>war room</h1>", encoding="utf-8")
+    monkeypatch.setenv("DEBUG", "false")
+    monkeypatch.setenv("STATIC_DIR", str(tmp_path))
+    get_settings.cache_clear()
+    try:
+        built = create_app()
+        transport = httpx.ASGITransport(app=built)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            served = await client.get("/openapi.json")
+            # The SPA answers it, and what it answers is not the schema.
+            assert "paths" not in served.text
+            assert (await client.get("/api/campaigns/")).status_code == 401
     finally:
         get_settings.cache_clear()

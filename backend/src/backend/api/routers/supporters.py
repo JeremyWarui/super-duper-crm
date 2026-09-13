@@ -1,4 +1,4 @@
-"""The supporter register. Signing up is open; reading it is not."""
+"""The supporter register, for the campaign the caller is on."""
 
 import uuid
 
@@ -6,17 +6,17 @@ from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import select
 
 from backend.api.deps import (
-    NOT_AUTHENTICATED,
     CurrentUser,
-    OptionalUser,
     SessionDep,
     mobilizer_ward_id,
 )
 from backend.api.scope import (
     limit_to_campaigns,
     mobilizer_profile_for,
+    require_campaign_mobilizer,
     require_own_ward,
     require_visible_campaign,
+    require_ward_in_campaign,
     visible_campaign_ids,
 )
 from backend.models import Supporter, User, UserRole
@@ -50,21 +50,30 @@ async def list_supporters(
 
 @router.post("/", response_model=SupporterRead, status_code=status.HTTP_201_CREATED)
 async def register_supporter(
-    payload: SupporterCreate, session: SessionDep, user: OptionalUser
+    payload: SupporterCreate, session: SessionDep, user: CurrentUser
 ) -> Supporter:
-    """Sign someone up. Open, so a signed-out field form works."""
+    """Sign someone up, into the caller's own campaign.
+
+    The campaign is named in the body, so without a signed-in caller to check it
+    against, anyone holding a campaign's id could write into its register.
+    """
+    campaign = await require_visible_campaign(session, user, payload.campaign)
+    await require_campaign_mobilizer(session, payload.campaign, payload.mobilizer)
+
+    profile = await mobilizer_profile_for(session, user)
     mobilizer_id = payload.mobilizer
-    if user is not None:
-        await require_visible_campaign(session, user, payload.campaign)
-        if payload.ward is not None:
-            require_own_ward(user, payload.ward)
-        profile = await mobilizer_profile_for(session, user)
-        if profile is not None:
-            mobilizer_id = payload.mobilizer or profile.id
+    ward_id = payload.ward
+    if profile is not None and profile.campaign_id == payload.campaign:
+        mobilizer_id = payload.mobilizer or profile.id
+        # A mobilizer reads only their own ward, so what they register lands in it.
+        ward_id = payload.ward or profile.ward_id
+    if ward_id is not None:
+        require_own_ward(user, ward_id)
+        await require_ward_in_campaign(session, campaign, ward_id)
 
     supporter = Supporter(
         campaign_id=payload.campaign,
-        ward_id=payload.ward,
+        ward_id=ward_id,
         mobilizer_id=mobilizer_id,
         full_name=payload.full_name,
         phone=payload.phone,
@@ -78,11 +87,9 @@ async def register_supporter(
 
 @router.delete("/{supporter_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_supporter(
-    supporter_id: uuid.UUID, session: SessionDep, user: OptionalUser
+    supporter_id: uuid.UUID, session: SessionDep, user: CurrentUser
 ) -> Response:
     """Erase someone's details. The team only."""
-    if user is None:
-        raise NOT_AUTHENTICATED
     if user.role not in READERS:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, "The supporter register is for the campaign team."

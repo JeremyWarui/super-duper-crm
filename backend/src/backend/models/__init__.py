@@ -19,15 +19,17 @@ from backend.models.geography import (
     RegistrationCentre,
     Ward,
 )
+from backend.models.membership import CampaignMember
 from backend.models.mobilizer import Mobilizer
 from backend.models.supporter import Supporter
 from backend.models.target import Target, compute_win_number
-from backend.models.user import User
+from backend.models.user import User, member_refusal
 
 __all__ = [
     "AuthToken",
     "Base",
     "Campaign",
+    "CampaignMember",
     "Constituency",
     "County",
     "Event",
@@ -42,6 +44,7 @@ __all__ = [
     "Supporter",
     "Target",
     "User",
+    "member_refusal",
     "UserRole",
     "Ward",
     "compute_win_number",

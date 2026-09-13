@@ -154,8 +154,27 @@ def _signup(**overrides) -> dict:
     return body
 
 
+@pytest.fixture
+def sign_up_open(monkeypatch: pytest.MonkeyPatch):
+    """Sign-up is off unless a deployment turns it on, so these tests turn it on."""
+    monkeypatch.setenv("ALLOW_REGISTRATION", "true")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+async def test_a_deployment_that_says_nothing_does_not_take_sign_ups(
+    client: httpx.AsyncClient,
+) -> None:
+    """The default is what a deploy gets when nobody sets ALLOW_REGISTRATION."""
+    response = await client.post("/api/auth/register/", json=_signup())
+
+    assert response.status_code == 403
+    assert "invitation" in response.json()["detail"]
+
+
 async def test_signing_up_creates_the_account_and_signs_it_in(
-    client: httpx.AsyncClient, session: AsyncSession
+    client: httpx.AsyncClient, session: AsyncSession, sign_up_open
 ) -> None:
     response = await client.post("/api/auth/register/", json=_signup())
 
@@ -172,7 +191,9 @@ async def test_signing_up_creates_the_account_and_signs_it_in(
     assert not created.is_superuser
 
 
-async def test_the_token_it_returns_works_straight_away(client: httpx.AsyncClient) -> None:
+async def test_the_token_it_returns_works_straight_away(
+    client: httpx.AsyncClient, sign_up_open
+) -> None:
     """The browser goes to setup without a second round trip."""
     token = (await client.post("/api/auth/register/", json=_signup())).json()["token"]
 
@@ -181,7 +202,7 @@ async def test_the_token_it_returns_works_straight_away(client: httpx.AsyncClien
     ).status_code == 200
 
 
-async def test_a_manager_may_sign_up_too(client: httpx.AsyncClient) -> None:
+async def test_a_manager_may_sign_up_too(client: httpx.AsyncClient, sign_up_open) -> None:
     response = await client.post("/api/auth/register/", json=_signup(role="manager"))
 
     assert response.status_code == 201
@@ -195,7 +216,9 @@ async def test_a_mobilizer_cannot_sign_up(client: httpx.AsyncClient) -> None:
     ).status_code == 400
 
 
-async def test_signing_up_on_a_taken_username_is_refused(client: httpx.AsyncClient) -> None:
+async def test_signing_up_on_a_taken_username_is_refused(
+    client: httpx.AsyncClient, sign_up_open
+) -> None:
     assert (await client.post("/api/auth/register/", json=_signup())).status_code == 201
 
     response = await client.post("/api/auth/register/", json=_signup(role="manager"))
@@ -205,7 +228,7 @@ async def test_signing_up_on_a_taken_username_is_refused(client: httpx.AsyncClie
 
 
 async def test_the_password_it_stores_is_hashed(
-    client: httpx.AsyncClient, session: AsyncSession
+    client: httpx.AsyncClient, session: AsyncSession, sign_up_open
 ) -> None:
     await client.post("/api/auth/register/", json=_signup())
 

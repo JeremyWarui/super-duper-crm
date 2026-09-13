@@ -6,9 +6,17 @@ import { describe, expect, it } from "vitest";
 
 const src = (path) => readFileSync(resolve(process.cwd(), "src", path), "utf8");
 
-const SOURCES = ["App.jsx", "main.jsx", "components/Login.jsx", "components/Onboarding.jsx"];
+// Read off the tree rather than listed: a component added later is covered
+// without anybody remembering to add it here, which is how Admin.jsx shipped
+// using three class names the stylesheet had never heard of.
+const SOURCES = globSync("**/*.jsx", { cwd: resolve(process.cwd(), "src") })
+  .map((path) => path.replaceAll("\\", "/"))
+  .sort();
 const STYLESHEET = src("index.css");
-const CSS_TARGET = readFileSync(resolve(process.cwd(), "vite.config.js"), "utf8");
+const CSS_TARGET = readFileSync(
+  resolve(process.cwd(), "vite.config.js"),
+  "utf8",
+);
 
 function classesUsed() {
   const found = new Set();
@@ -34,13 +42,17 @@ describe("the stylesheet", () => {
   it("defines every class the components use", () => {
     const defined = classesDefined();
     const missing = classesUsed().filter((name) => !defined.has(name));
-    expect(missing, `src/index.css is missing ${missing.join(", ")}`).toEqual([]);
+    expect(missing, `src/index.css is missing ${missing.join(", ")}`).toEqual(
+      [],
+    );
   });
 
   it("defines nothing the components do not use", () => {
     const used = new Set(classesUsed());
     const unused = [...classesDefined()].filter((name) => !used.has(name));
-    expect(unused, `src/index.css defines unused ${unused.join(", ")}`).toEqual([]);
+    expect(unused, `src/index.css defines unused ${unused.join(", ")}`).toEqual(
+      [],
+    );
   });
 
   it("borders and padding count inside an element's width", () => {
@@ -81,12 +93,18 @@ describe("fitting the design to the window", () => {
 
   it("still identifies the shell by the classes it carries", () => {
     // The stylesheet reaches them through `.mx-auto:not(.flex)`.
-    expect(app).toContain('className="mx-auto" style={{ maxWidth: 1200, display: "flex" }}');
-    expect(app).toMatch(/className="mx-auto flex[^"]*" style=\{\{ maxWidth: 1200 \}\}/);
+    expect(app).toContain(
+      'className="mx-auto" style={{ maxWidth: 1200, display: "flex" }}',
+    );
+    expect(app).toMatch(
+      /className="mx-auto flex[^"]*" style=\{\{ maxWidth: 1200 \}\}/,
+    );
   });
 
   it("still has the rail first and the page second inside the shell", () => {
-    const shell = app.slice(app.indexOf('className="mx-auto" style={{ maxWidth: 1200'));
+    const shell = app.slice(
+      app.indexOf('className="mx-auto" style={{ maxWidth: 1200'),
+    );
     const rail = shell.indexOf("width: 210, flexShrink: 0");
     const page = shell.indexOf("flex: 1, minWidth: 0");
     expect(rail).toBeGreaterThan(-1);
@@ -94,16 +112,23 @@ describe("fitting the design to the window", () => {
   });
 
   it("leaves the drawing untouched at the width it was drawn for", () => {
-    const zooms = [...STYLESHEET.matchAll(/@media\s*\(([^)]+)\)\s*\{[^@]*?zoom:/g)];
+    const zooms = [
+      ...STYLESHEET.matchAll(/@media\s*\(([^)]+)\)\s*\{[^@]*?zoom:/g),
+    ];
     expect(zooms.length).toBeGreaterThan(0);
     for (const [, condition] of zooms) {
-      expect(condition, `${condition} would scale a large screen`).toContain("max-width");
+      expect(condition, `${condition} would scale a large screen`).toContain(
+        "max-width",
+      );
     }
   });
 
   it("scales down as the window narrows, never up", () => {
-    const tiers = [...STYLESHEET.matchAll(/@media\s*\(max-width:\s*(\d+)px\)\s*\{\s*#root\s*\{\s*zoom:\s*([\d.]+)/g)]
-      .map(([, width, zoom]) => ({ width: Number(width), zoom: Number(zoom) }));
+    const tiers = [
+      ...STYLESHEET.matchAll(
+        /@media\s*\(max-width:\s*(\d+)px\)\s*\{\s*#root\s*\{\s*zoom:\s*([\d.]+)/g,
+      ),
+    ].map(([, width, zoom]) => ({ width: Number(width), zoom: Number(zoom) }));
     expect(tiers.length).toBeGreaterThanOrEqual(3);
     for (const tier of tiers) {
       expect(tier.zoom).toBeGreaterThan(0.5);
@@ -113,7 +138,9 @@ describe("fitting the design to the window", () => {
 
   it("stacks the rail above the page on a narrow screen", () => {
     expect(STYLESHEET).toMatch(/@media\s*\(max-width:\s*860px\)/);
-    expect(STYLESHEET).toMatch(/\.mx-auto:not\(\.flex\)\s*\{\s*display:\s*block\s*!important/);
+    expect(STYLESHEET).toMatch(
+      /\.mx-auto:not\(\.flex\)\s*\{\s*display:\s*block\s*!important/,
+    );
   });
 
   it("turns the stacked nav into a row that scrolls", () => {
@@ -136,7 +163,9 @@ describe("filling a wide window", () => {
   it("lets the shell past the 1200px the design was drawn at", () => {
     expect(src("App.jsx")).toContain("maxWidth: 1200");
     expect(STYLESHEET).toMatch(/@media\s*\(min-width:\s*1441px\)/);
-    expect(STYLESHEET).toMatch(/max-width:\s*min\(1720px,\s*calc\(100vw - 96px\)\)\s*!important/);
+    expect(STYLESHEET).toMatch(
+      /max-width:\s*min\(1720px,\s*calc\(100vw - 96px\)\)\s*!important/,
+    );
   });
 
   it("keeps a gutter rather than running to the edge", () => {
@@ -147,7 +176,11 @@ describe("filling a wide window", () => {
   it("widens only above the width the scale tiers cover", () => {
     const widen = STYLESHEET.indexOf("min-width: 1441px");
     expect(widen).toBeGreaterThan(-1);
-    const zoomTiers = [...STYLESHEET.matchAll(/@media\s*\(max-width:\s*(\d+)px\)\s*\{\s*#root\s*\{\s*zoom:/g)];
+    const zoomTiers = [
+      ...STYLESHEET.matchAll(
+        /@media\s*\(max-width:\s*(\d+)px\)\s*\{\s*#root\s*\{\s*zoom:/g,
+      ),
+    ];
     for (const [, width] of zoomTiers) {
       expect(Number(width)).toBeLessThan(1441);
     }
@@ -163,16 +196,21 @@ describe("filling a wide window", () => {
  */
 describe("the built stylesheet", () => {
   it("keeps media queries in syntax Safari 15 can parse", () => {
-    const target = CSS_TARGET.match(/cssTarget:\s*\[([^\]]+)\]/)[1].replace(/["'\s]/g, "");
+    const target = CSS_TARGET.match(/cssTarget:\s*\[([^\]]+)\]/)[1].replace(
+      /["'\s]/g,
+      "",
+    );
 
     // The platform binary, not the JS API: the API will not start under jsdom,
     // and node refuses to spawn the .cmd shim without a shell.
-    const [binary] = globSync("node_modules/@esbuild/*/esbuild*", { cwd: process.cwd() });
-    const built = execFileSync(resolve(process.cwd(), binary), [
-      "--loader=css",
-      "--minify",
-      `--target=${target}`,
-    ], { input: STYLESHEET, encoding: "utf8" });
+    const [binary] = globSync("node_modules/@esbuild/*/esbuild*", {
+      cwd: process.cwd(),
+    });
+    const built = execFileSync(
+      resolve(process.cwd(), binary),
+      ["--loader=css", "--minify", `--target=${target}`],
+      { input: STYLESHEET, encoding: "utf8" },
+    );
 
     expect(built).toContain("max-width:860px");
     expect(built).not.toMatch(/width\s*<=/);

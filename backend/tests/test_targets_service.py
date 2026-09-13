@@ -12,7 +12,6 @@ from backend.models import (
     OperationalGrain,
     RegistrationCentre,
     Target,
-    User,
     Ward,
 )
 from backend.models.campaign import Campaign
@@ -32,10 +31,7 @@ async def _county(session: AsyncSession, turnout: str | None = "60.00") -> Count
 
 
 async def _campaign(session: AsyncSession, office_level: OfficeLevel, **area) -> Campaign:
-    candidate = User(username=f"candidate-{office_level.value}")
-    campaign = Campaign(
-        candidate=candidate, title="Test campaign", office_level=office_level, **area
-    )
+    campaign = Campaign(title="Test campaign", office_level=office_level, **area)
     session.add(campaign)
     await session.commit()
     return campaign

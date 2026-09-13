@@ -7,13 +7,14 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.api.scope import add_member
 from backend.config import get_settings
-from backend.models import Mobilizer, User, UserRole
+from backend.models import Campaign, Mobilizer, OfficeLevel, User, UserRole
 from tests.conftest import World
-from tests.factories import auth, sign_in
+from tests.factories import auth, make_user, sign_in
 
 
-def _manager(**overrides) -> dict:
+def _manager(campaign=None, **overrides) -> dict:
     body = {
         "username": "brian",
         "role": "manager",
@@ -21,6 +22,8 @@ def _manager(**overrides) -> dict:
         "last_name": "Kariuki",
         "phone": "+254700111222",
     }
+    if campaign is not None:
+        body["campaign"] = str(campaign)
     body.update(overrides)
     return body
 
@@ -45,10 +48,14 @@ async def test_adding_someone_needs_a_token(client: httpx.AsyncClient) -> None:
     assert (await client.post("/api/users/", json=_manager())).status_code == 401
 
 
-async def test_a_candidate_can_add_their_campaign_manager(
+async def test_a_manager_can_add_another_manager(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    response = await client.post("/api/users/", headers=world.headers("candidate"), json=_manager())
+    response = await client.post(
+        "/api/users/",
+        headers=world.headers("manager"),
+        json=_manager(world.campaign.id),
+    )
 
     assert response.status_code == 201
     assert response.json()["role"] == "manager"
@@ -67,7 +74,11 @@ async def test_a_manager_can_add_a_mobilizer(
 
 
 async def test_a_mobilizer_may_not_add_anyone(client: httpx.AsyncClient, world: World) -> None:
-    response = await client.post("/api/users/", headers=world.headers("mobilizer"), json=_manager())
+    response = await client.post(
+        "/api/users/",
+        headers=world.headers("mobilizer"),
+        json=_manager(world.campaign.id),
+    )
     assert response.status_code == 403
 
 
@@ -82,7 +93,11 @@ async def test_the_password_comes_back_once_and_signs_them_in(
     client: httpx.AsyncClient, world: World
 ) -> None:
     created = (
-        await client.post("/api/users/", headers=world.headers("candidate"), json=_manager())
+        await client.post(
+            "/api/users/",
+            headers=world.headers("manager"),
+            json=_manager(world.campaign.id),
+        )
     ).json()
 
     token = await sign_in(client, "brian", created["password"])
@@ -95,8 +110,8 @@ async def test_the_password_is_generated_not_chosen(
 ) -> None:
     response = await client.post(
         "/api/users/",
-        headers=world.headers("candidate"),
-        json=_manager(password="hunter2"),
+        headers=world.headers("manager"),
+        json=_manager(world.campaign.id, password="hunter2"),
     )
     assert response.status_code == 400
 
@@ -105,11 +120,17 @@ async def test_two_accounts_do_not_share_a_password(
     client: httpx.AsyncClient, world: World
 ) -> None:
     first = (
-        await client.post("/api/users/", headers=world.headers("candidate"), json=_manager())
+        await client.post(
+            "/api/users/",
+            headers=world.headers("manager"),
+            json=_manager(world.campaign.id),
+        )
     ).json()
     second = (
         await client.post(
-            "/api/users/", headers=world.headers("candidate"), json=_manager(username="carol")
+            "/api/users/",
+            headers=world.headers("manager"),
+            json=_manager(world.campaign.id, username="carol"),
         )
     ).json()
 
@@ -125,7 +146,11 @@ async def test_the_default_password_is_handed_to_everyone_onboarded(
     get_settings.cache_clear()
     try:
         created = (
-            await client.post("/api/users/", headers=world.headers("candidate"), json=_manager())
+            await client.post(
+                "/api/users/",
+                headers=world.headers("manager"),
+                json=_manager(world.campaign.id),
+            )
         ).json()
     finally:
         get_settings.cache_clear()
@@ -138,7 +163,11 @@ async def test_the_password_is_not_readable_afterwards(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     created = (
-        await client.post("/api/users/", headers=world.headers("candidate"), json=_manager())
+        await client.post(
+            "/api/users/",
+            headers=world.headers("manager"),
+            json=_manager(world.campaign.id),
+        )
     ).json()
 
     listed = (await client.get("/api/users/", headers=world.headers("candidate"))).json()
@@ -187,7 +216,11 @@ async def test_a_mobilizer_without_a_ward_is_refused(
 
 async def test_a_manager_gets_no_ground_team_row(client: httpx.AsyncClient, world: World) -> None:
     created = (
-        await client.post("/api/users/", headers=world.headers("candidate"), json=_manager())
+        await client.post(
+            "/api/users/",
+            headers=world.headers("manager"),
+            json=_manager(world.campaign.id),
+        )
     ).json()
     assert created["mobilizer"] is None
     assert created["ward_name"] is None
@@ -217,10 +250,16 @@ async def test_an_unknown_ward_is_refused(client: httpx.AsyncClient, world: Worl
 
 
 async def test_a_username_already_taken_says_so(client: httpx.AsyncClient, world: World) -> None:
-    await client.post("/api/users/", headers=world.headers("candidate"), json=_manager())
+    await client.post(
+        "/api/users/",
+        headers=world.headers("manager"),
+        json=_manager(world.campaign.id),
+    )
 
     response = await client.post(
-        "/api/users/", headers=world.headers("candidate"), json=_manager(first_name="Someone")
+        "/api/users/",
+        headers=world.headers("manager"),
+        json=_manager(world.campaign.id, first_name="Someone"),
     )
 
     assert response.status_code == 400
@@ -232,7 +271,9 @@ async def test_a_username_with_spaces_or_symbols_is_refused(
 ) -> None:
     for bad in ["a b", "amina!", "amina@example.com", "am"]:
         response = await client.post(
-            "/api/users/", headers=world.headers("candidate"), json=_manager(username=bad)
+            "/api/users/",
+            headers=world.headers("manager"),
+            json=_manager(str(world.campaign.id), username=bad),
         )
         assert response.status_code == 400, bad
 
@@ -241,14 +282,18 @@ async def test_a_candidate_cannot_be_created_this_way(
     client: httpx.AsyncClient, world: World
 ) -> None:
     response = await client.post(
-        "/api/users/", headers=world.headers("candidate"), json=_manager(role="candidate")
+        "/api/users/",
+        headers=world.headers("manager"),
+        json=_manager(str(world.campaign.id), role="candidate"),
     )
     assert response.status_code == 400
 
 
 async def test_a_superuser_cannot_be_asked_for(client: httpx.AsyncClient, world: World) -> None:
     response = await client.post(
-        "/api/users/", headers=world.headers("candidate"), json=_manager(is_superuser=True)
+        "/api/users/",
+        headers=world.headers("manager"),
+        json=_manager(world.campaign.id, is_superuser=True),
     )
     assert response.status_code == 400
 
@@ -260,7 +305,11 @@ async def test_a_login_can_be_removed(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     created = (
-        await client.post("/api/users/", headers=world.headers("candidate"), json=_manager())
+        await client.post(
+            "/api/users/",
+            headers=world.headers("manager"),
+            json=_manager(world.campaign.id),
+        )
     ).json()
 
     response = await client.delete(
@@ -325,3 +374,121 @@ async def test_the_team_list_names_everyone_without_their_hashes(
         UserRole.MANAGER.value,
         UserRole.MOBILIZER.value,
     }
+
+
+# ------------------------------------------------------- who the team is for
+
+
+async def test_a_created_manager_joins_the_campaign_rather_than_an_empty_app(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    theirs = str(world.campaign.id)
+    created = (
+        await client.post("/api/users/", headers=world.headers("manager"), json=_manager(theirs))
+    ).json()
+
+    token = await sign_in(client, "brian", created["password"])
+    listed = (await client.get("/api/campaigns/", headers=auth(token))).json()
+
+    assert [c["id"] for c in listed] == [theirs]
+
+
+async def test_a_manager_with_no_campaign_is_refused(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    response = await client.post("/api/users/", headers=world.headers("manager"), json=_manager())
+
+    assert response.status_code == 400
+    assert "sign in to nothing" in response.json()["detail"]
+
+
+async def test_a_manager_cannot_be_added_to_a_campaign_the_caller_cannot_see(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """A campaign that exists and belongs to somebody else, not a made-up id."""
+    stranger = await make_user(session, username="stranger", role=UserRole.MANAGER)
+    theirs = Campaign(
+        title="Not Yours",
+        office_level=OfficeLevel.WARD,
+        ward_id=world.other_ward.id,
+    )
+    session.add(theirs)
+    await session.flush()
+    await add_member(session, theirs.id, stranger.id)
+    await session.commit()
+
+    response = await client.post(
+        "/api/users/", headers=world.headers("manager"), json=_manager(theirs.id)
+    )
+
+    assert response.status_code == 404
+
+
+async def test_a_fresh_manager_sees_only_themselves_so_setup_asks_for_a_new_aspirant(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """An empty aspirant list is what sends the sign-up flow to the new-aspirant form."""
+    from tests.factories import make_user
+
+    await make_user(session, username="newmanager", role=UserRole.MANAGER)
+    token = await sign_in(client, "newmanager")
+
+    aspirants = (await client.get("/api/users/?role=candidate", headers=auth(token))).json()
+    everyone = (await client.get("/api/users/", headers=auth(token))).json()
+
+    assert aspirants == []
+    assert [u["username"] for u in everyone] == ["newmanager"]
+
+
+async def test_a_manager_sees_the_team_of_the_campaign_they_run(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    listed = (await client.get("/api/users/", headers=world.headers("manager"))).json()
+
+    assert sorted(u["username"] for u in listed) == ["amina", "jane", "juma"]
+
+
+async def test_a_manager_cannot_remove_somebody_on_another_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    from tests.factories import make_user
+
+    await make_user(session, username="rival", role=UserRole.MANAGER)
+    token = await sign_in(client, "rival")
+
+    response = await client.delete(f"/api/users/{world.mobilizer_user.id}/", headers=auth(token))
+
+    assert response.status_code == 404
+
+
+async def test_a_candidate_may_not_appoint_a_manager(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    """The manager runs the campaign, so the manager builds the team."""
+    response = await client.post(
+        "/api/users/", headers=world.headers("candidate"), json=_manager(world.campaign.id)
+    )
+
+    assert response.status_code == 403
+    assert "Only a campaign manager may add another" in response.json()["detail"]
+
+
+async def test_adding_a_colleague_does_not_evict_the_manager_doing_it(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """The whole point of a membership row rather than a column."""
+    before = (await client.get("/api/campaigns/", headers=world.headers("manager"))).json()
+
+    response = await client.post(
+        "/api/users/",
+        headers=world.headers("manager"),
+        json=_manager(str(world.campaign.id), username="colleague"),
+    )
+    assert response.status_code == 201, response.text
+
+    after = (await client.get("/api/campaigns/", headers=world.headers("manager"))).json()
+    assert [c["id"] for c in after] == [c["id"] for c in before]
+
+    token = await sign_in(client, "colleague", response.json()["password"])
+    theirs = (await client.get("/api/campaigns/", headers=auth(token))).json()
+    assert [c["id"] for c in theirs] == [str(world.campaign.id)]

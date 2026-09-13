@@ -10,8 +10,10 @@ from backend.api.deps import CurrentUser, MobilizerWriter, SessionDep, mobilizer
 from backend.api.scope import (
     limit_to_campaigns,
     mobilizer_profile_for,
+    require_campaign_mobilizer,
     require_own_ward,
     require_visible_campaign,
+    require_ward_in_campaign,
     visible_campaign_ids,
 )
 from backend.models import Event, EventStatus, Supporter, User
@@ -54,16 +56,19 @@ async def create_event(
     user: CurrentUser,
     _: MobilizerWriter,
 ) -> Event:
-    await require_visible_campaign(session, user, payload.campaign)
+    campaign = await require_visible_campaign(session, user, payload.campaign)
     require_own_ward(user, payload.ward)
+    await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
+    await require_campaign_mobilizer(session, payload.campaign, payload.mobilizer)
 
     profile = await mobilizer_profile_for(session, user)
+    # A mobilizer's own event is credited to their ground row on this campaign.
+    own = profile if profile is not None and profile.campaign_id == payload.campaign else None
     event = Event(
         campaign_id=payload.campaign,
         ward_id=payload.ward,
         registration_centre_id=payload.registration_centre,
-        # A mobilizer's own event is credited to them.
-        mobilizer_id=payload.mobilizer or (profile.id if profile is not None else None),
+        mobilizer_id=payload.mobilizer or (own.id if own is not None else None),
         title=payload.title,
         venue=payload.venue,
         scheduled_date=payload.scheduled_date,

@@ -41,9 +41,11 @@ class Settings(BaseSettings):
     # CORS stops mattering. Blank serves the API alone, which is how dev runs.
     static_dir: str = ""
 
-    # Whether POST /api/auth/register/ answers. Off closes self-serve sign-up
-    # without a deploy, leaving the invite routes working.
-    allow_registration: bool = True
+    # Whether POST /api/auth/register/ answers. Off by default: a deployment
+    # that does not say otherwise does not take sign-ups from the internet.
+    # Turn it on where self-serve sign-up is wanted; the invite routes and the
+    # admin console work either way.
+    allow_registration: bool = False
 
     # Given to every account the app creates, instead of a generated password.
     # Blank generates one per account, which is the only safe setting outside a demo.

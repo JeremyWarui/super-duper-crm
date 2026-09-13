@@ -11,6 +11,7 @@ from backend.api.scope import (
     limit_to_campaigns,
     require_own_ward,
     require_visible_campaign,
+    require_ward_in_campaign,
     visible_campaign_ids,
 )
 from backend.models import RegistrationCentre, Target, User, Ward
@@ -45,8 +46,9 @@ async def create_target(
     user: CurrentUser,
     _: Writer,
 ) -> Target:
-    await require_visible_campaign(session, user, payload.campaign)
+    campaign = await require_visible_campaign(session, user, payload.campaign)
     require_own_ward(user, payload.ward)
+    await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
 
     target = Target(
         campaign_id=payload.campaign,

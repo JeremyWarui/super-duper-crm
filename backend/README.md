@@ -34,7 +34,7 @@ per process, so a changed password or DSN needs the restart either way.
 Checks:
 
 ```bash
-uv run pytest        # 428 tests, ~2 min, no database server needed
+uv run pytest        # 644 tests, ~3 min, no database server needed
 uv run ruff check .
 uv run ruff format .
 ```
@@ -44,8 +44,21 @@ uv run ruff format .
 ```bash
 uv run campaign-crm seed          # counties, constituencies, wards, turnout; --force to reload
 uv run campaign-crm demo          # one campaign, one account per role
-uv run campaign-crm createuser -u amina -r manager
+uv run campaign-crm createuser -u root -r manager --superuser
+uv run campaign-crm campaigns                    # who runs what
+uv run campaign-crm campaign -c <campaign id>    # one campaign and its team
+uv run campaign-crm users -r candidate           # logins, and what they reach
+uv run campaign-crm assign-manager -u amina -c <campaign id>
+uv run campaign-crm add-member -u juma -c <campaign id>
+uv run campaign-crm remove-member -u juma -c <campaign id>
+uv run campaign-crm reset-password -u jane
+uv run campaign-crm deactivate -u jane           # and activate
 ```
+
+`add-member` is the way back for anyone the console took off, whatever their
+role; `assign-manager` is the manager-only shorthand that also carries `--only`.
+Neither asks what capacity to give: a member holds the role their login already
+has, because that is the column every permission check reads.
 
 `seed` reads the CSVs in `data/` and loads the whole 2022 register: 47 counties,
 290 constituencies, 1450 wards and 27,273 registration centres, with each
@@ -65,14 +78,18 @@ voters sit in Kibingei in the PDF and in Kimilili in the gazette.
 
 `demo` builds the Roysambu MP campaign - 5 wards, win number 43,050 - with
 mobilizers, events and supporters on some wards and not others, so the strategy
-read has real gaps to point at. It creates three accounts, `aspirant` (candidate),
-`manager` and `mobilizer`, and prints their passwords:
+read has real gaps to point at. It creates five accounts and prints their
+passwords. `aspirant`, `manager` and `mobilizer` are on the campaign;
+`newaspirant` and `newmanager` are on nothing, so the setup flow is reachable:
 
 ```
 Sign in at http://localhost:5173 as (shown once, re-run to reset):
-  aspirant   Kx8fQ2mNpR4w   Candidate: read-only cockpit
-  manager    7bTzY9vLwE3k   Campaign manager: the full war room
-  mobilizer  Qn5jH8sVdA2c   Mobilizer: Githurai only
+  aspirant     Kx8fQ2mNpR4w   Candidate: read-only cockpit
+  manager      7bTzY9vLwE3k   Campaign manager: the full war room
+  mobilizer    Qn5jH8sVdA2c   Mobilizer: Githurai only
+  newaspirant  Rt3wL6xCbF9p   Candidate with no campaign: starts at setup
+  newmanager   Hm7kD4gTzW1s   Manager with no campaign: starts at setup, and is
+                              asked for the aspirant
 ```
 
 Each password is generated per run, so nothing that looks like a credential is
@@ -114,7 +131,7 @@ backend/
 │   ├── api/
 │   │   ├── deps.py        the session, the caller, and what their role may do
 │   │   ├── errors.py      one readable "detail" sentence per error
-│   │   ├── scope.py       which campaigns and wards a caller may touch
+│   │   ├── scope.py       which campaigns, people and wards a caller may touch
 │   │   └── routers/       one module per resource
 │   ├── db/                declarative base, engine, session
 │   ├── models/            the tables
@@ -146,13 +163,68 @@ Everything lives under `/api`, with a trailing slash, and needs a
 | `GET POST /api/events/`, `DELETE …/{id}/` | Rallies and meetings. |
 | `POST /api/events/{id}/record/` | Close an event with its attendance. |
 | `POST /api/events/{id}/invite/` | Text the event's supporters, and set how many were reached. |
-| `GET POST /api/supporters/`, `DELETE …/{id}/` | The register. **POST is open**, so a field form works signed out. |
+| `GET POST /api/supporters/`, `DELETE …/{id}/` | The register, for the campaign the caller is on. |
 | `GET /api/strategy/?campaign=` | The computed dashboard. |
 | `GET POST /api/users/`, `DELETE …/{id}/` | Logins for the team. The password is generated and returned once. |
 
 A foreign key travels under the related model's bare name - `ward`, not
 `ward_id` - and reads carry the parent's name alongside it, so a list is
 readable without a second request.
+
+## The admin console
+
+Everything in the API is scoped to the caller's memberships, so no campaign role
+can see past its own campaign. Running the deployment needs something that can,
+and that is the `is_superuser` flag: a flag rather than a fourth role, so it
+cannot be confused with the three campaign roles and cannot be signed up for.
+`POST /api/auth/register/` rejects the field outright.
+
+```bash
+uv run campaign-crm createuser -u root -r manager --superuser
+```
+
+A superuser signing in gets `/api/admin/`, and the browser gives them the
+console rather than a campaign. The routes are `overview`, `campaigns`,
+`campaigns/{id}`, `users`, `users/{id}/reset-password`, `users/{id}/active`,
+and adding or removing a member of a campaign. They live in
+`api/routers/admin.py` over `services/admin.py`, and touch nothing in
+`api/scope.py`, so widening what an admin reads cannot widen what a manager
+reads.
+
+`POST /api/admin/users/` creates a login of any role and returns its password
+once. Naming a campaign puts them on it as it is made; a mobilizer must also be
+given one of that campaign's wards, since the `Mobilizer` row is what scopes
+them. A candidate cannot be added to a campaign that already has one: a
+campaign's candidate is its member whose place is `candidate`, and a partial
+unique index on `campaign_members` allows one.
+
+The same operations are on the command line, through the same service, for when
+the console cannot be reached:
+
+```bash
+uv run campaign-crm users -r candidate      # every login and where it reaches
+uv run campaign-crm campaign -c <id>        # one campaign, its team and its size
+uv run campaign-crm reset-password -u jane  # the only way back from a lost one
+uv run campaign-crm add-member -u amina -c <id>
+uv run campaign-crm remove-member -u amina -c <id>
+uv run campaign-crm deactivate -u juma      # and activate
+```
+
+`reset-password` and `deactivate` both delete the account's token, so a live
+session stops at once rather than at its next sign-in.
+
+Three things the console will not do, because each ends with nobody able to run
+the deployment:
+
+- reset the operator's own password, which would sign them out before the new
+  one reached the screen (`campaign-crm reset-password` does it instead);
+- disable the last active superuser, though any other one can go, so a
+  compromised account is still stoppable;
+- put a superuser on a campaign, which would buy them nothing they cannot
+  already read and would hide the campaign app from them.
+
+A campaign manager cannot delete a superuser's login either, even when the
+console has made one visible to them.
 
 ## Who may do what
 
@@ -165,12 +237,15 @@ Enforced per route, not in the UI.
 | Set a campaign up | yes | yes | no |
 | Add or remove a login | yes | yes | no |
 | Change targets, mobilizers | no | yes | no |
+| Reach `/api/admin/` | no | no | no |
 | Schedule and record events | no | yes | their ward only |
 | Register supporters | no | yes | their ward only |
 
-A campaign the caller has no route into answers 404, not 403, so an outsider
-cannot probe for one. A mobilizer with no profile row sees nothing rather than
-everything.
+Everyone is held to the campaigns they are a member of. `campaign_members` is
+the only thing scoping reads, so it is one join for every role rather than a
+branch per role. A campaign the caller has no route into answers 404, not 403,
+so an outsider cannot probe for one, and a manager who has set nothing up sees
+an empty list, which is what sends them to `POST /api/campaigns/setup/`.
 
 ## Sending invitations
 
@@ -221,20 +296,39 @@ A campaign belongs to its candidate, and `POST /api/campaigns/setup/` says so
 explicitly rather than inferring it from whoever filled the form in.
 
 - A **candidate** gets themselves. Naming anyone else is refused.
-- A **manager** must name an aspirant, or create one inline with
-  `new_candidate`. The reply carries that new login's password once.
+- A **manager** must name an aspirant with `candidate`, or create one inline
+  with `new_candidate`. The reply carries that new login's password once. Only
+  an aspirant the manager can already see may be named, so a second campaign for
+  somebody they already set up reuses that login instead of colliding with the
+  username.
 
 Without this the manager becomes the campaign's candidate, and the aspirant
 cannot see their own campaign.
 
 ## Adding the team
 
+Only a manager adds another manager. Membership rows are additive, so doing so
+never takes the campaign off whoever is already on it, and a campaign may have
+as many managers as it needs. `campaign-crm assign-manager` puts one on from
+outside the API, which is how a campaign with nobody on it gets its first.
+
+A membership carries the role its login already has, and that role is never
+passed in: `POST /api/admin/campaigns/{id}/members/` takes a user and nothing
+else. Every permission check reads `users.role`, so a membership row saying
+anything different would advertise a capacity its holder does not have - a
+"mobilizer" who could delete the campaign.
+
+A named mobilizer has to be on the campaign it is named for, on every route that
+takes one: events, supporters and the mobilizer roster itself. `POST
+/api/mobilizers/` will only attach a mobilizer login that is not already on the
+ground, which is also what keeps `Mobilizer.user_id` unique.
+
 `POST /api/users/` makes a login for a manager or a mobilizer. The password is
 generated, returned once and never stored in the clear, so it cannot be fetched
 again; the account has to be recreated if it is lost. A mobilizer also gets the
-`Mobilizer` row that scopes them to a ward, because without one they sign in to
-an empty app. A campaign has one candidate, whoever set it up, so this route
-will not make another.
+`Mobilizer` row that scopes them to a ward, and a manager is put on the campaign
+they were added to; without either they sign in to an empty app. A campaign has
+one candidate, whoever set it up, so this route will not make another.
 
 Deleting a login leaves the mobilizer row behind, minus its `user_id`: the
 person still worked that ward.
@@ -246,7 +340,8 @@ County -> Constituency -> Ward -> RegistrationCentre
                                -> PollingStation
 
 User (candidate | campaign manager | mobilizer)
-  ├── AuthToken   the live sign-in, deleted on sign-out
+  ├── AuthToken       the live sign-in, deleted on sign-out
+  ├── CampaignMember  a place on a campaign; what scopes every read
   └── Campaign  -> Target      vote goal per ward or centre
                 -> Mobilizer   organizer on the ground
                 -> Event       meeting or rally, with attendance
@@ -267,7 +362,8 @@ by registration centre.
 - **Enums are stored as text** with a CHECK constraint listing the valid values,
   so the database rejects a bad one.
 - **Deletes are handled in the database.** Deleting a county removes its
-  constituencies and wards; deleting a mobilizer's login keeps the mobilizer.
+  constituencies and wards; deleting a mobilizer's login keeps the mobilizer;
+  deleting a member takes their membership row and leaves the campaign standing.
 - **Money-shaped maths uses `Decimal`**, not float. Float rounding at the halfway
   point moves a win number by a whole vote.
 - **Relationships are not loaded lazily.** Reading one that was not fetched
@@ -276,25 +372,18 @@ by registration centre.
 - **Passwords are Argon2id**, and are rehashed on sign-in when the parameters
   have moved on.
 
-## Known gaps
+## What a deployment does not hand out
 
-1. `PollingStation.centre_code` and `centre_name` are free text that repeat
-   `RegistrationCentre`. They should be a foreign key.
-2. `Campaign` has three geography columns and only one applies. `POST /setup/`
-   fills in the right one, but nothing in the schema stops a ward campaign from
-   also setting `county_id`.
-3. `Mobilizer` has no uniqueness rule, so a ward can hold any number of them.
-4. Nothing ties a **manager** to a campaign, so a manager sees every campaign on
-   the system. Fixing it means a membership table.
-5. `POST /api/supporters/` is open by design, for field self-registration. That
-   also makes it the one route an anonymous caller can write through.
-6. Polling stations are still empty. Targets are centre-level, so nothing needs
-   them yet; `PollingStation` exists for when election-day work does.
-7. The Africa's Talking adapter has never run against the live gateway - there
-   is no subscription. Its request shape and its parsing are covered against
-   recorded replies; what is unproven is the network call itself.
-8. Invitations are not recorded. The reply says what happened, and nothing
-   stores it, so there is no history of what was sent to whom.
+`/docs`, `/redoc` and `/openapi.json` are served only when `DEBUG` is on. They
+describe every route, field and schema, which is a map of the deployment to
+anybody who asks for it; they are a development tool and a deploy leaves them
+off. `app.openapi()` still builds the schema in the process, which is what the
+contract checks read.
+
+`ALLOW_REGISTRATION` is off unless a deployment sets it. A deploy that says
+nothing does not take sign-ups from the internet; the admin console and the
+invite routes work either way. `.env.example` turns it on, because local
+development wants the sign-up flow reachable.
 
 ## Migrations
 
@@ -309,6 +398,37 @@ The connection string lives in `.env`, not in `alembic.ini`.
 
 `tests/test_migrations.py` fails if you add a column and forget to generate a
 migration for it.
+
+Each revision runs in its own transaction (`transaction_per_migration`), so a
+failure does not roll back the revisions before it.
+
+### Upgrading to campaign_members
+
+Two revisions. `b2c3d4e5f6a7` creates `campaign_members` and nothing else: it
+alters no column and drops no table, so the DDL transaction stays pure for
+CockroachDB. `c3d4e5f6a7b8` then fills it in, from `campaigns.candidate_id` and
+from every `mobilizers.user_id` that is set. Running it twice adds nobody twice.
+
+Managers are the exception, and cannot be backfilled: before this table there
+was no column tying a manager to a campaign, which is the bug the table exists
+to fix. So after upgrading, put them on by hand:
+
+```bash
+uv run campaign-crm campaigns                       # ids, candidates, managers
+uv run campaign-crm assign-manager -u amina -c <campaign id>
+```
+
+`campaigns` marks a campaign with no manager `-- none --`. `assign-manager` adds
+one beside whoever is already there; `--only` takes every other manager off.
+
+### Dropping campaigns.candidate_id
+
+Two more revisions make `campaign_members` the only record of who a campaign is
+for. `d4e5f6a7b8c9` adds any missing candidate row, then stops the upgrade and
+names every campaign that does not hold exactly one candidate row for the login
+`campaigns.candidate_id` names. Fix those rows by hand and upgrade again.
+`e5f6a7b8c9d0` drops the column and adds the index that allows one candidate per
+campaign. Its downgrade puts the column back from the members.
 
 ## Configuration
 

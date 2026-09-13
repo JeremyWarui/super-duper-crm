@@ -11,8 +11,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.api.scope import add_member
 from backend.models import (
     Campaign,
+    CampaignMember,
     Constituency,
     County,
     Mobilizer,
@@ -23,7 +25,7 @@ from backend.models import (
     Ward,
 )
 from backend.security import verify_password
-from backend.seed.demo import seed_demo
+from backend.seed.demo import DEMO_CAMPAIGN_TITLE, seed_demo
 from backend.seed.reference import (
     CAW_CSV,
     CENTRES_CSV,
@@ -177,6 +179,7 @@ async def test_the_demo_builds_one_campaign_with_one_sign_in_per_role(
         "manager",
         "mobilizer",
         "newaspirant",
+        "newmanager",
     ]
 
 
@@ -295,7 +298,7 @@ async def test_running_the_demo_twice_leaves_one_campaign(session: AsyncSession)
 
     assert await session.scalar(select(func.count()).select_from(Campaign)) == 1
     assert await session.scalar(select(func.count()).select_from(Target)) == before
-    assert await session.scalar(select(func.count()).select_from(User)) == 4
+    assert await session.scalar(select(func.count()).select_from(User)) == 5
 
 
 async def test_the_demo_campaign_targets_every_ward_in_roysambu(session: AsyncSession) -> None:
@@ -320,7 +323,15 @@ async def test_one_demo_account_has_no_campaign_so_setup_can_be_seen(
 
     fresh = (await session.execute(select(User).where(User.username == "newaspirant"))).scalar_one()
     theirs = (
-        (await session.execute(select(Campaign).where(Campaign.candidate_id == fresh.id)))
+        (
+            await session.execute(
+                select(Campaign)
+                .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
+                .where(
+                    CampaignMember.user_id == fresh.id, CampaignMember.role == UserRole.CANDIDATE
+                )
+            )
+        )
         .scalars()
         .all()
     )
@@ -337,7 +348,10 @@ async def test_re_running_does_not_hand_that_account_a_campaign(session: AsyncSe
     fresh = (await session.execute(select(User).where(User.username == "newaspirant"))).scalar_one()
     assert (
         await session.scalar(
-            select(func.count()).select_from(Campaign).where(Campaign.candidate_id == fresh.id)
+            select(func.count())
+            .select_from(Campaign)
+            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
+            .where(CampaignMember.user_id == fresh.id, CampaignMember.role == UserRole.CANDIDATE)
         )
         == 0
     )
@@ -460,10 +474,12 @@ async def test_a_ward_campaign_now_has_centres_to_target(session: AsyncSession) 
     await import_centres(session, CENTRES_CSV)
     ward = (await session.execute(select(Ward).where(Ward.name == "Zimmerman"))).scalar_one()
     candidate = User(username="peter", role=UserRole.CANDIDATE)
-    campaign = Campaign(
-        candidate=candidate, title="Peter for Zimmerman", office_level=OfficeLevel.WARD, ward=ward
+    campaign = Campaign(title="Peter for Zimmerman", office_level=OfficeLevel.WARD, ward=ward)
+    session.add_all([candidate, campaign])
+    await session.flush()
+    session.add(
+        CampaignMember(campaign_id=campaign.id, user_id=candidate.id, role=UserRole.CANDIDATE)
     )
-    session.add(campaign)
     await session.commit()
 
     summary = await generate_targets(session, campaign)
@@ -483,22 +499,86 @@ async def test_re_seeding_puts_the_fresh_account_back_to_no_campaign(
     constituency = (
         await session.execute(select(Constituency).where(Constituency.name == "Roysambu"))
     ).scalar_one()
-    session.add(
-        Campaign(
-            candidate_id=fresh.id,
-            title="Peter for Roysambu",
-            office_level=OfficeLevel.CONSTITUENCY,
-            constituency_id=constituency.id,
-        )
+    theirs = Campaign(
+        title="Peter for Roysambu",
+        office_level=OfficeLevel.CONSTITUENCY,
+        constituency_id=constituency.id,
     )
+    session.add(theirs)
+    await session.flush()
+    session.add(CampaignMember(campaign_id=theirs.id, user_id=fresh.id, role=UserRole.CANDIDATE))
     await session.commit()
 
     await seed_demo(session)
 
     assert (
         await session.scalar(
-            select(func.count()).select_from(Campaign).where(Campaign.candidate_id == fresh.id)
+            select(func.count())
+            .select_from(Campaign)
+            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
+            .where(CampaignMember.user_id == fresh.id, CampaignMember.role == UserRole.CANDIDATE)
         )
         == 0
     )
     assert await session.scalar(select(func.count()).select_from(Campaign)) == 1
+
+
+async def test_the_demo_manager_runs_the_demo_campaign(session: AsyncSession) -> None:
+    """Unlinked, the demo manager signs in to an empty app asking them to set one up."""
+    await import_geography(session)
+    await seed_demo(session)
+
+    titles = (
+        await session.execute(
+            select(Campaign.title)
+            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
+            .join(User, User.id == CampaignMember.user_id)
+            .where(User.username == "manager", CampaignMember.role == UserRole.MANAGER)
+        )
+    ).scalars()
+
+    assert list(titles) == [DEMO_CAMPAIGN_TITLE]
+
+
+async def test_the_demo_fresh_manager_runs_nothing_so_setup_is_reachable(
+    session: AsyncSession,
+) -> None:
+    await import_geography(session)
+    await seed_demo(session)
+
+    manager = (
+        await session.execute(
+            select(User)
+            .where(User.username == "newmanager")
+            .options(selectinload(User.memberships))
+        )
+    ).scalar_one()
+
+    assert manager.role is UserRole.MANAGER
+    assert manager.memberships == []
+
+
+async def test_re_running_the_demo_takes_the_fresh_manager_back_off_a_campaign(
+    session: AsyncSession,
+) -> None:
+    """Somebody assigns them a campaign; re-seeding has to hand it back."""
+    await import_geography(session)
+    await seed_demo(session)
+
+    fresh = (await session.execute(select(User).where(User.username == "newmanager"))).scalar_one()
+    campaign = (await session.execute(select(Campaign))).scalars().first()
+    assert campaign is not None
+    await add_member(session, campaign.id, fresh.id)
+    await session.commit()
+
+    await seed_demo(session)
+
+    managed = (
+        await session.execute(
+            select(Campaign.title)
+            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
+            .join(User, User.id == CampaignMember.user_id)
+            .where(User.username == "newmanager")
+        )
+    ).scalars()
+    assert list(managed) == []

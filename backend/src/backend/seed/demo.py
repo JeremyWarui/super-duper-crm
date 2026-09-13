@@ -4,13 +4,15 @@ import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.api.scope import add_member
 from backend.config import get_settings
 from backend.models import (
     Campaign,
+    CampaignMember,
     Constituency,
     County,
     Event,
@@ -27,7 +29,7 @@ from backend.models import (
 from backend.security import hash_password
 from backend.services.targets import generate_targets
 
-DEMO_USERNAMES = ("aspirant", "manager", "mobilizer", "newaspirant")
+DEMO_USERNAMES = ("aspirant", "manager", "mobilizer", "newaspirant", "newmanager")
 
 DEMO_COUNTY = "Nairobi City"
 DEMO_CONSTITUENCY = "Roysambu"
@@ -85,7 +87,11 @@ async def _clear_campaigns(session: AsyncSession, user: User) -> None:
     """Drop this user's campaigns, so setup is reachable again."""
     await session.flush()
     theirs = (
-        await session.execute(select(Campaign).where(Campaign.candidate_id == user.id))
+        await session.execute(
+            select(Campaign)
+            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
+            .where(CampaignMember.user_id == user.id, CampaignMember.role == UserRole.CANDIDATE)
+        )
     ).scalars()
     for campaign in theirs:
         await session.delete(campaign)
@@ -111,7 +117,7 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     aspirant = await _user(
         session, "aspirant", UserRole.CANDIDATE, "Jane", "Wanjiru", passwords, "+254700000001"
     )
-    await _user(
+    manager = await _user(
         session, "manager", UserRole.MANAGER, "Amina", "Kariuki", passwords, "+254700000002"
     )
     mobilizer_user = await _user(
@@ -121,18 +127,28 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     fresh = await _user(
         session, "newaspirant", UserRole.CANDIDATE, "Peter", "Kimani", passwords, "+254700000004"
     )
+    # A manager with no campaign, so the flow that asks for an aspirant is
+    # reachable. The demo campaign is handed back to `manager` below, which is
+    # what takes this account off it if somebody assigned it in between.
+    await _user(
+        session, "newmanager", UserRole.MANAGER, "Grace", "Otieno", passwords, "+254700000005"
+    )
     await _clear_campaigns(session, fresh)
     await session.flush()
 
     campaign = (
         await session.execute(
-            select(Campaign).where(
-                Campaign.candidate_id == aspirant.id, Campaign.title == DEMO_CAMPAIGN_TITLE
+            select(Campaign)
+            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
+            .where(
+                CampaignMember.user_id == aspirant.id,
+                CampaignMember.role == UserRole.CANDIDATE,
+                Campaign.title == DEMO_CAMPAIGN_TITLE,
             )
         )
     ).scalar_one_or_none()
     if campaign is None:
-        campaign = Campaign(candidate=aspirant, title=DEMO_CAMPAIGN_TITLE)
+        campaign = Campaign(title=DEMO_CAMPAIGN_TITLE)
         session.add(campaign)
     campaign.office_level = OfficeLevel.CONSTITUENCY
     campaign.constituency_id = constituency.id
@@ -140,6 +156,12 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     campaign.ward_id = None
     campaign.election_date = datetime(2027, 8, 10, tzinfo=UTC).date()
     await session.flush()
+
+    # The demo team, and nobody else: re-seeding takes `newmanager` back off.
+    await session.execute(delete(CampaignMember).where(CampaignMember.campaign_id == campaign.id))
+    await add_member(session, campaign.id, aspirant.id)
+    await add_member(session, campaign.id, manager.id)
+    await add_member(session, campaign.id, mobilizer_user.id)
 
     summary = await generate_targets(session, campaign)
 
@@ -163,6 +185,11 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
                 "newaspirant",
                 passwords["newaspirant"],
                 "Candidate with no campaign: starts at setup",
+            ),
+            (
+                "newmanager",
+                passwords["newmanager"],
+                "Manager with no campaign: starts at setup, and is asked for the aspirant",
             ),
         ],
     )

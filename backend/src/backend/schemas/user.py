@@ -35,7 +35,7 @@ class UserCreate(WriteModel):
     phone: str = Field(default="", max_length=20)
     email: str = Field(default="", max_length=254)
 
-    # Required for a mobilizer: without it they sign in to an empty app.
+    # Required for both roles: without it they sign in to an empty app.
     campaign: uuid.UUID | None = None
     ward: uuid.UUID | None = None
     registration_centre: uuid.UUID | None = None

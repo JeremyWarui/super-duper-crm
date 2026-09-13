@@ -92,6 +92,22 @@ def require_writer(*, mobilizer_writable: bool = False):
     return dependency
 
 
+async def require_superuser(user: CurrentUser) -> User:
+    """Guard the admin routes.
+
+    A flag, not a role, so it can never be confused with the three campaign
+    roles and cannot be reached by signing up. It is set by
+    `campaign-crm createuser --superuser`.
+    """
+    if not user.is_superuser:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This is not yours to see.")
+    return user
+
+
+AdminUser = Annotated[User, Depends(require_superuser)]
+"""Whoever runs the deployment. Reads past every campaign boundary."""
+
+
 Writer = Annotated[User, Depends(require_writer())]
 """Managers only."""
 
