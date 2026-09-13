@@ -26,8 +26,9 @@ def _only_candidates() -> sa.TextClause:
 
 def upgrade() -> None:
     with op.batch_alter_table("campaigns") as batch:
-        batch.drop_index("ix_campaigns_candidate_id")
+        # The key goes before its index: CockroachDB refuses to drop an index a key uses.
         batch.drop_constraint("fk_campaigns_candidate_id_users", type_="foreignkey")
+        batch.drop_index("ix_campaigns_candidate_id")
         batch.drop_column("candidate_id")
     op.create_index(
         ONE_CANDIDATE,
