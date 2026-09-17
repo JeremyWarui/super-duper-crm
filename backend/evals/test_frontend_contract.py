@@ -99,8 +99,9 @@ def test_the_stored_choice_strings_are_unchanged(key: str) -> None:
     from backend.models.enums import OperationalGrain as Grain
 
     if key == "user.create_role":
-        assert set(CONTRACT["enums"][key]) < {m.value for m in UserRole}
-        assert UserRole.CANDIDATE.value not in CONTRACT["enums"][key]
+        role = _request_properties("POST /api/users/")["role"]
+        accepted = [role["const"]] if "const" in role else role["enum"]
+        assert sorted(accepted) == sorted(CONTRACT["enums"][key])
         return
 
     live = {

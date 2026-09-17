@@ -342,11 +342,11 @@ describe("adding the team once the campaign exists", () => {
     id: "u9",
     username: "amina",
     full_name: "Amina Kariuki",
-    role: "manager",
+    role: "mobilizer",
     phone: "",
     password: fakeSecret(),
-    mobilizer: null,
-    ward_name: null,
+    mobilizer: "m9",
+    ward_name: "Zimmerman",
   };
 
   async function reachTeamStep(user, routes = {}) {
@@ -365,14 +365,21 @@ describe("adding the team once the campaign exists", () => {
 
     expect(screen.getByText("Add your team")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Campaign manager" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Mobilizer" }),
+      screen.getByText(/Add the mobilizers who work each ward/),
     ).toBeInTheDocument();
   });
 
-  it("creates a campaign manager on this campaign, not on an empty app", async () => {
+  it("does not offer the candidate a campaign manager to add", async () => {
+    const user = userEvent.setup();
+    await reachTeamStep(user);
+
+    expect(
+      screen.queryByRole("button", { name: "Campaign manager" }),
+    ).toBeNull();
+    expect(screen.queryByText(/campaign manager/i)).toBeNull();
+  });
+
+  it("adds a mobilizer on this campaign, not on an empty app", async () => {
     const user = userEvent.setup();
     const { calls } = await reachTeamStep(user, { "POST /users/": CREATED });
 
@@ -382,10 +389,11 @@ describe("adding the team once the campaign exists", () => {
     await waitFor(() => {
       const posted = calls.find((c) => c.path === "/users/");
       expect(posted.body.username).toBe("amina");
-      expect(posted.body.role).toBe("manager");
+      expect(posted.body.role).toBe("mobilizer");
       expect(posted.body.campaign).toBe("c1");
-      expect(posted.body.ward).toBeUndefined();
+      expect(posted.body.ward).toBe("w1");
     });
+    expect(await screen.findByText("Mobilizer · Zimmerman")).toBeInTheDocument();
   });
 
   it("puts a mobilizer on the campaign and a ward", async () => {
@@ -397,7 +405,6 @@ describe("adding the team once the campaign exists", () => {
       ],
     });
 
-    await user.click(screen.getByRole("button", { name: "Mobilizer" }));
     await user.type(screen.getByPlaceholderText("amina"), "juma");
     await user.click(screen.getByRole("button", { name: "Add to the team" }));
 
@@ -859,18 +866,16 @@ describe("the team step after a manager sets a campaign up", () => {
     expect(screen.queryByText(/You are the candidate/)).toBeNull();
   });
 
-  it("offers only mobilizers, since the campaign already has its manager", async () => {
+  it("offers only mobilizers, never another manager", async () => {
     await finishAsManager();
 
     expect(
-      screen.getByRole("button", { name: "Mobilizer" }),
-    ).toBeInTheDocument();
-    expect(
       screen.queryByRole("button", { name: "Campaign manager" }),
     ).toBeNull();
+    expect(screen.queryByText(/campaign manager/i)).toBeNull();
   });
 
-  it("adds a mobilizer rather than defaulting to a manager the API refuses", async () => {
+  it("adds a mobilizer, the only login the API creates here", async () => {
     const { user, calls } = await finishAsManager();
 
     await user.type(screen.getByPlaceholderText("amina"), "wanjiku");

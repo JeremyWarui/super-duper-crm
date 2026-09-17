@@ -178,7 +178,7 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
         units=summary.units,
         win_number=summary.win_number,
         sign_ins=[
-            ("aspirant", passwords["aspirant"], "Candidate: read-only cockpit"),
+            ("aspirant", passwords["aspirant"], "Candidate: the cockpit, adds mobilizers"),
             ("manager", passwords["manager"], "Campaign manager: the full war room"),
             ("mobilizer", passwords["mobilizer"], f"Mobilizer: {wards[0].name} only"),
             (

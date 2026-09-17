@@ -192,20 +192,8 @@ function UnitsPreview({ form }) {
   );
 }
 
-const ROLES = [
-  {
-    key: "manager",
-    label: "Campaign manager",
-    sub: "Runs the whole campaign and every write",
-  },
-  {
-    key: "mobilizer",
-    label: "Mobilizer",
-    sub: "One ward: events and supporters",
-  },
-];
-
-// Logins for the rest of the team. The password is shown once and never again.
+// Mobilizer logins, the only team a manager or a candidate adds. The password
+// is shown once and never again.
 function TeamStep({ campaign, form, viewerIsManager }) {
   const create = useCreateUser();
   const wardsInCounty = useWardsInCounty(
@@ -214,10 +202,6 @@ function TeamStep({ campaign, form, viewerIsManager }) {
   const wardsInConstituency = useWardsIn(
     form.office_level === "constituency" ? form.constituency : null,
   );
-  const [role, setRole] = useState(viewerIsManager ? "mobilizer" : "manager");
-  const roles = viewerIsManager
-    ? ROLES.filter((r) => r.key === "mobilizer")
-    : ROLES;
   const [fields, setFields] = useState({
     username: "",
     first_name: "",
@@ -234,19 +218,19 @@ function TeamStep({ campaign, form, viewerIsManager }) {
           ? wardsInCounty.data
           : wardsInConstituency.data) || [];
   const ward = fields.ward || wards[0]?.id || form.ward;
-  const ok = usableUsername(fields.username) && (role === "manager" || !!ward);
+  const ok = usableUsername(fields.username) && !!ward;
 
   const set = (patch) => setFields((f) => ({ ...f, ...patch }));
   const add = () =>
     create.mutate(
       {
         username: fields.username.trim().toLowerCase(),
-        role,
+        role: "mobilizer",
         first_name: fields.first_name.trim(),
         last_name: fields.last_name.trim(),
         phone: fields.phone.trim(),
         campaign: campaign.id,
-        ...(role === "mobilizer" ? { ward } : {}),
+        ward,
       },
       {
         onSuccess: (person) => {
@@ -275,31 +259,8 @@ function TeamStep({ campaign, form, viewerIsManager }) {
       </div>
       <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>
         {viewerIsManager
-          ? "You run this campaign. Mobilizers work a ward each."
-          : "You are the candidate. A campaign manager runs the day to day; mobilizers work a ward each."}
-      </div>
-
-      <div
-        className="flex flex-wrap gap-1"
-        style={{ marginTop: 12, fontSize: 12 }}
-      >
-        {roles.map((r) => (
-          <button
-            key={r.key}
-            onClick={() => setRole(r.key)}
-            title={r.sub}
-            style={{
-              padding: "6px 12px",
-              borderRadius: 999,
-              cursor: "pointer",
-              border: `1px solid ${role === r.key ? C.ink : C.line}`,
-              background: role === r.key ? C.ink : "transparent",
-              color: role === r.key ? "#fff" : C.sub,
-            }}
-          >
-            {r.label}
-          </button>
-        ))}
+          ? "You run this campaign. Add the mobilizers who work each ward."
+          : "You are the candidate. Add the mobilizers who work each ward."}
       </div>
 
       <div style={{ height: 12 }} />
@@ -338,7 +299,7 @@ function TeamStep({ campaign, form, viewerIsManager }) {
         placeholder="0712 345678"
       />
 
-      {role === "mobilizer" && wards.length > 1 && (
+      {wards.length > 1 && (
         <>
           <div style={{ height: 10 }} />
           <Label>Ward</Label>
@@ -405,9 +366,7 @@ function TeamMade({ made }) {
               <td style={{ padding: "9px 14px", fontWeight: 600 }}>
                 {p.username}
                 <div style={{ fontSize: 11.5, color: C.sub, fontWeight: 400 }}>
-                  {p.role === "manager"
-                    ? "Campaign manager"
-                    : `Mobilizer · ${p.ward_name || ""}`}
+                  Mobilizer · {p.ward_name || ""}
                 </div>
               </td>
               <td

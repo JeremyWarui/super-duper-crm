@@ -84,7 +84,7 @@ passwords. `aspirant`, `manager` and `mobilizer` are on the campaign;
 
 ```
 Sign in at http://localhost:5173 as (shown once, re-run to reset):
-  aspirant     <generated>    Candidate: read-only cockpit
+  aspirant     <generated>    Candidate: the cockpit, adds mobilizers
   manager      <generated>    Campaign manager: the full war room
   mobilizer    <generated>    Mobilizer: Githurai only
   newaspirant  <generated>    Candidate with no campaign: starts at setup
@@ -307,10 +307,22 @@ cannot see their own campaign.
 
 ## Adding the team
 
-Only a manager adds another manager. Membership rows are additive, so doing so
-never takes the campaign off whoever is already on it, and a campaign may have
-as many managers as it needs. `campaign-crm assign-manager` puts one on from
-outside the API, which is how a campaign with nobody on it gets its first.
+Inside a campaign, the only login anybody adds is a mobilizer's.
+
+| Who | Adds |
+|---|---|
+| Campaign manager | The aspirant, named or created at `POST /api/campaigns/setup/`; mobilizers |
+| Candidate | Mobilizers |
+| Mobilizer | Nobody |
+
+`POST /api/users/` accepts `role: "mobilizer"` and refuses anything else with a
+400. `DELETE /api/users/{id}/` removes only a mobilizer's login; any other login
+gets a 403, and an admin disables it from the console instead. `POST` and
+`DELETE /api/mobilizers/` take a manager or the candidate, on their own campaign
+only. A manager is never added from inside a campaign: they sign up for
+themselves, or an operator puts one on with `campaign-crm assign-manager` or the
+admin console. Membership rows are additive, so adding somebody never takes the
+campaign off whoever is already on it.
 
 A membership carries the role its login already has, and that role is never
 passed in: `POST /api/admin/campaigns/{id}/members/` takes a user and nothing

@@ -31,7 +31,7 @@ against the same campaign. Sign out and back in to switch between them.
 
 | Username | What they get |
 |---|---|
-| `aspirant` | Candidate: overview, ward performance, events, strategy. Read-only. |
+| `aspirant` | Candidate: overview, ward performance, events, mobilizers, strategy. Adds and assigns mobilizers; everything else is read-only. |
 | `manager` | Campaign manager: the above plus targets, mobilizers and supporters, and every write. |
 | `mobilizer` | Mobilizer: their own ward only - my events, register supporter, my supporters. |
 
@@ -107,9 +107,10 @@ once on the screen that follows. Nothing is emailed yet, so the address is only
 kept on record. A candidate signing up gets the shorter flow and their own
 campaign.
 
-**Setup creates the team.** The screen that shows the win number also adds the
-campaign manager and the mobilizers, each with a generated password shown once.
-The Mobilizers page can do the same later, with a login or without one.
+**Setup adds the mobilizers.** The screen that shows the win number adds
+mobilizers, each with a generated password shown once. The Mobilizers page does
+the same later, with a login or without one, for a manager and a candidate
+alike. Nobody adds a campaign manager from inside a campaign.
 
 **A superuser gets the console, not a campaign.** `main.jsx` sends an account
 with `is_superuser` to `Admin.jsx` instead of the campaign gate: every campaign

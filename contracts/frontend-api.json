@@ -402,7 +402,6 @@
       "opposed"
     ],
     "user.create_role": [
-      "manager",
       "mobilizer"
     ]
   },

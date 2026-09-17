@@ -1,6 +1,7 @@
 """Mobilizers, events and the supporter register: the ground team's routes."""
 
 import httpx
+import pytest
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,19 +63,92 @@ async def test_a_mobilizer_without_a_name_is_refused(
     assert response.status_code == 400
 
 
-async def test_a_candidate_may_not_assign_a_mobilizer(
-    client: httpx.AsyncClient, world: World
+async def test_a_candidate_can_assign_a_mobilizer_to_a_ward(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     response = await client.post(
         "/api/mobilizers/",
         headers=world.headers("candidate"),
         json={
             "campaign": str(world.campaign.id),
-            "ward": str(world.ward.id),
+            "ward": str(world.other_ward.id),
             "full_name": "Wanjiku Njeri",
         },
     )
-    assert response.status_code == 403
+
+    assert response.status_code == 201, response.text
+    assert response.json()["ward_name"] == "Githurai"
+    assert await session.scalar(select(Mobilizer).where(Mobilizer.full_name == "Wanjiku Njeri"))
+
+
+async def test_a_candidate_can_take_a_mobilizer_off_the_ground(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    gone = await client.delete(
+        f"/api/mobilizers/{world.mobilizer.id}/", headers=world.headers("candidate")
+    )
+
+    assert gone.status_code == 204
+    assert await session.scalar(select(Mobilizer).where(Mobilizer.id == world.mobilizer.id)) is None
+
+
+async def _rival_campaign(session: AsyncSession, world: World):
+    """A campaign with its own candidate and mobilizer, that `world` is not on."""
+    from backend.api.scope import add_member
+    from backend.models import Campaign, OfficeLevel
+
+    rival = await make_user(session, username="rival", role=UserRole.CANDIDATE)
+    theirs = Campaign(
+        title="Rival for Githurai",
+        office_level=OfficeLevel.WARD,
+        ward_id=world.other_ward.id,
+    )
+    session.add(theirs)
+    await session.flush()
+    await add_member(session, theirs.id, rival.id)
+    ground = Mobilizer(
+        campaign_id=theirs.id,
+        ward_id=world.other_ward.id,
+        full_name="Rival Organizer",
+        phone="+254700333444",
+    )
+    session.add(ground)
+    await session.commit()
+    return theirs, ground
+
+
+@pytest.mark.parametrize("caller", ["candidate", "manager"])
+async def test_nobody_puts_a_mobilizer_on_somebody_else_s_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, caller: str
+) -> None:
+    theirs, _ground = await _rival_campaign(session, world)
+
+    refused = await client.post(
+        "/api/mobilizers/",
+        headers=world.headers(caller),
+        json={
+            "campaign": str(theirs.id),
+            "ward": str(world.other_ward.id),
+            "full_name": "Planted Organizer",
+        },
+    )
+
+    assert refused.status_code == 404
+    assert not await session.scalar(
+        select(Mobilizer).where(Mobilizer.full_name == "Planted Organizer")
+    )
+
+
+@pytest.mark.parametrize("caller", ["candidate", "manager"])
+async def test_nobody_takes_a_mobilizer_off_somebody_else_s_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, caller: str
+) -> None:
+    _theirs, ground = await _rival_campaign(session, world)
+
+    refused = await client.delete(f"/api/mobilizers/{ground.id}/", headers=world.headers(caller))
+
+    assert refused.status_code == 404
+    assert await session.scalar(select(Mobilizer).where(Mobilizer.id == ground.id)) is not None
 
 
 async def test_a_mobilizer_may_not_assign_another_mobilizer(
@@ -90,6 +164,17 @@ async def test_a_mobilizer_may_not_assign_another_mobilizer(
         },
     )
     assert response.status_code == 403
+
+
+async def test_a_mobilizer_may_not_take_a_mobilizer_off_the_ground(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    refused = await client.delete(
+        f"/api/mobilizers/{world.mobilizer.id}/", headers=world.headers("mobilizer")
+    )
+
+    assert refused.status_code == 403
+    assert await session.scalar(select(Mobilizer).where(Mobilizer.id == world.mobilizer.id))
 
 
 # -------------------------------------------------------------------- events

@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import delete, select
 from sqlalchemy.orm import selectinload
 
-from backend.api.deps import CurrentUser, SessionDep, Writer, mobilizer_ward_id
+from backend.api.deps import CurrentUser, SessionDep, TeamWriter, mobilizer_ward_id
 from backend.api.scope import (
     add_member,
     limit_to_campaigns,
@@ -47,7 +47,7 @@ async def create_mobilizer(
     payload: MobilizerCreate,
     session: SessionDep,
     user: CurrentUser,
-    _: Writer,
+    _: TeamWriter,
 ) -> Mobilizer:
     campaign = await require_visible_campaign(session, user, payload.campaign)
     await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
@@ -102,7 +102,7 @@ async def delete_mobilizer(
     mobilizer_id: uuid.UUID,
     session: SessionDep,
     user: CurrentUser,
-    _: Writer,
+    _: TeamWriter,
 ) -> Response:
     mobilizer = (
         await session.execute(select(Mobilizer).where(Mobilizer.id == mobilizer_id))

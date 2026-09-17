@@ -81,7 +81,7 @@ function TallyHero({ s }) {
   );
 }
 
-function UnitRegister({ units, readOnly, onAssign }) {
+function UnitRegister({ units, onAssign }) {
   const [sortKey, setSortKey] = useState("opportunity");
   const sorted = useMemo(() => {
     const a = [...units];
@@ -118,7 +118,7 @@ function UnitRegister({ units, readOnly, onAssign }) {
                   <td style={{ padding: "12px 8px", textAlign: "right", ...DISPLAY, fontWeight: 600, fontSize: 15 }}>{fmt(u.needed)}</td>
                   <td style={{ padding: "12px 8px", minWidth: 140 }}><Bar pct={u.progress * 100} color={st.color} /><div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>{fmt(u.committed)} · {Math.round(u.progress * 100)}%</div></td>
                   <td style={{ padding: "12px 8px", textAlign: "center", ...DISPLAY, fontWeight: 600, color: u.events === 0 ? C.red : C.ink }}>{u.events}</td>
-                  <td style={{ padding: "12px 18px", color: u.has_mobilizer ? C.green : C.red }}>{u.has_mobilizer ? "Assigned" : (readOnly ? "Unassigned" : <Btn onClick={onAssign}>Assign</Btn>)}</td>
+                  <td style={{ padding: "12px 18px", color: u.has_mobilizer ? C.green : C.red }}>{u.has_mobilizer ? "Assigned" : <Btn onClick={onAssign}>Assign</Btn>}</td>
                 </tr>
               );
             })}
@@ -452,7 +452,7 @@ function RegisterSupporterForm({ campaignId, wardOptions }) {
 
 // ---- nav ------------------------------------------------------------------
 const NAV = {
-  candidate: [["overview", "Overview"], ["units", "Ward performance"], ["events", "Events"], ["strategy", "Strategy"]],
+  candidate: [["overview", "Overview"], ["units", "Ward performance"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["strategy", "Strategy"]],
   manager: [["overview", "Overview"], ["targets", "Targets"], ["units", "Wards"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["supporters", "Supporters"], ["strategy", "Strategy"]],
   mobilizer: [["myevents", "My events"], ["register", "Register supporter"], ["mysupporters", "My supporters"]],
 };
@@ -494,13 +494,13 @@ export default function App() {
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <TallyHero s={strategy.data} />
             <div className="grid gap-5" style={{ gridTemplateColumns: "minmax(0,1.7fr) minmax(0,1fr)" }}>
-              <UnitRegister units={strategy.data.units} readOnly={role === "candidate"} onAssign={() => setModal({ type: "mobilizer" })} />
+              <UnitRegister units={strategy.data.units} onAssign={() => setModal({ type: "mobilizer" })} />
               <StrategyPanel notes={strategy.data.notes} dark />
             </div>
           </div></>);
       case "units":
         if (strategy.isLoading) return <Loading />; if (strategy.error) return <ErrorMsg error={strategy.error} />;
-        return (<><PageTitle title={role === "candidate" ? "Ward performance" : "Wards"} sub="Win number, progress and coverage per unit." /><UnitRegister units={strategy.data.units} readOnly={role === "candidate"} onAssign={() => setModal({ type: "mobilizer" })} /></>);
+        return (<><PageTitle title={role === "candidate" ? "Ward performance" : "Wards"} sub="Win number, progress and coverage per unit." /><UnitRegister units={strategy.data.units} onAssign={() => setModal({ type: "mobilizer" })} /></>);
       case "strategy":
         if (strategy.isLoading) return <Loading />; if (strategy.error) return <ErrorMsg error={strategy.error} />;
         return (<><PageTitle title="Strategy read" sub="Your next moves, computed from your own data." /><StrategyPanel notes={strategy.data.notes} /></>);

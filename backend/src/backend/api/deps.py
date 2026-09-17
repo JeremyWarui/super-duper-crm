@@ -76,13 +76,15 @@ async def get_current_user(user: OptionalUser) -> User:
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def require_writer(*, mobilizer_writable: bool = False):
-    """Guard a write route. Managers always; mobilizers only where allowed."""
+def require_writer(*, mobilizer_writable: bool = False, candidate_writable: bool = False):
+    """Guard a write route. Managers always; the other roles only where allowed."""
 
     async def dependency(user: CurrentUser) -> User:
         if user.role is UserRole.MANAGER:
             return user
         if user.role is UserRole.MOBILIZER and mobilizer_writable:
+            return user
+        if user.role is UserRole.CANDIDATE and candidate_writable:
             return user
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
@@ -113,6 +115,9 @@ Writer = Annotated[User, Depends(require_writer())]
 
 MobilizerWriter = Annotated[User, Depends(require_writer(mobilizer_writable=True))]
 """Managers, and mobilizers in their own ward."""
+
+TeamWriter = Annotated[User, Depends(require_writer(candidate_writable=True))]
+"""Managers and candidates, who both put mobilizers on their campaign."""
 
 
 def mobilizer_ward_id(user: User) -> uuid.UUID | None:

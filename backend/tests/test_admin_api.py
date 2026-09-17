@@ -311,6 +311,34 @@ async def test_a_disabled_login_cannot_sign_back_in_until_it_is_enabled(
     assert await sign_in(client, "juma")
 
 
+@pytest.mark.parametrize("who", ["candidate", "manager"])
+async def test_an_admin_disables_the_logins_a_campaign_cannot_remove(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, who: str
+) -> None:
+    head = await _admin(session, client)
+    target = getattr(world, who)
+    theirs = world.headers(who)
+
+    reply = await client.post(
+        f"/api/admin/users/{target.id}/active/", headers=head, json={"active": False}
+    )
+
+    assert reply.status_code == 200, reply.text
+    assert reply.json()["is_active"] is False
+    assert (await client.get("/api/campaigns/", headers=theirs)).status_code == 401
+
+
+async def test_the_console_disables_a_login_and_never_deletes_one(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    head = await _admin(session, client)
+
+    reply = await client.delete(f"/api/admin/users/{world.manager.id}/", headers=head)
+
+    assert reply.status_code in (404, 405)
+    assert await session.get(User, world.manager.id) is not None
+
+
 async def test_an_admin_cannot_disable_themselves(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:

@@ -101,28 +101,28 @@ describe("what each role is shown", () => {
     }
   });
 
-  it("gives a candidate a read-only cockpit", async () => {
+  it("gives a candidate the cockpit and their mobilizers, not the manager's other pages", async () => {
     await open("candidate");
 
     expect(screen.getByText(/· Candidate/)).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Ward performance" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Mobilizers" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Targets" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Mobilizers" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Supporters" })).toBeNull();
   });
 
-  it("gives a candidate no way to assign a mobilizer", async () => {
-    await open("candidate");
-
-    expect(screen.getByText("Unassigned")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Assign" })).toBeNull();
-  });
-
-  it("gives a manager the assign button the candidate does not get", async () => {
-    await open("manager");
-    expect(screen.getByRole("button", { name: "Assign" })).toBeInTheDocument();
-  });
+  for (const role of ["candidate", "manager"]) {
+    it(`gives a ${role} the button to assign a mobilizer to an uncovered unit`, async () => {
+      await open(role);
+      expect(
+        screen.getByRole("button", { name: "Assign" }),
+      ).toBeInTheDocument();
+    });
+  }
 
   it("gives a mobilizer only their own three pages", async () => {
     await open("mobilizer");
@@ -253,34 +253,36 @@ describe("the forms", () => {
     });
   });
 
-  it("adds a mobilizer against a ward", async () => {
-    const user = userEvent.setup();
-    const { calls } = await open("manager", {
-      "POST /mobilizers/": { id: "m2" },
-    });
+  for (const role of ["manager", "candidate"]) {
+    it(`lets a ${role} add a mobilizer against a ward`, async () => {
+      const user = userEvent.setup();
+      const { calls } = await open(role, {
+        "POST /mobilizers/": { id: "m2" },
+      });
 
-    await user.click(screen.getByRole("button", { name: "Mobilizers" }));
-    await user.click(
-      await screen.findByRole("button", { name: "Add mobilizer" }),
-    );
-
-    const boxes = await screen.findAllByRole("textbox");
-    await user.type(boxes[0], "Wanjiku Njeri");
-    await user.type(boxes[1], "+254700111222");
-    await user.click(screen.getByRole("button", { name: "Save mobilizer" }));
-
-    await waitFor(() => {
-      const posted = calls.find(
-        (c) => c.method === "POST" && c.path === "/mobilizers/",
+      await user.click(screen.getByRole("button", { name: "Mobilizers" }));
+      await user.click(
+        await screen.findByRole("button", { name: "Add mobilizer" }),
       );
-      expect(posted.body).toEqual({
-        campaign: "c1",
-        ward: "w1",
-        full_name: "Wanjiku Njeri",
-        phone: "+254700111222",
+
+      const boxes = await screen.findAllByRole("textbox");
+      await user.type(boxes[0], "Wanjiku Njeri");
+      await user.type(boxes[1], "+254700111222");
+      await user.click(screen.getByRole("button", { name: "Save mobilizer" }));
+
+      await waitFor(() => {
+        const posted = calls.find(
+          (c) => c.method === "POST" && c.path === "/mobilizers/",
+        );
+        expect(posted.body).toEqual({
+          campaign: "c1",
+          ward: "w1",
+          full_name: "Wanjiku Njeri",
+          phone: "+254700111222",
+        });
       });
     });
-  });
+  }
 
   it("will not register a supporter without consent", async () => {
     const user = userEvent.setup();
@@ -546,28 +548,30 @@ describe("adding a mobilizer", () => {
     expect(await screen.findByPlaceholderText("juma")).toBeInTheDocument();
   });
 
-  it("creates a login instead, when one is wanted", async () => {
-    const user = userEvent.setup();
-    const { calls } = await open("manager");
-    await openForm(user);
+  for (const role of ["manager", "candidate"]) {
+    it(`creates a login instead for a ${role}, when one is wanted`, async () => {
+      const user = userEvent.setup();
+      const { calls } = await open(role);
+      await openForm(user);
 
-    const boxes = await screen.findAllByRole("textbox");
-    await user.type(boxes[0], "Wanjiku Njeri");
-    await user.click(screen.getByRole("checkbox"));
-    await user.type(await screen.findByPlaceholderText("juma"), "Wanjiku");
-    await user.click(screen.getByRole("button", { name: "Save mobilizer" }));
+      const boxes = await screen.findAllByRole("textbox");
+      await user.type(boxes[0], "Wanjiku Njeri");
+      await user.click(screen.getByRole("checkbox"));
+      await user.type(await screen.findByPlaceholderText("juma"), "Wanjiku");
+      await user.click(screen.getByRole("button", { name: "Save mobilizer" }));
 
-    await waitFor(() => {
-      const posted = calls.find((c) => c.path === "/users/");
-      expect(posted.body).toMatchObject({
-        username: "wanjiku",
-        role: "mobilizer",
-        first_name: "Wanjiku",
-        last_name: "Njeri",
-        campaign: "c1",
+      await waitFor(() => {
+        const posted = calls.find((c) => c.path === "/users/");
+        expect(posted.body).toMatchObject({
+          username: "wanjiku",
+          role: "mobilizer",
+          first_name: "Wanjiku",
+          last_name: "Njeri",
+          campaign: "c1",
+        });
       });
     });
-  });
+  }
 
   it("shows the password once, and says so", async () => {
     const user = userEvent.setup();

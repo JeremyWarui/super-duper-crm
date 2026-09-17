@@ -13,7 +13,7 @@ from backend.api.scope import (
     require_ward_in_campaign,
     visible_user_ids,
 )
-from backend.models import Campaign, CampaignMember, Mobilizer, User, UserRole, Ward
+from backend.models import Mobilizer, User, UserRole, Ward
 from backend.schemas.user import UserCreate, UserCreated, UserRead
 from backend.security import hash_password, new_password
 
@@ -38,7 +38,7 @@ async def list_users(
 
 @router.post("/", response_model=UserCreated, status_code=status.HTTP_201_CREATED)
 async def create_user(payload: UserCreate, session: SessionDep, user: CurrentUser) -> UserCreated:
-    """Create a login. The password is not stored and cannot be fetched again."""
+    """Create a mobilizer's login. The password is not stored and cannot be fetched again."""
     if user.role not in MAY_CREATE:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, "Only a candidate or a campaign manager may add people."
@@ -52,32 +52,16 @@ async def create_user(payload: UserCreate, session: SessionDep, user: CurrentUse
             status.HTTP_400_BAD_REQUEST, f"The username {payload.username} is already taken."
         )
 
-    if payload.role is UserRole.MANAGER and user.role is not UserRole.MANAGER:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
-            "Only a campaign manager may add another. Ask yours, or use "
-            "campaign-crm assign-manager.",
-        )
-
-    ward: Ward | None = None
-    campaign: Campaign | None = None
-    if payload.campaign is None:
+    if payload.campaign is None or payload.ward is None:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            f"A {payload.role.label.lower()} needs a campaign, or they sign in to nothing.",
+            "A mobilizer needs a campaign and a ward, or they sign in to nothing.",
         )
     campaign = await require_visible_campaign(session, user, payload.campaign)
-
-    if payload.role is UserRole.MOBILIZER:
-        if payload.ward is None:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                "A mobilizer needs a campaign and a ward, or they sign in to nothing.",
-            )
-        ward = await session.get(Ward, payload.ward)
-        if ward is None:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such ward.")
-        await require_ward_in_campaign(session, campaign, ward.id, payload.registration_centre)
+    ward = await session.get(Ward, payload.ward)
+    if ward is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such ward.")
+    await require_ward_in_campaign(session, campaign, ward.id, payload.registration_centre)
 
     password = new_password()
     created = User(
@@ -96,17 +80,15 @@ async def create_user(payload: UserCreate, session: SessionDep, user: CurrentUse
     # app asking them to set one up.
     await add_member(session, campaign.id, created.id)
 
-    mobilizer: Mobilizer | None = None
-    if payload.role is UserRole.MOBILIZER and ward is not None:
-        mobilizer = Mobilizer(
-            campaign_id=payload.campaign,
-            ward_id=ward.id,
-            registration_centre_id=payload.registration_centre,
-            user_id=created.id,
-            full_name=created.full_name or created.username,
-            phone=created.phone,
-        )
-        session.add(mobilizer)
+    mobilizer = Mobilizer(
+        campaign_id=campaign.id,
+        ward_id=ward.id,
+        registration_centre_id=payload.registration_centre,
+        user_id=created.id,
+        full_name=created.full_name or created.username,
+        phone=created.phone,
+    )
+    session.add(mobilizer)
 
     await session.commit()
 
@@ -117,17 +99,18 @@ async def create_user(payload: UserCreate, session: SessionDep, user: CurrentUse
         role=created.role,
         phone=created.phone,
         password=password,
-        mobilizer=mobilizer.id if mobilizer is not None else None,
-        ward_name=ward.name if ward is not None else None,
+        mobilizer=mobilizer.id,
+        ward_name=ward.name,
     )
 
 
 @router.delete("/{user_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(user_id: uuid.UUID, session: SessionDep, user: CurrentUser) -> None:
-    """Remove a login. The mobilizer row it belonged to stays."""
+    """Remove a mobilizer's login. The mobilizer row it belonged to stays."""
     if user.role not in MAY_CREATE:
         raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "Only a candidate or a campaign manager may remove people."
+            status.HTTP_403_FORBIDDEN,
+            "Only a candidate or a campaign manager may remove mobilizers.",
         )
     if user_id == user.id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "You cannot remove your own login.")
@@ -145,15 +128,11 @@ async def delete_user(user_id: uuid.UUID, session: SessionDep, user: CurrentUser
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, "That login runs the deployment, not this campaign."
         )
-    stands_in = await session.scalar(
-        select(CampaignMember.id).where(
-            CampaignMember.user_id == user_id, CampaignMember.role == UserRole.CANDIDATE
-        )
-    )
-    if stands_in is not None:
+    if target.role is not UserRole.MOBILIZER:
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "That account is a candidate with a campaign; delete the campaign first.",
+            status.HTTP_403_FORBIDDEN,
+            "Only a mobilizer is removed from inside a campaign. "
+            "An admin can disable any other login.",
         )
 
     await session.delete(target)

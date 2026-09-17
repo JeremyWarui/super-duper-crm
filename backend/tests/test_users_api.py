@@ -1,4 +1,4 @@
-"""Creating logins for the campaign team."""
+"""Creating logins for the campaign team: mobilizers, added by a manager or a candidate."""
 
 import uuid
 
@@ -44,22 +44,38 @@ def _mobilizer(world: World, **overrides) -> dict:
 # --------------------------------------------------------------- who may add
 
 
-async def test_adding_someone_needs_a_token(client: httpx.AsyncClient) -> None:
-    assert (await client.post("/api/users/", json=_manager())).status_code == 401
+async def test_adding_someone_needs_a_token(client: httpx.AsyncClient, world: World) -> None:
+    assert (await client.post("/api/users/", json=_mobilizer(world))).status_code == 401
 
 
-async def test_a_manager_can_add_another_manager(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+@pytest.mark.parametrize("caller", ["manager", "candidate"])
+async def test_nobody_on_a_campaign_can_add_a_manager(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, caller: str
 ) -> None:
     response = await client.post(
         "/api/users/",
-        headers=world.headers("manager"),
+        headers=world.headers(caller),
         json=_manager(world.campaign.id),
     )
 
-    assert response.status_code == 201
-    assert response.json()["role"] == "manager"
-    assert await session.scalar(select(User).where(User.username == "brian"))
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("role: Only a mobilizer is added")
+    assert await session.scalar(select(User).where(User.username == "brian")) is None
+
+
+async def test_a_candidate_can_add_a_mobilizer_who_then_works_their_campaign(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    response = await client.post(
+        "/api/users/", headers=world.headers("candidate"), json=_mobilizer(world)
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["role"] == "mobilizer"
+    assert response.json()["ward_name"] == "Zimmerman"
+    token = await sign_in(client, "wanjiku", response.json()["password"])
+    theirs = (await client.get("/api/campaigns/", headers=auth(token))).json()
+    assert [c["id"] for c in theirs] == [str(world.campaign.id)]
 
 
 async def test_a_manager_can_add_a_mobilizer(
@@ -77,7 +93,7 @@ async def test_a_mobilizer_may_not_add_anyone(client: httpx.AsyncClient, world: 
     response = await client.post(
         "/api/users/",
         headers=world.headers("mobilizer"),
-        json=_manager(world.campaign.id),
+        json=_mobilizer(world),
     )
     assert response.status_code == 403
 
@@ -96,11 +112,11 @@ async def test_the_password_comes_back_once_and_signs_them_in(
         await client.post(
             "/api/users/",
             headers=world.headers("manager"),
-            json=_manager(world.campaign.id),
+            json=_mobilizer(world),
         )
     ).json()
 
-    token = await sign_in(client, "brian", created["password"])
+    token = await sign_in(client, "wanjiku", created["password"])
 
     assert len(token) == 40
 
@@ -111,7 +127,7 @@ async def test_the_password_is_generated_not_chosen(
     response = await client.post(
         "/api/users/",
         headers=world.headers("manager"),
-        json=_manager(world.campaign.id, password=fresh_password()),
+        json=_mobilizer(world, password=fresh_password()),
     )
     assert response.status_code == 400
 
@@ -123,14 +139,14 @@ async def test_two_accounts_do_not_share_a_password(
         await client.post(
             "/api/users/",
             headers=world.headers("manager"),
-            json=_manager(world.campaign.id),
+            json=_mobilizer(world),
         )
     ).json()
     second = (
         await client.post(
             "/api/users/",
             headers=world.headers("manager"),
-            json=_manager(world.campaign.id, username="carol"),
+            json=_mobilizer(world, username="carol", ward=str(world.other_ward.id)),
         )
     ).json()
 
@@ -150,14 +166,14 @@ async def test_the_default_password_is_handed_to_everyone_onboarded(
             await client.post(
                 "/api/users/",
                 headers=world.headers("manager"),
-                json=_manager(world.campaign.id),
+                json=_mobilizer(world),
             )
         ).json()
     finally:
         get_settings.cache_clear()
 
     assert created["password"] == shared
-    assert await sign_in(client, "brian", shared)
+    assert await sign_in(client, "wanjiku", shared)
 
 
 async def test_the_password_is_not_readable_afterwards(
@@ -167,14 +183,14 @@ async def test_the_password_is_not_readable_afterwards(
         await client.post(
             "/api/users/",
             headers=world.headers("manager"),
-            json=_manager(world.campaign.id),
+            json=_mobilizer(world),
         )
     ).json()
 
     listed = (await client.get("/api/users/", headers=world.headers("candidate"))).json()
 
     assert all("password" not in row for row in listed)
-    stored = (await session.execute(select(User).where(User.username == "brian"))).scalar_one()
+    stored = (await session.execute(select(User).where(User.username == "wanjiku"))).scalar_one()
     assert created["password"] not in stored.password_hash
 
 
@@ -215,18 +231,6 @@ async def test_a_mobilizer_without_a_ward_is_refused(
     assert "sign in to nothing" in response.json()["detail"]
 
 
-async def test_a_manager_gets_no_ground_team_row(client: httpx.AsyncClient, world: World) -> None:
-    created = (
-        await client.post(
-            "/api/users/",
-            headers=world.headers("manager"),
-            json=_manager(world.campaign.id),
-        )
-    ).json()
-    assert created["mobilizer"] is None
-    assert created["ward_name"] is None
-
-
 async def test_a_mobilizer_cannot_be_put_on_a_campaign_the_caller_cannot_see(
     client: httpx.AsyncClient, world: World
 ) -> None:
@@ -254,13 +258,13 @@ async def test_a_username_already_taken_says_so(client: httpx.AsyncClient, world
     await client.post(
         "/api/users/",
         headers=world.headers("manager"),
-        json=_manager(world.campaign.id),
+        json=_mobilizer(world),
     )
 
     response = await client.post(
         "/api/users/",
         headers=world.headers("manager"),
-        json=_manager(world.campaign.id, first_name="Someone"),
+        json=_mobilizer(world, first_name="Someone"),
     )
 
     assert response.status_code == 400
@@ -274,7 +278,7 @@ async def test_a_username_with_spaces_or_symbols_is_refused(
         response = await client.post(
             "/api/users/",
             headers=world.headers("manager"),
-            json=_manager(str(world.campaign.id), username=bad),
+            json=_mobilizer(world, username=bad),
         )
         assert response.status_code == 400, bad
 
@@ -285,16 +289,17 @@ async def test_a_candidate_cannot_be_created_this_way(
     response = await client.post(
         "/api/users/",
         headers=world.headers("manager"),
-        json=_manager(str(world.campaign.id), role="candidate"),
+        json=_mobilizer(world, role="candidate"),
     )
     assert response.status_code == 400
+    assert "an aspirant is named when the campaign is set up" in response.json()["detail"]
 
 
 async def test_a_superuser_cannot_be_asked_for(client: httpx.AsyncClient, world: World) -> None:
     response = await client.post(
         "/api/users/",
         headers=world.headers("manager"),
-        json=_manager(world.campaign.id, is_superuser=True),
+        json=_mobilizer(world, is_superuser=True),
     )
     assert response.status_code == 400
 
@@ -309,7 +314,7 @@ async def test_a_login_can_be_removed(
         await client.post(
             "/api/users/",
             headers=world.headers("manager"),
-            json=_manager(world.campaign.id),
+            json=_mobilizer(world),
         )
     ).json()
 
@@ -318,7 +323,7 @@ async def test_a_login_can_be_removed(
     )
 
     assert response.status_code == 204
-    assert not await session.scalar(select(User).where(User.username == "brian"))
+    assert not await session.scalar(select(User).where(User.username == "wanjiku"))
 
 
 async def test_removing_a_mobilizer_s_login_keeps_the_mobilizer(
@@ -345,15 +350,57 @@ async def test_you_cannot_remove_your_own_login(client: httpx.AsyncClient, world
     assert response.status_code == 400
 
 
-async def test_a_candidate_holding_a_campaign_is_not_removable(
-    client: httpx.AsyncClient, world: World
+async def test_a_manager_cannot_remove_the_candidate(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     response = await client.delete(
         f"/api/users/{world.candidate.id}/", headers=world.headers("manager")
     )
 
-    assert response.status_code == 400
-    assert "delete the campaign first" in response.json()["detail"]
+    assert response.status_code == 403
+    assert response.json()["detail"].startswith("Only a mobilizer is removed")
+    assert await session.get(User, world.candidate.id) is not None
+
+
+async def test_a_candidate_cannot_remove_their_campaign_manager(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    response = await client.delete(
+        f"/api/users/{world.manager.id}/", headers=world.headers("candidate")
+    )
+
+    assert response.status_code == 403
+    assert "An admin can disable any other login" in response.json()["detail"]
+    assert await session.get(User, world.manager.id) is not None
+    assert (await client.get("/api/campaigns/", headers=world.headers("manager"))).json() != []
+
+
+async def test_a_superuser_holding_a_mobilizer_login_is_not_removable(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    world.mobilizer_user.is_superuser = True
+    await session.commit()
+
+    response = await client.delete(
+        f"/api/users/{world.mobilizer_user.id}/", headers=world.headers("manager")
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "That login runs the deployment, not this campaign."
+    assert await session.get(User, world.mobilizer_user.id) is not None
+
+
+async def test_a_manager_cannot_remove_another_manager_on_the_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    colleague = await make_user(session, username="colleague", role=UserRole.MANAGER)
+    await add_member(session, world.campaign.id, colleague.id)
+    await session.commit()
+
+    response = await client.delete(f"/api/users/{colleague.id}/", headers=world.headers("manager"))
+
+    assert response.status_code == 403
+    assert await session.get(User, colleague.id) is not None
 
 
 async def test_a_mobilizer_may_not_remove_anyone(client: httpx.AsyncClient, world: World) -> None:
@@ -380,30 +427,32 @@ async def test_the_team_list_names_everyone_without_their_hashes(
 # ------------------------------------------------------- who the team is for
 
 
-async def test_a_created_manager_joins_the_campaign_rather_than_an_empty_app(
+async def test_a_created_mobilizer_joins_the_campaign_rather_than_an_empty_app(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     theirs = str(world.campaign.id)
     created = (
-        await client.post("/api/users/", headers=world.headers("manager"), json=_manager(theirs))
+        await client.post("/api/users/", headers=world.headers("manager"), json=_mobilizer(world))
     ).json()
 
-    token = await sign_in(client, "brian", created["password"])
+    token = await sign_in(client, "wanjiku", created["password"])
     listed = (await client.get("/api/campaigns/", headers=auth(token))).json()
 
     assert [c["id"] for c in listed] == [theirs]
 
 
-async def test_a_manager_with_no_campaign_is_refused(
+async def test_a_mobilizer_with_a_ward_but_no_campaign_is_refused(
     client: httpx.AsyncClient, world: World
 ) -> None:
-    response = await client.post("/api/users/", headers=world.headers("manager"), json=_manager())
+    response = await client.post(
+        "/api/users/", headers=world.headers("manager"), json=_mobilizer(world, campaign=None)
+    )
 
     assert response.status_code == 400
     assert "sign in to nothing" in response.json()["detail"]
 
 
-async def test_a_manager_cannot_be_added_to_a_campaign_the_caller_cannot_see(
+async def test_a_mobilizer_cannot_be_added_to_a_campaign_the_caller_cannot_see(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     """A campaign that exists and belongs to somebody else, not a made-up id."""
@@ -419,7 +468,9 @@ async def test_a_manager_cannot_be_added_to_a_campaign_the_caller_cannot_see(
     await session.commit()
 
     response = await client.post(
-        "/api/users/", headers=world.headers("manager"), json=_manager(theirs.id)
+        "/api/users/",
+        headers=world.headers("manager"),
+        json=_mobilizer(world, campaign=str(theirs.id), ward=str(world.other_ward.id)),
     )
 
     assert response.status_code == 404
@@ -462,18 +513,6 @@ async def test_a_manager_cannot_remove_somebody_on_another_campaign(
     assert response.status_code == 404
 
 
-async def test_a_candidate_may_not_appoint_a_manager(
-    client: httpx.AsyncClient, world: World
-) -> None:
-    """The manager runs the campaign, so the manager builds the team."""
-    response = await client.post(
-        "/api/users/", headers=world.headers("candidate"), json=_manager(world.campaign.id)
-    )
-
-    assert response.status_code == 403
-    assert "Only a campaign manager may add another" in response.json()["detail"]
-
-
 async def test_adding_a_colleague_does_not_evict_the_manager_doing_it(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
@@ -483,7 +522,7 @@ async def test_adding_a_colleague_does_not_evict_the_manager_doing_it(
     response = await client.post(
         "/api/users/",
         headers=world.headers("manager"),
-        json=_manager(str(world.campaign.id), username="colleague"),
+        json=_mobilizer(world, username="colleague"),
     )
     assert response.status_code == 201, response.text
 
