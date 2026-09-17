@@ -347,7 +347,7 @@ async def create_user(
         phone=phone,
     )
     if ward is not None:
-        await add_mobilizer(session, target, ward, created)
+        await add_mobilizer(session, target, ward.id, created)
     elif target is not None:
         await join(session, target.id, created)
     await session.commit()

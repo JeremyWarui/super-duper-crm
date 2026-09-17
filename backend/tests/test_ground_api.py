@@ -141,6 +141,26 @@ async def test_a_free_mobilizer_login_is_put_on_the_ground_and_the_campaign(
     assert [c["id"] for c in seen.json()] == [str(world.campaign.id)]
 
 
+async def test_a_login_put_on_the_ground_without_a_phone_keeps_the_login_s_phone(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    spare = await make_user(
+        session, username="spare", role=UserRole.MOBILIZER, phone="+254700999888"
+    )
+
+    response = await client.post(
+        "/api/mobilizers/",
+        headers=world.headers("manager"),
+        json=_ground(world, user=str(spare.id), phone=""),
+    )
+
+    assert response.status_code == 201, response.text
+    assert (response.json()["full_name"], response.json()["phone"]) == (
+        "Wanjiku Njeri",
+        "+254700999888",
+    )
+
+
 @pytest.mark.parametrize(
     ("who", "code", "message"),
     [

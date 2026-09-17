@@ -17,7 +17,7 @@ from backend.api.scope import (
 )
 from backend.models import CampaignMember, Mobilizer, User, UserRole, Ward
 from backend.schemas.campaign import MobilizerCreate, MobilizerRead
-from backend.services.accounts import add_member
+from backend.services.accounts import add_mobilizer
 
 router = APIRouter(prefix="/mobilizers", tags=["mobilizers"])
 
@@ -40,18 +40,16 @@ async def create_mobilizer(
     """Put somebody on a ward, optionally tied to a mobilizer login that has no ground row yet."""
     campaign = await require_visible_campaign(session, user, payload.campaign)
     await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
-    if payload.user is not None:
-        await add_member(session, campaign.id, await _free_mobilizer(session, payload.user))
-
-    mobilizer = Mobilizer(
-        campaign_id=payload.campaign,
-        ward_id=payload.ward,
-        registration_centre_id=payload.registration_centre,
-        user_id=payload.user,
+    login = await _free_mobilizer(session, payload.user) if payload.user is not None else None
+    mobilizer = await add_mobilizer(
+        session,
+        campaign,
+        payload.ward,
+        login,
+        centre_id=payload.registration_centre,
         full_name=payload.full_name,
         phone=payload.phone,
     )
-    session.add(mobilizer)
     await session.commit()
     return await load(session, Mobilizer, mobilizer.id, LOADED)
 

@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Campaign, CampaignMember, Mobilizer, User, UserRole, Ward
+from backend.models import Campaign, CampaignMember, Mobilizer, User, UserRole
 from backend.security import hash_password, new_password
 from backend.services.errors import Refused
 
@@ -108,19 +108,28 @@ async def add_member(session: AsyncSession, campaign_id: uuid.UUID, user: User) 
 async def add_mobilizer(
     session: AsyncSession,
     campaign: Campaign,
-    ward: Ward,
-    user: User,
+    ward_id: uuid.UUID,
+    user: User | None = None,
+    *,
     centre_id: uuid.UUID | None = None,
+    full_name: str = "",
+    phone: str = "",
 ) -> Mobilizer:
-    """Put a mobilizer's login on a campaign and on one of its wards."""
-    await add_member(session, campaign.id, user)
+    """Put somebody on one of a campaign's wards; a login given joins the campaign too.
+
+    Name and phone default to the login's.
+    """
+    if user is not None:
+        await add_member(session, campaign.id, user)
+        full_name = full_name or user.full_name or user.username
+        phone = phone or user.phone
     mobilizer = Mobilizer(
         campaign_id=campaign.id,
-        ward_id=ward.id,
+        ward_id=ward_id,
         registration_centre_id=centre_id,
-        user_id=user.id,
-        full_name=user.full_name or user.username,
-        phone=user.phone,
+        user_id=user.id if user is not None else None,
+        full_name=full_name,
+        phone=phone,
     )
     session.add(mobilizer)
     await session.flush()

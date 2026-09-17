@@ -31,7 +31,9 @@ async def create_user(payload: UserCreate, session: SessionDep, user: TeamWriter
         email=payload.email,
         phone=payload.phone,
     )
-    mobilizer = await add_mobilizer(session, campaign, ward, created, payload.registration_centre)
+    mobilizer = await add_mobilizer(
+        session, campaign, ward.id, created, centre_id=payload.registration_centre
+    )
     await session.commit()
     return UserCreated(
         id=created.id,

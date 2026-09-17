@@ -14,7 +14,6 @@ from backend.models import (
     County,
     Event,
     EventStatus,
-    Mobilizer,
     OfficeLevel,
     Supporter,
     SupportLevel,
@@ -24,7 +23,7 @@ from backend.models import (
     Ward,
 )
 from backend.security import hash_password, new_password
-from backend.services.accounts import add_member
+from backend.services.accounts import add_member, add_mobilizer
 from backend.services.admin import remove_campaign
 from backend.services.targets import generate_targets
 
@@ -126,7 +125,7 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     )
     session.add(campaign)
     await session.flush()
-    for member in (aspirant, manager, mobilizer_user):
+    for member in (aspirant, manager):
         await add_member(session, campaign.id, member)
 
     summary = await generate_targets(session, campaign)
@@ -169,15 +168,15 @@ async def _seed_ground_game(
     staffed = wards[: max(len(wards) // 2, 1)]
     mobilizers = []
     for index, ward in enumerate(staffed):
-        mobilizer = Mobilizer(
-            campaign=campaign,
-            ward=ward,
+        mobilizer = await add_mobilizer(
+            session,
+            campaign,
+            ward.id,
+            mobilizer_user if index == 0 else None,
             full_name=f"Organiser - {ward.name}",
             phone=f"+2547{index:08d}",
-            user=mobilizer_user if index == 0 else None,
         )
         mobilizers.append(mobilizer)
-        session.add(mobilizer)
 
     start = datetime.now(UTC) - timedelta(days=30)
     for index, (ward, mobilizer) in enumerate(zip(staffed, mobilizers, strict=True)):
