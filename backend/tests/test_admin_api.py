@@ -5,10 +5,20 @@ import uuid
 
 import httpx
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AuthToken, CampaignMember, User, UserRole
+from backend.models import (
+    AuthToken,
+    Campaign,
+    CampaignMember,
+    Event,
+    Mobilizer,
+    Supporter,
+    Target,
+    User,
+    UserRole,
+)
 from tests.conftest import World
 from tests.factories import TEST_PASSWORD, auth, fresh_password, make_user, sign_in
 
@@ -84,6 +94,9 @@ async def test_the_admin_writes_are_shut_to_a_manager_too(
         await client.delete(
             f"/api/admin/campaigns/{world.campaign.id}/members/{victim}/", headers=head
         )
+    ).status_code == 403
+    assert (
+        await client.delete(f"/api/admin/campaigns/{world.campaign.id}/", headers=head)
     ).status_code == 403
 
 
@@ -490,6 +503,63 @@ async def test_taking_somebody_off_a_campaign_takes_it_away_from_them(
 
     assert reply.status_code == 204
     assert (await client.get("/api/campaigns/", headers=theirs)).json() == []
+
+
+async def test_an_admin_deletes_a_campaign_and_everything_on_it_but_the_logins(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    manager = world.headers("manager")
+    event = await client.post(
+        "/api/events/",
+        headers=manager,
+        json={
+            "campaign": str(world.campaign.id),
+            "ward": str(world.ward.id),
+            "title": "Zimmerman town hall",
+            "venue": "Social hall",
+            "scheduled_date": "2027-06-12",
+            "status": "planned",
+            "mobilizer": str(world.mobilizer.id),
+        },
+    )
+    assert event.status_code == 201, event.text
+    supporter = await client.post(
+        "/api/supporters/",
+        headers=world.headers("mobilizer"),
+        json={
+            "campaign": str(world.campaign.id),
+            "ward": str(world.ward.id),
+            "full_name": "Wanjiku Njeri",
+            "phone": "+254700333444",
+            "consent_given": True,
+        },
+    )
+    assert supporter.status_code == 201, supporter.text
+    head = await _admin(session, client)
+
+    reply = await client.delete(f"/api/admin/campaigns/{world.campaign.id}/", headers=head)
+
+    assert reply.status_code == 204
+    session.expire_all()
+    assert await session.get(Campaign, world.campaign.id) is None
+    for table in (CampaignMember, Target, Mobilizer, Event, Supporter):
+        assert await session.scalar(select(func.count()).select_from(table)) == 0, table
+    for who in ("candidate", "manager", "mobilizer"):
+        assert (await client.get("/api/campaigns/", headers=world.headers(who))).json() == []
+    assert await session.get(User, world.candidate.id) is not None
+    overview = (await client.get("/api/admin/overview/", headers=head)).json()
+    assert overview["campaigns"] == []
+
+
+async def test_deleting_a_campaign_that_is_not_there_is_a_404(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    head = await _admin(session, client)
+
+    reply = await client.delete(f"/api/admin/campaigns/{uuid.uuid4()}/", headers=head)
+
+    assert reply.status_code == 404
+    assert reply.json()["detail"] == "No such campaign."
 
 
 async def test_the_candidate_cannot_be_taken_off_their_own_campaign(

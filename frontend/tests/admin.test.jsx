@@ -452,6 +452,75 @@ describe("what the console refuses to lose", () => {
   });
 });
 
+describe("deleting a campaign", () => {
+  const QUESTION =
+    "Delete Jane for Roysambu, take its 2 people off it, and delete its 5 targets, 2 mobilizers, 4 events and 30 supporters? Their logins stay. This cannot be undone.";
+
+  it("asks first, naming the campaign and what goes with it", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    const calls = stubApi(adminRoutes());
+    renderApp(<Admin />);
+
+    await user.click(
+      (await screen.findAllByRole("button", { name: "Delete campaign" }))[0],
+    );
+
+    expect(screen.getByText(QUESTION)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+  });
+
+  it("deletes it once confirmed, and the card leaves with it", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    const routes = adminRoutes();
+    // Reading the DELETE stub is the delete: the overview answers without it after.
+    Object.defineProperty(routes, "DELETE /admin/campaigns/c1/", {
+      get() {
+        routes["GET /admin/overview/"] = { totals: TOTALS, campaigns: [ORPHAN] };
+        return { status: 204, body: null };
+      },
+    });
+    const calls = stubApi(routes);
+    renderApp(<Admin />);
+
+    await user.click(
+      (await screen.findAllByRole("button", { name: "Delete campaign" }))[0],
+    );
+    await user.click(screen.getByRole("button", { name: "Yes" }));
+
+    await waitFor(() => {
+      const sent = calls.find((c) => c.path === "/admin/campaigns/c1/");
+      expect(sent.method).toBe("DELETE");
+    });
+    await waitFor(() =>
+      expect(screen.queryByText("Jane for Roysambu")).toBeNull(),
+    );
+  });
+
+  it("shows the server's refusal", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    stubApi(
+      adminRoutes({
+        "DELETE /admin/campaigns/c1/": {
+          status: 404,
+          body: { detail: "No such campaign." },
+        },
+      }),
+    );
+    renderApp(<Admin />);
+
+    await user.click(
+      (await screen.findAllByRole("button", { name: "Delete campaign" }))[0],
+    );
+    await user.click(screen.getByRole("button", { name: "Yes" }));
+
+    expect(await screen.findByText("No such campaign.")).toBeInTheDocument();
+  });
+});
+
 describe("what the console says while it waits", () => {
   it("does not claim nobody matches while the logins are still loading", async () => {
     signInAsAdmin();

@@ -412,6 +412,7 @@
   "no_content": {
     "_comment": "Routes that answer 204 with no body. Only that they still exist is checked.",
     "routes": [
+      "DELETE /api/admin/campaigns/{campaign_id}/",
       "DELETE /api/admin/campaigns/{campaign_id}/members/{user_id}/"
     ]
   }

@@ -17,13 +17,15 @@ from backend.cli import (
     _campaign,
     _campaigns,
     _createuser,
+    _delete_campaign,
     _remove_member,
+    _rename_campaign,
     _reset_password,
     _set_active,
     _users,
     build_parser,
 )
-from backend.models import AuthToken, CampaignMember, User, UserRole
+from backend.models import AuthToken, Campaign, CampaignMember, User, UserRole
 from tests.conftest import World
 from tests.factories import TEST_PASSWORD, auth, make_user, sign_in
 
@@ -282,6 +284,55 @@ async def test_deactivate_stops_a_live_session_and_activate_lets_it_back(
     assert await _set_active(_args(username="amina", active=True), session) == 0
     again = await sign_in(client, "amina")
     assert (await client.get("/api/campaigns/", headers=auth(again))).status_code == 200
+
+
+async def test_delete_campaign_only_says_what_would_go_without_yes(
+    session: AsyncSession, world: World, capsys
+) -> None:
+    assert await _delete_campaign(_args(campaign=world.campaign.id, yes=False), session) == 1
+
+    said = capsys.readouterr().err
+    assert "Jane for Roysambu with 3 members, 2 targets, 1 mobilizers" in said
+    assert "--yes" in said
+    assert await session.get(Campaign, world.campaign.id) is not None
+
+
+async def test_delete_campaign_with_yes_deletes_it_and_keeps_the_logins(
+    session: AsyncSession, world: World, capsys
+) -> None:
+    campaign_id, candidate_id = world.campaign.id, world.candidate.id
+
+    assert await _delete_campaign(_args(campaign=campaign_id, yes=True), session) == 0
+
+    assert "Deleted Jane for Roysambu" in capsys.readouterr().out
+    assert await session.get(Campaign, campaign_id) is None
+    assert await session.get(User, candidate_id) is not None
+
+
+async def test_delete_campaign_says_so_when_the_id_is_not_one(
+    session: AsyncSession, world: World, capsys
+) -> None:
+    assert await _delete_campaign(_args(campaign=uuid.uuid4(), yes=True), session) == 1
+    assert "No campaign with id" in capsys.readouterr().err
+
+
+async def test_rename_campaign_changes_its_name(
+    session: AsyncSession, world: World, capsys
+) -> None:
+    assert (
+        await _rename_campaign(_args(campaign=world.campaign.id, title=" Jane 2027 "), session) == 0
+    )
+
+    assert "Jane 2027" in capsys.readouterr().out
+    title = await session.scalar(select(Campaign.title).where(Campaign.id == world.campaign.id))
+    assert title == "Jane 2027"
+
+
+async def test_rename_campaign_refuses_an_empty_name(
+    session: AsyncSession, world: World, capsys
+) -> None:
+    assert await _rename_campaign(_args(campaign=world.campaign.id, title="  "), session) == 1
+    assert capsys.readouterr().err.strip() != ""
 
 
 async def test_add_member_puts_somebody_back_on_a_campaign(

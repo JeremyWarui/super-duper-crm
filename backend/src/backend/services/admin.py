@@ -322,6 +322,19 @@ async def rename_campaign(session: AsyncSession, campaign_id: uuid.UUID, title: 
     return campaign
 
 
+async def delete_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> None:
+    """Delete a campaign with its members, targets, mobilizers, events and supporters.
+
+    Logins stay, including a mobilizer's, which then signs in to nothing until it
+    is put on another campaign.
+    """
+    campaign = await session.get(Campaign, campaign_id)
+    if campaign is None:
+        raise NotFound("No such campaign.")
+    await session.delete(campaign)
+    await session.commit()
+
+
 async def remove_member(session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID) -> None:
     """Take somebody off a campaign. Their login and their work stay."""
     campaign = await session.get(Campaign, campaign_id)

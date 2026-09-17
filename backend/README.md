@@ -165,7 +165,7 @@ Everything lives under `/api`, with a trailing slash, and needs a
 | `POST /api/events/{id}/invite/` | Text the event's supporters, and set how many were reached. |
 | `GET POST /api/supporters/`, `DELETE …/{id}/` | The register, for the campaign the caller is on. |
 | `GET /api/strategy/?campaign=` | The computed dashboard. |
-| `GET POST /api/users/`, `DELETE …/{id}/` | Logins for the team. The password is generated and returned once. |
+| `GET POST /api/users/`, `DELETE …/{id}/` | Mobilizer logins for the team. The password is generated and returned once. |
 
 A foreign key travels under the related model's bare name - `ward`, not
 `ward_id` - and reads carry the parent's name alongside it, so a list is
@@ -185,8 +185,10 @@ uv run campaign-crm createuser -u root -r manager --superuser
 
 A superuser signing in gets `/api/admin/`, and the browser gives them the
 console rather than a campaign. The routes are `overview`, `campaigns`,
-`campaigns/{id}`, `users`, `users/{id}/reset-password`, `users/{id}/active`,
-and adding or removing a member of a campaign. They live in
+`campaigns/{id}` (read, rename, delete), `users`, `users/{id}/reset-password`,
+`users/{id}/active`, and adding or removing a member of a campaign. Deleting a
+campaign takes its members, targets, mobilizers, events and supporters with it;
+the logins stay. No campaign role can delete a campaign. They live in
 `api/routers/admin.py` over `services/admin.py`, and touch nothing in
 `api/scope.py`, so widening what an admin reads cannot widen what a manager
 reads.
@@ -207,6 +209,8 @@ uv run campaign-crm campaign -c <id>        # one campaign, its team and its siz
 uv run campaign-crm reset-password -u jane  # the only way back from a lost one
 uv run campaign-crm add-member -u amina -c <id>
 uv run campaign-crm remove-member -u amina -c <id>
+uv run campaign-crm rename-campaign -c <id> -t "Jane for Roysambu"
+uv run campaign-crm delete-campaign -c <id>        # says what would go; add --yes
 uv run campaign-crm deactivate -u juma      # and activate
 ```
 
@@ -235,8 +239,10 @@ Enforced per route, not in the UI.
 | Read the campaign and its strategy | yes | yes | their ward only |
 | Read the supporter register | no | yes | their ward only |
 | Set a campaign up | yes | yes | no |
-| Add or remove a login | yes | yes | no |
-| Change targets, mobilizers | no | yes | no |
+| Add or remove a mobilizer, with or without a login | yes | yes | no |
+| Add or remove any other login | no | no | no |
+| Change targets | no | yes | no |
+| Delete a campaign | no | no | no |
 | Reach `/api/admin/` | no | no | no |
 | Schedule and record events | no | yes | their ward only |
 | Register supporters | no | yes | their ward only |

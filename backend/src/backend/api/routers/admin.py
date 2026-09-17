@@ -146,6 +146,16 @@ async def rename_campaign(
     return await _one(session, campaign_id)
 
 
+@router.delete("/campaigns/{campaign_id}/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_campaign(campaign_id: uuid.UUID, session: SessionDep, _: AdminUser) -> Response:
+    """Delete a campaign and everything on it. Only an admin may."""
+    try:
+        await service.delete_campaign(session, campaign_id)
+    except service.AdminError as error:
+        raise _refused(error) from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.post(
     "/campaigns/{campaign_id}/members/",
     response_model=AdminCampaignRead,

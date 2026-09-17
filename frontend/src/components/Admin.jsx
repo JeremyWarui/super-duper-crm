@@ -8,6 +8,7 @@ import {
   useAdminUsers,
   useAddMember,
   useCreateLogin,
+  useDeleteCampaign,
   useRenameCampaign,
   useRemoveMember,
   useResetPassword,
@@ -186,6 +187,7 @@ function CampaignCard({ campaign, users }) {
   const remove = useRemoveMember();
   const add = useAddMember();
   const rename = useRenameCampaign();
+  const drop = useDeleteCampaign();
   const [renaming, setRenaming] = useState(false);
   const [title, setTitle] = useState(campaign.title);
   const [adding, setAdding] = useState(false);
@@ -198,7 +200,7 @@ function CampaignCard({ campaign, users }) {
   const available = users.filter(
     (u) => !onIt.has(u.id) && !u.is_superuser && u.is_active,
   );
-  const error = remove.error || add.error || rename.error;
+  const error = remove.error || add.error || rename.error || drop.error;
 
   return (
     <Card style={{ marginBottom: 14 }}>
@@ -238,6 +240,13 @@ function CampaignCard({ campaign, users }) {
               >
                 Rename
               </Btn>
+              <Danger
+                label="Delete campaign"
+                question={`Delete ${campaign.title}, take its ${fmt(campaign.members.length)} people off it, and delete its ${fmt(campaign.targets)} targets, ${fmt(campaign.mobilizers)} mobilizers, ${fmt(campaign.events)} events and ${fmt(campaign.supporters)} supporters? Their logins stay. This cannot be undone.`}
+                busy={drop.isPending}
+                disabled={drop.isPending}
+                onConfirm={() => drop.mutate({ campaign: campaign.id })}
+              />
             </div>
           )}
           <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>

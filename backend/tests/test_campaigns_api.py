@@ -263,15 +263,17 @@ async def test_a_candidate_may_not_regenerate_targets(
     assert response.status_code == 403
 
 
-async def test_deleting_a_campaign_takes_its_targets_with_it(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+@pytest.mark.parametrize("role", ["candidate", "manager", "mobilizer"])
+async def test_no_campaign_role_deletes_a_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, role: str
 ) -> None:
     response = await client.delete(
-        f"/api/campaigns/{world.campaign.id}/", headers=world.headers("manager")
+        f"/api/campaigns/{world.campaign.id}/", headers=world.headers(role)
     )
 
-    assert response.status_code == 204
-    assert await session.scalar(select(func.count()).select_from(Target)) == 0
+    assert response.status_code in (403, 404, 405)
+    assert await session.get(Campaign, world.campaign.id) is not None
+    assert await session.scalar(select(func.count()).select_from(Target)) == 2
 
 
 # ------------------------------------------------- whose campaign it is

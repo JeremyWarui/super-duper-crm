@@ -296,6 +296,17 @@ export function useRenameCampaign() {
   });
 }
 
+// Only a superuser deletes a campaign; nothing inside one can.
+export function useDeleteCampaign() {
+  const invalidate = useAdminInvalidator();
+  return useMutation({
+    mutationFn: ({ campaign }) =>
+      api(`/admin/campaigns/${campaign}/`, { method: "DELETE" }),
+    // A 404 means somebody else deleted it, so the list is stale either way.
+    onSettled: invalidate,
+  });
+}
+
 export function useAddMember() {
   const invalidate = useAdminInvalidator();
   return useMutation({

@@ -267,6 +267,37 @@ async def _remove_member(args: argparse.Namespace, session: AsyncSession) -> int
     return 0
 
 
+async def _rename_campaign(args: argparse.Namespace, session: AsyncSession) -> int:
+    """Change what a campaign is called."""
+    try:
+        campaign = await admin.rename_campaign(session, args.campaign, args.title)
+    except admin.AdminError as error:
+        print(error, file=sys.stderr)
+        return 1
+    print(f"The campaign is now called {campaign.title}.")
+    return 0
+
+
+async def _delete_campaign(args: argparse.Namespace, session: AsyncSession) -> int:
+    """Delete a campaign and everything on it. Without --yes, only say what would go."""
+    found = await admin.campaigns(session, args.campaign)
+    if not found:
+        print(f"No campaign with id {args.campaign}.", file=sys.stderr)
+        return 1
+    row = found[0]
+    what = (
+        f"{row.title} with {len(row.members)} members, {row.targets} targets, "
+        f"{row.mobilizers} mobilizers, {row.events} events and {row.supporters} supporters"
+    )
+    if not args.yes:
+        print(f"This would delete {what}. Run it again with --yes.", file=sys.stderr)
+        return 1
+
+    await admin.delete_campaign(session, args.campaign)
+    print(f"Deleted {what}. The logins stay.")
+    return 0
+
+
 async def _set_active(args: argparse.Namespace, session: AsyncSession) -> int:
     """Turn a login off or on. Off refuses a new sign-in and drops the live token."""
     people = await admin.users(session)
@@ -354,6 +385,18 @@ def build_parser() -> argparse.ArgumentParser:
     remove.add_argument("-u", "--username", required=True)
     remove.add_argument("-c", "--campaign", required=True, type=uuid.UUID, help="campaign id")
     remove.set_defaults(handler=_remove_member)
+
+    rename = subparsers.add_parser("rename-campaign", help="change what a campaign is called")
+    rename.add_argument("-c", "--campaign", required=True, type=uuid.UUID, help="campaign id")
+    rename.add_argument("-t", "--title", required=True)
+    rename.set_defaults(handler=_rename_campaign)
+
+    drop = subparsers.add_parser(
+        "delete-campaign", help="delete a campaign and everything on it; the logins stay"
+    )
+    drop.add_argument("-c", "--campaign", required=True, type=uuid.UUID, help="campaign id")
+    drop.add_argument("--yes", action="store_true", help="delete it, rather than only saying what")
+    drop.set_defaults(handler=_delete_campaign)
 
     disable = subparsers.add_parser("deactivate", help="stop a login working, keeping its rows")
     disable.add_argument("-u", "--username", required=True)

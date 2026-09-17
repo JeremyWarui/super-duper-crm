@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -219,17 +219,3 @@ async def regenerate_targets(
     campaign = await require_visible_campaign(session, user, campaign_id)
     summary = await generate_targets(session, campaign)
     return SetupSummary.model_validate(summary)
-
-
-@router.delete("/{campaign_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_campaign(
-    campaign_id: uuid.UUID,
-    session: SessionDep,
-    user: CurrentUser,
-    _: Writer,
-) -> Response:
-    """Removes the campaign and everything hanging off it."""
-    campaign = await require_visible_campaign(session, user, campaign_id)
-    await session.delete(campaign)
-    await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -116,10 +116,10 @@ alike. Nobody adds a campaign manager from inside a campaign.
 with `is_superuser` to `Admin.jsx` instead of the campaign gate: every campaign
 on the deployment with its team and its size, every login and where it reaches,
 and the repairs that cannot be done from inside a campaign (reset a password,
-disable a login, put somebody on a campaign or take them off). A campaign with
-nobody on it is called out in red, because nobody can see it until somebody is
-put on. The flag only decides what the browser draws; every route it calls
-checks it again.
+disable a login, put somebody on a campaign or take them off, rename or delete a
+campaign). A campaign with nobody on it is called out in red, because nobody can
+see it until somebody is put on. The flag only decides what the browser draws;
+every route it calls checks it again.
 
 **The console makes logins.** The Logins tab creates a campaign manager, an
 aspirant or a mobilizer, with the password shown once. A manager can be put on a
@@ -128,8 +128,9 @@ and one of its wards, or they sign in scoped to nothing. An aspirant is made on
 their own: a campaign belongs to the one candidate it names, so theirs is set up
 afterwards and becomes theirs then.
 
-Nothing destructive fires on one click: taking somebody off, disabling a login
-and resetting a password each ask first, naming who they are about. A reset
+Nothing destructive fires on one click: taking somebody off, disabling a login,
+resetting a password and deleting a campaign each ask first, naming who or what
+they are about. A reset
 password is collected by the console itself rather than by the row that asked
 for it, so switching tabs mid-request cannot lose the one copy that exists. The
 operator's own row offers neither Disable nor Reset password, because both would
