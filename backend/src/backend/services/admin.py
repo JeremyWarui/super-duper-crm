@@ -9,7 +9,7 @@ superuser, and only through `/api/admin/` or the command line; nothing in
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -325,8 +325,7 @@ async def rename_campaign(session: AsyncSession, campaign_id: uuid.UUID, title: 
 async def logins_deleted_with(session: AsyncSession, campaign_id: uuid.UUID) -> list[User]:
     """The logins deleting this campaign deletes, by username.
 
-    Everyone on it or on its ground team, whatever other campaigns they are on,
-    except a superuser.
+    Everyone on it or on its ground team, except a superuser.
     """
     on_it = select(CampaignMember.user_id).where(CampaignMember.campaign_id == campaign_id)
     on_the_ground = select(Mobilizer.user_id).where(
@@ -364,7 +363,11 @@ async def delete_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list
 
 
 async def remove_member(session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID) -> None:
-    """Take somebody off a campaign. Their login and their work stay."""
+    """Take somebody off a campaign. Their login and their work stay.
+
+    A mobilizer's ground row there keeps its work but lets go of their login, so
+    they are on no campaign and may be put on another.
+    """
     campaign = await session.get(Campaign, campaign_id)
     if campaign is None:
         raise NotFound("No such campaign.")
@@ -381,9 +384,15 @@ async def remove_member(session: AsyncSession, campaign_id: uuid.UUID, user_id: 
             CampaignMember.campaign_id == campaign_id, CampaignMember.user_id == user_id
         )
     )
-    await session.commit()
     if not removed.rowcount:
+        await session.rollback()
         raise AdminError("They are not on that campaign.")
+    await session.execute(
+        update(Mobilizer)
+        .where(Mobilizer.campaign_id == campaign_id, Mobilizer.user_id == user_id)
+        .values(user_id=None)
+    )
+    await session.commit()
 
 
 async def _username_taken(session: AsyncSession, username: str) -> bool:

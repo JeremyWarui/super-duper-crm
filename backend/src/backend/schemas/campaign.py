@@ -59,7 +59,7 @@ class CampaignSetup(WriteModel):
     """The seat, where it is, and whose it is.
 
     A campaign belongs to its candidate, never to whoever filled the form in.
-    A manager must name one; a candidate gets themselves.
+    A manager creates the aspirant here; a candidate gets themselves.
     """
 
     title: str = Field(min_length=1, max_length=150)
@@ -68,7 +68,6 @@ class CampaignSetup(WriteModel):
     county: uuid.UUID | None = None
     constituency: uuid.UUID | None = None
     ward: uuid.UUID | None = None
-    candidate: uuid.UUID | None = None
     new_candidate: NewCandidate | None = None
 
 

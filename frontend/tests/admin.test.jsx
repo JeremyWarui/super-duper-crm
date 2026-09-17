@@ -27,6 +27,27 @@ const STAFFED = ADMIN_CAMPAIGN;
 const ORPHAN = ADMIN_ORPHAN;
 const USERS = ADMIN_USERS;
 
+// Logins on no campaign, the only ones the console may put on one.
+const FREE = {
+  id: "u-peter",
+  username: "peter",
+  full_name: "Peter K",
+  email: "",
+  phone: "",
+  role: "manager",
+  is_active: true,
+  is_superuser: false,
+  last_login_at: null,
+  campaigns: [],
+};
+const FREE_BUT_DISABLED = {
+  ...FREE,
+  id: "u-otieno",
+  username: "otieno",
+  full_name: "Otieno O",
+  is_active: false,
+};
+
 // The gate from src/main.jsx.
 function SignedIn() {
   const role = useAuth((s) => s.user?.role);
@@ -251,13 +272,14 @@ describe("what the console can repair", () => {
     signInAsAdmin();
     const calls = stubApi(
       adminRoutes({
+        "GET /admin/users/": [...USERS, FREE],
         "POST /admin/campaigns/c2/members/": {
           ...ORPHAN,
           members: [
             {
-              user_id: "u-amina",
-              username: "amina",
-              full_name: "Amina K",
+              user_id: "u-peter",
+              username: "peter",
+              full_name: "Peter K",
               role: "manager",
             },
           ],
@@ -270,7 +292,7 @@ describe("what the console can repair", () => {
     await user.click(add[1]);
     await user.selectOptions(
       (await screen.findAllByRole("combobox"))[0],
-      "u-amina",
+      "u-peter",
     );
     await user.click(screen.getByRole("button", { name: "Put them on" }));
 
@@ -280,7 +302,7 @@ describe("what the console can repair", () => {
       );
       // No role: the server takes it from the login, so the console cannot
       // offer a place the person does not actually hold.
-      expect(posted.body).toEqual({ user: "u-amina" });
+      expect(posted.body).toEqual({ user: "u-peter" });
     });
   });
 
@@ -454,7 +476,7 @@ describe("what the console refuses to lose", () => {
 
 describe("deleting a campaign", () => {
   const QUESTION =
-    "Delete Jane for Roysambu with its 5 targets, 2 mobilizers, 4 events and 30 supporters, and the login of everyone on it except a superuser, even if they are on other campaigns? This cannot be undone.";
+    "Delete Jane for Roysambu with its 5 targets, 2 mobilizers, 4 events and 30 supporters, and the login of everyone on it except a superuser? This cannot be undone.";
 
   it("asks first, naming the campaign and what goes with it", async () => {
     const user = userEvent.setup();
@@ -587,7 +609,9 @@ describe("who the console offers to staff a campaign with", () => {
   it("does not offer a login that has been disabled", async () => {
     const user = userEvent.setup();
     signInAsAdmin();
-    stubApi(adminRoutes());
+    stubApi(
+      adminRoutes({ "GET /admin/users/": [...USERS, FREE, FREE_BUT_DISABLED] }),
+    );
     renderApp(<Admin />);
 
     await user.click(
@@ -597,9 +621,26 @@ describe("who the console offers to staff a campaign with", () => {
       ...(await screen.findAllByRole("combobox"))[0].options,
     ].map((o) => o.value);
 
-    // jane is disabled; staffing a campaign with her leaves it unmanned.
-    expect(options).not.toContain("u-jane");
-    expect(options).toContain("u-amina");
+    // otieno is disabled; staffing a campaign with them leaves it unmanned.
+    expect(options).not.toContain("u-otieno");
+    expect(options).toContain("u-peter");
+  });
+
+  it("does not offer a login already on a campaign, which belongs to that one", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    stubApi(adminRoutes({ "GET /admin/users/": [...USERS, FREE] }));
+    renderApp(<Admin />);
+
+    await user.click(
+      (await screen.findAllByRole("button", { name: "Add somebody" }))[1],
+    );
+    const options = [
+      ...(await screen.findAllByRole("combobox"))[0].options,
+    ].map((o) => o.value);
+
+    expect(options).not.toContain("u-amina");
+    expect(options).toEqual(["", "u-peter"]);
   });
 });
 

@@ -25,7 +25,7 @@ from backend.cli import (
     _users,
     build_parser,
 )
-from backend.models import AuthToken, Campaign, CampaignMember, User, UserRole
+from backend.models import AuthToken, Campaign, CampaignMember, OfficeLevel, User, UserRole
 from tests.conftest import World
 from tests.factories import TEST_PASSWORD, auth, make_user, sign_in
 
@@ -313,12 +313,14 @@ async def test_delete_campaign_with_yes_deletes_it_and_its_logins(
     assert list(left) == []
 
 
-async def test_delete_campaign_names_a_mobilizer_off_the_member_list_and_deletes_them(
+async def test_delete_campaign_names_a_login_tied_only_by_a_ground_row_and_deletes_it(
     session: AsyncSession, world: World, capsys
 ) -> None:
     campaign_id = world.campaign.id
-    assert await _remove_member(_args(username="juma", campaign=campaign_id), session) == 0
-    capsys.readouterr()
+    await session.execute(
+        delete(CampaignMember).where(CampaignMember.user_id == world.mobilizer_user.id)
+    )
+    await session.commit()
 
     assert await _delete_campaign(_args(campaign=campaign_id, yes=False), session) == 1
     assert "3 logins (amina, jane, juma)" in capsys.readouterr().err
@@ -367,6 +369,37 @@ async def test_rename_campaign_refuses_an_empty_name(
 ) -> None:
     assert await _rename_campaign(_args(campaign=world.campaign.id, title="  "), session) == 1
     assert capsys.readouterr().err.strip() != ""
+
+
+async def test_add_member_refuses_a_login_already_on_another_campaign(
+    session: AsyncSession, world: World, capsys
+) -> None:
+    other = Campaign(
+        title="Peter for Githurai", office_level=OfficeLevel.WARD, ward_id=world.other_ward.id
+    )
+    session.add(other)
+    await session.commit()
+
+    assert await _add_member(_args(username="jane", campaign=other.id), session) == 1
+
+    assert capsys.readouterr().err.strip() == (
+        "jane is already on Jane for Roysambu; a login belongs to one campaign."
+    )
+
+
+async def test_assign_manager_refuses_a_manager_already_on_another_campaign(
+    session: AsyncSession, world: World, capsys
+) -> None:
+    other = Campaign(
+        title="Peter for Githurai", office_level=OfficeLevel.WARD, ward_id=world.other_ward.id
+    )
+    session.add(other)
+    await session.commit()
+
+    assert await _assign_manager(_args(username="amina", campaign=other.id), session) == 1
+
+    assert "a login belongs to one campaign" in capsys.readouterr().err
+    assert await _managers(session, other.id) == set()
 
 
 async def test_add_member_puts_somebody_back_on_a_campaign(

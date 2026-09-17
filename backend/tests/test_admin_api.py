@@ -14,6 +14,7 @@ from backend.models import (
     CampaignMember,
     Event,
     Mobilizer,
+    OfficeLevel,
     Supporter,
     Target,
     User,
@@ -553,45 +554,16 @@ async def test_an_admin_deletes_a_campaign_everything_on_it_and_its_logins(
     assert overview["campaigns"] == []
 
 
-async def test_deleting_a_campaign_deletes_a_login_that_is_also_on_another_campaign(
+async def test_deleting_a_campaign_deletes_a_login_tied_to_it_only_by_a_ground_row(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    from backend.api.scope import add_member
-    from backend.models import OfficeLevel
-
-    other = Campaign(
-        title="Amina's other seat", office_level=OfficeLevel.WARD, ward_id=world.other_ward.id
-    )
-    session.add(other)
-    await session.flush()
-    bystander = await make_user(session, username="bystander", role=UserRole.MANAGER)
-    await add_member(session, other.id, world.manager.id)
-    await add_member(session, other.id, bystander.id)
-    await session.commit()
-    other_id, manager_id = other.id, world.manager.id
-    head = await _admin(session, client)
-
-    reply = await client.delete(f"/api/admin/campaigns/{world.campaign.id}/", headers=head)
-
-    assert reply.status_code == 204
-    assert await session.scalar(select(User.id).where(User.id == manager_id)) is None
-    assert await session.scalar(select(Campaign.id).where(Campaign.id == other_id)) == other_id
-    still_on = await session.scalars(
-        select(CampaignMember.user_id).where(CampaignMember.campaign_id == other_id)
-    )
-    assert list(still_on) == [bystander.id]
-
-
-async def test_deleting_a_campaign_deletes_a_mobilizer_taken_off_its_member_list(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
-) -> None:
-    """Taking somebody off leaves their ground row, which still ties them to the campaign."""
+    """A database from before memberships can hold a ground row with no membership."""
     head = await _admin(session, client)
     mobilizer_id = world.mobilizer_user.id
-    off = await client.delete(
-        f"/api/admin/campaigns/{world.campaign.id}/members/{mobilizer_id}/", headers=head
+    await session.execute(
+        CampaignMember.__table__.delete().where(CampaignMember.user_id == mobilizer_id)
     )
-    assert off.status_code == 204
+    await session.commit()
 
     reply = await client.delete(f"/api/admin/campaigns/{world.campaign.id}/", headers=head)
 
@@ -600,6 +572,77 @@ async def test_deleting_a_campaign_deletes_a_mobilizer_taken_off_its_member_list
     assert (
         await session.scalar(select(AuthToken.id).where(AuthToken.user_id == mobilizer_id))
     ) is None
+
+
+async def test_taking_a_mobilizer_off_frees_their_login_for_another_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    head = await _admin(session, client)
+    mobilizer_id = world.mobilizer_user.id
+    other = Campaign(
+        title="Peter for Githurai", office_level=OfficeLevel.WARD, ward_id=world.other_ward.id
+    )
+    session.add(other)
+    await session.commit()
+
+    off = await client.delete(
+        f"/api/admin/campaigns/{world.campaign.id}/members/{mobilizer_id}/", headers=head
+    )
+    on = await client.post(
+        f"/api/admin/campaigns/{other.id}/members/", headers=head, json={"user": str(mobilizer_id)}
+    )
+
+    assert off.status_code == 204
+    assert on.status_code == 201, on.text
+    ground = await session.scalar(select(Mobilizer).where(Mobilizer.id == world.mobilizer.id))
+    assert ground is not None and ground.user_id is None
+    gone = await client.delete(f"/api/admin/campaigns/{world.campaign.id}/", headers=head)
+    assert gone.status_code == 204
+    assert await session.scalar(select(User.id).where(User.id == mobilizer_id)) == mobilizer_id
+
+
+@pytest.mark.parametrize("who", ["candidate", "manager", "mobilizer_user"])
+async def test_the_console_refuses_to_put_anyone_on_a_second_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, who: str
+) -> None:
+    head = await _admin(session, client)
+    other = Campaign(
+        title="Peter for Githurai", office_level=OfficeLevel.WARD, ward_id=world.other_ward.id
+    )
+    session.add(other)
+    await session.commit()
+    person = getattr(world, who)
+
+    reply = await client.post(
+        f"/api/admin/campaigns/{other.id}/members/", headers=head, json={"user": str(person.id)}
+    )
+
+    assert reply.status_code == 400
+    assert reply.json()["detail"] == (
+        f"{person.username} is already on Jane for Roysambu; a login belongs to one campaign."
+    )
+
+
+async def test_the_console_refuses_a_login_still_on_a_ground_row_elsewhere(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    head = await _admin(session, client)
+    mobilizer_id = world.mobilizer_user.id
+    await session.execute(
+        CampaignMember.__table__.delete().where(CampaignMember.user_id == mobilizer_id)
+    )
+    other = Campaign(
+        title="Peter for Githurai", office_level=OfficeLevel.WARD, ward_id=world.other_ward.id
+    )
+    session.add(other)
+    await session.commit()
+
+    reply = await client.post(
+        f"/api/admin/campaigns/{other.id}/members/", headers=head, json={"user": str(mobilizer_id)}
+    )
+
+    assert reply.status_code == 400
+    assert "already on Jane for Roysambu" in reply.json()["detail"]
 
 
 async def test_deleting_a_campaign_keeps_a_superuser_on_it(

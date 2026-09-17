@@ -186,13 +186,14 @@ uv run campaign-crm createuser -u root -r manager --superuser
 A superuser signing in gets `/api/admin/`, and the browser gives them the
 console rather than a campaign. The routes are `overview`, `campaigns`,
 `campaigns/{id}` (read, rename, delete), `users`, `users/{id}/reset-password`,
-`users/{id}/active`, and adding or removing a member of a campaign. Deleting a
-campaign takes its targets, mobilizers, events and supporters with it, and
-deletes the login of everyone on it, even one also on another campaign. A
-superuser's login stays. No campaign role can delete a campaign. They live in
+`users/{id}/active`, and adding or removing a member of a campaign. They live in
 `api/routers/admin.py` over `services/admin.py`, and touch nothing in
 `api/scope.py`, so widening what an admin reads cannot widen what a manager
 reads.
+
+Deleting a campaign takes its targets, mobilizers, events and supporters with
+it, and deletes the login of everyone on it. A superuser's login stays. No
+campaign role can delete a campaign.
 
 `POST /api/admin/users/` creates a login of any role and returns its password
 once. Naming a campaign puts them on it as it is made; a mobilizer must also be
@@ -302,15 +303,27 @@ know which one is in use.
 A campaign belongs to its candidate, and `POST /api/campaigns/setup/` says so
 explicitly rather than inferring it from whoever filled the form in.
 
-- A **candidate** gets themselves. Naming anyone else is refused.
-- A **manager** must name an aspirant with `candidate`, or create one inline
-  with `new_candidate`. The reply carries that new login's password once. Only
-  an aspirant the manager can already see may be named, so a second campaign for
-  somebody they already set up reuses that login instead of colliding with the
-  username.
+- A **candidate** gets themselves.
+- A **manager** creates the aspirant with `new_candidate`. The reply carries
+  that new login's password once. There is no naming an existing aspirant:
+  every login belongs to one campaign, so an aspirant with a login already has
+  theirs.
+- Whoever calls it must be on no campaign yet; otherwise it answers 400.
 
 Without this the manager becomes the campaign's candidate, and the aspirant
 cannot see their own campaign.
+
+## One campaign per login
+
+Every login is on at most one campaign, counting a mobilizer's ground row.
+`services/membership.py` refuses a second one on every route that puts somebody
+on a campaign (setup, the team routes, the admin console, `campaign-crm
+add-member` and `assign-manager`), and a unique index on
+`campaign_members.user_id` refuses it in the database; a request that races past
+the check still gets a 400. Taking a mobilizer off a campaign frees their login
+from its ground row there too. Revision `f6a7b8c9d0e1` adds the index, and stops
+with the names of any login already on several campaigns so an admin can take
+them off all but one first.
 
 ## Adding the team
 

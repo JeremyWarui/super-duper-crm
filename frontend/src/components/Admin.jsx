@@ -193,12 +193,11 @@ function CampaignCard({ campaign, users }) {
   const [adding, setAdding] = useState(false);
   const [pick, setPick] = useState("");
 
-  const onIt = new Set(campaign.members.map((m) => m.user_id));
-  // A superuser reads every campaign through this console, so putting one on a
-  // campaign buys nothing and hides the campaign app from them. A disabled
-  // login cannot sign in, so staffing with one leaves the campaign unmanned.
+  // A login belongs to one campaign, so only a login on none is offered. A
+  // superuser reads every campaign through this console, and a disabled login
+  // cannot sign in, so neither is offered either.
   const available = users.filter(
-    (u) => !onIt.has(u.id) && !u.is_superuser && u.is_active,
+    (u) => u.campaigns.length === 0 && !u.is_superuser && u.is_active,
   );
   const error = remove.error || add.error || rename.error || drop.error;
 
@@ -242,7 +241,7 @@ function CampaignCard({ campaign, users }) {
               </Btn>
               <Danger
                 label="Delete campaign"
-                question={`Delete ${campaign.title} with its ${fmt(campaign.targets)} targets, ${fmt(campaign.mobilizers)} mobilizers, ${fmt(campaign.events)} events and ${fmt(campaign.supporters)} supporters, and the login of everyone on it except a superuser, even if they are on other campaigns? This cannot be undone.`}
+                question={`Delete ${campaign.title} with its ${fmt(campaign.targets)} targets, ${fmt(campaign.mobilizers)} mobilizers, ${fmt(campaign.events)} events and ${fmt(campaign.supporters)} supporters, and the login of everyone on it except a superuser? This cannot be undone.`}
                 busy={drop.isPending}
                 disabled={drop.isPending}
                 onConfirm={() => drop.mutate({ campaign: campaign.id })}

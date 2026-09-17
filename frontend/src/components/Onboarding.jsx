@@ -11,7 +11,6 @@ import {
   useUnitsPreview,
   useCreateUser,
   useWardsInCounty,
-  useTeam,
 } from "../api/hooks";
 import { useAuth } from "../store/auth";
 
@@ -399,115 +398,63 @@ function usableUsername(value) {
   return name.length >= 3 && name.length <= 150 && USERNAME.test(name);
 }
 
-function AspirantStep({ form, set, loading, error, aspirants }) {
-  if (error)
-    return (
-      <>
-        <Label>Who are you running this campaign for?</Label>
-        <div
-          style={{ fontSize: 13, color: C.red, marginTop: 8, lineHeight: 1.5 }}
-        >
-          {error.message}
-        </div>
-        <div style={{ fontSize: 12.5, color: C.sub, marginTop: 8 }}>
-          We could not reach the server, so this step cannot go on. Reload and
-          try again.
-        </div>
-      </>
-    );
-  if (loading)
-    return (
-      <>
-        <Label>Who are you running this campaign for?</Label>
-        <div style={{ fontSize: 13, color: C.sub, marginTop: 8 }}>
-          One moment…
-        </div>
-      </>
-    );
-
-  const known = aspirants.filter((a) => a.id !== form.aspirant_existing);
-
+// Every login belongs to one campaign, so the aspirant is always somebody new.
+function AspirantStep({ form, set }) {
   return (
     <>
       <Label>Who are you running this campaign for?</Label>
       <div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>
         The campaign belongs to them, not to you.
       </div>
-      {aspirants.length > 0 && (
-        <div style={{ marginTop: 10 }}>
-          <Label>An aspirant already here</Label>
-          <select
+      <div style={{ height: 10 }} />
+      <div className="flex gap-2">
+        <div style={{ flex: 1 }}>
+          <Label>First name</Label>
+          <input
             style={FIELD}
-            value={form.aspirant_existing}
-            onChange={(e) => set({ aspirant_existing: e.target.value })}
-          >
-            <option value="">Somebody new…</option>
-            {aspirants.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.full_name || a.username} ({a.username})
-              </option>
-            ))}
-          </select>
-          <div style={{ fontSize: 12, color: C.sub, marginTop: 6 }}>
-            {form.aspirant_existing
-              ? "They keep the login they already have."
-              : `${known.length} already set up. Pick one, or fill the form below.`}
-          </div>
+            value={form.aspirant_first}
+            onChange={(e) => set({ aspirant_first: e.target.value })}
+          />
         </div>
-      )}
-      {form.aspirant_existing ? null : (
-        <>
-          <div style={{ height: 10 }} />
-          <div className="flex gap-2">
-            <div style={{ flex: 1 }}>
-              <Label>First name</Label>
-              <input
-                style={FIELD}
-                value={form.aspirant_first}
-                onChange={(e) => set({ aspirant_first: e.target.value })}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <Label>Last name</Label>
-              <input
-                style={FIELD}
-                value={form.aspirant_last}
-                onChange={(e) => set({ aspirant_last: e.target.value })}
-              />
-            </div>
-          </div>
-          <div style={{ height: 10 }} />
-          <Label>Username</Label>
+        <div style={{ flex: 1 }}>
+          <Label>Last name</Label>
           <input
             style={FIELD}
-            value={form.aspirant_username}
-            onChange={(e) => set({ aspirant_username: e.target.value })}
-            placeholder="jane"
+            value={form.aspirant_last}
+            onChange={(e) => set({ aspirant_last: e.target.value })}
           />
-          <div style={{ height: 10 }} />
-          <Label>Email</Label>
-          <input
-            type="email"
-            style={FIELD}
-            value={form.aspirant_email}
-            onChange={(e) => set({ aspirant_email: e.target.value })}
-            placeholder="jane@example.com"
-          />
-          <div style={{ height: 10 }} />
-          <Label>Phone</Label>
-          <input
-            style={FIELD}
-            value={form.aspirant_phone}
-            onChange={(e) => set({ aspirant_phone: e.target.value })}
-            placeholder="0712 345678"
-          />
-          <div style={{ fontSize: 12, color: C.sub, marginTop: 8 }}>
-            They get a login, and its password is shown once at the end. Write
-            it down: nothing is emailed yet, so the address is only kept on
-            record.
-          </div>
-        </>
-      )}
+        </div>
+      </div>
+      <div style={{ height: 10 }} />
+      <Label>Username</Label>
+      <input
+        style={FIELD}
+        value={form.aspirant_username}
+        onChange={(e) => set({ aspirant_username: e.target.value })}
+        placeholder="jane"
+      />
+      <div style={{ height: 10 }} />
+      <Label>Email</Label>
+      <input
+        type="email"
+        style={FIELD}
+        value={form.aspirant_email}
+        onChange={(e) => set({ aspirant_email: e.target.value })}
+        placeholder="jane@example.com"
+      />
+      <div style={{ height: 10 }} />
+      <Label>Phone</Label>
+      <input
+        style={FIELD}
+        value={form.aspirant_phone}
+        onChange={(e) => set({ aspirant_phone: e.target.value })}
+        placeholder="0712 345678"
+      />
+      <div style={{ fontSize: 12, color: C.sub, marginTop: 8 }}>
+        They get a login for this campaign only, and its password is shown
+        once at the end. Write it down: nothing is emailed yet, so the
+        address is only kept on record.
+      </div>
     </>
   );
 }
@@ -565,7 +512,6 @@ export default function Onboarding({ onDone }) {
     ward: "",
     aspirant_first: "",
     aspirant_last: "",
-    aspirant_existing: "",
     aspirant_username: "",
     aspirant_email: "",
     aspirant_phone: "",
@@ -577,24 +523,13 @@ export default function Onboarding({ onDone }) {
     ? ["aspirant", "basics", "office", "area", "review"]
     : ["basics", "office", "area", "review"];
   const at = steps[step];
-  // The aspirants this manager already set up, so a second campaign for one of
-  // them reuses their login instead of colliding with the username.
-  const aspirants = useTeam("candidate", forAspirant);
-  const chosen = (aspirants.data || []).find(
-    (a) => a.id === form.aspirant_existing,
-  );
-  const chosenAspirantName = chosen?.full_name || chosen?.username || "them";
   const newAspirantName = [form.aspirant_first, form.aspirant_last]
     .map((part) => part.trim())
     .filter(Boolean)
     .join(" ");
 
   const usernameOk = usableUsername(form.aspirant_username);
-  const aspirantReady =
-    !forAspirant ||
-    (!aspirants.isLoading &&
-      !aspirants.error &&
-      (Boolean(form.aspirant_existing) || usernameOk));
+  const aspirantReady = !forAspirant || usernameOk;
 
   const counties = useCounties();
   const constituencies = useConstituencies(form.county);
@@ -619,9 +554,7 @@ export default function Onboarding({ onDone }) {
     if (form.office_level === "constituency")
       payload.constituency = form.constituency;
     if (form.office_level === "ward") payload.ward = form.ward;
-    if (forAspirant && form.aspirant_existing) {
-      payload.candidate = form.aspirant_existing;
-    } else if (forAspirant) {
+    if (forAspirant) {
       payload.new_candidate = {
         username: form.aspirant_username.trim().toLowerCase(),
         first_name: form.aspirant_first.trim(),
@@ -725,13 +658,7 @@ export default function Onboarding({ onDone }) {
 
         {at === "aspirant" && (
           <>
-            <AspirantStep
-              form={form}
-              set={set}
-              loading={aspirants.isLoading}
-              error={aspirants.error}
-              aspirants={aspirants.data || []}
-            />
+            <AspirantStep form={form} set={set} />
             <div style={{ marginTop: 20, textAlign: "right" }}>
               <Btn
                 primary
@@ -927,19 +854,10 @@ export default function Onboarding({ onDone }) {
                   border: `1px solid ${C.line}`,
                 }}
               >
-                {form.aspirant_existing ? (
-                  <>
-                    The campaign belongs to <b>{chosenAspirantName}</b>, who
-                    signs in with the login they already have.
-                  </>
-                ) : (
-                  <>
-                    This creates a new login for{" "}
-                    <b>{newAspirantName || form.aspirant_username}</b>, and the
-                    campaign belongs to them. Their password is shown once on
-                    the next screen.
-                  </>
-                )}
+                This creates a new login for{" "}
+                <b>{newAspirantName || form.aspirant_username}</b>, and the
+                campaign belongs to them. Their password is shown once on the
+                next screen.
               </div>
             )}
             <div style={{ fontSize: 14, lineHeight: 1.6 }}>

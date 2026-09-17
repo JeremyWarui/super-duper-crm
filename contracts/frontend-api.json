@@ -94,13 +94,6 @@
       "detail",
       "number_reached"
     ],
-    "GET /api/users/": [
-      "id",
-      "username",
-      "full_name",
-      "role",
-      "phone"
-    ],
     "POST /api/users/": [
       "id",
       "username",
@@ -279,7 +272,6 @@
       "county",
       "constituency",
       "ward",
-      "candidate",
       "new_candidate"
     ],
     "POST /api/mobilizers/": [

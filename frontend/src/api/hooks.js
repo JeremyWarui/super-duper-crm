@@ -199,13 +199,6 @@ export function useInviteToEvent() {
   });
 }
 
-export const useTeam = (role, enabled = true) =>
-  useQuery({
-    queryKey: ["team", role],
-    queryFn: () => (role ? api(`/users/?role=${role}`) : api("/users/")),
-    enabled,
-  });
-
 // Creates a login. The password comes back once and is never fetchable again.
 export function useCreateUser() {
   const invalidate = useInvalidator();

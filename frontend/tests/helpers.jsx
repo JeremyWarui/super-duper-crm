@@ -217,7 +217,6 @@ export function dashboardRoutes(overrides = {}) {
     "GET /supporters/": [],
     "POST /events/e1/invite/": INVITE_RESULT,
     "POST /users/": CREATED_USER,
-    "GET /users/": [],
     ...overrides,
   };
 }

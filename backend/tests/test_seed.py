@@ -361,6 +361,48 @@ async def test_re_running_does_not_hand_that_account_a_campaign(session: AsyncSe
     )
 
 
+async def test_re_running_takes_newmanager_off_the_campaign_they_set_up(
+    session: AsyncSession,
+) -> None:
+    """Otherwise their one campaign is used up and setup refuses them for good."""
+    await import_geography(session)
+    await seed_demo(session)
+    newmanager = (
+        await session.execute(select(User).where(User.username == "newmanager"))
+    ).scalar_one()
+    theirs = Campaign(title="Grace's try", office_level=OfficeLevel.CONSTITUENCY)
+    session.add(theirs)
+    await session.flush()
+    await add_member(session, theirs.id, newmanager.id)
+    await session.commit()
+
+    await seed_demo(session)
+
+    assert (
+        await session.scalar(
+            select(func.count())
+            .select_from(CampaignMember)
+            .where(CampaignMember.user_id == newmanager.id)
+        )
+        == 0
+    )
+
+
+async def test_re_running_after_the_demo_campaign_is_renamed_keeps_one_campaign(
+    session: AsyncSession,
+) -> None:
+    await import_geography(session)
+    await seed_demo(session)
+    demo = (await session.execute(select(Campaign))).scalar_one()
+    demo.title = "Renamed by an admin"
+    await session.commit()
+
+    await seed_demo(session)
+
+    titles = (await session.execute(select(Campaign.title))).scalars().all()
+    assert titles == [DEMO_CAMPAIGN_TITLE]
+
+
 # ------------------------------------------------- matching the two sources
 
 

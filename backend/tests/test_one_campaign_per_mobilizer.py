@@ -1,14 +1,14 @@
-"""A mobilizer works one ward on one campaign.
+"""A mobilizer, like every login, works on one campaign.
 
-`Mobilizer.user_id` is unique, so a mobilizer has one ground row. Put on a
-second campaign, their rows there would be credited to the first campaign's
-ground row, which the second campaign's manager then reads.
+`Mobilizer.user_id` is unique, so a mobilizer has one ground row, and
+`campaign_members.user_id` is unique, so they are on one campaign.
 """
 
 import httpx
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.scope import add_member
@@ -39,18 +39,6 @@ async def _second_campaign(session: AsyncSession, world: World) -> Campaign:
     return race
 
 
-async def _stale_second_membership(session: AsyncSession, world: World) -> Campaign:
-    """A membership no route makes, which a database from before the rule may hold."""
-    second = await _second_campaign(session, world)
-    session.add(
-        CampaignMember(
-            campaign_id=second.id, user_id=world.mobilizer_user.id, role=UserRole.MOBILIZER
-        )
-    )
-    await session.commit()
-    return second
-
-
 async def test_the_console_will_not_put_a_mobilizer_on_a_second_campaign(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
@@ -64,7 +52,9 @@ async def test_the_console_will_not_put_a_mobilizer_on_a_second_campaign(
     )
 
     assert refused.status_code == 400
-    assert "another campaign" in refused.json()["detail"]
+    assert refused.json()["detail"] == (
+        "juma is already on Jane for Roysambu; a login belongs to one campaign."
+    )
     on_second = await session.scalar(
         select(CampaignMember).where(
             CampaignMember.campaign_id == second.id,
@@ -83,6 +73,9 @@ async def test_no_route_can_put_a_mobilizer_on_a_second_campaign(
         await add_member(session, second.id, world.mobilizer_user.id)
 
     assert refused.value.status_code == 400
+    assert refused.value.detail == (
+        "juma is already on Jane for Roysambu; a login belongs to one campaign."
+    )
 
 
 async def test_a_mobilizer_is_still_put_back_on_their_own_campaign(
@@ -119,42 +112,15 @@ async def test_a_mobilizer_s_own_supporter_is_still_credited_to_them(
     assert made.json()["mobilizer"] == str(world.mobilizer.id)
 
 
-async def test_a_supporter_on_another_campaign_is_not_credited_to_this_ones_ground_row(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+async def test_the_database_refuses_a_second_campaign_for_a_mobilizer(
+    session: AsyncSession, world: World
 ) -> None:
-    second = await _stale_second_membership(session, world)
-
-    made = await client.post(
-        "/api/supporters/",
-        headers=world.headers("mobilizer"),
-        json={
-            "campaign": str(second.id),
-            "full_name": "Cross Filed",
-            "phone": "+254700333555",
-            "support_level": "supporter",
-            "consent_given": True,
-        },
+    second = await _second_campaign(session, world)
+    session.add(
+        CampaignMember(
+            campaign_id=second.id, user_id=world.mobilizer_user.id, role=UserRole.MOBILIZER
+        )
     )
 
-    assert made.status_code == 201, made.text
-    assert made.json()["mobilizer"] is None
-
-
-async def test_an_event_on_another_campaign_is_not_credited_to_this_ones_ground_row(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
-) -> None:
-    second = await _stale_second_membership(session, world)
-
-    made = await client.post(
-        "/api/events/",
-        headers=world.headers("mobilizer"),
-        json={
-            "campaign": str(second.id),
-            "ward": str(world.ward.id),
-            "title": "Cross rally",
-            "venue": "Hall",
-        },
-    )
-
-    assert made.status_code == 201, made.text
-    assert made.json()["mobilizer"] is None
+    with pytest.raises(IntegrityError):
+        await session.commit()

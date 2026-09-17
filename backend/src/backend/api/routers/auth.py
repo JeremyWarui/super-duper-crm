@@ -66,7 +66,7 @@ async def register(payload: RegisterRequest, session: SessionDep) -> object:
 
     The reply is a login, so the browser goes straight to setup. The role
     decides what setup asks for: a candidate owns the campaign it creates, a
-    manager has to name the aspirant it belongs to.
+    manager creates the login of the aspirant it belongs to.
     """
     if not get_settings().allow_registration:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Sign-up is closed. Ask for an invitation.")

@@ -112,7 +112,6 @@ describe("the gate for a campaign manager who owns nothing", () => {
     stubApi({
       ...dashboardRoutes({ "GET /campaigns/": [] }),
       "GET /counties/": [],
-      "GET /users/": [],
     });
     renderApp(<Root />);
 
@@ -126,7 +125,6 @@ describe("the gate for a campaign manager who owns nothing", () => {
     stubApi({
       ...dashboardRoutes({ "GET /campaigns/": [] }),
       "GET /counties/": [],
-      "GET /users/": [],
     });
     renderApp(<Root />);
 

@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.scope import add_member
 from backend.config import get_settings
-from backend.models import Campaign, CampaignMember, Target, User, UserRole
+from backend.models import Campaign, CampaignMember, OfficeLevel, Target, User, UserRole
 from tests.conftest import World
 from tests.factories import auth, fresh_password, make_user, sign_in
 
@@ -94,18 +94,32 @@ async def test_fetching_a_campaign_that_is_not_yours_is_404(
 # ------------------------------------------------------------------- setup
 
 
+@pytest.fixture
+async def new_manager(client: httpx.AsyncClient, session: AsyncSession, world: World) -> dict:
+    """A manager on no campaign yet, signed in."""
+    await make_user(session, username="newmanager", role=UserRole.MANAGER)
+    return auth(await sign_in(client, "newmanager"))
+
+
+@pytest.fixture
+async def new_candidate(client: httpx.AsyncClient, session: AsyncSession, world: World) -> dict:
+    """An aspirant on no campaign yet, signed in."""
+    await make_user(session, username="newaspirant", role=UserRole.CANDIDATE)
+    return auth(await sign_in(client, "newaspirant"))
+
+
 async def test_setup_creates_the_campaign_and_all_of_its_targets(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+    client: httpx.AsyncClient, session: AsyncSession, world: World, new_manager: dict
 ) -> None:
     response = await client.post(
         "/api/campaigns/setup/",
-        headers=world.headers("manager"),
+        headers=new_manager,
         json={
             "title": "Amina for Roysambu",
             "office_level": "constituency",
             "election_date": "2027-08-10",
             "constituency": str(world.constituency.id),
-            "candidate": str(world.candidate.id),
+            "new_candidate": {"username": "peter"},
         },
     )
 
@@ -129,18 +143,18 @@ async def test_setup_creates_the_campaign_and_all_of_its_targets(
 
 
 async def test_the_setup_summary_totals_the_win_number(
-    client: httpx.AsyncClient, world: World
+    client: httpx.AsyncClient, world: World, new_manager: dict
 ) -> None:
     """Zimmerman 30,701 and Githurai 35,899 at 60% turnout: 9,211 + 10,770."""
     body = (
         await client.post(
             "/api/campaigns/setup/",
-            headers=world.headers("manager"),
+            headers=new_manager,
             json={
                 "title": "Amina for Roysambu",
                 "office_level": "constituency",
                 "constituency": str(world.constituency.id),
-                "candidate": str(world.candidate.id),
+                "new_candidate": {"username": "peter"},
             },
         )
     ).json()
@@ -149,11 +163,11 @@ async def test_the_setup_summary_totals_the_win_number(
 
 
 async def test_a_candidate_may_set_their_own_campaign_up(
-    client: httpx.AsyncClient, world: World
+    client: httpx.AsyncClient, session: AsyncSession, world: World, new_candidate: dict
 ) -> None:
     response = await client.post(
         "/api/campaigns/setup/",
-        headers=world.headers("candidate"),
+        headers=new_candidate,
         json={
             "title": "Jane for Governor",
             "office_level": "county",
@@ -162,7 +176,8 @@ async def test_a_candidate_may_set_their_own_campaign_up(
     )
 
     assert response.status_code == 201
-    assert response.json()["candidate"] == str(world.candidate.id)
+    mine = await session.scalar(select(User.id).where(User.username == "newaspirant"))
+    assert response.json()["candidate"] == str(mine)
 
 
 async def test_a_mobilizer_may_not_set_a_campaign_up(
@@ -182,16 +197,16 @@ async def test_a_mobilizer_may_not_set_a_campaign_up(
 
 
 async def test_setup_needs_the_area_that_matches_the_office(
-    client: httpx.AsyncClient, world: World
+    client: httpx.AsyncClient, world: World, new_manager: dict
 ) -> None:
     response = await client.post(
         "/api/campaigns/setup/",
-        headers=world.headers("manager"),
+        headers=new_manager,
         json={
             "title": "Amina for Roysambu",
             "office_level": "constituency",
             "county": str(world.county.id),
-            "candidate": str(world.candidate.id),
+            "new_candidate": {"username": "peter"},
         },
     )
 
@@ -213,17 +228,17 @@ async def test_an_unknown_office_level_is_one_readable_sentence(
 
 
 async def test_an_mca_campaign_with_no_centres_says_so_in_the_summary(
-    client: httpx.AsyncClient, world: World
+    client: httpx.AsyncClient, world: World, new_manager: dict
 ) -> None:
     body = (
         await client.post(
             "/api/campaigns/setup/",
-            headers=world.headers("manager"),
+            headers=new_manager,
             json={
                 "title": "Amina for Githurai",
                 "office_level": "ward",
                 "ward": str(world.other_ward.id),
-                "candidate": str(world.candidate.id),
+                "new_candidate": {"username": "peter"},
             },
         )
     ).json()
@@ -290,50 +305,22 @@ def _setup_body(world: World, **overrides) -> dict:
 
 
 async def test_a_manager_must_say_who_the_campaign_is_for(
-    client: httpx.AsyncClient, world: World
+    client: httpx.AsyncClient, world: World, new_manager: dict
 ) -> None:
     response = await client.post(
-        "/api/campaigns/setup/", headers=world.headers("manager"), json=_setup_body(world)
+        "/api/campaigns/setup/", headers=new_manager, json=_setup_body(world)
     )
 
     assert response.status_code == 400
     assert "who this campaign is for" in response.json()["detail"]
 
 
-async def test_a_manager_sets_a_campaign_up_for_an_existing_aspirant(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
-) -> None:
-    response = await client.post(
-        "/api/campaigns/setup/",
-        headers=world.headers("manager"),
-        json=_setup_body(world, candidate=str(world.candidate.id)),
-    )
-
-    assert response.status_code == 201
-    assert response.json()["candidate"] == str(world.candidate.id)
-    assert response.json()["candidate_login"] is None
-
-
-async def test_the_aspirant_sees_the_campaign_a_manager_made_for_them(
-    client: httpx.AsyncClient, world: World
-) -> None:
-    await client.post(
-        "/api/campaigns/setup/",
-        headers=world.headers("manager"),
-        json=_setup_body(world, candidate=str(world.candidate.id)),
-    )
-
-    mine = (await client.get("/api/campaigns/", headers=world.headers("candidate"))).json()
-
-    assert "Peter for Kasarani" in {c["title"] for c in mine}
-
-
 async def test_a_manager_creates_the_aspirant_and_gets_their_password_once(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+    client: httpx.AsyncClient, session: AsyncSession, world: World, new_manager: dict
 ) -> None:
     response = await client.post(
         "/api/campaigns/setup/",
-        headers=world.headers("manager"),
+        headers=new_manager,
         json=_setup_body(
             world,
             new_candidate={"username": "peter", "first_name": "Peter", "last_name": "Kimani"},
@@ -351,7 +338,7 @@ async def test_a_manager_creates_the_aspirant_and_gets_their_password_once(
 
 
 async def test_the_default_password_reaches_the_aspirant_created_at_setup(
-    client: httpx.AsyncClient, world: World, monkeypatch: pytest.MonkeyPatch
+    client: httpx.AsyncClient, world: World, new_manager: dict, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     shared = fresh_password()
     monkeypatch.setenv("DEFAULT_USER_PASSWORD", shared)
@@ -359,7 +346,7 @@ async def test_the_default_password_reaches_the_aspirant_created_at_setup(
     try:
         response = await client.post(
             "/api/campaigns/setup/",
-            headers=world.headers("manager"),
+            headers=new_manager,
             json=_setup_body(world, new_candidate={"username": "peter"}),
         )
     finally:
@@ -370,12 +357,12 @@ async def test_the_default_password_reaches_the_aspirant_created_at_setup(
 
 
 async def test_that_new_aspirant_can_sign_in_and_see_their_campaign(
-    client: httpx.AsyncClient, world: World
+    client: httpx.AsyncClient, world: World, new_manager: dict
 ) -> None:
     created = (
         await client.post(
             "/api/campaigns/setup/",
-            headers=world.headers("manager"),
+            headers=new_manager,
             json=_setup_body(world, new_candidate={"username": "peter", "first_name": "Peter"}),
         )
     ).json()
@@ -386,53 +373,17 @@ async def test_that_new_aspirant_can_sign_in_and_see_their_campaign(
     assert [c["title"] for c in mine] == ["Peter for Kasarani"]
 
 
-async def test_a_manager_cannot_both_name_and_create_an_aspirant(
-    client: httpx.AsyncClient, world: World
-) -> None:
-    response = await client.post(
-        "/api/campaigns/setup/",
-        headers=world.headers("manager"),
-        json=_setup_body(
-            world,
-            candidate=str(world.candidate.id),
-            new_candidate={"username": "peter"},
-        ),
-    )
-    assert response.status_code == 400
-
-
-async def test_a_campaign_cannot_be_hung_on_somebody_who_is_not_an_aspirant(
-    client: httpx.AsyncClient, world: World
-) -> None:
-    response = await client.post(
-        "/api/campaigns/setup/",
-        headers=world.headers("manager"),
-        json=_setup_body(world, candidate=str(world.mobilizer_user.id)),
-    )
-
-    assert response.status_code == 400
-    assert "not an aspirant" in response.json()["detail"]
-
-
-async def test_an_unknown_aspirant_is_refused(client: httpx.AsyncClient, world: World) -> None:
-    response = await client.post(
-        "/api/campaigns/setup/",
-        headers=world.headers("manager"),
-        json=_setup_body(world, candidate="00000000-0000-0000-0000-000000000009"),
-    )
-    assert response.status_code == 400
-
-
 async def test_a_username_already_taken_is_refused_before_the_campaign_is_made(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+    client: httpx.AsyncClient, session: AsyncSession, world: World, new_manager: dict
 ) -> None:
     response = await client.post(
         "/api/campaigns/setup/",
-        headers=world.headers("manager"),
+        headers=new_manager,
         json=_setup_body(world, new_candidate={"username": "jane"}),
     )
 
     assert response.status_code == 400
+    assert "already taken" in response.json()["detail"]
     assert (
         await session.scalar(
             select(func.count()).select_from(Campaign).where(Campaign.title == "Peter for Kasarani")
@@ -441,40 +392,30 @@ async def test_a_username_already_taken_is_refused_before_the_campaign_is_made(
     )
 
 
-async def test_a_candidate_still_gets_their_own_campaign(
-    client: httpx.AsyncClient, world: World
-) -> None:
-    response = await client.post(
-        "/api/campaigns/setup/", headers=world.headers("candidate"), json=_setup_body(world)
-    )
-
-    assert response.status_code == 201
-    assert response.json()["candidate"] == str(world.candidate.id)
-
-
-async def test_a_candidate_cannot_set_a_campaign_up_for_somebody_else(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
-) -> None:
-    rival = await make_user(session, username="rival", role=UserRole.CANDIDATE)
-
-    response = await client.post(
-        "/api/campaigns/setup/",
-        headers=world.headers("candidate"),
-        json=_setup_body(world, candidate=str(rival.id)),
-    )
-
-    assert response.status_code == 403
-
-
 async def test_a_candidate_cannot_create_another_candidate(
-    client: httpx.AsyncClient, world: World
+    client: httpx.AsyncClient, world: World, new_candidate: dict
 ) -> None:
     response = await client.post(
         "/api/campaigns/setup/",
-        headers=world.headers("candidate"),
+        headers=new_candidate,
         json=_setup_body(world, new_candidate={"username": "peter"}),
     )
     assert response.status_code == 400
+    assert "do not create another" in response.json()["detail"]
+
+
+async def test_setup_does_not_take_an_existing_aspirant(
+    client: httpx.AsyncClient, world: World, new_manager: dict
+) -> None:
+    """An aspirant with a login already has their campaign, so there is no one to name."""
+    response = await client.post(
+        "/api/campaigns/setup/",
+        headers=new_manager,
+        json=_setup_body(world, candidate=str(world.candidate.id)),
+    )
+
+    assert response.status_code == 400
+    assert "candidate" in response.json()["detail"]
 
 
 async def test_a_fresh_manager_owns_nothing_so_the_browser_sends_them_to_setup(
@@ -514,11 +455,11 @@ async def _members(session: AsyncSession, campaign_id: uuid.UUID) -> dict[str, s
 
 
 async def test_setting_a_campaign_up_puts_its_candidate_and_its_manager_on_it(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+    client: httpx.AsyncClient, session: AsyncSession, world: World, new_manager: dict
 ) -> None:
     reply = await client.post(
         "/api/campaigns/setup/",
-        headers=world.headers("manager"),
+        headers=new_manager,
         json={
             "title": "Amina for Githurai",
             "office_level": "ward",
@@ -529,7 +470,7 @@ async def test_setting_a_campaign_up_puts_its_candidate_and_its_manager_on_it(
 
     assert reply.status_code == 201, reply.text
     members = await _members(session, uuid.UUID(reply.json()["id"]))
-    assert members == {"peter": "candidate", "amina": "manager"}
+    assert members == {"peter": "candidate", "newmanager": "manager"}
 
 
 async def test_a_manager_sees_the_campaign_they_just_set_up_and_no_other(
@@ -555,11 +496,11 @@ async def test_a_manager_sees_the_campaign_they_just_set_up_and_no_other(
 
 
 async def test_a_campaign_a_candidate_stood_up_alone_has_only_them_on_it(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+    client: httpx.AsyncClient, session: AsyncSession, world: World, new_candidate: dict
 ) -> None:
     reply = await client.post(
         "/api/campaigns/setup/",
-        headers=world.headers("candidate"),
+        headers=new_candidate,
         json={
             "title": "Jane for Githurai",
             "office_level": "ward",
@@ -568,7 +509,7 @@ async def test_a_campaign_a_candidate_stood_up_alone_has_only_them_on_it(
     )
 
     assert reply.status_code == 201, reply.text
-    assert await _members(session, uuid.UUID(reply.json()["id"])) == {"jane": "candidate"}
+    assert await _members(session, uuid.UUID(reply.json()["id"])) == {"newaspirant": "candidate"}
 
 
 async def test_the_aspirant_still_sees_a_campaign_their_manager_set_up(
@@ -605,25 +546,89 @@ async def test_adding_somebody_already_on_the_campaign_neither_duplicates_nor_mo
     }
 
 
-async def test_a_manager_may_run_more_than_one_campaign(
-    client: httpx.AsyncClient, world: World
+@pytest.mark.parametrize("role", ["manager", "candidate"])
+async def test_nobody_already_on_a_campaign_sets_up_another(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, role: str
 ) -> None:
-    """A single column could not hold this; a membership row can."""
-    made = await client.post(
+    body = {"title": "A second one", "office_level": "ward", "ward": str(world.other_ward.id)}
+    if role == "manager":
+        body["new_candidate"] = {"username": "peter"}
+
+    reply = await client.post("/api/campaigns/setup/", headers=world.headers(role), json=body)
+
+    assert reply.status_code == 400
+    assert reply.json()["detail"] == (
+        "You are already on Jane for Roysambu; a login belongs to one campaign."
+    )
+    titles = await session.scalars(select(Campaign.title))
+    assert list(titles) == ["Jane for Roysambu"]
+    assert await session.scalar(select(User.id).where(User.username == "peter")) is None
+
+
+async def test_a_setup_that_races_past_the_check_still_answers_with_the_rule(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, monkeypatch
+) -> None:
+    """Two requests at once both pass the check; the database index decides."""
+    from backend.api.routers import campaigns
+
+    async def _nothing_yet(*_):
+        return None
+
+    monkeypatch.setattr(campaigns, "campaign_of", _nothing_yet)
+    monkeypatch.setattr("backend.api.scope.membership_refusal", _nothing_yet)
+
+    reply = await client.post(
         "/api/campaigns/setup/",
         headers=world.headers("manager"),
         json={
-            "title": "Amina for Githurai",
+            "title": "A second one",
             "office_level": "ward",
             "ward": str(world.other_ward.id),
             "new_candidate": {"username": "peter"},
         },
     )
-    assert made.status_code == 201, made.text
 
+    assert reply.status_code == 400
+    assert reply.json()["detail"] == (
+        "That login is already on a campaign; a login belongs to one campaign."
+    )
+
+
+async def test_an_integrity_error_that_is_not_the_rule_is_not_dressed_up_as_it() -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    from backend.main import app
+
+    handler = app.exception_handlers[IntegrityError]
+    other = IntegrityError("INSERT", {}, Exception("UNIQUE constraint failed: users.username"))
+
+    with pytest.raises(IntegrityError):
+        await handler(None, other)
+
+
+async def test_a_manager_on_one_campaign_sees_only_that_one(
+    client: httpx.AsyncClient, world: World
+) -> None:
     listed = (await client.get("/api/campaigns/", headers=world.headers("manager"))).json()
 
-    assert sorted(c["title"] for c in listed) == ["Amina for Githurai", "Jane for Roysambu"]
+    assert [c["title"] for c in listed] == ["Jane for Roysambu"]
+
+
+async def test_nobody_already_on_a_campaign_is_put_on_another(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    from fastapi import HTTPException
+
+    other = Campaign(
+        title="Rival for Githurai", office_level=OfficeLevel.WARD, ward_id=world.other_ward.id
+    )
+    session.add(other)
+    await session.flush()
+    for person in (world.candidate, world.manager, world.mobilizer_user):
+        with pytest.raises(HTTPException) as refused:
+            await add_member(session, other.id, person.id)
+        assert refused.value.status_code == 400
+        assert "a login belongs to one campaign" in refused.value.detail
 
 
 async def test_deleting_a_manager_leaves_their_campaign_standing(

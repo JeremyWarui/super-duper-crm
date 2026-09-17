@@ -97,20 +97,19 @@ ward with no centres loaded says so there, rather than looking ready and coming
 back with a win number of zero.
 
 **Setup knows whose campaign it is.** A manager is asked first who they are
-running for. Aspirants they already set up are offered in a picker, so a second
-campaign for one of them reuses that login rather than colliding with the
-username; otherwise they name a new one, with first and last name, username,
-email and phone. Either way the campaign belongs to that aspirant, not to the
-manager who typed it in, and the review screen says which of the two is about to
-happen. A new aspirant never signs up: they get a login whose password is shown
-once on the screen that follows. Nothing is emailed yet, so the address is only
-kept on record. A candidate signing up gets the shorter flow and their own
-campaign.
+running for, and names a new aspirant with first and last name, username, email
+and phone. Every login belongs to one campaign, so there is no existing aspirant
+to pick. The campaign belongs to that aspirant, not to the manager who typed it
+in, and the review screen says a login is about to be created for them. A new
+aspirant never signs up: they get a login whose password is shown once on the
+screen that follows. Nothing is emailed yet, so the address is only kept on
+record. A candidate signing up gets the shorter flow and their own campaign.
 
 **Setup adds the mobilizers.** The screen that shows the win number adds
 mobilizers, each with a generated password shown once. The Mobilizers page does
 the same later, with a login or without one, for a manager and a candidate
-alike. Nobody adds a campaign manager from inside a campaign.
+alike. Nobody adds a campaign manager from inside a campaign. The console only
+offers to put a login on a campaign when it is on none.
 
 **A superuser gets the console, not a campaign.** `main.jsx` sends an account
 with `is_superuser` to `Admin.jsx` instead of the campaign gate: every campaign

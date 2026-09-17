@@ -494,7 +494,7 @@ describe("a manager setting up for an aspirant", () => {
 
   function startAsManager(routes = {}) {
     signIn("manager");
-    const calls = stubApi({ ...GEOGRAPHY, "GET /users/": [], ...routes });
+    const calls = stubApi({ ...GEOGRAPHY, ...routes });
     const onDone = vi.fn();
     return { calls, onDone, ...renderApp(<Onboarding onDone={onDone} />) };
   }
@@ -675,10 +675,11 @@ describe("a manager setting up for an aspirant", () => {
   });
 });
 
-describe("a manager with no aspirants of their own yet", () => {
+// A login belongs to one campaign, so there is never an existing aspirant to pick.
+describe("a manager naming the aspirant", () => {
   function startWithNoAspirants(routes = {}) {
     signIn("manager");
-    const calls = stubApi({ ...GEOGRAPHY, "GET /users/": [], ...routes });
+    const calls = stubApi({ ...GEOGRAPHY, ...routes });
     const onDone = vi.fn();
     return { calls, onDone, ...renderApp(<Onboarding onDone={onDone} />) };
   }
@@ -692,6 +693,14 @@ describe("a manager with no aspirants of their own yet", () => {
     expect(await screen.findByPlaceholderText("jane")).toBeInTheDocument();
     expect(screen.queryByText("An aspirant already here")).toBeNull();
     expect(screen.queryByRole("combobox")).toBeNull();
+  });
+
+  it("never asks the server for aspirants to choose from", async () => {
+    const { calls } = startWithNoAspirants();
+
+    await screen.findByPlaceholderText("jane");
+
+    expect(calls.some((c) => c.path.startsWith("/users/"))).toBe(false);
   });
 
   it("lets the manager past the step once the aspirant is named", async () => {
@@ -765,7 +774,7 @@ describe("a manager with no aspirants of their own yet", () => {
 describe("the review screen says who the campaign is for", () => {
   async function reachReview(user, routes = {}) {
     signIn("manager");
-    const calls = stubApi({ ...GEOGRAPHY, "GET /users/": [], ...routes });
+    const calls = stubApi({ ...GEOGRAPHY, ...routes });
     renderApp(<Onboarding onDone={vi.fn()} />);
 
     await user.type(await screen.findByPlaceholderText("jane"), "peter");
@@ -832,7 +841,6 @@ describe("the team step after a manager sets a campaign up", () => {
     signIn("manager");
     const calls = stubApi({
       ...GEOGRAPHY,
-      "GET /users/": [],
       "POST /campaigns/setup/": SETUP_REPLY,
     });
     renderApp(<Onboarding onDone={vi.fn()} />);
@@ -889,149 +897,11 @@ describe("the team step after a manager sets a campaign up", () => {
   });
 });
 
-// A lookup that fails is not the same as "nobody is here", and the difference
-// decides whether a new login gets created.
-describe("when the aspirant lookup fails", () => {
-  it("says so instead of silently offering the new-aspirant form", async () => {
-    signIn("manager");
-    stubApi({
-      ...GEOGRAPHY,
-      "GET /users/": { status: 500, body: { detail: "Database is down." } },
-    });
-    renderApp(<Onboarding onDone={vi.fn()} />);
-
-    expect(await screen.findByText(/Database is down./)).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("jane")).toBeNull();
-  });
-
-  it("will not let the manager past the step", async () => {
-    signIn("manager");
-    stubApi({
-      ...GEOGRAPHY,
-      "GET /users/": { status: 500, body: { detail: "Database is down." } },
-    });
-    renderApp(<Onboarding onDone={vi.fn()} />);
-
-    await screen.findByText(/Database is down./);
-
-    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
-  });
-});
-
-describe("a manager who already set an aspirant up", () => {
-  const KNOWN = [
-    {
-      id: "u-jane",
-      username: "jane",
-      full_name: "Jane Wanjiku",
-      role: "candidate",
-    },
-    {
-      id: "u-peter",
-      username: "peter",
-      full_name: "Peter Kim",
-      role: "candidate",
-    },
-  ];
-
-  function startWithAspirants(routes = {}) {
-    signIn("manager");
-    const calls = stubApi({ ...GEOGRAPHY, "GET /users/": KNOWN, ...routes });
-    const onDone = vi.fn();
-    return { calls, onDone, ...renderApp(<Onboarding onDone={onDone} />) };
-  }
-
-  it("offers the aspirants it already has, rather than only a blank form", async () => {
-    startWithAspirants();
-
-    expect(
-      await screen.findByText("An aspirant already here"),
-    ).toBeInTheDocument();
-    const options = [...(await screen.findByRole("combobox")).options].map(
-      (o) => o.value,
-    );
-    expect(options).toEqual(["", "u-jane", "u-peter"]);
-  });
-
-  it("sends the chosen aspirant instead of creating a second login for them", async () => {
-    const user = userEvent.setup();
-    const { calls } = startWithAspirants({
-      "POST /campaigns/setup/": SETUP_REPLY,
-    });
-
-    await user.selectOptions(await screen.findByRole("combobox"), "u-jane");
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await walkToReview(user);
-    await user.click(screen.getByRole("button", { name: /Create/ }));
-
-    await waitFor(() => {
-      const sent = calls.find((c) => c.path === "/campaigns/setup/");
-      expect(sent.body.candidate).toBe("u-jane");
-      expect(sent.body.new_candidate).toBeUndefined();
-    });
-  });
-
-  it("still creates a login when the manager fills the form instead", async () => {
-    const user = userEvent.setup();
-    const { calls } = startWithAspirants({
-      "POST /campaigns/setup/": SETUP_REPLY,
-    });
-
-    await user.type(await screen.findByPlaceholderText("jane"), "brandnew");
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await walkToReview(user);
-    await user.click(screen.getByRole("button", { name: /Create/ }));
-
-    await waitFor(() => {
-      const sent = calls.find((c) => c.path === "/campaigns/setup/");
-      expect(sent.body.new_candidate.username).toBe("brandnew");
-      expect(sent.body.candidate).toBeUndefined();
-    });
-  });
-
-  it("hides the new-aspirant form once one is chosen", async () => {
-    const user = userEvent.setup();
-    startWithAspirants();
-
-    expect(await screen.findByPlaceholderText("jane")).toBeInTheDocument();
-    await user.selectOptions(await screen.findByRole("combobox"), "u-peter");
-
-    expect(screen.queryByPlaceholderText("jane")).toBeNull();
-    expect(
-      screen.getByText("They keep the login they already have."),
-    ).toBeInTheDocument();
-  });
-
-  it("says the campaign is theirs, not that a login is about to be made", async () => {
-    const user = userEvent.setup();
-    startWithAspirants();
-
-    await user.selectOptions(await screen.findByRole("combobox"), "u-jane");
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await walkToReview(user);
-
-    expect(
-      await screen.findByText(/signs in with the login they already have/),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/This creates a new login/)).toBeNull();
-  });
-
-  it("lets the choice be undone, putting the form back", async () => {
-    const user = userEvent.setup();
-    startWithAspirants();
-
-    await user.selectOptions(await screen.findByRole("combobox"), "u-jane");
-    await user.selectOptions(screen.getByRole("combobox"), "");
-
-    expect(await screen.findByPlaceholderText("jane")).toBeInTheDocument();
-  });
-});
-
 describe("the username the server will accept", () => {
   it("keeps the manager on the step until the username is a shape the API takes", async () => {
     const user = userEvent.setup();
     signIn("manager");
-    stubApi({ ...GEOGRAPHY, "GET /users/": [] });
+    stubApi({ ...GEOGRAPHY });
     renderApp(<Onboarding onDone={vi.fn()} />);
 
     const field = await screen.findByPlaceholderText("jane");

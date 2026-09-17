@@ -12,7 +12,6 @@ from backend.api.scope import (
     limit_to_campaigns,
     require_visible_campaign,
     visible_campaign_ids,
-    visible_user_ids,
 )
 from backend.models import Campaign, OfficeLevel, User, UserRole
 from backend.schemas.campaign import (
@@ -24,6 +23,7 @@ from backend.schemas.campaign import (
     SetupSummary,
 )
 from backend.security import hash_password, new_password
+from backend.services.membership import campaign_of
 from backend.services.targets import generate_targets
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
@@ -79,6 +79,12 @@ async def setup_campaign(
     """Create the campaign and every one of its targets in one call."""
     if user.role is UserRole.MOBILIZER:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "A mobilizer may not create a campaign.")
+    current = await campaign_of(session, user.id)
+    if current is not None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"You are already on {current.title}; a login belongs to one campaign.",
+        )
 
     candidate_id, login = await _resolve_candidate(session, user, payload)
 
@@ -123,47 +129,22 @@ async def _resolve_candidate(
 ) -> tuple[uuid.UUID, CandidateLogin | None]:
     """Whose campaign this is, and the login if one was created for them.
 
-    A candidate gets themselves. A manager must name an aspirant or create one:
-    inferring it from whoever filled the form in is how a campaign ends up owned
-    by its manager and invisible to its candidate.
+    A candidate gets themselves. A manager creates the aspirant, whose new login
+    is on no other campaign.
     """
     if user.role is UserRole.CANDIDATE:
         if payload.new_candidate is not None:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, "You are the candidate; do not create another."
             )
-        if payload.candidate is not None and payload.candidate != user.id:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN, "A candidate may only set up their own campaign."
-            )
         return user.id, None
 
-    if payload.new_candidate is not None:
-        if payload.candidate is not None:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                "Name an existing aspirant or create one, not both.",
-            )
-        return await _create_candidate(session, payload.new_candidate)
-
-    if payload.candidate is None:
+    if payload.new_candidate is None:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "Say who this campaign is for: name an aspirant, or create one.",
+            "Say who this campaign is for: create the aspirant's login.",
         )
-
-    visible = await visible_user_ids(session, user)
-    if payload.candidate not in visible:
-        # Same answer as a name that does not exist, so the field cannot be used
-        # to enumerate aspirants the caller has no business with.
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such aspirant.")
-
-    aspirant = await session.get(User, payload.candidate)
-    if aspirant is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such aspirant.")
-    if aspirant.role is not UserRole.CANDIDATE:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{aspirant.username} is not an aspirant.")
-    return aspirant.id, None
+    return await _create_candidate(session, payload.new_candidate)
 
 
 async def _create_candidate(

@@ -130,7 +130,7 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     # A manager with no campaign, so the flow that asks for an aspirant is
     # reachable. The demo campaign is handed back to `manager` below, which is
     # what takes this account off it if somebody assigned it in between.
-    await _user(
+    fresh_manager = await _user(
         session, "newmanager", UserRole.MANAGER, "Grace", "Otieno", passwords, "+254700000005"
     )
     await _clear_campaigns(session, fresh)
@@ -143,13 +143,13 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
             .where(
                 CampaignMember.user_id == aspirant.id,
                 CampaignMember.role == UserRole.CANDIDATE,
-                Campaign.title == DEMO_CAMPAIGN_TITLE,
             )
         )
     ).scalar_one_or_none()
     if campaign is None:
         campaign = Campaign(title=DEMO_CAMPAIGN_TITLE)
         session.add(campaign)
+    campaign.title = DEMO_CAMPAIGN_TITLE
     campaign.office_level = OfficeLevel.CONSTITUENCY
     campaign.constituency_id = constituency.id
     campaign.county_id = None
@@ -157,8 +157,14 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     campaign.election_date = datetime(2027, 8, 10, tzinfo=UTC).date()
     await session.flush()
 
-    # The demo team, and nobody else: re-seeding takes `newmanager` back off.
-    await session.execute(delete(CampaignMember).where(CampaignMember.campaign_id == campaign.id))
+    # The demo team, and nobody else. Each demo login belongs to one campaign, so
+    # re-seeding takes them off any other, and `newmanager` off every one.
+    demo_logins = [aspirant.id, manager.id, mobilizer_user.id, fresh_manager.id]
+    await session.execute(
+        delete(CampaignMember).where(
+            (CampaignMember.campaign_id == campaign.id) | CampaignMember.user_id.in_(demo_logins)
+        )
+    )
     await add_member(session, campaign.id, aspirant.id)
     await add_member(session, campaign.id, manager.id)
     await add_member(session, campaign.id, mobilizer_user.id)

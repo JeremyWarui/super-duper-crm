@@ -19,13 +19,14 @@ class CampaignMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     The only thing that decides what a caller may read, and the only record of
     who a campaign is for: its candidate is the member whose role is candidate.
-    A person may hold a place on several campaigns, and a campaign may have
-    several managers and mobilizers but one candidate.
+    A login is on at most one campaign; a campaign may have several managers and
+    mobilizers but one candidate.
     """
 
     __tablename__ = "campaign_members"
     __table_args__ = (
         UniqueConstraint("campaign_id", "user_id"),
+        Index("uq_campaign_members_one_campaign_per_user", "user_id", unique=True),
         Index(
             "uq_campaign_members_one_candidate",
             "campaign_id",
