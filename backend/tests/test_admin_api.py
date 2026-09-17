@@ -505,7 +505,7 @@ async def test_taking_somebody_off_a_campaign_takes_it_away_from_them(
     assert (await client.get("/api/campaigns/", headers=theirs)).json() == []
 
 
-async def test_an_admin_deletes_a_campaign_and_everything_on_it_but_the_logins(
+async def test_an_admin_deletes_a_campaign_everything_on_it_and_its_logins(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     manager = world.headers("manager")
@@ -545,10 +545,77 @@ async def test_an_admin_deletes_a_campaign_and_everything_on_it_but_the_logins(
     for table in (CampaignMember, Target, Mobilizer, Event, Supporter):
         assert await session.scalar(select(func.count()).select_from(table)) == 0, table
     for who in ("candidate", "manager", "mobilizer"):
-        assert (await client.get("/api/campaigns/", headers=world.headers(who))).json() == []
-    assert await session.get(User, world.candidate.id) is not None
+        assert (await client.get("/api/campaigns/", headers=world.headers(who))).status_code == 401
+    left = await session.scalars(select(User.username).order_by(User.username))
+    assert list(left) == ["root"]
+    assert await session.scalar(select(func.count()).select_from(AuthToken)) == 1
     overview = (await client.get("/api/admin/overview/", headers=head)).json()
     assert overview["campaigns"] == []
+
+
+async def test_deleting_a_campaign_deletes_a_login_that_is_also_on_another_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    from backend.api.scope import add_member
+    from backend.models import OfficeLevel
+
+    other = Campaign(
+        title="Amina's other seat", office_level=OfficeLevel.WARD, ward_id=world.other_ward.id
+    )
+    session.add(other)
+    await session.flush()
+    bystander = await make_user(session, username="bystander", role=UserRole.MANAGER)
+    await add_member(session, other.id, world.manager.id)
+    await add_member(session, other.id, bystander.id)
+    await session.commit()
+    other_id, manager_id = other.id, world.manager.id
+    head = await _admin(session, client)
+
+    reply = await client.delete(f"/api/admin/campaigns/{world.campaign.id}/", headers=head)
+
+    assert reply.status_code == 204
+    assert await session.scalar(select(User.id).where(User.id == manager_id)) is None
+    assert await session.scalar(select(Campaign.id).where(Campaign.id == other_id)) == other_id
+    still_on = await session.scalars(
+        select(CampaignMember.user_id).where(CampaignMember.campaign_id == other_id)
+    )
+    assert list(still_on) == [bystander.id]
+
+
+async def test_deleting_a_campaign_deletes_a_mobilizer_taken_off_its_member_list(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """Taking somebody off leaves their ground row, which still ties them to the campaign."""
+    head = await _admin(session, client)
+    mobilizer_id = world.mobilizer_user.id
+    off = await client.delete(
+        f"/api/admin/campaigns/{world.campaign.id}/members/{mobilizer_id}/", headers=head
+    )
+    assert off.status_code == 204
+
+    reply = await client.delete(f"/api/admin/campaigns/{world.campaign.id}/", headers=head)
+
+    assert reply.status_code == 204
+    assert await session.scalar(select(User.id).where(User.id == mobilizer_id)) is None
+    assert (
+        await session.scalar(select(AuthToken.id).where(AuthToken.user_id == mobilizer_id))
+    ) is None
+
+
+async def test_deleting_a_campaign_keeps_a_superuser_on_it(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    head = await _admin(session, client)
+    root = await session.scalar(select(User).where(User.username == "root"))
+    # Written straight in: no route puts a superuser on a campaign, but an old
+    # database can hold such a row.
+    session.add(CampaignMember(campaign_id=world.campaign.id, user_id=root.id, role=root.role))
+    await session.commit()
+
+    reply = await client.delete(f"/api/admin/campaigns/{world.campaign.id}/", headers=head)
+
+    assert reply.status_code == 204
+    assert (await client.get("/api/admin/overview/", headers=head)).status_code == 200
 
 
 async def test_deleting_a_campaign_that_is_not_there_is_a_404(

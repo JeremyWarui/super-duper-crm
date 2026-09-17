@@ -187,8 +187,9 @@ A superuser signing in gets `/api/admin/`, and the browser gives them the
 console rather than a campaign. The routes are `overview`, `campaigns`,
 `campaigns/{id}` (read, rename, delete), `users`, `users/{id}/reset-password`,
 `users/{id}/active`, and adding or removing a member of a campaign. Deleting a
-campaign takes its members, targets, mobilizers, events and supporters with it;
-the logins stay. No campaign role can delete a campaign. They live in
+campaign takes its targets, mobilizers, events and supporters with it, and
+deletes the login of everyone on it, even one also on another campaign. A
+superuser's login stays. No campaign role can delete a campaign. They live in
 `api/routers/admin.py` over `services/admin.py`, and touch nothing in
 `api/scope.py`, so widening what an admin reads cannot widen what a manager
 reads.
@@ -210,7 +211,7 @@ uv run campaign-crm reset-password -u jane  # the only way back from a lost one
 uv run campaign-crm add-member -u amina -c <id>
 uv run campaign-crm remove-member -u amina -c <id>
 uv run campaign-crm rename-campaign -c <id> -t "Jane for Roysambu"
-uv run campaign-crm delete-campaign -c <id>        # says what would go; add --yes
+uv run campaign-crm delete-campaign -c <id>        # says what and who would go; add --yes
 uv run campaign-crm deactivate -u juma      # and activate
 ```
 

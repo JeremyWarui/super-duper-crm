@@ -200,7 +200,7 @@ async def _campaign(args: argparse.Namespace, session: AsyncSession) -> int:
     print(row.title)
     print(f"  id         {row.id}")
     print(f"  seat       {row.office_level}")
-    print(f"  candidate  {row.candidate}")
+    print(f"  candidate  {row.candidate or '-- none --'}")
     print(f"  election   {row.election_date or 'not set'}")
     print("  team")
     for member in row.members:
@@ -279,22 +279,25 @@ async def _rename_campaign(args: argparse.Namespace, session: AsyncSession) -> i
 
 
 async def _delete_campaign(args: argparse.Namespace, session: AsyncSession) -> int:
-    """Delete a campaign and everything on it. Without --yes, only say what would go."""
+    """Delete a campaign, everything on it and its logins. Without --yes, only say what would go."""
     found = await admin.campaigns(session, args.campaign)
     if not found:
         print(f"No campaign with id {args.campaign}.", file=sys.stderr)
         return 1
     row = found[0]
+    people = await admin.logins_deleted_with(session, args.campaign)
+    logins = ", ".join(person.username for person in people) or "none"
     what = (
-        f"{row.title} with {len(row.members)} members, {row.targets} targets, "
-        f"{row.mobilizers} mobilizers, {row.events} events and {row.supporters} supporters"
+        f"{row.title} with {row.targets} targets, {row.mobilizers} mobilizers, "
+        f"{row.events} events, {row.supporters} supporters, and {len(people)} logins "
+        f"({logins})"
     )
     if not args.yes:
         print(f"This would delete {what}. Run it again with --yes.", file=sys.stderr)
         return 1
 
-    await admin.delete_campaign(session, args.campaign)
-    print(f"Deleted {what}. The logins stay.")
+    gone = await admin.delete_campaign(session, args.campaign)
+    print(f"Deleted {row.title} and {len(gone)} logins: {', '.join(gone) or 'none'}.")
     return 0
 
 
@@ -392,7 +395,7 @@ def build_parser() -> argparse.ArgumentParser:
     rename.set_defaults(handler=_rename_campaign)
 
     drop = subparsers.add_parser(
-        "delete-campaign", help="delete a campaign and everything on it; the logins stay"
+        "delete-campaign", help="delete a campaign, everything on it, and its people's logins"
     )
     drop.add_argument("-c", "--campaign", required=True, type=uuid.UUID, help="campaign id")
     drop.add_argument("--yes", action="store_true", help="delete it, rather than only saying what")

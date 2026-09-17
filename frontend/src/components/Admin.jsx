@@ -242,7 +242,7 @@ function CampaignCard({ campaign, users }) {
               </Btn>
               <Danger
                 label="Delete campaign"
-                question={`Delete ${campaign.title}, take its ${fmt(campaign.members.length)} people off it, and delete its ${fmt(campaign.targets)} targets, ${fmt(campaign.mobilizers)} mobilizers, ${fmt(campaign.events)} events and ${fmt(campaign.supporters)} supporters? Their logins stay. This cannot be undone.`}
+                question={`Delete ${campaign.title} with its ${fmt(campaign.targets)} targets, ${fmt(campaign.mobilizers)} mobilizers, ${fmt(campaign.events)} events and ${fmt(campaign.supporters)} supporters, and the login of everyone on it except a superuser, even if they are on other campaigns? This cannot be undone.`}
                 busy={drop.isPending}
                 disabled={drop.isPending}
                 onConfirm={() => drop.mutate({ campaign: campaign.id })}
@@ -250,7 +250,7 @@ function CampaignCard({ campaign, users }) {
             </div>
           )}
           <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>
-            {campaign.office_level} · for {campaign.candidate} ·{" "}
+            {campaign.office_level} · for {campaign.candidate || "no candidate"} ·{" "}
             {campaign.election_date || "no election date"}
           </div>
         </div>

@@ -148,7 +148,7 @@ async def rename_campaign(
 
 @router.delete("/campaigns/{campaign_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_campaign(campaign_id: uuid.UUID, session: SessionDep, _: AdminUser) -> Response:
-    """Delete a campaign and everything on it. Only an admin may."""
+    """Delete a campaign, everything on it, and every non-superuser login on it."""
     try:
         await service.delete_campaign(session, campaign_id)
     except service.AdminError as error:

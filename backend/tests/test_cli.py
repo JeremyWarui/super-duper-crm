@@ -292,21 +292,55 @@ async def test_delete_campaign_only_says_what_would_go_without_yes(
     assert await _delete_campaign(_args(campaign=world.campaign.id, yes=False), session) == 1
 
     said = capsys.readouterr().err
-    assert "Jane for Roysambu with 3 members, 2 targets, 1 mobilizers" in said
+    assert "Jane for Roysambu with 2 targets, 1 mobilizers" in said
+    assert "3 logins (amina, jane, juma)" in said
     assert "--yes" in said
     assert await session.get(Campaign, world.campaign.id) is not None
 
 
-async def test_delete_campaign_with_yes_deletes_it_and_keeps_the_logins(
+async def test_delete_campaign_with_yes_deletes_it_and_its_logins(
     session: AsyncSession, world: World, capsys
 ) -> None:
-    campaign_id, candidate_id = world.campaign.id, world.candidate.id
+    campaign_id = world.campaign.id
 
     assert await _delete_campaign(_args(campaign=campaign_id, yes=True), session) == 0
 
-    assert "Deleted Jane for Roysambu" in capsys.readouterr().out
+    assert "Deleted Jane for Roysambu and 3 logins: amina, jane, juma." in capsys.readouterr().out
     assert await session.get(Campaign, campaign_id) is None
-    assert await session.get(User, candidate_id) is not None
+    left = await session.scalars(
+        select(User.username).where(User.username.in_(["amina", "jane", "juma"]))
+    )
+    assert list(left) == []
+
+
+async def test_delete_campaign_names_a_mobilizer_off_the_member_list_and_deletes_them(
+    session: AsyncSession, world: World, capsys
+) -> None:
+    campaign_id = world.campaign.id
+    assert await _remove_member(_args(username="juma", campaign=campaign_id), session) == 0
+    capsys.readouterr()
+
+    assert await _delete_campaign(_args(campaign=campaign_id, yes=False), session) == 1
+    assert "3 logins (amina, jane, juma)" in capsys.readouterr().err
+
+    assert await _delete_campaign(_args(campaign=campaign_id, yes=True), session) == 0
+    assert "juma" in capsys.readouterr().out
+    assert await session.scalar(select(User.id).where(User.username == "juma")) is None
+
+
+async def test_delete_campaign_dry_run_leaves_out_a_superuser(
+    session: AsyncSession, world: World, capsys
+) -> None:
+    root = await make_user(session, username="root", role=UserRole.MANAGER)
+    root.is_superuser = True
+    session.add(CampaignMember(campaign_id=world.campaign.id, user_id=root.id, role=root.role))
+    await session.commit()
+
+    assert await _delete_campaign(_args(campaign=world.campaign.id, yes=False), session) == 1
+
+    said = capsys.readouterr().err
+    assert "3 logins (amina, jane, juma)" in said
+    assert "root" not in said
 
 
 async def test_delete_campaign_says_so_when_the_id_is_not_one(

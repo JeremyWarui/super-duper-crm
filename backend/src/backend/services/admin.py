@@ -322,17 +322,45 @@ async def rename_campaign(session: AsyncSession, campaign_id: uuid.UUID, title: 
     return campaign
 
 
-async def delete_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> None:
-    """Delete a campaign with its members, targets, mobilizers, events and supporters.
+async def logins_deleted_with(session: AsyncSession, campaign_id: uuid.UUID) -> list[User]:
+    """The logins deleting this campaign deletes, by username.
 
-    Logins stay, including a mobilizer's, which then signs in to nothing until it
-    is put on another campaign.
+    Everyone on it or on its ground team, whatever other campaigns they are on,
+    except a superuser.
+    """
+    on_it = select(CampaignMember.user_id).where(CampaignMember.campaign_id == campaign_id)
+    on_the_ground = select(Mobilizer.user_id).where(
+        Mobilizer.campaign_id == campaign_id, Mobilizer.user_id.is_not(None)
+    )
+    return list(
+        (
+            await session.execute(
+                select(User)
+                .where(User.id.in_(on_it.union(on_the_ground)), User.is_superuser.is_(False))
+                .order_by(User.username)
+            )
+        ).scalars()
+    )
+
+
+async def delete_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list[str]:
+    """Delete a campaign, everything on it, and `logins_deleted_with` it.
+
+    Returns the usernames deleted.
     """
     campaign = await session.get(Campaign, campaign_id)
     if campaign is None:
         raise NotFound("No such campaign.")
-    await session.delete(campaign)
+
+    people = await logins_deleted_with(session, campaign_id)
+    usernames = [person.username for person in people]
+    # The database's ON DELETE rules take the tokens, memberships, targets,
+    # mobilizers, events and supporters.
+    if people:
+        await session.execute(delete(User).where(User.id.in_([person.id for person in people])))
+    await session.execute(delete(Campaign).where(Campaign.id == campaign_id))
     await session.commit()
+    return usernames
 
 
 async def remove_member(session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID) -> None:

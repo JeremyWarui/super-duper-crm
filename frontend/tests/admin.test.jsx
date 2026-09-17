@@ -454,7 +454,7 @@ describe("what the console refuses to lose", () => {
 
 describe("deleting a campaign", () => {
   const QUESTION =
-    "Delete Jane for Roysambu, take its 2 people off it, and delete its 5 targets, 2 mobilizers, 4 events and 30 supporters? Their logins stay. This cannot be undone.";
+    "Delete Jane for Roysambu with its 5 targets, 2 mobilizers, 4 events and 30 supporters, and the login of everyone on it except a superuser, even if they are on other campaigns? This cannot be undone.";
 
   it("asks first, naming the campaign and what goes with it", async () => {
     const user = userEvent.setup();
