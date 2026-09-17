@@ -237,9 +237,6 @@ async def test_a_campaign_with_nothing_in_it_reads_as_zero_rather_than_failing(
     }
 
 
-# ------------------------------------------------------------ what each role sees
-
-
 async def test_a_candidate_reads_the_same_strategy_as_the_manager(
     client: httpx.AsyncClient, world: World
 ) -> None:

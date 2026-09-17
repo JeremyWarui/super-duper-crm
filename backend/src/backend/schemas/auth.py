@@ -1,4 +1,4 @@
-"""Sign-in, sign-up, and what they return."""
+"""Sign-up, sign-in, and what they return."""
 
 import uuid
 from typing import Literal
@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import Field
 
 from backend.models.enums import UserRole
-from backend.schemas.common import ORMModel, WriteModel
+from backend.schemas.common import LoginDetails, ORMModel, WriteModel
 
 
 class LoginRequest(WriteModel):
@@ -14,31 +14,20 @@ class LoginRequest(WriteModel):
     password: str = Field(min_length=1)
 
 
-class RegisterRequest(WriteModel):
-    """A self-serve sign-up, which owns nothing until it sets a campaign up.
+class RegisterRequest(LoginDetails):
+    """A self-serve sign-up; only a candidate or a manager may register."""
 
-    A mobilizer is not registrable: they need a campaign and a ward, so they are
-    added from inside a campaign by `POST /api/users/`.
-    """
-
-    username: str = Field(min_length=3, max_length=150, pattern=r"^[A-Za-z0-9._-]+$")
     password: str = Field(min_length=8, max_length=128)
     role: Literal[UserRole.CANDIDATE, UserRole.MANAGER]
-    first_name: str = Field(default="", max_length=150)
-    last_name: str = Field(default="", max_length=150)
-    phone: str = Field(default="", max_length=20)
-    email: str = Field(default="", max_length=254)
 
 
 class LoginUser(ORMModel):
-    """The caller's own identity, small enough to keep in the browser."""
+    """The caller's identity, kept by the browser."""
 
     id: uuid.UUID
     username: str
     full_name: str
     role: UserRole
-    # Decides whether the browser shows the admin console at all. The routes
-    # check the flag again themselves.
     is_superuser: bool
 
 

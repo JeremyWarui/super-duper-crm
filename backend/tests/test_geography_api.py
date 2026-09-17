@@ -142,9 +142,6 @@ async def test_a_candidate_may_read_the_geography(
         assert (await client.get(path, headers=auth(token))).status_code == 200, path
 
 
-# ---------------------------------------------------- what a mobilizer may see
-
-
 async def test_a_mobilizer_sees_only_their_own_ward(
     client: httpx.AsyncClient, session: AsyncSession
 ) -> None:

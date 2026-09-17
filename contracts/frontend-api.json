@@ -117,7 +117,7 @@
       "is_active",
       "is_superuser",
       "last_login_at",
-      "campaigns"
+      "campaign"
     ],
     "POST /api/admin/users/{user_id}/reset-password/": [
       "username",

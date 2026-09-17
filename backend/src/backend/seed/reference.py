@@ -1,10 +1,7 @@
-"""Load the geography and registration centres from the CSVs in `backend/data`.
-
-Re-running matches rows and updates them.
-"""
+"""Load geography and registration centres from `backend/data`; re-running updates."""
 
 import csv
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
@@ -38,21 +35,19 @@ class CentreSummary:
     skipped_special: int = 0
 
 
-def rows(path: Path) -> Iterator[dict[str, str]]:
-    """Rows, with whitespace squeezed out of headers and values."""
+def rows(path: Path, header: Callable[[str], str] | None = None) -> Iterator[dict[str, str]]:
+    """CSV rows with stripped values; headers squeezed to single spaces, or through `header`."""
     with path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
         if reader.fieldnames is None:
             return
-        reader.fieldnames = [" ".join(name.split()).strip() for name in reader.fieldnames]
+        fix = header or (lambda name: " ".join(name.split()).strip())
+        reader.fieldnames = [fix(name) for name in reader.fieldnames]
         for row in reader:
             yield {k: (v.strip() if isinstance(v, str) else "") for k, v in row.items()}
 
 
-# The IEBC files carry two categories past the 47 counties: 48 is the diaspora,
-# voting at embassies, and 49 is prisons. Neither sits in a ward, and no ward or
-# constituency campaign organizes on them, so their centres are left out rather
-# than reported as a failure to match.
+# Diaspora (48) and prisons (49): no ward, so their centres are skipped.
 SPECIAL_COUNTY_CODES = {"48", "49"}
 
 MIN_PREFIX_LENGTH = 8
@@ -65,11 +60,7 @@ def to_int(value: str | None) -> int:
     return int(str(value).replace(",", ""))
 
 
-# The two IEBC files spell the same ward differently. The gazetted register
-# writes Ziwa la Ng’ombe with a typographic apostrophe and Njabini/Kiburu with a
-# forward slash; the polling-station extraction writes NG'OMBE and
-# NJABINI\KIBURU. Folding these is the difference between 151 centres landing
-# and being dropped on the floor.
+# Apostrophe and slash variants the two IEBC files spell ward names with.
 PUNCTUATION_VARIANTS = str.maketrans(
     {
         "’": "'",  # right single quotation mark
@@ -95,10 +86,7 @@ async def import_geography(
     county_voters: Path | None = COUNTY_VOTERS_CSV,
     county_results: Path | None = COUNTY_RESULTS_CSV,
 ) -> GeographySummary:
-    """Counties, constituencies and wards, with registered voters and turnout.
-
-    Turnout needs `county_voters` as its denominator.
-    """
+    """Counties, constituencies and wards with registered voters, and each county's turnout."""
     if county_results is not None and county_voters is None:
         raise ValueError("county_results needs county_voters: turnout divides by it.")
 
@@ -164,7 +152,6 @@ async def import_geography(
     if county_results is not None:
         for row in rows(county_results):
             county = counties.get(str(to_int(row["County Code"])))
-            # Diaspora and prison rows match no county.
             if county is None or not county.registered_voters:
                 continue
             cast = to_int(row.get("Total Valid Votes")) + to_int(row.get("Rejected"))
@@ -202,29 +189,25 @@ async def import_centres(session: AsyncSession, csv_path: Path = CENTRES_CSV) ->
     loaded = 0
     skipped_special = 0
     unmatched: list[tuple[str, str]] = []
-    with csv_path.open(newline="", encoding="utf-8-sig") as handle:
-        reader = csv.DictReader(handle)
-        if reader.fieldnames is not None:
-            reader.fieldnames = [name.strip().lower() for name in reader.fieldnames]
-        for row in reader:
-            county_code = str(to_int(row.get("county_code")))
-            if county_code in SPECIAL_COUNTY_CODES:
-                skipped_special += 1
-                continue
-            key = (county_code, normalise(row.get("const_name")), normalise(row.get("ward_name")))
-            ward = ward_by_key.get(key) or _match_truncated(ward_by_key, key)
-            if ward is None:
-                unmatched.append((row.get("ward_name") or "", row.get("centre_name") or ""))
-                continue
-            code = (row.get("centre_code") or "").strip()
-            centre = existing.get((str(ward.id), code))
-            if centre is None:
-                centre = RegistrationCentre(ward=ward, code=code, name="")
-                existing[(str(ward.id), code)] = centre
-                session.add(centre)
-            centre.name = (row.get("centre_name") or "").strip()
-            centre.registered_voters = to_int(row.get("registered_voters"))
-            loaded += 1
+    for row in rows(csv_path, header=lambda name: name.strip().lower()):
+        county_code = str(to_int(row.get("county_code")))
+        if county_code in SPECIAL_COUNTY_CODES:
+            skipped_special += 1
+            continue
+        key = (county_code, normalise(row.get("const_name")), normalise(row.get("ward_name")))
+        ward = ward_by_key.get(key) or _match_truncated(ward_by_key, key)
+        if ward is None:
+            unmatched.append((row.get("ward_name") or "", row.get("centre_name") or ""))
+            continue
+        code = row.get("centre_code") or ""
+        centre = existing.get((str(ward.id), code))
+        if centre is None:
+            centre = RegistrationCentre(ward=ward, code=code, name="")
+            existing[(str(ward.id), code)] = centre
+            session.add(centre)
+        centre.name = row.get("centre_name") or ""
+        centre.registered_voters = to_int(row.get("registered_voters"))
+        loaded += 1
 
     await session.commit()
     return CentreSummary(

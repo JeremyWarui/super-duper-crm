@@ -1,4 +1,4 @@
-"""Campaigns, and the one call that stands a new one up."""
+"""Campaigns: reading them, setting one up, and rebuilding its targets."""
 
 import uuid
 
@@ -7,23 +7,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from backend.api.deps import CurrentUser, SessionDep, Writer
-from backend.api.scope import (
-    add_member,
-    limit_to_campaigns,
-    require_visible_campaign,
-    visible_campaign_ids,
-)
+from backend.api.scope import all_rows, load, require_visible_campaign, visible_campaign_ids
 from backend.models import Campaign, OfficeLevel, User, UserRole
 from backend.schemas.campaign import (
     CampaignRead,
     CampaignSetup,
     CampaignSetupResponse,
-    CandidateLogin,
-    NewCandidate,
     SetupSummary,
 )
-from backend.security import hash_password, new_password
-from backend.services.membership import campaign_of
+from backend.schemas.common import NewLogin
+from backend.services.accounts import add_member, campaign_of, new_login
 from backend.services.targets import generate_targets
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
@@ -34,9 +27,6 @@ AREA_FIELD = {
     OfficeLevel.WARD: "ward",
 }
 
-
-# Who a campaign is for and where it is fought live in other tables, so every
-# read that names it loads these four and nothing else lazily.
 NAMED = (
     selectinload(Campaign.candidate),
     selectinload(Campaign.county),
@@ -46,7 +36,7 @@ NAMED = (
 
 
 def _named(campaign: Campaign) -> CampaignRead:
-    """A campaign with its candidate and its seat spelt out."""
+    """A campaign with its candidate and seat spelt out; needs NAMED loaded."""
     area = campaign.area
     candidate = campaign.candidate
     return CampaignRead.model_validate(campaign).model_copy(
@@ -61,22 +51,21 @@ def _named(campaign: Campaign) -> CampaignRead:
 
 @router.get("/", response_model=list[CampaignRead])
 async def list_campaigns(session: SessionDep, user: CurrentUser) -> list[CampaignRead]:
-    """The caller's campaigns."""
-    statement = select(Campaign).options(*NAMED).order_by(Campaign.created_at)
-    visible = await visible_campaign_ids(session, user)
-    statement = limit_to_campaigns(statement, Campaign.id, visible)
-    return [_named(c) for c in (await session.execute(statement)).scalars()]
+    """The caller's campaign, in a list; empty sends them to setup."""
+    statement = (
+        select(Campaign)
+        .options(*NAMED)
+        .where(Campaign.id.in_(await visible_campaign_ids(session, user)))
+        .order_by(Campaign.created_at)
+    )
+    return [_named(c) for c in await all_rows(session, statement)]
 
 
-@router.post(
-    "/setup/",
-    response_model=CampaignSetupResponse,
-    status_code=status.HTTP_201_CREATED,
-)
+@router.post("/setup/", response_model=CampaignSetupResponse, status_code=status.HTTP_201_CREATED)
 async def setup_campaign(
     payload: CampaignSetup, session: SessionDep, user: CurrentUser
 ) -> CampaignSetupResponse:
-    """Create the campaign and every one of its targets in one call."""
+    """Create a campaign for its candidate, and every one of its targets."""
     if user.role is UserRole.MOBILIZER:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "A mobilizer may not create a campaign.")
     current = await campaign_of(session, user.id)
@@ -86,8 +75,6 @@ async def setup_campaign(
             f"You are already on {current.title}; a login belongs to one campaign.",
         )
 
-    candidate_id, login = await _resolve_candidate(session, user, payload)
-
     area_field = AREA_FIELD[payload.office_level]
     area_id = getattr(payload, area_field)
     if area_id is None:
@@ -95,6 +82,7 @@ async def setup_campaign(
             status.HTTP_400_BAD_REQUEST,
             f"A {payload.office_level.label} campaign needs its {area_field} set.",
         )
+    candidate, login = await _candidate(session, user, payload)
 
     campaign = Campaign(
         title=payload.title,
@@ -104,77 +92,38 @@ async def setup_campaign(
     )
     session.add(campaign)
     await session.flush()
-
-    # The candidate is on their own campaign, and whoever set it up is on it too.
-    await add_member(session, campaign.id, candidate_id)
-    if user.id != candidate_id:
-        await add_member(session, campaign.id, user.id)
+    await add_member(session, campaign.id, candidate)
+    if user.id != candidate.id:
+        await add_member(session, campaign.id, user)
+    summary = await generate_targets(session, campaign)
     await session.commit()
 
-    summary = await generate_targets(session, campaign)
-    # Reloaded with its people and its place, so the reply names them the same
-    # way every later read does.
-    campaign = (
-        await session.execute(select(Campaign).options(*NAMED).where(Campaign.id == campaign.id))
-    ).scalar_one()
     return CampaignSetupResponse(
-        **_named(campaign).model_dump(),
-        setup=SetupSummary.model_validate(summary),
+        **_named(await load(session, Campaign, campaign.id, NAMED)).model_dump(),
+        setup=summary,
         candidate_login=login,
     )
 
 
-async def _resolve_candidate(
+async def _candidate(
     session: SessionDep, user: User, payload: CampaignSetup
-) -> tuple[uuid.UUID, CandidateLogin | None]:
-    """Whose campaign this is, and the login if one was created for them.
-
-    A candidate gets themselves. A manager creates the aspirant, whose new login
-    is on no other campaign.
-    """
+) -> tuple[User, NewLogin | None]:
+    """A candidate sets up their own campaign; a manager creates the aspirant's login."""
     if user.role is UserRole.CANDIDATE:
         if payload.new_candidate is not None:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, "You are the candidate; do not create another."
             )
-        return user.id, None
-
+        return user, None
     if payload.new_candidate is None:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "Say who this campaign is for: create the aspirant's login.",
         )
-    return await _create_candidate(session, payload.new_candidate)
-
-
-async def _create_candidate(
-    session: SessionDep, details: NewCandidate
-) -> tuple[uuid.UUID, CandidateLogin]:
-    taken = (
-        await session.execute(select(User).where(User.username == details.username))
-    ).scalar_one_or_none()
-    if taken is not None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, f"The username {details.username} is already taken."
-        )
-
-    password = new_password()
-    aspirant = User(
-        username=details.username,
-        role=UserRole.CANDIDATE,
-        first_name=details.first_name,
-        last_name=details.last_name,
-        phone=details.phone,
-        email=details.email,
-        password_hash=hash_password(password),
-    )
-    session.add(aspirant)
-    await session.flush()
-    return aspirant.id, CandidateLogin(
-        id=aspirant.id,
-        username=aspirant.username,
-        full_name=aspirant.full_name,
-        password=password,
+    details = payload.new_candidate
+    aspirant, password = await new_login(session, role=UserRole.CANDIDATE, **details.model_dump())
+    return aspirant, NewLogin(
+        id=aspirant.id, username=aspirant.username, full_name=aspirant.full_name, password=password
     )
 
 
@@ -183,20 +132,16 @@ async def get_campaign(
     campaign_id: uuid.UUID, session: SessionDep, user: CurrentUser
 ) -> CampaignRead:
     await require_visible_campaign(session, user, campaign_id)
-    found = (
-        await session.execute(select(Campaign).options(*NAMED).where(Campaign.id == campaign_id))
-    ).scalar_one()
-    return _named(found)
+    return _named(await load(session, Campaign, campaign_id, NAMED))
 
 
 @router.post("/{campaign_id}/generate_targets/", response_model=SetupSummary)
 async def regenerate_targets(
-    campaign_id: uuid.UUID,
-    session: SessionDep,
-    user: CurrentUser,
-    _: Writer,
+    campaign_id: uuid.UUID, session: SessionDep, user: Writer
 ) -> SetupSummary:
     """Rebuild the targets after new centres or wards are loaded."""
-    campaign = await require_visible_campaign(session, user, campaign_id)
-    summary = await generate_targets(session, campaign)
-    return SetupSummary.model_validate(summary)
+    summary = await generate_targets(
+        session, await require_visible_campaign(session, user, campaign_id)
+    )
+    await session.commit()
+    return summary

@@ -1,7 +1,4 @@
-"""Campaign, Target, Mobilizer, Event and Supporter, in and out of the API.
-
-A foreign key travels under the related model's bare name: `ward`, not `ward_id`.
-"""
+"""Campaign, target, mobilizer, event and supporter schemas; foreign keys use the bare name."""
 
 import uuid
 from datetime import date, datetime
@@ -11,16 +8,13 @@ from typing import Any
 from pydantic import AliasPath, Field, ValidationInfo, field_validator
 
 from backend.models.enums import EventStatus, OfficeLevel, OperationalGrain, SupportLevel
-from backend.schemas.common import ORMModel, WriteModel
-
-# ------------------------------------------------------------------ campaign
+from backend.schemas.common import LoginDetails, NewLogin, ORMModel, WriteModel
 
 
 class CampaignRead(ORMModel):
     id: uuid.UUID
     candidate: uuid.UUID | None = None
-    # Who it is for and where it is fought, in words. The ids alone cannot be
-    # shown to anybody, and every screen that names the campaign needs these.
+    # The candidate and seat in words, for display.
     candidate_name: str = ""
     candidate_username: str = ""
     seat: str = ""
@@ -41,26 +35,8 @@ class CampaignRead(ORMModel):
         return getattr(value, "id", value)
 
 
-class NewCandidate(WriteModel):
-    """An aspirant being created by whoever is setting the campaign up.
-
-    `email` is where the invitation to claim the account will be sent; nothing
-    sends it yet, so the password still comes back once.
-    """
-
-    username: str = Field(min_length=3, max_length=150, pattern=r"^[A-Za-z0-9._-]+$")
-    first_name: str = Field(default="", max_length=150)
-    last_name: str = Field(default="", max_length=150)
-    phone: str = Field(default="", max_length=20)
-    email: str = Field(default="", max_length=254)
-
-
 class CampaignSetup(WriteModel):
-    """The seat, where it is, and whose it is.
-
-    A campaign belongs to its candidate, never to whoever filled the form in.
-    A manager creates the aspirant here; a candidate gets themselves.
-    """
+    """The seat and its area; a manager also creates the aspirant."""
 
     title: str = Field(min_length=1, max_length=150)
     office_level: OfficeLevel
@@ -68,7 +44,7 @@ class CampaignSetup(WriteModel):
     county: uuid.UUID | None = None
     constituency: uuid.UUID | None = None
     ward: uuid.UUID | None = None
-    new_candidate: NewCandidate | None = None
+    new_candidate: LoginDetails | None = None
 
 
 class SetupSummary(ORMModel):
@@ -81,21 +57,9 @@ class SetupSummary(ORMModel):
     note: str | None = None
 
 
-class CandidateLogin(ORMModel):
-    """A candidate created during setup. `password` is shown once."""
-
-    id: uuid.UUID
-    username: str
-    full_name: str
-    password: str
-
-
 class CampaignSetupResponse(CampaignRead):
     setup: SetupSummary
-    candidate_login: CandidateLogin | None = None
-
-
-# -------------------------------------------------------------------- target
+    candidate_login: NewLogin | None = None
 
 
 class TargetRead(ORMModel):
@@ -132,9 +96,6 @@ class TargetUpdate(WriteModel):
     votes_committed: int | None = Field(default=None, ge=0)
 
 
-# ----------------------------------------------------------------- mobilizer
-
-
 class MobilizerRead(ORMModel):
     id: uuid.UUID
     campaign: uuid.UUID = Field(validation_alias="campaign_id")
@@ -156,9 +117,6 @@ class MobilizerCreate(WriteModel):
     user: uuid.UUID | None = None
     full_name: str = Field(min_length=1, max_length=150)
     phone: str = Field(default="", max_length=20)
-
-
-# --------------------------------------------------------------------- event
 
 
 class EventRead(ORMModel):
@@ -203,9 +161,6 @@ class EventRecord(WriteModel):
         if reached is not None and value > reached:
             raise ValueError("Attendance cannot exceed the number reached.")
         return value
-
-
-# ----------------------------------------------------------------- supporter
 
 
 class SupporterRead(ORMModel):

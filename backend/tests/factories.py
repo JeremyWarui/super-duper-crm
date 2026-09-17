@@ -1,10 +1,13 @@
-"""Object builders, so each test only spells out what it cares about."""
+"""Object builders, so each test spells out only what it cares about."""
 
 import secrets
+import uuid
 
-from backend.api.scope import add_member
+from sqlalchemy import select
+
 from backend.models import (
     Campaign,
+    CampaignMember,
     Constituency,
     County,
     Mobilizer,
@@ -15,15 +18,15 @@ from backend.models import (
     Ward,
 )
 from backend.security import hash_password
+from backend.services.accounts import add_member
 
-# Generated per run: the value never matters, and a literal here reads as a
-# credential to a secret scanner.
+# Generated per run, so no literal reads as a credential.
 TEST_PASSWORD = secrets.token_urlsafe(16)
 
 
 def fresh_password() -> str:
-    """A password no other account in the test holds."""
-    return secrets.token_urlsafe(16)
+    """A random password that never starts with "-", which argparse would read as a flag."""
+    return "p" + secrets.token_urlsafe(16)
 
 
 async def make_geography(session, *, ward_voters: int | None = 10_000):
@@ -41,34 +44,6 @@ async def make_geography(session, *, ward_voters: int | None = 10_000):
     return county, constituency, ward, centre
 
 
-async def make_campaign(session, ward: Ward, *, office_level=OfficeLevel.WARD) -> Campaign:
-    candidate = User(
-        username=f"candidate-{ward.code}",
-        role=UserRole.CANDIDATE,
-        first_name="Asha",
-        last_name="Mwangi",
-    )
-    campaign = Campaign(
-        title=f"{ward.name} MCA 2027",
-        office_level=office_level,
-        ward=ward,
-    )
-    session.add_all([candidate, campaign])
-    await session.flush()
-    await add_member(session, campaign.id, candidate.id)
-    await session.commit()
-    return campaign
-
-
-async def make_mobilizer(session, campaign: Campaign, ward: Ward) -> Mobilizer:
-    mobilizer = Mobilizer(
-        campaign=campaign, ward=ward, full_name="Juma Otieno", phone="+254700000000"
-    )
-    session.add(mobilizer)
-    await session.commit()
-    return mobilizer
-
-
 async def make_user(
     session,
     *,
@@ -77,7 +52,7 @@ async def make_user(
     password: str = TEST_PASSWORD,
     **fields,
 ) -> User:
-    """A user who can sign in, with the password already hashed."""
+    """A login that can sign in."""
     user = User(
         username=username,
         role=role,
@@ -91,17 +66,44 @@ async def make_user(
     return user
 
 
-async def sign_in(client, username: str, password: str = TEST_PASSWORD) -> str:
-    """The token for a user, ready to put in an Authorization header."""
-    response = await client.post(
-        "/api/auth/login/", json={"username": username, "password": password}
+async def make_campaign(session, ward: Ward, *, office_level=OfficeLevel.WARD) -> Campaign:
+    """A ward campaign with its own candidate."""
+    candidate = await make_user(
+        session,
+        username=f"candidate-{ward.code}",
+        role=UserRole.CANDIDATE,
+        first_name="Asha",
+        last_name="Mwangi",
     )
-    assert response.status_code == 200, response.text
-    return response.json()["token"]
+    campaign = Campaign(title=f"{ward.name} MCA 2027", office_level=office_level, ward=ward)
+    session.add(campaign)
+    await session.flush()
+    await add_member(session, campaign.id, candidate)
+    await session.commit()
+    return campaign
 
 
-def auth(token: str) -> dict[str, str]:
-    return {"Authorization": f"Token {token}"}
+async def make_rival_campaign(
+    session, ward: Ward, *, title: str = "Rival for Githurai", owner: str = "rival"
+) -> Campaign:
+    """A ward campaign that belongs to somebody else."""
+    rival = await make_user(session, username=owner, role=UserRole.CANDIDATE)
+    campaign = Campaign(title=title, office_level=OfficeLevel.WARD, ward_id=ward.id)
+    session.add(campaign)
+    await session.flush()
+    await add_member(session, campaign.id, rival)
+    await session.commit()
+    return campaign
+
+
+async def make_mobilizer(session, campaign: Campaign, ward: Ward) -> Mobilizer:
+    """A ground row with no login."""
+    mobilizer = Mobilizer(
+        campaign=campaign, ward=ward, full_name="Juma Otieno", phone="+254700000000"
+    )
+    session.add(mobilizer)
+    await session.commit()
+    return mobilizer
 
 
 async def make_mobilizer_user(
@@ -112,7 +114,7 @@ async def make_mobilizer_user(
     username: str = "juma",
     password: str = TEST_PASSWORD,
 ) -> tuple[User, Mobilizer]:
-    """A mobilizer who can sign in, and the profile that scopes them to one ward."""
+    """A mobilizer login on the campaign, and its ground row."""
     user = await make_user(
         session,
         username=username,
@@ -121,7 +123,31 @@ async def make_mobilizer_user(
         first_name="Juma",
         last_name="Otieno",
     )
+    await add_member(session, campaign.id, user)
     mobilizer = Mobilizer(campaign=campaign, ward=ward, full_name="Juma Otieno", user=user)
     session.add(mobilizer)
     await session.commit()
     return user, mobilizer
+
+
+async def members_of(session, campaign_id: uuid.UUID) -> dict[str, str]:
+    """username -> role on that campaign."""
+    rows = await session.execute(
+        select(User.username, CampaignMember.role)
+        .join(CampaignMember, CampaignMember.user_id == User.id)
+        .where(CampaignMember.campaign_id == campaign_id)
+    )
+    return {username: role.value for username, role in rows}
+
+
+async def sign_in(client, username: str, password: str = TEST_PASSWORD) -> str:
+    """A token for the login."""
+    response = await client.post(
+        "/api/auth/login/", json={"username": username, "password": password}
+    )
+    assert response.status_code == 200, response.text
+    return response.json()["token"]
+
+
+def auth(token: str) -> dict[str, str]:
+    return {"Authorization": f"Token {token}"}

@@ -197,7 +197,7 @@ function CampaignCard({ campaign, users }) {
   // superuser reads every campaign through this console, and a disabled login
   // cannot sign in, so neither is offered either.
   const available = users.filter(
-    (u) => u.campaigns.length === 0 && !u.is_superuser && u.is_active,
+    (u) => !u.campaign && !u.is_superuser && u.is_active,
   );
   const error = remove.error || add.error || rename.error || drop.error;
 
@@ -620,9 +620,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
           <div style={{ fontSize: 11.5, color: C.sub, marginTop: 3 }}>
             {user.email || "no email"} · last in{" "}
             {user.last_login_at ? user.last_login_at.slice(0, 10) : "never"} ·{" "}
-            {user.campaigns.length
-              ? user.campaigns.map((c) => `${c[1]} (${c[2]})`).join(", ")
-              : "on no campaign"}
+            {user.campaign || "on no campaign"}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

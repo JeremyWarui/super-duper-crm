@@ -1,13 +1,7 @@
-"""The migrations build the same schema the models describe.
-
-Catches a column added to a model but never migrated. Names are compared, not
-column types, which differ harmlessly across databases.
-"""
+"""The migrations build the schema the models describe, on SQLite and as Postgres SQL."""
 
 import functools
-import importlib.util
 import secrets
-from pathlib import Path
 from urllib.parse import quote
 
 import pytest
@@ -18,93 +12,59 @@ from alembic.operations import Operations
 
 from backend.config import alembic_url, get_settings
 from backend.models import Base
-
-VERSIONS_DIR = Path(__file__).resolve().parent.parent / "alembic" / "versions"
-
-
-def _revision_files() -> list[Path]:
-    return sorted(p for p in VERSIONS_DIR.glob("*.py") if not p.name.startswith("_"))
-
-
-def _load(path: Path):
-    spec = importlib.util.spec_from_file_location(path.stem, path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+from tests.conftest import revision_modules, upgrade_head
 
 
 @pytest.fixture
 def migrated_metadata() -> sa.MetaData:
-    """Every migration applied in order, then read back."""
     engine = sa.create_engine("sqlite://")
     with engine.begin() as connection:
-        context = MigrationContext.configure(connection)
-        with Operations.context(context):
-            for path in _revision_files():
-                _load(path).upgrade()
+        upgrade_head(connection)
         reflected = sa.MetaData()
         reflected.reflect(bind=connection)
     engine.dispose()
     return reflected
 
 
-def test_there_is_at_least_one_revision() -> None:
-    assert _revision_files(), "no Alembic revision found; run alembic revision --autogenerate"
-
-
 def test_revisions_form_a_single_chain() -> None:
-    revisions = [_load(path) for path in _revision_files()]
-    roots = [m for m in revisions if m.down_revision is None]
-    assert len(roots) == 1, "exactly one revision may have down_revision = None"
-
-    known = {m.revision for m in revisions}
+    revisions = revision_modules()
+    assert len([m for m in revisions if m.down_revision is None]) == 1
     parents = [m.down_revision for m in revisions if m.down_revision is not None]
-    assert set(parents) <= known, "a revision points at a parent that does not exist"
-    assert len(parents) == len(set(parents)), "two revisions share a parent (branched history)"
+    assert set(parents) <= {m.revision for m in revisions}
+    assert len(parents) == len(set(parents)), "two revisions share a parent"
 
 
-def test_migration_creates_every_table(migrated_metadata: sa.MetaData) -> None:
+def test_the_migrated_tables_and_columns_match_the_models(migrated_metadata: sa.MetaData) -> None:
     assert set(migrated_metadata.tables) == set(Base.metadata.tables)
-
-
-def test_migration_creates_every_column(migrated_metadata: sa.MetaData) -> None:
-    for name, model_table in Base.metadata.tables.items():
-        migrated_columns = {c.name for c in migrated_metadata.tables[name].columns}
-        model_columns = {c.name for c in model_table.columns}
-        assert migrated_columns == model_columns, f"{name} has drifted"
-
-
-def test_migration_preserves_nullability(migrated_metadata: sa.MetaData) -> None:
     for name, model_table in Base.metadata.tables.items():
         migrated = {c.name: c.nullable for c in migrated_metadata.tables[name].columns}
-        for column in model_table.columns:
-            assert migrated[column.name] == column.nullable, f"{name}.{column.name}"
+        assert migrated == {c.name: c.nullable for c in model_table.columns}, name
 
 
-def test_migration_creates_every_index(migrated_metadata: sa.MetaData) -> None:
+def test_the_migrated_indexes_match_the_models(migrated_metadata: sa.MetaData) -> None:
     for name, model_table in Base.metadata.tables.items():
-        migrated_indexes = {i.name for i in migrated_metadata.tables[name].indexes}
-        model_indexes = {i.name for i in model_table.indexes}
-        assert model_indexes <= migrated_indexes, f"{name} is missing an index"
+        migrated = {i.name for i in migrated_metadata.tables[name].indexes}
+        assert {i.name for i in model_table.indexes} <= migrated, name
 
 
-def test_migration_creates_the_partial_unique_indexes(
+def test_the_migrated_foreign_keys_delete_as_the_models_say(
     migrated_metadata: sa.MetaData,
 ) -> None:
-    names = {i.name for i in migrated_metadata.tables["targets"].indexes}
-    assert "uq_targets_campaign_ward" in names
-    assert "uq_targets_campaign_registration_centre" in names
-    members = {i.name for i in migrated_metadata.tables["campaign_members"].indexes}
-    assert "uq_campaign_members_one_candidate" in members
+    def rules(table: sa.Table) -> set[tuple[str, str, str | None]]:
+        return {
+            (fk.parent.name, fk.column.table.name, fk.ondelete and fk.ondelete.upper())
+            for fk in table.foreign_keys
+        }
+
+    for name, model_table in Base.metadata.tables.items():
+        assert rules(migrated_metadata.tables[name]) == rules(model_table), name
 
 
-def test_downgrade_removes_everything_upgrade_created() -> None:
+def test_downgrade_removes_every_table() -> None:
     engine = sa.create_engine("sqlite://")
     with engine.begin() as connection:
-        context = MigrationContext.configure(connection)
-        with Operations.context(context):
-            revisions = [_load(path) for path in _revision_files()]
+        revisions = revision_modules()
+        with Operations.context(MigrationContext.configure(connection)):
             for module in revisions:
                 module.upgrade()
             for module in reversed(revisions):
@@ -117,26 +77,19 @@ def test_downgrade_removes_everything_upgrade_created() -> None:
 
 @functools.cache
 def _postgres_sql() -> str:
-    """The migrations rendered as Postgres, without connecting to one.
-
-    The in-memory tests all run on SQLite, which silently accepts things
-    Postgres rejects and ignores the dialect-specific clauses entirely.
-    """
+    """The migrations rendered as Postgres SQL, without a database."""
     import io
     import os
     from contextlib import redirect_stdout
-
-    from alembic.config import Config
+    from pathlib import Path
 
     from alembic import command
 
     root = Path(__file__).resolve().parent.parent
     previous = os.environ.get("DATABASE_URL")
     os.environ["DATABASE_URL"] = "postgresql+asyncpg://USER:PASSWORD@localhost:5432/campaign_crm"
+    get_settings.cache_clear()
     try:
-        from backend.config import get_settings
-
-        get_settings.cache_clear()
         config = Config(str(root / "alembic.ini"))
         config.set_main_option("script_location", str(root / "alembic"))
         buffer = io.StringIO()
@@ -148,20 +101,20 @@ def _postgres_sql() -> str:
             os.environ.pop("DATABASE_URL", None)
         else:
             os.environ["DATABASE_URL"] = previous
-        from backend.config import get_settings
-
         get_settings.cache_clear()
 
 
-def test_the_migrations_render_as_valid_postgres() -> None:
+def test_the_migrations_render_as_postgres_with_every_table() -> None:
     sql = _postgres_sql()
     assert sql.strip().startswith("BEGIN;")
     assert sql.strip().endswith("COMMIT;")
     for table in Base.metadata.tables:
-        assert f"CREATE TABLE {table}" in sql, f"{table} is missing from the Postgres output"
+        assert f"CREATE TABLE {table}" in sql, table
+    assert "ON DELETE CASCADE" in sql
+    assert "ON DELETE SET NULL" in sql
 
 
-def test_the_partial_unique_indexes_keep_their_where_clause_in_postgres() -> None:
+def test_the_unique_indexes_keep_their_where_clause_in_postgres() -> None:
     sql = _postgres_sql()
     assert (
         "CREATE UNIQUE INDEX uq_targets_campaign_ward ON targets "
@@ -175,30 +128,20 @@ def test_the_partial_unique_indexes_keep_their_where_clause_in_postgres() -> Non
         "CREATE UNIQUE INDEX uq_campaign_members_one_candidate ON campaign_members "
         "(campaign_id) WHERE role = 'candidate'" in sql
     )
-
-
-def test_cascading_deletes_survive_into_postgres() -> None:
-    sql = _postgres_sql()
-    assert "ON DELETE CASCADE" in sql
-    assert "ON DELETE SET NULL" in sql
+    assert (
+        "CREATE UNIQUE INDEX uq_campaign_members_one_campaign_per_user ON campaign_members "
+        "(user_id)" in sql
+    )
 
 
 def test_a_password_with_a_percent_survives_the_alembic_config(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, fresh_settings: None
 ) -> None:
-    """Alembic reads its url through configparser, which treats `%` as interpolation.
-
-    A Postgres password containing `@` arrives percent-encoded, so an unescaped
-    url makes `alembic upgrade head` raise "invalid interpolation syntax".
-    """
+    """A percent-encoded `@` in the password must not trip configparser interpolation."""
     with_an_at = f"{secrets.token_hex(4)}@{secrets.token_hex(4)}"
     dsn = f"postgresql+asyncpg://postgres:{quote(with_an_at, safe='')}@localhost:5432/campaign_crm"
-    assert "%40" in dsn
     monkeypatch.setenv("DATABASE_URL", dsn)
     get_settings.cache_clear()
-    try:
-        config = Config()
-        config.set_main_option("sqlalchemy.url", alembic_url())
-        assert config.get_main_option("sqlalchemy.url") == dsn
-    finally:
-        get_settings.cache_clear()
+    config = Config()
+    config.set_main_option("sqlalchemy.url", alembic_url())
+    assert config.get_main_option("sqlalchemy.url") == dsn

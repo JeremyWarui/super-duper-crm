@@ -38,7 +38,7 @@ const FREE = {
   is_active: true,
   is_superuser: false,
   last_login_at: null,
-  campaigns: [],
+  campaign: null,
 };
 const FREE_BUT_DISABLED = {
   ...FREE,
@@ -196,9 +196,7 @@ describe("what the console shows", () => {
 
     expect(await screen.findByText("superuser")).toBeInTheDocument();
     expect(screen.getByText("disabled")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Jane for Roysambu \(manager\)/),
-    ).toBeInTheDocument();
+    expect(screen.getAllByText(/· Jane for Roysambu/)).toHaveLength(2);
     expect(screen.getByText(/on no campaign/)).toBeInTheDocument();
   });
 });

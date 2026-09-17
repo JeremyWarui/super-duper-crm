@@ -1,17 +1,18 @@
-"""The schema: keys, deletes, constraints, and the calculated values."""
+"""The models: keys, deletes, constraints and computed values."""
 
 import uuid
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import inspect, select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError, StatementError
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.models import (
     Base,
     Campaign,
+    CampaignMember,
     Constituency,
     County,
     Event,
@@ -19,7 +20,6 @@ from backend.models import (
     Mobilizer,
     OfficeLevel,
     OperationalGrain,
-    PollingStation,
     RegistrationCentre,
     Supporter,
     SupportLevel,
@@ -37,7 +37,6 @@ EXPECTED_TABLES = {
     "constituencies",
     "wards",
     "registration_centres",
-    "polling_stations",
     "campaign_members",
     "campaigns",
     "targets",
@@ -45,12 +44,6 @@ EXPECTED_TABLES = {
     "events",
     "supporters",
 }
-
-
-async def test_every_model_has_a_table(engine: AsyncEngine) -> None:
-    async with engine.connect() as connection:
-        names = await connection.run_sync(lambda c: set(inspect(c).get_table_names()))
-    assert names == EXPECTED_TABLES
 
 
 def test_metadata_matches_the_mapped_classes() -> None:
@@ -66,9 +59,6 @@ async def test_primary_keys_are_uuids_generated_before_flush(session: AsyncSessi
     assert county.id == generated, "the database must not overwrite the client id"
 
 
-# ---------------------------------------------------------------- geography
-
-
 async def test_deleting_a_county_cascades_to_constituencies_and_wards(
     session: AsyncSession,
 ) -> None:
@@ -81,28 +71,10 @@ async def test_deleting_a_county_cascades_to_constituencies_and_wards(
     assert (await session.execute(select(RegistrationCentre))).scalars().all() == []
 
 
-async def test_polling_station_hangs_off_a_ward(session: AsyncSession) -> None:
-    _, _, ward, _ = await make_geography(session)
-    station = PollingStation(
-        ward=ward,
-        centre_code="001",
-        centre_name="Parklands Primary",
-        code="001A",
-        name="Parklands Primary Stream 1",
-        registered_voters=700,
-    )
-    session.add(station)
-    await session.commit()
-    assert station.ward_id == ward.id
-
-
 async def test_negative_registered_voters_is_rejected(session: AsyncSession) -> None:
     session.add(County(name="Bad", registered_voters=-1))
     with pytest.raises(IntegrityError):
         await session.commit()
-
-
-# ---------------------------------------------------------------- campaign
 
 
 async def test_ward_campaign_operates_at_centre_grain(session: AsyncSession) -> None:
@@ -170,8 +142,6 @@ async def test_deleting_a_ward_nulls_the_campaign_but_keeps_it(
 async def test_a_campaign_s_candidate_is_the_member_whose_place_is_candidate(
     session: AsyncSession,
 ) -> None:
-    from sqlalchemy.orm import selectinload
-
     _, _, ward, _ = await make_geography(session)
     campaign = await make_campaign(session, ward)
 
@@ -184,8 +154,6 @@ async def test_a_campaign_s_candidate_is_the_member_whose_place_is_candidate(
 
 
 async def test_a_campaign_cannot_hold_a_second_candidate(session: AsyncSession) -> None:
-    from backend.models import CampaignMember, UserRole
-
     _, _, ward, _ = await make_geography(session)
     campaign = await make_campaign(session, ward)
     other = User(username="second-candidate", role=UserRole.CANDIDATE)
@@ -198,11 +166,6 @@ async def test_a_campaign_cannot_hold_a_second_candidate(session: AsyncSession) 
 
 
 async def test_a_campaign_may_hold_many_managers(session: AsyncSession) -> None:
-    """The index is partial: it limits the candidate, not the team."""
-    from sqlalchemy import func
-
-    from backend.models import CampaignMember, UserRole
-
     _, _, ward, _ = await make_geography(session)
     campaign = await make_campaign(session, ward)
     for name in ("amina", "otieno"):
@@ -222,12 +185,24 @@ async def test_a_campaign_may_hold_many_managers(session: AsyncSession) -> None:
     assert managers == 2
 
 
+async def test_a_login_cannot_be_on_two_campaigns(session: AsyncSession) -> None:
+    _, _, ward, _ = await make_geography(session)
+    campaign = await make_campaign(session, ward)
+    other = Campaign(title="Another", office_level=OfficeLevel.WARD, ward=ward)
+    manager = User(username="amina", role=UserRole.MANAGER)
+    session.add_all([other, manager])
+    await session.flush()
+    session.add(CampaignMember(campaign_id=campaign.id, user_id=manager.id, role=UserRole.MANAGER))
+    await session.commit()
+
+    session.add(CampaignMember(campaign_id=other.id, user_id=manager.id, role=UserRole.MANAGER))
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
 async def test_deleting_the_candidate_takes_their_place_and_leaves_the_campaign(
     session: AsyncSession,
 ) -> None:
-    """The API refuses this outright; at the database only the membership goes."""
-    from sqlalchemy.orm import selectinload
-
     _, _, ward, _ = await make_geography(session)
     campaign_id = (await make_campaign(session, ward)).id
     loaded = await session.scalar(
@@ -243,9 +218,6 @@ async def test_deleting_the_candidate_takes_their_place_and_leaves_the_campaign(
     )
     assert left is not None
     assert left.candidate is None
-
-
-# ------------------------------------------------------------------ target
 
 
 async def test_one_ward_level_target_per_campaign_and_ward(session: AsyncSession) -> None:
@@ -365,7 +337,7 @@ async def test_recompute_win_number_persists_through_the_session(
         (100, 0, 100, 0.0),
         (100, 40, 60, 40.0),
         (100, 100, 0, 100.0),
-        (100, 150, 0, 150.0),  # over-committed: remaining floors at zero
+        (100, 150, 0, 150.0),
         (3, 1, 2, 33.3),
         (None, 25, None, 0.0),
         (0, 25, 0, 0.0),
@@ -397,9 +369,6 @@ async def test_target_rejects_turnout_above_one_hundred_percent(
         await session.commit()
 
 
-# --------------------------------------------------------------- mobilizer
-
-
 async def test_a_user_holds_at_most_one_mobilizer_profile(session: AsyncSession) -> None:
     _, _, ward, _ = await make_geography(session)
     campaign = await make_campaign(session, ward)
@@ -427,9 +396,6 @@ async def test_deleting_a_mobilizers_user_keeps_the_mobilizer(
     await session.refresh(mobilizer)
     assert mobilizer.user_id is None
     assert mobilizer.full_name == "Juma"
-
-
-# ------------------------------------------------------------------- event
 
 
 @pytest.mark.parametrize(
@@ -465,9 +431,6 @@ async def test_deleting_a_mobilizer_keeps_their_events(session: AsyncSession) ->
     assert event.mobilizer_id is None
 
 
-# --------------------------------------------------------------- supporter
-
-
 async def test_supporter_defaults_to_undecided_without_consent(
     session: AsyncSession,
 ) -> None:
@@ -481,37 +444,23 @@ async def test_supporter_defaults_to_undecided_without_consent(
     assert supporter.created_at is not None
 
 
-async def test_deleting_a_campaign_deletes_its_supporters(session: AsyncSession) -> None:
-    _, _, ward, _ = await make_geography(session)
-    campaign = await make_campaign(session, ward)
-    session.add(Supporter(campaign=campaign, ward=ward, full_name="Wanjiku N."))
-    await session.commit()
-
-    await session.delete(campaign)
-    await session.commit()
-    assert (await session.execute(select(Supporter))).scalars().all() == []
-
-
-# ------------------------------------------------------------------- enums
-
-
 def test_enum_values_and_labels() -> None:
-    assert UserRole.choices() == [
+    assert [(m.value, m.label) for m in UserRole] == [
         ("candidate", "Candidate"),
         ("manager", "Campaign Manager"),
         ("mobilizer", "Mobilizer"),
     ]
-    assert OfficeLevel.choices() == [
+    assert [(m.value, m.label) for m in OfficeLevel] == [
         ("ward", "Ward (MCA)"),
         ("constituency", "Constituency (MP)"),
         ("county", "County (Governor / Senator / Women Rep)"),
     ]
-    assert EventStatus.choices() == [
+    assert [(m.value, m.label) for m in EventStatus] == [
         ("planned", "Planned"),
         ("done", "Done"),
         ("cancelled", "Cancelled"),
     ]
-    assert SupportLevel.choices() == [
+    assert [(m.value, m.label) for m in SupportLevel] == [
         ("supporter", "Supporter"),
         ("undecided", "Undecided"),
         ("opposed", "Opposed"),

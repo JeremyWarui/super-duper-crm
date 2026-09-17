@@ -1,12 +1,13 @@
-"""Reference geography, read-only. A mobilizer sees only their own ward."""
+"""Reference geography, read-only; a mobilizer sees only their own ward."""
 
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import Select, select
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from backend.api.deps import CurrentUser, SessionDep, get_current_user, mobilizer_ward_id
+from backend.api.deps import CurrentUser, SessionDep, get_current_user
+from backend.api.scope import all_rows, mobilizer_ward_id
 from backend.models import Constituency, County, RegistrationCentre, Ward
 from backend.schemas.geography import (
     ConstituencyRead,
@@ -18,13 +19,9 @@ from backend.schemas.geography import (
 router = APIRouter(tags=["geography"], dependencies=[Depends(get_current_user)])
 
 
-async def _all(session: SessionDep, statement: Select) -> list:
-    return list((await session.execute(statement)).scalars().all())
-
-
 @router.get("/counties/", response_model=list[CountyRead])
 async def list_counties(session: SessionDep) -> list[County]:
-    return await _all(session, select(County).order_by(County.name))
+    return await all_rows(session, select(County).order_by(County.name))
 
 
 @router.get("/counties/{county_id}/", response_model=CountyRead)
@@ -44,7 +41,7 @@ async def list_constituencies(
     )
     if county is not None:
         statement = statement.where(Constituency.county_id == county)
-    return await _all(session, statement)
+    return await all_rows(session, statement)
 
 
 @router.get("/wards/", response_model=list[WardRead])
@@ -54,7 +51,7 @@ async def list_wards(
     constituency: uuid.UUID | None = None,
     county: uuid.UUID | None = None,
 ) -> list[Ward]:
-    """Every ward, or the ones inside one constituency or one county."""
+    """Every ward, or those in one constituency or county."""
     statement = select(Ward).options(selectinload(Ward.constituency)).order_by(Ward.name)
     if constituency is not None:
         statement = statement.where(Ward.constituency_id == constituency)
@@ -63,7 +60,7 @@ async def list_wards(
     own_ward = mobilizer_ward_id(user)
     if own_ward is not None:
         statement = statement.where(Ward.id == own_ward)
-    return await _all(session, statement)
+    return await all_rows(session, statement)
 
 
 @router.get("/centres/", response_model=list[RegistrationCentreRead])
@@ -80,4 +77,4 @@ async def list_centres(
     own_ward = mobilizer_ward_id(user)
     if own_ward is not None:
         statement = statement.where(RegistrationCentre.ward_id == own_ward)
-    return await _all(session, statement)
+    return await all_rows(session, statement)

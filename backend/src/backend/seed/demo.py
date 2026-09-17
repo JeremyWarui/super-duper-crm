@@ -1,15 +1,12 @@
-"""One campaign and one sign-in per role."""
+"""The demo: one campaign with a sign-in per role, and two logins on no campaign."""
 
-import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.api.scope import add_member
-from backend.config import get_settings
 from backend.models import (
     Campaign,
     CampaignMember,
@@ -26,7 +23,9 @@ from backend.models import (
     UserRole,
     Ward,
 )
-from backend.security import hash_password
+from backend.security import hash_password, new_password
+from backend.services.accounts import add_member
+from backend.services.admin import remove_campaign
 from backend.services.targets import generate_targets
 
 DEMO_USERNAMES = ("aspirant", "manager", "mobilizer", "newaspirant", "newmanager")
@@ -47,18 +46,11 @@ class DemoSummary:
 
 
 def demo_passwords(password: str | None = None) -> dict[str, str]:
-    """One password per demo account.
-
-    The argument wins, then DEFAULT_USER_PASSWORD; otherwise one is generated
-    per account.
-    """
-    shared = password or get_settings().default_user_password
-    if shared:
-        return dict.fromkeys(DEMO_USERNAMES, shared)
-    return {username: secrets.token_urlsafe(9) for username in DEMO_USERNAMES}
+    """A password per demo account: the one given, else DEFAULT_USER_PASSWORD, else generated."""
+    return {username: password or new_password() for username in DEMO_USERNAMES}
 
 
-async def _user(
+def _user(
     session: AsyncSession,
     username: str,
     role: UserRole,
@@ -67,113 +59,79 @@ async def _user(
     passwords: dict[str, str],
     phone: str = "",
 ) -> User:
-    """The demo user, with this run's password."""
-    user = (
-        await session.execute(select(User).where(User.username == username))
-    ).scalar_one_or_none()
-    if user is None:
-        user = User(username=username)
-        session.add(user)
-    user.role = role
-    user.first_name = first_name
-    user.last_name = last_name
-    user.phone = phone
-    user.is_active = True
-    user.password_hash = hash_password(passwords[username])
+    """A new demo login with this run's password."""
+    user = User(
+        username=username,
+        role=role,
+        first_name=first_name,
+        last_name=last_name,
+        phone=phone,
+        password_hash=hash_password(passwords[username]),
+    )
+    session.add(user)
     return user
 
 
-async def _clear_campaigns(session: AsyncSession, user: User) -> None:
-    """Drop this user's campaigns, so setup is reachable again."""
-    await session.flush()
-    theirs = (
-        await session.execute(
-            select(Campaign)
-            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
-            .where(CampaignMember.user_id == user.id, CampaignMember.role == UserRole.CANDIDATE)
+async def _clear(session: AsyncSession) -> None:
+    """Delete the demo logins, the campaigns they are candidates on, and every login on those."""
+    logins = select(User.id).where(User.username.in_(DEMO_USERNAMES))
+    standing = await session.scalars(
+        select(CampaignMember.campaign_id).where(
+            CampaignMember.user_id.in_(logins), CampaignMember.role == UserRole.CANDIDATE
         )
-    ).scalars()
-    for campaign in theirs:
-        await session.delete(campaign)
-    await session.flush()
+    )
+    for campaign_id in list(standing):
+        await remove_campaign(session, campaign_id)
+    await session.execute(delete(User).where(User.username.in_(DEMO_USERNAMES)))
 
 
 async def seed_demo(session: AsyncSession, *, password: str | None = None) -> DemoSummary:
-    """Build the demo campaign over already-loaded geography. Re-running rebuilds it."""
+    """Build the demo over loaded geography; re-running deletes the old demo and builds it again."""
     passwords = demo_passwords(password)
-    constituency = (
-        await session.execute(
-            select(Constituency)
-            .join(County)
-            .where(County.name == DEMO_COUNTY, Constituency.name == DEMO_CONSTITUENCY)
-            .options(selectinload(Constituency.wards))
-        )
-    ).scalar_one_or_none()
+    constituency = await session.scalar(
+        select(Constituency)
+        .join(County)
+        .where(County.name == DEMO_COUNTY, Constituency.name == DEMO_CONSTITUENCY)
+        .options(selectinload(Constituency.wards))
+    )
     if constituency is None:
         raise ValueError(
             f"{DEMO_CONSTITUENCY} is not loaded - run the reference seed before the demo."
         )
+    if not constituency.wards:
+        raise ValueError(f"{DEMO_CONSTITUENCY} has no wards loaded.")
+    admins = await session.scalars(
+        select(User.username).where(User.username.in_(DEMO_USERNAMES), User.is_superuser)
+    )
+    if taken := list(admins):
+        raise ValueError(f"{', '.join(taken)} is a superuser, and the demo replaces that login.")
+    await _clear(session)
 
-    aspirant = await _user(
+    aspirant = _user(
         session, "aspirant", UserRole.CANDIDATE, "Jane", "Wanjiru", passwords, "+254700000001"
     )
-    manager = await _user(
+    manager = _user(
         session, "manager", UserRole.MANAGER, "Amina", "Kariuki", passwords, "+254700000002"
     )
-    mobilizer_user = await _user(
+    mobilizer_user = _user(
         session, "mobilizer", UserRole.MOBILIZER, "Juma", "Otieno", passwords, "+254700000003"
     )
-    # A candidate with no campaign, so setup is reachable.
-    fresh = await _user(
-        session, "newaspirant", UserRole.CANDIDATE, "Peter", "Kimani", passwords, "+254700000004"
+    _user(session, "newaspirant", UserRole.CANDIDATE, "Peter", "Kimani", passwords, "+254700000004")
+    _user(session, "newmanager", UserRole.MANAGER, "Grace", "Otieno", passwords, "+254700000005")
+    campaign = Campaign(
+        title=DEMO_CAMPAIGN_TITLE,
+        office_level=OfficeLevel.CONSTITUENCY,
+        constituency_id=constituency.id,
+        election_date=datetime(2027, 8, 10, tzinfo=UTC).date(),
     )
-    # A manager with no campaign, so the flow that asks for an aspirant is
-    # reachable. The demo campaign is handed back to `manager` below, which is
-    # what takes this account off it if somebody assigned it in between.
-    fresh_manager = await _user(
-        session, "newmanager", UserRole.MANAGER, "Grace", "Otieno", passwords, "+254700000005"
-    )
-    await _clear_campaigns(session, fresh)
+    session.add(campaign)
     await session.flush()
-
-    campaign = (
-        await session.execute(
-            select(Campaign)
-            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
-            .where(
-                CampaignMember.user_id == aspirant.id,
-                CampaignMember.role == UserRole.CANDIDATE,
-            )
-        )
-    ).scalar_one_or_none()
-    if campaign is None:
-        campaign = Campaign(title=DEMO_CAMPAIGN_TITLE)
-        session.add(campaign)
-    campaign.title = DEMO_CAMPAIGN_TITLE
-    campaign.office_level = OfficeLevel.CONSTITUENCY
-    campaign.constituency_id = constituency.id
-    campaign.county_id = None
-    campaign.ward_id = None
-    campaign.election_date = datetime(2027, 8, 10, tzinfo=UTC).date()
-    await session.flush()
-
-    # The demo team, and nobody else. Each demo login belongs to one campaign, so
-    # re-seeding takes them off any other, and `newmanager` off every one.
-    demo_logins = [aspirant.id, manager.id, mobilizer_user.id, fresh_manager.id]
-    await session.execute(
-        delete(CampaignMember).where(
-            (CampaignMember.campaign_id == campaign.id) | CampaignMember.user_id.in_(demo_logins)
-        )
-    )
-    await add_member(session, campaign.id, aspirant.id)
-    await add_member(session, campaign.id, manager.id)
-    await add_member(session, campaign.id, mobilizer_user.id)
+    for member in (aspirant, manager, mobilizer_user):
+        await add_member(session, campaign.id, member)
 
     summary = await generate_targets(session, campaign)
 
     wards = sorted(constituency.wards, key=lambda w: w.name)
-    if not wards:
-        raise ValueError(f"{DEMO_CONSTITUENCY} has no wards loaded.")
 
     await _seed_ground_game(session, campaign, wards, mobilizer_user)
     await session.commit()
@@ -208,14 +166,6 @@ async def _seed_ground_game(
     mobilizer_user: User,
 ) -> None:
     """Mobilizers, events and supporters, spread unevenly across the wards."""
-    already = (
-        await session.execute(
-            select(func.count()).select_from(Mobilizer).where(Mobilizer.campaign_id == campaign.id)
-        )
-    ).scalar_one()
-    if already:
-        return
-
     staffed = wards[: max(len(wards) // 2, 1)]
     mobilizers = []
     for index, ward in enumerate(staffed):
@@ -287,12 +237,10 @@ async def _commit_some_votes(
 ) -> None:
     """Spread progress across the staffed wards, from met to barely started."""
     shares = [1.05, 0.8, 0.55, 0.3]
-    targets = (
-        await session.execute(select(Target).where(Target.campaign_id == campaign.id))
-    ).scalars()
-    by_ward = {str(target.ward_id): target for target in targets}
+    targets = await session.scalars(select(Target).where(Target.campaign_id == campaign.id))
+    by_ward = {target.ward_id: target for target in targets}
     for index, ward in enumerate(staffed):
-        target = by_ward.get(str(ward.id))
+        target = by_ward.get(ward.id)
         if target is None or not target.votes_needed:
             continue
         target.votes_committed = int(target.votes_needed * shares[index % len(shares)])

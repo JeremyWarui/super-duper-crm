@@ -21,9 +21,6 @@ def settings(**overrides) -> Settings:
     return Settings(secret_key=KEY, **overrides)
 
 
-# ------------------------------------------------------------------- numbers
-
-
 @pytest.mark.parametrize(
     "raw",
     [
@@ -84,9 +81,6 @@ def test_an_empty_register_sends_to_nobody() -> None:
     assert normalise_all([]) == ([], [])
 
 
-# --------------------------------------------------------------- the default
-
-
 async def test_the_default_provider_sends_nothing(caplog) -> None:
     result = await ConsoleSMSProvider().send(["+254712345678"], "Rally on Saturday")
 
@@ -116,9 +110,6 @@ def test_the_gateway_is_used_once_it_is_configured() -> None:
         settings(sms_provider="africastalking", at_username="u", at_api_key=KEY)
     )
     assert provider.name == "africastalking"
-
-
-# ------------------------------------------------------- africa's talking
 
 
 def test_the_gateway_refuses_to_be_built_without_credentials() -> None:
@@ -206,9 +197,6 @@ def test_a_reply_with_nothing_in_it_does_not_raise() -> None:
     result = AfricasTalkingSMSProvider.parse_response({}, "x", 1)
     assert result.delivered is False
     assert result.requested == 1
-
-
-# ------------------------------------------------------------------- billing
 
 
 @pytest.mark.parametrize(

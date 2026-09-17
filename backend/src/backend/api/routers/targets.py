@@ -1,20 +1,22 @@
-"""Vote targets. `votes_needed` is recomputed on every write, never taken from the client."""
+"""Vote targets; `votes_needed` is recomputed on every write, never taken from the client."""
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from backend.api.deps import CurrentUser, SessionDep, Writer, mobilizer_ward_id
+from backend.api.deps import CurrentUser, SessionDep, Writer
 from backend.api.scope import (
-    limit_to_campaigns,
+    all_rows,
+    load,
     require_own_ward,
+    require_visible,
     require_visible_campaign,
     require_ward_in_campaign,
-    visible_campaign_ids,
+    scoped,
 )
-from backend.models import RegistrationCentre, Target, User, Ward
+from backend.models import RegistrationCentre, Target, Ward
 from backend.schemas.campaign import TargetCreate, TargetRead, TargetUpdate
 
 router = APIRouter(prefix="/targets", tags=["targets"])
@@ -26,26 +28,14 @@ LOADED = (selectinload(Target.ward), selectinload(Target.registration_centre))
 async def list_targets(
     session: SessionDep, user: CurrentUser, campaign: uuid.UUID | None = None
 ) -> list[Target]:
-    statement = select(Target).options(*LOADED)
-    if campaign is not None:
-        statement = statement.where(Target.campaign_id == campaign)
-    statement = limit_to_campaigns(
-        statement, Target.campaign_id, await visible_campaign_ids(session, user)
+    statement = await scoped(session, user, select(Target).options(*LOADED), Target, campaign)
+    return await all_rows(
+        session, statement.join(Ward, Target.ward_id == Ward.id).order_by(Ward.name)
     )
-    own_ward = mobilizer_ward_id(user)
-    if own_ward is not None:
-        statement = statement.where(Target.ward_id == own_ward)
-    statement = statement.join(Ward, Target.ward_id == Ward.id).order_by(Ward.name)
-    return list((await session.execute(statement)).scalars().all())
 
 
 @router.post("/", response_model=TargetRead, status_code=status.HTTP_201_CREATED)
-async def create_target(
-    payload: TargetCreate,
-    session: SessionDep,
-    user: CurrentUser,
-    _: Writer,
-) -> Target:
+async def create_target(payload: TargetCreate, session: SessionDep, user: Writer) -> Target:
     campaign = await require_visible_campaign(session, user, payload.campaign)
     require_own_ward(user, payload.ward)
     await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
@@ -58,53 +48,30 @@ async def create_target(
         votes_committed=payload.votes_committed,
     )
     session.add(target)
-    await _recompute(session, target)
-    return await _reload(session, target.id)
+    return await _saved(session, target)
 
 
 @router.patch("/{target_id}/", response_model=TargetRead)
 async def update_target(
-    target_id: uuid.UUID,
-    payload: TargetUpdate,
-    session: SessionDep,
-    user: CurrentUser,
-    _: Writer,
+    target_id: uuid.UUID, payload: TargetUpdate, session: SessionDep, user: Writer
 ) -> Target:
     """Change the turnout or the votes committed; the goal follows."""
-    target = await _visible_target(session, user, target_id)
-    changes = payload.model_dump(exclude_unset=True)
-    for field, value in changes.items():
+    target = await require_visible(session, user, Target, target_id, "target", LOADED)
+    for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(target, field, value)
-    await _recompute(session, target)
-    return await _reload(session, target.id)
+    return await _saved(session, target)
 
 
 @router.delete("/{target_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_target(
-    target_id: uuid.UUID,
-    session: SessionDep,
-    user: CurrentUser,
-    _: Writer,
-) -> Response:
-    target = await _visible_target(session, user, target_id)
+async def delete_target(target_id: uuid.UUID, session: SessionDep, user: Writer) -> Response:
+    target = await require_visible(session, user, Target, target_id, "target")
     await session.delete(target)
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-async def _visible_target(session: SessionDep, user: User, target_id: uuid.UUID) -> Target:
-    target = (
-        await session.execute(select(Target).where(Target.id == target_id).options(*LOADED))
-    ).scalar_one_or_none()
-    if target is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such target.")
-    await require_visible_campaign(session, user, target.campaign_id)
-    require_own_ward(user, target.ward_id)
-    return target
-
-
-async def _recompute(session: SessionDep, target: Target) -> None:
-    """Refresh the win number, with the rows it reads loaded first."""
+async def _saved(session: SessionDep, target: Target) -> Target:
+    """Recompute the win number, commit, and read the target back."""
     await session.flush()
     target.ward = await session.get(Ward, target.ward_id)
     if target.registration_centre_id is not None:
@@ -113,9 +80,4 @@ async def _recompute(session: SessionDep, target: Target) -> None:
         )
     target.recompute_win_number()
     await session.commit()
-
-
-async def _reload(session: SessionDep, target_id: uuid.UUID) -> Target:
-    return (
-        await session.execute(select(Target).where(Target.id == target_id).options(*LOADED))
-    ).scalar_one()
+    return await load(session, Target, target.id, LOADED)

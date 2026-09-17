@@ -7,8 +7,7 @@ from sqlalchemy import DateTime, MetaData, Uuid, func, inspect
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-# Gives every constraint and index a predictable name, which Alembic needs in
-# order to alter or drop one.
+# Predictable constraint and index names for Alembic.
 NAMING_CONVENTION = {
     "ix": "ix_%(table_name)s_%(column_0_N_name)s",
     "uq": "uq_%(table_name)s_%(column_0_N_name)s",
@@ -26,11 +25,7 @@ class Base(DeclarativeBase):
 
 
 class UUIDPrimaryKeyMixin:
-    """A UUID primary key, generated in Python when the object is created.
-
-    Set in `__init__` rather than on insert, so an object has its id before it
-    is saved.
-    """
+    """A UUID primary key, set when the object is created."""
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, default=uuid.uuid4, sort_order=-100
@@ -67,11 +62,7 @@ def choice_type(enum_cls: type, name: str, length: int = 20) -> "SAEnum":
 
 
 def require_loaded(instance: object, *attributes: str) -> None:
-    """Raise a readable error when a property needs a relationship that was not loaded.
-
-    Reading an unloaded relationship on an async session fails with
-    `MissingGreenlet`; this names the missing `selectinload` instead.
-    """
+    """Name the missing `selectinload` instead of failing with `MissingGreenlet`."""
     unloaded = inspect(instance).unloaded
     missing = [name for name in attributes if name in unloaded]
     if missing:

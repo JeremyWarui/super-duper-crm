@@ -53,16 +53,11 @@ class SMSProvider(Protocol):
     async def send(self, recipients: list[str], message: str) -> SendResult: ...
 
 
-# ------------------------------------------------------------------- numbers
-
 _NON_DIGITS = re.compile(r"[^\d+]")
 
 
 def normalise_phone(raw: str | None, country_code: str = DEFAULT_COUNTRY_CODE) -> str | None:
-    """A number as E.164, or None when it cannot be one.
-
-    Accepts `0712 345678`, `+254 712 345 678`, `254-712-345678`, `712345678`.
-    """
+    """A number as E.164 (from forms like `0712 345678`), or None."""
     if not raw:
         return None
 
@@ -108,9 +103,6 @@ def normalise_all(raw_numbers: list[str | None]) -> tuple[list[str], list[Recipi
         keep.append(number)
 
     return keep, rejected
-
-
-# ----------------------------------------------------------------- providers
 
 
 class ConsoleSMSProvider:

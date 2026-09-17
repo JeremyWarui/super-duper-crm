@@ -3,36 +3,41 @@
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from backend.models import (
+    Campaign,
     Event,
     EventStatus,
     OfficeLevel,
     OperationalGrain,
-    PollingStation,
     Supporter,
     Target,
     User,
     UserRole,
 )
-from backend.schemas import (
+from backend.schemas.auth import LoginUser
+from backend.schemas.campaign import (
     CampaignRead,
-    ConstituencyRead,
-    CountyRead,
     EventRead,
     MobilizerRead,
-    PollingStationRead,
-    RegistrationCentreRead,
     SupporterRead,
     TargetRead,
-    UserRead,
+)
+from backend.schemas.geography import (
+    ConstituencyRead,
+    CountyRead,
+    RegistrationCentreRead,
     WardRead,
 )
 from tests.factories import make_campaign, make_geography, make_mobilizer
 
 
-async def test_user_read_never_carries_the_password_hash(session: AsyncSession) -> None:
+async def test_the_login_the_browser_keeps_never_carries_the_password_hash(
+    session: AsyncSession,
+) -> None:
     user = User(
         username="asha",
         first_name="Asha",
@@ -42,31 +47,25 @@ async def test_user_read_never_carries_the_password_hash(session: AsyncSession) 
         is_superuser=True,
     )
     session.add(user)
-    await session.commit()  # defaults are filled in on insert
+    await session.commit()
 
-    schema = UserRead.model_validate(user)
+    schema = LoginUser.model_validate(user)
     dumped = schema.model_dump()
 
     assert "password_hash" not in dumped
-    assert "is_superuser" not in dumped
     assert "do-not-serialize-me" not in schema.model_dump_json()
     assert dumped["full_name"] == "Asha Mwangi"
     assert dumped["role"] is UserRole.CANDIDATE
 
 
-def test_user_read_rejects_an_unexpected_field() -> None:
+def test_a_read_schema_rejects_an_unexpected_field() -> None:
     with pytest.raises(ValueError, match="password_hash"):
-        UserRead(
+        LoginUser(
             id="00000000-0000-0000-0000-000000000001",
             username="asha",
-            email="",
-            first_name="Asha",
-            last_name="Mwangi",
             full_name="Asha Mwangi",
-            phone="",
             role=UserRole.CANDIDATE,
-            is_active=True,
-            created_at="2027-01-01T00:00:00Z",
+            is_superuser=False,
             password_hash="nope",
         )
 
@@ -75,9 +74,6 @@ async def test_geography_schemas_validate_off_mapped_instances(
     session: AsyncSession,
 ) -> None:
     county, constituency, ward, centre = await make_geography(session)
-    station = PollingStation(ward=ward, name="Parklands Primary Stream 1", code="001A")
-    session.add(station)
-    await session.commit()
 
     assert CountyRead.model_validate(county).turnout_2022_pct is None
     assert ConstituencyRead.model_validate(constituency).county == county.id
@@ -86,7 +82,6 @@ async def test_geography_schemas_validate_off_mapped_instances(
     assert WardRead.model_validate(ward).constituency_name == "Westlands"
     assert RegistrationCentreRead.model_validate(centre).ward == ward.id
     assert RegistrationCentreRead.model_validate(centre).ward_name == "Parklands"
-    assert PollingStationRead.model_validate(station).centre_name == ""
 
 
 async def test_campaign_read_includes_the_derived_grain(session: AsyncSession) -> None:
@@ -98,11 +93,6 @@ async def test_campaign_read_includes_the_derived_grain(session: AsyncSession) -
 
 
 async def _with_candidate(session: AsyncSession, campaign_id):
-    from sqlalchemy import select
-    from sqlalchemy.orm import selectinload
-
-    from backend.models import Campaign
-
     return await session.scalar(
         select(Campaign).where(Campaign.id == campaign_id).options(selectinload(Campaign.candidate))
     )
@@ -189,11 +179,10 @@ def test_every_schema_declares_from_attributes() -> None:
         CountyRead,
         EventRead,
         MobilizerRead,
-        PollingStationRead,
+        LoginUser,
         RegistrationCentreRead,
         SupporterRead,
         TargetRead,
-        UserRead,
         WardRead,
     ]
     for schema in schemas:

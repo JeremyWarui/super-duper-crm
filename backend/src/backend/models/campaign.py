@@ -45,8 +45,7 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     election_date: Mapped[date | None] = mapped_column(Date, default=None)
 
-    # Who the campaign is for: the member whose place is candidate. Read-only,
-    # because `campaign_members` is the one record of it.
+    # The member whose role is candidate; read-only.
     candidate: Mapped[User | None] = relationship(
         secondary=CampaignMember.__table__,
         primaryjoin=lambda: and_(
@@ -83,10 +82,7 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     @property
     def area(self) -> "County | Constituency | Ward | None":
-        """The place this campaign contests, picked by its office level.
-
-        The matching relationship must be loaded.
-        """
+        """The county, constituency or ward contested; needs it loaded."""
         attribute = {
             OfficeLevel.WARD: "ward",
             OfficeLevel.CONSTITUENCY: "constituency",

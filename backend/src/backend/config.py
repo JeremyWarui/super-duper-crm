@@ -37,18 +37,10 @@ class Settings(BaseSettings):
     # Log every SQL statement.
     echo_sql: bool = False
 
-    # A built SPA to serve at "/", so the API and the app share one origin and
-    # CORS stops mattering. Blank serves the API alone, which is how dev runs.
+    # A built SPA served at "/"; blank serves the API alone.
     static_dir: str = ""
 
-    # Whether POST /api/auth/register/ answers. Off by default: a deployment
-    # that does not say otherwise does not take sign-ups from the internet.
-    # Turn it on where self-serve sign-up is wanted; the invite routes and the
-    # admin console work either way.
-    allow_registration: bool = False
-
-    # Given to every account the app creates, instead of a generated password.
-    # Blank generates one per account, which is the only safe setting outside a demo.
+    # One password for every account the app creates; blank generates one each.
     default_user_password: str = ""
 
     # "console" records and sends nothing.
@@ -94,9 +86,5 @@ def get_settings() -> Settings:
 
 
 def alembic_url() -> str:
-    """The DSN with every `%` doubled.
-
-    Alembic holds it in a configparser, which reads `%` as interpolation, and a
-    password containing `@`, `%`, `:` or `/` arrives percent-encoded.
-    """
+    """The DSN with `%` doubled, since Alembic reads it through configparser."""
     return get_settings().database_url.replace("%", "%%")

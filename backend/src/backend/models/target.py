@@ -14,15 +14,18 @@ if TYPE_CHECKING:
     from backend.models.geography import RegistrationCentre, Ward
 
 
+def unit_key(ward_id: uuid.UUID, centre_id: uuid.UUID | None) -> tuple[uuid.UUID, uuid.UUID | None]:
+    """The ward or centre a target, event or mobilizer covers."""
+    return (ward_id, centre_id)
+
+
 def compute_win_number(
     registered_voters: int | None,
     projected_turnout_pct: Decimal | None,
 ) -> int | None:
-    """Half the projected votes cast, plus one.
+    """Half the projected votes cast, plus one; None when nothing is projected to be cast.
 
-    `floor(registered_voters * turnout_pct / 100 / 2) + 1`, or None when nothing
-    is projected to be cast. Decimal rather than float, because float rounding
-    at the halfway point shifts the answer by a whole vote.
+    Computed in Decimal: float rounding at the halfway point shifts the answer by a vote.
     """
     if not registered_voters or not projected_turnout_pct:
         return None
@@ -35,7 +38,6 @@ class Target(UUIDPrimaryKeyMixin, Base):
 
     __tablename__ = "targets"
     __table_args__ = (
-        # A campaign gets one ward-level target per ward...
         Index(
             "uq_targets_campaign_ward",
             "campaign_id",
@@ -44,8 +46,6 @@ class Target(UUIDPrimaryKeyMixin, Base):
             postgresql_where=text("registration_centre_id IS NULL"),
             sqlite_where=text("registration_centre_id IS NULL"),
         ),
-        # ...and one target per registration centre. The WHERE clauses keep
-        # these two rules from colliding with each other.
         Index(
             "uq_targets_campaign_registration_centre",
             "campaign_id",
@@ -71,7 +71,6 @@ class Target(UUIDPrimaryKeyMixin, Base):
     ward_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("wards.id", ondelete="CASCADE"), index=True
     )
-    # Set for a centre-level target, empty for a ward-level one.
     registration_centre_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid,
         ForeignKey("registration_centres.id", ondelete="CASCADE"),
@@ -94,11 +93,7 @@ class Target(UUIDPrimaryKeyMixin, Base):
 
     @property
     def registered_voters(self) -> int | None:
-        """Voters on the roll of whichever unit this target covers.
-
-        The centre for a centre-level target, otherwise the whole ward. That
-        relationship must be loaded.
-        """
+        """Voters on the centre's roll, or the ward's for a ward target; needs it loaded."""
         if self.registration_centre_id is not None:
             require_loaded(self, "registration_centre")
             centre = self.registration_centre

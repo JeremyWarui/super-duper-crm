@@ -32,8 +32,7 @@ class Mobilizer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         index=True,
     )
 
-    # A mobilizer may report through the app, or not. Deleting the login keeps
-    # the person.
+    # Optional login; deleting it keeps the row.
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None, unique=True
     )

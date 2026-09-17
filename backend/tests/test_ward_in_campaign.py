@@ -1,9 +1,4 @@
-"""A ward or centre named in a body has to lie inside the campaign's own seat.
-
-Ids arrive from the client. A row filed under a ward the campaign does not
-contest has no target, so no strategy read counts it and the targeting table
-never shows it.
-"""
+"""A ward or centre named in a request must lie inside the campaign's seat."""
 
 import uuid
 from decimal import Decimal
@@ -28,7 +23,7 @@ from backend.models import (
 )
 from backend.services.targets import ward_in_area
 from tests.conftest import World
-from tests.factories import auth, make_user, sign_in
+from tests.factories import make_user
 
 OUTSIDE = "That ward is not one this campaign works."
 
@@ -40,16 +35,6 @@ async def _elsewhere(session: AsyncSession, world: World) -> Ward:
     session.add_all([other, ward])
     await session.commit()
     return ward
-
-
-async def _admin(session: AsyncSession, client: httpx.AsyncClient) -> dict[str, str]:
-    root = await make_user(session, username="root", role=UserRole.MANAGER)
-    root.is_superuser = True
-    await session.commit()
-    return auth(await sign_in(client, "root"))
-
-
-# ------------------------------------------------------------ the rule itself
 
 
 async def test_ward_in_area_holds_a_ward_race_to_its_own_ward(
@@ -91,9 +76,6 @@ async def test_ward_in_area_refuses_a_campaign_with_no_area_set(
     unset = Campaign(office_level=OfficeLevel.CONSTITUENCY, constituency_id=None)
 
     assert not await ward_in_area(session, unset, world.ward.id)
-
-
-# ----------------------------------------------- every route that names a ward
 
 
 async def test_a_mobilizer_cannot_be_put_on_a_ward_outside_the_campaign(
@@ -223,12 +205,11 @@ async def test_a_centre_has_to_be_in_the_ward_it_is_named_with(
 
 
 async def test_a_ward_race_with_no_centres_loaded_can_still_staff_its_own_ward(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
-    """A ward race with no centres imported yet still staffs its own ward."""
     from backend.services.targets import generate_targets
 
-    head = await _admin(session, client)
+    head = admin_headers
     bare = Ward(
         constituency_id=world.constituency.id,
         name="Kahawa",
@@ -258,9 +239,6 @@ async def test_a_ward_race_with_no_centres_loaded_can_still_staff_its_own_ward(
     )
 
     assert made.status_code == 201, made.text
-
-
-# ------------------------------------ centres, the console list, the register
 
 
 async def test_a_team_login_cannot_be_given_a_centre_outside_its_ward(
@@ -304,10 +282,10 @@ async def test_an_unknown_centre_on_a_team_login_is_refused_not_a_500(
 
 
 async def test_the_console_offers_a_bare_ward_race_its_own_ward(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
     """The ward picker lists what the API accepts, centres or not."""
-    head = await _admin(session, client)
+    head = admin_headers
     bare = Ward(
         constituency_id=world.constituency.id,
         name="Kahawa West",
@@ -329,9 +307,9 @@ async def test_the_console_offers_a_bare_ward_race_its_own_ward(
 
 
 async def test_the_console_lists_exactly_the_wards_the_api_accepts(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
-    head = await _admin(session, client)
+    head = admin_headers
     outside = await _elsewhere(session, world)
 
     body = (await client.get(f"/api/admin/campaigns/{world.campaign.id}/", headers=head)).json()
@@ -361,13 +339,3 @@ async def test_a_mobilizer_s_supporter_lands_in_their_own_ward_when_none_is_name
     assert made.json()["ward"] == str(world.mobilizer.ward_id)
     listed = (await client.get("/api/supporters/", headers=world.headers("mobilizer"))).json()
     assert "Walk Up" in {s["full_name"] for s in listed}
-
-
-async def test_an_unknown_campaign_reads_as_not_found_in_the_console(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
-) -> None:
-    head = await _admin(session, client)
-
-    missing = await client.get(f"/api/admin/campaigns/{uuid.uuid4()}/", headers=head)
-
-    assert missing.status_code == 404

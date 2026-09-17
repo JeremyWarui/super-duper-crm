@@ -1,22 +1,25 @@
-"""Rallies and meetings, their invitations, and the attendance after."""
+"""Rallies and meetings: scheduling, attendance, and texting invitations."""
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from backend.api.deps import CurrentUser, MobilizerWriter, SessionDep, mobilizer_ward_id
+from backend.api.deps import CurrentUser, MobilizerWriter, SessionDep
 from backend.api.scope import (
-    limit_to_campaigns,
-    mobilizer_profile_for,
+    all_rows,
+    load,
+    mobilizer_ward_id,
+    own_ground_row,
     require_campaign_mobilizer,
     require_own_ward,
+    require_visible,
     require_visible_campaign,
     require_ward_in_campaign,
-    visible_campaign_ids,
+    scoped,
 )
-from backend.models import Event, EventStatus, Supporter, User
+from backend.models import Event, EventStatus, Supporter
 from backend.schemas.campaign import (
     EventCreate,
     EventInvite,
@@ -36,34 +39,19 @@ LOADED = (selectinload(Event.ward),)
 async def list_events(
     session: SessionDep, user: CurrentUser, campaign: uuid.UUID | None = None
 ) -> list[Event]:
-    statement = select(Event).options(*LOADED)
-    if campaign is not None:
-        statement = statement.where(Event.campaign_id == campaign)
-    statement = limit_to_campaigns(
-        statement, Event.campaign_id, await visible_campaign_ids(session, user)
-    )
-    own_ward = mobilizer_ward_id(user)
-    if own_ward is not None:
-        statement = statement.where(Event.ward_id == own_ward)
-    statement = statement.order_by(Event.scheduled_date.desc().nulls_last())
-    return list((await session.execute(statement)).scalars().all())
+    statement = await scoped(session, user, select(Event).options(*LOADED), Event, campaign)
+    return await all_rows(session, statement.order_by(Event.scheduled_date.desc().nulls_last()))
 
 
 @router.post("/", response_model=EventRead, status_code=status.HTTP_201_CREATED)
-async def create_event(
-    payload: EventCreate,
-    session: SessionDep,
-    user: CurrentUser,
-    _: MobilizerWriter,
-) -> Event:
+async def create_event(payload: EventCreate, session: SessionDep, user: MobilizerWriter) -> Event:
+    """Schedule an event; a mobilizer's own is credited to them."""
     campaign = await require_visible_campaign(session, user, payload.campaign)
     require_own_ward(user, payload.ward)
     await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
     await require_campaign_mobilizer(session, payload.campaign, payload.mobilizer)
 
-    profile = await mobilizer_profile_for(session, user)
-    # A mobilizer's own event is credited to their ground row on this campaign.
-    own = profile if profile is not None and profile.campaign_id == payload.campaign else None
+    own = own_ground_row(user, payload.campaign)
     event = Event(
         campaign_id=payload.campaign,
         ward_id=payload.ward,
@@ -76,99 +64,66 @@ async def create_event(
     )
     session.add(event)
     await session.commit()
-    return await _reload(session, event.id)
+    return await load(session, Event, event.id, LOADED)
 
 
 @router.post("/{event_id}/record/", response_model=EventRead)
 async def record_event(
-    event_id: uuid.UUID,
-    payload: EventRecord,
-    session: SessionDep,
-    user: CurrentUser,
-    _: MobilizerWriter,
+    event_id: uuid.UUID, payload: EventRecord, session: SessionDep, user: MobilizerWriter
 ) -> Event:
     """Close an event with its attendance."""
-    event = await _visible_event(session, user, event_id)
+    event = await require_visible(session, user, Event, event_id, "event", LOADED)
     event.number_reached = payload.number_reached
     event.number_attended = payload.number_attended
     event.status = EventStatus.DONE
     await session.commit()
-    return await _reload(session, event.id)
+    return await load(session, Event, event.id, LOADED)
 
 
 @router.delete("/{event_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_event(
-    event_id: uuid.UUID,
-    session: SessionDep,
-    user: CurrentUser,
-    _: MobilizerWriter,
-) -> Response:
-    event = await _visible_event(session, user, event_id)
+async def delete_event(event_id: uuid.UUID, session: SessionDep, user: MobilizerWriter) -> Response:
+    event = await require_visible(session, user, Event, event_id, "event")
     await session.delete(event)
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-async def _visible_event(session: SessionDep, user: User, event_id: uuid.UUID) -> Event:
-    event = (
-        await session.execute(select(Event).where(Event.id == event_id).options(*LOADED))
-    ).scalar_one_or_none()
-    if event is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such event.")
-    await require_visible_campaign(session, user, event.campaign_id)
-    require_own_ward(user, event.ward_id)
-    return event
-
-
-async def _reload(session: SessionDep, event_id: uuid.UUID) -> Event:
-    return (
-        await session.execute(select(Event).where(Event.id == event_id).options(*LOADED))
-    ).scalar_one()
+def _not_sent(message: str, accepted: list[Recipient], detail: str) -> SendResult:
+    return SendResult(
+        provider=get_sms_provider().name,
+        delivered=False,
+        message=message,
+        requested=len(accepted),
+        accepted=accepted,
+        detail=detail,
+    )
 
 
 @router.post("/{event_id}/invite/", response_model=EventInviteResult)
 async def invite_to_event(
-    event_id: uuid.UUID,
-    payload: EventInvite,
-    session: SessionDep,
-    user: CurrentUser,
-    _: MobilizerWriter,
+    event_id: uuid.UUID, payload: EventInvite, session: SessionDep, user: MobilizerWriter
 ) -> EventInviteResult:
-    """Text the event's supporters and set `number_reached`.
-
-    A dry run works out the recipients and sends nothing.
-    """
-    event = await _visible_event(session, user, event_id)
+    """Text the event's supporters and set `number_reached`; a dry run sends nothing."""
+    event = await require_visible(session, user, Event, event_id, "event", LOADED)
 
     statement = select(Supporter).where(Supporter.campaign_id == event.campaign_id)
     if not payload.whole_campaign:
         statement = statement.where(Supporter.ward_id == event.ward_id)
     if payload.support_levels:
         statement = statement.where(Supporter.support_level.in_(payload.support_levels))
-    # A mobilizer's reach ends at their ward, whatever the body asks for.
     own_ward = mobilizer_ward_id(user)
     if own_ward is not None:
         statement = statement.where(Supporter.ward_id == own_ward)
 
-    supporters = list((await session.execute(statement)).scalars().all())
+    supporters = await all_rows(session, statement)
     numbers, unusable = normalise_all([s.phone for s in supporters])
 
     if payload.dry_run:
-        result = SendResult(
-            provider=get_sms_provider().name,
-            delivered=False,
-            message=payload.message,
-            requested=len(numbers),
-            accepted=[Recipient(phone=n, status="would send") for n in numbers],
-            detail="Nothing was sent: this was a dry run.",
-        )
+        would = [Recipient(phone=n, status="would send") for n in numbers]
+        result = _not_sent(payload.message, would, "Nothing was sent: this was a dry run.")
     elif not numbers:
-        result = SendResult(
-            provider=get_sms_provider().name,
-            delivered=False,
-            message=payload.message,
-            requested=0,
-            detail="Nobody on this register has a usable phone number.",
+        result = _not_sent(
+            payload.message, [], "Nobody on this register has a usable phone number."
         )
     else:
         result = await get_sms_provider().send(numbers, payload.message)

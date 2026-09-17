@@ -62,9 +62,6 @@ def gateway(monkeypatch: pytest.MonkeyPatch) -> DeliveringProvider:
     return provider
 
 
-# ------------------------------------------------------------- who may send
-
-
 async def test_inviting_needs_a_token(client: httpx.AsyncClient, session, world: World) -> None:
     event = await _event(session, world)
     response = await client.post(f"/api/events/{event.id}/invite/", json={"message": "Hi"})
@@ -129,9 +126,6 @@ async def test_a_mobilizer_asking_for_the_whole_campaign_still_gets_their_ward(
     ).json()
 
     assert body["supporters_matched"] == 1
-
-
-# ---------------------------------------------------------------- who it goes to
 
 
 async def test_it_goes_to_the_supporters_in_the_event_s_ward(
@@ -277,9 +271,6 @@ async def test_a_register_with_no_usable_numbers_says_so(
     assert body["requested"] == 0
     assert body["delivered"] is False
     assert "usable phone number" in body["detail"]
-
-
-# ------------------------------------------------------- what the send does
 
 
 async def test_nothing_is_sent_until_a_gateway_is_configured(

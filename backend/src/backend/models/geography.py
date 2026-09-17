@@ -78,9 +78,6 @@ class Ward(UUIDPrimaryKeyMixin, Base):
     registered_voters: Mapped[int | None] = mapped_column(Integer, default=None)
 
     constituency: Mapped["Constituency"] = relationship(back_populates="wards")
-    polling_stations: Mapped[list["PollingStation"]] = relationship(
-        back_populates="ward", cascade="all, delete-orphan", passive_deletes=True
-    )
     centres: Mapped[list["RegistrationCentre"]] = relationship(
         back_populates="ward", cascade="all, delete-orphan", passive_deletes=True
     )
@@ -101,10 +98,7 @@ class Ward(UUIDPrimaryKeyMixin, Base):
 
 
 class RegistrationCentre(UUIDPrimaryKeyMixin, Base):
-    """A venue such as a school or church hall, holding several polling stations.
-
-    This is the unit a ward (MCA) campaign organizes on.
-    """
+    """A voting venue; the unit a ward (MCA) campaign organizes on."""
 
     __tablename__ = "registration_centres"
     __table_args__ = (CheckConstraint(NON_NEGATIVE_VOTERS, name="registered_voters_non_negative"),)
@@ -122,31 +116,6 @@ class RegistrationCentre(UUIDPrimaryKeyMixin, Base):
     )
     mobilizers: Mapped[list["Mobilizer"]] = relationship(back_populates="registration_centre")
     events: Mapped[list["Event"]] = relationship(back_populates="registration_centre")
-
-    def __str__(self) -> str:
-        return f"{self.name} - {self.ward.name}"
-
-
-class PollingStation(UUIDPrimaryKeyMixin, Base):
-    """A single voting stream within a ward.
-
-    `centre_code` and `centre_name` name the venue as free text rather than
-    linking to `RegistrationCentre`. See the README.
-    """
-
-    __tablename__ = "polling_stations"
-    __table_args__ = (CheckConstraint(NON_NEGATIVE_VOTERS, name="registered_voters_non_negative"),)
-
-    ward_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("wards.id", ondelete="CASCADE"), index=True
-    )
-    centre_code: Mapped[str] = mapped_column(String(30), default="")
-    centre_name: Mapped[str] = mapped_column(String(200), default="")
-    code: Mapped[str] = mapped_column(String(30), default="")
-    name: Mapped[str] = mapped_column(String(200))
-    registered_voters: Mapped[int | None] = mapped_column(Integer, default=None)
-
-    ward: Mapped["Ward"] = relationship(back_populates="polling_stations")
 
     def __str__(self) -> str:
         return f"{self.name} - {self.ward.name}"

@@ -1,72 +1,46 @@
-"""The supporter register, for the campaign the caller is on."""
+"""The supporter register of the caller's campaign."""
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Response, status
 from sqlalchemy import select
 
-from backend.api.deps import (
-    CurrentUser,
-    SessionDep,
-    mobilizer_ward_id,
-)
+from backend.api.deps import CurrentUser, SessionDep, SupporterTeam
 from backend.api.scope import (
-    limit_to_campaigns,
-    mobilizer_profile_for,
+    all_rows,
+    own_ground_row,
     require_campaign_mobilizer,
     require_own_ward,
+    require_visible,
     require_visible_campaign,
     require_ward_in_campaign,
-    visible_campaign_ids,
+    scoped,
 )
-from backend.models import Supporter, User, UserRole
+from backend.models import Supporter
 from backend.schemas.campaign import SupporterCreate, SupporterRead
 
 router = APIRouter(prefix="/supporters", tags=["supporters"])
 
-READERS = {UserRole.MANAGER, UserRole.MOBILIZER}
-
 
 @router.get("/", response_model=list[SupporterRead])
 async def list_supporters(
-    session: SessionDep, user: CurrentUser, campaign: uuid.UUID | None = None
+    session: SessionDep, user: SupporterTeam, campaign: uuid.UUID | None = None
 ) -> list[Supporter]:
-    if user.role not in READERS:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "The supporter register is for the campaign team."
-        )
-    statement = select(Supporter)
-    if campaign is not None:
-        statement = statement.where(Supporter.campaign_id == campaign)
-    statement = limit_to_campaigns(
-        statement, Supporter.campaign_id, await visible_campaign_ids(session, user)
-    )
-    own_ward = mobilizer_ward_id(user)
-    if own_ward is not None:
-        statement = statement.where(Supporter.ward_id == own_ward)
-    statement = statement.order_by(Supporter.created_at.desc())
-    return list((await session.execute(statement)).scalars().all())
+    statement = await scoped(session, user, select(Supporter), Supporter, campaign)
+    return await all_rows(session, statement.order_by(Supporter.created_at.desc()))
 
 
 @router.post("/", response_model=SupporterRead, status_code=status.HTTP_201_CREATED)
 async def register_supporter(
     payload: SupporterCreate, session: SessionDep, user: CurrentUser
 ) -> Supporter:
-    """Sign someone up, into the caller's own campaign.
-
-    The campaign is named in the body, so without a signed-in caller to check it
-    against, anyone holding a campaign's id could write into its register.
-    """
+    """Sign someone up; a mobilizer's lands in their own ward, credited to them."""
     campaign = await require_visible_campaign(session, user, payload.campaign)
     await require_campaign_mobilizer(session, payload.campaign, payload.mobilizer)
 
-    profile = await mobilizer_profile_for(session, user)
-    mobilizer_id = payload.mobilizer
-    ward_id = payload.ward
-    if profile is not None and profile.campaign_id == payload.campaign:
-        mobilizer_id = payload.mobilizer or profile.id
-        # A mobilizer reads only their own ward, so what they register lands in it.
-        ward_id = payload.ward or profile.ward_id
+    own = own_ground_row(user, payload.campaign)
+    mobilizer_id = payload.mobilizer or (own.id if own is not None else None)
+    ward_id = payload.ward or (own.ward_id if own is not None else None)
     if ward_id is not None:
         require_own_ward(user, ward_id)
         await require_ward_in_campaign(session, campaign, ward_id)
@@ -87,24 +61,9 @@ async def register_supporter(
 
 @router.delete("/{supporter_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_supporter(
-    supporter_id: uuid.UUID, session: SessionDep, user: CurrentUser
+    supporter_id: uuid.UUID, session: SessionDep, user: SupporterTeam
 ) -> Response:
-    """Erase someone's details. The team only."""
-    if user.role not in READERS:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "The supporter register is for the campaign team."
-        )
-    supporter = await _visible_supporter(session, user, supporter_id)
+    supporter = await require_visible(session, user, Supporter, supporter_id, "supporter")
     await session.delete(supporter)
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-async def _visible_supporter(session: SessionDep, user: User, supporter_id: uuid.UUID) -> Supporter:
-    supporter = await session.get(Supporter, supporter_id)
-    if supporter is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such supporter.")
-    await require_visible_campaign(session, user, supporter.campaign_id)
-    if supporter.ward_id is not None:
-        require_own_ward(user, supporter.ward_id)
-    return supporter

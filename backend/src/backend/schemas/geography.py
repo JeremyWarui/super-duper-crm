@@ -40,13 +40,3 @@ class RegistrationCentreRead(ORMModel):
     code: str
     name: str
     registered_voters: int | None
-
-
-class PollingStationRead(ORMModel):
-    id: uuid.UUID
-    ward: uuid.UUID = Field(validation_alias="ward_id")
-    centre_code: str
-    centre_name: str
-    code: str
-    name: str
-    registered_voters: int | None

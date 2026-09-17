@@ -11,7 +11,6 @@ _hasher = PasswordHasher()
 
 TOKEN_KEY_BYTES = 20
 
-# Readable down a phone line once, worth nothing to a guesser.
 PASSWORD_BYTES = 9
 
 
@@ -43,9 +42,5 @@ def new_token_key() -> str:
 
 
 def new_password() -> str:
-    """A password for an account somebody else is creating.
-
-    DEFAULT_USER_PASSWORD hands the same one to every account, so a demo has
-    logins somebody can be told over the phone. Blank generates one per account.
-    """
+    """DEFAULT_USER_PASSWORD when set, otherwise a generated one."""
     return get_settings().default_user_password or secrets.token_urlsafe(PASSWORD_BYTES)

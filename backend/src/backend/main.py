@@ -13,8 +13,6 @@ from backend.api.errors import register_error_handlers
 from backend.api.routers import api_router
 from backend.config import get_settings
 from backend.db.session import get_engine
-
-# Imported so every model is registered on Base.metadata.
 from backend.models import Base  # noqa: F401
 
 
@@ -31,11 +29,7 @@ def create_app() -> FastAPI:
         version=__version__,
         debug=settings.debug,
         lifespan=lifespan,
-        # The interactive docs describe every route, field and schema, which is
-        # a map of the deployment to anybody who asks. They are a development
-        # tool, so they are served only when DEBUG says this is development.
-        # `app.openapi()` still builds the schema in-process, which is what the
-        # contract checks read.
+        # Interactive docs only in development.
         docs_url="/docs" if settings.debug else None,
         redoc_url="/redoc" if settings.debug else None,
         openapi_url="/openapi.json" if settings.debug else None,
@@ -60,11 +54,7 @@ def create_app() -> FastAPI:
 
 
 def _mount_spa(app: FastAPI, static_dir: str) -> None:
-    """Serve the built SPA at "/", under the API rather than beside it.
-
-    Mounted last, so /api and /docs still win. `html=True` returns index.html
-    for a path with no file, which is what a refreshed SPA route needs.
-    """
+    """Serve the built SPA at "/", after the API so /api still wins."""
     if not static_dir:
         return
     directory = Path(static_dir)

@@ -15,15 +15,14 @@ from backend.models.event import Event
 from backend.models.geography import (
     Constituency,
     County,
-    PollingStation,
     RegistrationCentre,
     Ward,
 )
 from backend.models.membership import CampaignMember
 from backend.models.mobilizer import Mobilizer
 from backend.models.supporter import Supporter
-from backend.models.target import Target, compute_win_number
-from backend.models.user import User, member_refusal
+from backend.models.target import Target, compute_win_number, unit_key
+from backend.models.user import User
 
 __all__ = [
     "AuthToken",
@@ -38,14 +37,13 @@ __all__ = [
     "Mobilizer",
     "OfficeLevel",
     "OperationalGrain",
-    "PollingStation",
     "RegistrationCentre",
     "SupportLevel",
     "Supporter",
     "Target",
     "User",
-    "member_refusal",
     "UserRole",
     "Ward",
     "compute_win_number",
+    "unit_key",
 ]

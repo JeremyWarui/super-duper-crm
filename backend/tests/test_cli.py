@@ -1,494 +1,174 @@
-"""The command line jobs that repair what the API cannot reach.
+"""campaign-crm: each command parsed and run against the test database."""
 
-`assign-manager` is the only way a campaign with no manager gets one, which is
-the state every campaign is in until somebody sets one up.
-"""
-
-import argparse
 import uuid
 
 import httpx
-from sqlalchemy import delete, select
+import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.cli import (
-    _add_member,
-    _assign_manager,
-    _campaign,
-    _campaigns,
-    _createuser,
-    _delete_campaign,
-    _remove_member,
-    _rename_campaign,
-    _reset_password,
-    _set_active,
-    _users,
-    build_parser,
-)
-from backend.models import AuthToken, Campaign, CampaignMember, OfficeLevel, User, UserRole
+from backend.cli import build_parser, run
+from backend.models import AuthToken, Campaign, OfficeLevel, User
 from tests.conftest import World
-from tests.factories import TEST_PASSWORD, auth, make_user, sign_in
+from tests.factories import TEST_PASSWORD, auth, make_rival_campaign, members_of, sign_in
+
+MISSING = str(uuid.uuid4())
 
 
-async def _managers(session: AsyncSession, campaign_id) -> set:
-    rows = await session.execute(
-        select(CampaignMember.user_id).where(
-            CampaignMember.campaign_id == campaign_id,
-            CampaignMember.role == UserRole.MANAGER,
-        )
-    )
-    return set(rows.scalars())
+async def cli(session: AsyncSession, *argv: str) -> int:
+    return await run(build_parser().parse_args(list(argv)), session)
 
 
-def _args(**kwargs) -> argparse.Namespace:
-    return argparse.Namespace(**{"only": False, **kwargs})
-
-
-async def test_listing_names_the_manager_of_each_campaign(
-    session: AsyncSession, world: World, capsys
+async def test_createuser_makes_a_login_with_the_superuser_flag_only_when_asked(
+    session: AsyncSession, world: World, capsys: pytest.CaptureFixture
 ) -> None:
-    assert await _campaigns(_args(), session) == 0
+    assert await cli(session, "createuser", "-u", "root", "-p", TEST_PASSWORD, "--superuser") == 0
+    assert await cli(session, "createuser", "-u", "plain", "-p", TEST_PASSWORD) == 0
+    assert await cli(session, "createuser", "-u", "amina", "-p", TEST_PASSWORD) == 1
 
-    printed = capsys.readouterr().out
-    assert "Jane for Roysambu" in printed
-    assert "candidate jane" in printed
-    assert "managers amina" in printed
-    assert "members 3" in printed
+    flags = dict((await session.execute(select(User.username, User.is_superuser))).tuples().all())
+    assert (flags["root"], flags["plain"]) == (True, False)
+    printed = capsys.readouterr()
+    assert "Created" in printed.out
+    assert "The username amina is already taken." in printed.err
 
 
-async def test_listing_says_when_a_campaign_has_no_manager(
-    session: AsyncSession, world: World, capsys
+async def test_campaign_lists_every_campaign_or_shows_one_in_full(
+    session: AsyncSession, world: World, capsys: pytest.CaptureFixture
 ) -> None:
-    await session.execute(
-        delete(CampaignMember).where(
-            CampaignMember.campaign_id == world.campaign.id,
-            CampaignMember.role == UserRole.MANAGER,
-        )
+    assert await cli(session, "campaign") == 0
+    listed = capsys.readouterr().out
+    assert await cli(session, "campaign", "-c", str(world.campaign.id)) == 0
+    one = capsys.readouterr().out
+    assert await cli(session, "campaign", "-c", MISSING) == 1
+    missing_err = capsys.readouterr().err
+    bare = Campaign(
+        title="Githurai MCA", office_level=OfficeLevel.WARD, ward_id=world.other_ward.id
     )
+    session.add(bare)
     await session.commit()
+    assert await cli(session, "campaign", "-c", str(bare.id)) == 0
 
-    await _campaigns(_args(), session)
+    assert "Jane for Roysambu  candidate jane  members 3" in listed
+    assert "candidate  -- none --" in capsys.readouterr().out
+    assert "manager    amina" in one
+    assert "targets    2" in one
+    assert "No such campaign." in missing_err
 
-    assert "-- none --" in capsys.readouterr().out
 
-
-async def test_assigning_gives_the_manager_their_campaign_back(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+async def test_users_lists_each_login_with_its_campaign_and_narrows_by_role(
+    session: AsyncSession, world: World, capsys: pytest.CaptureFixture
 ) -> None:
-    """The state every pre-existing campaign is in after the migration."""
-    await session.execute(
-        delete(CampaignMember).where(
-            CampaignMember.campaign_id == world.campaign.id,
-            CampaignMember.user_id == world.manager.id,
-        )
-    )
-    await session.commit()
-    token = await sign_in(client, "amina")
-    assert (await client.get("/api/campaigns/", headers=auth(token))).json() == []
+    assert await cli(session, "users") == 0
+    everyone = capsys.readouterr().out
+    assert await cli(session, "users", "-r", "mobilizer") == 0
+    mobilizers = capsys.readouterr().out
 
-    assert await _assign_manager(_args(username="amina", campaign=world.campaign.id), session) == 0
-
-    listed = (await client.get("/api/campaigns/", headers=auth(token))).json()
-    assert [c["title"] for c in listed] == ["Jane for Roysambu"]
+    assert "amina" in everyone and "Jane for Roysambu" in everyone
+    assert "juma" in mobilizers and "amina" not in mobilizers
 
 
-async def test_assigning_adds_a_manager_beside_the_one_already_there(
-    session: AsyncSession, world: World
+async def test_reset_password_hands_out_one_that_signs_in(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, capsys: pytest.CaptureFixture
 ) -> None:
-    """Memberships are additive, so this no longer evicts anybody."""
-    rival = await make_user(session, username="rival", role=UserRole.MANAGER)
-
-    code = await _assign_manager(_args(username="rival", campaign=world.campaign.id), session)
-
-    assert code == 0
-    assert await _managers(session, world.campaign.id) == {world.manager.id, rival.id}
-
-
-async def test_only_takes_every_other_manager_off(session: AsyncSession, world: World) -> None:
-    rival = await make_user(session, username="rival", role=UserRole.MANAGER)
-
-    code = await _assign_manager(
-        _args(username="rival", campaign=world.campaign.id, only=True), session
-    )
-
-    assert code == 0
-    assert await _managers(session, world.campaign.id) == {rival.id}
-
-
-async def test_assigning_twice_does_not_duplicate_the_membership(
-    session: AsyncSession, world: World
-) -> None:
-    await _assign_manager(_args(username="amina", campaign=world.campaign.id), session)
-
-    assert await _managers(session, world.campaign.id) == {world.manager.id}
-
-
-async def test_assigning_refuses_somebody_who_is_not_a_manager(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    code = await _assign_manager(_args(username="jane", campaign=world.campaign.id), session)
-
-    assert code == 1
-    assert "not a campaign manager" in capsys.readouterr().err
-
-
-async def test_assigning_refuses_an_unknown_user(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    code = await _assign_manager(_args(username="nobody", campaign=world.campaign.id), session)
-
-    assert code == 1
-    assert "No user called nobody" in capsys.readouterr().err
-
-
-async def test_assigning_refuses_an_unknown_campaign(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    import uuid
-
-    code = await _assign_manager(_args(username="amina", campaign=uuid.uuid4()), session)
-
-    assert code == 1
-    assert "No campaign with id" in capsys.readouterr().err
-
-
-def test_the_parser_offers_both_new_commands() -> None:
-    parser = build_parser()
-
-    listed = parser.parse_args(["campaigns"])
-    assert listed.handler is _campaigns
-
-    assigned = parser.parse_args(
-        ["assign-manager", "-u", "amina", "-c", "0f8f1b2c-0000-4000-8000-000000000001"]
-    )
-    assert assigned.handler is _assign_manager
-    assert assigned.username == "amina"
-    assert assigned.only is False
-
-
-# ---------------------------------------------------------------- the console
-
-
-def _person(username, **over):
-    return _args(
-        username=username,
-        password=TEST_PASSWORD,
-        role="manager",
-        email="",
-        first_name="",
-        last_name="",
-        phone="",
-        **{"superuser": False, **over},
-    )
-
-
-async def test_createuser_mints_the_superuser_the_console_needs(
-    session: AsyncSession, capsys
-) -> None:
-    """The only way a deployment gets its first admin, so it has to set the flag."""
-    code = await _createuser(_person("root", superuser=True), session)
-
-    assert code == 0
-    root = await session.scalar(select(User).where(User.username == "root"))
-    assert root.is_superuser is True
-    assert "Created" in capsys.readouterr().out
-
-
-async def test_createuser_leaves_the_flag_off_unless_it_is_asked_for(
-    session: AsyncSession,
-) -> None:
-    await _createuser(_person("plain"), session)
-
-    plain = await session.scalar(select(User).where(User.username == "plain"))
-    assert plain.is_superuser is False
-
-
-async def test_createuser_refuses_a_username_already_taken(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    code = await _createuser(_person("amina"), session)
-
-    assert code == 1
-    assert "already exists" in capsys.readouterr().err
-
-
-async def test_users_lists_every_login_and_the_campaigns_it_reaches(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    assert await _users(_args(role=None, campaign=None), session) == 0
-
-    printed = capsys.readouterr().out
-    assert "amina" in printed
-    assert "jane" in printed
-    assert "Jane for Roysambu" in printed
-
-
-async def test_users_can_be_narrowed_to_one_role(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    await _users(_args(role="mobilizer", campaign=None), session)
-
-    printed = capsys.readouterr().out
-    assert "juma" in printed
-    assert "amina" not in printed
-
-
-async def test_campaign_shows_one_campaign_and_its_team(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    assert await _campaign(_args(campaign=world.campaign.id), session) == 0
-
-    printed = capsys.readouterr().out
-    assert "Jane for Roysambu" in printed
-    assert "amina" in printed
-
-
-async def test_campaign_says_so_when_the_id_is_not_one(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    assert await _campaign(_args(campaign=uuid.uuid4()), session) == 1
-    assert capsys.readouterr().err.strip() != ""
-
-
-async def test_reset_password_hands_out_a_new_one_that_signs_in(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, capsys
-) -> None:
-    assert await _reset_password(_args(username="jane", password=None), session) == 0
-
-    # "jane signs in with: <password>", then the warning line.
+    assert await cli(session, "reset-password", "-u", "jane") == 0
     password = capsys.readouterr().out.splitlines()[0].rsplit(": ", 1)[1]
-    signed_in = await client.post(
-        "/api/auth/login/", json={"username": "jane", "password": password}
-    )
-    assert signed_in.status_code == 200, signed_in.text
+    assert await cli(session, "reset-password", "-u", "nobody") == 1
+
+    assert await sign_in(client, "jane", password)
+    assert "No user called nobody." in capsys.readouterr().err
 
 
-async def test_reset_password_refuses_a_login_that_is_not_there(
-    session: AsyncSession, capsys
-) -> None:
-    assert await _reset_password(_args(username="nobody", password=None), session) == 1
-    assert "nobody" in capsys.readouterr().err
-
-
-async def test_deactivate_stops_a_live_session_and_activate_lets_it_back(
+async def test_deactivate_stops_a_session_and_activate_lets_it_back(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     token = await sign_in(client, "amina")
-    assert (await client.get("/api/campaigns/", headers=auth(token))).status_code == 200
 
-    assert await _set_active(_args(username="amina", active=False), session) == 0
-
+    assert await cli(session, "deactivate", "-u", "amina") == 0
     assert (await client.get("/api/campaigns/", headers=auth(token))).status_code == 401
-    assert not (await session.execute(select(AuthToken).where(AuthToken.key == token))).first()
+    assert await session.scalar(select(AuthToken).where(AuthToken.key == token)) is None
 
-    assert await _set_active(_args(username="amina", active=True), session) == 0
-    again = await sign_in(client, "amina")
-    assert (await client.get("/api/campaigns/", headers=auth(again))).status_code == 200
+    assert await cli(session, "activate", "-u", "amina") == 0
+    assert await sign_in(client, "amina")
 
 
-async def test_delete_campaign_only_says_what_would_go_without_yes(
-    session: AsyncSession, world: World, capsys
+async def test_deactivate_keeps_the_last_superuser_on(
+    session: AsyncSession, world: World, capsys: pytest.CaptureFixture
 ) -> None:
-    assert await _delete_campaign(_args(campaign=world.campaign.id, yes=False), session) == 1
+    await cli(session, "createuser", "-u", "root", "-p", TEST_PASSWORD, "--superuser")
+    await cli(session, "createuser", "-u", "spare", "-p", TEST_PASSWORD, "--superuser")
 
+    assert await cli(session, "deactivate", "-u", "spare") == 0
+    assert await cli(session, "deactivate", "-u", "root") == 1
+    assert "only superuser" in capsys.readouterr().err
+
+
+async def test_remove_member_and_add_member_move_a_login_off_and_back(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, capsys: pytest.CaptureFixture
+) -> None:
+    campaign = str(world.campaign.id)
+
+    assert await cli(session, "remove-member", "-u", "juma", "-c", campaign) == 0
+    assert (
+        await client.get("/api/campaigns/", headers=auth(await sign_in(client, "juma")))
+    ).json() == []
+    assert await cli(session, "add-member", "-u", "juma", "-c", campaign) == 0
+
+    assert "is on that campaign as its mobilizer" in capsys.readouterr().out
+    assert (await members_of(session, world.campaign.id))["juma"] == "mobilizer"
+
+
+@pytest.mark.parametrize(
+    ("argv", "message"),
+    [
+        (["add-member", "-u", "nobody"], "No user called nobody."),
+        (["add-member", "-u", "jane", "-c", "{rival}"], "jane is already on Jane for Roysambu"),
+        (["remove-member", "-u", "jane"], "delete the campaign instead"),
+        (["rename-campaign", "-t", "  "], "A campaign needs a name."),
+    ],
+)
+async def test_a_membership_command_that_cannot_happen_says_why(
+    session: AsyncSession,
+    world: World,
+    capsys: pytest.CaptureFixture,
+    argv: list[str],
+    message: str,
+) -> None:
+    rival = await make_rival_campaign(session, world.other_ward)
+    campaign = str(rival.id) if "{rival}" in argv else str(world.campaign.id)
+    argv = [campaign if a == "{rival}" else a for a in argv]
+    if "-c" not in argv:
+        argv += ["-c", campaign]
+
+    assert await cli(session, *argv) == 1
+    assert message in capsys.readouterr().err
+
+
+async def test_rename_campaign_changes_the_name(session: AsyncSession, world: World) -> None:
+    assert (
+        await cli(session, "rename-campaign", "-c", str(world.campaign.id), "-t", " Jane 2027 ")
+        == 0
+    )
+
+    assert await session.scalar(select(Campaign.title)) == "Jane 2027"
+
+
+async def test_delete_campaign_says_what_and_who_would_go_then_deletes_with_yes(
+    session: AsyncSession, world: World, capsys: pytest.CaptureFixture
+) -> None:
+    campaign = str(world.campaign.id)
+
+    assert await cli(session, "delete-campaign", "-c", campaign) == 1
     said = capsys.readouterr().err
+    assert await session.get(Campaign, world.campaign.id) is not None
+    assert await cli(session, "delete-campaign", "-c", campaign, "--yes") == 0
+    done = capsys.readouterr().out
+    assert await cli(session, "delete-campaign", "-c", MISSING, "--yes") == 1
+
     assert "Jane for Roysambu with 2 targets, 1 mobilizers" in said
     assert "3 logins (amina, jane, juma)" in said
     assert "--yes" in said
-    assert await session.get(Campaign, world.campaign.id) is not None
-
-
-async def test_delete_campaign_with_yes_deletes_it_and_its_logins(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    campaign_id = world.campaign.id
-
-    assert await _delete_campaign(_args(campaign=campaign_id, yes=True), session) == 0
-
-    assert "Deleted Jane for Roysambu and 3 logins: amina, jane, juma." in capsys.readouterr().out
-    assert await session.get(Campaign, campaign_id) is None
-    left = await session.scalars(
-        select(User.username).where(User.username.in_(["amina", "jane", "juma"]))
-    )
-    assert list(left) == []
-
-
-async def test_delete_campaign_names_a_login_tied_only_by_a_ground_row_and_deletes_it(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    campaign_id = world.campaign.id
-    await session.execute(
-        delete(CampaignMember).where(CampaignMember.user_id == world.mobilizer_user.id)
-    )
-    await session.commit()
-
-    assert await _delete_campaign(_args(campaign=campaign_id, yes=False), session) == 1
-    assert "3 logins (amina, jane, juma)" in capsys.readouterr().err
-
-    assert await _delete_campaign(_args(campaign=campaign_id, yes=True), session) == 0
-    assert "juma" in capsys.readouterr().out
-    assert await session.scalar(select(User.id).where(User.username == "juma")) is None
-
-
-async def test_delete_campaign_dry_run_leaves_out_a_superuser(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    root = await make_user(session, username="root", role=UserRole.MANAGER)
-    root.is_superuser = True
-    session.add(CampaignMember(campaign_id=world.campaign.id, user_id=root.id, role=root.role))
-    await session.commit()
-
-    assert await _delete_campaign(_args(campaign=world.campaign.id, yes=False), session) == 1
-
-    said = capsys.readouterr().err
-    assert "3 logins (amina, jane, juma)" in said
-    assert "root" not in said
-
-
-async def test_delete_campaign_says_so_when_the_id_is_not_one(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    assert await _delete_campaign(_args(campaign=uuid.uuid4(), yes=True), session) == 1
-    assert "No campaign with id" in capsys.readouterr().err
-
-
-async def test_rename_campaign_changes_its_name(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    assert (
-        await _rename_campaign(_args(campaign=world.campaign.id, title=" Jane 2027 "), session) == 0
-    )
-
-    assert "Jane 2027" in capsys.readouterr().out
-    title = await session.scalar(select(Campaign.title).where(Campaign.id == world.campaign.id))
-    assert title == "Jane 2027"
-
-
-async def test_rename_campaign_refuses_an_empty_name(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    assert await _rename_campaign(_args(campaign=world.campaign.id, title="  "), session) == 1
-    assert capsys.readouterr().err.strip() != ""
-
-
-async def test_add_member_refuses_a_login_already_on_another_campaign(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    other = Campaign(
-        title="Peter for Githurai", office_level=OfficeLevel.WARD, ward_id=world.other_ward.id
-    )
-    session.add(other)
-    await session.commit()
-
-    assert await _add_member(_args(username="jane", campaign=other.id), session) == 1
-
-    assert capsys.readouterr().err.strip() == (
-        "jane is already on Jane for Roysambu; a login belongs to one campaign."
-    )
-
-
-async def test_assign_manager_refuses_a_manager_already_on_another_campaign(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    other = Campaign(
-        title="Peter for Githurai", office_level=OfficeLevel.WARD, ward_id=world.other_ward.id
-    )
-    session.add(other)
-    await session.commit()
-
-    assert await _assign_manager(_args(username="amina", campaign=other.id), session) == 1
-
-    assert "a login belongs to one campaign" in capsys.readouterr().err
-    assert await _managers(session, other.id) == set()
-
-
-async def test_add_member_puts_somebody_back_on_a_campaign(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
-) -> None:
-    """The recovery path for anybody the console or the CLI took off."""
-    assert await _remove_member(_args(username="juma", campaign=world.campaign.id), session) == 0
-    token = await sign_in(client, "juma")
-    assert (await client.get("/api/campaigns/", headers=auth(token))).json() == []
-
-    assert await _add_member(_args(username="juma", campaign=world.campaign.id), session) == 0
-
-    back = await sign_in(client, "juma")
-    assert [c["id"] for c in (await client.get("/api/campaigns/", headers=auth(back))).json()] == [
-        str(world.campaign.id)
-    ]
-
-
-async def test_add_member_gives_them_the_place_their_login_carries(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    await _remove_member(_args(username="juma", campaign=world.campaign.id), session)
-
-    await _add_member(_args(username="juma", campaign=world.campaign.id), session)
-
-    assert "mobilizer" in capsys.readouterr().out
-    role = await session.scalar(
-        select(CampaignMember.role).where(
-            CampaignMember.campaign_id == world.campaign.id,
-            CampaignMember.user_id == world.mobilizer_user.id,
-        )
-    )
-    assert role is UserRole.MOBILIZER
-
-
-async def test_add_member_refuses_a_login_that_is_not_there(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    assert await _add_member(_args(username="nobody", campaign=world.campaign.id), session) == 1
-    assert "nobody" in capsys.readouterr().err
-
-
-async def test_remove_member_refuses_to_take_the_candidate_off(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    assert await _remove_member(_args(username="jane", campaign=world.campaign.id), session) == 1
-    assert "candidate" in capsys.readouterr().err
-
-
-def test_the_parser_wires_every_console_command() -> None:
-    parser = build_parser()
-    campaign_id = "0f8f1b2c-0000-4000-8000-000000000001"
-
-    assert parser.parse_args(["users"]).handler is _users
-    assert parser.parse_args(["campaign", "-c", campaign_id]).handler is _campaign
-    assert parser.parse_args(["reset-password", "-u", "jane"]).handler is _reset_password
-    assert parser.parse_args(["add-member", "-u", "jane", "-c", campaign_id]).handler is _add_member
-    assert (
-        parser.parse_args(["remove-member", "-u", "jane", "-c", campaign_id]).handler
-        is _remove_member
-    )
-    off = parser.parse_args(["deactivate", "-u", "jane"])
-    assert off.handler is _set_active and off.active is False
-    on = parser.parse_args(["activate", "-u", "jane"])
-    assert on.handler is _set_active and on.active is True
-    assert parser.parse_args(["createuser", "-u", "root", "-r", "manager", "--superuser"]).superuser
-
-
-async def test_deactivate_refuses_the_last_superuser(
-    session: AsyncSession, world: World, capsys
-) -> None:
-    """Nothing could reach the console afterwards, and no route can undo it."""
-    await _createuser(_person("root", superuser=True), session)
-
-    assert await _set_active(_args(username="root", active=False), session) == 1
-
-    assert "only superuser" in capsys.readouterr().err
-    root = await session.scalar(select(User).where(User.username == "root"))
-    assert root.is_active is True
-
-
-async def test_deactivate_shuts_off_a_superuser_when_another_is_left(
-    session: AsyncSession, world: World
-) -> None:
-    """A compromised admin account has to be stoppable."""
-    await _createuser(_person("root", superuser=True), session)
-    await _createuser(_person("spare_root", superuser=True), session)
-
-    assert await _set_active(_args(username="spare_root", active=False), session) == 0
-
-    spare = await session.scalar(select(User).where(User.username == "spare_root"))
-    assert spare.is_active is False
+    assert "Deleted Jane for Roysambu and 3 logins: amina, jane, juma." in done
+    assert await session.get(Campaign, world.campaign.id) is None
+    assert list(await session.scalars(select(User.username))) == []
+    assert "No such campaign." in capsys.readouterr().err

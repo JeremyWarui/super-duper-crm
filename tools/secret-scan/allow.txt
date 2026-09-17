@@ -3,6 +3,3 @@
 # Package integrity hashes, never credentials.
 frontend/package-lock.json
 backend/uv.lock
-
-# Column names and types captured from the schema, never values.
-backend/evals/schema_baseline.json

@@ -1,8 +1,4 @@
-"""The bundled CSVs load into the schema the models describe.
-
-These run against the real files in `backend/data`, so a change to a header or a
-column ordering fails here rather than on a deploy.
-"""
+"""The bundled CSVs load, and the demo builds over them; both run against `backend/data`."""
 
 from decimal import Decimal
 
@@ -11,7 +7,6 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.api.scope import add_member
 from backend.models import (
     Campaign,
     CampaignMember,
@@ -37,7 +32,8 @@ from backend.seed.reference import (
     rows,
     to_int,
 )
-from tests.factories import fresh_password
+from backend.services.accounts import add_member, add_mobilizer, new_login
+from tests.factories import fresh_password, members_of
 
 # Published IEBC figures for the 2022 register.
 KENYA_COUNTIES = 47
@@ -158,254 +154,6 @@ async def test_reloading_centres_updates_them_in_place(session: AsyncSession, tm
     assert summary.wards_covered == 1
 
 
-# ------------------------------------------------------------------- the demo
-
-
-async def test_the_demo_needs_the_reference_data(session: AsyncSession) -> None:
-    with pytest.raises(ValueError, match="Roysambu"):
-        await seed_demo(session)
-
-
-async def test_the_demo_builds_one_campaign_with_one_sign_in_per_role(
-    session: AsyncSession,
-) -> None:
-    await import_geography(session)
-
-    summary = await seed_demo(session)
-
-    assert summary.units > 0
-    assert summary.win_number > 0
-    assert [username for username, _, _ in summary.sign_ins] == [
-        "aspirant",
-        "manager",
-        "mobilizer",
-        "newaspirant",
-        "newmanager",
-    ]
-
-
-async def test_every_password_it_prints_signs_that_user_in(session: AsyncSession) -> None:
-    await import_geography(session)
-
-    summary = await seed_demo(session)
-
-    for username, password, _ in summary.sign_ins:
-        user = (await session.execute(select(User).where(User.username == username))).scalar_one()
-        assert verify_password(password, user.password_hash), username
-
-
-async def test_each_account_gets_its_own_password(session: AsyncSession) -> None:
-    await import_geography(session)
-
-    summary = await seed_demo(session)
-
-    printed = [password for _, password, _ in summary.sign_ins]
-    assert len(set(printed)) == len(printed)
-    assert all(len(password) >= 12 for password in printed)
-
-
-async def test_a_given_password_is_used_for_all_three(session: AsyncSession) -> None:
-    await import_geography(session)
-    pinned = fresh_password()
-
-    summary = await seed_demo(session, password=pinned)
-
-    assert {password for _, password, _ in summary.sign_ins} == {pinned}
-    user = (await session.execute(select(User).where(User.username == "manager"))).scalar_one()
-    assert verify_password(pinned, user.password_hash)
-
-
-async def test_the_default_password_is_used_when_no_password_is_given(
-    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """DEFAULT_USER_PASSWORD makes `campaign-crm demo` repeatable without a flag."""
-    from backend.config import get_settings
-
-    await import_geography(session)
-    shared = fresh_password()
-    monkeypatch.setenv("DEFAULT_USER_PASSWORD", shared)
-    get_settings.cache_clear()
-    try:
-        summary = await seed_demo(session)
-    finally:
-        get_settings.cache_clear()
-
-    assert {password for _, password, _ in summary.sign_ins} == {shared}
-    for username, _, _ in summary.sign_ins:
-        user = (await session.execute(select(User).where(User.username == username))).scalar_one()
-        assert verify_password(shared, user.password_hash), username
-
-
-async def test_an_explicit_password_beats_the_default(
-    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    from backend.config import get_settings
-
-    await import_geography(session)
-    pinned = fresh_password()
-    monkeypatch.setenv("DEFAULT_USER_PASSWORD", fresh_password())
-    get_settings.cache_clear()
-    try:
-        summary = await seed_demo(session, password=pinned)
-    finally:
-        get_settings.cache_clear()
-
-    assert {password for _, password, _ in summary.sign_ins} == {pinned}
-
-
-async def test_re_running_resets_the_passwords(session: AsyncSession) -> None:
-    await import_geography(session)
-    first = await seed_demo(session)
-
-    second = await seed_demo(session)
-
-    assert {p for _, p, _ in first.sign_ins} != {p for _, p, _ in second.sign_ins}
-    for username, password, _ in second.sign_ins:
-        user = (await session.execute(select(User).where(User.username == username))).scalar_one()
-        assert verify_password(password, user.password_hash), username
-
-
-async def test_the_demo_mobilizer_is_tied_to_exactly_one_ward(session: AsyncSession) -> None:
-    await import_geography(session)
-    await seed_demo(session)
-
-    user = (
-        await session.execute(
-            select(User)
-            .where(User.username == "mobilizer")
-            .options(selectinload(User.mobilizer_profile))
-        )
-    ).scalar_one()
-    assert user.mobilizer_profile is not None
-    assert user.mobilizer_profile.ward_id is not None
-
-
-async def test_the_demo_leaves_some_wards_unstaffed_and_some_targets_met(
-    session: AsyncSession,
-) -> None:
-    await import_geography(session)
-    await seed_demo(session)
-
-    targets = (await session.execute(select(Target))).scalars().all()
-    staffed = {str(m.ward_id) for m in (await session.execute(select(Mobilizer))).scalars().all()}
-    assert 0 < len(staffed) < len(targets)
-    assert any(t.votes_committed >= (t.votes_needed or 0) for t in targets)
-    assert any(t.votes_committed == 0 for t in targets)
-
-
-async def test_running_the_demo_twice_leaves_one_campaign(session: AsyncSession) -> None:
-    await import_geography(session)
-    await seed_demo(session)
-    before = (await session.execute(select(func.count()).select_from(Target))).scalar_one()
-
-    await seed_demo(session)
-
-    assert await session.scalar(select(func.count()).select_from(Campaign)) == 1
-    assert await session.scalar(select(func.count()).select_from(Target)) == before
-    assert await session.scalar(select(func.count()).select_from(User)) == 5
-
-
-async def test_the_demo_campaign_targets_every_ward_in_roysambu(session: AsyncSession) -> None:
-    await import_geography(session)
-    summary = await seed_demo(session)
-
-    roysambu = (
-        await session.execute(
-            select(Constituency)
-            .where(Constituency.name == "Roysambu")
-            .options(selectinload(Constituency.wards))
-        )
-    ).scalar_one()
-    assert summary.units == len(roysambu.wards)
-
-
-async def test_one_demo_account_has_no_campaign_so_setup_can_be_seen(
-    session: AsyncSession,
-) -> None:
-    await import_geography(session)
-    await seed_demo(session)
-
-    fresh = (await session.execute(select(User).where(User.username == "newaspirant"))).scalar_one()
-    theirs = (
-        (
-            await session.execute(
-                select(Campaign)
-                .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
-                .where(
-                    CampaignMember.user_id == fresh.id, CampaignMember.role == UserRole.CANDIDATE
-                )
-            )
-        )
-        .scalars()
-        .all()
-    )
-
-    assert fresh.role is UserRole.CANDIDATE
-    assert theirs == []
-
-
-async def test_re_running_does_not_hand_that_account_a_campaign(session: AsyncSession) -> None:
-    await import_geography(session)
-    await seed_demo(session)
-    await seed_demo(session)
-
-    fresh = (await session.execute(select(User).where(User.username == "newaspirant"))).scalar_one()
-    assert (
-        await session.scalar(
-            select(func.count())
-            .select_from(Campaign)
-            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
-            .where(CampaignMember.user_id == fresh.id, CampaignMember.role == UserRole.CANDIDATE)
-        )
-        == 0
-    )
-
-
-async def test_re_running_takes_newmanager_off_the_campaign_they_set_up(
-    session: AsyncSession,
-) -> None:
-    """Otherwise their one campaign is used up and setup refuses them for good."""
-    await import_geography(session)
-    await seed_demo(session)
-    newmanager = (
-        await session.execute(select(User).where(User.username == "newmanager"))
-    ).scalar_one()
-    theirs = Campaign(title="Grace's try", office_level=OfficeLevel.CONSTITUENCY)
-    session.add(theirs)
-    await session.flush()
-    await add_member(session, theirs.id, newmanager.id)
-    await session.commit()
-
-    await seed_demo(session)
-
-    assert (
-        await session.scalar(
-            select(func.count())
-            .select_from(CampaignMember)
-            .where(CampaignMember.user_id == newmanager.id)
-        )
-        == 0
-    )
-
-
-async def test_re_running_after_the_demo_campaign_is_renamed_keeps_one_campaign(
-    session: AsyncSession,
-) -> None:
-    await import_geography(session)
-    await seed_demo(session)
-    demo = (await session.execute(select(Campaign))).scalar_one()
-    demo.title = "Renamed by an admin"
-    await session.commit()
-
-    await seed_demo(session)
-
-    titles = (await session.execute(select(Campaign.title))).scalars().all()
-    assert titles == [DEMO_CAMPAIGN_TITLE]
-
-
-# ------------------------------------------------- matching the two sources
-
-
 def test_the_two_sources_spell_a_ward_differently_and_still_match() -> None:
     assert normalise("Ziwa la Ng\u2019ombe") == normalise("ZIWA LA NG'OMBE")
     assert normalise("Njabini/Kiburu") == normalise("NJABINI\\KIBURU")
@@ -513,7 +261,6 @@ async def test_a_ward_s_centres_add_up_to_its_register(session: AsyncSession) ->
 
 
 async def test_a_ward_campaign_now_has_centres_to_target(session: AsyncSession) -> None:
-    from backend.models import Campaign, OfficeLevel
     from backend.services.targets import generate_targets
 
     await import_geography(session)
@@ -536,95 +283,207 @@ async def test_a_ward_campaign_now_has_centres_to_target(session: AsyncSession) 
     assert summary.win_number > 0
 
 
-async def test_re_seeding_puts_the_fresh_account_back_to_no_campaign(
+async def _demo(session: AsyncSession, **kwargs):
+    await import_geography(session)
+    return await seed_demo(session, **kwargs)
+
+
+async def _user(session: AsyncSession, username: str) -> User:
+    return await session.scalar(
+        select(User).where(User.username == username).options(selectinload(User.memberships))
+    )
+
+
+async def test_the_demo_needs_the_reference_data(session: AsyncSession) -> None:
+    with pytest.raises(ValueError, match="Roysambu"):
+        await seed_demo(session)
+
+
+async def test_the_demo_builds_its_campaign_team_and_two_logins_on_no_campaign(
     session: AsyncSession,
 ) -> None:
-    await import_geography(session)
-    await seed_demo(session)
-    fresh = (await session.execute(select(User).where(User.username == "newaspirant"))).scalar_one()
-    constituency = (
-        await session.execute(select(Constituency).where(Constituency.name == "Roysambu"))
-    ).scalar_one()
+    summary = await _demo(session)
+
+    assert [username for username, _, _ in summary.sign_ins] == [
+        "aspirant",
+        "manager",
+        "mobilizer",
+        "newaspirant",
+        "newmanager",
+    ]
+    printed = [password for _, password, _ in summary.sign_ins]
+    assert len(set(printed)) == len(printed)
+    for username, password, _ in summary.sign_ins:
+        assert len(password) >= 12
+        assert verify_password(password, (await _user(session, username)).password_hash)
+
+    roysambu = await session.scalar(
+        select(Constituency)
+        .where(Constituency.name == "Roysambu")
+        .options(selectinload(Constituency.wards))
+    )
+    (campaign,) = await session.scalars(select(Campaign))
+    assert summary.units == len(roysambu.wards)
+    assert summary.win_number > 0
+    assert await members_of(session, campaign.id) == {
+        "aspirant": "candidate",
+        "manager": "manager",
+        "mobilizer": "mobilizer",
+    }
+    for fresh in ("newaspirant", "newmanager"):
+        assert (await _user(session, fresh)).memberships == []
+
+    mobilizer = await session.scalar(
+        select(User)
+        .where(User.username == "mobilizer")
+        .options(selectinload(User.mobilizer_profile))
+    )
+    assert mobilizer.mobilizer_profile.ward_id is not None
+    targets = list(await session.scalars(select(Target)))
+    staffed = {m.ward_id for m in await session.scalars(select(Mobilizer))}
+    assert 0 < len(staffed) < len(targets)
+    assert any(t.votes_committed >= (t.votes_needed or 0) for t in targets)
+    assert any(t.votes_committed == 0 for t in targets)
+
+
+@pytest.mark.parametrize(("given", "default"), [(True, False), (False, True), (True, True)])
+async def test_one_password_for_every_demo_login_when_given_or_set_as_the_default(
+    session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    fresh_settings: None,
+    given: bool,
+    default: bool,
+) -> None:
+    pinned, shared = fresh_password(), fresh_password()
+    if default:
+        monkeypatch.setenv("DEFAULT_USER_PASSWORD", shared)
+
+    summary = await _demo(session, password=pinned if given else None)
+
+    expected = pinned if given else shared
+    assert {password for _, password, _ in summary.sign_ins} == {expected}
+    assert verify_password(expected, (await _user(session, "manager")).password_hash)
+
+
+async def test_re_running_resets_passwords_and_rebuilds_the_one_demo_campaign(
+    session: AsyncSession,
+) -> None:
+    first = await _demo(session)
+    targets = await session.scalar(select(func.count()).select_from(Target))
+    (campaign,) = await session.scalars(select(Campaign))
+    campaign.title = "Renamed by an admin"
+    await session.commit()
+
+    second = await seed_demo(session)
+
+    assert {p for _, p, _ in first.sign_ins}.isdisjoint({p for _, p, _ in second.sign_ins})
+    for username, password, _ in second.sign_ins:
+        assert verify_password(password, (await _user(session, username)).password_hash)
+    assert list(await session.scalars(select(Campaign.title))) == [DEMO_CAMPAIGN_TITLE]
+    assert await session.scalar(select(func.count()).select_from(Target)) == targets
+    assert await session.scalar(select(func.count()).select_from(User)) == 5
+
+
+async def test_re_running_puts_the_fresh_logins_back_on_no_campaign(session: AsyncSession) -> None:
+    await _demo(session)
+    roysambu = await session.scalar(select(Constituency).where(Constituency.name == "Roysambu"))
     theirs = Campaign(
         title="Peter for Roysambu",
         office_level=OfficeLevel.CONSTITUENCY,
-        constituency_id=constituency.id,
+        constituency_id=roysambu.id,
     )
     session.add(theirs)
     await session.flush()
-    session.add(CampaignMember(campaign_id=theirs.id, user_id=fresh.id, role=UserRole.CANDIDATE))
+    await add_member(session, theirs.id, await _user(session, "newaspirant"))
+    await add_member(session, theirs.id, await _user(session, "newmanager"))
     await session.commit()
 
     await seed_demo(session)
 
-    assert (
-        await session.scalar(
-            select(func.count())
-            .select_from(Campaign)
-            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
-            .where(CampaignMember.user_id == fresh.id, CampaignMember.role == UserRole.CANDIDATE)
-        )
-        == 0
+    session.expire_all()
+    for fresh in ("newaspirant", "newmanager"):
+        assert (await _user(session, fresh)).memberships == []
+    assert list(await session.scalars(select(Campaign.title))) == [DEMO_CAMPAIGN_TITLE]
+
+
+async def test_re_running_leaves_every_ground_login_a_mobilizer_on_that_campaign(
+    session: AsyncSession,
+) -> None:
+    await import_geography(session)
+    roysambu = await session.scalar(
+        select(Constituency)
+        .where(Constituency.name == "Roysambu")
+        .options(selectinload(Constituency.wards))
     )
-    assert await session.scalar(select(func.count()).select_from(Campaign)) == 1
-
-
-async def test_the_demo_manager_runs_the_demo_campaign(session: AsyncSession) -> None:
-    """Unlinked, the demo manager signs in to an empty app asking them to set one up."""
-    await import_geography(session)
+    ward = sorted(roysambu.wards, key=lambda w: w.name)[0]
+    elsewhere = Campaign(
+        title="Peter for Roysambu",
+        office_level=OfficeLevel.CONSTITUENCY,
+        constituency_id=roysambu.id,
+    )
+    session.add(elsewhere)
+    await session.flush()
+    elsewhere_id = elsewhere.id
+    squatter, _ = await new_login(session, username="newmanager", role=UserRole.MOBILIZER)
+    await add_mobilizer(session, elsewhere, ward, squatter)
+    await session.commit()
     await seed_demo(session)
-
-    titles = (
-        await session.execute(
-            select(Campaign.title)
-            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
-            .join(User, User.id == CampaignMember.user_id)
-            .where(User.username == "manager", CampaignMember.role == UserRole.MANAGER)
-        )
-    ).scalars()
-
-    assert list(titles) == [DEMO_CAMPAIGN_TITLE]
-
-
-async def test_the_demo_fresh_manager_runs_nothing_so_setup_is_reachable(
-    session: AsyncSession,
-) -> None:
-    await import_geography(session)
-    await seed_demo(session)
-
-    manager = (
-        await session.execute(
-            select(User)
-            .where(User.username == "newmanager")
-            .options(selectinload(User.memberships))
-        )
-    ).scalar_one()
-
-    assert manager.role is UserRole.MANAGER
-    assert manager.memberships == []
-
-
-async def test_re_running_the_demo_takes_the_fresh_manager_back_off_a_campaign(
-    session: AsyncSession,
-) -> None:
-    """Somebody assigns them a campaign; re-seeding has to hand it back."""
-    await import_geography(session)
-    await seed_demo(session)
-
-    fresh = (await session.execute(select(User).where(User.username == "newmanager"))).scalar_one()
-    campaign = (await session.execute(select(Campaign))).scalars().first()
-    assert campaign is not None
-    await add_member(session, campaign.id, fresh.id)
+    demo = await session.scalar(select(Campaign).where(Campaign.title == DEMO_CAMPAIGN_TITLE))
+    kip, _ = await new_login(session, username="kip", role=UserRole.MOBILIZER)
+    await add_mobilizer(session, demo, ward, kip)
     await session.commit()
 
     await seed_demo(session)
 
-    managed = (
-        await session.execute(
-            select(Campaign.title)
-            .join(CampaignMember, CampaignMember.campaign_id == Campaign.id)
-            .join(User, User.id == CampaignMember.user_id)
-            .where(User.username == "newmanager")
-        )
-    ).scalars()
-    assert list(managed) == []
+    assert await session.scalar(select(User.id).where(User.username == "kip")) is None
+    assert await session.scalar(select(User.role).where(User.username == "newmanager")) is (
+        UserRole.MANAGER
+    )
+    unlinked = select(func.count()).select_from(Mobilizer)
+    unlinked = unlinked.where(Mobilizer.campaign_id == elsewhere_id, Mobilizer.user_id.is_(None))
+    assert await session.scalar(unlinked) == 1
+    grounded = await session.execute(
+        select(Mobilizer.campaign_id, User.role, CampaignMember.campaign_id)
+        .join(User, User.id == Mobilizer.user_id)
+        .outerjoin(CampaignMember, CampaignMember.user_id == User.id)
+    )
+    for ground_campaign, role, member_campaign in grounded:
+        assert (role, member_campaign) == (UserRole.MOBILIZER, ground_campaign)
+
+
+async def test_the_demo_will_not_replace_a_superuser_with_a_demo_username(
+    session: AsyncSession,
+) -> None:
+    await _demo(session)
+    await session.execute(
+        User.__table__.update().where(User.username == "manager").values(is_superuser=True)
+    )
+    await session.commit()
+
+    with pytest.raises(ValueError, match="manager is a superuser"):
+        await seed_demo(session)
+
+    await session.rollback()
+    assert await session.scalar(select(User.is_superuser).where(User.username == "manager"))
+    assert list(await session.scalars(select(Campaign.title))) == [DEMO_CAMPAIGN_TITLE]
+
+
+async def test_a_demo_that_fails_part_way_keeps_the_old_demo(
+    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from backend.seed import demo
+
+    await _demo(session)
+    before = set(await session.scalars(select(User.id)))
+
+    async def _broken(*_):
+        raise RuntimeError("the ground game failed")
+
+    monkeypatch.setattr(demo, "_seed_ground_game", _broken)
+    with pytest.raises(RuntimeError):
+        await seed_demo(session)
+
+    await session.rollback()
+    assert set(await session.scalars(select(User.id))) == before
+    assert await session.scalar(select(func.count()).select_from(Target)) > 0
+    assert await session.scalar(select(func.count()).select_from(Mobilizer)) > 0

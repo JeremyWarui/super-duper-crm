@@ -1,6 +1,5 @@
-"""Request dependencies: the session, the caller, and what their role may do."""
+"""Request dependencies: the session, the signed-in caller, and role guards."""
 
-import uuid
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -14,119 +13,77 @@ from backend.models import AuthToken, User, UserRole
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
-# "Authorization: Token <key>".
 TOKEN_SCHEME = "Token"
 _header = APIKeyHeader(name="Authorization", auto_error=False, scheme_name="Token")
-AuthHeader = Annotated[str | None, Depends(_header)]
-
-NOT_AUTHENTICATED = HTTPException(
-    status.HTTP_401_UNAUTHORIZED,
-    "Authentication credentials were not provided.",
-    headers={"WWW-Authenticate": TOKEN_SCHEME},
-)
-INVALID_TOKEN = HTTPException(
-    status.HTTP_401_UNAUTHORIZED,
-    "Invalid token.",
-    headers={"WWW-Authenticate": TOKEN_SCHEME},
-)
 
 
-def parse_token_header(header: str | None) -> str | None:
-    """The key out of "Token <key>", or None if absent or malformed."""
+def _unauthorized(detail: str) -> HTTPException:
+    return HTTPException(
+        status.HTTP_401_UNAUTHORIZED, detail, headers={"WWW-Authenticate": TOKEN_SCHEME}
+    )
+
+
+async def get_current_user(
+    session: SessionDep, header: Annotated[str | None, Depends(_header)]
+) -> User:
+    """The caller named by "Authorization: Token <key>"; 401 when absent or unknown."""
     if not header:
-        return None
+        raise _unauthorized("Authentication credentials were not provided.")
     scheme, _, key = header.partition(" ")
     if scheme != TOKEN_SCHEME or not key.strip():
-        return None
-    return key.strip()
-
-
-async def get_optional_user(session: SessionDep, header: AuthHeader) -> User | None:
-    """The caller, or None when they sent no token.
-
-    An unknown token is an error, not an anonymous caller.
-    """
-    key = parse_token_header(header)
-    if key is None:
-        if header:
-            raise INVALID_TOKEN
-        return None
-    result = await session.execute(
+        raise _unauthorized("Invalid token.")
+    token = await session.scalar(
         select(AuthToken)
-        .where(AuthToken.key == key)
-        .options(
-            selectinload(AuthToken.user).selectinload(User.mobilizer_profile),
-        )
+        .where(AuthToken.key == key.strip())
+        .options(selectinload(AuthToken.user).selectinload(User.mobilizer_profile))
     )
-    token = result.scalar_one_or_none()
     if token is None or not token.user.is_active:
-        raise INVALID_TOKEN
+        raise _unauthorized("Invalid token.")
     return token.user
-
-
-OptionalUser = Annotated[User | None, Depends(get_optional_user)]
-
-
-async def get_current_user(user: OptionalUser) -> User:
-    if user is None:
-        raise NOT_AUTHENTICATED
-    return user
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def require_writer(*, mobilizer_writable: bool = False, candidate_writable: bool = False):
-    """Guard a write route. Managers always; the other roles only where allowed."""
+def require_role(*roles: UserRole, message: str | None = None):
+    """A guard letting only these roles through; 403 otherwise."""
 
     async def dependency(user: CurrentUser) -> User:
-        if user.role is UserRole.MANAGER:
-            return user
-        if user.role is UserRole.MOBILIZER and mobilizer_writable:
-            return user
-        if user.role is UserRole.CANDIDATE and candidate_writable:
-            return user
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
-            f"A {user.role.label} may not change this.",
-        )
+        if user.role not in roles:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, message or f"A {user.role.label} may not change this."
+            )
+        return user
 
     return dependency
 
 
 async def require_superuser(user: CurrentUser) -> User:
-    """Guard the admin routes.
-
-    A flag, not a role, so it can never be confused with the three campaign
-    roles and cannot be reached by signing up. It is set by
-    `campaign-crm createuser --superuser`.
-    """
     if not user.is_superuser:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "This is not yours to see.")
     return user
 
 
 AdminUser = Annotated[User, Depends(require_superuser)]
-"""Whoever runs the deployment. Reads past every campaign boundary."""
-
-
-Writer = Annotated[User, Depends(require_writer())]
-"""Managers only."""
-
-MobilizerWriter = Annotated[User, Depends(require_writer(mobilizer_writable=True))]
-"""Managers, and mobilizers in their own ward."""
-
-TeamWriter = Annotated[User, Depends(require_writer(candidate_writable=True))]
-"""Managers and candidates, who both put mobilizers on their campaign."""
-
-
-def mobilizer_ward_id(user: User) -> uuid.UUID | None:
-    """The one ward a mobilizer may see, or None for every other role.
-
-    Needs `User.mobilizer_profile` loaded. No profile means no ward, and so an
-    empty result rather than an error.
-    """
-    if user.role is not UserRole.MOBILIZER:
-        return None
-    profile = user.mobilizer_profile
-    return profile.ward_id if profile is not None else uuid.UUID(int=0)
+Writer = Annotated[User, Depends(require_role(UserRole.MANAGER))]
+MobilizerWriter = Annotated[User, Depends(require_role(UserRole.MANAGER, UserRole.MOBILIZER))]
+TeamWriter = Annotated[
+    User,
+    Depends(
+        require_role(
+            UserRole.MANAGER,
+            UserRole.CANDIDATE,
+            message="Only a candidate or a campaign manager may add or remove people.",
+        )
+    ),
+]
+SupporterTeam = Annotated[
+    User,
+    Depends(
+        require_role(
+            UserRole.MANAGER,
+            UserRole.MOBILIZER,
+            message="The supporter register is for the campaign team.",
+        )
+    ),
+]

@@ -5,7 +5,7 @@ import uuid
 from pydantic import Field
 
 from backend.models.enums import UserRole
-from backend.schemas.common import ORMModel, WriteModel
+from backend.schemas.common import LoginDetails, NewLogin, ORMModel, WriteModel
 
 
 class Totals(ORMModel):
@@ -25,7 +25,7 @@ class MemberRead(ORMModel):
     role: UserRole
 
 
-class WardRead(ORMModel):
+class AdminWardRead(ORMModel):
     id: uuid.UUID
     name: str
 
@@ -37,7 +37,7 @@ class AdminCampaignRead(ORMModel):
     candidate: str
     election_date: str | None
     members: list[MemberRead]
-    wards: list[WardRead]
+    wards: list[AdminWardRead]
     targets: int
     mobilizers: int
     events: int
@@ -47,7 +47,7 @@ class AdminCampaignRead(ORMModel):
 
 
 class AdminUserRead(ORMModel):
-    """A login. Never carries a hash, and never carries a password."""
+    """A login and the title of the campaign it is on, if any."""
 
     id: uuid.UUID
     username: str
@@ -58,7 +58,7 @@ class AdminUserRead(ORMModel):
     is_active: bool
     is_superuser: bool
     last_login_at: str | None
-    campaigns: list[tuple[uuid.UUID, str, UserRole]]
+    campaign: str | None
 
 
 class Overview(ORMModel):
@@ -73,7 +73,7 @@ class PasswordReset(WriteModel):
 
 
 class PasswordResult(ORMModel):
-    """`password` is shown this once and never again."""
+    """`password` is shown this once."""
 
     username: str
     password: str
@@ -84,32 +84,21 @@ class ActiveSet(WriteModel):
 
 
 class MemberAdd(WriteModel):
-    """The place a member takes is their login's role, so it is not asked for."""
+    """The place a member takes is their login's role."""
 
     user: uuid.UUID
 
 
-class AdminUserCreate(WriteModel):
-    """A new login, optionally placed on a campaign as it is made."""
+class AdminUserCreate(LoginDetails):
+    """A new login, optionally put on a campaign, and a ward for a mobilizer."""
 
-    username: str = Field(min_length=3, max_length=150, pattern=r"^[A-Za-z0-9._-]+$")
     role: UserRole
-    first_name: str = Field(default="", max_length=150)
-    last_name: str = Field(default="", max_length=150)
-    email: str = Field(default="", max_length=254)
-    phone: str = Field(default="", max_length=20)
     campaign: uuid.UUID | None = None
     ward: uuid.UUID | None = None
 
 
-class AdminUserCreated(ORMModel):
-    """`password` is shown this once and never again."""
-
-    id: uuid.UUID
-    username: str
-    full_name: str
+class AdminUserCreated(NewLogin):
     role: UserRole
-    password: str
 
 
 class CampaignRename(WriteModel):

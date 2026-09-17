@@ -14,11 +14,6 @@ class LabelledStrEnum(StrEnum):
         member.label = label
         return member
 
-    @classmethod
-    def choices(cls) -> list[tuple[str, str]]:
-        """Every member as a (value, label) pair."""
-        return [(member.value, member.label) for member in cls]
-
 
 class UserRole(LabelledStrEnum):
     CANDIDATE = ("candidate", "Candidate")

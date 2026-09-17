@@ -47,9 +47,6 @@ async def test_the_engine_uses_the_configured_dsn() -> None:
     assert get_engine().url.render_as_string() == "sqlite+aiosqlite://"
 
 
-# ------------------------------------------------------------- CockroachDB
-
-
 async def test_a_cockroach_dsn_builds_an_async_engine(monkeypatch: pytest.MonkeyPatch) -> None:
     """The deploy runs on CockroachDB, whose scheme needs its own dialect.
 

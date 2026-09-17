@@ -1,55 +1,43 @@
 # Tests
 
 ```bash
-uv run pytest          # everything, ~1 min; test_seed.py loads the real CSVs
+uv run pytest          # everything; test_seed.py loads the real CSVs
 uv run pytest tests    # tests only
-uv run pytest evals    # the schema guard only
+uv run pytest evals    # the SPA contract only
 ```
 
-They build an in-memory database from the real schema, so no Postgres server is
-needed and nothing touches the network.
+They build an in-memory SQLite database from the models, so no database server
+is needed and nothing touches the network.
 
 | File | What it covers |
 |---|---|
-| `test_models.py` | Keys, deletes, unique and check constraints, calculated values, enums |
-| `test_win_number.py` | The vote goal, across the edge cases |
-| `test_migrations.py` | The migrations build the schema the models describe, and reverse cleanly |
-| `test_schemas.py` | Response schemas expose their listed fields and nothing else |
-| `test_session.py` | Engine caching, and the rollback when a request fails |
-| `test_app.py` | The app starts, and every data route sits under /api |
-| `test_security.py` | Password hashing and token keys |
-| `test_auth_api.py` | Signing in and out, and what a stale token gets |
-| `test_geography_api.py` | The reference reads, and what each role may see |
-| `test_campaigns_api.py` | Campaign reads, and the one-call setup |
-| `test_targets_api.py` | Reading and editing the win number |
+| `test_models.py` | Keys, deletes, constraints, computed values, enums |
+| `test_win_number.py` | The vote goal across its edge cases |
+| `test_migrations.py` | The migration builds the models' schema, renders as Postgres, downgrades |
+| `test_manager_signup_flow.py` | Sign-up to setup, end to end, on the migrated schema |
+| `test_schemas.py` | Read schemas expose their listed fields and nothing else |
+| `test_session.py` | Engine caching, rollback, the CockroachDB DSN |
+| `test_app.py` | Startup, the /api prefix, CORS, the SPA mount, docs off in a deploy |
+| `test_security.py` | Password hashing, token keys, the default password |
+| `test_auth_api.py` | Sign-up, sign-in and sign-out |
+| `test_geography_api.py` | Reference reads, and a mobilizer's one ward |
+| `test_campaigns_api.py` | Campaign reads, setup, one campaign per login |
+| `test_users_api.py` | Mobilizer logins added and removed from inside a campaign |
 | `test_ground_api.py` | Mobilizers, events and the supporter register |
-| `test_strategy_api.py` | The computed dashboard and its three flags |
+| `test_ward_in_campaign.py` | A ward or centre in a request must lie inside the seat |
+| `test_targets_api.py` | Reading and editing the win number |
 | `test_targets_service.py` | Turning a seat into targets |
-| `test_seed.py` | The bundled CSVs, against the real files |
-| `test_sms.py` | Phone normalising, and both SMS providers |
-| `test_invite_api.py` | Inviting an event's supporters, and who may |
-| `test_users_api.py` | Creating team logins, and what the password does |
-| `../evals/test_schema_baseline.py` | No field leaves the schema without a recorded reason |
-| `../evals/test_frontend_contract.py` | The API still offers what the SPA reads and accepts what it sends |
+| `test_strategy_api.py` | The computed dashboard and its notes |
+| `test_invite_api.py` | Texting an event's supporters |
+| `test_sms.py` | Phone normalising and both SMS providers |
+| `test_admin_api.py` | The admin console and its superuser gate |
+| `test_cli.py` | campaign-crm |
+| `test_seed.py` | The bundled CSVs and the demo |
+| `../evals/test_frontend_contract.py` | The API offers what the SPA reads and accepts what it sends |
 
-## What the in-memory database does not cover
+SQLite cannot prove Postgres-only SQL, so `test_migrations.py` renders the
+migration for Postgres and checks the partial `WHERE` clauses and the
+`ON DELETE` rules. Driver behaviour against a running server is not covered.
 
-Driver behaviour. Postgres-specific SQL is covered: `test_migrations.py` renders
-the migrations offline for the Postgres dialect and checks the pieces SQLite
-cannot prove - the partial `WHERE` clauses on the target indexes, and the
-`ON DELETE` rules SQLite ignores unless a pragma is on. To read that SQL
-yourself:
-
-```bash
-DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:5432/DB uv run alembic upgrade head --sql
-```
-
-What is left is the driver: asyncpg's type handling, and anything that only
-shows up against a running server.
-
-## Conventions
-
-- Test names say what must be true, not which function is called.
-- A test of a database rule inserts a row to prove the rule is in the schema and
-  not only in Python.
-- Fixtures in `conftest.py`, object builders in `factories.py`.
+Fixtures live in `conftest.py`, object builders in `factories.py`. Test names
+say what must be true.

@@ -3,8 +3,6 @@
 The rest of the suite hashes cheaply; this module opts back out.
 """
 
-from collections.abc import Iterator
-
 import pytest
 
 from backend.config import get_settings
@@ -76,17 +74,6 @@ def test_a_token_key_is_forty_hex_characters_and_unique() -> None:
     keys = {new_token_key() for _ in range(100)}
     assert len(keys) == 100
     assert all(len(k) == 40 and int(k, 16) >= 0 for k in keys)
-
-
-# ------------------------------------------------- the password a route hands out
-
-
-@pytest.fixture
-def fresh_settings() -> Iterator[None]:
-    """Read the environment again, either side of the test."""
-    get_settings.cache_clear()
-    yield
-    get_settings.cache_clear()
 
 
 def test_a_blank_default_generates_a_different_password_each_time(

@@ -256,8 +256,7 @@ describe("the source against the contract", () => {
   });
 
   it("contracts a body for every call that sends one", () => {
-    // Dropping a write entry used to pass, because the same path was still
-    // listed as a read.
+    // Checked apart from reads, which can list the same path.
     const sending = new Set(
       [...CALLED()].filter((call) => !call.startsWith("GET ")),
     );

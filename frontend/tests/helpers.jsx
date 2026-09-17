@@ -291,7 +291,7 @@ export const ADMIN_USERS = [
     is_active: true,
     is_superuser: false,
     last_login_at: "2026-09-10T08:00:00+00:00",
-    campaigns: [["c1", "Jane for Roysambu", "manager"]],
+    campaign: "Jane for Roysambu",
   },
   {
     id: "u-jane",
@@ -303,7 +303,7 @@ export const ADMIN_USERS = [
     is_active: false,
     is_superuser: false,
     last_login_at: null,
-    campaigns: [["c1", "Jane for Roysambu", "candidate"]],
+    campaign: "Jane for Roysambu",
   },
   {
     id: "root",
@@ -315,6 +315,6 @@ export const ADMIN_USERS = [
     is_active: true,
     is_superuser: true,
     last_login_at: "2026-09-12T09:00:00+00:00",
-    campaigns: [],
+    campaign: null,
   },
 ];

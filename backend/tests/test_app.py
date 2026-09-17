@@ -54,9 +54,6 @@ async def test_cors_headers_are_sent_for_the_vite_dev_server(
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
 
 
-# ------------------------------------------------------ serving the built SPA
-
-
 async def test_no_static_dir_serves_the_api_alone(client: httpx.AsyncClient) -> None:
     """Dev runs the SPA on Vite, so nothing is mounted at /."""
     assert (await client.get("/")).status_code == 404
@@ -91,9 +88,6 @@ async def test_a_missing_static_dir_fails_at_startup(monkeypatch: pytest.MonkeyP
             create_app()
     finally:
         get_settings.cache_clear()
-
-
-# --------------------------------------------------- what a deploy serves
 
 
 async def _built(monkeypatch: pytest.MonkeyPatch, *, debug: str) -> httpx.AsyncClient:

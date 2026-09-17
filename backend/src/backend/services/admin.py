@@ -1,16 +1,8 @@
-"""Cross-campaign operations, for whoever runs the deployment.
-
-Everything here reads past the membership scoping that holds every other route,
-so it is the one place in the codebase that can. It is reached only by a
-superuser, and only through `/api/admin/` or the command line; nothing in
-`backend.api.scope` calls into it, and it calls nothing there.
-"""
+"""Operations across every campaign, for a superuser through the console or the command line."""
 
 import uuid
-from dataclasses import dataclass
 
 from sqlalchemy import delete, func, select, update
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -26,162 +18,109 @@ from backend.models import (
     UserRole,
     Ward,
 )
+from backend.schemas.admin import (
+    AdminCampaignRead,
+    AdminUserRead,
+    AdminWardRead,
+    MemberRead,
+    Totals,
+)
 from backend.security import hash_password, new_password
-from backend.services.membership import membership_refusal
+from backend.services.accounts import add_member as join
+from backend.services.accounts import add_mobilizer, new_login, user_named
+from backend.services.errors import NotFound, Refused
 from backend.services.targets import ward_in_area, wards_in_area
 
-
-class AdminError(Exception):
-    """Something the caller asked for cannot be done, with a reason to show them."""
-
-
-class NotFound(AdminError):
-    """The user or campaign a route names in its path does not exist."""
-
-
-@dataclass
-class MemberRow:
-    user_id: uuid.UUID
-    username: str
-    full_name: str
-    role: UserRole
-
-
-@dataclass
-class WardRow:
-    id: uuid.UUID
-    name: str
-
-
-@dataclass
-class CampaignRow:
-    """One campaign, its team and how much of it exists."""
-
-    id: uuid.UUID
-    title: str
-    office_level: str
-    candidate: str
-    election_date: str | None
-    members: list[MemberRow]
-    # The wards this campaign works, so a mobilizer can be given one of them.
-    wards: list[WardRow]
-    targets: int
-    mobilizers: int
-    events: int
-    supporters: int
-    votes_needed: int
-    votes_committed: int
-
-
-@dataclass
-class UserRow:
-    id: uuid.UUID
-    username: str
-    full_name: str
-    email: str
-    phone: str
-    role: UserRole
-    is_active: bool
-    is_superuser: bool
-    last_login_at: str | None
-    campaigns: list[tuple[uuid.UUID, str, UserRole]]
-    """campaign id, title, the place they hold on it."""
-
-
-@dataclass
-class Totals:
-    campaigns: int
-    users: int
-    members: int
-    targets: int
-    mobilizers: int
-    events: int
-    supporters: int
+SIZED = {"targets": Target, "mobilizers": Mobilizer, "events": Event, "supporters": Supporter}
 
 
 async def totals(session: AsyncSession) -> Totals:
-    """One number per table, for the top of the dashboard."""
-
-    async def count(model: type) -> int:
-        return (await session.execute(select(func.count()).select_from(model))).scalar_one()
-
+    """One row count per table."""
+    tables = {"campaigns": Campaign, "users": User, "members": CampaignMember, **SIZED}
     return Totals(
-        campaigns=await count(Campaign),
-        users=await count(User),
-        members=await count(CampaignMember),
-        targets=await count(Target),
-        mobilizers=await count(Mobilizer),
-        events=await count(Event),
-        supporters=await count(Supporter),
+        **{
+            name: await session.scalar(select(func.count()).select_from(model))
+            for name, model in tables.items()
+        }
     )
 
 
-async def _counts_by_campaign(session: AsyncSession, model: type) -> dict[uuid.UUID, int]:
-    rows = await session.execute(
-        select(model.campaign_id, func.count()).group_by(model.campaign_id)
-    )
-    return {campaign_id: total for campaign_id, total in rows}
+async def _campaign(session: AsyncSession, campaign_id: uuid.UUID) -> Campaign:
+    found = await session.get(Campaign, campaign_id)
+    if found is None:
+        raise NotFound("No such campaign.")
+    return found
+
+
+async def _user(session: AsyncSession, user_id: uuid.UUID) -> User:
+    found = await session.get(User, user_id)
+    if found is None:
+        raise NotFound("No such user.")
+    return found
 
 
 async def campaigns(
     session: AsyncSession, campaign_id: uuid.UUID | None = None
-) -> list[CampaignRow]:
-    """Every campaign, or one of them, with its team and its size."""
-    statement = select(Campaign).options(
-        selectinload(Campaign.candidate),
-        selectinload(Campaign.members).selectinload(CampaignMember.user),
+) -> list[AdminCampaignRead]:
+    """Every campaign, or one, with its team, wards and size, oldest first."""
+    statement = (
+        select(Campaign)
+        .options(selectinload(Campaign.members).selectinload(CampaignMember.user))
+        .order_by(Campaign.created_at)
     )
     if campaign_id is not None:
         statement = statement.where(Campaign.id == campaign_id)
-    found = list((await session.execute(statement)).scalars())
+    found = list((await session.scalars(statement)).all())
+    ids = [c.id for c in found]
 
-    targets = await _counts_by_campaign(session, Target)
-    mobilizers = await _counts_by_campaign(session, Mobilizer)
-    events = await _counts_by_campaign(session, Event)
-    supporters = await _counts_by_campaign(session, Supporter)
+    counts = {}
+    for name, model in SIZED.items():
+        rows = await session.execute(
+            select(model.campaign_id, func.count())
+            .where(model.campaign_id.in_(ids))
+            .group_by(model.campaign_id)
+        )
+        counts[name] = dict(rows.tuples().all())
     votes = {
-        campaign: (needed or 0, committed or 0)
-        for campaign, needed, committed in (
-            await session.execute(
-                select(
-                    Target.campaign_id,
-                    func.sum(Target.votes_needed),
-                    func.sum(Target.votes_committed),
-                ).group_by(Target.campaign_id)
+        row[0]: (row[1] or 0, row[2] or 0)
+        for row in await session.execute(
+            select(
+                Target.campaign_id, func.sum(Target.votes_needed), func.sum(Target.votes_committed)
             )
+            .where(Target.campaign_id.in_(ids))
+            .group_by(Target.campaign_id)
         )
     }
 
     rows = []
-    for campaign in sorted(found, key=lambda c: c.created_at):
+    for campaign in found:
+        members = sorted(campaign.members, key=lambda m: (m.role.value, m.user.username))
         needed, committed = votes.get(campaign.id, (0, 0))
-        wards = [WardRow(id=w.id, name=w.name) for w in await wards_in_area(session, campaign)]
         rows.append(
-            CampaignRow(
+            AdminCampaignRead(
                 id=campaign.id,
                 title=campaign.title,
                 office_level=campaign.office_level.value,
-                candidate=campaign.candidate.username if campaign.candidate else "",
-                election_date=(
-                    campaign.election_date.isoformat() if campaign.election_date else None
+                candidate=next(
+                    (m.user.username for m in members if m.role is UserRole.CANDIDATE), ""
                 ),
-                wards=wards,
-                members=sorted(
-                    (
-                        MemberRow(
-                            user_id=m.user_id,
-                            username=m.user.username,
-                            full_name=m.user.full_name,
-                            role=m.role,
-                        )
-                        for m in campaign.members
-                    ),
-                    key=lambda m: (m.role.value, m.username),
-                ),
-                targets=targets.get(campaign.id, 0),
-                mobilizers=mobilizers.get(campaign.id, 0),
-                events=events.get(campaign.id, 0),
-                supporters=supporters.get(campaign.id, 0),
+                election_date=campaign.election_date.isoformat()
+                if campaign.election_date
+                else None,
+                members=[
+                    MemberRead(
+                        user_id=m.user_id,
+                        username=m.user.username,
+                        full_name=m.user.full_name,
+                        role=m.role,
+                    )
+                    for m in members
+                ],
+                wards=[
+                    AdminWardRead(id=w.id, name=w.name)
+                    for w in await wards_in_area(session, campaign)
+                ],
+                **{name: counted.get(campaign.id, 0) for name, counted in counts.items()},
                 votes_needed=int(needed),
                 votes_committed=int(committed),
             )
@@ -189,204 +128,125 @@ async def campaigns(
     return rows
 
 
+async def campaign(session: AsyncSession, campaign_id: uuid.UUID) -> AdminCampaignRead:
+    found = await campaigns(session, campaign_id)
+    if not found:
+        raise NotFound("No such campaign.")
+    return found[0]
+
+
 async def users(
     session: AsyncSession,
     role: UserRole | None = None,
     campaign_id: uuid.UUID | None = None,
     user_id: uuid.UUID | None = None,
-) -> list[UserRow]:
-    """Every login, or one of them, and the campaigns each one reaches."""
-    statement = select(User).order_by(User.username).options(selectinload(User.memberships))
+) -> list[AdminUserRead]:
+    """Every login matching the filters, with the title of the campaign it is on."""
+    statement = (
+        select(User, Campaign.title)
+        .outerjoin(CampaignMember, CampaignMember.user_id == User.id)
+        .outerjoin(Campaign, Campaign.id == CampaignMember.campaign_id)
+        .order_by(User.username)
+    )
     if role is not None:
         statement = statement.where(User.role == role)
+    if campaign_id is not None:
+        statement = statement.where(CampaignMember.campaign_id == campaign_id)
     if user_id is not None:
         statement = statement.where(User.id == user_id)
-    found = list((await session.execute(statement)).scalars())
-
-    titles = {row.id: row.title for row in (await session.execute(select(Campaign))).scalars()}
-
-    rows = []
-    for user in found:
-        places = [
-            (m.campaign_id, titles.get(m.campaign_id, str(m.campaign_id)), m.role)
-            for m in user.memberships
-        ]
-        if campaign_id is not None and not any(c == campaign_id for c, _, _ in places):
-            continue
-        rows.append(
-            UserRow(
-                id=user.id,
-                username=user.username,
-                full_name=user.full_name,
-                email=user.email,
-                phone=user.phone,
-                role=user.role,
-                is_active=user.is_active,
-                is_superuser=user.is_superuser,
-                last_login_at=(
-                    user.last_login_at.isoformat() if user.last_login_at is not None else None
-                ),
-                campaigns=sorted(places, key=lambda p: p[1]),
-            )
+    return [
+        AdminUserRead(
+            id=login.id,
+            username=login.username,
+            full_name=login.full_name,
+            email=login.email,
+            phone=login.phone,
+            role=login.role,
+            is_active=login.is_active,
+            is_superuser=login.is_superuser,
+            last_login_at=login.last_login_at.isoformat() if login.last_login_at else None,
+            campaign=title,
         )
-    return rows
+        for login, title in await session.execute(statement)
+    ]
+
+
+async def user(session: AsyncSession, user_id: uuid.UUID) -> AdminUserRead:
+    found = await users(session, user_id=user_id)
+    if not found:
+        raise NotFound("No such user.")
+    return found[0]
+
+
+async def user_by_name(session: AsyncSession, username: str) -> User:
+    found = await user_named(session, username)
+    if found is None:
+        raise NotFound(f"No user called {username}.")
+    return found
 
 
 async def reset_password(session: AsyncSession, user_id: uuid.UUID, password: str | None) -> str:
-    """Give a login a new password and sign out every session it has."""
-    user = await session.get(User, user_id)
-    if user is None:
-        raise NotFound("No such user.")
-    if not user.is_active:
-        raise AdminError(
-            f"{user.username} is disabled, so a new password would not sign them in. "
+    """Give a login a new password and sign out its session."""
+    login = await _user(session, user_id)
+    if not login.is_active:
+        raise Refused(
+            f"{login.username} is disabled, so a new password would not sign them in. "
             "Enable the login first."
         )
-
     chosen = password or new_password()
-    user.password_hash = hash_password(chosen)
-    await session.execute(delete(AuthToken).where(AuthToken.user_id == user.id))
+    login.password_hash = hash_password(chosen)
+    await session.execute(delete(AuthToken).where(AuthToken.user_id == login.id))
     await session.commit()
     return chosen
 
 
 async def set_active(session: AsyncSession, user_id: uuid.UUID, active: bool) -> User:
-    """Turn a login off or on. Off refuses a new sign-in and drops the live token."""
-    user = await session.get(User, user_id)
-    if user is None:
-        raise NotFound("No such user.")
-    if user.is_superuser and not active:
-        # One is allowed to go so a compromised account can be shut off; the
-        # last one is not, because nothing could then reach the console.
+    """Turn a login on or off; off signs it out. The last active superuser stays on."""
+    login = await _user(session, user_id)
+    if login.is_superuser and not active:
         others = await session.scalar(
             select(func.count())
             .select_from(User)
-            .where(User.is_superuser.is_(True), User.is_active.is_(True), User.id != user.id)
+            .where(User.is_superuser.is_(True), User.is_active.is_(True), User.id != login.id)
         )
         if not others:
-            raise AdminError("That is the only superuser left, so nothing could run the console.")
-
-    user.is_active = active
+            raise Refused("That is the only superuser left, so nothing could run the console.")
+    login.is_active = active
     if not active:
-        await session.execute(delete(AuthToken).where(AuthToken.user_id == user.id))
+        await session.execute(delete(AuthToken).where(AuthToken.user_id == login.id))
     await session.commit()
-    return user
+    return login
 
 
 async def add_member(
     session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID
 ) -> CampaignMember:
-    """Put somebody on a campaign, in the capacity their login carries.
-
-    The place comes from `users.role`. Every permission check reads that column,
-    so a membership row saying anything else would name a capacity the member
-    does not have.
-    """
-    campaign = await session.get(Campaign, campaign_id)
-    if campaign is None:
-        raise NotFound("No such campaign.")
-    user = await session.get(User, user_id)
-    if user is None:
-        raise AdminError("No such user.")
-    refusal = await membership_refusal(session, user, campaign_id)
-    if refusal is not None:
-        raise AdminError(refusal)
-
-    existing = await session.scalar(
-        select(CampaignMember).where(
-            CampaignMember.campaign_id == campaign_id, CampaignMember.user_id == user_id
-        )
-    )
-    if existing is not None:
-        existing.role = user.role
-        await session.commit()
-        return existing
-
-    member = CampaignMember(campaign_id=campaign_id, user_id=user_id, role=user.role)
-    session.add(member)
+    target = await _campaign(session, campaign_id)
+    login = await session.get(User, user_id)
+    if login is None:
+        raise Refused("No such user.")
+    member = await join(session, target.id, login)
     await session.commit()
     return member
 
 
-async def rename_campaign(session: AsyncSession, campaign_id: uuid.UUID, title: str) -> Campaign:
-    """Change what a campaign is called. Nothing else about it moves."""
-    campaign = await session.get(Campaign, campaign_id)
-    if campaign is None:
-        raise NotFound("No such campaign.")
-    cleaned = title.strip()
-    if not cleaned:
-        raise AdminError("A campaign needs a name.")
-
-    campaign.title = cleaned
-    await session.commit()
-    return campaign
-
-
-async def logins_deleted_with(session: AsyncSession, campaign_id: uuid.UUID) -> list[User]:
-    """The logins deleting this campaign deletes, by username.
-
-    Everyone on it or on its ground team, except a superuser.
-    """
-    on_it = select(CampaignMember.user_id).where(CampaignMember.campaign_id == campaign_id)
-    on_the_ground = select(Mobilizer.user_id).where(
-        Mobilizer.campaign_id == campaign_id, Mobilizer.user_id.is_not(None)
-    )
-    return list(
-        (
-            await session.execute(
-                select(User)
-                .where(User.id.in_(on_it.union(on_the_ground)), User.is_superuser.is_(False))
-                .order_by(User.username)
-            )
-        ).scalars()
-    )
-
-
-async def delete_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list[str]:
-    """Delete a campaign, everything on it, and `logins_deleted_with` it.
-
-    Returns the usernames deleted.
-    """
-    campaign = await session.get(Campaign, campaign_id)
-    if campaign is None:
-        raise NotFound("No such campaign.")
-
-    people = await logins_deleted_with(session, campaign_id)
-    usernames = [person.username for person in people]
-    # The database's ON DELETE rules take the tokens, memberships, targets,
-    # mobilizers, events and supporters.
-    if people:
-        await session.execute(delete(User).where(User.id.in_([person.id for person in people])))
-    await session.execute(delete(Campaign).where(Campaign.id == campaign_id))
-    await session.commit()
-    return usernames
-
-
 async def remove_member(session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID) -> None:
-    """Take somebody off a campaign. Their login and their work stay.
-
-    A mobilizer's ground row there keeps its work but lets go of their login, so
-    they are on no campaign and may be put on another.
-    """
-    campaign = await session.get(Campaign, campaign_id)
-    if campaign is None:
-        raise NotFound("No such campaign.")
+    """Take somebody off a campaign, freeing a mobilizer's ground row there; the login stays."""
+    await _campaign(session, campaign_id)
     place = await session.scalar(
         select(CampaignMember.role).where(
             CampaignMember.campaign_id == campaign_id, CampaignMember.user_id == user_id
         )
     )
+    if place is None:
+        raise Refused("They are not on that campaign.")
     if place is UserRole.CANDIDATE:
-        raise AdminError("That is the candidate this campaign is for; delete the campaign instead.")
-
-    removed = await session.execute(
+        raise Refused("That is the candidate this campaign is for; delete the campaign instead.")
+    await session.execute(
         delete(CampaignMember).where(
             CampaignMember.campaign_id == campaign_id, CampaignMember.user_id == user_id
         )
     )
-    if not removed.rowcount:
-        await session.rollback()
-        raise AdminError("They are not on that campaign.")
     await session.execute(
         update(Mobilizer)
         .where(Mobilizer.campaign_id == campaign_id, Mobilizer.user_id == user_id)
@@ -395,9 +255,45 @@ async def remove_member(session: AsyncSession, campaign_id: uuid.UUID, user_id: 
     await session.commit()
 
 
-async def _username_taken(session: AsyncSession, username: str) -> bool:
-    """Whether the name is gone. Advisory: the unique constraint is the ruling."""
-    return await session.scalar(select(User).where(User.username == username)) is not None
+async def rename_campaign(session: AsyncSession, campaign_id: uuid.UUID, title: str) -> Campaign:
+    renamed = await _campaign(session, campaign_id)
+    if not title.strip():
+        raise Refused("A campaign needs a name.")
+    renamed.title = title.strip()
+    await session.commit()
+    return renamed
+
+
+async def logins_on(session: AsyncSession, campaign_id: uuid.UUID) -> list[User]:
+    """The logins on a campaign, by username."""
+    statement = (
+        select(User)
+        .join(CampaignMember, CampaignMember.user_id == User.id)
+        .where(CampaignMember.campaign_id == campaign_id)
+        .order_by(User.username)
+    )
+    return list((await session.scalars(statement)).all())
+
+
+async def remove_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list[str]:
+    """Delete a campaign, everything on it and its people's logins, without committing.
+
+    Returns the deleted usernames.
+    """
+    people = await logins_on(session, campaign_id)
+    if people:
+        await session.execute(delete(User).where(User.id.in_([p.id for p in people])))
+    # The database's ON DELETE rules take the rest.
+    await session.execute(delete(Campaign).where(Campaign.id == campaign_id))
+    return [p.username for p in people]
+
+
+async def delete_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list[str]:
+    """Delete a campaign, everything on it and its people's logins; returns their usernames."""
+    await _campaign(session, campaign_id)
+    gone = await remove_campaign(session, campaign_id)
+    await session.commit()
+    return gone
 
 
 async def create_user(
@@ -412,81 +308,47 @@ async def create_user(
     campaign_id: uuid.UUID | None = None,
     ward_id: uuid.UUID | None = None,
 ) -> tuple[User, str]:
-    """Create a login, and put it on a campaign when one is named.
-
-    Returns the login and its password, which is generated here and never
-    stored in the clear, so this is the only time it can be read.
-    """
-    if await _username_taken(session, username):
-        raise AdminError(f"The username {username} is already taken.")
-
-    campaign: Campaign | None = None
+    """Create a login, on a campaign when one is named; returns it and its password."""
+    target = await session.get(Campaign, campaign_id) if campaign_id is not None else None
+    if campaign_id is not None and target is None:
+        raise Refused("No such campaign.")
     ward: Ward | None = None
-    if campaign_id is not None:
-        campaign = await session.get(Campaign, campaign_id)
-        if campaign is None:
-            raise AdminError("No such campaign.")
-        if role is UserRole.CANDIDATE:
-            # A campaign is for one candidate. `campaign.candidate` is lazy and
-            # not loaded here, so the name is read with a query.
-            theirs = await session.scalar(
-                select(User.username)
-                .join(CampaignMember, CampaignMember.user_id == User.id)
-                .where(
-                    CampaignMember.campaign_id == campaign.id,
-                    CampaignMember.role == UserRole.CANDIDATE,
-                )
+    if role is UserRole.MOBILIZER:
+        if target is None:
+            raise Refused("A mobilizer needs a campaign and a ward, or they sign in to nothing.")
+        if ward_id is None:
+            raise Refused("A mobilizer needs a ward, or they sign in to nothing.")
+        ward = await session.get(Ward, ward_id)
+        if ward is None:
+            raise Refused("No such ward.")
+        if not await ward_in_area(session, target, ward_id):
+            raise Refused(f"{ward.name} is not a ward {target.title} works.")
+    if role is UserRole.CANDIDATE and target is not None:
+        sitting = await session.scalar(
+            select(User.username)
+            .join(CampaignMember, CampaignMember.user_id == User.id)
+            .where(
+                CampaignMember.campaign_id == target.id, CampaignMember.role == UserRole.CANDIDATE
             )
-            raise AdminError(
-                f"{campaign.title} is already {theirs}'s campaign. "
-                "Create the aspirant on their own, then set a campaign up for them."
-            )
-        if role is UserRole.MOBILIZER:
-            if ward_id is None:
-                raise AdminError("A mobilizer needs a ward, or they sign in to nothing.")
-            ward = await session.get(Ward, ward_id)
-            if ward is None:
-                raise AdminError("No such ward.")
-            if not await ward_in_area(session, campaign, ward_id):
-                raise AdminError(f"{ward.name} is not a ward {campaign.title} works.")
-    elif role is UserRole.MOBILIZER:
-        raise AdminError("A mobilizer needs a campaign and a ward, or they sign in to nothing.")
+        )
+        taken = f"is already {sitting}'s campaign" if sitting else "has no candidate"
+        raise Refused(
+            f"{target.title} {taken}. "
+            "Create the aspirant on their own, then put them on a campaign."
+        )
 
-    password = new_password()
-    created = User(
+    created, password = await new_login(
+        session,
         username=username,
         role=role,
         first_name=first_name,
         last_name=last_name,
         email=email,
         phone=phone,
-        password_hash=hash_password(password),
     )
-    session.add(created)
-    try:
-        # The insert, not the lookup above, is what the unique constraint rules
-        # on: two creates can both pass the check and arrive here.
-        await session.flush()
-    except IntegrityError as clash:
-        await session.rollback()
-        raise AdminError(f"The username {username} is already taken.") from clash
-
-    if campaign is not None:
-        refusal = await membership_refusal(session, created, campaign.id)
-        if refusal is not None:  # pragma: no cover - a login made here is always eligible
-            raise AdminError(refusal)
-        member = CampaignMember(campaign_id=campaign.id, user_id=created.id, role=created.role)
-        session.add(member)
-        if ward is not None:
-            session.add(
-                Mobilizer(
-                    campaign_id=campaign.id,
-                    ward_id=ward.id,
-                    user_id=created.id,
-                    full_name=created.full_name or created.username,
-                    phone=created.phone,
-                )
-            )
-
+    if ward is not None:
+        await add_mobilizer(session, target, ward, created)
+    elif target is not None:
+        await join(session, target.id, created)
     await session.commit()
     return created, password

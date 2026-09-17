@@ -3,7 +3,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Index, UniqueConstraint, Uuid, text
+from sqlalchemy import ForeignKey, Index, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
@@ -15,17 +15,10 @@ if TYPE_CHECKING:
 
 
 class CampaignMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """One person on one campaign.
-
-    The only thing that decides what a caller may read, and the only record of
-    who a campaign is for: its candidate is the member whose role is candidate.
-    A login is on at most one campaign; a campaign may have several managers and
-    mobilizers but one candidate.
-    """
+    """A login's place on its one campaign; the member whose role is candidate owns it."""
 
     __tablename__ = "campaign_members"
     __table_args__ = (
-        UniqueConstraint("campaign_id", "user_id"),
         Index("uq_campaign_members_one_campaign_per_user", "user_id", unique=True),
         Index(
             "uq_campaign_members_one_candidate",
@@ -39,9 +32,7 @@ class CampaignMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     campaign_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
     )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"))
     role: Mapped[UserRole] = mapped_column(choice_type(UserRole, "member_role"))
 
     campaign: Mapped["Campaign"] = relationship(back_populates="members")
