@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import AuthToken, CampaignMember, User, UserRole
 from tests.conftest import World
-from tests.factories import auth, make_user, sign_in
+from tests.factories import TEST_PASSWORD, auth, fresh_password, make_user, sign_in
 
 
 def _admin_gets() -> list[str]:
@@ -100,7 +100,7 @@ async def test_signing_up_cannot_make_a_superuser(
             "/api/auth/register/",
             json={
                 "username": "sneaky",
-                "password": "a-long-enough-password",
+                "password": TEST_PASSWORD,
                 "role": "manager",
                 "is_superuser": True,
             },
@@ -233,15 +233,16 @@ async def test_a_reset_can_be_given_a_chosen_password(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     head = await _admin(session, client)
+    chosen = fresh_password()
 
     reply = await client.post(
         f"/api/admin/users/{world.candidate.id}/reset-password/",
         headers=head,
-        json={"password": "a-chosen-password"},
+        json={"password": chosen},
     )
 
-    assert reply.json()["password"] == "a-chosen-password"
-    assert await sign_in(client, "jane", "a-chosen-password")
+    assert reply.json()["password"] == chosen
+    assert await sign_in(client, "jane", chosen)
 
 
 async def test_a_short_chosen_password_is_refused(
@@ -252,7 +253,7 @@ async def test_a_short_chosen_password_is_refused(
     reply = await client.post(
         f"/api/admin/users/{world.candidate.id}/reset-password/",
         headers=head,
-        json={"password": "short"},
+        json={"password": fresh_password()[:5]},
     )
 
     assert reply.status_code == 400

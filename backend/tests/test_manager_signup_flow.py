@@ -6,6 +6,7 @@ schema, on a database that already holds a campaign belonging to somebody else.
 """
 
 import importlib.util
+import secrets
 import uuid
 from decimal import Decimal
 from pathlib import Path
@@ -17,6 +18,7 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
+LOGIN_PASSWORD = secrets.token_urlsafe(16)
 VERSIONS = sorted((Path(__file__).resolve().parent.parent / "alembic" / "versions").glob("*.py"))
 
 
@@ -140,7 +142,7 @@ async def test_a_manager_signs_up_and_stands_a_campaign_up_for_an_aspirant(
 
     reply = await client.post(
         "/api/auth/register/",
-        json={"username": "newmanager", "password": "a-long-enough-password", "role": "manager"},
+        json={"username": "newmanager", "password": LOGIN_PASSWORD, "role": "manager"},
     )
     assert reply.status_code == 201, reply.text
     head = {"Authorization": f"Token {reply.json()['token']}"}
@@ -274,12 +276,12 @@ async def test_the_backfill_puts_an_existing_deployment_back_on_its_campaigns(
         jane = User(
             username="jane",
             role=UserRole.CANDIDATE,
-            password_hash=hash_password("a-long-enough-password"),
+            password_hash=hash_password(LOGIN_PASSWORD),
         )
         boots = User(
             username="boots",
             role=UserRole.MOBILIZER,
-            password_hash=hash_password("a-long-enough-password"),
+            password_hash=hash_password(LOGIN_PASSWORD),
         )
         session.add_all([jane, boots])
         await session.flush()
@@ -317,7 +319,7 @@ async def test_the_backfill_puts_an_existing_deployment_back_on_its_campaigns(
             for who in ("jane", "boots"):
                 signed_in = await client.post(
                     "/api/auth/login/",
-                    json={"username": who, "password": "a-long-enough-password"},
+                    json={"username": who, "password": LOGIN_PASSWORD},
                 )
                 assert signed_in.status_code == 200, signed_in.text
                 seen = await client.get(

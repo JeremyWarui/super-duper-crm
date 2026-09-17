@@ -21,6 +21,11 @@ from backend.security import hash_password
 TEST_PASSWORD = secrets.token_urlsafe(16)
 
 
+def fresh_password() -> str:
+    """A password no other account in the test holds."""
+    return secrets.token_urlsafe(16)
+
+
 async def make_geography(session, *, ward_voters: int | None = 10_000):
     """County -> Constituency -> Ward -> RegistrationCentre, committed."""
     county = County(name="Nairobi", code="047", registered_voters=2_400_000)

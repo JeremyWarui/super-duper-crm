@@ -11,7 +11,7 @@ from backend.api.scope import add_member
 from backend.config import get_settings
 from backend.models import Campaign, CampaignMember, Target, User, UserRole
 from tests.conftest import World
-from tests.factories import auth, make_user, sign_in
+from tests.factories import auth, fresh_password, make_user, sign_in
 
 
 async def test_listing_campaigns_needs_a_token(client: httpx.AsyncClient) -> None:
@@ -351,7 +351,8 @@ async def test_a_manager_creates_the_aspirant_and_gets_their_password_once(
 async def test_the_default_password_reaches_the_aspirant_created_at_setup(
     client: httpx.AsyncClient, world: World, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    shared = fresh_password()
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", shared)
     get_settings.cache_clear()
     try:
         response = await client.post(
@@ -363,7 +364,7 @@ async def test_the_default_password_reaches_the_aspirant_created_at_setup(
         get_settings.cache_clear()
 
     assert response.status_code == 201
-    assert response.json()["candidate_login"]["password"] == "campaign1234"
+    assert response.json()["candidate_login"]["password"] == shared
 
 
 async def test_that_new_aspirant_can_sign_in_and_see_their_campaign(

@@ -8,7 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.config import get_settings
 from backend.models import AuthToken, User, UserRole
 from backend.security import verify_password
-from tests.factories import TEST_PASSWORD, auth, make_user, sign_in
+from tests.factories import TEST_PASSWORD, auth, fresh_password, make_user, sign_in
+
+SIGNUP_PASSWORD = fresh_password()
 
 
 async def test_signing_in_returns_a_token_and_the_caller(
@@ -48,7 +50,7 @@ async def test_a_wrong_password_is_rejected_in_the_shape_the_form_reads(
 ) -> None:
     await make_user(session, username="amina")
     response = await client.post(
-        "/api/auth/login/", json={"username": "amina", "password": "wrong"}
+        "/api/auth/login/", json={"username": "amina", "password": fresh_password()}
     )
     assert response.status_code == 400
     body = response.json()
@@ -60,8 +62,9 @@ async def test_an_unknown_username_gets_the_same_message_as_a_wrong_password(
     client: httpx.AsyncClient, session
 ) -> None:
     await make_user(session, username="amina")
-    unknown = await client.post("/api/auth/login/", json={"username": "ghost", "password": "x"})
-    wrong = await client.post("/api/auth/login/", json={"username": "amina", "password": "x"})
+    guess = fresh_password()
+    unknown = await client.post("/api/auth/login/", json={"username": "ghost", "password": guess})
+    wrong = await client.post("/api/auth/login/", json={"username": "amina", "password": guess})
     assert unknown.status_code == wrong.status_code == 400
     assert unknown.json() == wrong.json()
 
@@ -145,7 +148,7 @@ async def test_deleting_a_user_deletes_their_token(client: httpx.AsyncClient, se
 def _signup(**overrides) -> dict:
     body = {
         "username": "newaspirant2",
-        "password": "a-real-password",
+        "password": SIGNUP_PASSWORD,
         "role": "candidate",
         "first_name": "Jane",
         "last_name": "Wanjiru",
@@ -235,13 +238,13 @@ async def test_the_password_it_stores_is_hashed(
     created = (
         await session.execute(select(User).where(User.username == "newaspirant2"))
     ).scalar_one()
-    assert "a-real-password" not in created.password_hash
-    assert verify_password("a-real-password", created.password_hash)
+    assert SIGNUP_PASSWORD not in created.password_hash
+    assert verify_password(SIGNUP_PASSWORD, created.password_hash)
 
 
 async def test_a_short_password_is_refused(client: httpx.AsyncClient) -> None:
     assert (
-        await client.post("/api/auth/register/", json=_signup(password="short"))
+        await client.post("/api/auth/register/", json=_signup(password=fresh_password()[:5]))
     ).status_code == 400
 
 

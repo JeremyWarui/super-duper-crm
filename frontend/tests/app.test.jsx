@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
 import { useAuth } from "../src/store/auth";
 import {
+  CREATED_USER,
   STRATEGY,
   dashboardRoutes,
   renderApp,
@@ -579,7 +580,7 @@ describe("adding a mobilizer", () => {
     await user.type(await screen.findByPlaceholderText("juma"), "wanjiku");
     await user.click(screen.getByRole("button", { name: "Save mobilizer" }));
 
-    expect(await screen.findByText("Kx8fQ2mNpR4w")).toBeInTheDocument();
+    expect(await screen.findByText(CREATED_USER.password)).toBeInTheDocument();
     expect(screen.getByText(/shown once/)).toBeInTheDocument();
     expect(screen.getByText(/work Githurai/)).toBeInTheDocument();
   });

@@ -41,7 +41,7 @@ cannot prove - the partial `WHERE` clauses on the target indexes, and the
 yourself:
 
 ```bash
-DATABASE_URL=postgresql+asyncpg://u:p@h:5432/d uv run alembic upgrade head --sql
+DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:5432/DB uv run alembic upgrade head --sql
 ```
 
 What is left is the driver: asyncpg's type handling, and anything that only

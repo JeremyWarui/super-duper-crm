@@ -6,7 +6,9 @@ column types, which differ harmlessly across databases.
 
 import functools
 import importlib.util
+import secrets
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 import sqlalchemy as sa
@@ -130,7 +132,7 @@ def _postgres_sql() -> str:
 
     root = Path(__file__).resolve().parent.parent
     previous = os.environ.get("DATABASE_URL")
-    os.environ["DATABASE_URL"] = "postgresql+asyncpg://u:p@localhost:5432/campaign_crm"
+    os.environ["DATABASE_URL"] = "postgresql+asyncpg://USER:PASSWORD@localhost:5432/campaign_crm"
     try:
         from backend.config import get_settings
 
@@ -189,7 +191,9 @@ def test_a_password_with_a_percent_survives_the_alembic_config(
     A Postgres password containing `@` arrives percent-encoded, so an unescaped
     url makes `alembic upgrade head` raise "invalid interpolation syntax".
     """
-    dsn = "postgresql+asyncpg://postgres:root%40root@localhost:5432/campaign_crm"
+    with_an_at = f"{secrets.token_hex(4)}@{secrets.token_hex(4)}"
+    dsn = f"postgresql+asyncpg://postgres:{quote(with_an_at, safe='')}@localhost:5432/campaign_crm"
+    assert "%40" in dsn
     monkeypatch.setenv("DATABASE_URL", dsn)
     get_settings.cache_clear()
     try:

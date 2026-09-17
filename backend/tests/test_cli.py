@@ -25,7 +25,7 @@ from backend.cli import (
 )
 from backend.models import AuthToken, CampaignMember, User, UserRole
 from tests.conftest import World
-from tests.factories import auth, make_user, sign_in
+from tests.factories import TEST_PASSWORD, auth, make_user, sign_in
 
 
 async def _managers(session: AsyncSession, campaign_id) -> set:
@@ -170,7 +170,7 @@ def test_the_parser_offers_both_new_commands() -> None:
 def _person(username, **over):
     return _args(
         username=username,
-        password="a-long-enough-password",
+        password=TEST_PASSWORD,
         role="manager",
         email="",
         first_name="",

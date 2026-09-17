@@ -1,0 +1,2 @@
+# Hooks run under sh, which fails on a carriage return.
+.githooks/* text eol=lf

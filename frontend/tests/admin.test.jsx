@@ -14,7 +14,9 @@ import {
   ADMIN_TOTALS,
   ADMIN_USERS,
   API,
+  TEST_TOKEN,
   dashboardRoutes,
+  fakeSecret,
   renderApp,
   signIn,
   stubApi,
@@ -50,7 +52,7 @@ function Root() {
 
 function signInAsAdmin() {
   useAuth.setState({
-    token: "test-token",
+    token: TEST_TOKEN,
     user: {
       id: "root",
       username: "root",
@@ -184,11 +186,12 @@ describe("what the console can repair", () => {
   it("resets a password and shows it once", async () => {
     const user = userEvent.setup();
     signInAsAdmin();
+    const issued = fakeSecret();
     const calls = stubApi(
       adminRoutes({
         "POST /admin/users/u-jane/reset-password/": {
           username: "jane",
-          password: "Nx4pQ7rTmW2k",
+          password: issued,
         },
       }),
     );
@@ -201,7 +204,7 @@ describe("what the console can repair", () => {
     await user.click(rows[1]);
     await user.click(await screen.findByRole("button", { name: "Yes" }));
 
-    expect(await screen.findByText("Nx4pQ7rTmW2k")).toBeInTheDocument();
+    expect(await screen.findByText(issued)).toBeInTheDocument();
     expect(
       screen.getByText(/shown once, never fetchable again/),
     ).toBeInTheDocument();
@@ -334,6 +337,7 @@ describe("what the console refuses to lose", () => {
   it("keeps the new password when the row it came from has gone", async () => {
     const user = userEvent.setup();
     signInAsAdmin();
+    const issued = fakeSecret();
     let release;
     const held = new Promise((r) => {
       release = r;
@@ -347,7 +351,7 @@ describe("what the console refuses to lose", () => {
         return {
           ok: true,
           status: 200,
-          json: async () => ({ username: "jane", password: "Late7Arrival" }),
+          json: async () => ({ username: "jane", password: issued }),
         };
       }
       const match =
@@ -369,13 +373,14 @@ describe("what the console refuses to lose", () => {
     await user.click(screen.getByRole("button", { name: /Campaigns/ }));
     release();
 
-    expect(await screen.findByText("Late7Arrival")).toBeInTheDocument();
+    expect(await screen.findByText(issued)).toBeInTheDocument();
   });
 
   it("shows one password per login, not a stack of stale ones", async () => {
     const user = userEvent.setup();
     signInAsAdmin();
     let nth = 0;
+    const issued = [fakeSecret(), fakeSecret()];
     const routes = adminRoutes();
     vi.stubGlobal(
       "fetch",
@@ -387,7 +392,7 @@ describe("what the console refuses to lose", () => {
           return {
             ok: true,
             status: 200,
-            json: async () => ({ username: "jane", password: `Pass${nth}` }),
+            json: async () => ({ username: "jane", password: issued[nth - 1] }),
           };
         }
         const match =
@@ -405,12 +410,12 @@ describe("what the console refuses to lose", () => {
       );
       await user.click(await screen.findByRole("button", { name: "Yes" }));
       await waitFor(() =>
-        expect(screen.getByText(`Pass${nth}`)).toBeInTheDocument(),
+        expect(screen.getByText(issued[nth - 1])).toBeInTheDocument(),
       );
     }
 
-    expect(screen.getByText("Pass2")).toBeInTheDocument();
-    expect(screen.queryByText("Pass1")).toBeNull();
+    expect(screen.getByText(issued[1])).toBeInTheDocument();
+    expect(screen.queryByText(issued[0])).toBeNull();
   });
 
   it("will not let the operator reset their own password", async () => {
@@ -573,11 +578,12 @@ describe("two resets at once", () => {
     await resetRow(user, "amina");
     await resetRow(user, "jane"); // while amina is still in flight
 
+    const issued = fakeSecret();
     release("u-jane", {
       status: 200,
-      body: { username: "jane", password: "JanePass1" },
+      body: { username: "jane", password: issued },
     });
-    expect(await screen.findByText("JanePass1")).toBeInTheDocument();
+    expect(await screen.findByText(issued)).toBeInTheDocument();
 
     release("u-amina", {
       status: 400,
@@ -604,11 +610,12 @@ describe("two resets at once", () => {
     expect(working).toHaveLength(2);
     expect(working.every((b) => b.disabled)).toBe(true);
 
+    const issued = fakeSecret();
     release("u-amina", {
       status: 200,
-      body: { username: "amina", password: "AminaPass1" },
+      body: { username: "amina", password: issued },
     });
-    await screen.findByText("AminaPass1");
+    await screen.findByText(issued);
 
     // jane is still going, and says so; amina is done and offers the button again.
     await waitFor(() =>
@@ -678,6 +685,7 @@ describe("creating a login from the console", () => {
   it("creates a manager on a campaign and shows the password once", async () => {
     const user = userEvent.setup();
     signInAsAdmin();
+    const issued = fakeSecret();
     const calls = stubApi(
       adminRoutes({
         "POST /admin/users/": {
@@ -685,7 +693,7 @@ describe("creating a login from the console", () => {
           username: "newmgr",
           full_name: "New Manager",
           role: "manager",
-          password: "Zq7wRt2mKx9v",
+          password: issued,
         },
       }),
     );
@@ -696,7 +704,7 @@ describe("creating a login from the console", () => {
     await user.selectOptions(screen.getByLabelText(/Campaign/), "c1");
     await user.click(screen.getByRole("button", { name: "Create the login" }));
 
-    expect(await screen.findByText("Zq7wRt2mKx9v")).toBeInTheDocument();
+    expect(await screen.findByText(issued)).toBeInTheDocument();
     // GET /admin/users/ shares the path, so the method has to be matched too.
     const posted = calls.find(
       (c) => c.path === "/admin/users/" && c.method === "POST",

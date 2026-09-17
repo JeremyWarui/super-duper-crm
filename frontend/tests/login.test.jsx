@@ -3,7 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Login from "../src/components/Login";
 import { useAuth } from "../src/store/auth";
-import { renderApp } from "./helpers";
+import { fakeSecret, renderApp } from "./helpers";
+
+const PASSWORD = fakeSecret();
 
 function stubLogin(status, body) {
   vi.stubGlobal(
@@ -17,7 +19,7 @@ afterEach(() => {
 });
 
 const OK = {
-  token: "abc123",
+  token: fakeSecret(),
   user: { id: "u1", username: "amina", full_name: "Amina Kariuki", role: "manager" },
 };
 
@@ -39,7 +41,7 @@ describe("the sign-in screen", () => {
     await user.type(container.querySelectorAll("input")[0], "amina");
     expect(button).toBeDisabled();
 
-    await user.type(container.querySelectorAll("input")[1], "secret");
+    await user.type(container.querySelectorAll("input")[1], PASSWORD);
     expect(button).toBeEnabled();
   });
 
@@ -53,16 +55,16 @@ describe("the sign-in screen", () => {
     const { container } = renderApp(<Login />);
     const field = () => container.querySelectorAll("input")[1];
 
-    await user.type(field(), "campaign1234");
+    await user.type(field(), PASSWORD);
     expect(field()).toHaveAttribute("type", "password");
 
     await user.click(screen.getByRole("button", { name: "Show password" }));
     expect(field()).toHaveAttribute("type", "text");
-    expect(field()).toHaveValue("campaign1234");
+    expect(field()).toHaveValue(PASSWORD);
 
     await user.click(screen.getByRole("button", { name: "Hide password" }));
     expect(field()).toHaveAttribute("type", "password");
-    expect(field()).toHaveValue("campaign1234");
+    expect(field()).toHaveValue(PASSWORD);
   });
 
   it("says whether the password is showing, for a screen reader", async () => {
@@ -85,7 +87,7 @@ describe("the sign-in screen", () => {
     const { container } = renderApp(<Login />);
 
     await user.type(container.querySelectorAll("input")[0], "amina");
-    await user.type(container.querySelectorAll("input")[1], "secret");
+    await user.type(container.querySelectorAll("input")[1], PASSWORD);
     await user.click(screen.getByRole("button", { name: "Show password" }));
 
     expect(fetch).not.toHaveBeenCalled();
@@ -98,10 +100,10 @@ describe("the sign-in screen", () => {
     const { container } = renderApp(<Login />);
 
     await user.type(container.querySelectorAll("input")[0], "amina");
-    await user.type(container.querySelectorAll("input")[1], "secret");
+    await user.type(container.querySelectorAll("input")[1], PASSWORD);
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
-    await waitFor(() => expect(useAuth.getState().token).toBe("abc123"));
+    await waitFor(() => expect(useAuth.getState().token).toBe(OK.token));
   });
 
   it("submits on Enter, so the form works without reaching for the mouse", async () => {
@@ -110,9 +112,9 @@ describe("the sign-in screen", () => {
     const { container } = renderApp(<Login />);
 
     await user.type(container.querySelectorAll("input")[0], "amina");
-    await user.type(container.querySelectorAll("input")[1], "secret{Enter}");
+    await user.type(container.querySelectorAll("input")[1], `${PASSWORD}{Enter}`);
 
-    await waitFor(() => expect(useAuth.getState().token).toBe("abc123"));
+    await waitFor(() => expect(useAuth.getState().token).toBe(OK.token));
   });
 
   it("trims a username that was pasted with a stray space", async () => {
@@ -128,7 +130,7 @@ describe("the sign-in screen", () => {
     const { container } = renderApp(<Login />);
 
     await user.type(container.querySelectorAll("input")[0], "  amina  ");
-    await user.type(container.querySelectorAll("input")[1], "secret{Enter}");
+    await user.type(container.querySelectorAll("input")[1], `${PASSWORD}{Enter}`);
 
     await waitFor(() => expect(calls[0].username).toBe("amina"));
   });
@@ -150,7 +152,7 @@ describe("the sign-in screen", () => {
 
 describe("signing up", () => {
   const NEW_USER = {
-    token: "signup-token",
+    token: fakeSecret(),
     user: { id: "u2", username: "jane", full_name: "Jane Wanjiru", role: "candidate" },
   };
 
@@ -200,10 +202,10 @@ describe("signing up", () => {
     await user.type(container.querySelectorAll("input")[0], "Jane");
     await user.type(container.querySelectorAll("input")[1], "Wanjiru");
     await user.type(container.querySelectorAll("input")[2], "jane");
-    await user.type(container.querySelectorAll("input")[3], "a-real-password");
+    await user.type(container.querySelectorAll("input")[3], PASSWORD);
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
-    await waitFor(() => expect(useAuth.getState().token).toBe("signup-token"));
+    await waitFor(() => expect(useAuth.getState().token).toBe(NEW_USER.token));
     expect(calls[0].url).toContain("/auth/register/");
     expect(calls[0].body).toMatchObject({
       username: "jane",
@@ -227,7 +229,7 @@ describe("signing up", () => {
 
     await user.click(screen.getByRole("button", { name: /I run the campaign/ }));
     await user.type(container.querySelectorAll("input")[2], "amina");
-    await user.type(container.querySelectorAll("input")[3], "a-real-password");
+    await user.type(container.querySelectorAll("input")[3], PASSWORD);
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
     await waitFor(() => expect(calls[0].role).toBe("manager"));
@@ -250,7 +252,7 @@ describe("signing up", () => {
     const { container } = await openSignUp(user);
 
     await user.type(container.querySelectorAll("input")[2], "jane");
-    await user.type(container.querySelectorAll("input")[3], "a-real-password");
+    await user.type(container.querySelectorAll("input")[3], PASSWORD);
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
     expect(await screen.findByText("The username jane is already taken.")).toBeInTheDocument();

@@ -6,7 +6,14 @@ import { useCampaigns } from "../src/api/hooks";
 import App from "../src/App";
 import Login from "../src/components/Login";
 import Onboarding from "../src/components/Onboarding";
-import { CAMPAIGN, dashboardRoutes, renderApp, signIn, stubApi } from "./helpers";
+import {
+  CAMPAIGN,
+  TEST_TOKEN,
+  dashboardRoutes,
+  renderApp,
+  signIn,
+  stubApi,
+} from "./helpers";
 
 // The gate from src/main.jsx.
 function SignedIn() {
@@ -63,7 +70,7 @@ describe("the gate", () => {
     localStorage.setItem(
       "campaign-auth",
       JSON.stringify({
-        state: { token: "abc123", user: { id: "u1", username: "amina", role: "manager" } },
+        state: { token: TEST_TOKEN, user: { id: "u1", username: "amina", role: "manager" } },
         version: 0,
       }),
     );

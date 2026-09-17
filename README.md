@@ -28,6 +28,13 @@ npm install
 npm run dev                               # http://localhost:5173
 ```
 
+Before the first commit, turn on the hook that refuses passwords, keys and
+tokens (see `tools/secret-scan/README.md`):
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Seeing all three roles
 
 Each role gets a different app, and the difference is enforced on the server, not

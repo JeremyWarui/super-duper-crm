@@ -1,5 +1,7 @@
 """Normalising phone numbers, and the two SMS providers."""
 
+import secrets
+
 import pytest
 
 from backend.config import Settings
@@ -12,7 +14,7 @@ from backend.services.sms import (
     normalise_phone,
 )
 
-KEY = "test-secret-key-at-least-32-characters-long"
+KEY = secrets.token_urlsafe(48)
 
 
 def settings(**overrides) -> Settings:
@@ -111,7 +113,7 @@ def test_choosing_the_gateway_needs_its_credentials() -> None:
 
 def test_the_gateway_is_used_once_it_is_configured() -> None:
     provider = get_sms_provider(
-        settings(sms_provider="africastalking", at_username="u", at_api_key="k")
+        settings(sms_provider="africastalking", at_username="u", at_api_key=KEY)
     )
     assert provider.name == "africastalking"
 
@@ -127,14 +129,15 @@ def test_the_gateway_refuses_to_be_built_without_credentials() -> None:
 
 
 def test_the_request_carries_what_the_gateway_expects() -> None:
-    provider = AfricasTalkingSMSProvider(username="campaign", api_key="secret")
+    key = secrets.token_urlsafe(16)
+    provider = AfricasTalkingSMSProvider(username="campaign", api_key=key)
 
     data, headers = provider.build_request(["+254712345678", "+254722000000"], "Rally Saturday")
 
     assert data["username"] == "campaign"
     assert data["to"] == "+254712345678,+254722000000"
     assert data["message"] == "Rally Saturday"
-    assert headers["apiKey"] == "secret"
+    assert headers["apiKey"] == key
     assert headers["Content-Type"] == "application/x-www-form-urlencoded"
 
 

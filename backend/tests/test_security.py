@@ -15,7 +15,7 @@ from backend.security import (
     new_token_key,
     verify_password,
 )
-from tests.factories import TEST_PASSWORD
+from tests.factories import TEST_PASSWORD, fresh_password
 
 
 @pytest.fixture(autouse=True)
@@ -39,7 +39,7 @@ def test_the_hash_fits_the_column() -> None:
 
 
 def test_the_same_password_hashes_differently_each_time() -> None:
-    assert hash_password("same") != hash_password("same")
+    assert hash_password(TEST_PASSWORD) != hash_password(TEST_PASSWORD)
 
 
 def test_the_right_password_verifies() -> None:
@@ -47,16 +47,16 @@ def test_the_right_password_verifies() -> None:
 
 
 def test_the_wrong_password_does_not() -> None:
-    assert not verify_password("wrong", hash_password(TEST_PASSWORD))
+    assert not verify_password(fresh_password(), hash_password(TEST_PASSWORD))
 
 
 def test_an_empty_stored_hash_rejects_every_password() -> None:
     assert not verify_password("", "")
-    assert not verify_password("anything", "")
+    assert not verify_password(fresh_password(), "")
 
 
 def test_a_corrupt_stored_hash_rejects_rather_than_raising() -> None:
-    assert not verify_password("anything", "not-a-hash")
+    assert not verify_password(fresh_password(), "not-a-hash")
 
 
 def test_a_fresh_hash_does_not_need_rehashing() -> None:
@@ -101,16 +101,19 @@ def test_the_default_password_is_handed_to_every_account(
     monkeypatch: pytest.MonkeyPatch, fresh_settings: None
 ) -> None:
     """DEFAULT_USER_PASSWORD gives a demo logins somebody can be told."""
-    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    shared = fresh_password()
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", shared)
     get_settings.cache_clear()
-    assert {new_password() for _ in range(5)} == {"campaign1234"}
+    assert {new_password() for _ in range(5)} == {shared}
 
 
 def test_the_default_password_still_hashes_and_verifies(
     monkeypatch: pytest.MonkeyPatch, fresh_settings: None
 ) -> None:
-    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    shared = fresh_password()
+    one_character_off = shared[:-1] + ("a" if shared[-1] != "a" else "b")
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", shared)
     get_settings.cache_clear()
     digest = hash_password(new_password())
-    assert verify_password("campaign1234", digest)
-    assert not verify_password("campaign1235", digest)
+    assert verify_password(shared, digest)
+    assert not verify_password(one_character_off, digest)

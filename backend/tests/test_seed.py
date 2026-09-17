@@ -37,6 +37,7 @@ from backend.seed.reference import (
     rows,
     to_int,
 )
+from tests.factories import fresh_password
 
 # Published IEBC figures for the 2022 register.
 KENYA_COUNTIES = 47
@@ -205,12 +206,13 @@ async def test_each_account_gets_its_own_password(session: AsyncSession) -> None
 
 async def test_a_given_password_is_used_for_all_three(session: AsyncSession) -> None:
     await import_geography(session)
+    pinned = fresh_password()
 
-    summary = await seed_demo(session, password="pinned-for-this-run")
+    summary = await seed_demo(session, password=pinned)
 
-    assert {password for _, password, _ in summary.sign_ins} == {"pinned-for-this-run"}
+    assert {password for _, password, _ in summary.sign_ins} == {pinned}
     user = (await session.execute(select(User).where(User.username == "manager"))).scalar_one()
-    assert verify_password("pinned-for-this-run", user.password_hash)
+    assert verify_password(pinned, user.password_hash)
 
 
 async def test_the_default_password_is_used_when_no_password_is_given(
@@ -220,17 +222,18 @@ async def test_the_default_password_is_used_when_no_password_is_given(
     from backend.config import get_settings
 
     await import_geography(session)
-    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    shared = fresh_password()
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", shared)
     get_settings.cache_clear()
     try:
         summary = await seed_demo(session)
     finally:
         get_settings.cache_clear()
 
-    assert {password for _, password, _ in summary.sign_ins} == {"campaign1234"}
+    assert {password for _, password, _ in summary.sign_ins} == {shared}
     for username, _, _ in summary.sign_ins:
         user = (await session.execute(select(User).where(User.username == username))).scalar_one()
-        assert verify_password("campaign1234", user.password_hash), username
+        assert verify_password(shared, user.password_hash), username
 
 
 async def test_an_explicit_password_beats_the_default(
@@ -239,14 +242,15 @@ async def test_an_explicit_password_beats_the_default(
     from backend.config import get_settings
 
     await import_geography(session)
-    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    pinned = fresh_password()
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", fresh_password())
     get_settings.cache_clear()
     try:
-        summary = await seed_demo(session, password="pinned-for-this-run")
+        summary = await seed_demo(session, password=pinned)
     finally:
         get_settings.cache_clear()
 
-    assert {password for _, password, _ in summary.sign_ins} == {"pinned-for-this-run"}
+    assert {password for _, password, _ in summary.sign_ins} == {pinned}
 
 
 async def test_re_running_resets_the_passwords(session: AsyncSession) -> None:

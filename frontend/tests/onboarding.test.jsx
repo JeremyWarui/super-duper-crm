@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Onboarding from "../src/components/Onboarding";
-import { renderApp, signIn, stubApi } from "./helpers";
+import { fakeSecret, renderApp, signIn, stubApi } from "./helpers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -344,7 +344,7 @@ describe("adding the team once the campaign exists", () => {
     full_name: "Amina Kariuki",
     role: "manager",
     phone: "",
-    password: "Kx8fQ2mNpR4w",
+    password: fakeSecret(),
     mobilizer: null,
     ward_name: null,
   };
@@ -416,7 +416,7 @@ describe("adding the team once the campaign exists", () => {
     await user.type(screen.getByPlaceholderText("amina"), "Amina");
     await user.click(screen.getByRole("button", { name: "Add to the team" }));
 
-    expect(await screen.findByText("Kx8fQ2mNpR4w")).toBeInTheDocument();
+    expect(await screen.findByText(CREATED.password)).toBeInTheDocument();
     expect(screen.getByText("Write these down now")).toBeInTheDocument();
     expect(screen.getByText("shown once")).toBeInTheDocument();
   });
@@ -427,7 +427,7 @@ describe("adding the team once the campaign exists", () => {
 
     await user.type(screen.getByPlaceholderText("amina"), "Amina");
     await user.click(screen.getByRole("button", { name: "Add to the team" }));
-    await screen.findByText("Kx8fQ2mNpR4w");
+    await screen.findByText(CREATED.password);
 
     expect(screen.getByPlaceholderText("amina")).toHaveValue("");
   });
@@ -481,7 +481,7 @@ describe("a manager setting up for an aspirant", () => {
       id: "a2",
       username: "peter",
       full_name: "Peter Kimani",
-      password: "Kx8fQ2mNpR4w",
+      password: fakeSecret(),
     },
   };
 
@@ -593,7 +593,9 @@ describe("a manager setting up for an aspirant", () => {
       await screen.findByRole("button", { name: "Create campaign" }),
     );
 
-    expect(await screen.findByText("Kx8fQ2mNpR4w")).toBeInTheDocument();
+    expect(
+      await screen.findByText(REPLY_WITH_LOGIN.candidate_login.password),
+    ).toBeInTheDocument();
     expect(screen.getByText(/shown once/)).toBeInTheDocument();
   });
 
@@ -706,6 +708,7 @@ describe("a manager with no aspirants of their own yet", () => {
 
   it("creates the aspirant, the campaign and the area in one call", async () => {
     const user = userEvent.setup();
+    const issued = fakeSecret();
     const { calls } = startWithNoAspirants({
       "POST /campaigns/setup/": {
         ...SETUP_REPLY,
@@ -713,7 +716,7 @@ describe("a manager with no aspirants of their own yet", () => {
           id: "a2",
           username: "peter",
           full_name: "Peter Kimani",
-          password: "Kx8fQ2mNpR4w",
+          password: issued,
         },
       },
     });
@@ -746,7 +749,7 @@ describe("a manager with no aspirants of their own yet", () => {
       new_candidate: { username: "peter", phone: "0712345678" },
     });
     expect(posted.body.candidate).toBeUndefined();
-    expect(await screen.findByText("Kx8fQ2mNpR4w")).toBeInTheDocument();
+    expect(await screen.findByText(issued)).toBeInTheDocument();
   });
 });
 

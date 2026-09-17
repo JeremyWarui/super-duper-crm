@@ -1,9 +1,15 @@
+import { randomUUID } from "node:crypto";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import { vi } from "vitest";
 import { useAuth } from "../src/store/auth";
 
 export const API = "http://localhost:8000/api";
+
+/** A password or token for a stub to hand back, generated per run. */
+export const fakeSecret = () => randomUUID();
+
+export const TEST_TOKEN = fakeSecret();
 
 /** Stub fetch with `"METHOD /path"` -> body, or -> `{ status, body }` to fail. */
 export function stubApi(routes) {
@@ -51,7 +57,7 @@ function jsonResponse(status, body) {
 
 export function signIn(role = "manager") {
   useAuth.setState({
-    token: "test-token",
+    token: TEST_TOKEN,
     user: { id: "u1", username: role, full_name: "Test User", role },
   });
 }
@@ -195,7 +201,7 @@ export const CREATED_USER = {
   full_name: "Wanjiku Njeri",
   role: "mobilizer",
   phone: "+254700333444",
-  password: "Kx8fQ2mNpR4w",
+  password: fakeSecret(),
   mobilizer: "m9",
   ward_name: "Githurai",
 };

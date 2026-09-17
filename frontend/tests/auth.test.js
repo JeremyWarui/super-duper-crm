@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../src/store/auth";
-import { API } from "./helpers";
+import { API, fakeSecret } from "./helpers";
+
+const TOKEN = fakeSecret();
+const PASSWORD = fakeSecret();
 
 function stubLogin(status, body) {
   const calls = [];
@@ -26,24 +29,24 @@ describe("the auth store", () => {
 
   it("keeps the token and the role a successful sign-in returns", async () => {
     stubLogin(200, {
-      token: "abc123",
+      token: TOKEN,
       user: { id: "u1", username: "amina", full_name: "Amina Kariuki", role: "manager" },
     });
 
-    const user = await useAuth.getState().login("amina", "secret");
+    const user = await useAuth.getState().login("amina", PASSWORD);
 
-    expect(useAuth.getState().token).toBe("abc123");
+    expect(useAuth.getState().token).toBe(TOKEN);
     expect(useAuth.getState().user.role).toBe("manager");
     expect(user.full_name).toBe("Amina Kariuki");
   });
 
   it("posts to the sign-in route with no token of its own", async () => {
-    const calls = stubLogin(200, { token: "abc123", user: { role: "manager" } });
+    const calls = stubLogin(200, { token: TOKEN, user: { role: "manager" } });
 
-    await useAuth.getState().login("amina", "secret");
+    await useAuth.getState().login("amina", PASSWORD);
 
     expect(calls[0].url).toBe(`${API}/auth/login/`);
-    expect(calls[0].body).toEqual({ username: "amina", password: "secret" });
+    expect(calls[0].body).toEqual({ username: "amina", password: PASSWORD });
   });
 
   it("raises the server's rejection message", async () => {
@@ -65,14 +68,14 @@ describe("the auth store", () => {
   it("falls back to a plain message when the server explains nothing", async () => {
     stubLogin(500, {});
 
-    await expect(useAuth.getState().login("amina", "secret")).rejects.toThrow(
+    await expect(useAuth.getState().login("amina", PASSWORD)).rejects.toThrow(
       /wrong username or password/i,
     );
   });
 
   it("clears the token and the user on sign-out", async () => {
-    stubLogin(200, { token: "abc123", user: { role: "manager" } });
-    await useAuth.getState().login("amina", "secret");
+    stubLogin(200, { token: TOKEN, user: { role: "manager" } });
+    await useAuth.getState().login("amina", PASSWORD);
 
     useAuth.getState().logout();
 
@@ -81,10 +84,10 @@ describe("the auth store", () => {
   });
 
   it("writes the session to storage, so a refresh stays signed in", async () => {
-    stubLogin(200, { token: "abc123", user: { role: "manager" } });
+    stubLogin(200, { token: TOKEN, user: { role: "manager" } });
 
-    await useAuth.getState().login("amina", "secret");
+    await useAuth.getState().login("amina", PASSWORD);
 
-    expect(JSON.parse(localStorage.getItem("campaign-auth")).state.token).toBe("abc123");
+    expect(JSON.parse(localStorage.getItem("campaign-auth")).state.token).toBe(TOKEN);
   });
 });

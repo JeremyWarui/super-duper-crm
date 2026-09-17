@@ -11,7 +11,7 @@ from backend.api.scope import add_member
 from backend.config import get_settings
 from backend.models import Campaign, Mobilizer, OfficeLevel, User, UserRole
 from tests.conftest import World
-from tests.factories import auth, make_user, sign_in
+from tests.factories import auth, fresh_password, make_user, sign_in
 
 
 def _manager(campaign=None, **overrides) -> dict:
@@ -111,7 +111,7 @@ async def test_the_password_is_generated_not_chosen(
     response = await client.post(
         "/api/users/",
         headers=world.headers("manager"),
-        json=_manager(world.campaign.id, password="hunter2"),
+        json=_manager(world.campaign.id, password=fresh_password()),
     )
     assert response.status_code == 400
 
@@ -142,7 +142,8 @@ async def test_the_default_password_is_handed_to_everyone_onboarded(
     client: httpx.AsyncClient, world: World, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """DEFAULT_USER_PASSWORD gives a demo one credential for the whole team."""
-    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "campaign1234")
+    shared = fresh_password()
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", shared)
     get_settings.cache_clear()
     try:
         created = (
@@ -155,8 +156,8 @@ async def test_the_default_password_is_handed_to_everyone_onboarded(
     finally:
         get_settings.cache_clear()
 
-    assert created["password"] == "campaign1234"
-    assert await sign_in(client, "brian", "campaign1234")
+    assert created["password"] == shared
+    assert await sign_in(client, "brian", shared)
 
 
 async def test_the_password_is_not_readable_afterwards(

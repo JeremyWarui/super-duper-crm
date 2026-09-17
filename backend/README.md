@@ -84,11 +84,11 @@ passwords. `aspirant`, `manager` and `mobilizer` are on the campaign;
 
 ```
 Sign in at http://localhost:5173 as (shown once, re-run to reset):
-  aspirant     Kx8fQ2mNpR4w   Candidate: read-only cockpit
-  manager      7bTzY9vLwE3k   Campaign manager: the full war room
-  mobilizer    Qn5jH8sVdA2c   Mobilizer: Githurai only
-  newaspirant  Rt3wL6xCbF9p   Candidate with no campaign: starts at setup
-  newmanager   Hm7kD4gTzW1s   Manager with no campaign: starts at setup, and is
+  aspirant     <generated>    Candidate: read-only cockpit
+  manager      <generated>    Campaign manager: the full war room
+  mobilizer    <generated>    Mobilizer: Githurai only
+  newaspirant  <generated>    Candidate with no campaign: starts at setup
+  newmanager   <generated>    Manager with no campaign: starts at setup, and is
                               asked for the aspirant
 ```
 
@@ -97,7 +97,7 @@ committed and a clone of this repo hands out no working logins. Re-running the
 command resets them. To pin them instead:
 
 ```bash
-uv run campaign-crm demo --password whatever-you-like
+uv run campaign-crm demo --password <shared-password>
 ```
 
 ### One password for the whole demo
@@ -108,7 +108,7 @@ not only the four the demo builds: the team members added through
 A demo then has one credential somebody can be told over the phone.
 
 ```bash
-DEFAULT_USER_PASSWORD=campaign1234
+DEFAULT_USER_PASSWORD=<shared-password>
 ```
 
 `demo --password` still wins over it. Blank, which is the default and what
@@ -281,7 +281,7 @@ To send for real:
 ```bash
 SMS_PROVIDER=africastalking
 AT_USERNAME=your-username     # or "sandbox" for their test gateway
-AT_API_KEY=your-key
+AT_API_KEY=<africas-talking-api-key>
 AT_SENDER_ID=                 # blank uses the shared short code
 ```
 

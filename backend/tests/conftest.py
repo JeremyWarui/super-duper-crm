@@ -1,6 +1,7 @@
 """Fixtures: an in-memory database built from the real schema."""
 
 import os
+import secrets
 from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
 from decimal import Decimal
@@ -11,7 +12,7 @@ import pytest
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 
-os.environ.setdefault("SECRET_KEY", "test-secret-key-at-least-32-characters-long")
+os.environ.setdefault("SECRET_KEY", secrets.token_urlsafe(48))
 # Not setdefault: overrides a DEFAULT_USER_PASSWORD in the developer's .env, so the
 # suite always exercises the generated password.
 os.environ["DEFAULT_USER_PASSWORD"] = ""

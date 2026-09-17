@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "../src/api/client";
 import { useAuth } from "../src/store/auth";
-import { API, signIn, stubApi } from "./helpers";
+import { API, TEST_TOKEN, signIn, stubApi } from "./helpers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -14,7 +14,7 @@ describe("the API client", () => {
 
     await api("/campaigns/");
 
-    expect(calls[0].options.headers.Authorization).toBe("Token test-token");
+    expect(calls[0].options.headers.Authorization).toBe(`Token ${TEST_TOKEN}`);
   });
 
   it("omits the header entirely when nobody is signed in", async () => {
