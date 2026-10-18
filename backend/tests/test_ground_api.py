@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Event, EventStatus, Mobilizer, Supporter, UserRole
+from backend.services.accounts import add_member
 from tests.conftest import World
 from tests.factories import auth, make_mobilizer, make_rival_campaign, make_user, sign_in
 
@@ -423,6 +424,68 @@ async def test_the_register_is_whole_for_a_manager_one_ward_for_a_mobilizer_clos
     assert len(whole) == 2
     assert [s["full_name"] for s in own] == ["Wanjiku Njeri"]
     assert candidate.status_code == 403
+
+
+@pytest.mark.parametrize(
+    ("role", "codes"),
+    [
+        ("manager", (200, 201, 204)),
+        ("mobilizer", (200, 201, 204)),
+        ("candidate", (403, 403, 403)),
+    ],
+)
+async def test_only_the_campaign_team_lists_adds_and_erases_supporters(
+    client: httpx.AsyncClient, world: World, role: str, codes: tuple[int, int, int]
+) -> None:
+    head = world.headers(role)
+    existing = (
+        await client.post(
+            "/api/supporters/", headers=world.headers("manager"), json=_supporter(world)
+        )
+    ).json()
+
+    listed = await client.get("/api/supporters/", headers=head)
+    added = await client.post(
+        "/api/supporters/", headers=head, json=_supporter(world, full_name="Otieno K.")
+    )
+    erased = await client.delete(f"/api/supporters/{existing['id']}/", headers=head)
+
+    assert (listed.status_code, added.status_code, erased.status_code) == codes
+
+
+async def test_a_mobilizer_cannot_erase_a_supporter_with_no_ward(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    created = (
+        await client.post(
+            "/api/supporters/", headers=world.headers("manager"), json=_supporter(world, ward=None)
+        )
+    ).json()
+
+    erased = await client.delete(
+        f"/api/supporters/{created['id']}/", headers=world.headers("mobilizer")
+    )
+
+    assert created["ward"] is None
+    assert erased.status_code == 403
+    assert await session.scalar(select(func.count()).select_from(Supporter)) == 1
+
+
+async def test_a_mobilizer_with_no_ground_row_cannot_register_a_supporter_with_no_ward(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    unplaced = await make_user(session, username="kamau", role=UserRole.MOBILIZER)
+    await add_member(session, world.campaign.id, unplaced)
+    await session.commit()
+
+    response = await client.post(
+        "/api/supporters/",
+        headers=auth(await sign_in(client, "kamau")),
+        json=_supporter(world, ward=None),
+    )
+
+    assert response.status_code == 403
+    assert await session.scalar(select(func.count()).select_from(Supporter)) == 0
 
 
 async def test_a_supporter_is_erased_on_request_by_a_signed_in_team_member(

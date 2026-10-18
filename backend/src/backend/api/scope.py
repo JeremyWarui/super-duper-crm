@@ -91,17 +91,20 @@ async def require_visible(
     noun: str,
     options: Sequence[ORMOption] = (),
 ):
-    """A row on the caller's campaign and, for a mobilizer, in their ward; otherwise 404 or 403."""
+    """A row on the caller's campaign and, for a mobilizer, in their ward; otherwise 404 or 403.
+
+    A row with no ward is outside every mobilizer's ward.
+    """
     row = await load(session, model, row_id, options)
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"No such {noun}.")
     await require_visible_campaign(session, user, row.campaign_id)
-    if row.ward_id is not None:
-        require_own_ward(user, row.ward_id)
+    require_own_ward(user, row.ward_id)
     return row
 
 
-def require_own_ward(user: User, ward_id: uuid.UUID) -> None:
+def require_own_ward(user: User, ward_id: uuid.UUID | None) -> None:
+    """403 for a mobilizer outside their own ward, a missing ward included."""
     own_ward = mobilizer_ward_id(user)
     if own_ward is not None and own_ward != ward_id:
         raise HTTPException(

@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Response, status
 from sqlalchemy import select
 
-from backend.api.deps import CurrentUser, SessionDep, SupporterTeam
+from backend.api.deps import SessionDep, SupporterTeam
 from backend.api.scope import (
     all_rows,
     own_ground_row,
@@ -32,7 +32,7 @@ async def list_supporters(
 
 @router.post("/", response_model=SupporterRead, status_code=status.HTTP_201_CREATED)
 async def register_supporter(
-    payload: SupporterCreate, session: SessionDep, user: CurrentUser
+    payload: SupporterCreate, session: SessionDep, user: SupporterTeam
 ) -> Supporter:
     """Sign someone up; a mobilizer's lands in their own ward, credited to them."""
     campaign = await require_visible_campaign(session, user, payload.campaign)
@@ -41,9 +41,8 @@ async def register_supporter(
     own = own_ground_row(user, payload.campaign)
     mobilizer_id = payload.mobilizer or (own.id if own is not None else None)
     ward_id = payload.ward or (own.ward_id if own is not None else None)
-    if ward_id is not None:
-        require_own_ward(user, ward_id)
-        await require_ward_in_campaign(session, campaign, ward_id)
+    require_own_ward(user, ward_id)
+    await require_ward_in_campaign(session, campaign, ward_id)
 
     supporter = Supporter(
         campaign_id=payload.campaign,
