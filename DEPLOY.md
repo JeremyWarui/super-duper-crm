@@ -1,113 +1,240 @@
-# Deploying to Fly.io, on CockroachDB
+# Deploying to Fly.io, on Neon
 
-One machine serves both halves: FastAPI answers `/api` and `/health`, and the
-built SPA is mounted at `/`. One URL, one origin, no CORS. The database is a
-CockroachDB Cloud cluster reached over `DATABASE_URL`.
+Each machine serves both halves: FastAPI answers `/api` and `/health`, and the
+built SPA is mounted at `/`. One URL, one origin, no CORS. The database is the
+`campaign_db` database on Neon project `mzigo_crm` (`patient-flower-76867840`),
+branch `production`, in `aws-ap-southeast-1` (Singapore), next to the app in
+Fly's `sin`.
 
-Everything below is yours to run. Creating accounts and entering payment
-details is not something I do on your behalf, and no connection string should
-be pasted into a chat window: `flyctl secrets set` reads it straight from your
-shell into Fly.
+Everything below is yours to run, in PowerShell, from the repository root
+(the folder holding `fly.toml`). Blocks that need `backend\` enter it with
+`Push-Location` and leave with `Pop-Location`. No command prints the database
+password: each one passes it from the Neon CLI straight into Fly or a file.
 
 ## Before the first deploy
 
-```bash
-# Windows, in PowerShell
+Install Node.js (for `npx`) from nodejs.org, then:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 iwr https://fly.io/install.ps1 -useb | iex
+```
+
+Open a new terminal so `uv` and `flyctl` are on the path, then sign in. Both
+open a browser:
+
+```powershell
 flyctl auth login
+npx.cmd -y neon@latest login
 ```
 
-## 1. The connection string
+`uv` supplies Python and the backend's dependencies, so nothing else is needed.
+Commands call `npx.cmd` rather than `npx`: Windows PowerShell 5.1 would run
+`npx.ps1`, which its default execution policy blocks.
 
-Take the string from the CockroachDB console and reshape it. Two changes, both
-required:
+## 1. Set Fly's secrets
 
-| From | To | Why |
-|---|---|---|
-| `postgresql://` | `cockroachdb+asyncpg://` | SQLAlchemy's own Postgres dialect raises `AssertionError` reading Cockroach's version string. `sqlalchemy-cockroachdb` is a dependency for this reason. |
-| `?sslmode=verify-full` | `?ssl=require` | asyncpg does not read libpq's `sslmode`. `verify-full` additionally wants a CA file on disk, which the container has no reason to carry. |
-
-So the shape is:
-
-```
-cockroachdb+asyncpg://USER:PASSWORD@HOST:26257/defaultdb?ssl=require
+```powershell
+$u = npx.cmd -y neon@latest cs production --project-id patient-flower-76867840 --database-name campaign_db --ssl verify-full
+if ($u -like "postgresql://*") { flyctl secrets set --stage -a mzigo-crm "DATABASE_URL=$u" } else { "No connection string; run npx.cmd -y neon@latest login" }
+Remove-Variable u
 ```
 
-Verified against your cluster on 2026-09-06 (CockroachDB v26.2.5): the dialect
-connects, and `alembic upgrade head` applies both migrations under
-non-transactional DDL.
+The Neon CLI gives the direct host (no `-pooler` in the name) with
+`sslmode=verify-full`:
 
-## 2. Create the app and set its secrets
+- `verify-full` checks Neon's certificate and hostname against `certifi`'s CA
+  bundle. `require`, the Neon console's default, encrypts without checking who
+  answered. asyncpg does not support channel binding, so the certificate check
+  is what stops a machine in the middle.
+- The direct host needs no pooler between one small app and the database. The
+  pooled host (`--pooled`) works too, for the app and for `alembic upgrade head`.
 
-```bash
-flyctl launch --no-deploy --copy-config --name mzigo-crm --region sin
-flyctl secrets set DATABASE_URL="cockroachdb+asyncpg://...?ssl=require"
-flyctl secrets set SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+`backend/src/backend/config.py` rewrites a `postgresql://` URL for asyncpg: it
+names the driver, reads `sslmode` as `ssl`, and drops `channel_binding`. So the
+string goes in as Neon prints it.
+
+`SECRET_KEY` is set once per app. Check with `flyctl secrets list -a mzigo-crm`;
+when it is missing:
+
+```powershell
+$k = uv run --no-project python -c "import secrets; print(secrets.token_urlsafe(48))"
+if ($k.Length -ge 32) { flyctl secrets set --stage -a mzigo-crm "SECRET_KEY=$k" } else { "No key generated; is uv installed?" }
+Remove-Variable k
 ```
 
-Leave `DEFAULT_USER_PASSWORD` unset. Set on a public deploy, it hands the same
-password to every account anyone creates, including through the open sign-up.
+`--stage` stores a secret without touching the running machines; it takes
+effect at the next deploy (step 2). A machine woken from suspend keeps the
+values it had. Without `--stage`, Fly makes a new release with the value at
+once.
 
-`fly.toml` runs in `sin`. Fly has deprecated `bom` and will not provision new
-resources there, so Singapore is the closest it still offers to the cluster in
-`aws-ap-south-1`. A dashboard render makes several database round trips, so the
-app sits near the data: Kenyan users pay one slower trip to Singapore rather
-than one slow trip per query. `jnb` is the alternative if that trade ever
-inverts.
+Leave `DEFAULT_USER_PASSWORD` unset on Fly. When set, every login created for
+someone else (a mobilizer added by a manager, an aspirant named during setup,
+an admin reset with no password given) gets that one password instead of its
+own.
 
-## 3. Deploy
+## 2. Deploy
 
-```bash
-flyctl deploy --remote-only
+```powershell
+flyctl deploy --remote-only -a mzigo-crm
 ```
 
 `--remote-only` builds on Fly's builder, so Docker is not needed locally. The
-release command runs `alembic upgrade head` before the new machine takes
-traffic, so a failing migration fails the deploy instead of half-applying.
+image is built from the files on disk, committed or not. The release command
+runs `alembic upgrade head` before the new release takes traffic, so a failing
+migration fails the deploy and the running machines keep the old release. Each
+revision commits on its own, so revisions before the failing one stay applied.
 
-## 4. Load the data, once
+## Commands on a Fly machine
 
-The reference seed writes 27,273 registration centres and is far too slow for
-a release command, so run it by hand after the first deploy:
+Steps 3 and 5 run commands on a machine with `flyctl ssh console -C`.
 
-```bash
-flyctl ssh console -C "campaign-crm seed"
-flyctl ssh console -C "campaign-crm demo --password <the-demo-password>"
+`flyctl ssh console` needs a started machine. When it reports none, open
+`https://mzigo-crm.fly.dev/health` first: a request starts one of the suspended
+machines.
+
+On Windows `flyctl ssh console -C` prints `Error: The handle is invalid` as it
+tears the session down, after the command has already finished. Read the
+output above it.
+
+## 3. Load the data, once per empty database
+
+`campaign_db` already holds the reference data and the demo, so this step is
+only for a new database; step 5 covers signing in to the existing one. The
+reference seed writes 27,273 registration centres and is too slow for a release
+command. Running it from your machine (see "Working against Neon from your
+machine") avoids the risk of a Fly machine suspending mid-run, since Fly does
+not count an SSH session as traffic. On Fly:
+
+```powershell
+flyctl ssh console -a mzigo-crm -C "campaign-crm seed"
+flyctl ssh console -a mzigo-crm -C "campaign-crm demo --password=<the-demo-password>"
 ```
 
-`demo` prints the four logins. `--password` pins them so you can pass one to
-whoever you are showing it to; without it each account gets its own generated
-password.
+`seed` on a database that already has counties prints "Reference data is
+already loaded" and changes nothing; `--force` reloads it, updating rows in
+place. A seed that stopped partway leaves counties without centres, and only
+`seed --force` finishes it. The live check below (27,273 centres) shows
+whether it completed.
 
-Both ran against CockroachDB on 2026-09-06: 47 counties, 290 constituencies,
-1,450 wards and 27,273 centres in 68 seconds, no retryable errors. On Windows
-`flyctl ssh console -C` prints `Error: The handle is invalid` as it tears the
-session down, after the command has already finished. Read the output above it.
+`demo` deletes any earlier demo (the five demo usernames, the campaign they
+run, and every other login on that campaign), builds it again, and prints the
+logins. `--password` gives them all one password; without it each gets its own
+generated one. The printed "Sign in at http://localhost:5173" means
+`https://mzigo-crm.fly.dev` here.
 
-## 5. Check it
+## 4. Check it
 
-```bash
-flyctl status
-curl https://mzigo-crm.fly.dev/health
-flyctl logs
+```powershell
+flyctl status -a mzigo-crm
+curl.exe https://mzigo-crm.fly.dev/health
+flyctl logs -a mzigo-crm --no-tail
+```
+
+## 5. Sign in
+
+`campaign_db` holds the demo logins `aspirant`, `manager`, `mobilizer`,
+`newaspirant` and `newmanager`, and the superuser `root`, who gets the admin
+console. Their passwords were shown once, when they were made. To give one a
+password you know:
+
+```powershell
+flyctl ssh console -a mzigo-crm -C "campaign-crm reset-password -u root --password=<new-password>"
+```
+
+Leave `--password` off and the command prints a generated one instead. Either
+way, every session that login had is signed out. Running step 3's `demo` line
+alone also resets the five demo logins, and replaces the demo campaign.
+
+A new admin login:
+
+```powershell
+flyctl ssh console -a mzigo-crm -C "campaign-crm createuser -u <name> -r manager --superuser --password=<password>"
+```
+
+Always pass `--password` through `-C`. Without it `createuser` asks for one,
+and `-C` gives the prompt no terminal: it warns that input may be echoed and
+stores whatever arrives, which need not match what the sign-in form sends.
+
+The deploy is public and sign-in is not rate limited, so use a long random
+password. This one is letters, digits, `-` and `_`, which PowerShell and the
+remote shell pass through unchanged:
+
+```powershell
+uv run --no-project python -c "import secrets; print(secrets.token_urlsafe(18))"
 ```
 
 Then open `https://mzigo-crm.fly.dev` and sign in.
 
+## Working against Neon from your machine
+
+`backend/.env` holds the settings for `uv run` commands; it is gitignored. To
+point it at Neon:
+
+```powershell
+Push-Location backend
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+$u = npx.cmd -y neon@latest cs production --project-id patient-flower-76867840 --database-name campaign_db --ssl verify-full
+if ($u -like "postgresql://*") { (Get-Content .env) -replace '^DATABASE_URL=.*', "DATABASE_URL=$u" | Set-Content .env } else { "No connection string; run npx.cmd -y neon@latest login" }
+Remove-Variable u
+if ((Get-Content .env) -match '^SECRET_KEY=$') {
+  $k = uv run --no-project python -c "import secrets; print(secrets.token_urlsafe(48))"
+  (Get-Content .env) -replace '^SECRET_KEY=$', "SECRET_KEY=$k" | Set-Content .env
+  Remove-Variable k
+}
+Pop-Location
+```
+
+Check the database, read-only: TLS, the latest migration and the seeded
+geography.
+
+```powershell
+Push-Location backend
+$env:LIVE_DATABASE = "1"; uv run pytest evals/test_live_database.py -s; Remove-Item env:LIVE_DATABASE
+Pop-Location
+```
+
+Seed or rebuild the demo from your machine instead of through Fly. These write
+to the production branch, and `demo` replaces the existing demo as described in
+step 3:
+
+```powershell
+Push-Location backend
+uv run campaign-crm seed
+uv run campaign-crm demo --password=<the-demo-password>
+Pop-Location
+```
+
+Without a password flag, a local `demo` gives every account
+`DEFAULT_USER_PASSWORD` when `.env` sets it. `demo` stops without changing
+anything when one of its five usernames belongs to a superuser.
+
 ## Known gaps
 
-- Fly's Depot builder failed with `authentication handshake failed: EOF` on
-  the first attempt. `--depot=false` builds on a Fly builder machine instead
-  and works. Reach for it when a build hangs on "Waiting for depot builder".
-- The app runs one `shared-cpu-1x` 512MB machine, suspended when idle
-  (`min_machines_running = 0`), so it bills its rootfs rather than a CPU that
-  is doing nothing. Fly is not free; raise this to 1 to keep it warm, at
-  roughly $3/month.
-- Cockroach runs serializable by default and returns retryable errors under
-  write contention. Nothing here retries. One person clicking around will not
-  hit it; concurrent writers might.
+- Neon's free plan suspends the database after 5 minutes idle. The first query
+  after that waits for it to start; the engine's `pool_pre_ping` replaces
+  connections the suspend closed.
+- Backups are Neon's free-plan restore window: 6 hours of history, capped at
+  1 GB, and one manual snapshot. A mistake noticed the next day can only be
+  undone back to that snapshot, if one was taken. Nothing here takes a copy elsewhere.
+- The free plan allows 100 CU-hours of compute a month per project and 1 GB of
+  storage. Past the compute allowance Neon suspends the database until the
+  next month; data is kept.
+- Fly's Depot builder can fail with `authentication handshake failed: EOF` or
+  hang on "Waiting for depot builder". `--depot=false` builds on a Fly builder
+  machine instead.
+- The app runs on `shared-cpu-1x` 512MB machines (`flyctl machine list -a
+  mzigo-crm` shows how many), suspended when idle (`auto_stop_machines =
+  "suspend"`, `min_machines_running = 0`). A suspended machine bills its
+  rootfs, not CPU. `flyctl scale count <n> -a mzigo-crm` sets the number;
+  `min_machines_running = 1` in `fly.toml` keeps one running, billed for CPU
+  and memory, while idle, from the next deploy.
 - Sign-up at `POST /api/auth/register/` is open and unthrottled. Anyone with
   the link can create a candidate or manager account. They see only their own
-  campaigns, but nothing stops them making many. `ALLOW_REGISTRATION=false`
-  closes it without a redeploy.
-- No backups are configured beyond whatever the Cockroach plan gives you.
+  campaign, but nothing stops them making many, and there is no setting that
+  closes it.
+- `flyctl launch` is left out: `mzigo-crm` exists. A new app is created with
+  `flyctl launch --no-deploy --copy-config --name <new-name> --region sin`,
+  and `<new-name>` replaces `mzigo-crm` in every command above and in
+  `fly.toml`. Step 1 then points the new app at the same `campaign_db`; give it
+  its own Neon database or branch unless sharing is intended.

@@ -16,6 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engin
 os.environ.setdefault("SECRET_KEY", secrets.token_urlsafe(48))
 # Overrides a developer's .env, so the suite always exercises the generated password.
 os.environ["DEFAULT_USER_PASSWORD"] = ""
+# Overrides a developer's .env, so no test can reach a real database.
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 
 from backend.models import Base  # noqa: E402
 

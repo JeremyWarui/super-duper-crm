@@ -92,11 +92,17 @@ disagree with the rows underneath it.
 ## Checks
 
 ```bash
-cd backend  && uv run pytest && uv run ruff check .   # 644 tests
+cd backend  && uv run pytest && uv run ruff check .   # 555 tests
 cd frontend && npm test && npm run build              # 267 tests
 ```
 
-Neither suite needs a database server or the network.
+Neither suite needs a database server or the network. One check does, and is
+skipped unless asked for: it connects to the database in `backend/.env` and
+confirms TLS, the latest migration and the seeded geography.
+
+```bash
+cd backend && LIVE_DATABASE=1 uv run pytest evals/test_live_database.py -s
+```
 
 ## Data
 

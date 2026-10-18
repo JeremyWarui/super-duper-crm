@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from backend.config import alembic_url
+from backend.db.session import engine_args
 from backend.models import Base  # noqa: F401  - registers every model
 
 config = context.config
@@ -55,10 +56,12 @@ def _run(connection: Connection) -> None:
 
 
 async def run_migrations_online() -> None:
+    url, connect_args = engine_args(config.get_main_option("sqlalchemy.url"))
     connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        {**config.get_section(config.config_ini_section, {}), "sqlalchemy.url": url},
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
     async with connectable.connect() as connection:
         await connection.run_sync(_run)

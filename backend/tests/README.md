@@ -16,7 +16,7 @@ is needed and nothing touches the network.
 | `test_migrations.py` | The migration builds the models' schema, renders as Postgres, downgrades |
 | `test_manager_signup_flow.py` | Sign-up to setup, end to end, on the migrated schema |
 | `test_schemas.py` | Read schemas expose their listed fields and nothing else |
-| `test_session.py` | Engine caching, rollback, the CockroachDB DSN |
+| `test_session.py` | Engine caching, rollback, rewriting a pasted Postgres URL for asyncpg, TLS verification |
 | `test_app.py` | Startup, the /api prefix, CORS, the SPA mount, docs off in a deploy |
 | `test_security.py` | Password hashing, token keys, the default password |
 | `test_auth_api.py` | Sign-up, sign-in and sign-out |

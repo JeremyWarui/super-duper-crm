@@ -1,6 +1,6 @@
 # Campaign CRM - backend
 
-FastAPI, SQLAlchemy 2.0 (async) and Pydantic v2, on Postgres or CockroachDB. Managed with `uv`.
+FastAPI, SQLAlchemy 2.0 (async) and Pydantic v2, on Postgres (Neon in production). Managed with `uv`.
 
 ## Quick start
 

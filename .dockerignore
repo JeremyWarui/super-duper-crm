@@ -1,5 +1,7 @@
-.git
-.gitguardian.yaml
+# The image needs only these two; nothing else at the root is uploaded.
+*
+!backend
+!frontend
 
 # Never let a local secret reach the image. Fly holds these as secrets.
 **/.env

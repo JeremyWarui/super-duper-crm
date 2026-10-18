@@ -5,6 +5,28 @@ from typing import Literal
 
 from pydantic import Field, PostgresDsn, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
+
+# Schemes libpq and hosted Postgres consoles hand out.
+LIBPQ_SCHEMES = ("postgres", "postgresql")
+
+
+def asyncpg_dsn(value: str) -> str:
+    """A Postgres URL as asyncpg reads it: driver named, `sslmode` as `ssl`, `channel_binding` gone.
+
+    An explicit `ssl` wins over `sslmode`. Other databases pass through untouched.
+    """
+    url = make_url(value)
+    if url.drivername in LIBPQ_SCHEMES:
+        url = url.set(drivername="postgresql+asyncpg")
+    if url.drivername != "postgresql+asyncpg":
+        return value
+    query = dict(url.query)
+    sslmode = query.pop("sslmode", None)
+    query.pop("channel_binding", None)
+    if sslmode is not None:
+        query.setdefault("ssl", sslmode)
+    return url.set(query=query).render_as_string(hide_password=False)
 
 
 class Settings(BaseSettings):
@@ -66,7 +88,7 @@ class Settings(BaseSettings):
     def _assemble_database_url(cls, value: str, info: ValidationInfo) -> str:
         """Build the DSN from the DB_* parts when DATABASE_URL is not set."""
         if value:
-            return value
+            return asyncpg_dsn(value)
         d = info.data
         dsn = PostgresDsn.build(
             scheme="postgresql+asyncpg",
