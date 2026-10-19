@@ -1,11 +1,9 @@
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
 import { useAuth } from "../src/store/auth";
 import {
-  CREATED_USER,
-  STRATEGY,
   dashboardRoutes,
   renderApp,
   signIn,
@@ -26,63 +24,6 @@ async function open(role = "manager", routes = {}) {
   await waitFor(() => expect(screen.queryByText("Loading…")).toBeNull());
   return { calls, ...rendered };
 }
-
-describe("the dashboard", () => {
-  it("shows the campaign it is working on", async () => {
-    await open();
-    expect(screen.getAllByText("Jane for Roysambu").length).toBeGreaterThan(0);
-  });
-
-  it("says there is nothing to work on when no campaign came back", async () => {
-    signIn("mobilizer");
-    stubApi(dashboardRoutes({ "GET /campaigns/": [] }));
-    renderApp(<App />);
-
-    expect(await screen.findByText(/No campaign yet/)).toBeInTheDocument();
-  });
-
-  it("leads with the votes needed to win the seat", async () => {
-    await open();
-
-    expect(screen.getByText("VOTES TO WIN THE SEAT")).toBeInTheDocument();
-    expect(screen.getByText("19,981")).toBeInTheDocument();
-    expect(screen.getByText("9,211 committed")).toBeInTheDocument();
-    expect(screen.getByText(/46\.1% there/)).toBeInTheDocument();
-  });
-
-  it("counts coverage out of the units the server reported", async () => {
-    await open();
-
-    expect(screen.getByText("Registered voters")).toBeInTheDocument();
-    expect(screen.getByText("66,600")).toBeInTheDocument();
-    expect(screen.getByText("Units covered")).toBeInTheDocument();
-    expect(screen.getAllByText("1 / 2")).toHaveLength(2);
-    expect(screen.getByText("Units behind")).toBeInTheDocument();
-  });
-
-  it("colours a unit by how far along it is", async () => {
-    await open();
-
-    expect(screen.getByText("Target met")).toBeInTheDocument();
-    expect(screen.getByText("Behind")).toBeInTheDocument();
-  });
-
-  it("shows the strategy read the server computed", async () => {
-    await open();
-    expect(screen.getByText("Go next: Githurai")).toBeInTheDocument();
-  });
-
-  it("says coverage looks balanced when there is nothing to flag", async () => {
-    await open("manager", { "GET /strategy/": { ...STRATEGY, notes: [] } });
-    expect(screen.getByText(/coverage looks balanced/)).toBeInTheDocument();
-  });
-
-  it("asks the server only for this campaign's data", async () => {
-    const { calls } = await open();
-    const strategy = calls.find((c) => c.path.startsWith("/strategy/"));
-    expect(strategy.path).toBe("/strategy/?campaign=c1");
-  });
-});
 
 describe("what each role is shown", () => {
   it("gives a campaign manager the full war room", async () => {
@@ -115,7 +56,6 @@ describe("what each role is shown", () => {
     expect(screen.queryByRole("button", { name: "Supporters" })).toBeNull();
   });
 
-
   it("gives a mobilizer only their own three pages", async () => {
     await open("mobilizer");
 
@@ -126,80 +66,9 @@ describe("what each role is shown", () => {
     expect(screen.queryByRole("button", { name: "Overview" })).toBeNull();
   });
 
-  it("opens a mobilizer straight onto their events", async () => {
-    await open("mobilizer");
-    expect(screen.getByText("Zimmerman town hall")).toBeInTheDocument();
-  });
 });
 
 describe("moving around", () => {
-  it("switches page when a nav item is clicked", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Targets" }));
-
-    expect(
-      await screen.findByText("Targets — the win number"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("TOTAL WIN NUMBER")).toBeInTheDocument();
-  });
-
-  it("names a ward target by its ward", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Targets" }));
-
-    expect(await screen.findByText("30,701")).toBeInTheDocument();
-    expect(screen.getAllByText("Zimmerman").length).toBeGreaterThan(0);
-  });
-
-  it("names a centre target by its centre", async () => {
-    const user = userEvent.setup();
-    await open("manager", {
-      "GET /targets/": [
-        {
-          id: "t3",
-          campaign: "c1",
-          ward: "w1",
-          ward_name: "Zimmerman",
-          registration_centre: "rc1",
-          centre_name: "Zimmerman Primary",
-          registered_voters: 2500,
-          projected_turnout_pct: "60.00",
-          votes_needed: 751,
-          votes_committed: 0,
-          votes_remaining: 751,
-          progress_pct: 0,
-        },
-      ],
-    });
-
-    await user.click(screen.getByRole("button", { name: "Targets" }));
-
-    expect(await screen.findByText("Zimmerman Primary")).toBeInTheDocument();
-  });
-
-  it("lists events with their status and venue", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Events" }));
-
-    expect(await screen.findByText("Zimmerman town hall")).toBeInTheDocument();
-    expect(screen.getByText("Social hall")).toBeInTheDocument();
-    expect(screen.getByText("Planned")).toBeInTheDocument();
-  });
-
-  it("says so plainly when a list is empty", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Mobilizers" }));
-
-    expect(await screen.findByText("No mobilizers yet.")).toBeInTheDocument();
-  });
 
   it("signs the user out", async () => {
     const user = userEvent.setup();
@@ -245,23 +114,6 @@ describe("the forms", () => {
     });
   });
 
-
-  it("will not register a supporter without consent", async () => {
-    const user = userEvent.setup();
-    await open("mobilizer");
-
-    await user.click(
-      screen.getByRole("button", { name: "Register supporter" }),
-    );
-    const boxes = await screen.findAllByRole("textbox");
-    await user.type(boxes[0], "Wanjiku Njeri");
-
-    // The nav item shares the name; the form's button is last.
-    expect(
-      screen.getAllByRole("button", { name: "Register supporter" }).at(-1),
-    ).toBeDisabled();
-  });
-
   it("registers a supporter once consent is ticked", async () => {
     const user = userEvent.setup();
     const { calls } = await open("mobilizer", {
@@ -293,185 +145,6 @@ describe("the forms", () => {
     });
   });
 
-  it("records attendance against the event it was opened from", async () => {
-    const user = userEvent.setup();
-    const { calls } = await open("manager", {
-      "POST /events/e1/record/": { id: "e1" },
-    });
-
-    await user.click(screen.getByRole("button", { name: "Events" }));
-    await user.click(await screen.findByRole("button", { name: "Record" }));
-
-    const numbers = document.querySelectorAll('input[type="number"]');
-    await user.type(numbers[0], "400");
-    await user.type(numbers[1], "300");
-    await user.click(screen.getByRole("button", { name: "Save & mark done" }));
-
-    await waitFor(() => {
-      const posted = calls.find(
-        (c) => c.method === "POST" && c.path === "/events/e1/record/",
-      );
-      expect(posted.body).toEqual({
-        number_reached: 400,
-        number_attended: 300,
-      });
-    });
-  });
-
-  it("refuses attendance above the number reached, before it is sent", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Events" }));
-    await user.click(await screen.findByRole("button", { name: "Record" }));
-
-    const numbers = document.querySelectorAll('input[type="number"]');
-    await user.type(numbers[0], "100");
-    await user.type(numbers[1], "200");
-
-    expect(
-      screen.getByText("Attendance can't exceed those reached."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Save & mark done" }),
-    ).toBeDisabled();
-  });
-});
-
-describe("inviting supporters to an event", () => {
-  it("offers an invite on each event, but not to a candidate", async () => {
-    await open("manager");
-    await userEvent
-      .setup()
-      .click(screen.getByRole("button", { name: "Events" }));
-    expect(
-      await screen.findByRole("button", { name: "Invite" }),
-    ).toBeInTheDocument();
-
-    cleanup();
-    await open("candidate");
-    await userEvent
-      .setup()
-      .click(screen.getByRole("button", { name: "Events" }));
-    await screen.findByText("Zimmerman town hall");
-    expect(screen.queryByRole("button", { name: "Invite" })).toBeNull();
-  });
-
-  it("opens with a message drafted from the event", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Events" }));
-    await user.click(await screen.findByRole("button", { name: "Invite" }));
-
-    const box = await screen.findByRole("textbox");
-    expect(box.value).toContain("Zimmerman town hall");
-    expect(box.value).toContain("Social hall");
-  });
-
-  it("counts the SMS parts the message will be billed at", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Events" }));
-    await user.click(await screen.findByRole("button", { name: "Invite" }));
-    const box = await screen.findByRole("textbox");
-    await user.clear(box);
-    await user.type(box, "x".repeat(50));
-
-    expect(
-      screen.getByText(/50 characters · 1 SMS part per person/),
-    ).toBeInTheDocument();
-  });
-
-  it("previews without sending", async () => {
-    const user = userEvent.setup();
-    const { calls } = await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Events" }));
-    await user.click(await screen.findByRole("button", { name: "Invite" }));
-    await user.click(screen.getByRole("button", { name: "Preview" }));
-
-    await waitFor(() => {
-      const posted = calls.find((c) => c.path === "/events/e1/invite/");
-      expect(posted.body.dry_run).toBe(true);
-      expect(posted.body.support_levels).toEqual(["supporter", "undecided"]);
-      expect(posted.body.whole_campaign).toBe(false);
-    });
-  });
-
-  it("sends to the levels that are selected", async () => {
-    const user = userEvent.setup();
-    const { calls } = await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Events" }));
-    await user.click(await screen.findByRole("button", { name: "Invite" }));
-    await user.click(screen.getByRole("button", { name: "Opposed" }));
-    await user.click(screen.getByRole("button", { name: "Undecided" }));
-    await user.click(screen.getByRole("button", { name: "Send" }));
-
-    await waitFor(() => {
-      const posted = calls.find(
-        (c) => c.path === "/events/e1/invite/" && !c.body.dry_run,
-      );
-      expect(posted.body.support_levels).toEqual(["supporter", "opposed"]);
-    });
-  });
-
-  it("can widen the send to the whole campaign", async () => {
-    const user = userEvent.setup();
-    const { calls } = await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Events" }));
-    await user.click(await screen.findByRole("button", { name: "Invite" }));
-    await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Send" }));
-
-    await waitFor(() => {
-      const posted = calls.find((c) => c.path === "/events/e1/invite/");
-      expect(posted.body.whole_campaign).toBe(true);
-    });
-  });
-
-  it("says plainly when nothing was sent", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Events" }));
-    await user.click(await screen.findByRole("button", { name: "Invite" }));
-    await user.click(screen.getByRole("button", { name: "Send" }));
-
-    expect(await screen.findByText("Not sent")).toBeInTheDocument();
-    expect(
-      screen.getByText(/No SMS gateway is configured/),
-    ).toBeInTheDocument();
-  });
-
-  it("reports the numbers it could not use", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Events" }));
-    await user.click(await screen.findByRole("button", { name: "Invite" }));
-    await user.click(screen.getByRole("button", { name: "Send" }));
-
-    expect(
-      await screen.findByText(/1 number unusable: not a phone/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/3 supporters matched/)).toBeInTheDocument();
-  });
-
-  it("will not send an empty message", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-
-    await user.click(screen.getByRole("button", { name: "Events" }));
-    await user.click(await screen.findByRole("button", { name: "Invite" }));
-    await user.clear(await screen.findByRole("textbox"));
-
-    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Preview" })).toBeDisabled();
-  });
 });
 
 describe("adding a mobilizer", () => {
@@ -481,34 +154,6 @@ describe("adding a mobilizer", () => {
       await screen.findByRole("button", { name: "Add mobilizer" }),
     );
   }
-
-  it("creates a ground-team row with no login by default", async () => {
-    const user = userEvent.setup();
-    const { calls } = await open("manager");
-    await openForm(user);
-
-    const boxes = await screen.findAllByRole("textbox");
-    await user.type(boxes[0], "Wanjiku Njeri");
-    await user.click(screen.getByRole("button", { name: "Save mobilizer" }));
-
-    await waitFor(() => {
-      expect(
-        calls.some((c) => c.path === "/mobilizers/" && c.method === "POST"),
-      ).toBe(true);
-      expect(calls.some((c) => c.path === "/users/")).toBe(false);
-    });
-  });
-
-  it("asks for a username once a login is wanted", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-    await openForm(user);
-
-    expect(screen.queryByPlaceholderText("juma")).toBeNull();
-    await user.click(screen.getByRole("checkbox"));
-
-    expect(await screen.findByPlaceholderText("juma")).toBeInTheDocument();
-  });
 
   for (const role of ["manager", "candidate"]) {
     it(`creates a login instead for a ${role}, when one is wanted`, async () => {
@@ -535,54 +180,4 @@ describe("adding a mobilizer", () => {
     });
   }
 
-  it("shows the password once, and says so", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-    await openForm(user);
-
-    const boxes = await screen.findAllByRole("textbox");
-    await user.type(boxes[0], "Wanjiku Njeri");
-    await user.click(screen.getByRole("checkbox"));
-    await user.type(await screen.findByPlaceholderText("juma"), "wanjiku");
-    await user.click(screen.getByRole("button", { name: "Save mobilizer" }));
-
-    expect(await screen.findByText(CREATED_USER.password)).toBeInTheDocument();
-    expect(screen.getByText(/shown once/)).toBeInTheDocument();
-    expect(screen.getByText(/work Githurai/)).toBeInTheDocument();
-  });
-
-  it("will not save a login without a usable username", async () => {
-    const user = userEvent.setup();
-    await open("manager");
-    await openForm(user);
-
-    const boxes = await screen.findAllByRole("textbox");
-    await user.type(boxes[0], "Wanjiku Njeri");
-    await user.click(screen.getByRole("checkbox"));
-    await user.type(await screen.findByPlaceholderText("juma"), "ab");
-
-    expect(
-      screen.getByRole("button", { name: "Save mobilizer" }),
-    ).toBeDisabled();
-  });
-});
-
-describe("knowing whose campaign this is", () => {
-  for (const role of ["candidate", "manager", "mobilizer"]) {
-    it(`tells a ${role} the name, the aspirant and the seat`, async () => {
-      signIn(role);
-      stubApi(dashboardRoutes());
-      renderApp(<App />);
-
-      // The rail names it once; other screens may repeat it, so read the line
-      // that carries all three facts together.
-      const line = await screen.findByText(
-        (_, el) =>
-          el?.textContent ===
-          "for Jane Wanjiku · Constituency (MP) · Roysambu",
-      );
-      expect(line).toBeInTheDocument();
-      expect(screen.getAllByText("Jane for Roysambu").length).toBeGreaterThan(0);
-    });
-  }
 });

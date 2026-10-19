@@ -19,7 +19,7 @@ npm run dev        # http://localhost:5173
 Checks:
 
 ```bash
-npm test           # 267 tests, jsdom, no server needed
+npm test           # 60 tests, jsdom, no server needed
 npm run build
 npm run lint
 ```

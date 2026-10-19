@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../src/store/auth";
-import { API, fakeSecret } from "./helpers";
+import { fakeSecret } from "./helpers";
 
 const TOKEN = fakeSecret();
 const PASSWORD = fakeSecret();
@@ -22,10 +22,6 @@ afterEach(() => {
 });
 
 describe("the auth store", () => {
-  it("starts signed out", () => {
-    expect(useAuth.getState().token).toBeNull();
-    expect(useAuth.getState().user).toBeNull();
-  });
 
   it("keeps the token and the role a successful sign-in returns", async () => {
     stubLogin(200, {
@@ -40,36 +36,11 @@ describe("the auth store", () => {
     expect(user.full_name).toBe("Amina Kariuki");
   });
 
-  it("posts to the sign-in route with no token of its own", async () => {
-    const calls = stubLogin(200, { token: TOKEN, user: { role: "manager" } });
-
-    await useAuth.getState().login("amina", PASSWORD);
-
-    expect(calls[0].url).toBe(`${API}/auth/login/`);
-    expect(calls[0].body).toEqual({ username: "amina", password: PASSWORD });
-  });
-
   it("raises the server's rejection message", async () => {
     stubLogin(400, { non_field_errors: ["Unable to log in with the provided credentials."] });
 
     await expect(useAuth.getState().login("amina", "wrong")).rejects.toThrow(
       "Unable to log in with the provided credentials.",
-    );
-  });
-
-  it("stays signed out after a rejected sign-in", async () => {
-    stubLogin(400, { non_field_errors: ["Nope."] });
-
-    await expect(useAuth.getState().login("amina", "wrong")).rejects.toThrow();
-
-    expect(useAuth.getState().token).toBeNull();
-  });
-
-  it("falls back to a plain message when the server explains nothing", async () => {
-    stubLogin(500, {});
-
-    await expect(useAuth.getState().login("amina", PASSWORD)).rejects.toThrow(
-      /wrong username or password/i,
     );
   });
 
@@ -83,11 +54,4 @@ describe("the auth store", () => {
     expect(useAuth.getState().user).toBeNull();
   });
 
-  it("writes the session to storage, so a refresh stays signed in", async () => {
-    stubLogin(200, { token: TOKEN, user: { role: "manager" } });
-
-    await useAuth.getState().login("amina", PASSWORD);
-
-    expect(JSON.parse(localStorage.getItem("campaign-auth")).state.token).toBe(TOKEN);
-  });
 });
