@@ -8,6 +8,7 @@ import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
   useInviteToEvent, useCreateUser, useUpdateMobilizer,
+  usePayments, useSchedulePayment, useMarkPaid, useCancelPayment,
 } from "./api/hooks";
 
 const C = {
@@ -565,11 +566,122 @@ function RegisterSupporterForm({ campaignId, wardOptions }) {
   );
 }
 
+// ---- payments ---------------------------------------------------------------
+const PAY_STATUS = { scheduled: [C.amber, C.amberSoft], paid: [C.green, C.greenSoft], cancelled: [C.sub, C.paper] };
+const kes = (n) => `KES ${fmt(n)}`;
+
+// The payments register: the manager schedules, pays and cancels; everyone else reads.
+function PaymentsView({ campaignId, canPay, mine }) {
+  const { data, isLoading, error } = usePayments(campaignId);
+  const [modal, setModal] = useState(null);
+  if (isLoading) return <Loading />; if (error) return <ErrorMsg error={error} />;
+  const rows = data || [];
+  const total = (status) => rows.filter((p) => p.status === status).reduce((s, p) => s + p.amount_kes, 0);
+  return (
+    <>
+      <PageTitle title={mine ? "My payments" : "Payments"} sub={`${kes(total("paid"))} paid · ${kes(total("scheduled"))} scheduled`} action={canPay ? <Btn primary onClick={() => setModal({ type: "schedule" })}>Schedule payment</Btn> : null} />
+      <Card pad={0}><div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
+          <thead><tr style={{ color: C.sub, textAlign: "left" }}>
+            <th style={{ padding: "10px 18px", fontWeight: 500 }}>Date</th>
+            {!mine && <th style={{ padding: "10px 8px", fontWeight: 500 }}>Mobilizer</th>}
+            <th style={{ padding: "10px 8px", fontWeight: 500 }}>Event</th>
+            <th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Amount</th>
+            <th style={{ padding: "10px 8px", fontWeight: 500 }}>Status</th>
+            <th style={{ padding: "10px 8px", fontWeight: 500 }}>Reference</th>
+            {canPay && <th />}
+          </tr></thead>
+          <tbody>{rows.map((p) => (
+            <tr key={p.id} style={{ borderTop: `1px solid ${C.line}` }}>
+              <td style={{ padding: "12px 18px", color: C.sub }}>{new Date(p.paid_at || p.created_at).toLocaleDateString()}</td>
+              {!mine && <td style={{ padding: "12px 8px" }}><div style={{ fontWeight: 600 }}>{p.recipient_name}</div><div style={{ fontSize: 12, color: C.sub }}>{p.recipient_phone || "—"}</div></td>}
+              <td style={{ padding: "12px 8px" }}>{p.event_title || "—"}</td>
+              <td style={{ padding: "12px 8px", textAlign: "right", ...DISPLAY, fontWeight: 600 }}>{kes(p.amount_kes)}</td>
+              <td style={{ padding: "12px 8px" }}><Badge text={p.status} color={PAY_STATUS[p.status]?.[0]} soft={PAY_STATUS[p.status]?.[1]} /></td>
+              <td style={{ padding: "12px 8px", color: C.sub }}>{p.reference || "—"}</td>
+              {canPay && <td style={{ padding: "12px 18px", textAlign: "right" }}>{p.status === "scheduled" && <div className="flex justify-end gap-2"><Btn onClick={() => setModal({ type: "paid", payment: p })}>Mark paid</Btn><Btn onClick={() => setModal({ type: "cancel", payment: p })}>Cancel</Btn></div>}</td>}
+            </tr>
+          ))}
+          {rows.length === 0 && <tr><td colSpan={7} style={{ padding: 20, color: C.sub }}>No payments yet.</td></tr>}</tbody>
+        </table>
+      </div></Card>
+      {modal?.type === "schedule" && <SchedulePaymentForm campaignId={campaignId} onClose={() => setModal(null)} />}
+      {modal?.type === "paid" && <MarkPaidForm payment={modal.payment} onClose={() => setModal(null)} />}
+      {modal?.type === "cancel" && <CancelPaymentForm payment={modal.payment} onClose={() => setModal(null)} />}
+    </>
+  );
+}
+
+// A payment for one event; the mobilizer starts as the one the event is credited to.
+function SchedulePaymentForm({ campaignId, onClose }) {
+  const schedule = useSchedulePayment();
+  const events = (useEvents(campaignId).data || []).filter((e) => e.status !== "cancelled");
+  const mobilizers = useMobilizers(campaignId).data || [];
+  const [eventId, setEventId] = useState("");
+  const [picked, setPicked] = useState(null);  // null until the mobilizer box is changed
+  const [amount, setAmount] = useState("");
+  const event = events.find((e) => e.id === eventId);
+  const mobilizer = picked ?? event?.mobilizer ?? "";
+  const ok = event && mobilizer && Number.isInteger(Number(amount)) && Number(amount) > 0;
+  const save = () => schedule.mutate({ campaign: campaignId, event: eventId, mobilizer, amount_kes: Number(amount) }, { onSuccess: onClose });
+  return (
+    <Modal title="Schedule payment" sub="Paid per event, to the mobilizer who ran it." onClose={onClose}>
+      <Label>Event</Label>
+      <select aria-label="Event" style={FIELD} value={eventId} onChange={(e) => { setEventId(e.target.value); setPicked(null); }}>
+        <option value="">Pick an event</option>
+        {events.map((e) => <option key={e.id} value={e.id}>{e.title || e.ward_name}</option>)}
+      </select>
+      <div style={{ height: 14 }} /><Label>Mobilizer</Label>
+      <select aria-label="Mobilizer" style={FIELD} value={mobilizer} onChange={(e) => setPicked(e.target.value)}>
+        <option value="">Pick a mobilizer</option>
+        {mobilizers.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+      </select>
+      <div style={{ height: 14 }} /><Label>Amount (KES)</Label>
+      <input aria-label="Amount" type="number" min={1} step={1} style={FIELD} value={amount} onChange={(e) => setAmount(e.target.value)} />
+      {schedule.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{schedule.error.message}</div>}
+      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+        <Btn onClick={onClose}>Cancel</Btn>
+        <PrimaryBtn disabled={!ok || schedule.isPending} onClick={save}>{schedule.isPending ? "Saving…" : "Schedule"}</PrimaryBtn>
+      </div>
+    </Modal>
+  );
+}
+
+function MarkPaidForm({ payment, onClose }) {
+  const markPaid = useMarkPaid();
+  const [reference, setReference] = useState("");
+  const save = () => markPaid.mutate({ id: payment.id, reference: reference.trim() }, { onSuccess: onClose });
+  return (
+    <Modal title="Mark paid" sub={`${kes(payment.amount_kes)} to ${payment.recipient_name}. A paid payment cannot be changed.`} onClose={onClose}>
+      <Label>M-Pesa or bank reference</Label>
+      <input aria-label="Reference" style={FIELD} value={reference} onChange={(e) => setReference(e.target.value)} placeholder="QX12AB34" />
+      {markPaid.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{markPaid.error.message}</div>}
+      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+        <Btn onClick={onClose}>Back</Btn>
+        <PrimaryBtn disabled={!reference.trim() || markPaid.isPending} onClick={save}>{markPaid.isPending ? "Saving…" : "Mark paid"}</PrimaryBtn>
+      </div>
+    </Modal>
+  );
+}
+
+function CancelPaymentForm({ payment, onClose }) {
+  const cancel = useCancelPayment();
+  return (
+    <Modal title="Cancel payment" sub={`${kes(payment.amount_kes)} to ${payment.recipient_name}. It stays on the register as cancelled.`} onClose={onClose}>
+      {cancel.error && <div style={{ color: C.red, fontSize: 12.5 }}>{cancel.error.message}</div>}
+      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+        <Btn onClick={onClose}>Back</Btn>
+        <PrimaryBtn disabled={cancel.isPending} onClick={() => cancel.mutate({ id: payment.id }, { onSuccess: onClose })}>Cancel payment</PrimaryBtn>
+      </div>
+    </Modal>
+  );
+}
+
 // ---- nav ------------------------------------------------------------------
 const NAV = {
-  candidate: [["overview", "Overview"], ["units", "Ward performance"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["strategy", "Strategy"]],
-  manager: [["overview", "Overview"], ["targets", "Targets"], ["units", "Wards"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["supporters", "Supporters"], ["strategy", "Strategy"]],
-  mobilizer: [["myevents", "My events"], ["register", "Register supporter"], ["mysupporters", "My supporters"]],
+  candidate: [["overview", "Overview"], ["units", "Ward performance"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["payments", "Payments"], ["strategy", "Strategy"]],
+  manager: [["overview", "Overview"], ["targets", "Targets"], ["units", "Wards"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["supporters", "Supporters"], ["payments", "Payments"], ["strategy", "Strategy"]],
+  mobilizer: [["myevents", "My events"], ["register", "Register supporter"], ["mysupporters", "My supporters"], ["mypayments", "My payments"]],
 };
 const ROLE_LABEL = { candidate: "Candidate", manager: "Campaign Manager", mobilizer: "Mobilizer" };
 
@@ -634,6 +746,8 @@ export default function App() {
         return (<><PageTitle title={page === "myevents" ? "My events" : "Events"} sub="Rallies and meetings, with mobilization counts." action={role !== "candidate" ? <Btn primary onClick={() => setModal({ type: "event" })}>Schedule event</Btn> : null} /><EventList events={events.data || []} showActions={role !== "candidate"} onRecord={(e) => setModal({ type: "record", event: e })} onInvite={(e) => setModal({ type: "invite", event: e })} /></>);
       case "register": return (<><PageTitle title="Register a supporter" sub="Quick capture in the field." /><RegisterSupporterForm campaignId={campaignId} wardOptions={wardOptions} /></>);
       case "mysupporters": return <SupportersView campaignId={campaignId} />;
+      case "payments": return <PaymentsView campaignId={campaignId} canPay={role === "manager"} />;
+      case "mypayments": return <PaymentsView campaignId={campaignId} mine />;
       default: return null;
     }
   }

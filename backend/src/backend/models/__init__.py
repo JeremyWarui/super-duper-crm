@@ -8,6 +8,7 @@ from backend.models.enums import (
     LabelledStrEnum,
     OfficeLevel,
     OperationalGrain,
+    PaymentStatus,
     SupportLevel,
     UserRole,
 )
@@ -20,6 +21,7 @@ from backend.models.geography import (
 )
 from backend.models.membership import CampaignMember
 from backend.models.mobilizer import Mobilizer
+from backend.models.payment import Payment
 from backend.models.supporter import Supporter
 from backend.models.target import Target, compute_win_number, unit_key
 from backend.models.user import User
@@ -37,6 +39,8 @@ __all__ = [
     "Mobilizer",
     "OfficeLevel",
     "OperationalGrain",
+    "Payment",
+    "PaymentStatus",
     "RegistrationCentre",
     "SupportLevel",
     "Supporter",

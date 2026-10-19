@@ -176,6 +176,17 @@
       "votes_needed",
       "votes_committed",
       "wards"
+    ],
+    "GET /api/payments/": [
+      "id",
+      "recipient_name",
+      "recipient_phone",
+      "event_title",
+      "amount_kes",
+      "status",
+      "reference",
+      "paid_at",
+      "created_at"
     ]
   },
   "nested_reads": {
@@ -373,7 +384,17 @@
     ],
     "PATCH /api/admin/campaigns/{campaign_id}/": [
       "title"
-    ]
+    ],
+    "POST /api/payments/": [
+      "campaign",
+      "event",
+      "mobilizer",
+      "amount_kes"
+    ],
+    "POST /api/payments/{payment_id}/paid/": [
+      "reference"
+    ],
+    "POST /api/payments/{payment_id}/cancel/": []
   },
   "enums": {
     "user.role": [
@@ -407,6 +428,11 @@
     ],
     "user.create_role": [
       "mobilizer"
+    ],
+    "payment.status": [
+      "scheduled",
+      "paid",
+      "cancelled"
     ]
   },
   "error_shape": {

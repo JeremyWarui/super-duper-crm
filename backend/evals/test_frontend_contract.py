@@ -56,7 +56,10 @@ def _response_properties(route: str) -> dict[str, Any]:
 
 
 def _request_properties(route: str) -> dict[str, Any]:
+    """The fields a route's body accepts; none for a route that takes no body."""
     operation = _operation(route)
+    if "requestBody" not in operation:
+        return {}
     schema = operation["requestBody"]["content"]["application/json"]["schema"]
     return _resolve(schema).get("properties", {})
 
@@ -95,7 +98,13 @@ def test_every_field_the_spa_sends_is_still_accepted(route: str) -> None:
 
 @pytest.mark.parametrize("key", ENUMS)
 def test_the_stored_choice_strings_are_unchanged(key: str) -> None:
-    from backend.models.enums import EventStatus, OfficeLevel, SupportLevel, UserRole
+    from backend.models.enums import (
+        EventStatus,
+        OfficeLevel,
+        PaymentStatus,
+        SupportLevel,
+        UserRole,
+    )
     from backend.models.enums import OperationalGrain as Grain
 
     if key == "user.create_role":
@@ -108,6 +117,7 @@ def test_the_stored_choice_strings_are_unchanged(key: str) -> None:
         "user.role": UserRole,
         "campaign.office_level": OfficeLevel,
         "event.status": EventStatus,
+        "payment.status": PaymentStatus,
         "supporter.support_level": SupportLevel,
         "invite.support_levels": SupportLevel,
         "user.create_role": None,

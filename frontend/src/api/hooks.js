@@ -115,6 +115,39 @@ export function useRegisterSupporter() {
   });
 }
 
+// ---- Payments to mobilizers ----------------------------------------------
+export const usePayments = (campaignId) =>
+  useQuery({
+    queryKey: ["payments", campaignId],
+    queryFn: () => api(`/payments/?campaign=${campaignId}`),
+    enabled: !!campaignId,
+  });
+
+export function useSchedulePayment() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (payload) => api("/payments/", { method: "POST", body: payload }),
+    onSuccess: () => invalidate("payments"),
+  });
+}
+
+export function useMarkPaid() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, reference }) =>
+      api(`/payments/${id}/paid/`, { method: "POST", body: { reference } }),
+    onSettled: () => invalidate("payments"),  // a refused change may mean the row moved on
+  });
+}
+
+export function useCancelPayment() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id }) => api(`/payments/${id}/cancel/`, { method: "POST" }),
+    onSettled: () => invalidate("payments"),  // a refused change may mean the row moved on
+  });
+}
+
 // ---- Onboarding: geography pickers + campaign setup ----------------------
 export const useCounties = () =>
   useQuery({ queryKey: ["counties"], queryFn: () => api("/counties/") });

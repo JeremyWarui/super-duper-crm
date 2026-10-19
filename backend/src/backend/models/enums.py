@@ -40,6 +40,12 @@ class EventStatus(LabelledStrEnum):
     CANCELLED = ("cancelled", "Cancelled")
 
 
+class PaymentStatus(LabelledStrEnum):
+    SCHEDULED = ("scheduled", "Scheduled")
+    PAID = ("paid", "Paid")
+    CANCELLED = ("cancelled", "Cancelled")
+
+
 class SupportLevel(LabelledStrEnum):
     SUPPORTER = ("supporter", "Supporter")
     UNDECIDED = ("undecided", "Undecided")

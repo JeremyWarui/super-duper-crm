@@ -9,6 +9,8 @@ from backend.services.errors import NotFound, Refused
 
 # The one-campaign index, as Postgres and SQLite name it.
 ONE_CAMPAIGN = ("uq_campaign_members_one_campaign_per_user", "campaign_members.user_id")
+# One live payment per mobilizer per event, as Postgres and SQLite name it.
+ONE_PAYMENT = ("uq_payments_event_mobilizer", "payments.event_id, payments.mobilizer_id")
 # The one-mobilizer-per-unit indexes, as Postgres and SQLite name them.
 ONE_MOBILIZER = (
     "uq_mobilizers_campaign_ward",
@@ -48,6 +50,11 @@ def register_error_handlers(app: FastAPI) -> None:
         if any(name in str(exc.orig) for name in ONE_CAMPAIGN):
             return _detail(
                 "That login is already on a campaign; a login belongs to one campaign.",
+                status.HTTP_400_BAD_REQUEST,
+            )
+        if any(name in str(exc.orig) for name in ONE_PAYMENT):
+            return _detail(
+                "That mobilizer already has a payment for this event.",
                 status.HTTP_400_BAD_REQUEST,
             )
         if any(name in str(exc.orig) for name in ONE_MOBILIZER):
