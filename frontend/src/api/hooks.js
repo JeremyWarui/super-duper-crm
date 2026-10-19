@@ -75,6 +75,16 @@ export function useAddMobilizer() {
   });
 }
 
+// Rename a mobilizer, or move them to a unit or to none; the server frees the unit's last holder.
+export function useUpdateMobilizer() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, ...body }) =>
+      api(`/mobilizers/${id}/`, { method: "PATCH", body }),
+    onSuccess: () => invalidate("mobilizers", "strategy"),
+  });
+}
+
 export function useScheduleEvent() {
   const invalidate = useInvalidator();
   return useMutation({

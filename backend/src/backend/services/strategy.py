@@ -64,6 +64,8 @@ async def read_strategy(
         units.append(
             UnitRead(
                 unit=centre.name if centre is not None else target.ward.name,
+                ward=target.ward_id,
+                registration_centre=target.registration_centre_id,
                 needed=needed,
                 committed=has,
                 gap=target.votes_remaining or 0,

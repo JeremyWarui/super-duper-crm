@@ -99,8 +99,8 @@ class TargetUpdate(WriteModel):
 class MobilizerRead(ORMModel):
     id: uuid.UUID
     campaign: uuid.UUID = Field(validation_alias="campaign_id")
-    ward: uuid.UUID = Field(validation_alias="ward_id")
-    ward_name: str = Field(validation_alias=AliasPath("ward", "name"))
+    ward: uuid.UUID | None = Field(default=None, validation_alias="ward_id")
+    ward_name: str | None = Field(default=None, validation_alias=AliasPath("ward", "name"))
     registration_centre: uuid.UUID | None = Field(
         default=None, validation_alias="registration_centre_id"
     )
@@ -112,11 +112,20 @@ class MobilizerRead(ORMModel):
 
 class MobilizerCreate(WriteModel):
     campaign: uuid.UUID
-    ward: uuid.UUID
+    ward: uuid.UUID | None = None
     registration_centre: uuid.UUID | None = None
     user: uuid.UUID | None = None
     full_name: str = Field(min_length=1, max_length=150)
     phone: str = Field(default="", max_length=20)
+
+
+class MobilizerUpdate(WriteModel):
+    """Fields left out stay as they are; a ward of null leaves the mobilizer unassigned."""
+
+    full_name: str | None = Field(default=None, min_length=1, max_length=150)
+    phone: str | None = Field(default=None, max_length=20)
+    ward: uuid.UUID | None = None
+    registration_centre: uuid.UUID | None = None
 
 
 class EventRead(ORMModel):

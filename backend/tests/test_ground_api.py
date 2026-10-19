@@ -504,3 +504,55 @@ async def test_a_supporter_is_erased_on_request_by_a_signed_in_team_member(
 
     assert (anonymous.status_code, erased.status_code) == (401, 204)
     assert await session.scalar(select(func.count()).select_from(Supporter)) == 0
+
+
+async def test_assigning_a_taken_ward_moves_its_mobilizer_off_and_null_removes(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    head = world.headers("manager")
+    spare = (
+        await client.post("/api/mobilizers/", headers=head, json=_ground(world, ward=None))
+    ).json()
+
+    swapped = await client.patch(
+        f"/api/mobilizers/{spare['id']}/", headers=head, json={"ward": str(world.ward.id)}
+    )
+    listed = {
+        m["id"]: m["ward_name"] for m in (await client.get("/api/mobilizers/", headers=head)).json()
+    }
+    removed = await client.patch(
+        f"/api/mobilizers/{spare['id']}/", headers=head, json={"ward": None}
+    )
+
+    assert spare["ward"] is None
+    assert swapped.status_code == 200, swapped.text
+    assert listed == {spare["id"]: "Zimmerman", str(world.mobilizer.id): None}
+    assert removed.json()["ward"] is None
+
+
+async def test_a_mobilizer_with_no_ward_sees_nothing_of_the_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await client.post("/api/supporters/", headers=world.headers("manager"), json=_supporter(world))
+    world.mobilizer.ward_id = None
+    await session.commit()
+
+    seen = await client.get("/api/supporters/", headers=world.headers("mobilizer"))
+    events = await client.get("/api/events/", headers=world.headers("mobilizer"))
+
+    assert (seen.json(), events.json()) == ([], [])
+
+
+@pytest.mark.parametrize("with_centre", [False, True])
+async def test_a_ward_with_a_mobilizer_takes_no_second_one(
+    client: httpx.AsyncClient, world: World, with_centre: bool
+) -> None:
+    extra = {"registration_centre": str(world.centre.id)} if with_centre else {}
+
+    response = await client.post(
+        "/api/mobilizers/",
+        headers=world.headers("manager"),
+        json=_ground(world, ward=str(world.ward.id), **extra),
+    )
+
+    assert response.status_code == 400

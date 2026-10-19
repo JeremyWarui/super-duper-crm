@@ -36,7 +36,9 @@ def mobilizer_ward_id(user: User) -> uuid.UUID | None:
     if user.role is not UserRole.MOBILIZER:
         return None
     profile = user.mobilizer_profile
-    return profile.ward_id if profile is not None else uuid.UUID(int=0)
+    if profile is None or profile.ward_id is None:
+        return uuid.UUID(int=0)
+    return profile.ward_id
 
 
 def own_ground_row(user: User, campaign_id: uuid.UUID) -> Mobilizer | None:

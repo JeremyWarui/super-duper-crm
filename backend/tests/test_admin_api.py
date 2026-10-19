@@ -478,7 +478,7 @@ async def test_a_mobilizer_made_in_the_console_works_their_ward(
             "username": "newboots",
             "role": "mobilizer",
             "campaign": str(world.campaign.id),
-            "ward": str(world.ward.id),
+            "ward": str(world.other_ward.id),
         },
     )
 
@@ -488,7 +488,7 @@ async def test_a_mobilizer_made_in_the_console_works_their_ward(
         str(world.campaign.id)
     ]
     wards = (await client.get("/api/wards/", headers=head)).json()
-    assert [w["name"] for w in wards] == ["Zimmerman"]
+    assert [w["name"] for w in wards] == ["Githurai"]
 
 
 @pytest.mark.parametrize(

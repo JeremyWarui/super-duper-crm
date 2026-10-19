@@ -101,6 +101,8 @@ export const STRATEGY = {
   units: [
     {
       unit: "Zimmerman",
+      ward: "w1",
+      registration_centre: null,
       needed: 9211,
       committed: 9211,
       gap: 0,
@@ -111,6 +113,8 @@ export const STRATEGY = {
     },
     {
       unit: "Githurai",
+      ward: "w2",
+      registration_centre: null,
       needed: 10770,
       committed: 0,
       gap: 10770,

@@ -15,12 +15,15 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.post("/", response_model=UserCreated, status_code=status.HTTP_201_CREATED)
 async def create_user(payload: UserCreate, session: SessionDep, user: TeamWriter) -> UserCreated:
-    """Create a mobilizer's login on a ward of the caller's campaign; the password is shown once."""
+    """Create a mobilizer's login on the caller's campaign, on a free ward or none.
+
+    The password is shown once.
+    """
     campaign = await require_visible_campaign(session, user, payload.campaign)
-    ward = await session.get(Ward, payload.ward)
-    if ward is None:
+    ward = await session.get(Ward, payload.ward) if payload.ward is not None else None
+    if payload.ward is not None and ward is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such ward.")
-    await require_ward_in_campaign(session, campaign, ward.id, payload.registration_centre)
+    await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
 
     created, password = await new_login(
         session,
@@ -32,7 +35,7 @@ async def create_user(payload: UserCreate, session: SessionDep, user: TeamWriter
         phone=payload.phone,
     )
     mobilizer = await add_mobilizer(
-        session, campaign, ward.id, created, centre_id=payload.registration_centre
+        session, campaign, payload.ward, created, centre_id=payload.registration_centre
     )
     await session.commit()
     return UserCreated(
@@ -43,7 +46,7 @@ async def create_user(payload: UserCreate, session: SessionDep, user: TeamWriter
         phone=created.phone,
         password=password,
         mobilizer=mobilizer.id,
-        ward_name=ward.name,
+        ward_name=ward.name if ward is not None else None,
     )
 
 

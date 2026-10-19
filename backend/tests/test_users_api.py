@@ -22,7 +22,7 @@ def _mobilizer(world: World, **overrides) -> dict:
         "first_name": "Wanjiku",
         "last_name": "Njeri",
         "campaign": str(world.campaign.id),
-        "ward": str(world.ward.id),
+        "ward": str(world.other_ward.id),
     }
     return {**body, **overrides}
 
@@ -45,10 +45,10 @@ async def test_the_manager_or_candidate_adds_a_mobilizer_who_then_works_their_wa
     assert response.status_code == 201, response.text
     created = response.json()
     assert created["role"] == "mobilizer"
-    assert created["ward_name"] == "Zimmerman"
+    assert created["ward_name"] == "Githurai"
     assert len(created["password"]) >= 12
     profile = await session.get(Mobilizer, uuid.UUID(created["mobilizer"]))
-    assert (profile.ward_id, profile.full_name) == (world.ward.id, "Wanjiku Njeri")
+    assert (profile.ward_id, profile.full_name) == (world.other_ward.id, "Wanjiku Njeri")
     stored = await session.scalar(select(User).where(User.username == "wanjiku"))
     assert created["password"] not in stored.password_hash
 
@@ -56,7 +56,7 @@ async def test_the_manager_or_candidate_adds_a_mobilizer_who_then_works_their_wa
     listed = (await client.get("/api/campaigns/", headers=head)).json()
     assert [c["id"] for c in listed] == [str(world.campaign.id)]
     wards = (await client.get("/api/wards/", headers=head)).json()
-    assert [w["name"] for w in wards] == ["Zimmerman"]
+    assert [w["name"] for w in wards] == ["Githurai"]
     still = (await client.get("/api/campaigns/", headers=world.headers(caller))).json()
     assert [c["id"] for c in still] == [str(world.campaign.id)]
 
@@ -91,7 +91,7 @@ async def test_two_accounts_do_not_share_a_generated_password(
         await client.post(
             "/api/users/",
             headers=head,
-            json=_mobilizer(world, username="carol", ward=str(world.other_ward.id)),
+            json=_mobilizer(world, username="carol", ward=None),
         )
     ).json()
 
@@ -119,7 +119,6 @@ async def test_the_default_password_is_handed_to_everyone_onboarded(
     ("overrides", "code", "message"),
     [
         ({"password": fresh_password()}, 400, "password"),
-        ({"ward": None}, 400, "ward"),
         ({"campaign": None}, 400, "campaign"),
         ({"campaign": UNKNOWN}, 404, "No such campaign."),
         ({"ward": UNKNOWN}, 400, "No such ward."),

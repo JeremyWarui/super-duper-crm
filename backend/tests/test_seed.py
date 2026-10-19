@@ -430,7 +430,7 @@ async def test_re_running_leaves_every_ground_login_a_mobilizer_on_that_campaign
     await seed_demo(session)
     demo = await session.scalar(select(Campaign).where(Campaign.title == DEMO_CAMPAIGN_TITLE))
     kip, _ = await new_login(session, username="kip", role=UserRole.MOBILIZER)
-    await add_mobilizer(session, demo, ward.id, kip)
+    await add_mobilizer(session, demo, None, kip)
     await session.commit()
 
     await seed_demo(session)

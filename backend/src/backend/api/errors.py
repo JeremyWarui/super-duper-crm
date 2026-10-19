@@ -9,6 +9,13 @@ from backend.services.errors import NotFound, Refused
 
 # The one-campaign index, as Postgres and SQLite name it.
 ONE_CAMPAIGN = ("uq_campaign_members_one_campaign_per_user", "campaign_members.user_id")
+# The one-mobilizer-per-unit indexes, as Postgres and SQLite name them.
+ONE_MOBILIZER = (
+    "uq_mobilizers_campaign_ward",
+    "uq_mobilizers_campaign_registration_centre",
+    "mobilizers.campaign_id, mobilizers.ward_id",
+    "mobilizers.campaign_id, mobilizers.registration_centre_id",
+)
 
 
 def _describe(error: dict) -> str:
@@ -37,10 +44,12 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(IntegrityError)
     async def _integrity_error(_: Request, exc: IntegrityError) -> JSONResponse:
-        """A request that raced past the one-campaign check still answers with the rule."""
+        """A request that raced past a uniqueness check still answers with the rule."""
         if any(name in str(exc.orig) for name in ONE_CAMPAIGN):
             return _detail(
                 "That login is already on a campaign; a login belongs to one campaign.",
                 status.HTTP_400_BAD_REQUEST,
             )
+        if any(name in str(exc.orig) for name in ONE_MOBILIZER):
+            return _detail("That ward already has a mobilizer.", status.HTTP_400_BAD_REQUEST)
         raise exc

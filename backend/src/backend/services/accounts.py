@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Campaign, CampaignMember, Mobilizer, User, UserRole
+from backend.models import Campaign, CampaignMember, Mobilizer, OperationalGrain, User, UserRole
 from backend.security import hash_password, new_password
 from backend.services.errors import Refused
 
@@ -105,20 +105,77 @@ async def add_member(session: AsyncSession, campaign_id: uuid.UUID, user: User) 
     return member
 
 
+async def unit_holder(
+    session: AsyncSession,
+    campaign_id: uuid.UUID,
+    ward_id: uuid.UUID | None,
+    centre_id: uuid.UUID | None = None,
+) -> Mobilizer | None:
+    """The mobilizer on this ward, or on this centre, of the campaign."""
+    if ward_id is None:
+        return None
+    statement = select(Mobilizer).where(Mobilizer.campaign_id == campaign_id)
+    if centre_id is not None:
+        statement = statement.where(Mobilizer.registration_centre_id == centre_id)
+    else:
+        statement = statement.where(
+            Mobilizer.ward_id == ward_id, Mobilizer.registration_centre_id.is_(None)
+        )
+    return await session.scalar(statement)
+
+
+def require_unit(
+    campaign: Campaign, ward_id: uuid.UUID | None, centre_id: uuid.UUID | None
+) -> None:
+    """A whole ward in a seat organised by ward; a centre is allowed only in a ward race."""
+    if centre_id is not None and ward_id is None:
+        raise Refused("A registration centre needs its ward.")
+    if centre_id is not None and campaign.operational_grain is not OperationalGrain.CENTRE:
+        raise Refused("In this race a mobilizer works a whole ward; leave the centre out.")
+
+
+async def move_mobilizer(
+    session: AsyncSession,
+    campaign: Campaign,
+    mobilizer: Mobilizer,
+    ward_id: uuid.UUID | None,
+    centre_id: uuid.UUID | None = None,
+) -> None:
+    """Put a mobilizer on a unit, or on none; whoever held that unit is left unassigned."""
+    require_unit(campaign, ward_id, centre_id)
+    holder = await unit_holder(session, mobilizer.campaign_id, ward_id, centre_id)
+    moved = [mobilizer]
+    if holder is not None and holder.id != mobilizer.id:
+        holder.ward_id = None
+        holder.registration_centre_id = None
+        await session.flush()
+        moved.append(holder)
+    mobilizer.ward_id = ward_id
+    mobilizer.registration_centre_id = centre_id
+    await session.flush()
+    for row in moved:
+        await session.refresh(row, ["ward", "registration_centre"])
+
+
 async def add_mobilizer(
     session: AsyncSession,
     campaign: Campaign,
-    ward_id: uuid.UUID,
+    ward_id: uuid.UUID | None,
     user: User | None = None,
     *,
     centre_id: uuid.UUID | None = None,
     full_name: str = "",
     phone: str = "",
 ) -> Mobilizer:
-    """Put somebody on one of a campaign's wards; a login given joins the campaign too.
+    """Put somebody on the campaign, on a free ward or none; a login given joins it too.
 
     Name and phone default to the login's.
     """
+    require_unit(campaign, ward_id, centre_id)
+    holder = await unit_holder(session, campaign.id, ward_id, centre_id)
+    if holder is not None:
+        unit = "centre" if centre_id is not None else "ward"
+        raise Refused(f"That {unit} already has a mobilizer: {holder.full_name}.")
     if user is not None:
         await add_member(session, campaign.id, user)
         full_name = full_name or user.full_name or user.username

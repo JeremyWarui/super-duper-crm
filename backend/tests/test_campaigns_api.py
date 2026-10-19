@@ -77,7 +77,6 @@ async def test_every_manager_on_a_campaign_works_it_whatever_their_username(
             headers=head,
             json={
                 "campaign": str(world.campaign.id),
-                "ward": str(world.other_ward.id),
                 "full_name": f"Organizer for {username}",
             },
         )

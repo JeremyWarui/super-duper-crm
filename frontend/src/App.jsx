@@ -7,7 +7,7 @@ import { winNumber } from "./winNumber";
 import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
-  useInviteToEvent, useCreateUser,
+  useInviteToEvent, useCreateUser, useUpdateMobilizer,
 } from "./api/hooks";
 
 const C = {
@@ -82,7 +82,11 @@ function TallyHero({ s }) {
   );
 }
 
-function UnitRegister({ units, onAssign }) {
+// The mobilizer on a unit: its ward, or its registration centre in a ward race.
+const holderOf = (mobilizers, unit) =>
+  mobilizers.find((m) => m.ward === unit.ward && (m.registration_centre ?? null) === (unit.registration_centre ?? null));
+
+function UnitRegister({ units, mobilizers = [], onAssign }) {
   const [sortKey, setSortKey] = useState("opportunity");
   const sorted = useMemo(() => {
     const a = [...units];
@@ -119,7 +123,7 @@ function UnitRegister({ units, onAssign }) {
                   <td style={{ padding: "12px 8px", textAlign: "right", ...DISPLAY, fontWeight: 600, fontSize: 15 }}>{fmt(u.needed)}</td>
                   <td style={{ padding: "12px 8px", minWidth: 140 }}><Bar pct={u.progress * 100} color={st.color} /><div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>{fmt(u.committed)} · {Math.round(u.progress * 100)}%</div></td>
                   <td style={{ padding: "12px 8px", textAlign: "center", ...DISPLAY, fontWeight: 600, color: u.events === 0 ? C.red : C.ink }}>{u.events}</td>
-                  <td style={{ padding: "12px 18px", color: u.has_mobilizer ? C.green : C.red }}>{u.has_mobilizer ? "Assigned" : <Btn onClick={onAssign}>Assign</Btn>}</td>
+                  <td style={{ padding: "12px 18px" }}><MobilizerCell holder={holderOf(mobilizers, u)} onAssign={onAssign && ((holder) => onAssign(u, holder))} /></td>
                 </tr>
               );
             })}
@@ -128,6 +132,13 @@ function UnitRegister({ units, onAssign }) {
       </div>
     </Card>
   );
+}
+
+function MobilizerCell({ holder, onAssign }) {
+  if (holder) {
+    return <div className="flex items-center gap-2"><span style={{ fontWeight: 600 }}>{holder.full_name}</span>{onAssign && <Btn onClick={() => onAssign(holder)}>Change</Btn>}</div>;
+  }
+  return onAssign ? <Btn onClick={() => onAssign(null)}>Assign</Btn> : <span style={{ color: C.red }}>None</span>;
 }
 
 const StrategyPanel = ({ notes, dark }) => (
@@ -147,27 +158,41 @@ const StrategyPanel = ({ notes, dark }) => (
 );
 
 // ---- forms (fire mutations) ----------------------------------------------
-function AddMobilizerForm({ campaignId, wardOptions, onClose }) {
+// Units (wards, or centres in a ward race) with no mobilizer, plus the one `keep` holds.
+const freeUnits = (units, mobilizers, keep) =>
+  units.filter((u) => { const h = holderOf(mobilizers, u); return !h || h.id === keep?.id; });
+
+// Adds a mobilizer, or edits one when `mobilizer` is given; the unit is optional.
+function MobilizerForm({ campaignId, units, mobilizers, mobilizer, onClose }) {
   const add = useAddMobilizer();
+  const update = useUpdateMobilizer();
   const createUser = useCreateUser();
-  const [name, setName] = useState(""); const [phone, setPhone] = useState("");
-  const [ward, setWard] = useState(wardOptions[0]?.id || "");
+  const [name, setName] = useState(mobilizer?.full_name || ""); const [phone, setPhone] = useState(mobilizer?.phone || "");
+  const [picked, setPicked] = useState(null);  // null until the user changes the ward box
+  const unitKey = picked ?? (units.find((u) => mobilizer && holderOf([mobilizer], u))?.key || "");
   const [withLogin, setWithLogin] = useState(false);
   const [username, setUsername] = useState("");
   const [made, setMade] = useState(null);
-  const busy = add.isPending || createUser.isPending;
-  const error = add.error || createUser.error;
-  const ok = name.trim() && ward && (!withLogin || username.trim().length >= 3);
+  const busy = add.isPending || update.isPending || createUser.isPending;
+  const error = add.error || update.error || createUser.error;
+  const ok = name.trim() && (!withLogin || username.trim().length >= 3);
+  const choices = freeUnits(units, mobilizers, mobilizer);
+  const byCentre = units.some((u) => u.registration_centre);
 
   const save = () => {
     const [first, ...rest] = name.trim().split(/\s+/);
-    if (withLogin) {
+    const unit = units.find((u) => u.key === unitKey);
+    const place = { ward: unit?.ward ?? null, registration_centre: unit?.registration_centre ?? null };
+    if (mobilizer) {
+      const moved = picked !== null;
+      update.mutate({ id: mobilizer.id, full_name: name.trim(), phone: phone.trim(), ...(moved && place) }, { onSuccess: onClose });
+    } else if (withLogin) {
       createUser.mutate(
-        { username: username.trim().toLowerCase(), role: "mobilizer", first_name: first, last_name: rest.join(" "), phone: phone.trim(), campaign: campaignId, ward },
+        { username: username.trim().toLowerCase(), role: "mobilizer", first_name: first, last_name: rest.join(" "), phone: phone.trim(), campaign: campaignId, ...place },
         { onSuccess: setMade },
       );
     } else {
-      add.mutate({ campaign: campaignId, ward, full_name: name.trim(), phone: phone.trim() }, { onSuccess: onClose });
+      add.mutate({ campaign: campaignId, ...place, full_name: name.trim(), phone: phone.trim() }, { onSuccess: onClose });
     }
   };
 
@@ -175,7 +200,7 @@ function AddMobilizerForm({ campaignId, wardOptions, onClose }) {
     return (
       <Modal title="Mobilizer added" sub="Write the password down now — it is shown once." onClose={onClose}>
         <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-          <b>{made.username}</b> can now sign in and work {made.ward_name}.
+          <b>{made.username}</b> can now sign in{made.ward_name ? <> and work {made.ward_name}.</> : <>. Assign them a ward from the Wards page.</>}
         </div>
         <div style={{ marginTop: 12, padding: "12px 14px", background: C.paper, border: `1px solid ${C.line}`, borderRadius: 10 }}>
           <div style={{ fontSize: 12, color: C.sub }}>Password</div>
@@ -187,15 +212,20 @@ function AddMobilizerForm({ campaignId, wardOptions, onClose }) {
   }
 
   return (
-    <Modal title="Add mobilizer" sub="One ground organiser per ward." onClose={onClose}>
+    <Modal title={mobilizer ? "Edit mobilizer" : "Add mobilizer"} sub="One mobilizer per ward. The ward can be left for later." onClose={onClose}>
       <Label>Full name</Label><input style={FIELD} value={name} onChange={(e) => setName(e.target.value)} />
       <div style={{ height: 14 }} /><Label>Phone</Label><input style={FIELD} value={phone} onChange={(e) => setPhone(e.target.value)} />
-      <div style={{ height: 14 }} /><Label>Ward</Label>
-      <select style={FIELD} value={ward} onChange={(e) => setWard(e.target.value)}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
-      <label className="flex items-start gap-2" style={{ marginTop: 14, fontSize: 12.5, color: C.sub, cursor: "pointer" }}>
-        <input type="checkbox" checked={withLogin} onChange={(e) => setWithLogin(e.target.checked)} style={{ marginTop: 2, accentColor: C.green }} />
-        Give them a login, so they can record their own events and supporters.
-      </label>
+      <div style={{ height: 14 }} /><Label>{byCentre ? "Registration centre" : "Ward"}</Label>
+      <select aria-label="Ward" style={FIELD} value={unitKey} onChange={(e) => setPicked(e.target.value)}>
+        <option value="">No ward yet</option>
+        {choices.map((u) => <option key={u.key} value={u.key}>{u.name}</option>)}
+      </select>
+      {!mobilizer && (
+        <label className="flex items-start gap-2" style={{ marginTop: 14, fontSize: 12.5, color: C.sub, cursor: "pointer" }}>
+          <input type="checkbox" checked={withLogin} onChange={(e) => setWithLogin(e.target.checked)} style={{ marginTop: 2, accentColor: C.green }} />
+          Give them a login, so they can record their own events and supporters.
+        </label>
+      )}
       {withLogin && (
         <>
           <div style={{ height: 10 }} /><Label>Username</Label>
@@ -206,6 +236,37 @@ function AddMobilizerForm({ campaignId, wardOptions, onClose }) {
       <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : "Save mobilizer"}</PrimaryBtn>
+      </div>
+    </Modal>
+  );
+}
+
+// Puts an unassigned mobilizer on the clicked unit; the unit comes from the row.
+function AssignMobilizerForm({ unit, holder, mobilizers, onClose }) {
+  const update = useUpdateMobilizer();
+  const free = mobilizers.filter((m) => !m.ward);
+  const [picked, setPicked] = useState("");
+  const chosen = picked || free[0]?.id || "";
+  const assign = () => update.mutate({ id: chosen, ward: unit.ward, registration_centre: unit.registration_centre ?? null }, { onSuccess: onClose });
+  const remove = () => update.mutate({ id: holder.id, ward: null, registration_centre: null }, { onSuccess: onClose });
+
+  return (
+    <Modal title={`Mobilizer for ${unit.unit}`} sub={holder ? `Now: ${holder.full_name}` : "Pick a mobilizer without a ward."} onClose={onClose}>
+      {free.length > 0 ? (
+        <>
+          <Label>Mobilizer</Label>
+          <select aria-label="Mobilizer" style={FIELD} value={chosen} onChange={(e) => setPicked(e.target.value)}>
+            {free.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+          </select>
+        </>
+      ) : (
+        <div style={{ fontSize: 13.5, color: C.sub }}>Every mobilizer already has a ward. Add one on the Mobilizers page.</div>
+      )}
+      {update.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{update.error.message}</div>}
+      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+        {holder && <Btn onClick={remove} disabled={update.isPending}>Remove {holder.full_name}</Btn>}
+        <Btn onClick={onClose}>Cancel</Btn>
+        <PrimaryBtn disabled={!chosen || update.isPending} onClick={assign}>{update.isPending ? "Saving…" : "Assign"}</PrimaryBtn>
       </div>
     </Modal>
   );
@@ -469,7 +530,7 @@ function TargetsView({ campaignId }) {
   );
 }
 
-function MobilizersView({ campaignId, onAdd }) {
+function MobilizersView({ campaignId, onAdd, onEdit }) {
   const { data, isLoading, error } = useMobilizers(campaignId);
   if (isLoading) return <Loading />; if (error) return <ErrorMsg error={error} />;
   return (
@@ -477,9 +538,9 @@ function MobilizersView({ campaignId, onAdd }) {
       <PageTitle title="Mobilizers" sub="Ground organisers by ward." action={<Btn primary onClick={onAdd}>Add mobilizer</Btn>} />
       <Card pad={0}><div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-          <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Name</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Ward</th><th style={{ padding: "10px 18px", fontWeight: 500 }}>Phone</th></tr></thead>
-          <tbody>{(data || []).map((m) => (<tr key={m.id} style={{ borderTop: `1px solid ${C.line}` }}><td style={{ padding: "12px 18px", fontWeight: 600 }}>{m.full_name}</td><td style={{ padding: "12px 8px" }}>{m.ward_name}</td><td style={{ padding: "12px 18px", color: C.sub }}>{m.phone || "—"}</td></tr>))}
-          {(!data || data.length === 0) && <tr><td colSpan={3} style={{ padding: 20, color: C.sub }}>No mobilizers yet.</td></tr>}</tbody>
+          <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Name</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Ward</th><th style={{ padding: "10px 18px", fontWeight: 500 }}>Phone</th><th /></tr></thead>
+          <tbody>{(data || []).map((m) => (<tr key={m.id} style={{ borderTop: `1px solid ${C.line}` }}><td style={{ padding: "12px 18px", fontWeight: 600 }}>{m.full_name}</td><td style={{ padding: "12px 8px", color: m.ward_name ? C.ink : C.sub }}>{m.ward_name || "No ward yet"}</td><td style={{ padding: "12px 18px", color: C.sub }}>{m.phone || "—"}</td><td style={{ padding: "12px 18px", textAlign: "right" }}><Btn onClick={() => onEdit(m)}>Edit</Btn></td></tr>))}
+          {(!data || data.length === 0) && <tr><td colSpan={4} style={{ padding: 20, color: C.sub }}>No mobilizers yet.</td></tr>}</tbody>
         </table>
       </div></Card>
     </>
@@ -529,6 +590,12 @@ export default function App() {
   const strategy = useStrategy(campaignId);
   const events = useEvents(campaignId);
   const targets = useTargets(campaignId); // used for ward options in forms
+  const mobilizers = useMobilizers(campaignId);
+  const units = useMemo(() => (targets.data || []).map((t) => ({
+    key: t.id, ward: t.ward, registration_centre: t.registration_centre ?? null, name: t.centre_name || t.ward_name,
+  })), [targets.data]);
+  const canAssign = role === "manager" || role === "candidate";
+  const assign = canAssign ? (unit, holder) => setModal({ type: "assign", unit, holder }) : undefined;
 
   // ward options for forms: distinct wards from targets
   const wardOptions = useMemo(() => {
@@ -548,18 +615,18 @@ export default function App() {
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <TallyHero s={strategy.data} />
             <div className="grid gap-5" style={{ gridTemplateColumns: "minmax(0,1.7fr) minmax(0,1fr)" }}>
-              <UnitRegister units={strategy.data.units} onAssign={() => setModal({ type: "mobilizer" })} />
+              <UnitRegister units={strategy.data.units} mobilizers={mobilizers.data || []} onAssign={assign} />
               <StrategyPanel notes={strategy.data.notes} dark />
             </div>
           </div></>);
       case "units":
         if (strategy.isLoading) return <Loading />; if (strategy.error) return <ErrorMsg error={strategy.error} />;
-        return (<><PageTitle title={role === "candidate" ? "Ward performance" : "Wards"} sub="Win number, progress and coverage per unit." /><UnitRegister units={strategy.data.units} onAssign={() => setModal({ type: "mobilizer" })} /></>);
+        return (<><PageTitle title={role === "candidate" ? "Ward performance" : "Wards"} sub="Win number, progress and coverage per unit." /><UnitRegister units={strategy.data.units} mobilizers={mobilizers.data || []} onAssign={assign} /></>);
       case "strategy":
         if (strategy.isLoading) return <Loading />; if (strategy.error) return <ErrorMsg error={strategy.error} />;
         return (<><PageTitle title="Strategy read" sub="Your next moves, computed from your own data." /><StrategyPanel notes={strategy.data.notes} /></>);
       case "targets": return <TargetsView campaignId={campaignId} />;
-      case "mobilizers": return <MobilizersView campaignId={campaignId} onAdd={() => setModal({ type: "mobilizer" })} />;
+      case "mobilizers": return <MobilizersView campaignId={campaignId} onAdd={() => setModal({ type: "mobilizer" })} onEdit={(m) => setModal({ type: "mobilizer", mobilizer: m })} />;
       case "supporters": return <SupportersView campaignId={campaignId} />;
       case "events":
       case "myevents":
@@ -598,7 +665,8 @@ export default function App() {
         </div>
       </div>
 
-      {modal?.type === "mobilizer" && <AddMobilizerForm campaignId={campaignId} wardOptions={wardOptions} onClose={() => setModal(null)} />}
+      {modal?.type === "mobilizer" && <MobilizerForm campaignId={campaignId} units={units} mobilizers={mobilizers.data || []} mobilizer={modal.mobilizer} onClose={() => setModal(null)} />}
+      {modal?.type === "assign" && <AssignMobilizerForm unit={modal.unit} holder={modal.holder} mobilizers={mobilizers.data || []} onClose={() => setModal(null)} />}
       {modal?.type === "event" && <ScheduleEventForm campaignId={campaignId} wardOptions={wardOptions} onClose={() => setModal(null)} />}
       {modal?.type === "record" && <RecordForm event={modal.event} onClose={() => setModal(null)} />}
       {modal?.type === "invite" && <InviteForm event={modal.event} onClose={() => setModal(null)} />}

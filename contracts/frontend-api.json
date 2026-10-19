@@ -51,7 +51,9 @@
     "GET /api/mobilizers/": [
       "id",
       "full_name",
+      "ward",
       "ward_name",
+      "registration_centre",
       "phone"
     ],
     "GET /api/events/": [
@@ -193,6 +195,8 @@
     ],
     "GET /api/strategy/.units": [
       "unit",
+      "ward",
+      "registration_centre",
       "needed",
       "committed",
       "gap",
@@ -278,7 +282,14 @@
       "campaign",
       "ward",
       "full_name",
-      "phone"
+      "phone",
+      "registration_centre"
+    ],
+    "PATCH /api/mobilizers/{mobilizer_id}/": [
+      "full_name",
+      "phone",
+      "ward",
+      "registration_centre"
     ],
     "POST /api/events/": [
       "campaign",
@@ -315,7 +326,8 @@
       "last_name",
       "phone",
       "campaign",
-      "ward"
+      "ward",
+      "registration_centre"
     ],
     "POST /api/campaigns/setup/.new_candidate": [
       "username",

@@ -1,10 +1,14 @@
 """The strategy read."""
 
+import uuid
+
 from pydantic import BaseModel
 
 
 class UnitRead(BaseModel):
     unit: str
+    ward: uuid.UUID
+    registration_centre: uuid.UUID | None = None
     needed: int
     committed: int
     gap: int

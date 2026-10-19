@@ -13,7 +13,7 @@ from backend.schemas.common import LoginDetails, NewLogin
 class UserCreate(LoginDetails):
     role: Literal[UserRole.MOBILIZER]
     campaign: uuid.UUID
-    ward: uuid.UUID
+    ward: uuid.UUID | None = None
     registration_centre: uuid.UUID | None = None
 
     @field_validator("role", mode="before")
@@ -32,4 +32,4 @@ class UserCreated(NewLogin):
     role: UserRole
     phone: str
     mobilizer: uuid.UUID
-    ward_name: str
+    ward_name: str | None = None
