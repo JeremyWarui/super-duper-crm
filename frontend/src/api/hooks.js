@@ -123,6 +123,26 @@ export const usePayments = (campaignId) =>
     enabled: !!campaignId,
   });
 
+// Whether a release moves real money ("practice" moves none).
+export const usePayoutMode = () =>
+  useQuery({ queryKey: ["payoutMode"], queryFn: () => api("/payments/payout-mode/") });
+
+export function useReleasePayment() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id }) => api(`/payments/${id}/release/`, { method: "POST" }),
+    onSettled: () => invalidate("payments"),
+  });
+}
+
+export function useMarkNotSent() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id }) => api(`/payments/${id}/not-sent/`, { method: "POST" }),
+    onSettled: () => invalidate("payments"),
+  });
+}
+
 export function useSchedulePayment() {
   const invalidate = useInvalidator();
   return useMutation({

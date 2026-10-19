@@ -8,7 +8,7 @@ import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
   useInviteToEvent, useCreateUser, useUpdateMobilizer,
-  usePayments, useSchedulePayment, useMarkPaid, useCancelPayment,
+  usePayments, useSchedulePayment, useMarkPaid, useCancelPayment, usePayoutMode, useReleasePayment, useMarkNotSent,
 } from "./api/hooks";
 
 const C = {
@@ -567,7 +567,8 @@ function RegisterSupporterForm({ campaignId, wardOptions }) {
 }
 
 // ---- payments ---------------------------------------------------------------
-const PAY_STATUS = { scheduled: [C.amber, C.amberSoft], paid: [C.green, C.greenSoft], cancelled: [C.sub, C.paper] };
+const PAY_STATUS = { scheduled: [C.amber, C.amberSoft], sending: [C.amber, C.amberSoft], paid: [C.green, C.greenSoft], failed: [C.red, C.redSoft], cancelled: [C.sub, C.paper] };
+const OPEN = ["scheduled", "failed"];  // still to go out: never sent, or a send that failed
 const kes = (n) => `KES ${fmt(n)}`;
 
 // The payments register: the manager schedules, pays and cancels; everyone else reads.
@@ -577,9 +578,16 @@ function PaymentsView({ campaignId, canPay, mine }) {
   if (isLoading) return <Loading />; if (error) return <ErrorMsg error={error} />;
   const rows = data || [];
   const total = (status) => rows.filter((p) => p.status === status).reduce((s, p) => s + p.amount_kes, 0);
+  const scheduled = rows.filter((p) => p.status === "scheduled");
+  const actions = canPay ? (
+    <div className="flex gap-2">
+      {scheduled.length > 0 && <Btn onClick={() => setModal({ type: "release", payments: scheduled })}>Release all scheduled</Btn>}
+      <Btn primary onClick={() => setModal({ type: "schedule" })}>Schedule payment</Btn>
+    </div>
+  ) : null;
   return (
     <>
-      <PageTitle title={mine ? "My payments" : "Payments"} sub={`${kes(total("paid"))} paid · ${kes(total("scheduled"))} scheduled`} action={canPay ? <Btn primary onClick={() => setModal({ type: "schedule" })}>Schedule payment</Btn> : null} />
+      <PageTitle title={mine ? "My payments" : "Payments"} sub={`${kes(total("paid"))} paid · ${kes(total("scheduled"))} scheduled${total("failed") ? ` · ${kes(total("failed"))} failed` : ""}`} action={actions} />
       <Card pad={0}><div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
           <thead><tr style={{ color: C.sub, textAlign: "left" }}>
@@ -597,9 +605,11 @@ function PaymentsView({ campaignId, canPay, mine }) {
               {!mine && <td style={{ padding: "12px 8px" }}><div style={{ fontWeight: 600 }}>{p.recipient_name}</div><div style={{ fontSize: 12, color: C.sub }}>{p.recipient_phone || "—"}</div></td>}
               <td style={{ padding: "12px 8px" }}>{p.event_title || "—"}</td>
               <td style={{ padding: "12px 8px", textAlign: "right", ...DISPLAY, fontWeight: 600 }}>{kes(p.amount_kes)}</td>
-              <td style={{ padding: "12px 8px" }}><Badge text={p.status} color={PAY_STATUS[p.status]?.[0]} soft={PAY_STATUS[p.status]?.[1]} /></td>
+              <td style={{ padding: "12px 8px" }}><Badge text={p.status} color={PAY_STATUS[p.status]?.[0]} soft={PAY_STATUS[p.status]?.[1]} />{p.failure_reason && (canPay || p.status === "failed") && <div style={{ fontSize: 11.5, color: p.status === "failed" ? C.red : C.amber, marginTop: 3, maxWidth: 260 }}>{p.failure_reason}</div>}</td>
               <td style={{ padding: "12px 8px", color: C.sub }}>{p.reference || "—"}</td>
-              {canPay && <td style={{ padding: "12px 18px", textAlign: "right" }}>{p.status === "scheduled" && <div className="flex justify-end gap-2"><Btn onClick={() => setModal({ type: "paid", payment: p })}>Mark paid</Btn><Btn onClick={() => setModal({ type: "cancel", payment: p })}>Cancel</Btn></div>}</td>}
+              {canPay && <td style={{ padding: "12px 18px", textAlign: "right" }}>{OPEN.includes(p.status) && <div className="flex justify-end gap-2"><Btn primary onClick={() => setModal({ type: "release", payments: [p] })}>Release</Btn><Btn onClick={() => setModal({ type: "paid", payment: p })}>Mark paid</Btn><Btn onClick={() => setModal({ type: "cancel", payment: p })}>Cancel</Btn></div>}{p.status === "sending" && (p.stuck
+                ? <div className="flex justify-end gap-2"><Btn onClick={() => setModal({ type: "paid", payment: p })}>Mark paid</Btn><Btn onClick={() => setModal({ type: "notsent", payment: p })}>Didn't go out</Btn></div>
+                : <span style={{ fontSize: 12, color: C.sub }}>Waiting for the provider…</span>)}</td>}
             </tr>
           ))}
           {rows.length === 0 && <tr><td colSpan={7} style={{ padding: 20, color: C.sub }}>No payments yet.</td></tr>}</tbody>
@@ -608,6 +618,8 @@ function PaymentsView({ campaignId, canPay, mine }) {
       {modal?.type === "schedule" && <SchedulePaymentForm campaignId={campaignId} onClose={() => setModal(null)} />}
       {modal?.type === "paid" && <MarkPaidForm payment={modal.payment} onClose={() => setModal(null)} />}
       {modal?.type === "cancel" && <CancelPaymentForm payment={modal.payment} onClose={() => setModal(null)} />}
+      {modal?.type === "release" && <ReleaseForm payments={modal.payments} onClose={() => setModal(null)} />}
+      {modal?.type === "notsent" && <NotSentForm payment={modal.payment} onClose={() => setModal(null)} />}
     </>
   );
 }
@@ -642,6 +654,64 @@ function SchedulePaymentForm({ campaignId, onClose }) {
       <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!ok || schedule.isPending} onClick={save}>{schedule.isPending ? "Saving…" : "Schedule"}</PrimaryBtn>
+      </div>
+    </Modal>
+  );
+}
+
+// Sends payments one after another and reports how each went.
+function ReleaseForm({ payments, onClose }) {
+  const payout = usePayoutMode();
+  const mode = payout.data;
+  const release = useReleasePayment();
+  const [results, setResults] = useState(null);
+  const [running, setRunning] = useState(false);
+  const sum = payments.reduce((s, p) => s + p.amount_kes, 0);
+  const send = async () => {
+    setRunning(true);
+    const out = [];
+    for (const p of payments) {
+      try {
+        const done = await release.mutateAsync({ id: p.id });
+        out.push({ p, ok: done.status === "paid", pending: done.status === "sending", text: done.status === "paid" ? done.reference : done.failure_reason || done.status });
+      } catch (e) {
+        out.push({ p, ok: false, text: e.message });
+      }
+    }
+    setResults(out);
+    setRunning(false);
+  };
+  return (
+    <Modal title={payments.length === 1 ? "Release payment" : `Release ${payments.length} payments`} sub={`${kes(sum)} in total.`} onClose={running ? () => {} : onClose}>
+      {payout.error && <div style={{ color: C.red, fontSize: 12.5, marginBottom: 12 }}>Could not tell whether releases move money: {payout.error.message}</div>}
+      {mode && !mode.moves_money && <div style={{ padding: "10px 12px", borderRadius: 8, background: C.amberSoft, color: C.amber, fontSize: 12.5, fontWeight: 600, marginBottom: 12 }}>Practice mode: no money moves. Each payment is marked paid under a PRACTICE reference.</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>
+        {payments.map((p) => {
+          const r = results?.find((x) => x.p.id === p.id);
+          return <div key={p.id} className="flex justify-between gap-3"><span><b>{p.recipient_name}</b> <span style={{ color: C.sub }}>{p.recipient_phone || "no phone"}</span></span><span>{kes(p.amount_kes)}{r && <span style={{ marginLeft: 8, color: r.ok ? C.green : r.pending ? C.amber : C.red }}>{r.ok ? `Paid · ${r.text}` : r.pending ? "Sending" : r.text}</span>}</span></div>;
+        })}
+      </div>
+      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+        {results ? <PrimaryBtn onClick={onClose}>Done</PrimaryBtn> : (
+          <>
+            <Btn onClick={onClose} disabled={running}>Back</Btn>
+            <PrimaryBtn disabled={!mode || running} onClick={send}>{running ? "Sending…" : payments.length === 1 ? "Release" : `Release ${payments.length}`}</PrimaryBtn>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+// After checking the provider: the money did not go, so the payment can be released again.
+function NotSentForm({ payment, onClose }) {
+  const notSent = useMarkNotSent();
+  return (
+    <Modal title="Didn't go out" sub={`Only if the payout provider shows that ${kes(payment.amount_kes)} to ${payment.recipient_name} was not sent. The payment can then be released again.`} onClose={onClose}>
+      {notSent.error && <div style={{ color: C.red, fontSize: 12.5 }}>{notSent.error.message}</div>}
+      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+        <Btn onClick={onClose}>Back</Btn>
+        <PrimaryBtn disabled={notSent.isPending} onClick={() => notSent.mutate({ id: payment.id }, { onSuccess: onClose })}>It was not sent</PrimaryBtn>
       </div>
     </Modal>
   );

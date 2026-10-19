@@ -186,7 +186,14 @@
       "status",
       "reference",
       "paid_at",
-      "created_at"
+      "created_at",
+      "provider",
+      "failure_reason",
+      "stuck"
+    ],
+    "GET /api/payments/payout-mode/": [
+      "mode",
+      "moves_money"
     ]
   },
   "nested_reads": {
@@ -394,7 +401,9 @@
     "POST /api/payments/{payment_id}/paid/": [
       "reference"
     ],
-    "POST /api/payments/{payment_id}/cancel/": []
+    "POST /api/payments/{payment_id}/cancel/": [],
+    "POST /api/payments/{payment_id}/release/": [],
+    "POST /api/payments/{payment_id}/not-sent/": []
   },
   "enums": {
     "user.role": [
@@ -431,7 +440,9 @@
     ],
     "payment.status": [
       "scheduled",
+      "sending",
       "paid",
+      "failed",
       "cancelled"
     ]
   },

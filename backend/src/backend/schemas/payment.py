@@ -21,6 +21,9 @@ class PaymentRead(ORMModel):
     amount_kes: int
     status: PaymentStatus
     reference: str
+    provider: str
+    failure_reason: str
+    stuck: bool
     paid_at: datetime | None
     created_at: datetime
 
@@ -36,3 +39,8 @@ class PaymentCreate(WriteModel):
 
 class PaymentPaid(WriteModel):
     reference: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)]
+
+
+class PayoutMode(ORMModel):
+    mode: str
+    moves_money: bool

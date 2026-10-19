@@ -51,6 +51,20 @@ describe("payments", () => {
     await waitFor(() => expect(posted(calls, "/payments/p1/paid/")).toEqual({ reference: "QX12AB34" }));
   });
 
+  it("releases a payment after showing that practice mode moves no money", async () => {
+    const { calls, user } = await openPayments("manager", {
+      "GET /payments/payout-mode/": { mode: "practice", moves_money: false },
+      "POST /payments/p1/release/": { ...SCHEDULED, status: "paid", reference: "PRACTICE-0A1B2C3D4E" },
+    });
+
+    await user.click(screen.getByRole("button", { name: "Release" }));
+    expect(await screen.findByText(/Practice mode: no money moves/)).toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: "Release" }).at(-1));  // the modal's, drawn last
+
+    expect(await screen.findByText("Paid · PRACTICE-0A1B2C3D4E")).toBeInTheDocument();
+    expect(calls.filter((c) => c.method === "POST").map((c) => c.path)).toEqual(["/payments/p1/release/"]);
+  });
+
   it("shows the candidate the register without any way to change it", async () => {
     await openPayments("candidate");
 

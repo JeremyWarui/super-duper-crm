@@ -42,7 +42,9 @@ class EventStatus(LabelledStrEnum):
 
 class PaymentStatus(LabelledStrEnum):
     SCHEDULED = ("scheduled", "Scheduled")
+    SENDING = ("sending", "Sending")
     PAID = ("paid", "Paid")
+    FAILED = ("failed", "Failed")
     CANCELLED = ("cancelled", "Cancelled")
 
 

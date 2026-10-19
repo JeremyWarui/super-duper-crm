@@ -34,7 +34,9 @@ def upgrade() -> None:
             "status",
             sa.Enum(
                 "scheduled",
+                "sending",
                 "paid",
+                "failed",
                 "cancelled",
                 name="payment_status",
                 native_enum=False,
@@ -44,6 +46,10 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("reference", sa.String(length=50), nullable=False),
+        sa.Column("provider", sa.String(length=20), nullable=False),
+        sa.Column("failure_reason", sa.String(length=200), nullable=False),
+        sa.Column("attempts", sa.Integer(), nullable=False),
+        sa.Column("sending_since", sa.DateTime(timezone=True), nullable=True),
         sa.Column("paid_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
             "created_at",
@@ -72,6 +78,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_payments_campaign_id"), "payments", ["campaign_id"], unique=False)
     op.create_index(op.f("ix_payments_event_id"), "payments", ["event_id"], unique=False)
     op.create_index(op.f("ix_payments_mobilizer_id"), "payments", ["mobilizer_id"], unique=False)
+    op.create_index(op.f("ix_payments_reference"), "payments", ["reference"], unique=False)
     op.create_index(
         "uq_payments_event_mobilizer",
         "payments",
@@ -84,6 +91,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index("uq_payments_event_mobilizer", table_name="payments")
+    op.drop_index(op.f("ix_payments_reference"), table_name="payments")
     op.drop_index(op.f("ix_payments_mobilizer_id"), table_name="payments")
     op.drop_index(op.f("ix_payments_event_id"), table_name="payments")
     op.drop_index(op.f("ix_payments_campaign_id"), table_name="payments")
