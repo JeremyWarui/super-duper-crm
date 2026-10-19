@@ -254,7 +254,7 @@ def upgrade() -> None:
         "mobilizers",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("campaign_id", sa.Uuid(), nullable=False),
-        sa.Column("ward_id", sa.Uuid(), nullable=False),
+        sa.Column("ward_id", sa.Uuid(), nullable=True),
         sa.Column("registration_centre_id", sa.Uuid(), nullable=True),
         sa.Column("user_id", sa.Uuid(), nullable=True),
         sa.Column("full_name", sa.String(length=150), nullable=False),
@@ -294,6 +294,22 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_index(op.f("ix_mobilizers_ward_id"), "mobilizers", ["ward_id"], unique=False)
+    op.create_index(
+        "uq_mobilizers_campaign_ward",
+        "mobilizers",
+        ["campaign_id", "ward_id"],
+        unique=True,
+        postgresql_where=sa.text("ward_id IS NOT NULL AND registration_centre_id IS NULL"),
+        sqlite_where=sa.text("ward_id IS NOT NULL AND registration_centre_id IS NULL"),
+    )
+    op.create_index(
+        "uq_mobilizers_campaign_registration_centre",
+        "mobilizers",
+        ["campaign_id", "registration_centre_id"],
+        unique=True,
+        postgresql_where=sa.text("registration_centre_id IS NOT NULL"),
+        sqlite_where=sa.text("registration_centre_id IS NOT NULL"),
+    )
     op.create_table(
         "targets",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -495,6 +511,8 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_targets_registration_centre_id"), table_name="targets")
     op.drop_index(op.f("ix_targets_campaign_id"), table_name="targets")
     op.drop_table("targets")
+    op.drop_index("uq_mobilizers_campaign_registration_centre", table_name="mobilizers")
+    op.drop_index("uq_mobilizers_campaign_ward", table_name="mobilizers")
     op.drop_index(op.f("ix_mobilizers_ward_id"), table_name="mobilizers")
     op.drop_index(op.f("ix_mobilizers_registration_centre_id"), table_name="mobilizers")
     op.drop_index(op.f("ix_mobilizers_campaign_id"), table_name="mobilizers")
