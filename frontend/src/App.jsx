@@ -1,8 +1,9 @@
 // src/App.jsx  — the live-wired campaign dashboard.
 // Role comes from the logged-in user; every page reads React Query hooks; the
 // three forms fire real mutations. Same war-room UI as the prototype.
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "./store/auth";
+import { winNumber } from "./winNumber";
 import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
@@ -384,29 +385,82 @@ function SupportersView({ campaignId }) {
   );
 }
 
+const SAVE_STATUS = {
+  saving: ["Saving…", C.sub],
+  saved: ["Saved", C.green],
+  failed: ["Not saved, try again", C.red],
+};
+
+// A slider moves the screen at once and saves only when the user lets go.
+function TargetRow({ target, draft, onDraft, onSettle }) {
+  const { mutate } = useUpdateTarget();
+  const [status, setStatus] = useState("");
+  const slider = useRef(null);
+  const saved = Math.round(target.projected_turnout_pct || 60);
+  const pct = draft ?? saved;
+  const needed = draft == null ? target.votes_needed : winNumber(target.registered_voters, draft);
+  const known = useRef(saved);  // the value saved or on its way; a release with it sends nothing
+  useEffect(() => { if (status !== "saving") known.current = saved; }, [status, saved]);
+
+  // Saves on release or a key press, not on every move.
+  // "change" alone is not enough: Chromium skips it when a drag ends where it started.
+  useEffect(() => {
+    const el = slider.current;
+    const save = () => {
+      const value = Number(el.value);
+      if (value === known.current) return;
+      known.current = value;
+      setStatus("saving");
+      mutate(
+        { id: target.id, projected_turnout_pct: value },
+        {
+          onSuccess: () => { setStatus("saved"); onSettle(target.id, value, false); },
+          onError: () => { setStatus("failed"); onSettle(target.id, value, true); },
+        },
+      );
+    };
+    el.addEventListener("change", save);
+    el.addEventListener("pointerup", save);
+    return () => {
+      el.removeEventListener("change", save);
+      el.removeEventListener("pointerup", save);
+    };
+  }, [target.id, mutate, onSettle]);
+
+  return (
+    <tr style={{ borderTop: `1px solid ${C.line}` }}>
+      <td style={{ padding: "12px 18px", fontWeight: 600 }}>{target.centre_name || target.ward_name}</td>
+      <td style={{ padding: "12px 8px", textAlign: "right" }}>{fmt(target.registered_voters)}</td>
+      <td style={{ padding: "10px 8px", textAlign: "center" }}>
+        <input ref={slider} type="range" min={40} max={85} value={pct} aria-label={`Turnout for ${target.centre_name || target.ward_name}`} onChange={(e) => { onDraft(target.id, Number(e.target.value)); setStatus((s) => (s === "saving" ? s : "")); }} style={{ width: 90, accentColor: C.green }} />
+        <span style={{ ...DISPLAY, marginLeft: 8, fontWeight: 600 }}>{pct}%</span>
+        {status && !(status === "saved" && draft != null) && <div style={{ fontSize: 11, color: SAVE_STATUS[status][1] }}>{SAVE_STATUS[status][0]}</div>}
+      </td>
+      <td style={{ padding: "12px 18px", textAlign: "right", ...DISPLAY, fontWeight: 700, fontSize: 16, color: C.green }}>{fmt(needed)}</td>
+    </tr>
+  );
+}
+
 function TargetsView({ campaignId }) {
   const { data, isLoading, error } = useTargets(campaignId);
-  const update = useUpdateTarget();
+  const [drafts, setDrafts] = useState({});  // turnout per target id, until its save settles
+  const onDraft = useCallback((id, pct) => setDrafts((d) => ({ ...d, [id]: pct })), []);
+  // A failed save always puts the saved number back; a good one keeps a newer drag.
+  const onSettle = useCallback((id, pct, failed) => setDrafts((d) => {
+    if (!failed && d[id] !== pct) return d;
+    const { [id]: _settled, ...rest } = d;
+    return rest;
+  }), []);
   if (isLoading) return <Loading />; if (error) return <ErrorMsg error={error} />;
   const rows = data || [];
-  const total = rows.reduce((s, t) => s + (t.votes_needed || 0), 0);
+  const total = rows.reduce((s, t) => s + ((t.id in drafts ? winNumber(t.registered_voters, drafts[t.id]) : t.votes_needed) || 0), 0);
   return (
     <>
       <PageTitle title="Targets — the win number" sub="Set projected turnout per unit; the win number recomputes on the server." />
       <Card pad={0}><div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
           <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Unit</th><th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Registered</th><th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "center" }}>Turnout %</th><th style={{ padding: "10px 18px", fontWeight: 500, textAlign: "right" }}>Votes needed</th></tr></thead>
-          <tbody>{rows.map((t) => (
-            <tr key={t.id} style={{ borderTop: `1px solid ${C.line}` }}>
-              <td style={{ padding: "12px 18px", fontWeight: 600 }}>{t.centre_name || t.ward_name}</td>
-              <td style={{ padding: "12px 8px", textAlign: "right" }}>{fmt(t.registered_voters)}</td>
-              <td style={{ padding: "10px 8px", textAlign: "center" }}>
-                <input type="range" min={40} max={85} defaultValue={Math.round(t.projected_turnout_pct || 60)} onMouseUp={(e) => update.mutate({ id: t.id, projected_turnout_pct: Number(e.target.value) })} onTouchEnd={(e) => update.mutate({ id: t.id, projected_turnout_pct: Number(e.target.value) })} style={{ width: 90, accentColor: C.green }} />
-                <span style={{ ...DISPLAY, marginLeft: 8, fontWeight: 600 }}>{Math.round(t.projected_turnout_pct || 60)}%</span>
-              </td>
-              <td style={{ padding: "12px 18px", textAlign: "right", ...DISPLAY, fontWeight: 700, fontSize: 16, color: C.green }}>{fmt(t.votes_needed)}</td>
-            </tr>
-          ))}</tbody>
+          <tbody>{rows.map((t) => <TargetRow key={t.id} target={t} draft={drafts[t.id]} onDraft={onDraft} onSettle={onSettle} />)}</tbody>
           <tfoot><tr style={{ borderTop: `2px solid ${C.ink}` }}><td style={{ padding: "12px 18px", ...DISPLAY, fontWeight: 700 }} colSpan={3}>TOTAL WIN NUMBER</td><td style={{ padding: "12px 18px", textAlign: "right", ...DISPLAY, fontWeight: 700, fontSize: 18 }}>{fmt(total)}</td></tr></tfoot>
         </table>
       </div></Card>

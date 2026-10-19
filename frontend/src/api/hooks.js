@@ -139,12 +139,20 @@ export const useCampaigns = () =>
   useQuery({ queryKey: ["campaigns"], queryFn: () => api("/campaigns/") });
 
 // Edit a target's turnout assumption; the server recomputes votes_needed.
+// Saves run one at a time, in order, and the saved row replaces the cached one.
 export function useUpdateTarget() {
-  const invalidate = useInvalidator();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...body }) =>
       api(`/targets/${id}/`, { method: "PATCH", body }),
-    onSuccess: () => invalidate("targets", "strategy"),
+    scope: { id: "targets" },
+    onSuccess: async (saved) => {
+      await qc.cancelQueries({ queryKey: ["targets"] });  // a list fetch in flight would overwrite it
+      qc.setQueriesData({ queryKey: ["targets"] }, (rows) =>
+        rows?.map((t) => (t.id === saved.id ? saved : t)),
+      );
+      qc.invalidateQueries({ queryKey: ["strategy"] });
+    },
   });
 }
 
