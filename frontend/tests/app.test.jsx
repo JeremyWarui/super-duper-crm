@@ -106,6 +106,7 @@ describe("the forms", () => {
       expect(posted.body).toEqual({
         campaign: "c1",
         ward: "w2",
+        registration_centre: null,
         title: "Githurai rally",
         venue: "Githurai grounds",
         scheduled_date: "2027-06-12",
@@ -141,6 +142,7 @@ describe("the forms", () => {
         phone: "+254700333444",
         ward: "w1",
         consent_given: true,
+        registration_centre: null,
       });
     });
   });

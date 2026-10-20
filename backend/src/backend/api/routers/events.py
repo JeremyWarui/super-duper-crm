@@ -13,6 +13,7 @@ from backend.api.scope import (
     mobilizer_ward_id,
     own_ground_row,
     require_campaign_mobilizer,
+    require_centre_in_ward_race,
     require_own_ward,
     require_visible,
     require_visible_campaign,
@@ -81,6 +82,7 @@ async def create_event(payload: EventCreate, session: SessionDep, user: Mobilize
     campaign = await require_visible_campaign(session, user, payload.campaign)
     require_own_ward(user, payload.ward)
     await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
+    await require_centre_in_ward_race(session, campaign, payload.ward, payload.registration_centre)
     await require_campaign_mobilizer(session, payload.campaign, payload.mobilizer)
 
     own = own_ground_row(user, payload.campaign)

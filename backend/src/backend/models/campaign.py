@@ -4,7 +4,7 @@ import uuid
 from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, ForeignKey, String, Uuid, and_
+from sqlalchemy import CheckConstraint, Date, ForeignKey, String, Uuid, and_
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import (
@@ -14,7 +14,7 @@ from backend.db.base import (
     choice_type,
     require_loaded,
 )
-from backend.models.enums import OfficeLevel, OperationalGrain, UserRole
+from backend.models.enums import OfficeLevel, OperationalGrain, Seat, UserRole
 from backend.models.membership import CampaignMember
 from backend.models.user import User
 
@@ -26,11 +26,27 @@ if TYPE_CHECKING:
     from backend.models.target import Target
 
 
+def _seat_for_level(context) -> Seat:
+    """The seat a campaign created by area alone is taken to be."""
+    level = OfficeLevel(context.get_current_parameters()["office_level"])
+    return {OfficeLevel.WARD: Seat.MCA, OfficeLevel.CONSTITUENCY: Seat.MP}.get(level, Seat.GOVERNOR)
+
+
 class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "campaigns"
+    __table_args__ = (
+        CheckConstraint(
+            "(seat = 'mca' AND office_level = 'ward') "
+            "OR (seat = 'mp' AND office_level = 'constituency') "
+            "OR (seat IN ('governor', 'senator', 'women_rep') AND office_level = 'county')",
+            name="seat_matches_scope",
+        ),
+    )
 
     title: Mapped[str] = mapped_column(String(150))
     office_level: Mapped[OfficeLevel] = mapped_column(choice_type(OfficeLevel, "office_level"))
+    # The office itself; office_level is the area it is fought over.
+    seat: Mapped[Seat] = mapped_column(choice_type(Seat, "seat"), default=_seat_for_level)
 
     # office_level decides which one of these three applies.
     county_id: Mapped[uuid.UUID | None] = mapped_column(

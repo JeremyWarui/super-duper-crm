@@ -27,6 +27,25 @@ class OfficeLevel(LabelledStrEnum):
     COUNTY = ("county", "County (Governor / Senator / Women Rep)")
 
 
+class Seat(LabelledStrEnum):
+    """The office contested; several seats share an area scope."""
+
+    MCA = ("mca", "MCA")
+    MP = ("mp", "MP")
+    GOVERNOR = ("governor", "Governor")
+    SENATOR = ("senator", "Senator")
+    WOMEN_REP = ("women_rep", "Women Rep")
+
+    @property
+    def office_level(self) -> OfficeLevel:
+        """The area the seat is contested over."""
+        if self is Seat.MCA:
+            return OfficeLevel.WARD
+        if self is Seat.MP:
+            return OfficeLevel.CONSTITUENCY
+        return OfficeLevel.COUNTY
+
+
 class OperationalGrain(StrEnum):
     """The unit a campaign organizes on."""
 

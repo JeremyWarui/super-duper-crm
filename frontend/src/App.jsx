@@ -9,7 +9,7 @@ import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
   useInviteToEvent, useCreateUser, useUpdateMobilizer,
-  usePayments, useSchedulePayment, useMarkPaid, useCancelPayment, usePayoutMode, useReleasePayment, useMarkNotSent, useSetSignups,
+  usePayments, useSchedulePayment, useMarkPaid, useCancelPayment, usePayoutMode, useReleasePayment, useMarkNotSent, useSetSignups, useCentres,
 } from "./api/hooks";
 
 const C = {
@@ -274,22 +274,35 @@ function AssignMobilizerForm({ unit, holder, mobilizers, onClose }) {
   );
 }
 
-function ScheduleEventForm({ campaignId, wardOptions, onClose }) {
+// In an MCA race an event is held at one registration centre, which its sign-ups count toward.
+function ScheduleEventForm({ campaignId, wardOptions, byCentre, onClose }) {
   const schedule = useScheduleEvent();
   const [title, setTitle] = useState(""); const [venue, setVenue] = useState(""); const [date, setDate] = useState("");
   const [ward, setWard] = useState(wardOptions[0]?.id || "");
-  const ok = title.trim() && ward && date;
+  const [centre, setCentre] = useState("");
+  const centresQuery = useCentres(byCentre ? ward : null);
+  const centres = centresQuery.data || [];
+  const ok = title.trim() && ward && date && !centresQuery.isFetching && (!byCentre || !centres.length || centre);
   return (
     <Modal title="Schedule event" sub="Attendance is recorded after it happens." onClose={onClose}>
       <Label>Event title</Label><input style={FIELD} value={title} onChange={(e) => setTitle(e.target.value)} />
       <div style={{ height: 14 }} /><Label>Ward</Label>
-      <select style={FIELD} value={ward} onChange={(e) => setWard(e.target.value)}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
+      <select style={FIELD} value={ward} onChange={(e) => { setWard(e.target.value); setCentre(""); }}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
+      {byCentre && centres.length > 0 && (
+        <>
+          <div style={{ height: 14 }} /><Label>Registration centre</Label>
+          <select aria-label="Registration centre" style={FIELD} value={centre} onChange={(e) => setCentre(e.target.value)}>
+            <option value="">Pick the centre</option>
+            {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </>
+      )}
       <div style={{ height: 14 }} /><Label>Venue</Label><input style={FIELD} value={venue} onChange={(e) => setVenue(e.target.value)} />
       <div style={{ height: 14 }} /><Label>Date</Label><input type="date" style={FIELD} value={date} onChange={(e) => setDate(e.target.value)} />
       {schedule.isError && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{schedule.error.message}</div>}
       <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
         <Btn onClick={onClose}>Cancel</Btn>
-        <PrimaryBtn disabled={!ok || schedule.isPending} onClick={() => schedule.mutate({ campaign: campaignId, ward, title: title.trim(), venue: venue.trim(), scheduled_date: date, status: "planned" }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule event"}</PrimaryBtn>
+        <PrimaryBtn disabled={!ok || schedule.isPending} onClick={() => schedule.mutate({ campaign: campaignId, ward, registration_centre: centre || null, title: title.trim(), venue: venue.trim(), scheduled_date: date, status: "planned" }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule event"}</PrimaryBtn>
       </div>
     </Modal>
   );
@@ -577,9 +590,12 @@ function MobilizersView({ campaignId, onAdd, onEdit }) {
   );
 }
 
-function RegisterSupporterForm({ campaignId, wardOptions }) {
+// In an MCA race the supporter is filed to a registration centre; left blank, the mobilizer's own.
+function RegisterSupporterForm({ campaignId, wardOptions, byCentre }) {
   const reg = useRegisterSupporter();
   const [form, setForm] = useState({ full_name: "", phone: "", ward: wardOptions[0]?.id || "", consent_given: false });
+  const [centre, setCentre] = useState("");
+  const centres = useCentres(byCentre ? form.ward : null).data || [];
   const ok = form.full_name.trim() && form.consent_given;
   if (reg.isSuccess) return <Card pad={24}><div style={{ ...DISPLAY, fontSize: 22, fontWeight: 700, color: C.green }}>Registered.</div><div style={{ marginTop: 12 }}><Btn onClick={() => reg.reset()}>Register another</Btn></div></Card>;
   return (
@@ -587,10 +603,19 @@ function RegisterSupporterForm({ campaignId, wardOptions }) {
       <Label>Full name</Label><input style={FIELD} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
       <div style={{ height: 14 }} /><Label>Phone</Label><input style={FIELD} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
       <div style={{ height: 14 }} /><Label>Ward</Label>
-      <select style={FIELD} value={form.ward} onChange={(e) => setForm({ ...form, ward: e.target.value })}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
+      <select style={FIELD} value={form.ward} onChange={(e) => { setForm({ ...form, ward: e.target.value }); setCentre(""); }}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
+      {byCentre && centres.length > 0 && (
+        <>
+          <div style={{ height: 14 }} /><Label>Registration centre</Label>
+          <select aria-label="Registration centre" style={FIELD} value={centre} onChange={(e) => setCentre(e.target.value)}>
+            <option value="">My centre</option>
+            {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </>
+      )}
       <label className="flex items-start gap-2" style={{ marginTop: 14, fontSize: 12.5, color: C.sub, cursor: "pointer" }}><input type="checkbox" checked={form.consent_given} onChange={(e) => setForm({ ...form, consent_given: e.target.checked })} style={{ marginTop: 2, accentColor: C.green }} />Consent to hold these details under the Data Protection Act, 2019.</label>
       {reg.isError && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{reg.error.message}</div>}
-      <div style={{ marginTop: 16 }}><PrimaryBtn disabled={!ok || reg.isPending} onClick={() => reg.mutate({ campaign: campaignId, ...form })}>{reg.isPending ? "Saving…" : "Register supporter"}</PrimaryBtn></div>
+      <div style={{ marginTop: 16 }}><PrimaryBtn disabled={!ok || reg.isPending} onClick={() => reg.mutate({ campaign: campaignId, ...form, registration_centre: centre || null })}>{reg.isPending ? "Saving…" : "Register supporter"}</PrimaryBtn></div>
     </Card>
   );
 }
@@ -843,7 +868,7 @@ export default function App() {
       case "myevents":
         if (events.isLoading) return <Loading />; if (events.error) return <ErrorMsg error={events.error} />;
         return (<><PageTitle title={page === "myevents" ? "My events" : "Events"} sub="Rallies and meetings, with mobilization counts." action={role !== "candidate" ? <Btn primary onClick={() => setModal({ type: "event" })}>Schedule event</Btn> : null} /><EventList events={events.data || []} showActions={role !== "candidate"} onRecord={(e) => setModal({ type: "record", event: e })} onInvite={(e) => setModal({ type: "invite", event: e })} onQr={role !== "candidate" ? (e) => setModal({ type: "qr", event: e }) : undefined} /></>);
-      case "register": return (<><PageTitle title="Register a supporter" sub="Quick capture in the field." /><RegisterSupporterForm campaignId={campaignId} wardOptions={wardOptions} /></>);
+      case "register": return (<><PageTitle title="Register a supporter" sub="Quick capture in the field." /><RegisterSupporterForm campaignId={campaignId} wardOptions={wardOptions} byCentre={campaign.operational_grain === "centre"} /></>);
       case "mysupporters": return <SupportersView campaignId={campaignId} />;
       case "payments": return <PaymentsView campaignId={campaignId} canPay={role === "manager"} />;
       case "mypayments": return <PaymentsView campaignId={campaignId} mine />;
@@ -880,7 +905,7 @@ export default function App() {
 
       {modal?.type === "mobilizer" && <MobilizerForm campaignId={campaignId} units={units} mobilizers={mobilizers.data || []} mobilizer={modal.mobilizer} onClose={() => setModal(null)} />}
       {modal?.type === "assign" && <AssignMobilizerForm unit={modal.unit} holder={modal.holder} mobilizers={mobilizers.data || []} onClose={() => setModal(null)} />}
-      {modal?.type === "event" && <ScheduleEventForm campaignId={campaignId} wardOptions={wardOptions} onClose={() => setModal(null)} />}
+      {modal?.type === "event" && <ScheduleEventForm campaignId={campaignId} wardOptions={wardOptions} byCentre={campaign.operational_grain === "centre"} onClose={() => setModal(null)} />}
       {modal?.type === "record" && <RecordForm event={modal.event} onClose={() => setModal(null)} />}
       {modal?.type === "invite" && <InviteForm event={modal.event} onClose={() => setModal(null)} />}
       {modal?.type === "qr" && <QrModal event={modal.event} canClose={role === "manager"} onClose={() => setModal(null)} />}

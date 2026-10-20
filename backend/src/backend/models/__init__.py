@@ -9,6 +9,7 @@ from backend.models.enums import (
     OfficeLevel,
     OperationalGrain,
     PaymentStatus,
+    Seat,
     SupportLevel,
     UserRole,
 )
@@ -41,6 +42,7 @@ __all__ = [
     "OperationalGrain",
     "Payment",
     "PaymentStatus",
+    "Seat",
     "RegistrationCentre",
     "SupportLevel",
     "Supporter",

@@ -44,7 +44,7 @@ async def test_a_manager_signs_up_and_sets_a_campaign_up_for_a_new_aspirant(migr
 
     body = {
         "title": "Wanjiku for Parklands",
-        "office_level": "constituency",
+        "seat": "mp",
         "constituency": str(constituency.id),
         "election_date": "2027-08-10",
     }

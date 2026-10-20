@@ -299,7 +299,7 @@
     ],
     "POST /api/campaigns/setup/": [
       "title",
-      "office_level",
+      "seat",
       "election_date",
       "county",
       "constituency",
@@ -325,7 +325,8 @@
       "title",
       "venue",
       "scheduled_date",
-      "status"
+      "status",
+      "registration_centre"
     ],
     "POST /api/events/{event_id}/record/": [
       "number_reached",
@@ -336,7 +337,8 @@
       "ward",
       "full_name",
       "phone",
-      "consent_given"
+      "consent_given",
+      "registration_centre"
     ],
     "PATCH /api/targets/{target_id}/": [
       "projected_turnout_pct"
@@ -462,6 +464,13 @@
       "paid",
       "failed",
       "cancelled"
+    ],
+    "campaign.seat": [
+      "mca",
+      "mp",
+      "governor",
+      "senator",
+      "women_rep"
     ]
   },
   "error_shape": {

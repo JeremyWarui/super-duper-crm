@@ -40,6 +40,10 @@ class Supporter(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Uuid, ForeignKey("mobilizers.id", ondelete="SET NULL"), default=None, index=True
     )
 
+    # Their registration centre, kept in a ward (MCA) race, which counts per centre.
+    registration_centre_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("registration_centres.id", ondelete="SET NULL"), default=None, index=True
+    )
     # The event whose sign-up link they used, if any.
     event_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("events.id", ondelete="SET NULL"), default=None, index=True

@@ -8,7 +8,15 @@ from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.interfaces import ORMOption
 
-from backend.models import Campaign, CampaignMember, Mobilizer, RegistrationCentre, User, UserRole
+from backend.models import (
+    Campaign,
+    CampaignMember,
+    Mobilizer,
+    OperationalGrain,
+    RegistrationCentre,
+    User,
+    UserRole,
+)
 from backend.services.targets import ward_in_area
 
 
@@ -133,6 +141,27 @@ async def require_ward_in_campaign(
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, "That registration centre is not in that ward."
             )
+
+
+async def require_centre_in_ward_race(
+    session: AsyncSession,
+    campaign: Campaign,
+    ward_id: uuid.UUID | None,
+    centre_id: uuid.UUID | None,
+) -> None:
+    """In a ward (MCA) race whose ward has centres loaded, a registration centre is required."""
+    if campaign.operational_grain is not OperationalGrain.CENTRE or centre_id is not None:
+        return
+    if ward_id is None:
+        return
+    has_centres = await session.scalar(
+        select(RegistrationCentre.id).where(RegistrationCentre.ward_id == ward_id).limit(1)
+    )
+    if has_centres is not None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "In an MCA race this happens at a registration centre; pick one.",
+        )
 
 
 async def require_campaign_mobilizer(

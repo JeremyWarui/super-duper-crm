@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from backend.api.deps import SessionDep
-from backend.models import Campaign, Event, EventStatus, Supporter, SupportLevel
+from backend.models import Campaign, Event, EventStatus, OperationalGrain, Supporter, SupportLevel
 from backend.schemas.join import JoinCreate, JoinDone, JoinRead
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import normalise_phone
@@ -96,6 +96,9 @@ async def sign_up(
             Supporter(
                 campaign_id=event.campaign_id,
                 ward_id=event.ward_id,
+                registration_centre_id=event.registration_centre_id
+                if event.campaign.operational_grain is OperationalGrain.CENTRE
+                else None,
                 event_id=event.id,
                 mobilizer_id=event.mobilizer_id,
                 full_name=payload.full_name,

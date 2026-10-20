@@ -115,7 +115,7 @@ async def campaigns(
             AdminCampaignRead(
                 id=campaign.id,
                 title=campaign.title,
-                office_level=campaign.office_level.value,
+                office_level=f"{campaign.seat.label} seat",
                 candidate=next(
                     (m.user.username for m in members if m.role is UserRole.CANDIDATE), ""
                 ),

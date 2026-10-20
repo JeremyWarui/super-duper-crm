@@ -102,6 +102,7 @@ def test_the_stored_choice_strings_are_unchanged(key: str) -> None:
         EventStatus,
         OfficeLevel,
         PaymentStatus,
+        Seat,
         SupportLevel,
         UserRole,
     )
@@ -118,6 +119,7 @@ def test_the_stored_choice_strings_are_unchanged(key: str) -> None:
         "campaign.office_level": OfficeLevel,
         "event.status": EventStatus,
         "payment.status": PaymentStatus,
+        "campaign.seat": Seat,
         "supporter.support_level": SupportLevel,
         "invite.support_levels": SupportLevel,
         "user.create_role": None,

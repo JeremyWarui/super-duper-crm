@@ -47,7 +47,7 @@ async function walkToReview(user, { office = "MP", ward = false } = {}) {
   const selects = await screen.findAllByRole("combobox");
   await user.selectOptions(selects[0], "cty1");
   // A county-wide seat needs no constituency, so it has only the one picker.
-  if (office !== "Governor / Senator / Woman Rep") {
+  if (!["Governor", "Senator", "Women Rep"].includes(office)) {
     await user.selectOptions((await screen.findAllByRole("combobox"))[1], "k1");
   }
   if (ward) {
@@ -71,11 +71,28 @@ describe("setting a campaign up", () => {
       const posted = calls.find((c) => c.path === "/campaigns/setup/");
       expect(posted.body).toEqual({
         title: "Jane for Roysambu",
-        office_level: "constituency",
+        seat: "mp",
         election_date: "2027-08-10",
         constituency: "k1",
       });
     });
+  });
+
+  it("names a county seat on its own and sends only the county", async () => {
+    const user = userEvent.setup();
+    const { calls } = start({ "POST /campaigns/setup/": SETUP_REPLY });
+
+    await walkToReview(user, { office: "Senator" });
+    await user.click(await screen.findByRole("button", { name: "Create campaign" }));
+
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === "/campaigns/setup/").body).toEqual({
+        title: "Jane for Roysambu",
+        seat: "senator",
+        election_date: "2027-08-10",
+        county: "cty1",
+      }),
+    );
   });
 
   it("shows the win number the server worked out", async () => {
@@ -143,7 +160,7 @@ describe("a manager naming the aspirant", () => {
     const posted = calls.find((c) => c.path === "/campaigns/setup/");
     expect(posted.body).toMatchObject({
       title: "Peter for Roysambu",
-      office_level: "constituency",
+      seat: "mp",
       constituency: "k1",
       new_candidate: { username: "peter", phone: "0712345678" },
     });

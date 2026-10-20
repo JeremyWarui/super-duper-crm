@@ -36,18 +36,13 @@ const FIELD = {
   fontFamily: "inherit",
 };
 
+// Each seat and the area it is fought over; the county seats share one area.
 const OFFICES = [
-  { key: "ward", label: "MCA", sub: "Member of County Assembly — a ward seat" },
-  {
-    key: "constituency",
-    label: "MP",
-    sub: "Member of Parliament — a constituency seat",
-  },
-  {
-    key: "county",
-    label: "Governor / Senator / Woman Rep",
-    sub: "A county-wide seat",
-  },
+  { key: "mca", level: "ward", label: "MCA", sub: "Member of County Assembly — a ward seat" },
+  { key: "mp", level: "constituency", label: "MP", sub: "Member of Parliament — a constituency seat" },
+  { key: "governor", level: "county", label: "Governor", sub: "A county-wide seat" },
+  { key: "senator", level: "county", label: "Senator", sub: "A county-wide seat" },
+  { key: "women_rep", level: "county", label: "Women Rep", sub: "A county-wide seat" },
 ];
 
 const Label = ({ children }) => (
@@ -506,6 +501,7 @@ export default function Onboarding({ onDone }) {
   const [form, setForm] = useState({
     title: "",
     election_date: "2027-08-10",
+    seat: "",
     office_level: "",
     county: "",
     constituency: "",
@@ -547,7 +543,7 @@ export default function Onboarding({ onDone }) {
   const create = () => {
     const payload = {
       title: form.title,
-      office_level: form.office_level,
+      seat: form.seat,
       election_date: form.election_date,
     };
     if (form.office_level === "county") payload.county = form.county;
@@ -725,17 +721,21 @@ export default function Onboarding({ onDone }) {
                   onClick={() =>
                     // Re-affirming the seat already chosen must not wipe the
                     // area that was picked for it.
-                    o.key !== form.office_level &&
-                    set({ office_level: o.key, constituency: "", ward: "" })
+                    o.key !== form.seat &&
+                    set({
+                      seat: o.key,
+                      office_level: o.level,
+                      ...(o.level !== form.office_level && { constituency: "", ward: "" }),
+                    })
                   }
                   style={{
                     textAlign: "left",
                     padding: "12px 14px",
                     borderRadius: 10,
                     cursor: "pointer",
-                    border: `1px solid ${form.office_level === o.key ? C.ink : C.line}`,
-                    background: form.office_level === o.key ? C.ink : C.panel,
-                    color: form.office_level === o.key ? "#fff" : C.ink,
+                    border: `1px solid ${form.seat === o.key ? C.ink : C.line}`,
+                    background: form.seat === o.key ? C.ink : C.panel,
+                    color: form.seat === o.key ? "#fff" : C.ink,
                   }}
                 >
                   <div style={{ ...DISPLAY, fontSize: 16, fontWeight: 600 }}>
@@ -744,7 +744,7 @@ export default function Onboarding({ onDone }) {
                   <div
                     style={{
                       fontSize: 12,
-                      color: form.office_level === o.key ? "#C7CDC8" : C.sub,
+                      color: form.seat === o.key ? "#C7CDC8" : C.sub,
                     }}
                   >
                     {o.sub}
@@ -762,7 +762,7 @@ export default function Onboarding({ onDone }) {
               <Btn onClick={() => setStep(step - 1)}>Back</Btn>
               <Btn
                 primary
-                disabled={!form.office_level}
+                disabled={!form.seat}
                 onClick={() => setStep(step + 1)}
               >
                 Next
@@ -862,7 +862,7 @@ export default function Onboarding({ onDone }) {
             )}
             <div style={{ fontSize: 14, lineHeight: 1.6 }}>
               You're setting up <b>{form.title}</b> for a{" "}
-              <b>{OFFICES.find((o) => o.key === form.office_level)?.label}</b>{" "}
+              <b>{OFFICES.find((o) => o.key === form.seat)?.label}</b>{" "}
               seat. We'll pull in every{" "}
               {form.office_level === "ward"
                 ? "registration centre in your ward"

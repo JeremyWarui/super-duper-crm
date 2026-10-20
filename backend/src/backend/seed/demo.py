@@ -15,6 +15,7 @@ from backend.models import (
     Event,
     EventStatus,
     OfficeLevel,
+    Seat,
     Supporter,
     SupportLevel,
     Target,
@@ -120,6 +121,7 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     campaign = Campaign(
         title=DEMO_CAMPAIGN_TITLE,
         office_level=OfficeLevel.CONSTITUENCY,
+        seat=Seat.MP,
         constituency_id=constituency.id,
         election_date=datetime(2027, 8, 10, tzinfo=UTC).date(),
     )
@@ -137,7 +139,7 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
 
     return DemoSummary(
         campaign_title=campaign.title,
-        office=f"{OfficeLevel.CONSTITUENCY.label} - {constituency.name}",
+        office=f"{Seat.MP.label} seat - {constituency.name}",
         units=summary.units,
         win_number=summary.win_number,
         sign_ins=[

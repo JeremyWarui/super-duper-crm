@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import AliasPath, Field, ValidationInfo, field_validator
 
-from backend.models.enums import EventStatus, OfficeLevel, OperationalGrain, SupportLevel
+from backend.models.enums import EventStatus, OfficeLevel, OperationalGrain, Seat, SupportLevel
 from backend.schemas.common import LoginDetails, NewLogin, ORMModel, WriteModel
 
 
@@ -39,7 +39,7 @@ class CampaignSetup(WriteModel):
     """The seat and its area; a manager also creates the aspirant."""
 
     title: str = Field(min_length=1, max_length=150)
-    office_level: OfficeLevel
+    seat: Seat
     election_date: date | None = None
     county: uuid.UUID | None = None
     constituency: uuid.UUID | None = None
@@ -184,6 +184,9 @@ class SupporterRead(ORMModel):
     id: uuid.UUID
     campaign: uuid.UUID = Field(validation_alias="campaign_id")
     ward: uuid.UUID | None = Field(default=None, validation_alias="ward_id")
+    registration_centre: uuid.UUID | None = Field(
+        default=None, validation_alias="registration_centre_id"
+    )
     mobilizer: uuid.UUID | None = Field(default=None, validation_alias="mobilizer_id")
     full_name: str
     phone: str
@@ -195,6 +198,7 @@ class SupporterRead(ORMModel):
 class SupporterCreate(WriteModel):
     campaign: uuid.UUID
     ward: uuid.UUID | None = None
+    registration_centre: uuid.UUID | None = None
     mobilizer: uuid.UUID | None = None
     full_name: str = Field(min_length=1, max_length=150)
     phone: str = Field(default="", max_length=20)

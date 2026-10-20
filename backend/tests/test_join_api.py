@@ -92,3 +92,28 @@ async def test_one_phone_in_other_digit_scripts_is_still_one_person(
     register = (await client.get("/api/supporters/", headers=world.headers("manager"))).json()
 
     assert [(s["full_name"], s["phone"]) for s in register] == [("Wanjiku Njeri", "+254712345678")]
+
+
+async def test_an_mca_sign_up_counts_toward_its_event_s_centre(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    from backend.services.strategy import read_strategy
+    from backend.services.targets import generate_targets
+    from tests.factories import make_campaign
+
+    mca = await make_campaign(session, world.ward)
+    await generate_targets(session, mca)
+    event = Event(
+        campaign_id=mca.id,
+        ward_id=world.ward.id,
+        registration_centre_id=world.centre.id,
+        title="Zimmerman Primary meeting",
+    )
+    session.add(event)
+    await session.commit()
+
+    await client.post(f"/api/join/{event.signup_code}/", json=_person())
+    units = (await read_strategy(session, campaign_ids=frozenset({mca.id}))).units
+
+    assert mca.seat.value == "mca"
+    assert [(u.unit, u.committed) for u in units] == [("Zimmerman Primary", 1)]

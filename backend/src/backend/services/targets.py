@@ -81,11 +81,18 @@ async def generate_targets(session: AsyncSession, campaign: Campaign) -> SetupSu
             else []
         )
         units = [(ward, centre) for centre in centres]
+        whole_ward = existing.pop(unit_key(ward.id, None), None) if ward is not None else None
+        if not units and ward is not None:
+            units = [(ward, None)]
+            if whole_ward is not None:
+                existing[unit_key(ward.id, None)] = whole_ward
+        elif whole_ward is not None:
+            await session.delete(whole_ward)
         where = ward.name if ward is not None else "this campaign's ward"
         note = (
             None
-            if units
-            else f"No registration centres are loaded for {where} yet. "
+            if any(centre is not None for _, centre in units)
+            else f"No registration centres are loaded for {where} yet, so it has one ward target. "
             "Import them and run setup again to get centre targets."
         )
 

@@ -43,7 +43,7 @@ def _named(campaign: Campaign) -> CampaignRead:
         update={
             "candidate_name": (candidate.full_name or candidate.username) if candidate else "",
             "candidate_username": candidate.username if candidate else "",
-            "seat": campaign.office_level.label,
+            "seat": f"{campaign.seat.label} seat",
             "area_name": area.name if area is not None else "",
         }
     )
@@ -75,18 +75,20 @@ async def setup_campaign(
             f"You are already on {current.title}; a login belongs to one campaign.",
         )
 
-    area_field = AREA_FIELD[payload.office_level]
+    office_level = payload.seat.office_level
+    area_field = AREA_FIELD[office_level]
     area_id = getattr(payload, area_field)
     if area_id is None:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            f"A {payload.office_level.label} campaign needs its {area_field} set.",
+            f"A {payload.seat.label} campaign needs its {area_field} set.",
         )
     candidate, login = await _candidate(session, user, payload)
 
     campaign = Campaign(
         title=payload.title,
-        office_level=payload.office_level,
+        office_level=office_level,
+        seat=payload.seat,
         election_date=payload.election_date,
         **{f"{area_field}_id": area_id},
     )

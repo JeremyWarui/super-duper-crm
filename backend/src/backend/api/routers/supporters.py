@@ -10,13 +10,14 @@ from backend.api.scope import (
     all_rows,
     own_ground_row,
     require_campaign_mobilizer,
+    require_centre_in_ward_race,
     require_own_ward,
     require_visible,
     require_visible_campaign,
     require_ward_in_campaign,
     scoped,
 )
-from backend.models import Supporter
+from backend.models import Mobilizer, OperationalGrain, Supporter
 from backend.schemas.campaign import SupporterCreate, SupporterRead
 from backend.services.sms import normalise_phone
 
@@ -43,7 +44,17 @@ async def register_supporter(
     mobilizer_id = payload.mobilizer or (own.id if own is not None else None)
     ward_id = payload.ward or (own.ward_id if own is not None else None)
     require_own_ward(user, ward_id)
-    await require_ward_in_campaign(session, campaign, ward_id)
+    by_centre = campaign.operational_grain is OperationalGrain.CENTRE
+    if by_centre and ward_id is None:
+        ward_id = campaign.ward_id
+        require_own_ward(user, ward_id)
+    named = await session.get(Mobilizer, mobilizer_id) if mobilizer_id else None
+    centre_id = payload.registration_centre
+    if by_centre and centre_id is None and named is not None and named.ward_id == ward_id:
+        centre_id = named.registration_centre_id
+    centre_id = centre_id if by_centre else None
+    await require_ward_in_campaign(session, campaign, ward_id, centre_id)
+    await require_centre_in_ward_race(session, campaign, ward_id, centre_id)
 
     phone = normalise_phone(payload.phone) or payload.phone
     if phone and await session.scalar(
@@ -57,6 +68,7 @@ async def register_supporter(
     supporter = Supporter(
         campaign_id=payload.campaign,
         ward_id=ward_id,
+        registration_centre_id=centre_id,
         mobilizer_id=mobilizer_id,
         full_name=payload.full_name,
         phone=phone,

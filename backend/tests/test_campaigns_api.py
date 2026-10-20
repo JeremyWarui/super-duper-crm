@@ -20,7 +20,7 @@ from tests.factories import (
 def _setup_body(world: World, **overrides) -> dict:
     body = {
         "title": "Peter for Kasarani",
-        "office_level": "constituency",
+        "seat": "mp",
         "constituency": str(world.constituency.id),
     }
     return {**body, **overrides}
@@ -89,7 +89,7 @@ async def test_a_candidate_sets_their_own_campaign_up_alone(
         headers=new_candidate,
         json={
             "title": "Peter for Governor",
-            "office_level": "county",
+            "seat": "governor",
             "county": str(world.county.id),
         },
     )
@@ -115,7 +115,7 @@ async def test_a_mobilizer_may_not_set_a_campaign_up(
 async def test_nobody_already_on_a_campaign_sets_up_another(
     client: httpx.AsyncClient, session: AsyncSession, world: World, role: str
 ) -> None:
-    body = {"title": "A second one", "office_level": "ward", "ward": str(world.other_ward.id)}
+    body = {"title": "A second one", "seat": "mca", "ward": str(world.other_ward.id)}
     if role == "manager":
         body["new_candidate"] = {"username": "peter"}
 
