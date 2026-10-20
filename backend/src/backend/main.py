@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend import __version__
@@ -60,6 +61,13 @@ def _mount_spa(app: FastAPI, static_dir: str) -> None:
     directory = Path(static_dir)
     if not directory.is_dir():
         raise RuntimeError(f"STATIC_DIR is set to {directory}, which is not a directory.")
+    index = directory / "index.html"
+
+    @app.get("/join/{code}", include_in_schema=False)
+    @app.get("/join/{code}/", include_in_schema=False)
+    async def join_page(code: str) -> FileResponse:
+        return FileResponse(index)
+
     app.mount("/", StaticFiles(directory=directory, html=True), name="spa")
 
 

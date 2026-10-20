@@ -179,6 +179,9 @@ export const EVENTS = [
     number_reached: 0,
     number_attended: 0,
     turnout_pct: 0.0,
+    signup_code: "zimmerman-hall",
+    signups_open: true,
+    signups: 0,
   },
 ];
 

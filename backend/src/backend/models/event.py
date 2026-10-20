@@ -1,10 +1,11 @@
 """A meeting or rally, with how many people it reached and how many turned up."""
 
+import secrets
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Uuid
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, UUIDPrimaryKeyMixin, choice_type
@@ -47,6 +48,11 @@ class Event(UUIDPrimaryKeyMixin, Base):
     status: Mapped[EventStatus] = mapped_column(
         choice_type(EventStatus, "event_status"), default=EventStatus.PLANNED
     )
+    # The code in the event's public sign-up link and QR code; never the event's id.
+    signup_code: Mapped[str] = mapped_column(
+        String(24), unique=True, default=lambda: secrets.token_urlsafe(9)
+    )
+    signups_open: Mapped[bool] = mapped_column(Boolean, default=True)
     # People invited, and people who showed up.
     number_reached: Mapped[int] = mapped_column(Integer, default=0)
     number_attended: Mapped[int] = mapped_column(Integer, default=0)

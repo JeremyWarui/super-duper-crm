@@ -13,6 +13,7 @@ from backend.models import (
     Event,
     Mobilizer,
     Supporter,
+    SupportLevel,
     Target,
     User,
     UserRole,
@@ -81,16 +82,30 @@ async def campaigns(
             .group_by(model.campaign_id)
         )
         counts[name] = dict(rows.tuples().all())
-    votes = {
-        row[0]: (row[1] or 0, row[2] or 0)
+    needed_by = {
+        row[0]: row[1] or 0
         for row in await session.execute(
-            select(
-                Target.campaign_id, func.sum(Target.votes_needed), func.sum(Target.votes_committed)
-            )
+            select(Target.campaign_id, func.sum(Target.votes_needed))
             .where(Target.campaign_id.in_(ids))
             .group_by(Target.campaign_id)
         )
     }
+    # Votes committed are the campaign's supporters, as the strategy counts them.
+    supporters_by = dict(
+        (
+            await session.execute(
+                select(Supporter.campaign_id, func.count())
+                .where(
+                    Supporter.campaign_id.in_(ids),
+                    Supporter.support_level == SupportLevel.SUPPORTER,
+                )
+                .group_by(Supporter.campaign_id)
+            )
+        )
+        .tuples()
+        .all()
+    )
+    votes = {cid: (needed_by.get(cid, 0), supporters_by.get(cid, 0)) for cid in ids}
 
     rows = []
     for campaign in found:

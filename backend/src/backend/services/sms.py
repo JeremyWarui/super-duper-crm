@@ -53,7 +53,7 @@ class SMSProvider(Protocol):
     async def send(self, recipients: list[str], message: str) -> SendResult: ...
 
 
-_NON_DIGITS = re.compile(r"[^\d+]")
+_NON_DIGITS = re.compile(r"[^0-9+]")
 
 
 def normalise_phone(raw: str | None, country_code: str = DEFAULT_COUNTRY_CODE) -> str | None:
@@ -69,7 +69,7 @@ def normalise_phone(raw: str | None, country_code: str = DEFAULT_COUNTRY_CODE) -
     if "+" in cleaned[1:]:
         return None
     plus, digits = cleaned.startswith("+"), cleaned.lstrip("+")
-    if not digits.isdigit():
+    if not (digits.isascii() and digits.isdigit()):
         return None
 
     if plus or digits.startswith(country_code):

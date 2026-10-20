@@ -65,7 +65,10 @@
       "status",
       "number_reached",
       "number_attended",
-      "turnout_pct"
+      "turnout_pct",
+      "signups",
+      "signup_code",
+      "signups_open"
     ],
     "GET /api/supporters/": [
       "id",
@@ -194,6 +197,13 @@
     "GET /api/payments/payout-mode/": [
       "mode",
       "moves_money"
+    ],
+    "GET /api/join/{code}/": [
+      "campaign_title",
+      "candidate_name",
+      "event_title",
+      "ward_name",
+      "open"
     ]
   },
   "nested_reads": {
@@ -403,7 +413,15 @@
     ],
     "POST /api/payments/{payment_id}/cancel/": [],
     "POST /api/payments/{payment_id}/release/": [],
-    "POST /api/payments/{payment_id}/not-sent/": []
+    "POST /api/payments/{payment_id}/not-sent/": [],
+    "POST /api/join/{code}/": [
+      "full_name",
+      "phone",
+      "consent_given"
+    ],
+    "POST /api/events/{event_id}/signups/": [
+      "open"
+    ]
   },
   "enums": {
     "user.role": [

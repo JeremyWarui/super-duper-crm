@@ -2,13 +2,14 @@
 // Role comes from the logged-in user; every page reads React Query hooks; the
 // three forms fire real mutations. Same war-room UI as the prototype.
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "./store/auth";
 import { winNumber } from "./winNumber";
 import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
   useInviteToEvent, useCreateUser, useUpdateMobilizer,
-  usePayments, useSchedulePayment, useMarkPaid, useCancelPayment, usePayoutMode, useReleasePayment, useMarkNotSent,
+  usePayments, useSchedulePayment, useMarkPaid, useCancelPayment, usePayoutMode, useReleasePayment, useMarkNotSent, useSetSignups,
 } from "./api/hooks";
 
 const C = {
@@ -389,7 +390,7 @@ function InviteResult({ result }) {
 }
 
 // ---- events + supporters lists -------------------------------------------
-function EventList({ events, showActions, onRecord, onInvite }) {
+function EventList({ events, showActions, onRecord, onInvite, onQr }) {
   return (
     <Card pad={0}><div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
@@ -398,7 +399,9 @@ function EventList({ events, showActions, onRecord, onInvite }) {
           <th style={{ padding: "10px 8px", fontWeight: 500 }}>Date</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Status</th>
           <th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Reached</th><th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Attended</th>
           <th style={{ padding: "10px 18px", fontWeight: 500, textAlign: "right" }}>Turnout</th>
+          <th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Signed up</th>
           {showActions && <th style={{ padding: "10px 18px", fontWeight: 500, textAlign: "right" }}>Invite</th>}
+          {onQr && <th style={{ padding: "10px 18px", fontWeight: 500, textAlign: "right" }}>Sign-up</th>}
         </tr></thead>
         <tbody>
           {events.map((e) => {
@@ -412,14 +415,40 @@ function EventList({ events, showActions, onRecord, onInvite }) {
                 <td style={{ padding: "12px 8px", textAlign: "right" }}>{done ? fmt(e.number_reached) : (showActions ? <Btn onClick={() => onRecord(e)}>Record</Btn> : "—")}</td>
                 <td style={{ padding: "12px 8px", textAlign: "right" }}>{done ? fmt(e.number_attended) : "—"}</td>
                 <td style={{ padding: "12px 18px", textAlign: "right", ...DISPLAY, fontWeight: 600 }}>{done ? `${e.turnout_pct}%` : "—"}</td>
+                <td style={{ padding: "12px 8px", textAlign: "right" }}>{fmt(e.signups)}{e.number_attended > 0 && <span style={{ color: C.sub }}> ({Math.round((e.signups / e.number_attended) * 100)}%)</span>}</td>
                 {showActions && <td style={{ padding: "12px 18px", textAlign: "right" }}><Btn onClick={() => onInvite(e)}>Invite</Btn></td>}
+                {onQr && <td style={{ padding: "12px 18px", textAlign: "right" }}>{e.signup_code && <Btn onClick={() => onQr(e)}>{e.signups_open ? "Sign-up QR" : "Closed"}</Btn>}</td>}
               </tr>
             );
           })}
-          {events.length === 0 && <tr><td colSpan={showActions ? 8 : 7} style={{ padding: 20, color: C.sub }}>No events yet.</td></tr>}
+          {events.length === 0 && <tr><td colSpan={10} style={{ padding: 20, color: C.sub }}>No events yet.</td></tr>}
         </tbody>
       </table>
     </div></Card>
+  );
+}
+
+// An event's sign-up QR code and link, to print or show at the rally.
+function QrModal({ event, canClose, onClose }) {
+  const setSignups = useSetSignups();
+  const link = `${window.location.origin}/join/${event.signup_code}`;
+  const [open, setOpen] = useState(event.signups_open);
+  const toggle = () => setSignups.mutate({ id: event.id, open: !open }, { onSuccess: () => setOpen(!open) });
+  return (
+    <Modal title="Sign-up QR" sub={`${event.title || event.ward_name}: people scan it to sign up as supporters.`} onClose={onClose}>
+      <div className="qr-print">
+        <div style={{ ...DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 12 }}>{event.title || event.ward_name}</div>
+        <QRCodeSVG value={link} size={220} marginSize={2} title={`Sign-up link for ${event.title || event.ward_name}`} />
+        <div style={{ fontSize: 12.5, color: C.sub, marginTop: 10, wordBreak: "break-all" }}>{link}</div>
+      </div>
+      {!open && <div style={{ color: C.red, fontSize: 12.5, marginTop: 12 }}>Sign-ups are closed: the code shows a "closed" page.</div>}
+      {setSignups.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{setSignups.error.message}</div>}
+      <div className="flex justify-end gap-2" style={{ marginTop: 20 }}>
+        {canClose && <Btn onClick={toggle} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Reopen sign-ups"}</Btn>}
+        <Btn onClick={() => window.print()}>Print</Btn>
+        <PrimaryBtn onClick={onClose}>Done</PrimaryBtn>
+      </div>
+    </Modal>
   );
 }
 
@@ -813,7 +842,7 @@ export default function App() {
       case "events":
       case "myevents":
         if (events.isLoading) return <Loading />; if (events.error) return <ErrorMsg error={events.error} />;
-        return (<><PageTitle title={page === "myevents" ? "My events" : "Events"} sub="Rallies and meetings, with mobilization counts." action={role !== "candidate" ? <Btn primary onClick={() => setModal({ type: "event" })}>Schedule event</Btn> : null} /><EventList events={events.data || []} showActions={role !== "candidate"} onRecord={(e) => setModal({ type: "record", event: e })} onInvite={(e) => setModal({ type: "invite", event: e })} /></>);
+        return (<><PageTitle title={page === "myevents" ? "My events" : "Events"} sub="Rallies and meetings, with mobilization counts." action={role !== "candidate" ? <Btn primary onClick={() => setModal({ type: "event" })}>Schedule event</Btn> : null} /><EventList events={events.data || []} showActions={role !== "candidate"} onRecord={(e) => setModal({ type: "record", event: e })} onInvite={(e) => setModal({ type: "invite", event: e })} onQr={role !== "candidate" ? (e) => setModal({ type: "qr", event: e }) : undefined} /></>);
       case "register": return (<><PageTitle title="Register a supporter" sub="Quick capture in the field." /><RegisterSupporterForm campaignId={campaignId} wardOptions={wardOptions} /></>);
       case "mysupporters": return <SupportersView campaignId={campaignId} />;
       case "payments": return <PaymentsView campaignId={campaignId} canPay={role === "manager"} />;
@@ -854,6 +883,7 @@ export default function App() {
       {modal?.type === "event" && <ScheduleEventForm campaignId={campaignId} wardOptions={wardOptions} onClose={() => setModal(null)} />}
       {modal?.type === "record" && <RecordForm event={modal.event} onClose={() => setModal(null)} />}
       {modal?.type === "invite" && <InviteForm event={modal.event} onClose={() => setModal(null)} />}
+      {modal?.type === "qr" && <QrModal event={modal.event} canClose={role === "manager"} onClose={() => setModal(null)} />}
     </div>
   );
 }

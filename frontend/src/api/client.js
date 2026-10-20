@@ -6,8 +6,9 @@ import { useAuth } from "../store/auth";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
-export async function api(path, { method = "GET", body } = {}) {
-  const { token } = useAuth.getState();
+// `anonymous` leaves the token off, for the public pages anyone can open.
+export async function api(path, { method = "GET", body, anonymous = false } = {}) {
+  const token = anonymous ? null : useAuth.getState().token;
 
   const res = await fetch(`${BASE}${path}`, {
     method,

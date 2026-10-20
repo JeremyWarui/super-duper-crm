@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import select
 
 from backend.api.deps import SessionDep, SupporterTeam
@@ -18,6 +18,7 @@ from backend.api.scope import (
 )
 from backend.models import Supporter
 from backend.schemas.campaign import SupporterCreate, SupporterRead
+from backend.services.sms import normalise_phone
 
 router = APIRouter(prefix="/supporters", tags=["supporters"])
 
@@ -44,12 +45,21 @@ async def register_supporter(
     require_own_ward(user, ward_id)
     await require_ward_in_campaign(session, campaign, ward_id)
 
+    phone = normalise_phone(payload.phone) or payload.phone
+    if phone and await session.scalar(
+        select(Supporter.id).where(
+            Supporter.campaign_id == payload.campaign, Supporter.phone == phone
+        )
+    ):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "That phone number is already on this campaign's register."
+        )
     supporter = Supporter(
         campaign_id=payload.campaign,
         ward_id=ward_id,
         mobilizer_id=mobilizer_id,
         full_name=payload.full_name,
-        phone=payload.phone,
+        phone=phone,
         support_level=payload.support_level,
         consent_given=payload.consent_given,
     )

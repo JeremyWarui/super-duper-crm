@@ -3,10 +3,10 @@
 import uuid
 
 from fastapi import APIRouter, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from backend.api.deps import CurrentUser, MobilizerWriter, SessionDep
+from backend.api.deps import CurrentUser, MobilizerWriter, SessionDep, Writer
 from backend.api.scope import (
     all_rows,
     load,
@@ -19,13 +19,14 @@ from backend.api.scope import (
     require_ward_in_campaign,
     scoped,
 )
-from backend.models import Event, EventStatus, Supporter
+from backend.models import Event, EventStatus, Supporter, UserRole
 from backend.schemas.campaign import (
     EventCreate,
     EventInvite,
     EventInviteResult,
     EventRead,
     EventRecord,
+    EventSignups,
     InviteRecipient,
 )
 from backend.services.sms import Recipient, SendResult, get_sms_provider, normalise_all
@@ -38,9 +39,40 @@ LOADED = (selectinload(Event.ward),)
 @router.get("/", response_model=list[EventRead])
 async def list_events(
     session: SessionDep, user: CurrentUser, campaign: uuid.UUID | None = None
-) -> list[Event]:
+) -> list[EventRead]:
+    """Events newest first, each with its sign-ups; the candidate does not get the sign-up code."""
     statement = await scoped(session, user, select(Event).options(*LOADED), Event, campaign)
-    return await all_rows(session, statement.order_by(Event.scheduled_date.desc().nulls_last()))
+    events = await all_rows(session, statement.order_by(Event.scheduled_date.desc().nulls_last()))
+    counts = dict(
+        (
+            await session.execute(
+                select(Supporter.event_id, func.count())
+                .where(Supporter.event_id.in_([e.id for e in events]))
+                .group_by(Supporter.event_id)
+            )
+        ).all()
+    )
+    shows_code = user.role is not UserRole.CANDIDATE
+    return [
+        EventRead.model_validate(e).model_copy(
+            update={
+                "signups": counts.get(e.id, 0),
+                "signup_code": e.signup_code if shows_code else None,
+            }
+        )
+        for e in events
+    ]
+
+
+@router.post("/{event_id}/signups/", response_model=EventRead)
+async def set_signups(
+    event_id: uuid.UUID, payload: EventSignups, session: SessionDep, user: Writer
+) -> Event:
+    """Open or close the event's public sign-up link."""
+    event = await require_visible(session, user, Event, event_id, "event", LOADED)
+    event.signups_open = payload.open
+    await session.commit()
+    return await load(session, Event, event.id, LOADED)
 
 
 @router.post("/", response_model=EventRead, status_code=status.HTTP_201_CREATED)

@@ -3,7 +3,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, String, Uuid
+from sqlalchemy import Boolean, ForeignKey, Index, String, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
@@ -17,6 +17,17 @@ if TYPE_CHECKING:
 
 class Supporter(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "supporters"
+    __table_args__ = (
+        # One person per phone number per campaign.
+        Index(
+            "uq_supporters_campaign_phone",
+            "campaign_id",
+            "phone",
+            unique=True,
+            postgresql_where=text("phone <> ''"),
+            sqlite_where=text("phone <> ''"),
+        ),
+    )
 
     campaign_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
@@ -27,6 +38,11 @@ class Supporter(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # The mobilizer who signed them up, if anyone did.
     mobilizer_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("mobilizers.id", ondelete="SET NULL"), default=None, index=True
+    )
+
+    # The event whose sign-up link they used, if any.
+    event_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("events.id", ondelete="SET NULL"), default=None, index=True
     )
 
     full_name: Mapped[str] = mapped_column(String(150))

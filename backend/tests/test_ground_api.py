@@ -169,7 +169,9 @@ async def test_the_register_is_whole_for_a_manager_one_ward_for_a_mobilizer_clos
     await client.post(
         "/api/supporters/",
         headers=head,
-        json=_supporter(world, ward=str(world.other_ward.id), full_name="Otieno K."),
+        json=_supporter(
+            world, ward=str(world.other_ward.id), full_name="Otieno K.", phone="+254700555666"
+        ),
     )
 
     whole = (await client.get("/api/supporters/", headers=head)).json()
@@ -201,7 +203,9 @@ async def test_only_the_campaign_team_lists_adds_and_erases_supporters(
 
     listed = await client.get("/api/supporters/", headers=head)
     added = await client.post(
-        "/api/supporters/", headers=head, json=_supporter(world, full_name="Otieno K.")
+        "/api/supporters/",
+        headers=head,
+        json=_supporter(world, full_name="Otieno K.", phone="+254700555666"),
     )
     erased = await client.delete(f"/api/supporters/{existing['id']}/", headers=head)
 

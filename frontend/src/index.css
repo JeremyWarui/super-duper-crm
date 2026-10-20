@@ -175,3 +175,11 @@ body {
     max-width: min(1720px, calc(100vw - 96px)) !important;
   }
 }
+
+/* The sign-up QR box; printing it prints only the code and its link. */
+.qr-print { text-align: center; }
+@media print {
+  body * { visibility: hidden; }
+  .qr-print, .qr-print * { visibility: visible; }
+  .qr-print { position: fixed; inset: 0; padding-top: 10vh; }
+}

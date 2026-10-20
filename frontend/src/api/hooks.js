@@ -115,6 +115,30 @@ export function useRegisterSupporter() {
   });
 }
 
+// ---- Supporter sign-up behind an event's QR code -----------------------------
+export const useJoinPage = (code) =>
+  useQuery({
+    queryKey: ["join", code],
+    queryFn: () => api(`/join/${encodeURIComponent(code)}/`, { anonymous: true }),
+    retry: false,
+  });
+
+export function useJoin(code) {
+  return useMutation({
+    mutationFn: (payload) =>
+      api(`/join/${encodeURIComponent(code)}/`, { method: "POST", body: payload, anonymous: true }),
+  });
+}
+
+export function useSetSignups() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, open }) =>
+      api(`/events/${id}/signups/`, { method: "POST", body: { open } }),
+    onSuccess: () => invalidate("events"),
+  });
+}
+
 // ---- Payments to mobilizers ----------------------------------------------
 export const usePayments = (campaignId) =>
   useQuery({

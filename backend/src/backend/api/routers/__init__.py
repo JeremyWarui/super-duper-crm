@@ -8,6 +8,7 @@ from backend.api.routers import (
     campaigns,
     events,
     geography,
+    join,
     mobilizers,
     payments,
     strategy,
@@ -20,6 +21,7 @@ api_router = APIRouter(prefix="/api")
 for module in (
     auth,
     admin,
+    join,
     geography,
     campaigns,
     targets,

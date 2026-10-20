@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.models import Event, Mobilizer, Target, unit_key
+from backend.models import Event, Mobilizer, Supporter, SupportLevel, Target, unit_key
 from backend.schemas.strategy import NoteRead, StrategyRead, UnitRead
 
 WELL_WORKED = 4
@@ -40,6 +40,18 @@ async def read_strategy(
             .group_by(Event.ward_id, Event.registration_centre_id)
         )
     }
+    signed_up = dict(
+        (
+            await session.execute(
+                select(Supporter.ward_id, func.count())
+                .where(
+                    Supporter.campaign_id.in_(seen),
+                    Supporter.support_level == SupportLevel.SUPPORTER,
+                )
+                .group_by(Supporter.ward_id)
+            )
+        ).all()
+    )
     staffed = {
         unit_key(ward, centre)
         for ward, centre in await session.execute(
@@ -53,7 +65,8 @@ async def read_strategy(
     committed = total_registered = total_cast = 0
     for target in targets:
         needed = target.votes_needed or 0
-        has = target.votes_committed or 0
+        # Supporters are counted per ward; a centre's target has no count of its own yet.
+        has = signed_up.get(target.ward_id, 0) if target.registration_centre_id is None else 0
         committed += has
         registered = target.registered_voters or 0
         total_registered += registered
@@ -68,7 +81,7 @@ async def read_strategy(
                 registration_centre=target.registration_centre_id,
                 needed=needed,
                 committed=has,
-                gap=target.votes_remaining or 0,
+                gap=max(needed - has, 0),
                 progress=round(has / needed, 3) if needed else 0.0,
                 events=events.get(key, 0),
                 has_mobilizer=key in staffed,

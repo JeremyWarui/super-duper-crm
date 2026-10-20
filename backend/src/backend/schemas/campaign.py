@@ -144,6 +144,14 @@ class EventRead(ORMModel):
     number_reached: int
     number_attended: int
     turnout_pct: float
+    # The QR code's link; only for the manager and the event's own ward team.
+    signup_code: str | None = None
+    signups_open: bool
+    signups: int = 0
+
+
+class EventSignups(WriteModel):
+    open: bool
 
 
 class EventCreate(WriteModel):

@@ -9,6 +9,7 @@ import Login from "./components/Login";
 import Onboarding from "./components/Onboarding";
 import Admin from "./components/Admin";
 import App from "./App";
+import Join from "./components/Join";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -39,10 +40,13 @@ function Root() {
   return token ? <Inside /> : <Login />;
 }
 
+// An event's QR code opens /join/<code>, which needs no login.
+const joinCode = window.location.pathname.match(/^\/join\/([^/]+)\/?$/)?.[1];
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <Root />
+      {joinCode ? <Join code={decodeURIComponent(joinCode)} /> : <Root />}
     </QueryClientProvider>
   </React.StrictMode>,
 );
