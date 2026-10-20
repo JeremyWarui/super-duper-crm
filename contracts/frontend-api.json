@@ -337,7 +337,11 @@
       "ward",
       "full_name",
       "phone",
+      "support_level",
       "consent_given",
+      "registration_centre"
+    ],
+    "PATCH /api/supporters/{supporter_id}/": [
       "registration_centre"
     ],
     "PATCH /api/targets/{target_id}/": [

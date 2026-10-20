@@ -8,7 +8,16 @@ from sqlalchemy.orm import selectinload
 
 from backend.api.deps import CurrentUser, SessionDep, Writer
 from backend.api.scope import all_rows, load, require_visible_campaign, visible_campaign_ids
-from backend.models import Campaign, OfficeLevel, User, UserRole
+from backend.models import (
+    Campaign,
+    Constituency,
+    County,
+    OfficeLevel,
+    RegistrationCentre,
+    User,
+    UserRole,
+    Ward,
+)
 from backend.schemas.campaign import (
     CampaignRead,
     CampaignSetup,
@@ -21,6 +30,11 @@ from backend.services.targets import generate_targets
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
+AREA_MODEL = {
+    OfficeLevel.COUNTY: County,
+    OfficeLevel.CONSTITUENCY: Constituency,
+    OfficeLevel.WARD: Ward,
+}
 AREA_FIELD = {
     OfficeLevel.COUNTY: "county",
     OfficeLevel.CONSTITUENCY: "constituency",
@@ -82,6 +96,15 @@ async def setup_campaign(
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             f"A {payload.seat.label} campaign needs its {area_field} set.",
+        )
+    if await session.get(AREA_MODEL[office_level], area_id) is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"No such {area_field}.")
+    if office_level is OfficeLevel.WARD and not await session.scalar(
+        select(RegistrationCentre.id).where(RegistrationCentre.ward_id == area_id).limit(1)
+    ):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "That ward has no registration centres loaded; load the geography first.",
         )
     candidate, login = await _candidate(session, user, payload)
 

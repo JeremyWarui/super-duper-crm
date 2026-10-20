@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
 import { useAuth } from "../src/store/auth";
 import {
+  CAMPAIGN,
   dashboardRoutes,
   renderApp,
   signIn,
@@ -65,11 +66,9 @@ describe("what each role is shown", () => {
     }
     expect(screen.queryByRole("button", { name: "Overview" })).toBeNull();
   });
-
 });
 
 describe("moving around", () => {
-
   it("signs the user out", async () => {
     const user = userEvent.setup();
     await open("manager");
@@ -115,7 +114,7 @@ describe("the forms", () => {
     });
   });
 
-  it("registers a supporter once consent is ticked", async () => {
+  it("registers a supporter, counted as one unless changed, once consent is ticked", async () => {
     const user = userEvent.setup();
     const { calls } = await open("mobilizer", {
       "POST /supporters/": { id: "s1" },
@@ -141,12 +140,152 @@ describe("the forms", () => {
         full_name: "Wanjiku Njeri",
         phone: "+254700333444",
         ward: "w1",
+        support_level: "supporter",
         consent_given: true,
         registration_centre: null,
       });
     });
   });
+});
 
+describe("an MCA race's supporters", () => {
+  it("puts a supporter with no centre at the one picked", async () => {
+    const user = userEvent.setup();
+    const { calls } = await open("manager", {
+      "GET /campaigns/": [
+        { ...CAMPAIGN, operational_grain: "centre", ward: "w1" },
+      ],
+      "GET /centres/": [
+        { id: "rc1", name: "Zimmerman Primary" },
+        { id: "rc3", name: "Late Centre" },
+      ],
+      "GET /targets/": [{ id: "t1", ward: "w1", registration_centre: "rc1" }],
+      "GET /supporters/": [
+        {
+          id: "s1",
+          full_name: "Wanjiku Njeri",
+          phone: "",
+          support_level: "supporter",
+          consent_given: true,
+          registration_centre: null,
+        },
+      ],
+      "PATCH /supporters/s1/": { id: "s1" },
+    });
+
+    await user.click(screen.getByRole("button", { name: "Supporters" }));
+    const picker = await screen.findByRole("combobox", {
+      name: "Centre for Wanjiku Njeri",
+    });
+    await screen.findByRole("option", { name: "Zimmerman Primary" });
+    expect(screen.queryByRole("option", { name: "Late Centre" })).toBeNull();
+    await user.selectOptions(picker, "rc1");
+
+    await waitFor(() => {
+      const placed = calls.find((c) => c.method === "PATCH");
+      expect([placed.path, placed.body]).toEqual([
+        "/supporters/s1/",
+        { registration_centre: "rc1" },
+      ]);
+    });
+  });
+});
+
+describe("registering a supporter in an MCA race", () => {
+  const MCA_TARGETS = ["rc1", "rc2"].map((centre) => ({
+    id: `t-${centre}`,
+    ward: "w1",
+    ward_name: "Zimmerman",
+    registration_centre: centre,
+  }));
+  const mca = (mobilizer) => ({
+    "GET /campaigns/": [
+      { ...CAMPAIGN, operational_grain: "centre", ward: "w1" },
+    ],
+    "GET /centres/": [
+      { id: "rc1", name: "Zimmerman Primary" },
+      { id: "rc2", name: "Githurai Primary" },
+      { id: "rc3", name: "Late Centre" },
+    ],
+    "GET /mobilizers/": [
+      { id: "m1", user: "u1", ward: "w1", registration_centre: mobilizer },
+    ],
+    "GET /targets/": MCA_TARGETS,
+    "POST /supporters/": { id: "s1" },
+  });
+
+  async function fill(user) {
+    await user.click(
+      screen.getByRole("button", { name: "Register supporter" }),
+    );
+    const boxes = await screen.findAllByRole("textbox");
+    await user.type(boxes[0], "Wanjiku Njeri");
+    await user.click(screen.getByRole("checkbox"));
+    await screen.findByRole("option", { name: "Githurai Primary" });
+  }
+
+  it("files them at the mobilizer's own centre", async () => {
+    const user = userEvent.setup();
+    const { calls } = await open("mobilizer", mca("rc2"));
+    await fill(user);
+    await user.click(
+      screen.getAllByRole("button", { name: "Register supporter" }).at(-1),
+    );
+
+    await waitFor(() => {
+      const posted = calls.find(
+        (c) => c.method === "POST" && c.path === "/supporters/",
+      );
+      expect(posted.body.registration_centre).toBe("rc2");
+    });
+  });
+
+  it("files them in the ward once it loads after the form opened", async () => {
+    const user = userEvent.setup();
+    signIn("mobilizer");
+    const routes = dashboardRoutes({ ...mca("rc2"), "GET /targets/": [] });
+    const calls = stubApi(routes);
+    const { queryClient } = renderApp(<App />);
+    await user.click(
+      await screen.findByRole("button", { name: "Register supporter" }),
+    );
+    routes["GET /targets/"] = MCA_TARGETS;
+    await queryClient.invalidateQueries({ queryKey: ["targets"] });
+    const boxes = await screen.findAllByRole("textbox");
+    await user.type(boxes[0], "Wanjiku Njeri");
+    await user.click(screen.getByRole("checkbox"));
+    await screen.findByRole("option", { name: "Githurai Primary" });
+    await user.click(
+      screen.getAllByRole("button", { name: "Register supporter" }).at(-1),
+    );
+
+    await waitFor(() => {
+      const posted = calls.find(
+        (c) => c.method === "POST" && c.path === "/supporters/",
+      );
+      expect([posted.body.ward, posted.body.registration_centre]).toEqual([
+        "w1",
+        "rc2",
+      ]);
+    });
+  });
+
+  it("waits for a centre when the mobilizer has none", async () => {
+    const user = userEvent.setup();
+    await open("mobilizer", mca(null));
+    await fill(user);
+    const submit = screen
+      .getAllByRole("button", { name: "Register supporter" })
+      .at(-1);
+
+    expect(submit).toBeDisabled();
+    expect(screen.queryByRole("option", { name: "Late Centre" })).toBeNull();
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Registration centre" }),
+      "rc1",
+    );
+    expect(submit).toBeEnabled();
+  });
 });
 
 describe("adding a mobilizer", () => {
@@ -181,5 +320,4 @@ describe("adding a mobilizer", () => {
       });
     });
   }
-
 });

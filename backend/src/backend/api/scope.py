@@ -14,6 +14,7 @@ from backend.models import (
     Mobilizer,
     OperationalGrain,
     RegistrationCentre,
+    Target,
     User,
     UserRole,
 )
@@ -149,18 +150,29 @@ async def require_centre_in_ward_race(
     ward_id: uuid.UUID | None,
     centre_id: uuid.UUID | None,
 ) -> None:
-    """In a ward (MCA) race whose ward has centres loaded, a registration centre is required."""
-    if campaign.operational_grain is not OperationalGrain.CENTRE or centre_id is not None:
-        return
-    if ward_id is None:
-        return
-    has_centres = await session.scalar(
-        select(RegistrationCentre.id).where(RegistrationCentre.ward_id == ward_id).limit(1)
-    )
-    if has_centres is not None:
+    """In a ward (MCA) race a registration centre is required."""
+    if campaign.operational_grain is OperationalGrain.CENTRE and centre_id is None:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "In an MCA race this happens at a registration centre; pick one.",
+        )
+
+
+async def require_targeted_centre(
+    session: AsyncSession, campaign: Campaign, centre_id: uuid.UUID | None
+) -> None:
+    """A centre a supporter is filed at must have a target, or they count toward nothing."""
+    if centre_id is None or campaign.operational_grain is not OperationalGrain.CENTRE:
+        return
+    targeted = await session.scalar(
+        select(Target.id).where(
+            Target.campaign_id == campaign.id, Target.registration_centre_id == centre_id
+        )
+    )
+    if targeted is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "That centre has no target yet; ask the campaign manager to add one.",
         )
 
 

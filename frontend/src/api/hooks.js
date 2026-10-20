@@ -115,6 +115,16 @@ export function useRegisterSupporter() {
   });
 }
 
+// Put a supporter at a centre with a target, so they count toward it.
+export function usePlaceSupporter() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, registration_centre }) =>
+      api(`/supporters/${id}/`, { method: "PATCH", body: { registration_centre } }),
+    onSuccess: () => invalidate("supporters", "strategy"),
+  });
+}
+
 // ---- Supporter sign-up behind an event's QR code -----------------------------
 export const useJoinPage = (code) =>
   useQuery({

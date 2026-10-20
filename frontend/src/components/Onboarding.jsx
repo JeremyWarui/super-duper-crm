@@ -38,11 +38,36 @@ const FIELD = {
 
 // Each seat and the area it is fought over; the county seats share one area.
 const OFFICES = [
-  { key: "mca", level: "ward", label: "MCA", sub: "Member of County Assembly — a ward seat" },
-  { key: "mp", level: "constituency", label: "MP", sub: "Member of Parliament — a constituency seat" },
-  { key: "governor", level: "county", label: "Governor", sub: "A county-wide seat" },
-  { key: "senator", level: "county", label: "Senator", sub: "A county-wide seat" },
-  { key: "women_rep", level: "county", label: "Women Rep", sub: "A county-wide seat" },
+  {
+    key: "mca",
+    level: "ward",
+    label: "MCA",
+    sub: "Member of County Assembly — a ward seat",
+  },
+  {
+    key: "mp",
+    level: "constituency",
+    label: "MP",
+    sub: "Member of Parliament — a constituency seat",
+  },
+  {
+    key: "governor",
+    level: "county",
+    label: "Governor",
+    sub: "A county-wide seat",
+  },
+  {
+    key: "senator",
+    level: "county",
+    label: "Senator",
+    sub: "A county-wide seat",
+  },
+  {
+    key: "women_rep",
+    level: "county",
+    label: "Women Rep",
+    sub: "A county-wide seat",
+  },
 ];
 
 const Label = ({ children }) => (
@@ -134,7 +159,7 @@ function UnitsPreview({ form }) {
           }}
         >
           {grain === "centre"
-            ? "This ward has no registration centres yet. The campaign will be created, but it will have nothing to target until they are imported."
+            ? "This ward has no registration centres loaded, so an MCA campaign cannot be set up here until they are."
             : "Nothing was found for this area. Check the selection on the previous step."}
         </div>
       </div>
@@ -446,9 +471,9 @@ function AspirantStep({ form, set }) {
         placeholder="0712 345678"
       />
       <div style={{ fontSize: 12, color: C.sub, marginTop: 8 }}>
-        They get a login for this campaign only, and its password is shown
-        once at the end. Write it down: nothing is emailed yet, so the
-        address is only kept on record.
+        They get a login for this campaign only, and its password is shown once
+        at the end. Write it down: nothing is emailed yet, so the address is
+        only kept on record.
       </div>
     </>
   );
@@ -496,6 +521,7 @@ function CandidateLogin({ login }) {
 
 export default function Onboarding({ onDone }) {
   const role = useAuth((s) => s.user?.role);
+  const logout = useAuth((s) => s.logout);
   const forAspirant = role === "manager";
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
@@ -535,6 +561,12 @@ export default function Onboarding({ onDone }) {
   const needConstituency =
     form.office_level === "constituency" || form.office_level === "ward";
   const needWard = form.office_level === "ward";
+  const preview = useUnitsPreview(form);
+  // An MCA seat is targeted per centre, so a ward with none cannot be set up.
+  const noCentres =
+    preview.grain === "centre" &&
+    !preview.isLoading &&
+    preview.units.length === 0;
   const areaReady =
     form.county &&
     (!needConstituency || form.constituency) &&
@@ -645,8 +677,24 @@ export default function Onboarding({ onDone }) {
     <div style={wrap}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');`}</style>
       <div style={card}>
-        <div style={{ ...DISPLAY, fontSize: 22, fontWeight: 700 }}>
-          MZIGO<span style={{ color: C.green }}>·</span>CRM
+        <div className="flex items-center justify-between">
+          <div style={{ ...DISPLAY, fontSize: 22, fontWeight: 700 }}>
+            MZIGO<span style={{ color: C.green }}>·</span>CRM
+          </div>
+          <button
+            onClick={logout}
+            style={{
+              background: "transparent",
+              border: `1px solid ${C.line}`,
+              color: C.sub,
+              borderRadius: 8,
+              padding: "5px 10px",
+              cursor: "pointer",
+              fontSize: 12,
+            }}
+          >
+            Sign out
+          </button>
         </div>
         <div style={{ fontSize: 12.5, color: C.sub, marginBottom: 16 }}>
           Set up your campaign · step {step + 1} of {steps.length}
@@ -725,7 +773,10 @@ export default function Onboarding({ onDone }) {
                     set({
                       seat: o.key,
                       office_level: o.level,
-                      ...(o.level !== form.office_level && { constituency: "", ward: "" }),
+                      ...(o.level !== form.office_level && {
+                        constituency: "",
+                        ward: "",
+                      }),
                     })
                   }
                   style={{
@@ -862,8 +913,8 @@ export default function Onboarding({ onDone }) {
             )}
             <div style={{ fontSize: 14, lineHeight: 1.6 }}>
               You're setting up <b>{form.title}</b> for a{" "}
-              <b>{OFFICES.find((o) => o.key === form.seat)?.label}</b>{" "}
-              seat. We'll pull in every{" "}
+              <b>{OFFICES.find((o) => o.key === form.seat)?.label}</b> seat.
+              We'll pull in every{" "}
               {form.office_level === "ward"
                 ? "registration centre in your ward"
                 : "ward in your area"}
@@ -886,7 +937,11 @@ export default function Onboarding({ onDone }) {
               <Btn onClick={() => setStep(step - 1)} disabled={setup.isPending}>
                 Back
               </Btn>
-              <Btn primary onClick={create} disabled={setup.isPending}>
+              <Btn
+                primary
+                onClick={create}
+                disabled={setup.isPending || noCentres}
+              >
                 {setup.isPending ? "Building…" : "Create campaign"}
               </Btn>
             </div>

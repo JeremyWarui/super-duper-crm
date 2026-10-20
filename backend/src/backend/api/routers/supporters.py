@@ -12,13 +12,14 @@ from backend.api.scope import (
     require_campaign_mobilizer,
     require_centre_in_ward_race,
     require_own_ward,
+    require_targeted_centre,
     require_visible,
     require_visible_campaign,
     require_ward_in_campaign,
     scoped,
 )
 from backend.models import Mobilizer, OperationalGrain, Supporter
-from backend.schemas.campaign import SupporterCreate, SupporterRead
+from backend.schemas.campaign import SupporterCreate, SupporterPlace, SupporterRead
 from backend.services.sms import normalise_phone
 
 router = APIRouter(prefix="/supporters", tags=["supporters"])
@@ -55,6 +56,7 @@ async def register_supporter(
     centre_id = centre_id if by_centre else None
     await require_ward_in_campaign(session, campaign, ward_id, centre_id)
     await require_centre_in_ward_race(session, campaign, ward_id, centre_id)
+    await require_targeted_centre(session, campaign, centre_id)
 
     phone = normalise_phone(payload.phone) or payload.phone
     if phone and await session.scalar(
@@ -76,6 +78,26 @@ async def register_supporter(
         consent_given=payload.consent_given,
     )
     session.add(supporter)
+    await session.commit()
+    return supporter
+
+
+@router.patch("/{supporter_id}/", response_model=SupporterRead)
+async def place_supporter(
+    supporter_id: uuid.UUID, payload: SupporterPlace, session: SessionDep, user: SupporterTeam
+) -> Supporter:
+    """Put a supporter at a registration centre in their ward, in a race counted by centre."""
+    supporter = await require_visible(session, user, Supporter, supporter_id, "supporter")
+    campaign = await require_visible_campaign(session, user, supporter.campaign_id)
+    if campaign.operational_grain is not OperationalGrain.CENTRE:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "Only an MCA race counts supporters per centre."
+        )
+    await require_ward_in_campaign(
+        session, campaign, supporter.ward_id, payload.registration_centre
+    )
+    await require_targeted_centre(session, campaign, payload.registration_centre)
+    supporter.registration_centre_id = payload.registration_centre
     await session.commit()
     return supporter
 

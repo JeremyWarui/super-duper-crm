@@ -195,6 +195,10 @@ class SupporterRead(ORMModel):
     created_at: datetime
 
 
+class SupporterPlace(WriteModel):
+    registration_centre: uuid.UUID
+
+
 class SupporterCreate(WriteModel):
     campaign: uuid.UUID
     ward: uuid.UUID | None = None

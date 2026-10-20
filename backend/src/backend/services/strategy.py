@@ -6,7 +6,16 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.models import Event, Mobilizer, Supporter, SupportLevel, Target, unit_key
+from backend.models import (
+    Campaign,
+    Event,
+    Mobilizer,
+    OfficeLevel,
+    Supporter,
+    SupportLevel,
+    Target,
+    unit_key,
+)
 from backend.schemas.strategy import NoteRead, StrategyRead, UnitRead
 
 WELL_WORKED = 4
@@ -42,11 +51,16 @@ async def read_strategy(
     }
     by_ward: dict[uuid.UUID, int] = {}
     by_centre: dict[uuid.UUID, int] = {}
-    for ward, centre, count in await session.execute(
-        select(Supporter.ward_id, Supporter.registration_centre_id, func.count())
-        .where(Supporter.campaign_id.in_(seen), Supporter.support_level == SupportLevel.SUPPORTER)
-        .group_by(Supporter.ward_id, Supporter.registration_centre_id)
-    ):
+    supporter_rows = (
+        await session.execute(
+            select(Supporter.ward_id, Supporter.registration_centre_id, func.count())
+            .where(
+                Supporter.campaign_id.in_(seen), Supporter.support_level == SupportLevel.SUPPORTER
+            )
+            .group_by(Supporter.ward_id, Supporter.registration_centre_id)
+        )
+    ).all()
+    for ward, centre, count in supporter_rows:
         by_ward[ward] = by_ward.get(ward, 0) + count
         if centre is not None:
             by_centre[centre] = count
@@ -58,6 +72,26 @@ async def read_strategy(
             )
         )
     }
+
+    # In an MCA race a supporter counts only at a centre with a target; anyone else is unplaced.
+    targeted = {t.registration_centre_id for t in targets if t.registration_centre_id is not None}
+    in_mca = (
+        select(Supporter.ward_id, Supporter.registration_centre_id, func.count())
+        .join(Campaign, Campaign.id == Supporter.campaign_id)
+        .where(
+            Supporter.campaign_id.in_(campaign_ids),
+            Supporter.support_level == SupportLevel.SUPPORTER,
+            Campaign.office_level == OfficeLevel.WARD,
+        )
+        .group_by(Supporter.ward_id, Supporter.registration_centre_id)
+    )
+    if campaign_id is not None:
+        in_mca = in_mca.where(Supporter.campaign_id == campaign_id)
+    if ward_id is not None:
+        in_mca = in_mca.where(Supporter.ward_id == ward_id)
+    unplaced = sum(
+        count for ward, centre, count in await session.execute(in_mca) if centre not in targeted
+    )
 
     units: list[UnitRead] = []
     committed = total_registered = total_cast = 0
@@ -98,13 +132,24 @@ async def read_strategy(
         total_registered=total_registered,
         total_cast=total_cast,
         units=units,
-        notes=_notes(units),
+        notes=_notes(units, unplaced),
     )
 
 
-def _notes(units: list[UnitRead]) -> list[NoteRead]:
-    """Where to go next, where to ease off, and what is unstaffed."""
+def _notes(units: list[UnitRead], unplaced: int = 0) -> list[NoteRead]:
+    """Where to go next, where to ease off, what is unstaffed, and who needs a centre."""
     notes: list[NoteRead] = []
+
+    if unplaced:
+        who = f"{unplaced} supporters need" if unplaced > 1 else "1 supporter needs"
+        notes.append(
+            NoteRead(
+                tone="watch",
+                title=f"{who} a centre",
+                text="They count toward no target until the manager or their mobilizer "
+                "places them at a registration centre.",
+            )
+        )
 
     behind = sorted((u for u in units if u.progress < 1), key=lambda u: -u.gap)
     if behind:

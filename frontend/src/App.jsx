@@ -9,7 +9,7 @@ import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
   useInviteToEvent, useCreateUser, useUpdateMobilizer,
-  usePayments, useSchedulePayment, useMarkPaid, useCancelPayment, usePayoutMode, useReleasePayment, useMarkNotSent, useSetSignups, useCentres,
+  usePayments, useSchedulePayment, useMarkPaid, useCancelPayment, usePayoutMode, useReleasePayment, useMarkNotSent, useSetSignups, useCentres, usePlaceSupporter,
 } from "./api/hooks";
 
 const C = {
@@ -465,8 +465,14 @@ function QrModal({ event, canClose, onClose }) {
   );
 }
 
-function SupportersView({ campaignId }) {
+function SupportersView({ campaignId, centreWard }) {
   const { data, isLoading, error } = useSupporters(campaignId);
+  const targetsQuery = useTargets(campaignId);
+  const targeted = new Set((targetsQuery.data || []).map((t) => t.registration_centre));
+  const showCentre = centreWard && targetsQuery.isSuccess;
+  const allCentres = useCentres(centreWard).data || [];
+  const centres = allCentres.filter((c) => targeted.has(c.id));
+  const place = usePlaceSupporter();
   const [filter, setFilter] = useState("all");
   if (isLoading) return <Loading />; if (error) return <ErrorMsg error={error} />;
   const all = data || [];
@@ -480,9 +486,12 @@ function SupportersView({ campaignId }) {
       </div>
       <Card pad={0}><div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-          <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Name</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Phone</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Support</th><th style={{ padding: "10px 18px", fontWeight: 500 }}>Consent</th></tr></thead>
-          <tbody>{shown.map((s) => (<tr key={s.id} style={{ borderTop: `1px solid ${C.line}` }}><td style={{ padding: "12px 18px", fontWeight: 600 }}>{s.full_name}</td><td style={{ padding: "12px 8px", color: C.sub }}>{s.phone}</td><td style={{ padding: "12px 8px" }}><Badge text={s.support_level} color={col[s.support_level]?.[0] || C.sub} soft={col[s.support_level]?.[1] || C.paper} /></td><td style={{ padding: "12px 18px" }}>{s.consent_given ? <span style={{ color: C.green }}>✓</span> : <span style={{ color: C.red }}>missing</span>}</td></tr>))}
-          {shown.length === 0 && <tr><td colSpan={4} style={{ padding: 20, color: C.sub }}>None yet.</td></tr>}</tbody>
+          <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Name</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Phone</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Support</th>{showCentre && <th style={{ padding: "10px 8px", fontWeight: 500 }}>Centre</th>}<th style={{ padding: "10px 18px", fontWeight: 500 }}>Consent</th></tr></thead>
+          <tbody>{shown.map((s) => (<tr key={s.id} style={{ borderTop: `1px solid ${C.line}` }}><td style={{ padding: "12px 18px", fontWeight: 600 }}>{s.full_name}</td><td style={{ padding: "12px 8px", color: C.sub }}>{s.phone}</td><td style={{ padding: "12px 8px" }}><Badge text={s.support_level} color={col[s.support_level]?.[0] || C.sub} soft={col[s.support_level]?.[1] || C.paper} /></td>{showCentre && <td style={{ padding: "12px 8px" }}>{targeted.has(s.registration_centre)
+            ? allCentres.find((c) => c.id === s.registration_centre)?.name || "—"
+            : <select aria-label={`Centre for ${s.full_name}`} style={{ ...FIELD, padding: "4px 8px" }} value="" disabled={place.isPending} onChange={(e) => place.mutate({ id: s.id, registration_centre: e.target.value })}><option value="">{s.registration_centre ? `${allCentres.find((c) => c.id === s.registration_centre)?.name || "Centre"} has no target` : "Needs a centre"}</option>{centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}</td>}<td style={{ padding: "12px 18px" }}>{s.consent_given ? <span style={{ color: C.green }}>✓</span> : <span style={{ color: C.red }}>missing</span>}</td></tr>))}
+          {place.isError && <tr><td colSpan={5} style={{ padding: "8px 18px", color: C.red, fontSize: 12.5 }}>{place.error.message}</td></tr>}
+          {shown.length === 0 && <tr><td colSpan={5} style={{ padding: 20, color: C.sub }}>None yet.</td></tr>}</tbody>
         </table>
       </div></Card>
     </>
@@ -590,32 +599,47 @@ function MobilizersView({ campaignId, onAdd, onEdit }) {
   );
 }
 
-// In an MCA race the supporter is filed to a registration centre; left blank, the mobilizer's own.
+// In an MCA race the supporter is filed to a registration centre with a target, the mobilizer's own to start.
 function RegisterSupporterForm({ campaignId, wardOptions, byCentre }) {
   const reg = useRegisterSupporter();
-  const [form, setForm] = useState({ full_name: "", phone: "", ward: wardOptions[0]?.id || "", consent_given: false });
-  const [centre, setCentre] = useState("");
-  const centres = useCentres(byCentre ? form.ward : null).data || [];
-  const ok = form.full_name.trim() && form.consent_given;
+  const user = useAuth((s) => s.user);
+  const own = (useMobilizers(campaignId).data || []).find((m) => m.user === user?.id);
+  const [form, setForm] = useState({ full_name: "", phone: "", ward: "", support_level: "supporter", consent_given: false });
+  const ward = form.ward || wardOptions[0]?.id || "";
+  const [picked, setPicked] = useState(null);  // null until the centre box is changed
+  const centresQuery = useCentres(byCentre ? ward : null);
+  const targetsQuery = useTargets(campaignId);
+  const targeted = new Set((targetsQuery.data || []).map((t) => t.registration_centre));
+  const centres = (centresQuery.data || []).filter((c) => targeted.has(c.id));
+  const ownCentre = own?.ward === ward && targeted.has(own?.registration_centre) ? own.registration_centre : null;
+  const centre = picked ?? ownCentre ?? "";
+  const loaded = !centresQuery.isFetching && !centresQuery.isError && targetsQuery.isSuccess;
+  const ok = form.full_name.trim() && form.consent_given && ward && (!byCentre || (loaded && centre));
   if (reg.isSuccess) return <Card pad={24}><div style={{ ...DISPLAY, fontSize: 22, fontWeight: 700, color: C.green }}>Registered.</div><div style={{ marginTop: 12 }}><Btn onClick={() => reg.reset()}>Register another</Btn></div></Card>;
   return (
     <Card pad={22}>
       <Label>Full name</Label><input style={FIELD} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
       <div style={{ height: 14 }} /><Label>Phone</Label><input style={FIELD} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
       <div style={{ height: 14 }} /><Label>Ward</Label>
-      <select style={FIELD} value={form.ward} onChange={(e) => { setForm({ ...form, ward: e.target.value }); setCentre(""); }}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
+      <select style={FIELD} value={ward} onChange={(e) => { setForm({ ...form, ward: e.target.value }); setPicked(null); }}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
       {byCentre && centres.length > 0 && (
         <>
           <div style={{ height: 14 }} /><Label>Registration centre</Label>
-          <select aria-label="Registration centre" style={FIELD} value={centre} onChange={(e) => setCentre(e.target.value)}>
-            <option value="">My centre</option>
+          <select aria-label="Registration centre" style={FIELD} value={centre} onChange={(e) => setPicked(e.target.value)}>
+            <option value="">Pick a centre</option>
             {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </>
       )}
+      <div style={{ height: 14 }} /><Label>Support</Label>
+      <select aria-label="Support" style={FIELD} value={form.support_level} onChange={(e) => setForm({ ...form, support_level: e.target.value })}>
+        <option value="supporter">Supporter</option>
+        <option value="undecided">Undecided</option>
+        <option value="opposed">Opposed</option>
+      </select>
       <label className="flex items-start gap-2" style={{ marginTop: 14, fontSize: 12.5, color: C.sub, cursor: "pointer" }}><input type="checkbox" checked={form.consent_given} onChange={(e) => setForm({ ...form, consent_given: e.target.checked })} style={{ marginTop: 2, accentColor: C.green }} />Consent to hold these details under the Data Protection Act, 2019.</label>
       {reg.isError && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{reg.error.message}</div>}
-      <div style={{ marginTop: 16 }}><PrimaryBtn disabled={!ok || reg.isPending} onClick={() => reg.mutate({ campaign: campaignId, ...form, registration_centre: centre || null })}>{reg.isPending ? "Saving…" : "Register supporter"}</PrimaryBtn></div>
+      <div style={{ marginTop: 16 }}><PrimaryBtn disabled={!ok || reg.isPending} onClick={() => reg.mutate({ campaign: campaignId, ...form, ward, registration_centre: centre || null })}>{reg.isPending ? "Saving…" : "Register supporter"}</PrimaryBtn></div>
     </Card>
   );
 }
@@ -863,13 +887,13 @@ export default function App() {
         return (<><PageTitle title="Strategy read" sub="Your next moves, computed from your own data." /><StrategyPanel notes={strategy.data.notes} /></>);
       case "targets": return <TargetsView campaignId={campaignId} />;
       case "mobilizers": return <MobilizersView campaignId={campaignId} onAdd={() => setModal({ type: "mobilizer" })} onEdit={(m) => setModal({ type: "mobilizer", mobilizer: m })} />;
-      case "supporters": return <SupportersView campaignId={campaignId} />;
+      case "supporters": return <SupportersView campaignId={campaignId} centreWard={campaign.operational_grain === "centre" ? campaign.ward : null} />;
       case "events":
       case "myevents":
         if (events.isLoading) return <Loading />; if (events.error) return <ErrorMsg error={events.error} />;
         return (<><PageTitle title={page === "myevents" ? "My events" : "Events"} sub="Rallies and meetings, with mobilization counts." action={role !== "candidate" ? <Btn primary onClick={() => setModal({ type: "event" })}>Schedule event</Btn> : null} /><EventList events={events.data || []} showActions={role !== "candidate"} onRecord={(e) => setModal({ type: "record", event: e })} onInvite={(e) => setModal({ type: "invite", event: e })} onQr={role !== "candidate" ? (e) => setModal({ type: "qr", event: e }) : undefined} /></>);
       case "register": return (<><PageTitle title="Register a supporter" sub="Quick capture in the field." /><RegisterSupporterForm campaignId={campaignId} wardOptions={wardOptions} byCentre={campaign.operational_grain === "centre"} /></>);
-      case "mysupporters": return <SupportersView campaignId={campaignId} />;
+      case "mysupporters": return <SupportersView campaignId={campaignId} centreWard={campaign.operational_grain === "centre" ? campaign.ward : null} />;
       case "payments": return <PaymentsView campaignId={campaignId} canPay={role === "manager"} />;
       case "mypayments": return <PaymentsView campaignId={campaignId} mine />;
       default: return null;

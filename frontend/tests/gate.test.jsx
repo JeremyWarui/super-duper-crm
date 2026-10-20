@@ -1,31 +1,15 @@
 /** Which of the three screens you land on. */
-import { screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../src/store/auth";
-import { useCampaigns } from "../src/api/hooks";
-import App from "../src/App";
-import Login from "../src/components/Login";
-import Onboarding from "../src/components/Onboarding";
+import Root, { forgetOnSwitch } from "../src/Gate";
 import {
+  CAMPAIGN,
   dashboardRoutes,
   renderApp,
   signIn,
   stubApi,
 } from "./helpers";
-
-// The gate from src/main.jsx.
-function SignedIn() {
-  const role = useAuth((s) => s.user?.role);
-  const campaigns = useCampaigns();
-  const needsSetup =
-    campaigns.isSuccess && campaigns.data.length === 0 && role !== "mobilizer";
-  return needsSetup ? <Onboarding onDone={() => campaigns.refetch()} /> : <App />;
-}
-
-function Root() {
-  const token = useAuth((s) => s.token);
-  return token ? <SignedIn /> : <Login />;
-}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -53,6 +37,22 @@ describe("the gate", () => {
     renderApp(<Root />);
 
     expect(await screen.findByText("VOTES TO WIN THE SEAT")).toBeInTheDocument();
+  });
+
+  it("forgets the last user's campaign the moment someone else signs in", async () => {
+    signIn("manager");
+    stubApi(dashboardRoutes({ "GET /campaigns/": [{ ...CAMPAIGN, title: "Kimani for Kiambu" }] }));
+    const { queryClient } = renderApp(<Root />);
+    const stop = forgetOnSwitch(queryClient);
+    await screen.findAllByText("Kimani for Kiambu");
+
+    act(() => {
+      useAuth.getState().logout();
+      signIn("candidate");
+    });
+    stop();
+
+    expect(queryClient.getQueryData(["campaigns"])).toBeUndefined();
   });
 
   it("does not offer setup to a mobilizer, who is not allowed to run it", async () => {

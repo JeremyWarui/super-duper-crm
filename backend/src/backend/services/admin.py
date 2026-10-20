@@ -13,7 +13,6 @@ from backend.models import (
     Event,
     Mobilizer,
     Supporter,
-    SupportLevel,
     Target,
     User,
     UserRole,
@@ -30,6 +29,7 @@ from backend.security import hash_password, new_password
 from backend.services.accounts import add_member as join
 from backend.services.accounts import add_mobilizer, new_login, user_named
 from backend.services.errors import NotFound, Refused
+from backend.services.strategy import read_strategy
 from backend.services.targets import ward_in_area, wards_in_area
 
 SIZED = {"targets": Target, "mobilizers": Mobilizer, "events": Event, "supporters": Supporter}
@@ -90,22 +90,11 @@ async def campaigns(
             .group_by(Target.campaign_id)
         )
     }
-    # Votes committed are the campaign's supporters, as the strategy counts them.
-    supporters_by = dict(
-        (
-            await session.execute(
-                select(Supporter.campaign_id, func.count())
-                .where(
-                    Supporter.campaign_id.in_(ids),
-                    Supporter.support_level == SupportLevel.SUPPORTER,
-                )
-                .group_by(Supporter.campaign_id)
-            )
-        )
-        .tuples()
-        .all()
-    )
-    votes = {cid: (needed_by.get(cid, 0), supporters_by.get(cid, 0)) for cid in ids}
+    # Votes committed are read from the strategy, so both screens show one number.
+    votes = {}
+    for cid in ids:
+        strategy = await read_strategy(session, campaign_ids=frozenset({cid}), campaign_id=cid)
+        votes[cid] = (needed_by.get(cid, 0), strategy.committed)
 
     rows = []
     for campaign in found:

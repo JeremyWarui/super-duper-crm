@@ -46,8 +46,8 @@ async def _seed(args: argparse.Namespace, session: AsyncSession) -> int:
 
     centres_csv = Path(args.centres)
     if not centres_csv.exists():
-        print(f"No {centres_csv.name} found, so ward (MCA) campaigns have no centres to target.")
-        return 0
+        print(f"No {centres_csv.name} found; registration centres must load with the wards.")
+        return 1
     print("Loading registration centres...")
     centres = await import_centres(session, centres_csv)
     print(f"  {centres.centres:,} centres across {centres.wards_covered:,} wards.")

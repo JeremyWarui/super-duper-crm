@@ -80,7 +80,7 @@ export const CAMPAIGN = {
   candidate: "u1",
   candidate_name: "Jane Wanjiku",
   candidate_username: "jane",
-  seat: "Constituency (MP)",
+  seat: "MP seat",
   area_name: "Roysambu",
   title: "Jane for Roysambu",
   office_level: "constituency",
@@ -242,7 +242,7 @@ export const ADMIN_TOTALS = {
 export const ADMIN_CAMPAIGN = {
   id: "c1",
   title: "Jane for Roysambu",
-  office_level: "constituency",
+  office_level: "MP seat",
   candidate: "jane",
   election_date: "2027-08-10",
   members: [
@@ -274,7 +274,7 @@ export const ADMIN_CAMPAIGN = {
 export const ADMIN_ORPHAN = {
   id: "c2",
   title: "Peter for Juja",
-  office_level: "constituency",
+  office_level: "MP seat",
   candidate: "peter",
   election_date: null,
   members: [],

@@ -2,21 +2,23 @@
 
 import uuid
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from backend.api.deps import CurrentUser, SessionDep, Writer
 from backend.api.scope import (
     all_rows,
     load,
+    require_centre_in_ward_race,
     require_own_ward,
     require_visible,
     require_visible_campaign,
     require_ward_in_campaign,
     scoped,
 )
-from backend.models import RegistrationCentre, Target, Ward
+from backend.models import OperationalGrain, RegistrationCentre, Target, Ward
 from backend.schemas.campaign import TargetCreate, TargetRead, TargetUpdate
 
 router = APIRouter(prefix="/targets", tags=["targets"])
@@ -39,6 +41,23 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
     campaign = await require_visible_campaign(session, user, payload.campaign)
     require_own_ward(user, payload.ward)
     await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
+    await require_centre_in_ward_race(session, campaign, payload.ward, payload.registration_centre)
+    if campaign.operational_grain is OperationalGrain.WARD and payload.registration_centre:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"This {campaign.seat.label} race sets targets per ward, not per centre.",
+        )
+    taken = set(
+        (
+            await session.execute(
+                select(Target.registration_centre_id).where(
+                    Target.campaign_id == campaign.id, Target.ward_id == payload.ward
+                )
+            )
+        ).scalars()
+    )
+    if payload.registration_centre in taken:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That unit already has a target.")
 
     target = Target(
         campaign_id=payload.campaign,
@@ -48,6 +67,13 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
         votes_committed=payload.votes_committed,
     )
     session.add(target)
+    try:
+        await session.flush()
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "That unit already has a target."
+        ) from None
     return await _saved(session, target)
 
 

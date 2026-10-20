@@ -127,3 +127,27 @@ async def test_nobody_already_on_a_campaign_sets_up_another(
     )
     assert list(await session.scalars(select(Campaign.title))) == ["Jane for Roysambu"]
     assert await session.scalar(select(User.id).where(User.username == "peter")) is None
+
+
+async def test_setting_up_a_campaign_in_an_area_that_does_not_exist_is_refused(
+    client: httpx.AsyncClient, world: World, new_candidate: dict
+) -> None:
+    response = await client.post(
+        "/api/campaigns/setup/",
+        headers=new_candidate,
+        json=_setup_body(world, constituency=str(uuid.uuid4())),
+    )
+
+    assert (response.status_code, response.json()["detail"]) == (400, "No such constituency.")
+
+
+async def test_an_mca_seat_needs_its_ward_s_registration_centres_loaded(
+    client: httpx.AsyncClient, world: World, new_candidate: dict
+) -> None:
+    response = await client.post(
+        "/api/campaigns/setup/",
+        headers=new_candidate,
+        json={"title": "Peter for Githurai", "seat": "mca", "ward": str(world.other_ward.id)},
+    )
+
+    assert response.status_code == 400

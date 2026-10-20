@@ -26,9 +26,8 @@ if TYPE_CHECKING:
     from backend.models.target import Target
 
 
-def _seat_for_level(context) -> Seat:
+def _seat_for_level(level: OfficeLevel) -> Seat:
     """The seat a campaign created by area alone is taken to be."""
-    level = OfficeLevel(context.get_current_parameters()["office_level"])
     return {OfficeLevel.WARD: Seat.MCA, OfficeLevel.CONSTITUENCY: Seat.MP}.get(level, Seat.GOVERNOR)
 
 
@@ -46,7 +45,7 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(150))
     office_level: Mapped[OfficeLevel] = mapped_column(choice_type(OfficeLevel, "office_level"))
     # The office itself; office_level is the area it is fought over.
-    seat: Mapped[Seat] = mapped_column(choice_type(Seat, "seat"), default=_seat_for_level)
+    seat: Mapped[Seat] = mapped_column(choice_type(Seat, "seat"))
 
     # office_level decides which one of these three applies.
     county_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -92,6 +91,13 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     supporters: Mapped[list["Supporter"]] = relationship(
         back_populates="campaign", cascade="all, delete-orphan", passive_deletes=True
     )
+
+    def __init__(self, **kwargs) -> None:
+        if kwargs.get("seat") is not None:
+            kwargs["seat"] = Seat(kwargs["seat"])
+        elif kwargs.get("office_level") is not None:
+            kwargs["seat"] = _seat_for_level(OfficeLevel(kwargs["office_level"]))
+        super().__init__(**kwargs)
 
     def __str__(self) -> str:
         return self.title

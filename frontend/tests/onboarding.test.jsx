@@ -2,6 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Onboarding from "../src/components/Onboarding";
+import { useAuth } from "../src/store/auth";
 import { fakeSecret, renderApp, signIn, stubApi } from "./helpers";
 
 afterEach(() => {
@@ -57,7 +58,6 @@ async function walkToReview(user, { office = "MP", ward = false } = {}) {
 }
 
 describe("setting a campaign up", () => {
-
   it("sends only the area that matches the seat", async () => {
     const user = userEvent.setup();
     const { calls } = start({ "POST /campaigns/setup/": SETUP_REPLY });
@@ -83,7 +83,9 @@ describe("setting a campaign up", () => {
     const { calls } = start({ "POST /campaigns/setup/": SETUP_REPLY });
 
     await walkToReview(user, { office: "Senator" });
-    await user.click(await screen.findByRole("button", { name: "Create campaign" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Create campaign" }),
+    );
 
     await waitFor(() =>
       expect(calls.find((c) => c.path === "/campaigns/setup/").body).toEqual({
@@ -110,7 +112,6 @@ describe("setting a campaign up", () => {
     expect(screen.getByText("46,136")).toBeInTheDocument();
     expect(screen.getByText(/153,771 registered voters/)).toBeInTheDocument();
   });
-
 });
 
 // A login belongs to one campaign, so there is never an existing aspirant to pick.
@@ -169,8 +170,28 @@ describe("a manager naming the aspirant", () => {
   });
 });
 
-// Creating a login for somebody else is the most consequential thing this flow
-// does, so the review screen has to say it is about to happen.
+describe("signing out of setup", () => {
+  it("goes back to signed out", async () => {
+    const user = userEvent.setup();
+    start();
+    await user.click(await screen.findByRole("button", { name: "Sign out" }));
 
-// The success screen is shared by both flows, and its copy was written for a
-// candidate. A manager's campaign already has a manager: them.
+    expect(useAuth.getState().token).toBeNull();
+  });
+});
+
+describe("an MCA seat", () => {
+  it("cannot be created in a ward with no registration centres", async () => {
+    const user = userEvent.setup();
+    start({ "GET /centres/": [] });
+
+    await walkToReview(user, { office: "MCA", ward: true });
+
+    expect(
+      await screen.findByText(/cannot be set up here until they are/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Create campaign" }),
+    ).toBeDisabled();
+  });
+});
