@@ -15,6 +15,7 @@ import {
   useSetActive,
 } from "../api/hooks";
 import { useAuth } from "../store/auth";
+import Onboarding from "./Onboarding";
 
 const C = {
   ink: "#171C1F",
@@ -720,6 +721,7 @@ export default function Admin() {
   const [roleFilter, setRoleFilter] = useState("");
   const users = useAdminUsers(roleFilter);
   const [tab, setTab] = useState("campaigns");
+  const [creating, setCreating] = useState(false);
   const [handouts, setHandouts] = useState([]);
   // Owned here, not in the row: a row unmounts on every refetch and would take
   // the one-time password with it. One mutation serves every row, and it only
@@ -748,6 +750,21 @@ export default function Admin() {
     reset.mutate({ id });
   };
 
+  // Before the overview's own states, so a failed refetch cannot take the
+  // wizard, and the passwords on its last screen, with it.
+  if (creating)
+    return (
+      <Onboarding
+        admin
+        onLogin={handOut}
+        onCancel={() => setCreating(false)}
+        onDone={() => {
+          setTab("campaigns");
+          setCreating(false);
+        }}
+      />
+    );
+
   if (overview.isLoading)
     return (
       <Shell me={me} logout={logout}>
@@ -765,6 +782,7 @@ export default function Admin() {
             <Btn onClick={() => overview.refetch()}>Try again</Btn>
           </div>
         </Card>
+        <Handout shown={handouts} />
       </Shell>
     );
 
@@ -821,6 +839,12 @@ export default function Admin() {
             </button>
           ))}
         </div>
+
+        {tab === "campaigns" && (
+          <div style={{ marginBottom: 12 }}>
+            <Btn onClick={() => setCreating(true)}>New campaign</Btn>
+          </div>
+        )}
 
         {tab === "campaigns" &&
           (campaigns.length === 0 ? (

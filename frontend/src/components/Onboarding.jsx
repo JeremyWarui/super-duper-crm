@@ -1,7 +1,6 @@
-// src/components/Onboarding.jsx
-// Four steps: basics -> office level -> area (cascading) -> review & create.
-// On create it calls /campaigns/setup/, which builds every target and returns
-// the win number, then hands the campaign back to the app to show the dashboard.
+// Sets a campaign up step by step: who it is for, its seat, its area, then a
+// review that builds every target. In the console (`admin`) the superuser also
+// names the manager, and both logins are created with the campaign.
 import React, { useState } from "react";
 import {
   useCounties,
@@ -11,6 +10,7 @@ import {
   useUnitsPreview,
   useCreateUser,
   useWardsInCounty,
+  useAdminCreateCampaign,
 } from "../api/hooks";
 import { useAuth } from "../store/auth";
 
@@ -418,30 +418,29 @@ function usableUsername(value) {
   return name.length >= 3 && name.length <= 150 && USERNAME.test(name);
 }
 
-// Every login belongs to one campaign, so the aspirant is always somebody new.
-function AspirantStep({ form, set }) {
+// Every login belongs to one campaign, so each person here is somebody new.
+function PersonStep({ who, title, sub, form, set }) {
+  const key = (field) => `${who}_${field}`;
   return (
     <>
-      <Label>Who are you running this campaign for?</Label>
-      <div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>
-        The campaign belongs to them, not to you.
-      </div>
+      <Label>{title}</Label>
+      <div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>{sub}</div>
       <div style={{ height: 10 }} />
       <div className="flex gap-2">
         <div style={{ flex: 1 }}>
           <Label>First name</Label>
           <input
             style={FIELD}
-            value={form.aspirant_first}
-            onChange={(e) => set({ aspirant_first: e.target.value })}
+            value={form[key("first")]}
+            onChange={(e) => set({ [key("first")]: e.target.value })}
           />
         </div>
         <div style={{ flex: 1 }}>
           <Label>Last name</Label>
           <input
             style={FIELD}
-            value={form.aspirant_last}
-            onChange={(e) => set({ aspirant_last: e.target.value })}
+            value={form[key("last")]}
+            onChange={(e) => set({ [key("last")]: e.target.value })}
           />
         </div>
       </div>
@@ -449,25 +448,25 @@ function AspirantStep({ form, set }) {
       <Label>Username</Label>
       <input
         style={FIELD}
-        value={form.aspirant_username}
-        onChange={(e) => set({ aspirant_username: e.target.value })}
-        placeholder="jane"
+        value={form[key("username")]}
+        onChange={(e) => set({ [key("username")]: e.target.value })}
+        placeholder={who === "manager" ? "otieno" : "jane"}
       />
       <div style={{ height: 10 }} />
       <Label>Email</Label>
       <input
         type="email"
         style={FIELD}
-        value={form.aspirant_email}
-        onChange={(e) => set({ aspirant_email: e.target.value })}
-        placeholder="jane@example.com"
+        value={form[key("email")]}
+        onChange={(e) => set({ [key("email")]: e.target.value })}
+        placeholder="name@example.com"
       />
       <div style={{ height: 10 }} />
       <Label>Phone</Label>
       <input
         style={FIELD}
-        value={form.aspirant_phone}
-        onChange={(e) => set({ aspirant_phone: e.target.value })}
+        value={form[key("phone")]}
+        onChange={(e) => set({ [key("phone")]: e.target.value })}
         placeholder="0712 345678"
       />
       <div style={{ fontSize: 12, color: C.sub, marginTop: 8 }}>
@@ -479,7 +478,9 @@ function AspirantStep({ form, set }) {
   );
 }
 
-// The aspirant's login, shown once after setup.
+const ROLE_NAME = { candidate: " (aspirant)", manager: " (manager)" };
+
+// A new login, shown once after setup.
 function CandidateLogin({ login }) {
   return (
     <div
@@ -498,7 +499,8 @@ function CandidateLogin({ login }) {
         }}
       >
         <span style={{ ...DISPLAY, fontSize: 13, fontWeight: 600 }}>
-          {login.full_name || login.username} signs in with
+          {login.full_name || login.username}
+          {ROLE_NAME[login.role] || ""} signs in with
         </span>
         <span style={{ fontSize: 12, color: C.amber, marginLeft: 8 }}>
           shown once
@@ -519,10 +521,15 @@ function CandidateLogin({ login }) {
   );
 }
 
-export default function Onboarding({ onDone }) {
+export default function Onboarding({
+  onDone,
+  admin = false,
+  onCancel,
+  onLogin,
+}) {
   const role = useAuth((s) => s.user?.role);
   const logout = useAuth((s) => s.logout);
-  const forAspirant = role === "manager";
+  const forAspirant = admin || role === "manager";
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     title: "",
@@ -537,13 +544,20 @@ export default function Onboarding({ onDone }) {
     aspirant_username: "",
     aspirant_email: "",
     aspirant_phone: "",
+    manager_first: "",
+    manager_last: "",
+    manager_username: "",
+    manager_email: "",
+    manager_phone: "",
   });
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
 
-  // A manager names the aspirant first, so their flow has one more step.
-  const steps = forAspirant
-    ? ["aspirant", "basics", "office", "area", "review"]
-    : ["basics", "office", "area", "review"];
+  // Whoever sets it up for somebody else names that aspirant first.
+  const steps = admin
+    ? ["aspirant", "manager", "basics", "office", "area", "review"]
+    : forAspirant
+      ? ["aspirant", "basics", "office", "area", "review"]
+      : ["basics", "office", "area", "review"];
   const at = steps[step];
   const newAspirantName = [form.aspirant_first, form.aspirant_last]
     .map((part) => part.trim())
@@ -552,11 +566,31 @@ export default function Onboarding({ onDone }) {
 
   const usernameOk = usableUsername(form.aspirant_username);
   const aspirantReady = !forAspirant || usernameOk;
+  const hasManager = form.manager_username.trim() !== "";
+  const managerTyped = ["first", "last", "email", "phone"].some(
+    (field) => form[`manager_${field}`].trim() !== "",
+  );
+  const sameUsername =
+    hasManager &&
+    form.manager_username.trim().toLowerCase() ===
+      form.aspirant_username.trim().toLowerCase();
+  const managerReady = hasManager
+    ? usableUsername(form.manager_username) && !sameUsername
+    : !managerTyped;
+  const person = (who) => ({
+    username: form[`${who}_username`].trim().toLowerCase(),
+    first_name: form[`${who}_first`].trim(),
+    last_name: form[`${who}_last`].trim(),
+    phone: form[`${who}_phone`].trim(),
+    email: form[`${who}_email`].trim(),
+  });
 
   const counties = useCounties();
   const constituencies = useConstituencies(form.county);
   const wards = useWardsIn(form.constituency);
-  const setup = useSetupCampaign();
+  const selfSetup = useSetupCampaign();
+  const adminSetup = useAdminCreateCampaign({ onPassword: onLogin });
+  const setup = admin ? adminSetup : selfSetup;
 
   const needConstituency =
     form.office_level === "constituency" || form.office_level === "ward";
@@ -582,14 +616,11 @@ export default function Onboarding({ onDone }) {
     if (form.office_level === "constituency")
       payload.constituency = form.constituency;
     if (form.office_level === "ward") payload.ward = form.ward;
-    if (forAspirant) {
-      payload.new_candidate = {
-        username: form.aspirant_username.trim().toLowerCase(),
-        first_name: form.aspirant_first.trim(),
-        last_name: form.aspirant_last.trim(),
-        phone: form.aspirant_phone.trim(),
-        email: form.aspirant_email.trim(),
-      };
+    if (admin) {
+      payload.aspirant = person("aspirant");
+      payload.manager = hasManager ? person("manager") : null;
+    } else if (forAspirant) {
+      payload.new_candidate = person("aspirant");
     }
     setup.mutate(payload);
   };
@@ -629,7 +660,7 @@ export default function Onboarding({ onDone }) {
               fontWeight: 600,
             }}
           >
-            YOUR CAMPAIGN IS SET UP
+            {admin ? "THE CAMPAIGN IS SET UP" : "YOUR CAMPAIGN IS SET UP"}
           </div>
           <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>
             Win number across {s.units}{" "}
@@ -658,14 +689,19 @@ export default function Onboarding({ onDone }) {
           {setup.data.candidate_login && (
             <CandidateLogin login={setup.data.candidate_login} />
           )}
-          <TeamStep
-            campaign={setup.data}
-            form={form}
-            viewerIsManager={forAspirant}
-          />
+          {(setup.data.logins || []).map((login) => (
+            <CandidateLogin key={login.id} login={login} />
+          ))}
+          {!admin && (
+            <TeamStep
+              campaign={setup.data}
+              form={form}
+              viewerIsManager={forAspirant}
+            />
+          )}
           <div style={{ marginTop: 20 }}>
             <Btn primary onClick={() => onDone(setup.data)}>
-              Go to my dashboard →
+              {admin ? "Back to the console" : "Go to my dashboard →"}
             </Btn>
           </div>
         </div>
@@ -682,7 +718,7 @@ export default function Onboarding({ onDone }) {
             MZIGO<span style={{ color: C.green }}>·</span>CRM
           </div>
           <button
-            onClick={logout}
+            onClick={admin ? onCancel : logout}
             style={{
               background: "transparent",
               border: `1px solid ${C.line}`,
@@ -693,16 +729,31 @@ export default function Onboarding({ onDone }) {
               fontSize: 12,
             }}
           >
-            Sign out
+            {admin ? "Cancel" : "Sign out"}
           </button>
         </div>
         <div style={{ fontSize: 12.5, color: C.sub, marginBottom: 16 }}>
-          Set up your campaign · step {step + 1} of {steps.length}
+          {admin ? "New campaign" : "Set up your campaign"} · step {step + 1} of{" "}
+          {steps.length}
         </div>
 
         {at === "aspirant" && (
           <>
-            <AspirantStep form={form} set={set} />
+            <PersonStep
+              who="aspirant"
+              title={
+                admin
+                  ? "Who is the aspirant?"
+                  : "Who are you running this campaign for?"
+              }
+              sub={
+                admin
+                  ? "The campaign belongs to them."
+                  : "The campaign belongs to them, not to you."
+              }
+              form={form}
+              set={set}
+            />
             <div style={{ marginTop: 20, textAlign: "right" }}>
               <Btn
                 primary
@@ -710,6 +761,39 @@ export default function Onboarding({ onDone }) {
                 onClick={() => setStep(step + 1)}
               >
                 Next
+              </Btn>
+            </div>
+          </>
+        )}
+
+        {at === "manager" && (
+          <>
+            <PersonStep
+              who="manager"
+              title="Who manages it? (optional)"
+              sub="Leave every field blank to add the manager later."
+              form={form}
+              set={set}
+            />
+            {sameUsername && (
+              <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>
+                The manager needs a different username from the aspirant.
+              </div>
+            )}
+            <div
+              style={{
+                marginTop: 20,
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <Btn onClick={() => setStep(step - 1)}>Back</Btn>
+              <Btn
+                primary
+                disabled={!managerReady}
+                onClick={() => setStep(step + 1)}
+              >
+                {hasManager || managerTyped ? "Next" : "Skip"}
               </Btn>
             </div>
           </>
@@ -754,7 +838,7 @@ export default function Onboarding({ onDone }) {
 
         {at === "office" && (
           <>
-            <Label>What seat are you running for?</Label>
+            <Label>Which seat is this campaign for?</Label>
             <div
               style={{
                 display: "flex",
@@ -906,9 +990,15 @@ export default function Onboarding({ onDone }) {
                 }}
               >
                 This creates a new login for{" "}
-                <b>{newAspirantName || form.aspirant_username}</b>, and the
-                campaign belongs to them. Their password is shown once on the
-                next screen.
+                <b>{newAspirantName || form.aspirant_username}</b>
+                {admin && hasManager && (
+                  <>
+                    {" "}
+                    and one for their manager <b>{form.manager_username}</b>
+                  </>
+                )}
+                , and the campaign belongs to the aspirant. Passwords are shown
+                once on the next screen.
               </div>
             )}
             <div style={{ fontSize: 14, lineHeight: 1.6 }}>

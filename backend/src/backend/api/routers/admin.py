@@ -8,6 +8,8 @@ from backend.api.deps import AdminUser, SessionDep
 from backend.models import UserRole
 from backend.schemas.admin import (
     ActiveSet,
+    AdminCampaignCreate,
+    AdminCampaignCreated,
     AdminCampaignRead,
     AdminUserCreate,
     AdminUserCreated,
@@ -34,6 +36,35 @@ async def overview(session: SessionDep, _: AdminUser) -> Overview:
 @router.get("/campaigns/", response_model=list[AdminCampaignRead])
 async def list_campaigns(session: SessionDep, _: AdminUser) -> list[AdminCampaignRead]:
     return await service.campaigns(session)
+
+
+@router.post(
+    "/campaigns/", response_model=AdminCampaignCreated, status_code=status.HTTP_201_CREATED
+)
+async def create_campaign(
+    payload: AdminCampaignCreate, session: SessionDep, _: AdminUser
+) -> AdminCampaignCreated:
+    """Create a campaign with its aspirant's and manager's logins; passwords are shown once."""
+    created, summary, logins = await service.create_campaign(
+        session,
+        **payload.model_dump(exclude={"aspirant", "manager"}),
+        aspirant=payload.aspirant.model_dump(),
+        manager=payload.manager.model_dump() if payload.manager else None,
+    )
+    return AdminCampaignCreated(
+        campaign=await service.campaign(session, created.id),
+        setup=summary,
+        logins=[
+            AdminUserCreated(
+                id=login.id,
+                username=login.username,
+                full_name=login.full_name,
+                role=login.role,
+                password=password,
+            )
+            for login, password in logins
+        ],
+    )
 
 
 @router.get("/campaigns/{campaign_id}/", response_model=AdminCampaignRead)

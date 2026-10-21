@@ -164,3 +164,73 @@ async def test_the_console_creates_a_manager_on_a_campaign_and_an_aspirant_on_no
         assert [
             c["id"] for c in (await client.get("/api/campaigns/", headers=head)).json()
         ] == expected
+
+
+async def test_the_console_creates_a_campaign_whose_aspirant_and_manager_see_only_it(
+    client: httpx.AsyncClient, world: World, admin_headers: dict
+) -> None:
+    response = await client.post(
+        "/api/admin/campaigns/",
+        headers=admin_headers,
+        json={
+            "title": "Wanjiku for Roysambu",
+            "seat": "mp",
+            "constituency": str(world.constituency.id),
+            "aspirant": {"username": "wanjiku", "first_name": "Wanjiku"},
+            "manager": {"username": "otieno"},
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["setup"]["units"] == 2
+    assert [(m["username"], m["role"]) for m in body["campaign"]["members"]] == [
+        ("wanjiku", "candidate"),
+        ("otieno", "manager"),
+    ]
+    for login in body["logins"]:
+        head = auth(await sign_in(client, login["username"], login["password"]))
+        seen = (await client.get("/api/campaigns/", headers=head)).json()
+        assert [c["id"] for c in seen] == [body["campaign"]["id"]]
+
+
+async def test_a_refused_campaign_leaves_no_campaign_and_no_login_behind(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
+) -> None:
+    response = await client.post(
+        "/api/admin/campaigns/",
+        headers=admin_headers,
+        json={
+            "title": "Clash",
+            "seat": "mp",
+            "constituency": str(world.constituency.id),
+            "aspirant": {"username": "wanjiku"},
+            "manager": {"username": "amina"},
+        },
+    )
+
+    assert (response.status_code, response.json()["detail"]) == (
+        400,
+        "The username amina is already taken.",
+    )
+    assert await session.scalar(select(Campaign).where(Campaign.title == "Clash")) is None
+    assert await session.scalar(select(User).where(User.username == "wanjiku")) is None
+
+
+@pytest.mark.parametrize("role", ["candidate", "manager", "mobilizer"])
+async def test_only_a_superuser_creates_a_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, role: str
+) -> None:
+    response = await client.post(
+        "/api/admin/campaigns/",
+        headers=world.headers(role),
+        json={
+            "title": "Not yours",
+            "seat": "mp",
+            "constituency": str(world.constituency.id),
+            "aspirant": {"username": "wanjiku"},
+        },
+    )
+
+    assert response.status_code == 403
+    assert await session.scalar(select(Campaign).where(Campaign.title == "Not yours")) is None

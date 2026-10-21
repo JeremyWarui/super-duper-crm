@@ -204,6 +204,10 @@
       "event_title",
       "ward_name",
       "open"
+    ],
+    "POST /api/admin/campaigns/": [
+      "setup",
+      "logins"
     ]
   },
   "nested_reads": {
@@ -290,6 +294,20 @@
       "full_name",
       "role",
       "is_superuser"
+    ],
+    "POST /api/admin/campaigns/.setup": [
+      "grain",
+      "units",
+      "total_registered",
+      "win_number",
+      "note"
+    ],
+    "POST /api/admin/campaigns/.logins": [
+      "id",
+      "username",
+      "full_name",
+      "role",
+      "password"
     ]
   },
   "writes": {
@@ -427,6 +445,30 @@
     ],
     "POST /api/events/{event_id}/signups/": [
       "open"
+    ],
+    "POST /api/admin/campaigns/": [
+      "title",
+      "seat",
+      "election_date",
+      "county",
+      "constituency",
+      "ward",
+      "aspirant",
+      "manager"
+    ],
+    "POST /api/admin/campaigns/.aspirant": [
+      "username",
+      "first_name",
+      "last_name",
+      "phone",
+      "email"
+    ],
+    "POST /api/admin/campaigns/.manager": [
+      "username",
+      "first_name",
+      "last_name",
+      "phone",
+      "email"
     ]
   },
   "enums": {

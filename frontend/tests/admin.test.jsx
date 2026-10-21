@@ -26,7 +26,6 @@ const STAFFED = ADMIN_CAMPAIGN;
 const ORPHAN = ADMIN_ORPHAN;
 const USERS = ADMIN_USERS;
 
-
 // The gate from src/main.jsx.
 function SignedIn() {
   const role = useAuth((s) => s.user?.role);
@@ -100,7 +99,6 @@ describe("who reaches the console", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/every campaign on this deployment/)).toBeNull();
   });
-
 });
 
 describe("what the console can repair", () => {
@@ -132,7 +130,6 @@ describe("what the console can repair", () => {
     const posted = calls.find((c) => c.path.includes("reset-password"));
     expect(posted.method).toBe("POST");
   });
-
 });
 
 describe("creating a login from the console", () => {
@@ -174,5 +171,114 @@ describe("creating a login from the console", () => {
     expect(posted.body.role).toBe("manager");
     expect(posted.body.campaign).toBe("c1");
   });
+});
 
+describe("creating a campaign from the console", () => {
+  function campaignRoutes(passwords) {
+    return adminRoutes({
+      "GET /counties/": [{ id: "cty1", name: "Nairobi City" }],
+      "GET /constituencies/": [{ id: "k1", name: "Roysambu" }],
+      "GET /wards/": [
+        { id: "w1", name: "Zimmerman", registered_voters: 30701 },
+      ],
+      "POST /admin/campaigns/": {
+        campaign: STAFFED,
+        setup: {
+          grain: "ward",
+          units: 1,
+          total_registered: 30701,
+          win_number: 9211,
+          note: null,
+        },
+        logins: [
+          {
+            id: "u1",
+            username: "wanjiku",
+            full_name: "",
+            role: "candidate",
+            password: passwords[0],
+          },
+          {
+            id: "u2",
+            username: "otieno",
+            full_name: "",
+            role: "manager",
+            password: passwords[1],
+          },
+        ],
+      },
+    });
+  }
+
+  /** Walk the wizard to its review step for an MP seat in Roysambu. */
+  async function walkToReview(user) {
+    await user.click(
+      await screen.findByRole("button", { name: "New campaign" }),
+    );
+    await user.type(screen.getByPlaceholderText("jane"), "wanjiku");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.type(screen.getByPlaceholderText("otieno"), "otieno");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.type(
+      screen.getByPlaceholderText(/Jane for Roysambu/),
+      "Wanjiku for Roysambu",
+    );
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(await screen.findByText("MP", { selector: "div" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.selectOptions(
+      (await screen.findAllByRole("combobox"))[0],
+      "cty1",
+    );
+    await user.selectOptions((await screen.findAllByRole("combobox"))[1], "k1");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+  }
+
+  it("creates the aspirant's and manager's logins with it and keeps both passwords", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    const passwords = [fakeSecret(), fakeSecret()];
+    const calls = stubApi(campaignRoutes(passwords));
+    renderApp(<Admin />);
+
+    await walkToReview(user);
+    await user.click(
+      await screen.findByRole("button", { name: "Create campaign" }),
+    );
+
+    expect(await screen.findByText(passwords[0])).toBeInTheDocument();
+    expect(screen.getByText(passwords[1])).toBeInTheDocument();
+    const posted = calls.find((c) => c.path === "/admin/campaigns/");
+    expect(posted.body).toMatchObject({
+      seat: "mp",
+      constituency: "k1",
+      aspirant: { username: "wanjiku" },
+      manager: { username: "otieno" },
+    });
+
+    // Back on the console the passwords stay until it is closed.
+    await user.click(
+      screen.getByRole("button", { name: "Back to the console" }),
+    );
+    expect(await screen.findByText(passwords[1])).toBeInTheDocument();
+  });
+
+  it("keeps the passwords on screen when the console fails to reload after the create", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    const passwords = [fakeSecret(), fakeSecret()];
+    const routes = campaignRoutes(passwords);
+    stubApi(routes);
+    renderApp(<Admin />);
+
+    await walkToReview(user);
+    routes["GET /admin/overview/"] = { status: 500, body: { detail: "down" } };
+    await user.click(
+      await screen.findByRole("button", { name: "Create campaign" }),
+    );
+
+    expect(await screen.findByText(passwords[0])).toBeInTheDocument();
+    expect(screen.getByText(passwords[1])).toBeInTheDocument();
+    expect(screen.queryByText("down")).not.toBeInTheDocument();
+  });
 });

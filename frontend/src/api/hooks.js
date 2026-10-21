@@ -345,6 +345,20 @@ export function useCreateLogin({ onPassword } = {}) {
   });
 }
 
+// A campaign with its aspirant's and manager's logins; each password comes back
+// once and is handed to the hook's owner.
+export function useAdminCreateCampaign({ onPassword } = {}) {
+  const invalidate = useAdminInvalidator();
+  return useMutation({
+    mutationFn: (payload) =>
+      api("/admin/campaigns/", { method: "POST", body: payload }),
+    onSuccess: (data) => {
+      data.logins.forEach((login) => onPassword?.(login));
+      return invalidate();
+    },
+  });
+}
+
 function useAdminInvalidator() {
   const qc = useQueryClient();
   return () => qc.invalidateQueries({ queryKey: ["admin"] });

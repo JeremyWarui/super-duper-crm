@@ -8,16 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from backend.api.deps import CurrentUser, SessionDep, Writer
 from backend.api.scope import all_rows, load, require_visible_campaign, visible_campaign_ids
-from backend.models import (
-    Campaign,
-    Constituency,
-    County,
-    OfficeLevel,
-    RegistrationCentre,
-    User,
-    UserRole,
-    Ward,
-)
+from backend.models import Campaign, User, UserRole
 from backend.schemas.campaign import (
     CampaignRead,
     CampaignSetup,
@@ -26,20 +17,10 @@ from backend.schemas.campaign import (
 )
 from backend.schemas.common import NewLogin
 from backend.services.accounts import add_member, campaign_of, new_login
+from backend.services.campaigns import build_campaign
 from backend.services.targets import generate_targets
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
-
-AREA_MODEL = {
-    OfficeLevel.COUNTY: County,
-    OfficeLevel.CONSTITUENCY: Constituency,
-    OfficeLevel.WARD: Ward,
-}
-AREA_FIELD = {
-    OfficeLevel.COUNTY: "county",
-    OfficeLevel.CONSTITUENCY: "constituency",
-    OfficeLevel.WARD: "ward",
-}
 
 NAMED = (
     selectinload(Campaign.candidate),
@@ -89,38 +70,13 @@ async def setup_campaign(
             f"You are already on {current.title}; a login belongs to one campaign.",
         )
 
-    office_level = payload.seat.office_level
-    area_field = AREA_FIELD[office_level]
-    area_id = getattr(payload, area_field)
-    if area_id is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"A {payload.seat.label} campaign needs its {area_field} set.",
-        )
-    if await session.get(AREA_MODEL[office_level], area_id) is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"No such {area_field}.")
-    if office_level is OfficeLevel.WARD and not await session.scalar(
-        select(RegistrationCentre.id).where(RegistrationCentre.ward_id == area_id).limit(1)
-    ):
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "That ward has no registration centres loaded; load the geography first.",
-        )
-    candidate, login = await _candidate(session, user, payload)
-
-    campaign = Campaign(
-        title=payload.title,
-        office_level=office_level,
-        seat=payload.seat,
-        election_date=payload.election_date,
-        **{f"{area_field}_id": area_id},
+    campaign, summary = await build_campaign(
+        session, **payload.model_dump(exclude={"new_candidate"})
     )
-    session.add(campaign)
-    await session.flush()
+    candidate, login = await _candidate(session, user, payload)
     await add_member(session, campaign.id, candidate)
     if user.id != candidate.id:
         await add_member(session, campaign.id, user)
-    summary = await generate_targets(session, campaign)
     await session.commit()
 
     return CampaignSetupResponse(

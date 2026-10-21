@@ -25,9 +25,11 @@ from backend.schemas.admin import (
     MemberRead,
     Totals,
 )
+from backend.schemas.campaign import SetupSummary
 from backend.security import hash_password, new_password
 from backend.services.accounts import add_member as join
 from backend.services.accounts import add_mobilizer, new_login, user_named
+from backend.services.campaigns import build_campaign
 from backend.services.errors import NotFound, Refused
 from backend.services.strategy import read_strategy
 from backend.services.targets import ward_in_area, wards_in_area
@@ -298,6 +300,33 @@ async def delete_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list
     gone = await remove_campaign(session, campaign_id)
     await session.commit()
     return gone
+
+
+async def create_campaign(
+    session: AsyncSession,
+    *,
+    aspirant: dict,
+    manager: dict | None = None,
+    **campaign_fields,
+) -> tuple[Campaign, SetupSummary, list[tuple[User, str]]]:
+    """Create a campaign, its targets, and new logins for its aspirant and manager.
+
+    Returns the campaign, the setup summary and each login with its password.
+    """
+    if manager is not None and manager["username"] == aspirant["username"]:
+        raise Refused("The aspirant and the manager need different usernames.")
+    try:
+        created, summary = await build_campaign(session, **campaign_fields)
+        logins = [await new_login(session, role=UserRole.CANDIDATE, **aspirant)]
+        if manager is not None:
+            logins.append(await new_login(session, role=UserRole.MANAGER, **manager))
+        for login, _ in logins:
+            await join(session, created.id, login)
+    except Refused:
+        await session.rollback()
+        raise
+    await session.commit()
+    return created, summary, logins
 
 
 async def create_user(

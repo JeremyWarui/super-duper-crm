@@ -1,10 +1,12 @@
 """What the admin console reads and sends."""
 
 import uuid
+from datetime import date
 
 from pydantic import Field
 
-from backend.models.enums import UserRole
+from backend.models.enums import Seat, UserRole
+from backend.schemas.campaign import SetupSummary
 from backend.schemas.common import LoginDetails, NewLogin, ORMModel, WriteModel
 
 
@@ -99,6 +101,27 @@ class AdminUserCreate(LoginDetails):
 
 class AdminUserCreated(NewLogin):
     role: UserRole
+
+
+class AdminCampaignCreate(WriteModel):
+    """A campaign on its seat and area, with new logins for its aspirant and optional manager."""
+
+    title: str = Field(min_length=1, max_length=150)
+    seat: Seat
+    election_date: date | None = None
+    county: uuid.UUID | None = None
+    constituency: uuid.UUID | None = None
+    ward: uuid.UUID | None = None
+    aspirant: LoginDetails
+    manager: LoginDetails | None = None
+
+
+class AdminCampaignCreated(ORMModel):
+    """`logins` carry passwords shown this once."""
+
+    campaign: AdminCampaignRead
+    setup: SetupSummary
+    logins: list[AdminUserCreated]
 
 
 class CampaignRename(WriteModel):
