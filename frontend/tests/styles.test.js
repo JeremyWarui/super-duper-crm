@@ -1,4 +1,4 @@
-/** src/index.css covers every class name the components use, and nothing more. */
+/** The component stylesheets cover every class name the components use. */
 import { globSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -11,7 +11,11 @@ const src = (path) => readFileSync(resolve(process.cwd(), "src", path), "utf8");
 const SOURCES = globSync("**/*.jsx", { cwd: resolve(process.cwd(), "src") })
   .map((path) => path.replaceAll("\\", "/"))
   .sort();
-const STYLESHEET = src("index.css");
+const STYLESHEET = globSync("**/*.css", {
+  cwd: resolve(process.cwd(), "src"),
+})
+  .map((path) => src(path))
+  .join("\n");
 
 function classesUsed() {
   const found = new Set();

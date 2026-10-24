@@ -16,60 +16,16 @@ function NoCampaign() {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#E9EBE6",
-        color: "#171C1F",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        fontFamily: "Inter, system-ui, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 420,
-          background: "#FFFFFF",
-          border: "1px solid #D7DBD4",
-          borderRadius: 14,
-          padding: 24,
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "Oswald, Impact, sans-serif",
-            fontSize: 20,
-            fontWeight: 600,
-          }}
-        >
+    <div className="gate-no-campaign">
+      <div className="gate-no-campaign-card">
+        <div className="gate-no-campaign-title">
           You are not on a campaign yet
         </div>
-        <div
-          style={{
-            fontSize: 13.5,
-            color: "#5C655F",
-            marginTop: 8,
-            lineHeight: 1.5,
-          }}
-        >
+        <div className="gate-no-campaign-message">
           You are signed in as {user?.username}, but this login is not on any
           campaign. Ask whoever runs your campaign, or contact support.
         </div>
-        <button
-          onClick={logout}
-          style={{
-            marginTop: 18,
-            padding: "8px 14px",
-            borderRadius: 8,
-            border: "1px solid #D7DBD4",
-            background: "#FFFFFF",
-            cursor: "pointer",
-            fontSize: 13,
-          }}
-        >
+        <button onClick={logout} className="gate-no-campaign-button">
           Sign out
         </button>
       </div>

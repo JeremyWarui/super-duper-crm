@@ -5,6 +5,14 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "./store/auth";
 import { winNumber } from "./winNumber";
+import { formatNumber as fmt } from "./lib/format";
+import {
+  Button,
+  ErrorState,
+  FieldLabel,
+  LoadingState,
+  Panel,
+} from "./components/ui";
 import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
@@ -13,14 +21,15 @@ import {
 } from "./api/hooks";
 
 const C = {
-  ink: "#171C1F", paper: "#E9EBE6", panel: "#FFFFFF",
-  green: "#0B6B3A", greenSoft: "#E1EEE7", red: "#B4231F", redSoft: "#F6E3E1",
-  amber: "#B9791A", amberSoft: "#F4EAD6", line: "#D7DBD4", sub: "#5C655F", railBg: "#141A16",
+  ink: "var(--color-text)", paper: "var(--color-background)", panel: "var(--color-surface)",
+  green: "var(--color-primary)", greenSoft: "var(--color-primary-soft)",
+  red: "var(--color-danger)", redSoft: "var(--color-danger-soft)",
+  amber: "var(--color-warning)", amberSoft: "var(--color-warning-soft)",
+  line: "var(--color-border)", sub: "var(--color-text-muted)",
+  railBg: "var(--color-rail)", railMuted: "var(--color-rail-muted)",
+  onPrimary: "var(--color-text-on-primary)",
 };
-const DISPLAY = { fontFamily: "Oswald, Impact, sans-serif" };
-const FIELD = { width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.line}`, fontSize: 14, marginTop: 6, background: C.panel, fontFamily: "inherit" };
-const fmt = (n) => Number(n || 0).toLocaleString();
-
+const DISPLAY = { fontFamily: "var(--font-display)" };
 // ---- status helper (server gives progress; we colour it) ------------------
 function statusOf(progress) {
   if (progress >= 1) return { label: "Target met", color: C.green, soft: C.greenSoft };
@@ -29,24 +38,24 @@ function statusOf(progress) {
 }
 
 // ---- shared UI ------------------------------------------------------------
-const Badge = ({ text, color, soft }) => <span style={{ padding: "1px 8px", borderRadius: 999, fontSize: 11, fontWeight: 600, color, background: soft }}>{text}</span>;
-const Bar = ({ pct, color }) => <div style={{ height: 8, background: C.paper, borderRadius: 999, overflow: "hidden", border: `1px solid ${C.line}` }}><div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: color }} /></div>;
-const Card = ({ children, pad = 18, style }) => <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: pad, ...style }}>{children}</div>;
-const Label = ({ children }) => <div style={{ fontSize: 13, fontWeight: 600 }}>{children}</div>;
-const Btn = ({ children, onClick, primary, disabled }) => <button onClick={onClick} disabled={disabled} style={{ padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: disabled ? "default" : "pointer", border: `1px solid ${primary ? C.green : C.line}`, background: disabled ? C.line : primary ? C.green : C.panel, color: primary ? "#fff" : C.ink }}>{children}</button>;
-const PrimaryBtn = ({ children, onClick, disabled }) => <button onClick={onClick} disabled={disabled} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: disabled ? C.line : C.green, color: "#fff", ...DISPLAY, fontWeight: 600, fontSize: 14, cursor: disabled ? "default" : "pointer" }}>{children}</button>;
-const PageTitle = ({ title, sub, action }) => <div className="flex flex-wrap items-end justify-between gap-3" style={{ marginBottom: 16 }}><div><div style={{ ...DISPLAY, fontSize: 24, fontWeight: 700, lineHeight: 1.05 }}>{title}</div>{sub && <div style={{ color: C.sub, fontSize: 13, marginTop: 3 }}>{sub}</div>}</div>{action}</div>;
-const Loading = () => <div style={{ color: C.sub, fontSize: 14, padding: 20 }}>Loading…</div>;
-const ErrorMsg = ({ error }) => <div style={{ color: C.red, fontSize: 14, padding: 20 }}>{error?.message || "Something went wrong."}</div>;
+const Badge = ({ text, color, soft }) => <span className="app-s1" style={{color, background: soft}}>{text}</span>;
+const Bar = ({ pct, color }) => <div className="app-s2" ><div className="app-s3" style={{width: `${Math.min(pct, 100)}%`, background: color}} /></div>;
+const Card = Panel;
+const Label = FieldLabel;
+const Btn = Button;
+const PrimaryBtn = ({ children, onClick, disabled }) => <Button primary onClick={onClick} disabled={disabled}>{children}</Button>;
+const PageTitle = ({ title, sub, action }) => <div className="flex flex-wrap items-end justify-between gap-3 app-s8" ><div><div className="app-s9" >{title}</div>{sub && <div className="app-s10" >{sub}</div>}</div>{action}</div>;
+const Loading = LoadingState;
+const ErrorMsg = ErrorState;
 
 const Modal = ({ title, sub, onClose, locked, children }) => (
-  <div onClick={locked ? undefined : onClose} style={{ position: "fixed", inset: 0, background: "rgba(20,26,22,.45)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "6vh 16px", zIndex: 50 }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ background: C.panel, borderRadius: 14, width: "100%", maxWidth: 440 }}>
-      <div className="flex items-start justify-between" style={{ padding: "18px 20px", borderBottom: `1px solid ${C.line}` }}>
-        <div><div style={{ ...DISPLAY, fontSize: 20, fontWeight: 700 }}>{title}</div>{sub && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>{sub}</div>}</div>
-        <button onClick={onClose} style={{ border: "none", background: "transparent", fontSize: 22, cursor: "pointer", color: C.sub }}>×</button>
+  <div onClick={locked ? undefined : onClose} className="app-s13" >
+    <div onClick={(e) => e.stopPropagation()} className="app-s14" >
+      <div className="flex items-start justify-between app-s15" >
+        <div><div className="app-s16" >{title}</div>{sub && <div className="app-s17" >{sub}</div>}</div>
+        <button onClick={onClose} className="app-s18" >×</button>
       </div>
-      <div style={{ padding: 20 }}>{children}</div>
+      <div className="app-s19" >{children}</div>
     </div>
   </div>
 );
@@ -54,12 +63,12 @@ const Modal = ({ title, sub, onClose, locked, children }) => (
 // A password shown once; a click on the backdrop leaves it open.
 const PasswordModal = ({ title, password, onClose, children }) => (
   <Modal title={title} sub="Write the password down now. It is shown once." onClose={onClose} locked>
-    <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>{children}</div>
-    <div style={{ marginTop: 12, padding: "12px 14px", background: C.paper, border: `1px solid ${C.line}`, borderRadius: 10 }}>
-      <div style={{ fontSize: 12, color: C.sub }}>Password</div>
-      <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, marginTop: 2 }}>{password}</div>
+    <div className="app-s20" >{children}</div>
+    <div className="app-s21" >
+      <div className="app-s22" >Password</div>
+      <div className="app-s23" >{password}</div>
     </div>
-    <div className="flex justify-end gap-2" style={{ marginTop: 22 }}><PrimaryBtn onClick={onClose}>Done</PrimaryBtn></div>
+    <div className="flex justify-end gap-2 app-s24" ><PrimaryBtn onClick={onClose}>Done</PrimaryBtn></div>
   </Modal>
 );
 
@@ -70,26 +79,26 @@ function TallyHero({ s }) {
   return (
     <Card pad={22}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div style={{ ...DISPLAY, fontSize: 15, fontWeight: 600 }}>VOTES TO WIN THE SEAT</div>
-        <div style={{ fontSize: 13, color: C.sub }}>{s.units.length} units · {fmt(cast)} projected votes cast</div>
+        <div className="app-s25" >VOTES TO WIN THE SEAT</div>
+        <div className="app-s26" >{s.units.length} units · {fmt(cast)} projected votes cast</div>
       </div>
-      <div className="flex flex-wrap items-end gap-6" style={{ marginTop: 6 }}>
-        <span style={{ ...DISPLAY, fontSize: 58, fontWeight: 700, lineHeight: 0.9, color: crossed ? C.green : C.ink }}>{fmt(s.win_number)}</span>
-        <div style={{ paddingBottom: 8 }}>
-          <div style={{ ...DISPLAY, fontSize: 24, fontWeight: 600, color: crossed ? C.green : C.amber }}>{fmt(s.committed)} committed</div>
-          <div style={{ fontSize: 13, color: C.sub }}>{s.progress_pct}% there · {fmt(Math.max(s.win_number - s.committed, 0))} to go</div>
+      <div className="flex flex-wrap items-end gap-6 app-s27" >
+        <span className="app-s28" style={{color: crossed ? C.green : C.ink}}>{fmt(s.win_number)}</span>
+        <div className="app-s29" >
+          <div className="app-s30" style={{color: crossed ? C.green : C.amber}}>{fmt(s.committed)} committed</div>
+          <div className="app-s26" >{s.progress_pct}% there · {fmt(Math.max(s.win_number - s.committed, 0))} to go</div>
         </div>
       </div>
-      <div style={{ position: "relative", marginTop: 20, height: 40 }}>
-        <div style={{ position: "absolute", inset: 0, background: C.paper, borderRadius: 8, border: `1px solid ${C.line}` }} />
-        <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${(s.committed / cast) * 100}%`, background: crossed ? C.green : C.amber, borderRadius: "8px 0 0 8px" }} />
-        <div style={{ position: "absolute", top: -6, bottom: -6, left: `${(s.win_number / cast) * 100}%`, width: 2, background: C.ink }} />
-        <div style={{ position: "absolute", top: -20, left: `${(s.win_number / cast) * 100}%`, transform: "translateX(-50%)", ...DISPLAY, fontSize: 11, fontWeight: 600, letterSpacing: 1 }}>WIN LINE</div>
+      <div className="app-s31" >
+        <div className="app-s32"  />
+        <div className="app-s33" style={{width: `${(s.committed / cast) * 100}%`, background: crossed ? C.green : C.amber}} />
+        <div className="app-s34" style={{left: `${(s.win_number / cast) * 100}%`}} />
+        <div className="app-s35" style={{left: `${(s.win_number / cast) * 100}%`}}>WIN LINE</div>
       </div>
-      <div className="flex flex-wrap gap-x-8 gap-y-2" style={{ marginTop: 22 }}>
+      <div className="flex flex-wrap gap-x-8 gap-y-2 app-s24" >
         {[["Registered voters", fmt(s.total_registered)], ["Units covered", `${s.units.filter((u) => u.events > 0).length} / ${s.units.length}`],
           ["Mobilizers", `${s.units.filter((u) => u.has_mobilizer).length} / ${s.units.length}`], ["Units behind", String(s.units.filter((u) => u.progress < 0.6).length)]].map(([k, v]) => (
-          <div key={k}><div style={{ ...DISPLAY, fontSize: 22, fontWeight: 600 }}>{v}</div><div style={{ fontSize: 12, color: C.sub }}>{k}</div></div>
+          <div key={k}><div className="app-s36" >{v}</div><div className="app-s22" >{k}</div></div>
         ))}
       </div>
     </Card>
@@ -111,33 +120,33 @@ function UnitRegister({ units, mobilizers = [], onAssign }) {
   }, [units, sortKey]);
   return (
     <Card pad={0}>
-      <div className="flex flex-wrap items-center justify-between gap-2" style={{ padding: "14px 18px", borderBottom: `1px solid ${C.line}` }}>
-        <div style={{ ...DISPLAY, fontSize: 16, fontWeight: 600 }}>Targeting</div>
-        <div className="flex gap-1" style={{ fontSize: 12 }}>
+      <div className="flex flex-wrap items-center justify-between gap-2 app-s37" >
+        <div className="app-s38" >Targeting</div>
+        <div className="flex gap-1 app-s39" >
           {[["opportunity", "Biggest gap"], ["needed", "Win number"], ["progress", "Least progress"]].map(([k, l]) => (
-            <button key={k} onClick={() => setSortKey(k)} style={{ padding: "5px 10px", borderRadius: 999, cursor: "pointer", border: `1px solid ${sortKey === k ? C.ink : C.line}`, background: sortKey === k ? C.ink : "transparent", color: sortKey === k ? "#fff" : C.sub }}>{l}</button>
+            <button key={k} onClick={() => setSortKey(k)} className="app-s40" style={{border: `1px solid ${sortKey === k ? C.ink : C.line}`, background: sortKey === k ? C.ink : "transparent", color: sortKey === k ? C.onPrimary : C.sub}}>{l}</button>
           ))}
         </div>
       </div>
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-          <thead><tr style={{ color: C.sub, textAlign: "left" }}>
-            <th style={{ padding: "10px 18px", fontWeight: 500 }}>Unit</th>
-            <th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Need</th>
-            <th style={{ padding: "10px 8px", fontWeight: 500 }}>Progress</th>
-            <th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "center" }}>Events</th>
-            <th style={{ padding: "10px 18px", fontWeight: 500 }}>Mobilizer</th>
+      <div className="app-s41" >
+        <table className="app-s42" >
+          <thead><tr className="app-s43" >
+            <th className="app-s44" >Unit</th>
+            <th className="app-s45" >Need</th>
+            <th className="app-s46" >Progress</th>
+            <th className="app-s47" >Events</th>
+            <th className="app-s44" >Mobilizer</th>
           </tr></thead>
           <tbody>
             {sorted.map((u) => {
               const st = statusOf(u.progress);
               return (
-                <tr key={u.unit} style={{ borderTop: `1px solid ${C.line}` }}>
-                  <td style={{ padding: "12px 18px" }}><div style={{ fontWeight: 600 }}>{u.unit}</div><div style={{ marginTop: 3 }}><Badge text={st.label} color={st.color} soft={st.soft} /></div></td>
-                  <td style={{ padding: "12px 8px", textAlign: "right", ...DISPLAY, fontWeight: 600, fontSize: 15 }}>{fmt(u.needed)}</td>
-                  <td style={{ padding: "12px 8px", minWidth: 140 }}><Bar pct={u.progress * 100} color={st.color} /><div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>{fmt(u.committed)} · {Math.round(u.progress * 100)}%</div></td>
-                  <td style={{ padding: "12px 8px", textAlign: "center", ...DISPLAY, fontWeight: 600, color: u.events === 0 ? C.red : C.ink }}>{u.events}</td>
-                  <td style={{ padding: "12px 18px" }}><MobilizerCell holder={holderOf(mobilizers, u)} onAssign={onAssign && ((holder) => onAssign(u, holder))} /></td>
+                <tr key={u.unit} className="app-s48" >
+                  <td className="app-s49" ><div className="app-s50" >{u.unit}</div><div className="app-s51" ><Badge text={st.label} color={st.color} soft={st.soft} /></div></td>
+                  <td className="app-s52" >{fmt(u.needed)}</td>
+                  <td className="app-s53" ><Bar pct={u.progress * 100} color={st.color} /><div className="app-s54" >{fmt(u.committed)} · {Math.round(u.progress * 100)}%</div></td>
+                  <td className="app-s55" style={{color: u.events === 0 ? C.red : C.ink}}>{u.events}</td>
+                  <td className="app-s49" ><MobilizerCell holder={holderOf(mobilizers, u)} onAssign={onAssign && ((holder) => onAssign(u, holder))} /></td>
                 </tr>
               );
             })}
@@ -150,23 +159,23 @@ function UnitRegister({ units, mobilizers = [], onAssign }) {
 
 function MobilizerCell({ holder, onAssign }) {
   if (holder) {
-    return <div className="flex items-center gap-2"><span style={{ fontWeight: 600 }}>{holder.full_name}</span>{onAssign && <Btn onClick={() => onAssign(holder)}>Change</Btn>}</div>;
+    return <div className="flex items-center gap-2"><span className="app-s50" >{holder.full_name}</span>{onAssign && <Btn onClick={() => onAssign(holder)}>Change</Btn>}</div>;
   }
-  return onAssign ? <Btn onClick={() => onAssign(null)}>Assign</Btn> : <span style={{ color: C.red }}>None</span>;
+  return onAssign ? <Btn onClick={() => onAssign(null)}>Assign</Btn> : <span className="app-s56" >None</span>;
 }
 
 const StrategyPanel = ({ notes, dark }) => (
-  <div style={{ background: dark ? C.ink : C.panel, color: dark ? "#fff" : C.ink, border: dark ? "none" : `1px solid ${C.line}`, borderRadius: 14, padding: "18px 20px" }}>
-    <div style={{ ...DISPLAY, fontSize: 16, fontWeight: 600, color: dark ? "#fff" : C.ink }}>Strategy read</div>
-    <div style={{ fontSize: 12.5, color: dark ? "#AEB6B0" : C.sub, marginTop: 2 }}>Computed from your targets, events and mobilizers.</div>
-    <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+  <div className="app-s57" style={{background: dark ? C.ink : C.panel, color: dark ? C.onPrimary : C.ink, border: dark ? "none" : `1px solid ${C.line}`}}>
+    <div className="app-s38" style={{color: dark ? C.onPrimary : C.ink}}>Strategy read</div>
+    <div className="app-s58" style={{color: dark ? C.railMuted : C.sub}}>Computed from your targets, events and mobilizers.</div>
+    <div className="app-s59" >
       {(notes || []).map((n, i) => (
-        <div key={i} style={{ borderLeft: `3px solid ${n.tone === "go" ? C.green : C.amber}`, paddingLeft: 12 }}>
-          <div style={{ ...DISPLAY, fontSize: 14.5, fontWeight: 600, color: dark ? "#fff" : C.ink }}>{n.title}</div>
-          <div style={{ fontSize: 13, color: dark ? "#C7CDC8" : C.sub, marginTop: 2, lineHeight: 1.45 }}>{n.text}</div>
+        <div key={i} className="app-s60" style={{borderLeft: `3px solid ${n.tone === "go" ? C.green : C.amber}`}}>
+          <div className="app-s61" style={{color: dark ? C.onPrimary : C.ink}}>{n.title}</div>
+          <div className="app-s62" style={{color: dark ? C.railMuted : C.sub}}>{n.text}</div>
         </div>
       ))}
-      {(!notes || notes.length === 0) && <div style={{ fontSize: 13, color: dark ? "#AEB6B0" : C.sub }}>No flags right now — coverage looks balanced.</div>}
+      {(!notes || notes.length === 0) && <div className="app-s63" style={{color: dark ? C.railMuted : C.sub}}>No flags right now — coverage looks balanced.</div>}
     </div>
   </div>
 );
@@ -220,27 +229,27 @@ function MobilizerForm({ campaignId, units, byCentre, mobilizers, mobilizer, onC
 
   return (
     <Modal title={mobilizer ? "Edit mobilizer" : "Add mobilizer"} sub={`One mobilizer per ${unitWord}. The ${unitWord} can be left for later.`} onClose={onClose}>
-      <Label>Full name</Label><input style={FIELD} value={name} onChange={(e) => setName(e.target.value)} />
-      <div style={{ height: 14 }} /><Label>Phone</Label><input style={FIELD} value={phone} onChange={(e) => setPhone(e.target.value)} />
-      <div style={{ height: 14 }} /><Label>{byCentre ? "Registration centre" : "Ward"}</Label>
-      <select aria-label={byCentre ? "Registration centre" : "Ward"} style={FIELD} value={unitKey} onChange={(e) => setPicked(e.target.value)}>
+      <Label>Full name</Label><input className="app-field" value={name} onChange={(e) => setName(e.target.value)} />
+      <div className="app-s64"  /><Label>Phone</Label><input className="app-field" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      <div className="app-s64"  /><Label>{byCentre ? "Registration centre" : "Ward"}</Label>
+      <select aria-label={byCentre ? "Registration centre" : "Ward"} className="app-field" value={unitKey} onChange={(e) => setPicked(e.target.value)}>
         <option value="">No {unitWord} yet</option>
         {choices.map((u) => <option key={u.key} value={u.key}>{u.name}</option>)}
       </select>
       {!mobilizer && (
-        <label className="flex items-start gap-2" style={{ marginTop: 14, fontSize: 12.5, color: C.sub, cursor: "pointer" }}>
-          <input type="checkbox" checked={withLogin} onChange={(e) => setWithLogin(e.target.checked)} style={{ marginTop: 2, accentColor: C.green }} />
+        <label className="flex items-start gap-2 app-s65" >
+          <input type="checkbox" checked={withLogin} onChange={(e) => setWithLogin(e.target.checked)} className="app-s66"  />
           Give them a login, so they can record their own events and supporters.
         </label>
       )}
       {withLogin && (
         <>
-          <div style={{ height: 10 }} /><Label>Username</Label>
-          <input style={FIELD} value={username} onChange={(e) => setUsername(e.target.value)} placeholder="juma" />
+          <div className="app-s67"  /><Label>Username</Label>
+          <input className="app-field" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="juma" />
         </>
       )}
-      {error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{error.message}</div>}
-      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+      {error && <div className="app-s68" >{error.message}</div>}
+      <div className="flex justify-end gap-2 app-s24" >
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : "Save mobilizer"}</PrimaryBtn>
       </div>
@@ -263,15 +272,15 @@ function AssignMobilizerForm({ unit, holder, mobilizers, onClose }) {
       {free.length > 0 ? (
         <>
           <Label>Mobilizer</Label>
-          <select aria-label="Mobilizer" style={FIELD} value={chosen} onChange={(e) => setPicked(e.target.value)}>
+          <select aria-label="Mobilizer" className="app-field" value={chosen} onChange={(e) => setPicked(e.target.value)}>
             {free.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
           </select>
         </>
       ) : (
-        <div style={{ fontSize: 13.5, color: C.sub }}>Every mobilizer already has a {unitWord}. Add one on the Mobilizers page.</div>
+        <div className="app-s69" >Every mobilizer already has a {unitWord}. Add one on the Mobilizers page.</div>
       )}
-      {update.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{update.error.message}</div>}
-      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+      {update.error && <div className="app-s68" >{update.error.message}</div>}
+      <div className="flex justify-end gap-2 app-s24" >
         {holder && <Btn onClick={remove} disabled={update.isPending}>Remove {holder.full_name}</Btn>}
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!chosen || update.isPending} onClick={assign}>{update.isPending ? "Saving…" : "Assign"}</PrimaryBtn>
@@ -291,22 +300,22 @@ function ScheduleEventForm({ campaignId, wardOptions, byCentre, onClose }) {
   const ok = title.trim() && ward && date && !centresQuery.isFetching && (!byCentre || !centres.length || centre);
   return (
     <Modal title="Schedule event" sub="Attendance is recorded after it happens." onClose={onClose}>
-      <Label>Event title</Label><input style={FIELD} value={title} onChange={(e) => setTitle(e.target.value)} />
-      <div style={{ height: 14 }} /><Label>Ward</Label>
-      <select style={FIELD} value={ward} onChange={(e) => { setWard(e.target.value); setCentre(""); }}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
+      <Label>Event title</Label><input className="app-field" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <div className="app-s64"  /><Label>Ward</Label>
+      <select className="app-field" value={ward} onChange={(e) => { setWard(e.target.value); setCentre(""); }}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
       {byCentre && centres.length > 0 && (
         <>
-          <div style={{ height: 14 }} /><Label>Registration centre</Label>
-          <select aria-label="Registration centre" style={FIELD} value={centre} onChange={(e) => setCentre(e.target.value)}>
+          <div className="app-s64"  /><Label>Registration centre</Label>
+          <select aria-label="Registration centre" className="app-field" value={centre} onChange={(e) => setCentre(e.target.value)}>
             <option value="">Pick the centre</option>
             {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </>
       )}
-      <div style={{ height: 14 }} /><Label>Venue</Label><input style={FIELD} value={venue} onChange={(e) => setVenue(e.target.value)} />
-      <div style={{ height: 14 }} /><Label>Date</Label><input type="date" style={FIELD} value={date} onChange={(e) => setDate(e.target.value)} />
-      {schedule.isError && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{schedule.error.message}</div>}
-      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+      <div className="app-s64"  /><Label>Venue</Label><input className="app-field" value={venue} onChange={(e) => setVenue(e.target.value)} />
+      <div className="app-s64"  /><Label>Date</Label><input type="date" className="app-field" value={date} onChange={(e) => setDate(e.target.value)} />
+      {schedule.isError && <div className="app-s68" >{schedule.error.message}</div>}
+      <div className="flex justify-end gap-2 app-s24" >
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!ok || schedule.isPending} onClick={() => schedule.mutate({ campaign: campaignId, ward, registration_centre: centre || null, title: title.trim(), venue: venue.trim(), scheduled_date: date, status: "planned" }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule event"}</PrimaryBtn>
       </div>
@@ -321,11 +330,11 @@ function RecordForm({ event, onClose }) {
   const ok = reached !== "" && attended !== "" && r > 0 && a <= r;
   return (
     <Modal title="Record attendance" sub={`${event.title} · ${event.ward_name}`} onClose={onClose}>
-      <Label>How many were reached / invited</Label><input type="number" style={FIELD} value={reached} onChange={(e) => setReached(e.target.value)} />
-      <div style={{ height: 14 }} /><Label>How many attended</Label><input type="number" style={FIELD} value={attended} onChange={(e) => setAttended(e.target.value)} />
-      {reached !== "" && attended !== "" && a > r && <div style={{ color: C.red, fontSize: 12, marginTop: 8 }}>Attendance can't exceed those reached.</div>}
-      {record.isError && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{record.error.message}</div>}
-      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+      <Label>How many were reached / invited</Label><input type="number" className="app-field" value={reached} onChange={(e) => setReached(e.target.value)} />
+      <div className="app-s64"  /><Label>How many attended</Label><input type="number" className="app-field" value={attended} onChange={(e) => setAttended(e.target.value)} />
+      {reached !== "" && attended !== "" && a > r && <div className="app-s70" >Attendance can't exceed those reached.</div>}
+      {record.isError && <div className="app-s68" >{record.error.message}</div>}
+      <div className="flex justify-end gap-2 app-s24" >
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!ok || record.isPending} onClick={() => record.mutate({ id: event.id, number_reached: r, number_attended: a }, { onSuccess: onClose })}>{record.isPending ? "Saving…" : "Save & mark done"}</PrimaryBtn>
       </div>
@@ -356,25 +365,25 @@ function InviteForm({ event, onClose }) {
   return (
     <Modal title="Invite supporters" sub={`${event.title} · ${wholeCampaign ? "whole campaign" : event.ward_name}`} onClose={onClose}>
       <Label>Message</Label>
-      <textarea style={{ ...FIELD, minHeight: 90, resize: "vertical" }} value={message} onChange={(e) => { setMessage(e.target.value); setResult(null); }} />
-      <div style={{ fontSize: 12, color: C.sub, marginTop: 4 }}>{message.length} characters · {parts} SMS part{parts === 1 ? "" : "s"} per person</div>
+      <textarea className="app-s71 app-field" value={message} onChange={(e) => { setMessage(e.target.value); setResult(null); }} />
+      <div className="app-s72" >{message.length} characters · {parts} SMS part{parts === 1 ? "" : "s"} per person</div>
 
-      <div style={{ height: 14 }} /><Label>Send to</Label>
-      <div className="flex flex-wrap gap-1" style={{ marginTop: 6, fontSize: 12 }}>
+      <div className="app-s64"  /><Label>Send to</Label>
+      <div className="flex flex-wrap gap-1 app-s73" >
         {LEVELS.map(([key, label]) => (
           <button key={key} onClick={() => { toggle(key); setResult(null); }}
-            style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", border: `1px solid ${levels.includes(key) ? C.ink : C.line}`, background: levels.includes(key) ? C.ink : "transparent", color: levels.includes(key) ? "#fff" : C.sub }}>{label}</button>
+            className="app-s74" style={{border: `1px solid ${levels.includes(key) ? C.ink : C.line}`, background: levels.includes(key) ? C.ink : "transparent", color: levels.includes(key) ? C.onPrimary : C.sub}}>{label}</button>
         ))}
       </div>
-      <label className="flex items-start gap-2" style={{ marginTop: 12, fontSize: 12.5, color: C.sub, cursor: "pointer" }}>
-        <input type="checkbox" checked={wholeCampaign} onChange={(e) => { setWholeCampaign(e.target.checked); setResult(null); }} style={{ marginTop: 2, accentColor: C.green }} />
+      <label className="flex items-start gap-2 app-s75" >
+        <input type="checkbox" checked={wholeCampaign} onChange={(e) => { setWholeCampaign(e.target.checked); setResult(null); }} className="app-s66"  />
         Everyone on the campaign, not just {event.ward_name}
       </label>
 
       {result && <InviteResult result={result} />}
-      {invite.isError && <div style={{ color: C.red, fontSize: 12.5, marginTop: 10 }}>{invite.error.message}</div>}
+      {invite.isError && <div className="app-s76" >{invite.error.message}</div>}
 
-      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+      <div className="flex justify-end gap-2 app-s24" >
         <Btn onClick={onClose}>Close</Btn>
         <Btn onClick={() => send(true)} disabled={!ok}>{invite.isPending ? "Working…" : "Preview"}</Btn>
         <PrimaryBtn disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</PrimaryBtn>
@@ -387,23 +396,23 @@ function InviteResult({ result }) {
   const tone = result.delivered ? C.green : C.amber;
   const soft = result.delivered ? C.greenSoft : C.amberSoft;
   return (
-    <div style={{ marginTop: 16, borderLeft: `3px solid ${tone}`, paddingLeft: 12 }}>
-      <div style={{ ...DISPLAY, fontSize: 15, fontWeight: 600 }}>
+    <div className="app-s77" style={{borderLeft: `3px solid ${tone}`}}>
+      <div className="app-s25" >
         {result.dry_run ? "Preview" : result.delivered ? "Sent" : "Not sent"}
-        <span style={{ marginLeft: 8 }}><Badge text={result.provider} color={tone} soft={soft} /></span>
+        <span className="app-s78" ><Badge text={result.provider} color={tone} soft={soft} /></span>
       </div>
-      <div style={{ fontSize: 13, color: C.sub, marginTop: 4, lineHeight: 1.45 }}>
+      <div className="app-s79" >
         {fmt(result.supporters_matched)} supporter{result.supporters_matched === 1 ? "" : "s"} matched ·
         {" "}{fmt(result.requested)} usable number{result.requested === 1 ? "" : "s"} ·
         {" "}{result.parts} part{result.parts === 1 ? "" : "s"} each
       </div>
       {result.rejected.length > 0 && (
-        <div style={{ fontSize: 12.5, color: C.red, marginTop: 6 }}>
+        <div className="app-s80" >
           {result.rejected.length} number{result.rejected.length === 1 ? "" : "s"} unusable: {result.rejected.slice(0, 4).map((r) => r.phone || "(blank)").join(", ")}
         </div>
       )}
-      {result.detail && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>{result.detail}</div>}
-      {!result.dry_run && result.delivered && <div style={{ fontSize: 12.5, color: C.green, marginTop: 6 }}>Reached is now {fmt(result.number_reached)}.</div>}
+      {result.detail && <div className="app-s81" >{result.detail}</div>}
+      {!result.dry_run && result.delivered && <div className="app-s82" >Reached is now {fmt(result.number_reached)}.</div>}
     </div>
   );
 }
@@ -411,36 +420,36 @@ function InviteResult({ result }) {
 // ---- events + supporters lists -------------------------------------------
 function EventList({ events, showActions, onRecord, onInvite, onQr }) {
   return (
-    <Card pad={0}><div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-        <thead><tr style={{ color: C.sub, textAlign: "left" }}>
-          <th style={{ padding: "10px 18px", fontWeight: 500 }}>Event</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Ward</th>
-          <th style={{ padding: "10px 8px", fontWeight: 500 }}>Date</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Status</th>
-          <th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Reached</th><th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Attended</th>
-          <th style={{ padding: "10px 18px", fontWeight: 500, textAlign: "right" }}>Turnout</th>
-          <th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Signed up</th>
-          {showActions && <th style={{ padding: "10px 18px", fontWeight: 500, textAlign: "right" }}>Invite</th>}
-          {onQr && <th style={{ padding: "10px 18px", fontWeight: 500, textAlign: "right" }}>Sign-up</th>}
+    <Card pad={0}><div className="app-s41" >
+      <table className="app-s42" >
+        <thead><tr className="app-s43" >
+          <th className="app-s44" >Event</th><th className="app-s46" >Ward</th>
+          <th className="app-s46" >Date</th><th className="app-s46" >Status</th>
+          <th className="app-s45" >Reached</th><th className="app-s45" >Attended</th>
+          <th className="app-s83" >Turnout</th>
+          <th className="app-s45" >Signed up</th>
+          {showActions && <th className="app-s83" >Invite</th>}
+          {onQr && <th className="app-s83" >Sign-up</th>}
         </tr></thead>
         <tbody>
           {events.map((e) => {
             const done = e.status === "done";
             return (
-              <tr key={e.id} style={{ borderTop: `1px solid ${C.line}` }}>
-                <td style={{ padding: "12px 18px", fontWeight: 600 }}>{e.title}<div style={{ fontSize: 12, color: C.sub, fontWeight: 400 }}>{e.venue || "—"}</div></td>
-                <td style={{ padding: "12px 8px" }}>{e.ward_name}</td>
-                <td style={{ padding: "12px 8px" }}>{e.scheduled_date ? new Date(e.scheduled_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "—"}</td>
-                <td style={{ padding: "12px 8px" }}><Badge text={done ? "Done" : "Planned"} color={done ? C.green : C.amber} soft={done ? C.greenSoft : C.amberSoft} /></td>
-                <td style={{ padding: "12px 8px", textAlign: "right" }}>{done ? fmt(e.number_reached) : (showActions ? <Btn onClick={() => onRecord(e)}>Record</Btn> : "—")}</td>
-                <td style={{ padding: "12px 8px", textAlign: "right" }}>{done ? fmt(e.number_attended) : "—"}</td>
-                <td style={{ padding: "12px 18px", textAlign: "right", ...DISPLAY, fontWeight: 600 }}>{done ? `${e.turnout_pct}%` : "—"}</td>
-                <td style={{ padding: "12px 8px", textAlign: "right" }}>{fmt(e.signups)}{e.number_attended > 0 && <span style={{ color: C.sub }}> ({Math.round((e.signups / e.number_attended) * 100)}%)</span>}</td>
-                {showActions && <td style={{ padding: "12px 18px", textAlign: "right" }}><Btn onClick={() => onInvite(e)}>Invite</Btn></td>}
-                {onQr && <td style={{ padding: "12px 18px", textAlign: "right" }}>{e.signup_code && <Btn onClick={() => onQr(e)}>{e.signups_open ? "Sign-up QR" : "Closed"}</Btn>}</td>}
+              <tr key={e.id} className="app-s48" >
+                <td className="app-s84" >{e.title}<div className="app-s85" >{e.venue || "—"}</div></td>
+                <td className="app-s86" >{e.ward_name}</td>
+                <td className="app-s86" >{e.scheduled_date ? new Date(e.scheduled_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "—"}</td>
+                <td className="app-s86" ><Badge text={done ? "Done" : "Planned"} color={done ? C.green : C.amber} soft={done ? C.greenSoft : C.amberSoft} /></td>
+                <td className="app-s87" >{done ? fmt(e.number_reached) : (showActions ? <Btn onClick={() => onRecord(e)}>Record</Btn> : "—")}</td>
+                <td className="app-s87" >{done ? fmt(e.number_attended) : "—"}</td>
+                <td className="app-s88" >{done ? `${e.turnout_pct}%` : "—"}</td>
+                <td className="app-s87" >{fmt(e.signups)}{e.number_attended > 0 && <span className="app-s89" > ({Math.round((e.signups / e.number_attended) * 100)}%)</span>}</td>
+                {showActions && <td className="app-s90" ><Btn onClick={() => onInvite(e)}>Invite</Btn></td>}
+                {onQr && <td className="app-s90" >{e.signup_code && <Btn onClick={() => onQr(e)}>{e.signups_open ? "Sign-up QR" : "Closed"}</Btn>}</td>}
               </tr>
             );
           })}
-          {events.length === 0 && <tr><td colSpan={10} style={{ padding: 20, color: C.sub }}>No events yet.</td></tr>}
+          {events.length === 0 && <tr><td colSpan={10} className="app-s91" >No events yet.</td></tr>}
         </tbody>
       </table>
     </div></Card>
@@ -499,14 +508,14 @@ function QrModal({ event, canClose, onClose }) {
   return (
     <Modal title="Sign-up QR" sub={`${event.title || event.ward_name}: people scan it to sign up as supporters.`} onClose={onClose}>
       <div className="qr-print">
-        <div style={{ ...DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 12 }}>{event.title || event.ward_name}</div>
+        <div className="app-s92" >{event.title || event.ward_name}</div>
         <QRCodeSVG value={link} size={220} marginSize={2} title={`Sign-up link for ${event.title || event.ward_name}`} />
-        <div style={{ fontSize: 12.5, color: C.sub, marginTop: 10, wordBreak: "break-all" }}>{link}</div>
+        <div className="app-s93" >{link}</div>
       </div>
       {open && <ShareLink link={link} message={`Sign up as a supporter at ${event.title || event.ward_name}:`} />}
-      {!open && <div style={{ color: C.red, fontSize: 12.5, marginTop: 12 }}>Sign-ups are closed: the code shows a "closed" page.</div>}
-      {setSignups.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{setSignups.error.message}</div>}
-      <div className="flex justify-end gap-2" style={{ marginTop: 20 }}>
+      {!open && <div className="app-s94" >Sign-ups are closed: the code shows a "closed" page.</div>}
+      {setSignups.error && <div className="app-s68" >{setSignups.error.message}</div>}
+      <div className="flex justify-end gap-2 app-s95" >
         {canClose && <Btn onClick={toggle} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Reopen sign-ups"}</Btn>}
         <Btn onClick={() => window.print()}>Print</Btn>
         <PrimaryBtn onClick={onClose}>Done</PrimaryBtn>
@@ -532,17 +541,17 @@ function SupportersView({ campaignId, centreWard, share }) {
   return (
     <>
       <PageTitle title="Supporters" sub={`${all.length} on the register`} action={share ? <Btn primary onClick={() => setSharing(true)}>Sign-up link</Btn> : null} />
-      <div className="flex gap-1" style={{ marginBottom: 12, fontSize: 12 }}>
-        {["all", "supporter", "undecided", "opposed"].map((f) => <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", textTransform: "capitalize", border: `1px solid ${filter === f ? C.ink : C.line}`, background: filter === f ? C.ink : "transparent", color: filter === f ? "#fff" : C.sub }}>{f}</button>)}
+      <div className="flex gap-1 app-s96" >
+        {["all", "supporter", "undecided", "opposed"].map((f) => <button key={f} onClick={() => setFilter(f)} className="app-s97" style={{border: `1px solid ${filter === f ? C.ink : C.line}`, background: filter === f ? C.ink : "transparent", color: filter === f ? C.onPrimary : C.sub}}>{f}</button>)}
       </div>
-      <Card pad={0}><div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-          <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Name</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Phone</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Support</th>{showCentre && <th style={{ padding: "10px 8px", fontWeight: 500 }}>Centre</th>}<th style={{ padding: "10px 18px", fontWeight: 500 }}>Consent</th></tr></thead>
-          <tbody>{shown.map((s) => (<tr key={s.id} style={{ borderTop: `1px solid ${C.line}` }}><td style={{ padding: "12px 18px", fontWeight: 600 }}>{s.full_name}</td><td style={{ padding: "12px 8px", color: C.sub }}>{s.phone}</td><td style={{ padding: "12px 8px" }}><Badge text={s.support_level} color={col[s.support_level]?.[0] || C.sub} soft={col[s.support_level]?.[1] || C.paper} /></td>{showCentre && <td style={{ padding: "12px 8px" }}>{targeted.has(s.registration_centre)
+      <Card pad={0}><div className="app-s41" >
+        <table className="app-s42" >
+          <thead><tr className="app-s43" ><th className="app-s44" >Name</th><th className="app-s46" >Phone</th><th className="app-s46" >Support</th>{showCentre && <th className="app-s46" >Centre</th>}<th className="app-s44" >Consent</th></tr></thead>
+          <tbody>{shown.map((s) => (<tr key={s.id} className="app-s48" ><td className="app-s84" >{s.full_name}</td><td className="app-s98" >{s.phone}</td><td className="app-s86" ><Badge text={s.support_level} color={col[s.support_level]?.[0] || C.sub} soft={col[s.support_level]?.[1] || C.paper} /></td>{showCentre && <td className="app-s86" >{targeted.has(s.registration_centre)
             ? allCentres.find((c) => c.id === s.registration_centre)?.name || "—"
-            : <select aria-label={`Centre for ${s.full_name}`} style={{ ...FIELD, padding: "4px 8px" }} value="" disabled={place.isPending} onChange={(e) => place.mutate({ id: s.id, registration_centre: e.target.value })}><option value="">{s.registration_centre ? `${allCentres.find((c) => c.id === s.registration_centre)?.name || "Centre"} has no target` : "Needs a centre"}</option>{centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}</td>}<td style={{ padding: "12px 18px" }}>{s.consent_given ? <span style={{ color: C.green }}>✓</span> : <span style={{ color: C.red }}>missing</span>}</td></tr>))}
-          {place.isError && <tr><td colSpan={5} style={{ padding: "8px 18px", color: C.red, fontSize: 12.5 }}>{place.error.message}</td></tr>}
-          {shown.length === 0 && <tr><td colSpan={5} style={{ padding: 20, color: C.sub }}>None yet.</td></tr>}</tbody>
+            : <select aria-label={`Centre for ${s.full_name}`} className="app-s99 app-field" value="" disabled={place.isPending} onChange={(e) => place.mutate({ id: s.id, registration_centre: e.target.value })}><option value="">{s.registration_centre ? `${allCentres.find((c) => c.id === s.registration_centre)?.name || "Centre"} has no target` : "Needs a centre"}</option>{centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}</td>}<td className="app-s49" >{s.consent_given ? <span className="app-s100" >✓</span> : <span className="app-s56" >missing</span>}</td></tr>))}
+          {place.isError && <tr><td colSpan={5} className="app-s101" >{place.error.message}</td></tr>}
+          {shown.length === 0 && <tr><td colSpan={5} className="app-s91" >None yet.</td></tr>}</tbody>
         </table>
       </div></Card>
       {sharing && <CampaignLinkModal campaign={share} onClose={() => setSharing(false)} />}
@@ -593,15 +602,15 @@ function TargetRow({ target, draft, onDraft, onSettle }) {
   }, [target.id, mutate, onSettle]);
 
   return (
-    <tr style={{ borderTop: `1px solid ${C.line}` }}>
-      <td style={{ padding: "12px 18px", fontWeight: 600 }}>{target.centre_name || target.ward_name}</td>
-      <td style={{ padding: "12px 8px", textAlign: "right" }}>{fmt(target.registered_voters)}</td>
-      <td style={{ padding: "10px 8px", textAlign: "center" }}>
-        <input ref={slider} type="range" min={40} max={85} value={pct} aria-label={`Turnout for ${target.centre_name || target.ward_name}`} onChange={(e) => { onDraft(target.id, Number(e.target.value)); setStatus((s) => (s === "saving" ? s : "")); }} style={{ width: 90, accentColor: C.green }} />
-        <span style={{ ...DISPLAY, marginLeft: 8, fontWeight: 600 }}>{pct}%</span>
-        {status && !(status === "saved" && draft != null) && <div style={{ fontSize: 11, color: SAVE_STATUS[status][1] }}>{SAVE_STATUS[status][0]}</div>}
+    <tr className="app-s48" >
+      <td className="app-s84" >{target.centre_name || target.ward_name}</td>
+      <td className="app-s87" >{fmt(target.registered_voters)}</td>
+      <td className="app-s102" >
+        <input ref={slider} type="range" min={40} max={85} value={pct} aria-label={`Turnout for ${target.centre_name || target.ward_name}`} onChange={(e) => { onDraft(target.id, Number(e.target.value)); setStatus((s) => (s === "saving" ? s : "")); }} className="app-s103"  />
+        <span className="app-s104" >{pct}%</span>
+        {status && !(status === "saved" && draft != null) && <div className="app-s105" style={{color: SAVE_STATUS[status][1]}}>{SAVE_STATUS[status][0]}</div>}
       </td>
-      <td style={{ padding: "12px 18px", textAlign: "right", ...DISPLAY, fontWeight: 700, fontSize: 16, color: C.green }}>{fmt(needed)}</td>
+      <td className="app-s106" >{fmt(needed)}</td>
     </tr>
   );
 }
@@ -622,14 +631,14 @@ function TargetsView({ campaignId }) {
   return (
     <>
       <PageTitle title="Targets — the win number" sub="Set projected turnout per unit; the win number recomputes on the server." />
-      <Card pad={0}><div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-          <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Unit</th><th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Registered</th><th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "center" }}>Turnout %</th><th style={{ padding: "10px 18px", fontWeight: 500, textAlign: "right" }}>Votes needed</th></tr></thead>
+      <Card pad={0}><div className="app-s41" >
+        <table className="app-s42" >
+          <thead><tr className="app-s43" ><th className="app-s44" >Unit</th><th className="app-s45" >Registered</th><th className="app-s47" >Turnout %</th><th className="app-s83" >Votes needed</th></tr></thead>
           <tbody>{rows.map((t) => <TargetRow key={t.id} target={t} draft={drafts[t.id]} onDraft={onDraft} onSettle={onSettle} />)}</tbody>
-          <tfoot><tr style={{ borderTop: `2px solid ${C.ink}` }}><td style={{ padding: "12px 18px", ...DISPLAY, fontWeight: 700 }} colSpan={3}>TOTAL WIN NUMBER</td><td style={{ padding: "12px 18px", textAlign: "right", ...DISPLAY, fontWeight: 700, fontSize: 18 }}>{fmt(total)}</td></tr></tfoot>
+          <tfoot><tr className="app-s107" ><td className="app-s108"  colSpan={3}>TOTAL WIN NUMBER</td><td className="app-s109" >{fmt(total)}</td></tr></tfoot>
         </table>
       </div></Card>
-      <div style={{ fontSize: 12, color: C.sub, marginTop: 10 }}>Release a slider to save — the server recomputes the win number and the dashboard updates.</div>
+      <div className="app-s110" >Release a slider to save — the server recomputes the win number and the dashboard updates.</div>
     </>
   );
 }
@@ -645,11 +654,11 @@ function MobilizersView({ campaignId, units, byCentre, onAdd, onEdit }) {
   return (
     <>
       <PageTitle title="Mobilizers" sub={`Ground organisers by ${byCentre ? "registration centre" : "ward"}.`} action={<Btn primary onClick={onAdd}>Add mobilizer</Btn>} />
-      <Card pad={0}><div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-          <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Name</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>{byCentre ? "Centre" : "Ward"}</th><th style={{ padding: "10px 18px", fontWeight: 500 }}>Phone</th><th /></tr></thead>
-          <tbody>{(data || []).map((m) => (<tr key={m.id} style={{ borderTop: `1px solid ${C.line}` }}><td style={{ padding: "12px 18px", fontWeight: 600 }}>{m.full_name}</td><td style={{ padding: "12px 8px", color: placeOf(m) ? C.ink : C.sub }}>{placeOf(m) || `No ${byCentre ? "centre" : "ward"} yet`}</td><td style={{ padding: "12px 18px", color: C.sub }}>{m.phone || "—"}</td><td style={{ padding: "12px 18px", textAlign: "right" }}><Btn onClick={() => onEdit(m)}>Edit</Btn></td></tr>))}
-          {(!data || data.length === 0) && <tr><td colSpan={4} style={{ padding: 20, color: C.sub }}>No mobilizers yet.</td></tr>}</tbody>
+      <Card pad={0}><div className="app-s41" >
+        <table className="app-s42" >
+          <thead><tr className="app-s43" ><th className="app-s44" >Name</th><th className="app-s46" >{byCentre ? "Centre" : "Ward"}</th><th className="app-s44" >Phone</th><th /></tr></thead>
+          <tbody>{(data || []).map((m) => (<tr key={m.id} className="app-s48" ><td className="app-s84" >{m.full_name}</td><td className="app-s86" style={{color: placeOf(m) ? C.ink : C.sub}}>{placeOf(m) || `No ${byCentre ? "centre" : "ward"} yet`}</td><td className="app-s111" >{m.phone || "—"}</td><td className="app-s90" ><Btn onClick={() => onEdit(m)}>Edit</Btn></td></tr>))}
+          {(!data || data.length === 0) && <tr><td colSpan={4} className="app-s91" >No mobilizers yet.</td></tr>}</tbody>
         </table>
       </div></Card>
     </>
@@ -672,31 +681,31 @@ function RegisterSupporterForm({ campaignId, wardOptions, byCentre }) {
   const centre = picked ?? ownCentre ?? "";
   const loaded = !centresQuery.isFetching && !centresQuery.isError && targetsQuery.isSuccess;
   const ok = form.full_name.trim() && form.consent_given && ward && (!byCentre || (loaded && centre));
-  if (reg.isSuccess) return <Card pad={24}><div style={{ ...DISPLAY, fontSize: 22, fontWeight: 700, color: C.green }}>Registered.</div><div style={{ marginTop: 12 }}><Btn onClick={() => reg.reset()}>Register another</Btn></div></Card>;
+  if (reg.isSuccess) return <Card pad={24}><div className="app-s112" >Registered.</div><div className="app-s113" ><Btn onClick={() => reg.reset()}>Register another</Btn></div></Card>;
   return (
     <Card pad={22}>
-      <Label>Full name</Label><input style={FIELD} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
-      <div style={{ height: 14 }} /><Label>Phone</Label><input style={FIELD} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-      <div style={{ height: 14 }} /><Label>Ward</Label>
-      <select style={FIELD} value={ward} onChange={(e) => { setForm({ ...form, ward: e.target.value }); setPicked(null); }}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
+      <Label>Full name</Label><input className="app-field" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+      <div className="app-s64"  /><Label>Phone</Label><input className="app-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+      <div className="app-s64"  /><Label>Ward</Label>
+      <select className="app-field" value={ward} onChange={(e) => { setForm({ ...form, ward: e.target.value }); setPicked(null); }}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
       {byCentre && centres.length > 0 && (
         <>
-          <div style={{ height: 14 }} /><Label>Registration centre</Label>
-          <select aria-label="Registration centre" style={FIELD} value={centre} onChange={(e) => setPicked(e.target.value)}>
+          <div className="app-s64"  /><Label>Registration centre</Label>
+          <select aria-label="Registration centre" className="app-field" value={centre} onChange={(e) => setPicked(e.target.value)}>
             <option value="">Pick a centre</option>
             {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </>
       )}
-      <div style={{ height: 14 }} /><Label>Support</Label>
-      <select aria-label="Support" style={FIELD} value={form.support_level} onChange={(e) => setForm({ ...form, support_level: e.target.value })}>
+      <div className="app-s64"  /><Label>Support</Label>
+      <select aria-label="Support" className="app-field" value={form.support_level} onChange={(e) => setForm({ ...form, support_level: e.target.value })}>
         <option value="supporter">Supporter</option>
         <option value="undecided">Undecided</option>
         <option value="opposed">Opposed</option>
       </select>
-      <label className="flex items-start gap-2" style={{ marginTop: 14, fontSize: 12.5, color: C.sub, cursor: "pointer" }}><input type="checkbox" checked={form.consent_given} onChange={(e) => setForm({ ...form, consent_given: e.target.checked })} style={{ marginTop: 2, accentColor: C.green }} />Consent to hold these details under the Data Protection Act, 2019.</label>
-      {reg.isError && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{reg.error.message}</div>}
-      <div style={{ marginTop: 16 }}><PrimaryBtn disabled={!ok || reg.isPending} onClick={() => reg.mutate({ campaign: campaignId, ...form, ward, registration_centre: centre || null })}>{reg.isPending ? "Saving…" : "Register supporter"}</PrimaryBtn></div>
+      <label className="flex items-start gap-2 app-s65" ><input type="checkbox" checked={form.consent_given} onChange={(e) => setForm({ ...form, consent_given: e.target.checked })} className="app-s66"  />Consent to hold these details under the Data Protection Act, 2019.</label>
+      {reg.isError && <div className="app-s68" >{reg.error.message}</div>}
+      <div className="app-s114" ><PrimaryBtn disabled={!ok || reg.isPending} onClick={() => reg.mutate({ campaign: campaignId, ...form, ward, registration_centre: centre || null })}>{reg.isPending ? "Saving…" : "Register supporter"}</PrimaryBtn></div>
     </Card>
   );
 }
@@ -723,31 +732,31 @@ function PaymentsView({ campaignId, canPay, mine }) {
   return (
     <>
       <PageTitle title={mine ? "My payments" : "Payments"} sub={`${kes(total("paid"))} paid · ${kes(total("scheduled"))} scheduled${total("failed") ? ` · ${kes(total("failed"))} failed` : ""}`} action={actions} />
-      <Card pad={0}><div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-          <thead><tr style={{ color: C.sub, textAlign: "left" }}>
-            <th style={{ padding: "10px 18px", fontWeight: 500 }}>Date</th>
-            {!mine && <th style={{ padding: "10px 8px", fontWeight: 500 }}>Mobilizer</th>}
-            <th style={{ padding: "10px 8px", fontWeight: 500 }}>Event</th>
-            <th style={{ padding: "10px 8px", fontWeight: 500, textAlign: "right" }}>Amount</th>
-            <th style={{ padding: "10px 8px", fontWeight: 500 }}>Status</th>
-            <th style={{ padding: "10px 8px", fontWeight: 500 }}>Reference</th>
+      <Card pad={0}><div className="app-s41" >
+        <table className="app-s42" >
+          <thead><tr className="app-s43" >
+            <th className="app-s44" >Date</th>
+            {!mine && <th className="app-s46" >Mobilizer</th>}
+            <th className="app-s46" >Event</th>
+            <th className="app-s45" >Amount</th>
+            <th className="app-s46" >Status</th>
+            <th className="app-s46" >Reference</th>
             {canPay && <th />}
           </tr></thead>
           <tbody>{rows.map((p) => (
-            <tr key={p.id} style={{ borderTop: `1px solid ${C.line}` }}>
-              <td style={{ padding: "12px 18px", color: C.sub }}>{new Date(p.paid_at || p.created_at).toLocaleDateString()}</td>
-              {!mine && <td style={{ padding: "12px 8px" }}><div style={{ fontWeight: 600 }}>{p.recipient_name}</div><div style={{ fontSize: 12, color: C.sub }}>{p.recipient_phone || "—"}</div></td>}
-              <td style={{ padding: "12px 8px" }}>{p.event_title || "—"}</td>
-              <td style={{ padding: "12px 8px", textAlign: "right", ...DISPLAY, fontWeight: 600 }}>{kes(p.amount_kes)}</td>
-              <td style={{ padding: "12px 8px" }}><Badge text={p.status} color={PAY_STATUS[p.status]?.[0]} soft={PAY_STATUS[p.status]?.[1]} />{p.failure_reason && (canPay || p.status === "failed") && <div style={{ fontSize: 11.5, color: p.status === "failed" ? C.red : C.amber, marginTop: 3, maxWidth: 260 }}>{p.failure_reason}</div>}</td>
-              <td style={{ padding: "12px 8px", color: C.sub }}>{p.reference || "—"}</td>
-              {canPay && <td style={{ padding: "12px 18px", textAlign: "right" }}>{OPEN.includes(p.status) && <div className="flex justify-end gap-2"><Btn primary onClick={() => setModal({ type: "release", payments: [p] })}>Release</Btn><Btn onClick={() => setModal({ type: "paid", payment: p })}>Mark paid</Btn><Btn onClick={() => setModal({ type: "cancel", payment: p })}>Cancel</Btn></div>}{p.status === "sending" && (p.stuck
+            <tr key={p.id} className="app-s48" >
+              <td className="app-s111" >{new Date(p.paid_at || p.created_at).toLocaleDateString()}</td>
+              {!mine && <td className="app-s86" ><div className="app-s50" >{p.recipient_name}</div><div className="app-s22" >{p.recipient_phone || "—"}</div></td>}
+              <td className="app-s86" >{p.event_title || "—"}</td>
+              <td className="app-s115" >{kes(p.amount_kes)}</td>
+              <td className="app-s86" ><Badge text={p.status} color={PAY_STATUS[p.status]?.[0]} soft={PAY_STATUS[p.status]?.[1]} />{p.failure_reason && (canPay || p.status === "failed") && <div className="app-s116" style={{color: p.status === "failed" ? C.red : C.amber}}>{p.failure_reason}</div>}</td>
+              <td className="app-s98" >{p.reference || "—"}</td>
+              {canPay && <td className="app-s90" >{OPEN.includes(p.status) && <div className="flex justify-end gap-2"><Btn primary onClick={() => setModal({ type: "release", payments: [p] })}>Release</Btn><Btn onClick={() => setModal({ type: "paid", payment: p })}>Mark paid</Btn><Btn onClick={() => setModal({ type: "cancel", payment: p })}>Cancel</Btn></div>}{p.status === "sending" && (p.stuck
                 ? <div className="flex justify-end gap-2"><Btn onClick={() => setModal({ type: "paid", payment: p })}>Mark paid</Btn><Btn onClick={() => setModal({ type: "notsent", payment: p })}>Didn't go out</Btn></div>
-                : <span style={{ fontSize: 12, color: C.sub }}>Waiting for the provider…</span>)}</td>}
+                : <span className="app-s22" >Waiting for the provider…</span>)}</td>}
             </tr>
           ))}
-          {rows.length === 0 && <tr><td colSpan={7} style={{ padding: 20, color: C.sub }}>No payments yet.</td></tr>}</tbody>
+          {rows.length === 0 && <tr><td colSpan={7} className="app-s91" >No payments yet.</td></tr>}</tbody>
         </table>
       </div></Card>
       {modal?.type === "schedule" && <SchedulePaymentForm campaignId={campaignId} onClose={() => setModal(null)} />}
@@ -774,19 +783,19 @@ function SchedulePaymentForm({ campaignId, onClose }) {
   return (
     <Modal title="Schedule payment" sub="Paid per event, to the mobilizer who ran it." onClose={onClose}>
       <Label>Event</Label>
-      <select aria-label="Event" style={FIELD} value={eventId} onChange={(e) => { setEventId(e.target.value); setPicked(null); }}>
+      <select aria-label="Event" className="app-field" value={eventId} onChange={(e) => { setEventId(e.target.value); setPicked(null); }}>
         <option value="">Pick an event</option>
         {events.map((e) => <option key={e.id} value={e.id}>{e.title || e.ward_name}</option>)}
       </select>
-      <div style={{ height: 14 }} /><Label>Mobilizer</Label>
-      <select aria-label="Mobilizer" style={FIELD} value={mobilizer} onChange={(e) => setPicked(e.target.value)}>
+      <div className="app-s64"  /><Label>Mobilizer</Label>
+      <select aria-label="Mobilizer" className="app-field" value={mobilizer} onChange={(e) => setPicked(e.target.value)}>
         <option value="">Pick a mobilizer</option>
         {mobilizers.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
       </select>
-      <div style={{ height: 14 }} /><Label>Amount (KES)</Label>
-      <input aria-label="Amount" type="number" min={1} step={1} style={FIELD} value={amount} onChange={(e) => setAmount(e.target.value)} />
-      {schedule.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{schedule.error.message}</div>}
-      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+      <div className="app-s64"  /><Label>Amount (KES)</Label>
+      <input aria-label="Amount" type="number" min={1} step={1} className="app-field" value={amount} onChange={(e) => setAmount(e.target.value)} />
+      {schedule.error && <div className="app-s68" >{schedule.error.message}</div>}
+      <div className="flex justify-end gap-2 app-s24" >
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!ok || schedule.isPending} onClick={save}>{schedule.isPending ? "Saving…" : "Schedule"}</PrimaryBtn>
       </div>
@@ -818,15 +827,15 @@ function ReleaseForm({ payments, onClose }) {
   };
   return (
     <Modal title={payments.length === 1 ? "Release payment" : `Release ${payments.length} payments`} sub={`${kes(sum)} in total.`} onClose={running ? () => {} : onClose}>
-      {payout.error && <div style={{ color: C.red, fontSize: 12.5, marginBottom: 12 }}>Could not tell whether releases move money: {payout.error.message}</div>}
-      {mode && !mode.moves_money && <div style={{ padding: "10px 12px", borderRadius: 8, background: C.amberSoft, color: C.amber, fontSize: 12.5, fontWeight: 600, marginBottom: 12 }}>Practice mode: no money moves. Each payment is marked paid under a PRACTICE reference.</div>}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>
+      {payout.error && <div className="app-s117" >Could not tell whether releases move money: {payout.error.message}</div>}
+      {mode && !mode.moves_money && <div className="app-s118" style={{background: C.amberSoft}}>Practice mode: no money moves. Each payment is marked paid under a PRACTICE reference.</div>}
+      <div className="app-s119" >
         {payments.map((p) => {
           const r = results?.find((x) => x.p.id === p.id);
-          return <div key={p.id} className="flex justify-between gap-3"><span><b>{p.recipient_name}</b> <span style={{ color: C.sub }}>{p.recipient_phone || "no phone"}</span></span><span>{kes(p.amount_kes)}{r && <span style={{ marginLeft: 8, color: r.ok ? C.green : r.pending ? C.amber : C.red }}>{r.ok ? `Paid · ${r.text}` : r.pending ? "Sending" : r.text}</span>}</span></div>;
+          return <div key={p.id} className="flex justify-between gap-3"><span><b>{p.recipient_name}</b> <span className="app-s89" >{p.recipient_phone || "no phone"}</span></span><span>{kes(p.amount_kes)}{r && <span className="app-s78" style={{color: r.ok ? C.green : r.pending ? C.amber : C.red}}>{r.ok ? `Paid · ${r.text}` : r.pending ? "Sending" : r.text}</span>}</span></div>;
         })}
       </div>
-      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+      <div className="flex justify-end gap-2 app-s24" >
         {results ? <PrimaryBtn onClick={onClose}>Done</PrimaryBtn> : (
           <>
             <Btn onClick={onClose} disabled={running}>Back</Btn>
@@ -843,8 +852,8 @@ function NotSentForm({ payment, onClose }) {
   const notSent = useMarkNotSent();
   return (
     <Modal title="Didn't go out" sub={`Only if the payout provider shows that ${kes(payment.amount_kes)} to ${payment.recipient_name} was not sent. The payment can then be released again.`} onClose={onClose}>
-      {notSent.error && <div style={{ color: C.red, fontSize: 12.5 }}>{notSent.error.message}</div>}
-      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+      {notSent.error && <div className="app-s120" >{notSent.error.message}</div>}
+      <div className="flex justify-end gap-2 app-s24" >
         <Btn onClick={onClose}>Back</Btn>
         <PrimaryBtn disabled={notSent.isPending} onClick={() => notSent.mutate({ id: payment.id }, { onSuccess: onClose })}>It was not sent</PrimaryBtn>
       </div>
@@ -859,9 +868,9 @@ function MarkPaidForm({ payment, onClose }) {
   return (
     <Modal title="Mark paid" sub={`${kes(payment.amount_kes)} to ${payment.recipient_name}. A paid payment cannot be changed.`} onClose={onClose}>
       <Label>M-Pesa or bank reference</Label>
-      <input aria-label="Reference" style={FIELD} value={reference} onChange={(e) => setReference(e.target.value)} placeholder="QX12AB34" />
-      {markPaid.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{markPaid.error.message}</div>}
-      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+      <input aria-label="Reference" className="app-field" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="QX12AB34" />
+      {markPaid.error && <div className="app-s68" >{markPaid.error.message}</div>}
+      <div className="flex justify-end gap-2 app-s24" >
         <Btn onClick={onClose}>Back</Btn>
         <PrimaryBtn disabled={!reference.trim() || markPaid.isPending} onClick={save}>{markPaid.isPending ? "Saving…" : "Mark paid"}</PrimaryBtn>
       </div>
@@ -873,8 +882,8 @@ function CancelPaymentForm({ payment, onClose }) {
   const cancel = useCancelPayment();
   return (
     <Modal title="Cancel payment" sub={`${kes(payment.amount_kes)} to ${payment.recipient_name}. It stays on the register as cancelled.`} onClose={onClose}>
-      {cancel.error && <div style={{ color: C.red, fontSize: 12.5 }}>{cancel.error.message}</div>}
-      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+      {cancel.error && <div className="app-s120" >{cancel.error.message}</div>}
+      <div className="flex justify-end gap-2 app-s24" >
         <Btn onClick={onClose}>Back</Btn>
         <PrimaryBtn disabled={cancel.isPending} onClick={() => cancel.mutate({ id: payment.id }, { onSuccess: onClose })}>Cancel payment</PrimaryBtn>
       </div>
@@ -895,13 +904,13 @@ function TeamView({ campaignId, role, onManager, onReset }) {
   return (
     <>
       <PageTitle title="Team" sub="Everyone with a login on this campaign." action={action} />
-      <Card pad={0}><div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-          <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Name</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Username</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Role</th><th /></tr></thead>
-          <tbody>{people.map((p) => (<tr key={p.id} style={{ borderTop: `1px solid ${C.line}` }}><td style={{ padding: "12px 18px", fontWeight: 600 }}>{p.full_name || p.username}</td><td style={{ padding: "12px 8px", color: C.sub }}>{p.username}</td><td style={{ padding: "12px 8px" }}>{ROLE_LABEL[p.role]}{!p.is_active && <span style={{ color: C.sub }}> · turned off</span>}</td><td style={{ padding: "12px 18px", textAlign: "right" }}>{canReset(role, p) && <Btn onClick={() => onReset(p)}>Reset password</Btn>}</td></tr>))}</tbody>
+      <Card pad={0}><div className="app-s41" >
+        <table className="app-s42" >
+          <thead><tr className="app-s43" ><th className="app-s44" >Name</th><th className="app-s46" >Username</th><th className="app-s46" >Role</th><th /></tr></thead>
+          <tbody>{people.map((p) => (<tr key={p.id} className="app-s48" ><td className="app-s84" >{p.full_name || p.username}</td><td className="app-s98" >{p.username}</td><td className="app-s86" >{ROLE_LABEL[p.role]}{!p.is_active && <span className="app-s89" > · turned off</span>}</td><td className="app-s90" >{canReset(role, p) && <Btn onClick={() => onReset(p)}>Reset password</Btn>}</td></tr>))}</tbody>
         </table>
       </div></Card>
-      {!manager && role === "candidate" && <div style={{ fontSize: 12, color: C.sub, marginTop: 10 }}>This campaign has no manager yet. Add one to run the day-to-day.</div>}
+      {!manager && role === "candidate" && <div className="app-s110" >This campaign has no manager yet. Add one to run the day-to-day.</div>}
     </>
   );
 }
@@ -927,11 +936,11 @@ function ManagerForm({ campaignId, sitting, onClose }) {
   };
   return (
     <Modal title={sitting ? "Replace manager" : "Add manager"} sub={sitting ? `${sitting.full_name || sitting.username} comes off the campaign and their login is turned off.` : "One manager per campaign. They add mobilizers and run the day-to-day."} onClose={onClose}>
-      <Label>Full name</Label><input aria-label="Full name" style={FIELD} value={name} onChange={(e) => setName(e.target.value)} />
-      <div style={{ height: 14 }} /><Label>Username</Label><input aria-label="Username" style={FIELD} value={username} onChange={(e) => setUsername(e.target.value)} placeholder="amina" />
-      <div style={{ height: 14 }} /><Label>Phone</Label><input aria-label="Phone" style={FIELD} value={phone} onChange={(e) => setPhone(e.target.value)} />
-      {set.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{set.error.message}</div>}
-      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+      <Label>Full name</Label><input aria-label="Full name" className="app-field" value={name} onChange={(e) => setName(e.target.value)} />
+      <div className="app-s64"  /><Label>Username</Label><input aria-label="Username" className="app-field" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="amina" />
+      <div className="app-s64"  /><Label>Phone</Label><input aria-label="Phone" className="app-field" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      {set.error && <div className="app-s68" >{set.error.message}</div>}
+      <div className="flex justify-end gap-2 app-s24" >
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!ok || set.isPending} onClick={save}>{set.isPending ? "Saving…" : sitting ? "Replace manager" : "Add manager"}</PrimaryBtn>
       </div>
@@ -951,8 +960,8 @@ function ResetPasswordForm({ campaignId, person, onClose }) {
   }
   return (
     <Modal title={`Reset ${name}'s password`} sub="Their old password stops working and they are signed out." onClose={onClose}>
-      {reset.error && <div style={{ color: C.red, fontSize: 12.5 }}>{reset.error.message}</div>}
-      <div className="flex justify-end gap-2" style={{ marginTop: reset.error ? 14 : 0 }}>
+      {reset.error && <div className="app-s120" >{reset.error.message}</div>}
+      <div className="flex justify-end gap-2" style={{marginTop: reset.error ? 14 : 0}}>
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={reset.isPending} onClick={() => reset.mutate({ campaign: campaignId, user: person.id })}>{reset.isPending ? "Resetting…" : "Reset password"}</PrimaryBtn>
       </div>
@@ -1001,16 +1010,16 @@ export default function App() {
 
   if (campaigns.isLoading) return <Loading />;
   if (campaigns.error) return <ErrorMsg error={campaigns.error} />;
-  if (!campaign) return <div style={{ padding: 40, fontFamily: "Inter, system-ui" }}>You are not on a campaign yet.</div>;
+  if (!campaign) return <div className="app-s121" >You are not on a campaign yet.</div>;
 
   function renderPage() {
     switch (page) {
       case "overview":
         if (strategy.isLoading) return <Loading />; if (strategy.error) return <ErrorMsg error={strategy.error} />;
         return (<><PageTitle title="Overview" sub={role === "candidate" ? "Where the campaign stands today." : "Your command view of the seat."} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div className="app-s122" >
             <TallyHero s={strategy.data} />
-            <div className="grid gap-5" style={{ gridTemplateColumns: "minmax(0,1.7fr) minmax(0,1fr)" }}>
+            <div className="grid gap-5 app-s123" >
               <UnitRegister units={strategy.data.units} mobilizers={mobilizers.data || []} onAssign={assign} />
               <StrategyPanel notes={strategy.data.notes} dark />
             </div>
@@ -1038,27 +1047,25 @@ export default function App() {
   }
 
   return (
-    <div style={{ background: C.paper, color: C.ink, minHeight: "100%", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap'); *{box-sizing:border-box}`}</style>
-
-      <div style={{ background: C.railBg, color: "#fff", padding: "10px 18px" }}>
-        <div className="mx-auto flex flex-wrap items-center justify-between gap-3" style={{ maxWidth: 1200 }}>
-          <div className="flex items-center gap-3"><div style={{ ...DISPLAY, fontSize: 18, fontWeight: 700 }}>MZIGO<span style={{ color: C.green }}>·</span>CRM</div><div><div style={{ fontSize: 12, color: "#C7CDC8" }}>{campaign.title}</div><div style={{ fontSize: 11, color: "#8E968F", marginTop: 1 }}>{[campaign.candidate_name && `for ${campaign.candidate_name}`, campaign.seat, campaign.area_name].filter(Boolean).join(" · ")}</div></div></div>
-          <div className="flex items-center gap-3" style={{ fontSize: 12 }}><span style={{ color: "#8E968F" }}>{user?.full_name || user?.username} · {ROLE_LABEL[role]}</span><button onClick={logout} style={{ background: "transparent", border: "1px solid #2A322D", color: "#C7CDC8", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>Sign out</button></div>
+    <div className="app-s124" >
+      <div className="app-s125" >
+        <div className="mx-auto flex flex-wrap items-center justify-between gap-3 app-s126" >
+          <div className="flex items-center gap-3"><div className="app-s127" >MZIGO<span className="app-s100" >·</span>CRM</div><div><div className="app-s128" >{campaign.title}</div><div className="app-s129" >{[campaign.candidate_name && `for ${campaign.candidate_name}`, campaign.seat, campaign.area_name].filter(Boolean).join(" · ")}</div></div></div>
+          <div className="flex items-center gap-3 app-s39" ><span className="app-s130" >{user?.full_name || user?.username} · {ROLE_LABEL[role]}</span><button onClick={logout} className="app-s131" >Sign out</button></div>
         </div>
       </div>
 
-      <div className="mx-auto" style={{ maxWidth: 1200, display: "flex" }}>
-        <div style={{ width: 210, flexShrink: 0, borderRight: `1px solid ${C.line}`, padding: "20px 12px" }}>
-          <div style={{ padding: "0 8px 10px", ...DISPLAY, fontSize: 12, letterSpacing: 1.5, color: C.sub, fontWeight: 600 }}>{ROLE_LABEL[role].toUpperCase()}</div>
-          <div className="flex" style={{ flexDirection: "column", gap: 2 }}>
-            {nav.map(([key, label]) => <button key={key} onClick={() => setPage(key)} style={{ textAlign: "left", padding: "9px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: page === key ? 600 : 500, cursor: "pointer", border: "none", background: page === key ? C.ink : "transparent", color: page === key ? "#fff" : C.ink }}>{label}</button>)}
+      <div className="mx-auto app-s132" >
+        <div className="app-s133" >
+          <div className="app-s134" >{ROLE_LABEL[role].toUpperCase()}</div>
+          <div className="flex app-s135" >
+            {nav.map(([key, label]) => <button key={key} onClick={() => setPage(key)} className="app-s136" style={{fontWeight: page === key ? 600 : 500, background: page === key ? C.ink : "transparent", color: page === key ? C.onPrimary : C.ink}}>{label}</button>)}
           </div>
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, padding: "24px 20px 48px" }}>
-          <div className="flex flex-wrap items-end justify-between gap-2" style={{ marginBottom: 18, paddingBottom: 12, borderBottom: `2px solid ${C.ink}` }}>
-            <div style={{ ...DISPLAY, fontSize: 22, fontWeight: 700 }}>{campaign.title}</div>
+        <div className="app-s137" >
+          <div className="flex flex-wrap items-end justify-between gap-2 app-s138" >
+            <div className="app-s139" >{campaign.title}</div>
           </div>
           {renderPage()}
         </div>

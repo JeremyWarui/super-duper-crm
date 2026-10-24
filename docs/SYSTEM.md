@@ -314,7 +314,7 @@ counts toward, not what they can see.
 | Operator console: campaigns, logins, members | Built | `frontend/src/components/Admin.jsx` |
 | New campaign wizard (seat, area, unit preview, logins) | Built | `frontend/src/components/Onboarding.jsx` |
 | Targets and win number, turnout slider | Built | |
-| Mobilizers, placed by ward or centre | Built | The console's centre picker for MCA mobilizers is waiting to be committed with the styling work (section 9) |
+| Mobilizers, placed by ward or centre | Built | Also from the console, with a centre picker for MCA campaigns |
 | Team page: manager, password resets | Built | |
 | Events, recording, QR sign-up with Copy and WhatsApp sharing | Built | |
 | Campaign-wide sign-up link, with ward or centre picker | Built | |
@@ -467,37 +467,40 @@ in full without either:
 
 ---
 
-## 9. Work in progress: moving styles into stylesheets
+## 9. Work in progress: moving styles out of the components
 
 The frontend is being reorganised. Its screens were built with styling written
 inline on each element (`style={{ ... }}`), which makes the components long and
-hard to restructure. The styling is being moved into one stylesheet per
-component, so the components hold structure and behaviour only, and later work
-on organising the application (splitting large files, sharing layout pieces)
-can proceed without dragging styles along.
+hard to restructure. The styling is moving into the stylesheet, so the
+components hold structure and behaviour only, and later work on organising the
+application (splitting large files, sharing layout pieces) can proceed without
+dragging styles along.
 
-Where it stands on 24 October 2026 (not yet committed; paths under
-`frontend/src/`):
+Where it stands on 25 October 2026 (paths under `frontend/src/`):
 
-| File | Stylesheet | Inline styles left |
-|---|---|---|
-| `components/Admin.jsx` | `Admin.css` | 0 |
-| `components/Onboarding.jsx` | `Onboarding.css` | 0 |
-| `components/Login.jsx` | `Login.css` | 0 |
-| `components/Join.jsx` | `Join.css` | 0 |
-| `Gate.jsx` | `Gate.css` | 0 |
-| `App.jsx` | `App.css` | 29, mostly values computed at run time, such as progress bar widths and status colours |
+- **`index.css`** holds the styles, with the design tokens (colours, fonts,
+  sizes) defined once as CSS variables at its top.
+- **`components/ui/`** holds shared building blocks, such as `Button`, so each
+  screen stops redefining them.
+- **`lib/`** holds small shared helpers, such as number formatting.
+
+| File | Inline styles left |
+|---|---|
+| `components/Admin.jsx`, `Onboarding.jsx`, `Login.jsx`, `Gate.jsx` | 0 |
+| `components/Join.jsx` | 4, the place picker and withdrawal note added after the move |
+| `components/Withdraw.jsx` | 7, a page added after the move |
+| `App.jsx` | 33: values computed at run time, such as progress bar widths and status colours, and the sharing buttons and campaign-link dialog added after the move |
 
 `frontend/tests/styles.test.js` reads every component and fails on a class name
 no stylesheet defines, so a missing style is caught by the tests, not by a user.
 
 **What it opens up next:**
 
+- **Finish the move** for the screens added since (the sign-up place picker,
+  the withdrawal page, the sharing buttons).
 - **Split `App.jsx`** (about 1,000 lines: every campaign screen, form and modal)
-  into one file per page and per form. This is the largest piece of structural
-  debt in the frontend.
-- **Share the design tokens** (colours, fonts, spacing) as CSS variables in one
-  place, instead of each stylesheet repeating the values.
+  into one file per page and per form, built from `components/ui/`. This is
+  the largest piece of structural debt in the frontend.
 - **Rework the phone layout.** `index.css` already stacks the side menu above
   the page below 860px and drops grids to one column below 720px; the tables
   and forms mobilizers use in the field have not been designed for a phone.

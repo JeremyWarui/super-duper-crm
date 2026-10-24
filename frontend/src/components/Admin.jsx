@@ -15,75 +15,35 @@ import {
   useSetActive,
 } from "../api/hooks";
 import { useAuth } from "../store/auth";
+import { formatNumber as fmt } from "../lib/format";
+import {
+  Button,
+  Field as SharedField,
+  LoadingState,
+  Panel,
+} from "./ui";
 import Onboarding from "./Onboarding";
 
-const C = {
-  ink: "#171C1F",
-  paper: "#E9EBE6",
-  panel: "#FFFFFF",
-  green: "#0B6B3A",
-  greenSoft: "#E1EEE7",
-  red: "#B4231F",
-  redSoft: "#F6E3E1",
-  amber: "#B9791A",
-  line: "#D7DBD4",
-  sub: "#5C655F",
-};
-const DISPLAY = { fontFamily: "Oswald, Impact, sans-serif" };
-const FIELD = {
-  padding: "8px 10px",
-  borderRadius: 8,
-  border: `1px solid ${C.line}`,
-  fontSize: 13,
-  background: C.panel,
-  fontFamily: "inherit",
-};
-const fmt = (n) => Number(n || 0).toLocaleString();
-
-const Card = ({ children, pad = 18, style }) => (
-  <div
-    style={{
-      background: C.panel,
-      border: `1px solid ${C.line}`,
-      borderRadius: 14,
-      padding: pad,
-      ...style,
-    }}
-  >
-    {children}
-  </div>
+const Card = (props) => (
+  <Panel
+    {...props}
+    className={`admin-card ${props.pad === 20 ? "admin-card-padded" : ""} ${props.className || ""}`.trim()}
+  />
 );
 
 const Btn = ({ children, onClick, disabled, tone }) => (
-  <button
+  <Button
     onClick={onClick}
     disabled={disabled}
-    style={{
-      padding: "6px 12px",
-      borderRadius: 8,
-      fontSize: 12.5,
-      fontWeight: 600,
-      cursor: disabled ? "default" : "pointer",
-      border: `1px solid ${disabled ? C.line : tone === "danger" ? C.red : C.line}`,
-      background: disabled ? C.paper : C.panel,
-      color: disabled ? C.sub : tone === "danger" ? C.red : C.ink,
-    }}
+    tone={tone}
+    className="admin-button"
   >
     {children}
-  </button>
+  </Button>
 );
 
-const Pill = ({ text, color, soft }) => (
-  <span
-    style={{
-      padding: "1px 8px",
-      borderRadius: 999,
-      fontSize: 11,
-      fontWeight: 600,
-      color,
-      background: soft,
-    }}
-  >
+const Pill = ({ text }) => (
+  <span className={`admin-pill admin-pill-${text}`}>
     {text}
   </span>
 );
@@ -99,11 +59,8 @@ function Danger({ label, question, onConfirm, disabled, busy }) {
       </Btn>
     );
   return (
-    <span
-      className="flex flex-wrap items-center gap-2"
-      style={{ fontSize: 12.5 }}
-    >
-      <span style={{ color: C.red }}>{question}</span>
+    <span className="flex flex-wrap items-center gap-2 admin-confirmation">
+      <span className="admin-red">{question}</span>
       <Btn
         tone="danger"
         disabled={disabled}
@@ -119,19 +76,13 @@ function Danger({ label, question, onConfirm, disabled, busy }) {
   );
 }
 
-const ROLE_TONE = {
-  candidate: { color: C.green, soft: C.greenSoft },
-  manager: { color: C.ink, soft: C.paper },
-  mobilizer: { color: C.amber, soft: "#F4EAD6" },
-};
-
 function Stat({ label, value }) {
   return (
     <div>
-      <div style={{ ...DISPLAY, fontSize: 26, fontWeight: 700, lineHeight: 1 }}>
+      <div className="admin-display admin-stat-value">
         {fmt(value)}
       </div>
-      <div style={{ fontSize: 12, color: C.sub, marginTop: 3 }}>{label}</div>
+      <div className="admin-stat-label">{label}</div>
     </div>
   );
 }
@@ -141,39 +92,26 @@ function Stat({ label, value }) {
 function Handout({ shown }) {
   if (!shown.length) return null;
   return (
-    <Card style={{ marginTop: 16, borderColor: C.amber }}>
+    <Card className="admin-card-handout">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div style={{ ...DISPLAY, fontSize: 15, fontWeight: 600 }}>
+        <div className="admin-display admin-handout-heading">
           Write these down now
         </div>
-        <span style={{ fontSize: 12, color: C.amber }}>
+        <span className="admin-handout-note">
           shown once, never fetchable again
         </span>
       </div>
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          fontSize: 13,
-          marginTop: 10,
-        }}
-      >
+      <table className="admin-handout-table">
         <tbody>
           {shown.map((p, i) => (
             <tr
               key={p.username}
-              style={i ? { borderTop: `1px solid ${C.line}` } : undefined}
+              className={i ? "admin-handout-row" : undefined}
             >
-              <td style={{ padding: "7px 0", fontWeight: 600 }}>
+              <td className="admin-handout-cell admin-handout-username">
                 {p.username}
               </td>
-              <td
-                style={{
-                  padding: "7px 0",
-                  textAlign: "right",
-                  fontFamily: "ui-monospace, monospace",
-                }}
-              >
+              <td className="admin-handout-cell admin-handout-password">
                 {p.password}
               </td>
             </tr>
@@ -203,13 +141,13 @@ function CampaignCard({ campaign, users }) {
   const error = remove.error || add.error || rename.error || drop.error;
 
   return (
-    <Card style={{ marginBottom: 14 }}>
+    <Card className="admin-card-campaign">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           {renaming ? (
             <div className="flex flex-wrap items-center gap-2">
               <input
-                style={{ ...FIELD, minWidth: 240 }}
+                className="admin-field admin-field-campaign"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 aria-label="Campaign name"
@@ -229,7 +167,7 @@ function CampaignCard({ campaign, users }) {
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <div style={{ ...DISPLAY, fontSize: 18, fontWeight: 700 }}>
+              <div className="admin-display admin-campaign-title">
                 {campaign.title}
               </div>
               <Btn
@@ -249,12 +187,12 @@ function CampaignCard({ campaign, users }) {
               />
             </div>
           )}
-          <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>
+          <div className="admin-campaign-meta admin-subtle">
             {campaign.office_level} · for {campaign.candidate || "no candidate"}{" "}
             · {campaign.election_date || "no election date"}
           </div>
         </div>
-        <div className="flex flex-wrap gap-4" style={{ fontSize: 12.5 }}>
+        <div className="flex flex-wrap gap-4 admin-campaign-counts">
           <span>
             <b>{fmt(campaign.targets)}</b> targets
           </span>
@@ -274,30 +212,22 @@ function CampaignCard({ campaign, users }) {
         </div>
       </div>
 
-      <div
-        style={{
-          marginTop: 12,
-          borderTop: `1px solid ${C.line}`,
-          paddingTop: 10,
-        }}
-      >
+      <div className="admin-campaign-members">
         {campaign.members.length === 0 && (
-          <div style={{ fontSize: 12.5, color: C.red }}>
+          <div className="admin-red admin-campaign-meta">
             Nobody is on this campaign, so nobody can see it. Add someone below.
           </div>
         )}
         {campaign.members.map((m) => {
-          const tone = ROLE_TONE[m.role] || ROLE_TONE.manager;
           return (
             <div
               key={m.user_id}
-              className="flex flex-wrap items-center justify-between gap-2"
-              style={{ padding: "5px 0", fontSize: 13 }}
+              className="flex flex-wrap items-center justify-between gap-2 admin-campaign-member"
             >
               <span>
                 <b>{m.username}</b>{" "}
-                <span style={{ color: C.sub }}>{m.full_name}</span>{" "}
-                <Pill text={m.role} color={tone.color} soft={tone.soft} />
+                <span className="admin-subtle">{m.full_name}</span>{" "}
+                <Pill text={m.role} />
               </span>
               <Danger
                 label="Take off"
@@ -316,16 +246,16 @@ function CampaignCard({ campaign, users }) {
       </div>
 
       {error && (
-        <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>
+        <div className="admin-error">
           {error.message}
         </div>
       )}
 
-      <div style={{ marginTop: 10 }}>
+      <div className="admin-add-member">
         {adding ? (
           <div className="flex flex-wrap items-center gap-2">
             <select
-              style={FIELD}
+              className="admin-field"
               value={pick}
               onChange={(e) => setPick(e.target.value)}
             >
@@ -336,7 +266,7 @@ function CampaignCard({ campaign, users }) {
                 </option>
               ))}
             </select>
-            <span style={{ fontSize: 12.5, color: C.sub }}>
+            <span className="admin-subtle admin-confirmation">
               as {available.find((u) => u.id === pick)?.role || "themselves"}
             </span>
             <Btn
@@ -374,6 +304,7 @@ const BLANK = {
   phone: "",
   campaign: "",
   ward: "",
+  centre: "",
 };
 
 // The server takes `^[A-Za-z0-9._-]+$`, 3 to 150 characters.
@@ -384,23 +315,11 @@ const ROLES = [
   ["mobilizer", "Mobilizer"],
 ];
 
-function Field({ label, children }) {
-  return (
-    <label style={{ display: "block", flex: 1, minWidth: 150 }}>
-      <span
-        style={{
-          fontSize: 11.5,
-          color: C.sub,
-          display: "block",
-          marginBottom: 3,
-        }}
-      >
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
+const Field = ({ label, children }) => (
+  <SharedField label={label} className="admin-field-label">
+    {children}
+  </SharedField>
+);
 
 function NewLogin({ campaigns, create }) {
   const [open, setOpen] = useState(false);
@@ -409,6 +328,9 @@ function NewLogin({ campaigns, create }) {
 
   const chosen = campaigns.find((c) => c.id === form.campaign);
   const isMobilizer = form.role === "mobilizer";
+  // An MCA campaign is worked by centre, so its mobilizer is placed on one with a target.
+  const centres = chosen?.centres || [];
+  const byCentre = centres.length > 0;
   const name = form.username.trim();
   const ready =
     name.length >= 3 &&
@@ -418,7 +340,7 @@ function NewLogin({ campaigns, create }) {
 
   if (!open)
     return (
-      <div style={{ marginBottom: 12 }}>
+      <div className="admin-section-action">
         <Btn onClick={() => setOpen(true)}>Add a login</Btn>
       </div>
     );
@@ -434,6 +356,7 @@ function NewLogin({ campaigns, create }) {
         phone: form.phone.trim(),
         campaign: form.campaign || null,
         ward: isMobilizer ? form.ward || null : null,
+        registration_centre: isMobilizer && byCentre ? form.centre || null : null,
       },
       {
         onSuccess: () => {
@@ -444,17 +367,15 @@ function NewLogin({ campaigns, create }) {
     );
 
   return (
-    <Card style={{ marginBottom: 14, borderColor: C.ink }}>
-      <div
-        style={{ ...DISPLAY, fontSize: 15, fontWeight: 600, marginBottom: 10 }}
-      >
+    <Card className="admin-card-new-login">
+      <div className="admin-display admin-form-heading">
         A new login
       </div>
 
       <div className="flex flex-wrap gap-2">
         <Field label="Username">
           <input
-            style={{ ...FIELD, width: "100%" }}
+            className="admin-field admin-field-wide"
             value={form.username}
             onChange={(e) => set({ username: e.target.value })}
             placeholder="jane.wanjiku"
@@ -462,7 +383,7 @@ function NewLogin({ campaigns, create }) {
         </Field>
         <Field label="They are a">
           <select
-            style={{ ...FIELD, width: "100%" }}
+            className="admin-field admin-field-wide"
             value={form.role}
             onChange={(e) =>
               set({ role: e.target.value, campaign: "", ward: "" })
@@ -477,37 +398,37 @@ function NewLogin({ campaigns, create }) {
         </Field>
       </div>
 
-      <div style={{ height: 10 }} />
+      <div className="admin-form-spacer" />
       <div className="flex flex-wrap gap-2">
         <Field label="First name">
           <input
-            style={{ ...FIELD, width: "100%" }}
+            className="admin-field admin-field-wide"
             value={form.first_name}
             onChange={(e) => set({ first_name: e.target.value })}
           />
         </Field>
         <Field label="Last name">
           <input
-            style={{ ...FIELD, width: "100%" }}
+            className="admin-field admin-field-wide"
             value={form.last_name}
             onChange={(e) => set({ last_name: e.target.value })}
           />
         </Field>
       </div>
 
-      <div style={{ height: 10 }} />
+      <div className="admin-form-spacer" />
       <div className="flex flex-wrap gap-2">
         <Field label="Email">
           <input
             type="email"
-            style={{ ...FIELD, width: "100%" }}
+            className="admin-field admin-field-wide"
             value={form.email}
             onChange={(e) => set({ email: e.target.value })}
           />
         </Field>
         <Field label="Phone">
           <input
-            style={{ ...FIELD, width: "100%" }}
+            className="admin-field admin-field-wide"
             value={form.phone}
             onChange={(e) => set({ phone: e.target.value })}
             placeholder="0712 345678"
@@ -516,13 +437,13 @@ function NewLogin({ campaigns, create }) {
       </div>
 
       <>
-        <div style={{ height: 10 }} />
+        <div className="admin-form-spacer" />
         <div className="flex flex-wrap gap-2">
           <Field label={isMobilizer ? "Campaign" : "Campaign (optional)"}>
             <select
-              style={{ ...FIELD, width: "100%" }}
+              className="admin-field admin-field-wide"
               value={form.campaign}
-              onChange={(e) => set({ campaign: e.target.value, ward: "" })}
+              onChange={(e) => set({ campaign: e.target.value, ward: "", centre: "" })}
             >
               <option value="">On no campaign yet…</option>
               {campaigns.map((c) => (
@@ -532,10 +453,29 @@ function NewLogin({ campaigns, create }) {
               ))}
             </select>
           </Field>
-          {isMobilizer && (
+          {isMobilizer && byCentre && (
+            <Field label="Centre">
+              <select
+                className="admin-field admin-field-wide"
+                value={form.centre}
+                onChange={(e) => {
+                  const centre = centres.find((c) => c.id === e.target.value);
+                  set({ centre: e.target.value, ward: centre?.ward || "" });
+                }}
+              >
+                <option value="">Choose a centre…</option>
+                {centres.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+          {isMobilizer && !byCentre && (
             <Field label="Ward">
               <select
-                style={{ ...FIELD, width: "100%" }}
+                className="admin-field admin-field-wide"
                 value={form.ward}
                 onChange={(e) => set({ ward: e.target.value })}
                 disabled={!chosen}
@@ -554,23 +494,23 @@ function NewLogin({ campaigns, create }) {
         </div>
       </>
 
-      <div
-        style={{ fontSize: 12, color: C.sub, marginTop: 10, lineHeight: 1.5 }}
-      >
+      <div className="admin-form-help">
         {isMobilizer
-          ? "A mobilizer works one ward, and sees only that ward."
+          ? byCentre
+            ? "In an MCA race a mobilizer works one registration centre."
+            : "A mobilizer works one ward, and sees only that ward."
           : "Leave the campaign blank to create the login now and place it later."}{" "}
         An aspirant gets their login with their campaign, from New campaign.{" "}
         Their password is shown once, above. Write it down.
       </div>
 
       {create.error && (
-        <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>
+        <div className="admin-error">
           {create.error.message}
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2" style={{ marginTop: 12 }}>
+      <div className="flex flex-wrap gap-2 admin-form-actions">
         <Btn disabled={!ready || create.isPending} onClick={submit}>
           {create.isPending ? "Creating…" : "Create the login"}
         </Btn>
@@ -589,31 +529,26 @@ function NewLogin({ campaigns, create }) {
 
 function UserRow({ user, me, onReset, resetting, resetError }) {
   const active = useSetActive();
-  const tone = ROLE_TONE[user.role] || ROLE_TONE.manager;
   const isMe = user.id === me;
   const error = resetError || active.error?.message;
 
   return (
     <div
       data-testid={`login-${user.username}`}
-      style={{
-        borderTop: `1px solid ${C.line}`,
-        padding: "10px 0",
-        fontSize: 13,
-      }}
+      className="admin-user-row"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <b>{user.username}</b>{" "}
-          <span style={{ color: C.sub }}>{user.full_name}</span>{" "}
-          <Pill text={user.role} color={tone.color} soft={tone.soft} />{" "}
+          <span className="admin-subtle">{user.full_name}</span>{" "}
+          <Pill text={user.role} />{" "}
           {user.is_superuser && (
-            <Pill text="superuser" color={C.green} soft={C.greenSoft} />
+            <Pill text="superuser" />
           )}
           {!user.is_active && (
-            <Pill text="disabled" color={C.red} soft={C.redSoft} />
+            <Pill text="disabled" />
           )}
-          <div style={{ fontSize: 11.5, color: C.sub, marginTop: 3 }}>
+          <div className="admin-user-meta">
             {user.email || "no email"} · last in{" "}
             {user.last_login_at ? user.last_login_at.slice(0, 10) : "never"} ·{" "}
             {user.campaign || "on no campaign"}
@@ -649,7 +584,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
         </div>
       </div>
       {error && (
-        <div style={{ color: C.red, fontSize: 12.5, marginTop: 6 }}>
+        <div className="admin-user-error">
           {error}
         </div>
       )}
@@ -657,54 +592,28 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
   );
 }
 
-const WRAP = {
-  minHeight: "100vh",
-  background: C.paper,
-  color: C.ink,
-  fontFamily: "Inter, system-ui, sans-serif",
-};
-
 // The header carries the only way out of the console, so every state renders
 // inside it: a signed-out operator can always sign out and back in.
 function Shell({ me, logout, children }) {
   return (
-    <div style={WRAP}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');`}</style>
-      <div
-        className="flex flex-wrap items-center justify-between gap-3"
-        style={{ padding: "14px 22px", background: C.ink, color: "#fff" }}
-      >
+    <div className="admin-shell">
+      <div className="flex flex-wrap items-center justify-between gap-3 admin-header">
         <div>
-          <span style={{ ...DISPLAY, fontSize: 20, fontWeight: 700 }}>
-            MZIGO<span style={{ color: "#7FD1A3" }}>·</span>ADMIN
+          <span className="admin-display admin-brand">
+            MZIGO<span className="admin-brand-mark">·</span>ADMIN
           </span>
-          <span style={{ fontSize: 12.5, color: "#AEB6B0", marginLeft: 10 }}>
+          <span className="admin-header-description">
             every campaign on this deployment
           </span>
         </div>
-        <div className="flex items-center gap-3" style={{ fontSize: 12.5 }}>
-          <span style={{ color: "#AEB6B0" }}>{me?.username}</span>
-          <button
-            onClick={logout}
-            style={{
-              padding: "6px 12px",
-              borderRadius: 8,
-              border: "1px solid #3A423C",
-              background: "transparent",
-              color: "#fff",
-              cursor: "pointer",
-              fontSize: 12.5,
-            }}
-          >
+        <div className="flex items-center gap-3">
+          <span className="admin-header-user">{me?.username}</span>
+          <button className="admin-header-signout" onClick={logout}>
             Sign out
           </button>
         </div>
       </div>
-      <div
-        style={{ maxWidth: 1100, margin: "0 auto", padding: "22px 16px 60px" }}
-      >
-        {children}
-      </div>
+      <div className="admin-content">{children}</div>
     </div>
   );
 }
@@ -762,17 +671,17 @@ export default function Admin() {
   if (overview.isLoading)
     return (
       <Shell me={me} logout={logout}>
-        <span style={{ color: C.sub }}>Loading the console…</span>
+        <span className="admin-subtle">Loading the console…</span>
       </Shell>
     );
   if (overview.error)
     return (
       <Shell me={me} logout={logout}>
         <Card>
-          <div style={{ color: C.red, fontSize: 13.5 }}>
+          <div className="admin-red admin-overview-error">
             {overview.error.message}
           </div>
-          <div style={{ marginTop: 12 }}>
+          <div className="admin-overview-action">
             <Btn onClick={() => overview.refetch()}>Try again</Btn>
           </div>
         </Card>
@@ -798,7 +707,7 @@ export default function Admin() {
             <Stat label="Supporters" value={totals.supporters} />
           </div>
           {unstaffed > 0 && (
-            <div style={{ color: C.red, fontSize: 12.5, marginTop: 14 }}>
+            <div className="admin-red admin-unstaffed">
               {unstaffed} campaign{unstaffed === 1 ? "" : "s"} with nobody on{" "}
               {unstaffed === 1 ? "it" : "them"}: nobody can see{" "}
               {unstaffed === 1 ? "it" : "them"} until somebody is put on.
@@ -808,10 +717,7 @@ export default function Admin() {
 
         <Handout shown={handouts} />
 
-        <div
-          className="flex gap-1"
-          style={{ margin: "20px 0 14px", fontSize: 13 }}
-        >
+        <div className="flex gap-1 admin-tab-bar">
           {[
             ["campaigns", `Campaigns (${campaigns.length})`],
             ["users", `Logins (${everyone.length})`],
@@ -819,15 +725,7 @@ export default function Admin() {
             <button
               key={key}
               onClick={() => setTab(key)}
-              style={{
-                padding: "7px 14px",
-                borderRadius: 999,
-                cursor: "pointer",
-                border: `1px solid ${tab === key ? C.ink : C.line}`,
-                background: tab === key ? C.ink : "transparent",
-                color: tab === key ? "#fff" : C.sub,
-                fontWeight: 600,
-              }}
+              className={`admin-tab ${tab === key ? "admin-tab-active" : ""}`}
             >
               {label}
             </button>
@@ -835,7 +733,7 @@ export default function Admin() {
         </div>
 
         {tab === "campaigns" && (
-          <div style={{ marginBottom: 12 }}>
+          <div className="admin-section-action">
             <Btn onClick={() => setCreating(true)}>New campaign</Btn>
           </div>
         )}
@@ -843,7 +741,7 @@ export default function Admin() {
         {tab === "campaigns" &&
           (campaigns.length === 0 ? (
             <Card>
-              <span style={{ color: C.sub, fontSize: 13.5 }}>
+              <span className="admin-subtle admin-empty-message">
                 No campaigns yet.
               </span>
             </Card>
@@ -856,8 +754,7 @@ export default function Admin() {
         {tab === "users" && (
           <Card>
             <div
-              className="flex flex-wrap items-center gap-1"
-              style={{ fontSize: 12 }}
+              className="flex flex-wrap items-center gap-1 admin-user-filters"
             >
               {[
                 ["", "Everyone"],
@@ -871,29 +768,23 @@ export default function Admin() {
                     setRoleFilter(key);
                     setFailed({});
                   }}
-                  style={{
-                    padding: "5px 11px",
-                    borderRadius: 999,
-                    cursor: "pointer",
-                    border: `1px solid ${roleFilter === key ? C.ink : C.line}`,
-                    background: roleFilter === key ? C.ink : "transparent",
-                    color: roleFilter === key ? "#fff" : C.sub,
-                  }}
+                  className={`admin-filter ${roleFilter === key ? "admin-filter-active" : ""}`}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: 14 }}>
+            <div className="admin-user-section">
               <NewLogin campaigns={campaigns} create={create} />
             </div>
-            <div style={{ marginTop: 8 }}>
+            <div className="admin-user-list">
               {users.isPending ? (
-                <div style={{ color: C.sub, fontSize: 13, paddingTop: 10 }}>
-                  Loading the logins…
-                </div>
+                <LoadingState
+                  className="admin-loading"
+                  message="Loading the logins…"
+                />
               ) : everyone.length === 0 ? (
-                <div style={{ color: C.sub, fontSize: 13, paddingTop: 10 }}>
+                <div className="admin-empty">
                   Nobody matches that.
                 </div>
               ) : (

@@ -19,7 +19,7 @@ export default function Withdraw({ code }) {
             </div>
             {withdraw.error && <div style={{ color: C.red, fontSize: 13, marginTop: 10 }}>{withdraw.error.message}</div>}
             <button disabled={withdraw.isPending} onClick={() => withdraw.mutate()}
-              style={{ marginTop: 20, width: "100%", padding: "14px", borderRadius: 10, border: "none", fontSize: 16, fontWeight: 600, color: "#fff", background: C.red, cursor: "pointer" }}>
+              style={{ marginTop: 20, width: "100%", padding: "14px", borderRadius: 10, border: "none", fontSize: 16, fontWeight: 600, color: "var(--color-text-on-primary)", background: C.red, cursor: "pointer" }}>
               {withdraw.isPending ? "Removing…" : "Remove my details"}
             </button>
           </>

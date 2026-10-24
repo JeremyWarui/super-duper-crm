@@ -8,28 +8,12 @@ import {
   useUnitsPreview,
   useAdminCreateCampaign,
 } from "../api/hooks";
-
-const C = {
-  ink: "#171C1F",
-  paper: "#E9EBE6",
-  panel: "#FFFFFF",
-  green: "#0B6B3A",
-  red: "#B4231F",
-  amber: "#B9791A",
-  line: "#D7DBD4",
-  sub: "#5C655F",
-};
-const DISPLAY = { fontFamily: "Oswald, Impact, sans-serif" };
-const FIELD = {
-  width: "100%",
-  padding: "10px 12px",
-  borderRadius: 8,
-  border: `1px solid ${C.line}`,
-  fontSize: 14,
-  marginTop: 6,
-  background: C.panel,
-  fontFamily: "inherit",
-};
+import { formatNumber as fmt } from "../lib/format";
+import {
+  Button,
+  FieldLabel,
+  SelectField,
+} from "./ui";
 
 // Each seat and the area it is fought over; the county seats share one area.
 const OFFICES = [
@@ -66,40 +50,23 @@ const OFFICES = [
 ];
 
 const Label = ({ children }) => (
-  <div style={{ fontSize: 13, fontWeight: 600 }}>{children}</div>
+  <FieldLabel className="onboarding-label">{children}</FieldLabel>
 );
-const Select = ({ value, onChange, disabled, children }) => (
-  <select
-    value={value || ""}
-    onChange={(e) => onChange(e.target.value)}
-    disabled={disabled}
-    style={{ ...FIELD, opacity: disabled ? 0.5 : 1 }}
-  >
-    {children}
-  </select>
+const Select = (props) => (
+  <SelectField {...props} className="onboarding-field" />
 );
-
 const Btn = ({ children, onClick, disabled, primary }) => (
-  <button
+  <Button
     onClick={onClick}
     disabled={disabled}
-    style={{
-      padding: "10px 18px",
-      borderRadius: 8,
-      border: primary ? "none" : `1px solid ${C.line}`,
-      background: disabled ? C.line : primary ? C.green : C.panel,
-      color: primary ? "#fff" : C.ink,
-      ...DISPLAY,
-      fontWeight: 600,
-      fontSize: 14,
-      cursor: disabled ? "default" : "pointer",
-    }}
+    primary={primary}
+    className={`onboarding-button ${
+      primary ? "onboarding-button-primary" : "onboarding-button-secondary"
+    }`}
   >
     {children}
-  </button>
+  </Button>
 );
-
-const fmt = (n) => Number(n || 0).toLocaleString();
 
 // The units this seat will be worked on, listed before anything is created.
 function UnitsPreview({ form }) {
@@ -110,49 +77,28 @@ function UnitsPreview({ form }) {
     0,
   );
 
-  const box = {
-    marginTop: 16,
-    border: `1px solid ${C.line}`,
-    borderRadius: 10,
-    overflow: "hidden",
-  };
-  const head = {
-    padding: "10px 14px",
-    background: C.paper,
-    borderBottom: `1px solid ${C.line}`,
-  };
-
   if (isLoading)
     return (
-      <div style={{ ...box, ...head }}>
-        <span style={{ fontSize: 13, color: C.sub }}>
-          Loading the {noun}s…
-        </span>
+      <div className="onboarding-box onboarding-box-head">
+        <span className="onboarding-subtext">Loading the {noun}s…</span>
       </div>
     );
   if (error)
     return (
-      <div style={{ ...box, ...head }}>
-        <span style={{ fontSize: 13, color: C.red }}>{error.message}</span>
+      <div className="onboarding-box onboarding-box-head">
+        <span className="onboarding-error">{error.message}</span>
       </div>
     );
 
   if (units.length === 0) {
     return (
-      <div style={box}>
-        <div style={head}>
-          <span style={{ ...DISPLAY, fontSize: 14, fontWeight: 600 }}>
+      <div className="onboarding-box">
+        <div className="onboarding-box-head">
+          <span className="onboarding-display onboarding-box-title">
             No {noun}s loaded
           </span>
         </div>
-        <div
-          style={{
-            padding: "12px 14px",
-            fontSize: 12.5,
-            color: C.amber,
-            lineHeight: 1.5,
-          }}
-        >
+        <div className="onboarding-box-message">
           {grain === "centre"
             ? "This ward has no registration centres loaded, so an MCA campaign cannot be set up here until they are."
             : "Nothing was found for this area. Check the selection on the previous step."}
@@ -162,38 +108,31 @@ function UnitsPreview({ form }) {
   }
 
   return (
-    <div style={box}>
+    <div className="onboarding-box">
       <div
-        className="flex flex-wrap items-baseline justify-between gap-2"
-        style={head}
+        className="onboarding-box-head flex flex-wrap items-baseline justify-between gap-2"
       >
-        <span style={{ ...DISPLAY, fontSize: 14, fontWeight: 600 }}>
+        <span className="onboarding-display onboarding-box-title">
           {units.length} {noun}
           {units.length === 1 ? "" : "s"}
         </span>
-        <span style={{ fontSize: 12.5, color: C.sub }}>
+        <span className="onboarding-box-count">
           {fmt(registered)} registered voters
         </span>
       </div>
-      <div style={{ maxHeight: 190, overflowY: "auto" }}>
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}
-        >
+      <div className="onboarding-box-table-wrap">
+        <table className="onboarding-box-table">
           <tbody>
             {units.map((u, i) => (
               <tr
                 key={u.id}
-                style={i ? { borderTop: `1px solid ${C.line}` } : undefined}
+                className={i ? "onboarding-box-row" : undefined}
               >
-                <td style={{ padding: "9px 14px", fontWeight: 500 }}>
+                <td className="onboarding-box-cell onboarding-box-cell-name">
                   {u.name}
                 </td>
                 <td
-                  style={{
-                    padding: "9px 14px",
-                    textAlign: "right",
-                    color: C.sub,
-                  }}
+                  className="onboarding-box-cell onboarding-box-cell-count"
                 >
                   {u.registered_voters ? fmt(u.registered_voters) : "—"}
                 </td>
@@ -221,52 +160,52 @@ function PersonStep({ who, title, sub, form, set }) {
   return (
     <>
       <Label>{title}</Label>
-      <div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>{sub}</div>
-      <div style={{ height: 10 }} />
+      <div className="onboarding-subtext">{sub}</div>
+      <div className="onboarding-spacer-10" />
       <div className="flex gap-2">
-        <div style={{ flex: 1 }}>
+        <div className="onboarding-person-field">
           <Label>First name</Label>
           <input
-            style={FIELD}
+            className="onboarding-field"
             value={form[key("first")]}
             onChange={(e) => set({ [key("first")]: e.target.value })}
           />
         </div>
-        <div style={{ flex: 1 }}>
+        <div className="onboarding-person-field">
           <Label>Last name</Label>
           <input
-            style={FIELD}
+            className="onboarding-field"
             value={form[key("last")]}
             onChange={(e) => set({ [key("last")]: e.target.value })}
           />
         </div>
       </div>
-      <div style={{ height: 10 }} />
+      <div className="onboarding-spacer-10" />
       <Label>Username</Label>
       <input
-        style={FIELD}
+        className="onboarding-field"
         value={form[key("username")]}
         onChange={(e) => set({ [key("username")]: e.target.value })}
         placeholder={who === "manager" ? "otieno" : "jane"}
       />
-      <div style={{ height: 10 }} />
+      <div className="onboarding-spacer-10" />
       <Label>Email</Label>
       <input
         type="email"
-        style={FIELD}
+        className="onboarding-field"
         value={form[key("email")]}
         onChange={(e) => set({ [key("email")]: e.target.value })}
         placeholder="name@example.com"
       />
-      <div style={{ height: 10 }} />
+      <div className="onboarding-spacer-10" />
       <Label>Phone</Label>
       <input
-        style={FIELD}
+        className="onboarding-field"
         value={form[key("phone")]}
         onChange={(e) => set({ [key("phone")]: e.target.value })}
         placeholder="0712 345678"
       />
-      <div style={{ fontSize: 12, color: C.sub, marginTop: 8 }}>
+      <div className="onboarding-help">
         They get a login for this campaign only, and its password is shown once
         at the end. Write it down: nothing is emailed yet, so the address is
         only kept on record.
@@ -280,37 +219,21 @@ const ROLE_NAME = { candidate: " (aspirant)", manager: " (manager)" };
 // A new login, shown once after setup.
 function NewLogin({ login }) {
   return (
-    <div
-      style={{
-        marginTop: 16,
-        border: `1px solid ${C.line}`,
-        borderRadius: 10,
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          padding: "9px 14px",
-          background: C.paper,
-          borderBottom: `1px solid ${C.line}`,
-        }}
-      >
-        <span style={{ ...DISPLAY, fontSize: 13, fontWeight: 600 }}>
+    <div className="onboarding-box">
+      <div className="onboarding-box-head">
+        <span className="onboarding-display onboarding-login-name">
           {login.full_name || login.username}
           {ROLE_NAME[login.role] || ""} signs in with
         </span>
-        <span style={{ fontSize: 12, color: C.amber, marginLeft: 8 }}>
+        <span className="onboarding-box-note onboarding-login-note">
           shown once
         </span>
       </div>
-      <div
-        className="flex items-center justify-between gap-2"
-        style={{ padding: "10px 14px" }}
-      >
-        <span style={{ fontWeight: 600, fontSize: 13.5 }}>
+      <div className="flex items-center justify-between gap-2 onboarding-login-row">
+        <span className="onboarding-login-name">
           {login.username}
         </span>
-        <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13 }}>
+        <span className="onboarding-login-password">
           {login.password}
         </span>
       </div>
@@ -402,71 +325,35 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
     setup.mutate(payload);
   };
 
-  const wrap = {
-    minHeight: "100vh",
-    background: C.paper,
-    color: C.ink,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    fontFamily: "Inter, system-ui, sans-serif",
-  };
-  const card = {
-    width: "100%",
-    maxWidth: 460,
-    background: C.panel,
-    border: `1px solid ${C.line}`,
-    borderRadius: 14,
-    padding: 24,
-  };
-
   // success screen (after setup returns)
   if (setup.isSuccess) {
     const s = setup.data.setup;
     return (
-      <div style={wrap}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');`}</style>
-        <div style={card}>
-          <div
-            style={{
-              ...DISPLAY,
-              fontSize: 13,
-              letterSpacing: 1.5,
-              color: C.green,
-              fontWeight: 600,
-            }}
-          >
+      <div className="onboarding-shell">
+        <div className="onboarding-card">
+          <div className="onboarding-success-kicker">
             THE CAMPAIGN IS SET UP
           </div>
-          <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>
+          <div className="onboarding-success-meta">
             Win number across {s.units}{" "}
             {s.grain === "centre" ? "registration centres" : "wards"}:
           </div>
-          <div
-            style={{
-              ...DISPLAY,
-              fontSize: 60,
-              fontWeight: 700,
-              lineHeight: 1,
-              marginTop: 6,
-            }}
-          >
+          <div className="onboarding-display onboarding-win-number">
             {Number(s.win_number).toLocaleString()}
           </div>
-          <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>
+          <div className="onboarding-success-meta">
             from {Number(s.total_registered).toLocaleString()} registered
             voters, at the county's 2022 turnout.
           </div>
           {s.note && (
-            <div style={{ fontSize: 12.5, color: C.amber, marginTop: 12 }}>
+            <div className="onboarding-success-note">
               {s.note}
             </div>
           )}
           {setup.data.logins.map((login) => (
             <NewLogin key={login.id} login={login} />
           ))}
-          <div style={{ marginTop: 20 }}>
+          <div className="onboarding-success-action">
             <Btn primary onClick={() => onDone(setup.data)}>
               Back to the console
             </Btn>
@@ -477,29 +364,20 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
   }
 
   return (
-    <div style={wrap}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');`}</style>
-      <div style={card}>
+    <div className="onboarding-shell">
+      <div className="onboarding-card">
         <div className="flex items-center justify-between">
-          <div style={{ ...DISPLAY, fontSize: 22, fontWeight: 700 }}>
-            MZIGO<span style={{ color: C.green }}>·</span>CRM
+          <div className="onboarding-display onboarding-brand">
+            MZIGO<span className="onboarding-brand-mark">·</span>CRM
           </div>
           <button
             onClick={onCancel}
-            style={{
-              background: "transparent",
-              border: `1px solid ${C.line}`,
-              color: C.sub,
-              borderRadius: 8,
-              padding: "5px 10px",
-              cursor: "pointer",
-              fontSize: 12,
-            }}
+            className="onboarding-cancel"
           >
             Cancel
           </button>
         </div>
-        <div style={{ fontSize: 12.5, color: C.sub, marginBottom: 16 }}>
+        <div className="onboarding-progress">
           New campaign · step {step + 1} of {steps.length}
         </div>
 
@@ -512,7 +390,7 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
               form={form}
               set={set}
             />
-            <div style={{ marginTop: 20, textAlign: "right" }}>
+            <div className="onboarding-actions-right">
               <Btn
                 primary
                 disabled={!aspirantReady}
@@ -534,17 +412,11 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
               set={set}
             />
             {sameUsername && (
-              <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>
+              <div className="onboarding-error">
                 The manager needs a different username from the aspirant.
               </div>
             )}
-            <div
-              style={{
-                marginTop: 20,
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
+            <div className="onboarding-actions">
               <Btn onClick={() => setStep(step - 1)}>Back</Btn>
               <Btn
                 primary
@@ -561,26 +433,24 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
           <>
             <Label>Campaign name</Label>
             <input
-              style={FIELD}
+              className="onboarding-field"
               value={form.title}
               onChange={(e) => set({ title: e.target.value })}
               placeholder="e.g. Jane for Roysambu"
               autoFocus
             />
-            <div style={{ height: 14 }} />
+            <div className="onboarding-spacer-14" />
             <Label>Election date</Label>
             <input
               type="date"
-              style={FIELD}
+              className="onboarding-field"
               value={form.election_date}
               onChange={(e) => set({ election_date: e.target.value })}
             />
             <div
-              style={{
-                marginTop: 20,
-                display: "flex",
-                justifyContent: step > 0 ? "space-between" : "flex-end",
-              }}
+              className={`onboarding-actions ${
+                step === 0 ? "onboarding-actions-end" : ""
+              }`}
             >
               {step > 0 && <Btn onClick={() => setStep(step - 1)}>Back</Btn>}
               <Btn
@@ -597,14 +467,7 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
         {at === "office" && (
           <>
             <Label>Which seat is this campaign for?</Label>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 8,
-                marginTop: 8,
-              }}
-            >
+            <div className="onboarding-office-list">
               {OFFICES.map((o) => (
                 <button
                   key={o.key}
@@ -621,37 +484,20 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
                       }),
                     })
                   }
-                  style={{
-                    textAlign: "left",
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    cursor: "pointer",
-                    border: `1px solid ${form.seat === o.key ? C.ink : C.line}`,
-                    background: form.seat === o.key ? C.ink : C.panel,
-                    color: form.seat === o.key ? "#fff" : C.ink,
-                  }}
+                  className={`onboarding-office ${
+                    form.seat === o.key ? "onboarding-office-selected" : ""
+                  }`}
                 >
-                  <div style={{ ...DISPLAY, fontSize: 16, fontWeight: 600 }}>
+                  <div className="onboarding-display onboarding-office-title">
                     {o.label}
                   </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: form.seat === o.key ? "#C7CDC8" : C.sub,
-                    }}
-                  >
+                  <div className="onboarding-office-subtitle">
                     {o.sub}
                   </div>
                 </button>
               ))}
             </div>
-            <div
-              style={{
-                marginTop: 20,
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
+            <div className="onboarding-actions">
               <Btn onClick={() => setStep(step - 1)}>Back</Btn>
               <Btn
                 primary
@@ -680,7 +526,7 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
             </Select>
             {needConstituency && (
               <>
-                <div style={{ height: 12 }} />
+                <div className="onboarding-spacer-12" />
                 <Label>Constituency</Label>
                 <Select
                   value={form.constituency}
@@ -698,7 +544,7 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
             )}
             {needWard && (
               <>
-                <div style={{ height: 12 }} />
+                <div className="onboarding-spacer-12" />
                 <Label>Ward</Label>
                 <Select
                   value={form.ward}
@@ -714,13 +560,7 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
                 </Select>
               </>
             )}
-            <div
-              style={{
-                marginTop: 20,
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
+            <div className="onboarding-actions">
               <Btn onClick={() => setStep(step - 1)}>Back</Btn>
               <Btn
                 primary
@@ -735,17 +575,7 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
 
         {at === "review" && (
           <>
-            <div
-              style={{
-                fontSize: 13.5,
-                lineHeight: 1.5,
-                marginBottom: 12,
-                padding: "10px 12px",
-                borderRadius: 10,
-                background: C.paper,
-                border: `1px solid ${C.line}`,
-              }}
-            >
+            <div className="onboarding-review-notice">
               This creates a new login for{" "}
               <b>{newAspirantName || form.aspirant_username}</b>
               {hasManager && (
@@ -757,7 +587,7 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
               , and the campaign belongs to the aspirant. Passwords are shown
               once on the next screen.
             </div>
-            <div style={{ fontSize: 14, lineHeight: 1.6 }}>
+            <div className="onboarding-review-copy">
               This sets up <b>{form.title}</b> for a{" "}
               <b>{OFFICES.find((o) => o.key === form.seat)?.label}</b> seat.
               We'll pull in every{" "}
@@ -769,17 +599,11 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
             </div>
             <UnitsPreview form={form} />
             {setup.isError && (
-              <div style={{ color: C.red, fontSize: 13, marginTop: 12 }}>
+              <div className="onboarding-review-error">
                 {setup.error.message}
               </div>
             )}
-            <div
-              style={{
-                marginTop: 20,
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
+            <div className="onboarding-actions">
               <Btn onClick={() => setStep(step - 1)} disabled={setup.isPending}>
                 Back
               </Btn>
