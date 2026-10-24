@@ -176,9 +176,8 @@ everyone on **Supporters**, and in an MCA race places people at a centre there.
 
 ### Withdrawing
 
-People take themselves off the register; no screen lets the team remove them.
-The server still has a delete route (`DELETE /api/supporters/{id}/`) that the
-manager, or a mobilizer in their own ward, can call; the screens do not use it.
+People take themselves off the register. The team cannot remove them: there
+is no screen for it, and the server has no route for it either.
 
 - After signing up, the thank-you screen shows the person a **private
   withdrawal link** (`/withdraw/<code>`) to keep. Opening it and pressing
@@ -193,7 +192,9 @@ manager, or a mobilizer in their own ward, can call; the screens do not use it.
 **Not covered yet:** people a mobilizer registered by hand have no withdrawal
 link, nor does a person who signed up again and lost their first link. Both
 need a channel that proves the phone is theirs, such as an SMS they reply to
-(planning question 9).
+(planning question 9). Until then, if such a person asks for their details to be
+erased, nothing in the app can remove that one record; only deleting the whole
+campaign does.
 
 ### What consent is used for
 
@@ -421,7 +422,7 @@ erDiagram
 
 ### The API
 
-59 operations across 45 paths, grouped by purpose. The live list is at `/docs`
+58 operations across 45 paths, grouped by purpose. The live list is at `/docs`
 on a server started with `DEBUG=true`; it is off otherwise.
 
 | Group | Routes | Who |

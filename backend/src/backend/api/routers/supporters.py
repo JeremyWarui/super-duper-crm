@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
 from backend.api.deps import SessionDep, SupporterTeam
@@ -100,13 +100,3 @@ async def place_supporter(
     supporter.registration_centre_id = payload.registration_centre
     await session.commit()
     return supporter
-
-
-@router.delete("/{supporter_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_supporter(
-    supporter_id: uuid.UUID, session: SessionDep, user: SupporterTeam
-) -> Response:
-    supporter = await require_visible(session, user, Supporter, supporter_id, "supporter")
-    await session.delete(supporter)
-    await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -186,20 +186,15 @@ async def test_the_register_is_whole_for_a_manager_one_ward_for_a_mobilizer_clos
 @pytest.mark.parametrize(
     ("role", "codes"),
     [
-        ("manager", (200, 201, 204)),
-        ("mobilizer", (200, 201, 204)),
-        ("candidate", (403, 403, 403)),
+        ("manager", (200, 201)),
+        ("mobilizer", (200, 201)),
+        ("candidate", (403, 403)),
     ],
 )
-async def test_only_the_campaign_team_lists_adds_and_erases_supporters(
-    client: httpx.AsyncClient, world: World, role: str, codes: tuple[int, int, int]
+async def test_only_the_campaign_team_lists_and_adds_supporters(
+    client: httpx.AsyncClient, world: World, role: str, codes: tuple[int, int]
 ) -> None:
     head = world.headers(role)
-    existing = (
-        await client.post(
-            "/api/supporters/", headers=world.headers("manager"), json=_supporter(world)
-        )
-    ).json()
 
     listed = await client.get("/api/supporters/", headers=head)
     added = await client.post(
@@ -207,13 +202,28 @@ async def test_only_the_campaign_team_lists_adds_and_erases_supporters(
         headers=head,
         json=_supporter(world, full_name="Otieno K.", phone="+254700555666"),
     )
-    erased = await client.delete(f"/api/supporters/{existing['id']}/", headers=head)
 
-    assert (listed.status_code, added.status_code, erased.status_code) == codes
+    assert (listed.status_code, added.status_code) == codes
 
 
-async def test_a_mobilizer_cannot_erase_a_supporter_with_no_ward(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+@pytest.mark.parametrize("role", ["manager", "mobilizer", "candidate"])
+async def test_nobody_on_the_team_erases_a_supporter(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, role: str
+) -> None:
+    existing = (
+        await client.post(
+            "/api/supporters/", headers=world.headers("manager"), json=_supporter(world)
+        )
+    ).json()
+
+    erased = await client.delete(f"/api/supporters/{existing['id']}/", headers=world.headers(role))
+
+    assert erased.status_code in (404, 405)  # no such route, whatever else shares the path
+    assert await session.scalar(select(func.count()).select_from(Supporter)) == 1
+
+
+async def test_a_supporter_with_no_ward_is_outside_every_mobilizer_s_ward(
+    client: httpx.AsyncClient, world: World
 ) -> None:
     created = (
         await client.post(
@@ -221,13 +231,14 @@ async def test_a_mobilizer_cannot_erase_a_supporter_with_no_ward(
         )
     ).json()
 
-    erased = await client.delete(
-        f"/api/supporters/{created['id']}/", headers=world.headers("mobilizer")
+    placed = await client.patch(
+        f"/api/supporters/{created['id']}/",
+        headers=world.headers("mobilizer"),
+        json={"registration_centre": str(world.centre.id)},
     )
 
     assert created["ward"] is None
-    assert erased.status_code == 403
-    assert await session.scalar(select(func.count()).select_from(Supporter)) == 1
+    assert placed.status_code == 403
 
 
 async def test_assigning_a_taken_ward_moves_its_mobilizer_off_and_null_removes(

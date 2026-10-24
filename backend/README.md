@@ -108,7 +108,7 @@ Everything is under `/api`, with a trailing slash, and needs
 | `GET POST /api/targets/`, `PATCH DELETE …/{id}/` | The win number per unit. |
 | `GET POST /api/mobilizers/`, `DELETE …/{id}/` | Who works which ward. |
 | `GET POST /api/events/`, `DELETE …/{id}/`, `POST …/{id}/record/`, `…/{id}/invite/` | Events, attendance, SMS invitations. |
-| `GET POST /api/supporters/`, `DELETE …/{id}/` | The supporter register. |
+| `GET POST /api/supporters/`, `PATCH …/{id}/` | The supporter register, and placing someone at a centre. Nobody on the team deletes a supporter; they withdraw themselves. |
 | `GET /api/strategy/?campaign=` | The computed dashboard. |
 | `POST /api/users/`, `DELETE …/{id}/` | Mobilizer logins; the password is returned once. |
 | `/api/admin/…` | The console; superusers only. |
