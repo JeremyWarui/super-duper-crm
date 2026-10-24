@@ -85,6 +85,45 @@ runs `alembic upgrade head` before the new release takes traffic, so a failing
 migration fails the deploy and the running machines keep the old release. Each
 revision commits on its own, so revisions before the failing one stay applied.
 
+**After the migrations are squashed.** While there is no real data, the
+revisions are folded back into one from time to time, and the new one gets an
+ID no earlier revision used (today `schema_20261024`). A database built from an
+earlier chain then stops the release: `alembic upgrade head` fails with
+`Can't locate revision identified by '...'`, the deploy aborts, and the running
+release keeps serving. Nothing is changed.
+
+Before deploying again, fix that database from your own machine, in `backend/`.
+The commands read the database from `backend/.env`; for Neon, point it at Neon
+first as "Working against Neon from your machine" below describes, and point it
+back at your local database afterwards.
+
+1. **See which revision it is at** (read-only):
+
+   ```powershell
+   uv run alembic current
+   ```
+
+   An old database answers `Can't locate revision identified by '<id>'`.
+
+2. **At `0006`** (the last revision folded into `schema_20261024`), its schema
+   is already the new one, so relabel it:
+
+   ```powershell
+   uv run alembic stamp --purge schema_20261024
+   ```
+
+3. **At `0001` to `0005`**, rebuild it. This deletes every table and row in
+   that database, and runs only when `--yes` names it:
+
+   ```powershell
+   uv run campaign-crm reset-database --yes <database name>
+   uv run alembic upgrade head
+   uv run campaign-crm seed
+   ```
+
+   Add `uv run campaign-crm demo` for the demo campaign. Run without `--yes`,
+   the first command only prints the name of the database it would empty.
+
 ## Commands on a Fly machine
 
 Steps 3 and 5 run commands on a machine with `flyctl ssh console -C`.

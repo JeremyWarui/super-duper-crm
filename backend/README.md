@@ -42,6 +42,7 @@ uv run campaign-crm rename-campaign -c <id> -t "Jane for Roysambu"
 uv run campaign-crm delete-campaign -c <id>       # says what and who would go; add --yes
 uv run campaign-crm reset-password -u jane
 uv run campaign-crm deactivate -u jane            # and activate
+uv run campaign-crm reset-database --yes <name>   # empty a Postgres database; see DEPLOY.md
 ```
 
 The admin commands run the same service as the admin console. A refusal prints
@@ -209,7 +210,9 @@ are served only when `DEBUG` is on.
 
 ## Migrations
 
-One revision, `alembic/versions/…_0001_schema.py`, builds the schema.
+One revision, `alembic/versions/…-schema_20261024.py`, builds the schema. After the
+revisions are folded into one again, a database built from the old chain is
+relabelled or rebuilt as `DEPLOY.md` describes.
 
 ```bash
 uv run alembic revision --autogenerate -m "what changed"

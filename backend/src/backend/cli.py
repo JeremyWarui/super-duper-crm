@@ -8,7 +8,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.session import get_engine, get_sessionmaker
@@ -159,6 +159,33 @@ async def _remove_member(args: argparse.Namespace, session: AsyncSession) -> int
     return 0
 
 
+async def _reset_database(args: argparse.Namespace, session: AsyncSession) -> int:
+    """Empty the database's public schema, ready for `alembic upgrade head`; Postgres only.
+
+    Runs only when --yes names the database it is connected to.
+    """
+    if session.bind.dialect.name != "postgresql":
+        print(
+            "reset-database works on Postgres only; delete a SQLite file instead.", file=sys.stderr
+        )
+        return 1
+    name = await session.scalar(text("SELECT current_database()"))
+    if args.yes != name:
+        print(
+            f"This would delete every table and row in the database {name}. "
+            f"Run it again with --yes {name}.",
+            file=sys.stderr,
+        )
+        return 1
+    await session.execute(text("DROP SCHEMA public CASCADE"))
+    # Owned and granted as a new database's public schema is.
+    await session.execute(text("CREATE SCHEMA public AUTHORIZATION pg_database_owner"))
+    await session.execute(text("GRANT USAGE ON SCHEMA public TO PUBLIC"))
+    await session.commit()
+    print(f"Emptied {name}. Next: alembic upgrade head, then campaign-crm seed.")
+    return 0
+
+
 async def _rename_campaign(args: argparse.Namespace, session: AsyncSession) -> int:
     campaign = await admin.rename_campaign(session, args.campaign, args.title)
     print(f"The campaign is now called {campaign.title}.")
@@ -259,6 +286,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     needs_campaign(drop)
     drop.add_argument("--yes", action="store_true", help="delete it, rather than only saying what")
+
+    wipe = command(
+        "reset-database",
+        _reset_database,
+        "empty the whole database, ready to rebuild from the migrations (Postgres)",
+    )
+    wipe.add_argument("--yes", metavar="DATABASE", help="the database's name, to confirm")
 
     needs_user(command("deactivate", _set_active, "stop a login working", active=False))
     needs_user(command("activate", _set_active, "let a disabled login work again", active=True))

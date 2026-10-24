@@ -38,3 +38,12 @@ async def test_reset_password_hands_out_one_that_signs_in(
 
     assert await sign_in(client, "jane", password)
     assert "No user called nobody." in capsys.readouterr().err
+
+
+async def test_reset_database_refuses_anything_but_postgres(
+    session: AsyncSession, world: World, capsys: pytest.CaptureFixture
+) -> None:
+    assert await cli(session, "reset-database", "--yes", "anything") == 1
+
+    assert await session.scalar(select(User.username).where(User.username == "jane")) == "jane"
+    assert "Postgres only" in capsys.readouterr().err
