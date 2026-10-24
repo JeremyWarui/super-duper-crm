@@ -3,11 +3,8 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../src/store/auth";
-import { useCampaigns } from "../src/api/hooks";
 import Admin from "../src/components/Admin";
-import App from "../src/App";
-import Login from "../src/components/Login";
-import Onboarding from "../src/components/Onboarding";
+import Root from "../src/Gate";
 import {
   ADMIN_CAMPAIGN,
   ADMIN_ORPHAN,
@@ -25,29 +22,6 @@ const TOTALS = ADMIN_TOTALS;
 const STAFFED = ADMIN_CAMPAIGN;
 const ORPHAN = ADMIN_ORPHAN;
 const USERS = ADMIN_USERS;
-
-// The gate from src/main.jsx.
-function SignedIn() {
-  const role = useAuth((s) => s.user?.role);
-  const campaigns = useCampaigns();
-  const needsSetup =
-    campaigns.isSuccess && campaigns.data.length === 0 && role !== "mobilizer";
-  return needsSetup ? (
-    <Onboarding onDone={() => campaigns.refetch()} />
-  ) : (
-    <App />
-  );
-}
-
-function Inside() {
-  const isSuperuser = useAuth((s) => s.user?.is_superuser);
-  return isSuperuser ? <Admin /> : <SignedIn />;
-}
-
-function Root() {
-  const token = useAuth((s) => s.token);
-  return token ? <Inside /> : <Login />;
-}
 
 function signInAsAdmin() {
   useAuth.setState({

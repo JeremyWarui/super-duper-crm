@@ -1,4 +1,4 @@
-"""Signing up, in, and out."""
+"""Signing in and out; logins are created by the superuser."""
 
 from datetime import UTC, datetime
 
@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import CurrentUser, SessionDep
 from backend.models import AuthToken, User
-from backend.schemas.auth import LoginRequest, LoginResponse, RegisterRequest
+from backend.schemas.auth import LoginRequest, LoginResponse
 from backend.security import hash_password, needs_rehash, new_token_key, verify_password
-from backend.services.accounts import new_login, user_named
+from backend.services.accounts import user_named
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -45,18 +45,6 @@ async def login(payload: LoginRequest, session: SessionDep) -> object:
         )
     if needs_rehash(user.password_hash):
         user.password_hash = hash_password(payload.password)
-    return await _signed_in(session, user)
-
-
-@router.post(
-    "/register/",
-    response_model=LoginResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses={400: {"description": "Username taken"}},
-)
-async def register(payload: RegisterRequest, session: SessionDep) -> object:
-    """Create a candidate or manager login and sign it in."""
-    user, _ = await new_login(session, **payload.model_dump())
     return await _signed_in(session, user)
 
 

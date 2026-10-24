@@ -202,7 +202,7 @@ export function useCancelPayment() {
   });
 }
 
-// ---- Onboarding: geography pickers + campaign setup ----------------------
+// ---- geography pickers ----------------------------------------------------
 export const useCounties = () =>
   useQuery({ queryKey: ["counties"], queryFn: () => api("/counties/") });
 
@@ -219,17 +219,6 @@ export const useWardsIn = (constituencyId) =>
     queryFn: () => api(`/wards/?constituency=${constituencyId}`),
     enabled: !!constituencyId,
   });
-
-// Creates the campaign AND generates its targets in one call; returns the
-// campaign plus a setup summary { grain, units, total_registered, win_number }.
-export function useSetupCampaign() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (payload) =>
-      api("/campaigns/setup/", { method: "POST", body: payload }),
-    onSuccess: () => qc.invalidateQueries(),
-  });
-}
 
 // The user's campaign(s). For a single-campaign MVP, take the first.
 export const useCampaigns = () =>

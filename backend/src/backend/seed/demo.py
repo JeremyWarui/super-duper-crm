@@ -1,4 +1,4 @@
-"""The demo: one campaign with a sign-in per role, and two logins on no campaign."""
+"""The demo: one campaign with a sign-in per role."""
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -28,7 +28,7 @@ from backend.services.accounts import add_member, add_mobilizer
 from backend.services.admin import remove_campaign
 from backend.services.targets import generate_targets
 
-DEMO_USERNAMES = ("aspirant", "manager", "mobilizer", "newaspirant", "newmanager")
+DEMO_USERNAMES = ("aspirant", "manager", "mobilizer")
 
 DEMO_COUNTY = "Nairobi City"
 DEMO_CONSTITUENCY = "Roysambu"
@@ -116,8 +116,6 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     mobilizer_user = _user(
         session, "mobilizer", UserRole.MOBILIZER, "Juma", "Otieno", passwords, "+254700000003"
     )
-    _user(session, "newaspirant", UserRole.CANDIDATE, "Peter", "Kimani", passwords, "+254700000004")
-    _user(session, "newmanager", UserRole.MANAGER, "Grace", "Otieno", passwords, "+254700000005")
     campaign = Campaign(
         title=DEMO_CAMPAIGN_TITLE,
         office_level=OfficeLevel.CONSTITUENCY,
@@ -146,16 +144,6 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
             ("aspirant", passwords["aspirant"], "Candidate: the cockpit, adds mobilizers"),
             ("manager", passwords["manager"], "Campaign manager: the full war room"),
             ("mobilizer", passwords["mobilizer"], f"Mobilizer: {wards[0].name} only"),
-            (
-                "newaspirant",
-                passwords["newaspirant"],
-                "Candidate with no campaign: starts at setup",
-            ),
-            (
-                "newmanager",
-                passwords["newmanager"],
-                "Manager with no campaign: starts at setup, and is asked for the aspirant",
-            ),
         ],
     )
 

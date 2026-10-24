@@ -865,7 +865,8 @@ export default function App() {
   }, [targets.data]);
 
   if (campaigns.isLoading) return <Loading />;
-  if (!campaign) return <div style={{ padding: 40, fontFamily: "Inter, system-ui" }}>No campaign yet — run setup first.</div>;
+  if (campaigns.error) return <ErrorMsg error={campaigns.error} />;
+  if (!campaign) return <div style={{ padding: 40, fontFamily: "Inter, system-ui" }}>You are not on a campaign yet.</div>;
 
   function renderPage() {
     switch (page) {

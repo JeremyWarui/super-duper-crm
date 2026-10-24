@@ -54,15 +54,13 @@ after folding punctuation, and a clipped name matches when only one ward fits.
 Diaspora (48) and prison (49) rows are skipped.
 
 `demo` builds the Roysambu MP campaign with mobilizers, events and supporters on
-some wards, and prints five logins, generated per run unless `--password` or
+some wards, and prints three logins, generated per run unless `--password` or
 `DEFAULT_USER_PASSWORD` is set:
 
 ```
   aspirant     Candidate: the cockpit, adds mobilizers
   manager      Campaign manager: the full war room
   mobilizer    Mobilizer: one ward
-  newaspirant  Candidate with no campaign: starts at setup
-  newmanager   Manager with no campaign: starts at setup, and is asked for the aspirant
 ```
 
 `DEFAULT_USER_PASSWORD` gives every login the app creates the same password.
@@ -100,11 +98,9 @@ Everything is under `/api`, with a trailing slash, and needs
 
 | Route | What it does |
 |---|---|
-| `POST /api/auth/register/` | Sign up as a candidate or a manager, signed in. Open. |
 | `POST /api/auth/login/` `…/logout/` | Username and password for a token; sign out. |
 | `GET /api/counties/` `…/{id}/`, `/api/constituencies/`, `/api/wards/`, `/api/centres/` | Reference geography; a mobilizer sees one ward. |
 | `GET /api/campaigns/` `…/{id}/` | The caller's campaign. |
-| `POST /api/campaigns/setup/` | Create a campaign, its candidate, and all its targets. |
 | `POST /api/campaigns/{id}/generate_targets/` | Rebuild the targets after new data. |
 | `GET POST /api/targets/`, `PATCH DELETE …/{id}/` | The win number per unit. |
 | `GET POST /api/mobilizers/`, `DELETE …/{id}/` | Who works which ward. |
@@ -123,11 +119,11 @@ carry the parent's name beside it. Every error is `{"detail": "<sentence>"}`.
   refuses a second one, and a unique index on `campaign_members.user_id` refuses
   it in the database.
 - **A campaign belongs to its candidate**, the member whose role is candidate; a
-  partial unique index allows one. A candidate sets up their own campaign; a
-  manager sets one up by creating the aspirant's login. Whoever sets it up must
-  be on no campaign.
+  partial unique index allows one.
+- **Only a superuser creates a campaign**, from the console, with new logins for
+  its aspirant and, optionally, its manager. There is no public sign-up.
 - **Inside a campaign only mobilizers are added or removed**, by its manager or
-  its candidate. A manager signs up, or an admin puts one on.
+  its candidate. An admin puts a manager on.
 - **Only an admin deletes a campaign**, and that deletes everything on it and the
   logins of its people.
 - **Scoping is by membership.** A campaign the caller is not on answers 404; a
@@ -137,7 +133,7 @@ carry the parent's name beside it. Every error is `{"detail": "<sentence>"}`.
 |---|---|---|---|
 | Read the campaign and its strategy | yes | yes | their ward |
 | Read the supporter register | no | yes | their ward |
-| Set a campaign up | yes | yes | no |
+| Set a campaign up | no | no | no |
 | Add or remove mobilizers | yes | yes | no |
 | Change targets | no | yes | no |
 | Schedule and record events | no | yes | their ward |
@@ -147,9 +143,10 @@ carry the parent's name beside it. Every error is `{"detail": "<sentence>"}`.
 ## The admin console
 
 A superuser (`createuser --superuser`) gets `/api/admin/`: every campaign with
-its team, wards and size; every login and its campaign; rename and delete a
-campaign; add and remove members; create a login; reset a password; disable or
-enable a login. An admin cannot disable themselves or the last active superuser,
+its team, wards and size; every login and its campaign; create a campaign with
+new logins for its aspirant and manager (`POST /api/admin/campaigns/`, the only
+way one is made); rename and delete a campaign; add and remove members; create a
+login; reset a password; disable or enable a login. An admin cannot disable themselves or the last active superuser,
 and a superuser is never put on a campaign.
 
 ## Invitations

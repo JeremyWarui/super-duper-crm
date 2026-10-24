@@ -140,8 +140,8 @@ async def test_an_admin_deletes_a_campaign_everything_on_it_and_its_logins(
     assert (missing.status_code, missing.json()["detail"]) == (404, "No such campaign.")
 
 
-async def test_the_console_creates_a_manager_on_a_campaign_and_an_aspirant_on_none(
-    client: httpx.AsyncClient, world: World, admin_headers: dict
+async def test_the_console_creates_a_manager_on_a_campaign_but_no_aspirant_on_their_own(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
     manager = await client.post(
         "/api/admin/users/",
@@ -151,19 +151,18 @@ async def test_the_console_creates_a_manager_on_a_campaign_and_an_aspirant_on_no
     aspirant = await client.post(
         "/api/admin/users/",
         headers=admin_headers,
-        json={"username": "newaspirant", "role": "candidate"},
+        json={"username": "loneaspirant", "role": "candidate"},
     )
 
-    assert (manager.status_code, aspirant.status_code) == (201, 201)
-    assert manager.json()["role"] == "manager"
-    for username, created, expected in (
-        ("newmgr", manager, [str(world.campaign.id)]),
-        ("newaspirant", aspirant, []),
-    ):
-        head = auth(await sign_in(client, username, created.json()["password"]))
-        assert [
-            c["id"] for c in (await client.get("/api/campaigns/", headers=head)).json()
-        ] == expected
+    assert manager.status_code == 201
+    head = auth(await sign_in(client, "newmgr", manager.json()["password"]))
+    listed = (await client.get("/api/campaigns/", headers=head)).json()
+    assert [c["id"] for c in listed] == [str(world.campaign.id)]
+    assert (aspirant.status_code, aspirant.json()["detail"]) == (
+        400,
+        "An aspirant gets their login with their campaign: use New campaign.",
+    )
+    assert await session.scalar(select(User).where(User.username == "loneaspirant")) is None
 
 
 async def test_the_console_creates_a_campaign_whose_aspirant_and_manager_see_only_it(
@@ -183,7 +182,7 @@ async def test_the_console_creates_a_campaign_whose_aspirant_and_manager_see_onl
 
     assert response.status_code == 201, response.text
     body = response.json()
-    assert body["setup"]["units"] == 2
+    assert (body["setup"]["units"], body["setup"]["win_number"]) == (2, 19_981)
     assert [(m["username"], m["role"]) for m in body["campaign"]["members"]] == [
         ("wanjiku", "candidate"),
         ("otieno", "manager"),

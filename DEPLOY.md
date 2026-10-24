@@ -69,9 +69,9 @@ values it had. Without `--stage`, Fly makes a new release with the value at
 once.
 
 Leave `DEFAULT_USER_PASSWORD` unset on Fly. When set, every login created for
-someone else (a mobilizer added by a manager, an aspirant named during setup,
-an admin reset with no password given) gets that one password instead of its
-own.
+someone else (a mobilizer added by a manager, an aspirant or manager created
+with a campaign in the console, an admin reset with no password given) gets
+that one password instead of its own.
 
 ## 2. Deploy
 
@@ -117,7 +117,7 @@ place. A seed that stopped partway leaves counties without centres, and only
 `seed --force` finishes it. The live check below (27,273 centres) shows
 whether it completed.
 
-`demo` deletes any earlier demo (the five demo usernames, the campaign they
+`demo` deletes any earlier demo (the three demo usernames, the campaign they
 run, and every other login on that campaign), builds it again, and prints the
 logins. `--password` gives them all one password; without it each gets its own
 generated one. The printed "Sign in at http://localhost:5173" means
@@ -133,9 +133,9 @@ flyctl logs -a mzigo-crm --no-tail
 
 ## 5. Sign in
 
-`campaign_db` holds the demo logins `aspirant`, `manager`, `mobilizer`,
-`newaspirant` and `newmanager`, and the superuser `root`, who gets the admin
-console. Their passwords were shown once, when they were made. To give one a
+`campaign_db` holds the demo logins `aspirant`, `manager` and `mobilizer`, the
+superuser `root`, who gets the admin console, and the logins of any campaign the
+console has created. Their passwords were shown once, when they were made. To give one a
 password you know:
 
 ```powershell
@@ -144,7 +144,7 @@ flyctl ssh console -a mzigo-crm -C "campaign-crm reset-password -u root --passwo
 
 Leave `--password` off and the command prints a generated one instead. Either
 way, every session that login had is signed out. Running step 3's `demo` line
-alone also resets the five demo logins, and replaces the demo campaign.
+alone also resets the three demo logins, and replaces the demo campaign.
 
 A new admin login:
 
@@ -207,7 +207,7 @@ Pop-Location
 
 Without a password flag, a local `demo` gives every account
 `DEFAULT_USER_PASSWORD` when `.env` sets it. `demo` stops without changing
-anything when one of its five usernames belongs to a superuser.
+anything when one of its three usernames belongs to a superuser.
 
 ## Known gaps
 
@@ -229,10 +229,6 @@ anything when one of its five usernames belongs to a superuser.
   rootfs, not CPU. `flyctl scale count <n> -a mzigo-crm` sets the number;
   `min_machines_running = 1` in `fly.toml` keeps one running, billed for CPU
   and memory, while idle, from the next deploy.
-- Sign-up at `POST /api/auth/register/` is open and unthrottled. Anyone with
-  the link can create a candidate or manager account. They see only their own
-  campaign, but nothing stops them making many, and there is no setting that
-  closes it.
 - `flyctl launch` is left out: `mzigo-crm` exists. A new app is created with
   `flyctl launch --no-deploy --copy-config --name <new-name> --region sin`,
   and `<new-name>` replaces `mzigo-crm` in every command above and in

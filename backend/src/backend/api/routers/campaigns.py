@@ -1,23 +1,15 @@
-"""Campaigns: reading them, setting one up, and rebuilding its targets."""
+"""Campaigns: reading them and rebuilding their targets."""
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from backend.api.deps import CurrentUser, SessionDep, Writer
 from backend.api.scope import all_rows, load, require_visible_campaign, visible_campaign_ids
-from backend.models import Campaign, User, UserRole
-from backend.schemas.campaign import (
-    CampaignRead,
-    CampaignSetup,
-    CampaignSetupResponse,
-    SetupSummary,
-)
-from backend.schemas.common import NewLogin
-from backend.services.accounts import add_member, campaign_of, new_login
-from backend.services.campaigns import build_campaign
+from backend.models import Campaign
+from backend.schemas.campaign import CampaignRead, SetupSummary
 from backend.services.targets import generate_targets
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
@@ -46,7 +38,7 @@ def _named(campaign: Campaign) -> CampaignRead:
 
 @router.get("/", response_model=list[CampaignRead])
 async def list_campaigns(session: SessionDep, user: CurrentUser) -> list[CampaignRead]:
-    """The caller's campaign, in a list; empty sends them to setup."""
+    """The caller's campaign, in a list; empty when they are on none."""
     statement = (
         select(Campaign)
         .options(*NAMED)
@@ -54,58 +46,6 @@ async def list_campaigns(session: SessionDep, user: CurrentUser) -> list[Campaig
         .order_by(Campaign.created_at)
     )
     return [_named(c) for c in await all_rows(session, statement)]
-
-
-@router.post("/setup/", response_model=CampaignSetupResponse, status_code=status.HTTP_201_CREATED)
-async def setup_campaign(
-    payload: CampaignSetup, session: SessionDep, user: CurrentUser
-) -> CampaignSetupResponse:
-    """Create a campaign for its candidate, and every one of its targets."""
-    if user.role is UserRole.MOBILIZER:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "A mobilizer may not create a campaign.")
-    current = await campaign_of(session, user.id)
-    if current is not None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"You are already on {current.title}; a login belongs to one campaign.",
-        )
-
-    campaign, summary = await build_campaign(
-        session, **payload.model_dump(exclude={"new_candidate"})
-    )
-    candidate, login = await _candidate(session, user, payload)
-    await add_member(session, campaign.id, candidate)
-    if user.id != candidate.id:
-        await add_member(session, campaign.id, user)
-    await session.commit()
-
-    return CampaignSetupResponse(
-        **_named(await load(session, Campaign, campaign.id, NAMED)).model_dump(),
-        setup=summary,
-        candidate_login=login,
-    )
-
-
-async def _candidate(
-    session: SessionDep, user: User, payload: CampaignSetup
-) -> tuple[User, NewLogin | None]:
-    """A candidate sets up their own campaign; a manager creates the aspirant's login."""
-    if user.role is UserRole.CANDIDATE:
-        if payload.new_candidate is not None:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, "You are the candidate; do not create another."
-            )
-        return user, None
-    if payload.new_candidate is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "Say who this campaign is for: create the aspirant's login.",
-        )
-    details = payload.new_candidate
-    aspirant, password = await new_login(session, role=UserRole.CANDIDATE, **details.model_dump())
-    return aspirant, NewLogin(
-        id=aspirant.id, username=aspirant.username, full_name=aspirant.full_name, password=password
-    )
 
 
 @router.get("/{campaign_id}/", response_model=CampaignRead)

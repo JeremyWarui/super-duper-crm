@@ -32,13 +32,6 @@
       "seat",
       "area_name"
     ],
-    "POST /api/campaigns/setup/": [
-      "id",
-      "title",
-      "setup",
-      "candidate",
-      "candidate_login"
-    ],
     "GET /api/targets/": [
       "id",
       "ward",
@@ -148,10 +141,6 @@
       "votes_committed",
       "wards"
     ],
-    "POST /api/auth/register/": [
-      "token",
-      "user"
-    ],
     "POST /api/targets/": [
       "id",
       "ward",
@@ -218,13 +207,6 @@
       "role",
       "is_superuser"
     ],
-    "POST /api/campaigns/setup/.setup": [
-      "grain",
-      "units",
-      "total_registered",
-      "win_number",
-      "note"
-    ],
     "GET /api/strategy/.units": [
       "unit",
       "ward",
@@ -251,12 +233,6 @@
       "phone",
       "status",
       "detail"
-    ],
-    "POST /api/campaigns/setup/.candidate_login": [
-      "id",
-      "username",
-      "full_name",
-      "password"
     ],
     "GET /api/admin/overview/.totals": [
       "campaigns",
@@ -288,13 +264,6 @@
       "full_name",
       "role"
     ],
-    "POST /api/auth/register/.user": [
-      "id",
-      "username",
-      "full_name",
-      "role",
-      "is_superuser"
-    ],
     "POST /api/admin/campaigns/.setup": [
       "grain",
       "units",
@@ -314,15 +283,6 @@
     "POST /api/auth/login/": [
       "username",
       "password"
-    ],
-    "POST /api/campaigns/setup/": [
-      "title",
-      "seat",
-      "election_date",
-      "county",
-      "constituency",
-      "ward",
-      "new_candidate"
     ],
     "POST /api/mobilizers/": [
       "campaign",
@@ -381,13 +341,6 @@
       "ward",
       "registration_centre"
     ],
-    "POST /api/campaigns/setup/.new_candidate": [
-      "username",
-      "first_name",
-      "last_name",
-      "phone",
-      "email"
-    ],
     "POST /api/admin/users/{user_id}/reset-password/": [
       "password"
     ],
@@ -396,15 +349,6 @@
     ],
     "POST /api/admin/campaigns/{campaign_id}/members/": [
       "user"
-    ],
-    "POST /api/auth/register/": [
-      "username",
-      "password",
-      "role",
-      "first_name",
-      "last_name",
-      "phone",
-      "email"
     ],
     "POST /api/targets/": [
       "campaign",

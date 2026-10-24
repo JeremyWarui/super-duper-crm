@@ -7,8 +7,8 @@ from typing import Any
 
 from pydantic import AliasPath, Field, ValidationInfo, field_validator
 
-from backend.models.enums import EventStatus, OfficeLevel, OperationalGrain, Seat, SupportLevel
-from backend.schemas.common import LoginDetails, NewLogin, ORMModel, WriteModel
+from backend.models.enums import EventStatus, OfficeLevel, OperationalGrain, SupportLevel
+from backend.schemas.common import ORMModel, WriteModel
 
 
 class CampaignRead(ORMModel):
@@ -35,18 +35,6 @@ class CampaignRead(ORMModel):
         return getattr(value, "id", value)
 
 
-class CampaignSetup(WriteModel):
-    """The seat and its area; a manager also creates the aspirant."""
-
-    title: str = Field(min_length=1, max_length=150)
-    seat: Seat
-    election_date: date | None = None
-    county: uuid.UUID | None = None
-    constituency: uuid.UUID | None = None
-    ward: uuid.UUID | None = None
-    new_candidate: LoginDetails | None = None
-
-
 class SetupSummary(ORMModel):
     """What generating the targets produced."""
 
@@ -55,11 +43,6 @@ class SetupSummary(ORMModel):
     total_registered: int
     win_number: int
     note: str | None = None
-
-
-class CampaignSetupResponse(CampaignRead):
-    setup: SetupSummary
-    candidate_login: NewLogin | None = None
 
 
 class TargetRead(ORMModel):

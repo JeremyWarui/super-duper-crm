@@ -45,20 +45,21 @@ frontend/
 ├── index.html
 ├── vite.config.js         also holds the vitest settings
 ├── src/
-│   ├── main.jsx           the gate: sign in -> set up -> dashboard
+│   ├── main.jsx           mounts the app
+│   ├── Gate.jsx           which screen: sign in, console, no campaign, dashboard
 │   ├── App.jsx            the dashboard, one page per nav item
 │   ├── api/
 │   │   ├── client.js      one place that talks to the API
 │   │   └── hooks.js       a query per read, a mutation per write
 │   ├── store/auth.js      the token and the role, kept in localStorage
-│   └── components/        Login.jsx, Onboarding.jsx
+│   └── components/        Login.jsx, Admin.jsx, Onboarding.jsx (the console's new-campaign wizard)
 └── tests/
 ```
 
 ## How it hangs together
 
-`main.jsx` decides which of three screens you are on: no token means `Login`; a
-token with no campaign means `Onboarding`; otherwise `App`.
+`Gate.jsx` decides which screen you are on: no token means `Login`; a superuser
+gets `Admin`; a login on no campaign is told so and can sign out; otherwise `App`.
 
 `App.jsx` reads `user.role` and picks that role's nav. The same role rules are
 enforced on the server, so hiding a button is a convenience, not the control.
@@ -83,9 +84,9 @@ npm test
 | `auth.test.js` | Sign in, sign out, and staying signed in across a reload |
 | `hooks.test.js` | Which query each hook sends, and what a write refreshes |
 | `login.test.jsx` | The sign-in form, including the rejected password |
-| `onboarding.test.jsx` | The four steps, the cascading pickers, the unit preview, and the win number |
+| `onboarding.test.jsx` | The console's new-campaign wizard: the cascading pickers, the unit preview, and the win number |
 | `app.test.jsx` | The dashboard, what each role is shown, the four forms, and inviting |
-| `gate.test.jsx` | Which of the three screens you land on |
+| `gate.test.jsx` | Which screen you land on: sign-in, the console, not on a campaign, or the dashboard |
 | `contract.test.js` | The fixtures and the source still match `contracts/frontend-api.json` |
 
 ## Two things the prototype did not have
@@ -96,22 +97,24 @@ every registration centre in the ward, each with its register and a total. A
 ward with no centres loaded says so there, rather than looking ready and coming
 back with a win number of zero.
 
-**Setup knows whose campaign it is.** A manager is asked first who they are
-running for, and names a new aspirant with first and last name, username, email
-and phone. Every login belongs to one campaign, so there is no existing aspirant
-to pick. The campaign belongs to that aspirant, not to the manager who typed it
-in, and the review screen says a login is about to be created for them. A new
-aspirant never signs up: they get a login whose password is shown once on the
-screen that follows. Nothing is emailed yet, so the address is only kept on
-record. A candidate signing up gets the shorter flow and their own campaign.
+**Only the console sets a campaign up.** There is no public sign-up. The
+superuser's **New campaign** wizard names a new aspirant (first and last name,
+username, email and phone) and, optionally, a manager, then the seat and its
+area. Every login belongs to one campaign, so both are always new. The campaign
+belongs to the aspirant, and the review screen says which logins are about to be
+created. Their passwords are shown once on the screen that follows and kept in
+the console's "Write these down now" card until it is closed. Nothing is emailed
+yet, so an address is only kept on record.
 
-**Setup adds the mobilizers.** The screen that shows the win number adds
-mobilizers, each with a generated password shown once. The Mobilizers page does
-the same later, with a login or without one, for a manager and a candidate
-alike. Nobody adds a campaign manager from inside a campaign. The console only
-offers to put a login on a campaign when it is on none.
+**A login on no campaign is told so.** An aspirant, manager or mobilizer whose
+campaign list is empty sees "You are not on a campaign yet" and can sign out;
+they are never shown setup.
 
-**A superuser gets the console, not a campaign.** `main.jsx` sends an account
+**Mobilizers are added from inside a campaign.** The Mobilizers page adds them,
+with a login or without one, for a manager and a candidate alike, each password
+shown once.
+
+**A superuser gets the console, not a campaign.** `Gate.jsx` sends an account
 with `is_superuser` to `Admin.jsx` instead of the campaign gate: every campaign
 on the deployment with its team and its size, every login and where it reaches,
 and the repairs that cannot be done from inside a campaign (reset a password,
@@ -120,12 +123,11 @@ campaign). A campaign with nobody on it is called out in red, because nobody can
 see it until somebody is put on. The flag only decides what the browser draws;
 every route it calls checks it again.
 
-**The console makes logins.** The Logins tab creates a campaign manager, an
-aspirant or a mobilizer, with the password shown once. A manager can be put on a
-campaign as it is made, or left unplaced; a mobilizer must be given a campaign
-and one of its wards, or they sign in scoped to nothing. An aspirant is made on
-their own: a campaign belongs to the one candidate it names, so theirs is set up
-afterwards and becomes theirs then.
+**The console makes logins.** The Logins tab creates a campaign manager or a
+mobilizer, with the password shown once. A manager can be put on a campaign as
+it is made, or left unplaced; a mobilizer must be given a campaign and one of
+its wards, or they sign in scoped to nothing. An aspirant is never made on their
+own: they get their login with their campaign, from New campaign.
 
 Nothing destructive fires on one click: taking somebody off, disabling a login,
 resetting a password and deleting a campaign each ask first, naming who or what

@@ -22,8 +22,8 @@ class UserCreate(LoginDetails):
         if value != UserRole.MOBILIZER.value:
             raise PydanticCustomError(
                 "role",
-                "Only a mobilizer is added to a campaign. A manager signs up for "
-                "themselves, and an aspirant is named when the campaign is set up.",
+                "Only a mobilizer is added here. The aspirant and the manager get "
+                "their logins when the campaign is created.",
             )
         return value
 

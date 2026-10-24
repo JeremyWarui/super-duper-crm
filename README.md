@@ -46,10 +46,9 @@ same campaign, so you sign out and back in to switch.
 | `aspirant` | **Candidate.** Overview, ward performance, events, mobilizers, strategy. Adds and assigns mobilizers; reads everything else. |
 | `manager` | **Campaign manager.** All of that plus targets, mobilizers and supporters, and every write. |
 | `mobilizer` | **Mobilizer.** One ward. Record events, register supporters, nothing else. |
-| `newaspirant` | **Candidate with no campaign.** Starts at setup, so the onboarding flow can be shown. |
-| `newmanager` | **Manager with no campaign.** Starts at setup, and names the aspirant it is for. |
-
-The demo makes no superuser. Create one to see the admin console:
+The demo makes no superuser. Only a superuser creates campaigns, from the admin
+console's **New campaign** button, with the aspirant's and manager's logins.
+There is no public sign-up. Create one to see the console:
 
 ```bash
 uv run campaign-crm createuser -u root -r manager --superuser

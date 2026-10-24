@@ -14,14 +14,14 @@ is needed and nothing touches the network.
 | `test_models.py` | Keys, deletes, constraints, computed values, enums |
 | `test_win_number.py` | The vote goal across its edge cases |
 | `test_migrations.py` | The migration builds the models' schema, renders as Postgres, downgrades |
-| `test_manager_signup_flow.py` | Sign-up to setup, end to end, on the migrated schema |
+| `test_console_setup_flow.py` | The superuser sets a campaign up, end to end, on the migrated schema |
 | `test_schemas.py` | Read schemas expose their listed fields and nothing else |
 | `test_session.py` | Engine caching, rollback, rewriting a pasted Postgres URL for asyncpg, TLS verification |
 | `test_app.py` | Startup, the /api prefix, CORS, the SPA mount, docs off in a deploy |
 | `test_security.py` | Password hashing, token keys, the default password |
-| `test_auth_api.py` | Sign-up, sign-in and sign-out |
+| `test_auth_api.py` | Sign-in and sign-out |
 | `test_geography_api.py` | Reference reads, and a mobilizer's one ward |
-| `test_campaigns_api.py` | Campaign reads, setup, one campaign per login |
+| `test_campaigns_api.py` | Campaign reads, setup refusals, and that nobody sets one up for themselves |
 | `test_users_api.py` | Mobilizer logins added and removed from inside a campaign |
 | `test_ground_api.py` | Mobilizers, events and the supporter register |
 | `test_ward_in_campaign.py` | A ward or centre in a request must lie inside the seat |

@@ -13,7 +13,7 @@ from backend.models import (
     Ward,
 )
 from backend.security import verify_password
-from backend.seed.demo import seed_demo
+from backend.seed.demo import DEMO_USERNAMES, seed_demo
 from backend.seed.reference import (
     CENTRES_CSV,
     import_centres,
@@ -57,7 +57,7 @@ async def _user(session: AsyncSession, username: str) -> User:
     )
 
 
-async def test_the_demo_builds_its_campaign_team_and_two_logins_on_no_campaign(
+async def test_the_demo_builds_its_campaign_and_team(
     session: AsyncSession,
 ) -> None:
     summary = await _demo(session)
@@ -66,9 +66,9 @@ async def test_the_demo_builds_its_campaign_team_and_two_logins_on_no_campaign(
         "aspirant",
         "manager",
         "mobilizer",
-        "newaspirant",
-        "newmanager",
     ]
+    # The demo clears only its own logins; a real login with another name is never touched.
+    assert DEMO_USERNAMES == ("aspirant", "manager", "mobilizer")
     printed = [password for _, password, _ in summary.sign_ins]
     assert len(set(printed)) == len(printed)
     for username, password, _ in summary.sign_ins:
@@ -88,8 +88,6 @@ async def test_the_demo_builds_its_campaign_team_and_two_logins_on_no_campaign(
         "manager": "manager",
         "mobilizer": "mobilizer",
     }
-    for fresh in ("newaspirant", "newmanager"):
-        assert (await _user(session, fresh)).memberships == []
 
     mobilizer = await session.scalar(
         select(User)

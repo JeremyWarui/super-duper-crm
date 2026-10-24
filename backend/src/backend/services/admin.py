@@ -356,19 +356,8 @@ async def create_user(
             raise Refused("No such ward.")
         if not await ward_in_area(session, target, ward_id):
             raise Refused(f"{ward.name} is not a ward {target.title} works.")
-    if role is UserRole.CANDIDATE and target is not None:
-        sitting = await session.scalar(
-            select(User.username)
-            .join(CampaignMember, CampaignMember.user_id == User.id)
-            .where(
-                CampaignMember.campaign_id == target.id, CampaignMember.role == UserRole.CANDIDATE
-            )
-        )
-        taken = f"is already {sitting}'s campaign" if sitting else "has no candidate"
-        raise Refused(
-            f"{target.title} {taken}. "
-            "Create the aspirant on their own, then put them on a campaign."
-        )
+    if role is UserRole.CANDIDATE:
+        raise Refused("An aspirant gets their login with their campaign: use New campaign.")
 
     created, password = await new_login(
         session,

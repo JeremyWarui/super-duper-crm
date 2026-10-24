@@ -234,23 +234,3 @@ async def admin_headers(session: AsyncSession, client: httpx.AsyncClient) -> dic
     root.is_superuser = True
     await session.commit()
     return auth(await sign_in(client, "root"))
-
-
-@pytest.fixture
-async def new_manager(client: httpx.AsyncClient, session: AsyncSession, world: World) -> dict:
-    """A manager on no campaign yet, signed in as `newmanager`."""
-    from backend.models import UserRole
-    from tests.factories import auth, make_user, sign_in
-
-    await make_user(session, username="newmanager", role=UserRole.MANAGER)
-    return auth(await sign_in(client, "newmanager"))
-
-
-@pytest.fixture
-async def new_candidate(client: httpx.AsyncClient, session: AsyncSession, world: World) -> dict:
-    """An aspirant on no campaign yet, signed in as `newaspirant`."""
-    from backend.models import UserRole
-    from tests.factories import auth, make_user, sign_in
-
-    await make_user(session, username="newaspirant", role=UserRole.CANDIDATE)
-    return auth(await sign_in(client, "newaspirant"))

@@ -2,8 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Onboarding from "../src/components/Onboarding";
-import { useAuth } from "../src/store/auth";
-import { fakeSecret, renderApp, signIn, stubApi } from "./helpers";
+import { renderApp, stubApi } from "./helpers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -16,8 +15,7 @@ const GEOGRAPHY = {
 };
 
 const SETUP_REPLY = {
-  id: "c1",
-  title: "Jane for Roysambu",
+  campaign: { id: "c1", title: "Jane for Roysambu" },
   setup: {
     grain: "ward",
     units: 5,
@@ -25,17 +23,27 @@ const SETUP_REPLY = {
     win_number: 46136,
     note: null,
   },
+  logins: [],
 };
 
 function start(routes = {}) {
-  signIn("candidate");
   const calls = stubApi({ ...GEOGRAPHY, ...routes });
   const onDone = vi.fn();
-  return { calls, onDone, ...renderApp(<Onboarding onDone={onDone} />) };
+  const onCancel = vi.fn();
+  return {
+    calls,
+    onDone,
+    onCancel,
+    ...renderApp(<Onboarding onDone={onDone} onCancel={onCancel} />),
+  };
 }
 
-/** Walk steps 1-3 and stop on the review screen. */
+/** Name the aspirant, skip the manager, and stop on the review screen. */
 async function walkToReview(user, { office = "MP", ward = false } = {}) {
+  await user.type(screen.getByPlaceholderText("jane"), "jane");
+  await user.click(screen.getByRole("button", { name: "Next" }));
+  await user.click(screen.getByRole("button", { name: "Skip" }));
+
   await user.type(
     screen.getByPlaceholderText(/Jane for Roysambu/),
     "Jane for Roysambu",
@@ -57,10 +65,18 @@ async function walkToReview(user, { office = "MP", ward = false } = {}) {
   await user.click(screen.getByRole("button", { name: "Next" }));
 }
 
-describe("setting a campaign up", () => {
+const ASPIRANT = {
+  username: "jane",
+  first_name: "",
+  last_name: "",
+  phone: "",
+  email: "",
+};
+
+describe("setting a campaign up from the console", () => {
   it("sends only the area that matches the seat", async () => {
     const user = userEvent.setup();
-    const { calls } = start({ "POST /campaigns/setup/": SETUP_REPLY });
+    const { calls } = start({ "POST /admin/campaigns/": SETUP_REPLY });
 
     await walkToReview(user);
     await user.click(
@@ -68,19 +84,21 @@ describe("setting a campaign up", () => {
     );
 
     await waitFor(() => {
-      const posted = calls.find((c) => c.path === "/campaigns/setup/");
+      const posted = calls.find((c) => c.path === "/admin/campaigns/");
       expect(posted.body).toEqual({
         title: "Jane for Roysambu",
         seat: "mp",
         election_date: "2027-08-10",
         constituency: "k1",
+        aspirant: ASPIRANT,
+        manager: null,
       });
     });
   });
 
   it("names a county seat on its own and sends only the county", async () => {
     const user = userEvent.setup();
-    const { calls } = start({ "POST /campaigns/setup/": SETUP_REPLY });
+    const { calls } = start({ "POST /admin/campaigns/": SETUP_REPLY });
 
     await walkToReview(user, { office: "Senator" });
     await user.click(
@@ -88,18 +106,20 @@ describe("setting a campaign up", () => {
     );
 
     await waitFor(() =>
-      expect(calls.find((c) => c.path === "/campaigns/setup/").body).toEqual({
+      expect(calls.find((c) => c.path === "/admin/campaigns/").body).toEqual({
         title: "Jane for Roysambu",
         seat: "senator",
         election_date: "2027-08-10",
         county: "cty1",
+        aspirant: ASPIRANT,
+        manager: null,
       }),
     );
   });
 
   it("shows the win number the server worked out", async () => {
     const user = userEvent.setup();
-    start({ "POST /campaigns/setup/": SETUP_REPLY });
+    start({ "POST /admin/campaigns/": SETUP_REPLY });
 
     await walkToReview(user);
     await user.click(
@@ -107,76 +127,18 @@ describe("setting a campaign up", () => {
     );
 
     expect(
-      await screen.findByText("YOUR CAMPAIGN IS SET UP"),
+      await screen.findByText("THE CAMPAIGN IS SET UP"),
     ).toBeInTheDocument();
     expect(screen.getByText("46,136")).toBeInTheDocument();
     expect(screen.getByText(/153,771 registered voters/)).toBeInTheDocument();
   });
-});
 
-// A login belongs to one campaign, so there is never an existing aspirant to pick.
-describe("a manager naming the aspirant", () => {
-  function startWithNoAspirants(routes = {}) {
-    signIn("manager");
-    const calls = stubApi({ ...GEOGRAPHY, ...routes });
-    const onDone = vi.fn();
-    return { calls, onDone, ...renderApp(<Onboarding onDone={onDone} />) };
-  }
-
-  it("creates the aspirant, the campaign and the area in one call", async () => {
+  it("goes back to the console on Cancel", async () => {
     const user = userEvent.setup();
-    const issued = fakeSecret();
-    const { calls } = startWithNoAspirants({
-      "POST /campaigns/setup/": {
-        ...SETUP_REPLY,
-        candidate_login: {
-          id: "a2",
-          username: "peter",
-          full_name: "Peter Kimani",
-          password: issued,
-        },
-      },
-    });
+    const { onCancel } = start();
+    await user.click(await screen.findByRole("button", { name: "Cancel" }));
 
-    await user.type(await screen.findByPlaceholderText("jane"), "peter");
-    await user.type(screen.getByPlaceholderText("0712 345678"), "0712345678");
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.type(
-      await screen.findByPlaceholderText(/Jane for Roysambu/),
-      "Peter for Roysambu",
-    );
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.click(await screen.findByText("MP", { selector: "div" }));
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.selectOptions(
-      (await screen.findAllByRole("combobox"))[0],
-      "cty1",
-    );
-    await user.selectOptions((await screen.findAllByRole("combobox"))[1], "k1");
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.click(
-      await screen.findByRole("button", { name: "Create campaign" }),
-    );
-
-    const posted = calls.find((c) => c.path === "/campaigns/setup/");
-    expect(posted.body).toMatchObject({
-      title: "Peter for Roysambu",
-      seat: "mp",
-      constituency: "k1",
-      new_candidate: { username: "peter", phone: "0712345678" },
-    });
-    expect(posted.body.candidate).toBeUndefined();
-    expect(await screen.findByText(issued)).toBeInTheDocument();
-  });
-});
-
-describe("signing out of setup", () => {
-  it("goes back to signed out", async () => {
-    const user = userEvent.setup();
-    start();
-    await user.click(await screen.findByRole("button", { name: "Sign out" }));
-
-    expect(useAuth.getState().token).toBeNull();
+    expect(onCancel).toHaveBeenCalled();
   });
 });
 

@@ -250,8 +250,8 @@ function CampaignCard({ campaign, users }) {
             </div>
           )}
           <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>
-            {campaign.office_level} · for {campaign.candidate || "no candidate"} ·{" "}
-            {campaign.election_date || "no election date"}
+            {campaign.office_level} · for {campaign.candidate || "no candidate"}{" "}
+            · {campaign.election_date || "no election date"}
           </div>
         </div>
         <div className="flex flex-wrap gap-4" style={{ fontSize: 12.5 }}>
@@ -381,7 +381,6 @@ const USERNAME = /^[A-Za-z0-9._-]+$/;
 
 const ROLES = [
   ["manager", "Campaign manager"],
-  ["candidate", "Aspirant"],
   ["mobilizer", "Mobilizer"],
 ];
 
@@ -410,7 +409,6 @@ function NewLogin({ campaigns, create }) {
 
   const chosen = campaigns.find((c) => c.id === form.campaign);
   const isMobilizer = form.role === "mobilizer";
-  const isAspirant = form.role === "candidate";
   const name = form.username.trim();
   const ready =
     name.length >= 3 &&
@@ -517,55 +515,52 @@ function NewLogin({ campaigns, create }) {
         </Field>
       </div>
 
-      {!isAspirant && (
-        <>
-          <div style={{ height: 10 }} />
-          <div className="flex flex-wrap gap-2">
-            <Field label={isMobilizer ? "Campaign" : "Campaign (optional)"}>
+      <>
+        <div style={{ height: 10 }} />
+        <div className="flex flex-wrap gap-2">
+          <Field label={isMobilizer ? "Campaign" : "Campaign (optional)"}>
+            <select
+              style={{ ...FIELD, width: "100%" }}
+              value={form.campaign}
+              onChange={(e) => set({ campaign: e.target.value, ward: "" })}
+            >
+              <option value="">On no campaign yet…</option>
+              {campaigns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {isMobilizer && (
+            <Field label="Ward">
               <select
                 style={{ ...FIELD, width: "100%" }}
-                value={form.campaign}
-                onChange={(e) => set({ campaign: e.target.value, ward: "" })}
+                value={form.ward}
+                onChange={(e) => set({ ward: e.target.value })}
+                disabled={!chosen}
               >
-                <option value="">On no campaign yet…</option>
-                {campaigns.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.title}
+                <option value="">
+                  {chosen ? "Choose a ward…" : "Pick a campaign first"}
+                </option>
+                {(chosen?.wards || []).map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
                   </option>
                 ))}
               </select>
             </Field>
-            {isMobilizer && (
-              <Field label="Ward">
-                <select
-                  style={{ ...FIELD, width: "100%" }}
-                  value={form.ward}
-                  onChange={(e) => set({ ward: e.target.value })}
-                  disabled={!chosen}
-                >
-                  <option value="">
-                    {chosen ? "Choose a ward…" : "Pick a campaign first"}
-                  </option>
-                  {(chosen?.wards || []).map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            )}
-          </div>
-        </>
-      )}
+          )}
+        </div>
+      </>
 
       <div
         style={{ fontSize: 12, color: C.sub, marginTop: 10, lineHeight: 1.5 }}
       >
-        {isAspirant
-          ? "The campaign is set up for them afterwards, and becomes theirs then."
-          : isMobilizer
-            ? "A mobilizer works one ward, and sees only that ward."
-            : "Leave the campaign blank to create the login now and place it later."}{" "}
+        {isMobilizer
+          ? "A mobilizer works one ward, and sees only that ward."
+          : "Leave the campaign blank to create the login now and place it later."}{" "}
+        An aspirant gets their login with their campaign, from New campaign.{" "}
         Their password is shown once, above. Write it down.
       </div>
 
@@ -755,7 +750,6 @@ export default function Admin() {
   if (creating)
     return (
       <Onboarding
-        admin
         onLogin={handOut}
         onCancel={() => setCreating(false)}
         onDone={() => {

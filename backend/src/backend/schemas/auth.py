@@ -1,24 +1,16 @@
-"""Sign-up, sign-in, and what they return."""
+"""Sign-in, and what it returns."""
 
 import uuid
-from typing import Literal
 
 from pydantic import Field
 
 from backend.models.enums import UserRole
-from backend.schemas.common import LoginDetails, ORMModel, WriteModel
+from backend.schemas.common import ORMModel, WriteModel
 
 
 class LoginRequest(WriteModel):
     username: str = Field(min_length=1, max_length=150)
     password: str = Field(min_length=1)
-
-
-class RegisterRequest(LoginDetails):
-    """A self-serve sign-up; only a candidate or a manager may register."""
-
-    password: str = Field(min_length=8, max_length=128)
-    role: Literal[UserRole.CANDIDATE, UserRole.MANAGER]
 
 
 class LoginUser(ORMModel):
