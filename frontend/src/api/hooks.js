@@ -105,13 +105,13 @@ export function useRecordEvent() {
   });
 }
 
-// Public self-registration needs no token — the client just omits it when absent.
+// A supporter the team registers by hand; progress counts them at once.
 export function useRegisterSupporter() {
   const invalidate = useInvalidator();
   return useMutation({
     mutationFn: (payload) =>
       api("/supporters/", { method: "POST", body: payload }),
-    onSuccess: () => invalidate("supporters"),
+    onSuccess: () => invalidate("supporters", "strategy"),
   });
 }
 
@@ -137,6 +137,31 @@ export function useJoin(code) {
   return useMutation({
     mutationFn: (payload) =>
       api(`/join/${encodeURIComponent(code)}/`, { method: "POST", body: payload, anonymous: true }),
+  });
+}
+
+// Withdrawing needs only the private code from the thank-you screen.
+export function useWithdraw(code) {
+  return useMutation({
+    mutationFn: () =>
+      api(`/join/withdraw/${encodeURIComponent(code)}/`, { method: "POST", anonymous: true }),
+  });
+}
+
+// The campaign-wide sign-up link; only the manager may read or open it.
+export const useCampaignSignups = (campaignId) =>
+  useQuery({
+    queryKey: ["campaignSignups", campaignId],
+    queryFn: () => api(`/campaigns/${campaignId}/signups/`),
+    enabled: !!campaignId,
+  });
+
+export function useSetCampaignSignups() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ campaign, open }) =>
+      api(`/campaigns/${campaign}/signups/`, { method: "POST", body: { open } }),
+    onSuccess: () => invalidate("campaignSignups"),
   });
 }
 

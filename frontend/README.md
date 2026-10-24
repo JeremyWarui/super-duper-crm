@@ -88,6 +88,7 @@ npm test
 | `app.test.jsx` | The dashboard, what each role is shown, the four forms, and inviting |
 | `gate.test.jsx` | Which screen you land on: sign-in, the console, not on a campaign, or the dashboard |
 | `team.test.jsx` | The Team page: replacing the manager, and who may reset whose password |
+| `join.test.jsx` | Signing up from an event or the campaign link, sharing both links, and withdrawing |
 | `contract.test.js` | The fixtures and the source still match `contracts/frontend-api.json` |
 
 ## Two things the prototype did not have
@@ -98,7 +99,7 @@ every registration centre in the ward, each with its register and a total. A
 ward with no centres loaded says so there, rather than looking ready and coming
 back with a win number of zero.
 
-**Only the console sets a campaign up.** There is no public sign-up. The
+**Only the console sets a campaign up.** Nobody signs up for a login. The
 superuser's **New campaign** wizard names a new aspirant (first and last name,
 username, email and phone) and, optionally, a manager, then the seat and its
 area. Every login belongs to one campaign, so both are always new. The campaign

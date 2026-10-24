@@ -41,6 +41,8 @@ describe("what each role is shown", () => {
     ]) {
       expect(screen.getByRole("button", { name: page })).toBeInTheDocument();
     }
+    // Consent is the person's own: the manager shares a link instead of registering people.
+    expect(screen.queryByRole("button", { name: "Register supporter" })).toBeNull();
   });
 
   it("gives a candidate the cockpit and their mobilizers, not the manager's other pages", async () => {

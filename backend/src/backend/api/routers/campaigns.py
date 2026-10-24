@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from backend.api.deps import CurrentUser, SessionDep, Writer
 from backend.api.scope import all_rows, load, require_visible_campaign, visible_campaign_ids
 from backend.models import Campaign
-from backend.schemas.campaign import CampaignRead, SetupSummary
+from backend.schemas.campaign import CampaignRead, CampaignSignups, EventSignups, SetupSummary
 from backend.services.targets import generate_targets
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
@@ -54,6 +54,26 @@ async def get_campaign(
 ) -> CampaignRead:
     await require_visible_campaign(session, user, campaign_id)
     return _named(await load(session, Campaign, campaign_id, NAMED))
+
+
+@router.get("/{campaign_id}/signups/", response_model=CampaignSignups)
+async def read_signups(
+    campaign_id: uuid.UUID, session: SessionDep, user: Writer
+) -> CampaignSignups:
+    """The campaign-wide sign-up link, for the manager to share."""
+    campaign = await require_visible_campaign(session, user, campaign_id)
+    return CampaignSignups(code=campaign.signup_code, open=campaign.signups_open)
+
+
+@router.post("/{campaign_id}/signups/", response_model=CampaignSignups)
+async def set_signups(
+    campaign_id: uuid.UUID, payload: EventSignups, session: SessionDep, user: Writer
+) -> CampaignSignups:
+    """Open or close the campaign-wide sign-up link."""
+    campaign = await require_visible_campaign(session, user, campaign_id)
+    campaign.signups_open = payload.open
+    await session.commit()
+    return CampaignSignups(code=campaign.signup_code, open=campaign.signups_open)
 
 
 @router.post("/{campaign_id}/generate_targets/", response_model=SetupSummary)

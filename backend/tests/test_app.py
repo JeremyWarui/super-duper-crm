@@ -50,6 +50,15 @@ async def test_a_built_spa_is_served_at_the_root(tmp_path: Path) -> None:
         assert (await built.get("/app.js")).status_code == 200
 
 
+async def test_the_public_sign_up_and_withdrawal_pages_open_the_spa(tmp_path: Path) -> None:
+    (tmp_path / "index.html").write_text("<h1>war room</h1>", encoding="utf-8")
+
+    async for built in _client_with_static(tmp_path):
+        for path in ("/join/abc123", "/join/abc123/", "/withdraw/xyz789", "/withdraw/xyz789/"):
+            page = await built.get(path)
+            assert (path, page.status_code, "war room" in page.text) == (path, 200, True)
+
+
 async def test_the_spa_does_not_shadow_the_api_or_the_docs(tmp_path: Path) -> None:
     """The mount is last, so /api and /health still answer."""
     (tmp_path / "index.html").write_text("<h1>war room</h1>", encoding="utf-8")

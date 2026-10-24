@@ -192,7 +192,9 @@
       "candidate_name",
       "event_title",
       "ward_name",
-      "open"
+      "open",
+      "place",
+      "places"
     ],
     "POST /api/admin/campaigns/": [
       "setup",
@@ -213,6 +215,21 @@
     "POST /api/campaigns/{campaign_id}/team/{user_id}/reset-password/": [
       "username",
       "password"
+    ],
+    "POST /api/join/{code}/": [
+      "message",
+      "withdraw_code"
+    ],
+    "POST /api/join/withdraw/{code}/": [
+      "message"
+    ],
+    "GET /api/campaigns/{campaign_id}/signups/": [
+      "code",
+      "open"
+    ],
+    "POST /api/campaigns/{campaign_id}/signups/": [
+      "code",
+      "open"
     ]
   },
   "nested_reads": {
@@ -294,6 +311,10 @@
       "full_name",
       "role",
       "password"
+    ],
+    "GET /api/join/{code}/.places": [
+      "id",
+      "name"
     ]
   },
   "writes": {
@@ -403,7 +424,8 @@
     "POST /api/join/{code}/": [
       "full_name",
       "phone",
-      "consent_given"
+      "consent_given",
+      "place"
     ],
     "POST /api/events/{event_id}/signups/": [
       "open"
@@ -439,7 +461,11 @@
       "phone",
       "replace"
     ],
-    "POST /api/campaigns/{campaign_id}/team/{user_id}/reset-password/": []
+    "POST /api/campaigns/{campaign_id}/team/{user_id}/reset-password/": [],
+    "POST /api/join/withdraw/{code}/": [],
+    "POST /api/campaigns/{campaign_id}/signups/": [
+      "open"
+    ]
   },
   "enums": {
     "user.role": [

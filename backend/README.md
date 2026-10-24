@@ -102,6 +102,9 @@ Everything is under `/api`, with a trailing slash, and needs
 | `GET /api/counties/` `…/{id}/`, `/api/constituencies/`, `/api/wards/`, `/api/centres/` | Reference geography; a mobilizer sees one ward. |
 | `GET /api/campaigns/` `…/{id}/` | The caller's campaign. |
 | `POST /api/campaigns/{id}/generate_targets/` | Rebuild the targets after new data. |
+| `GET POST /api/campaigns/{id}/signups/` | The campaign-wide sign-up link: its code, and opening or closing it; manager only. |
+| `GET POST /api/join/{code}/` | No token. The public sign-up page behind an event's QR code or a campaign's link. |
+| `POST /api/join/withdraw/{code}/` | No token. A supporter takes their details off the register; the same answer for any code. |
 | `GET POST /api/targets/`, `PATCH DELETE …/{id}/` | The win number per unit. |
 | `GET POST /api/mobilizers/`, `DELETE …/{id}/` | Who works which ward. |
 | `GET POST /api/events/`, `DELETE …/{id}/`, `POST …/{id}/record/`, `…/{id}/invite/` | Events, attendance, SMS invitations. |
@@ -121,7 +124,7 @@ carry the parent's name beside it. Every error is `{"detail": "<sentence>"}`.
 - **A campaign belongs to its candidate**, the member whose role is candidate; a
   partial unique index allows one.
 - **Only a superuser creates a campaign**, from the console, with new logins for
-  its aspirant and, optionally, its manager. There is no public sign-up.
+  its aspirant and, optionally, its manager. Nobody signs up for a login.
 - **A campaign runs its own team.** Its aspirant adds the one manager, or
   replaces them: the old manager comes off the campaign and their login is
   turned off. The aspirant and the manager add and remove mobilizers. A second
@@ -131,6 +134,13 @@ carry the parent's name beside it. Every error is `{"detail": "<sentence>"}`.
   resets the aspirant's but an admin. A reset signs the person out.
 - **In an MCA race a mobilizer works one registration centre with a target**,
   or none yet; a whole ward or an untargeted centre is refused.
+- **Supporters sign themselves up and withdraw themselves.** `/api/join/{code}/`
+  takes an event's code or the campaign's own link (`/api/campaigns/{id}/signups/`,
+  which starts closed and only the manager reads or opens); the campaign link asks
+  for a ward, or in an MCA race an optional centre, from the campaign. Every
+  sign-up gets a withdrawal code, which only works for a new supporter, and
+  `/api/join/withdraw/{code}/` answers the same for any code, so neither page
+  shows whether a phone is on the register.
 - **Only an admin deletes a campaign**, and that deletes everything on it and the
   logins of its people.
 - **Scoping is by membership.** A campaign the caller is not on answers 404; a

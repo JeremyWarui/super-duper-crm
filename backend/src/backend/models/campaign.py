@@ -1,10 +1,11 @@
 """One candidate contesting one office in one place."""
 
+import secrets
 import uuid
 from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, Date, ForeignKey, String, Uuid, and_
+from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, String, Uuid, and_
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import (
@@ -59,6 +60,12 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
     election_date: Mapped[date | None] = mapped_column(Date, default=None)
+
+    # The campaign-wide sign-up link, for posters and shared messages; closed until opened.
+    signup_code: Mapped[str] = mapped_column(
+        String(24), unique=True, default=lambda: secrets.token_urlsafe(9)
+    )
+    signups_open: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # The member whose role is candidate; read-only.
     candidate: Mapped[User | None] = relationship(

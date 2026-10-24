@@ -1,10 +1,12 @@
 """The public sign-up behind an event's QR code, and how it counts toward the ward's target."""
 
 import httpx
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Event, EventStatus
+from backend.models import Event, EventStatus, Supporter
 from tests.conftest import World
+from tests.factories import make_geography
 
 
 async def _event(session: AsyncSession, world: World) -> Event:
@@ -117,3 +119,126 @@ async def test_an_mca_sign_up_counts_toward_its_event_s_centre(
 
     assert mca.seat.value == "mca"
     assert [(u.unit, u.committed) for u in units] == [("Zimmerman Primary", 1)]
+
+
+async def _open_campaign_link(client: httpx.AsyncClient, world: World) -> str:
+    url = f"/api/campaigns/{world.campaign.id}/signups/"
+    await client.post(url, headers=world.headers("manager"), json={"open": True})
+    return (await client.get(url, headers=world.headers("manager"))).json()["code"]
+
+
+async def test_only_the_manager_reads_or_opens_the_campaign_link(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    url = f"/api/campaigns/{world.campaign.id}/signups/"
+    before = (await client.get(url, headers=world.headers("manager"))).json()
+
+    refused = [
+        (await client.get(url, headers=world.headers(role))).status_code
+        for role in ("candidate", "mobilizer")
+    ] + [
+        (await client.post(url, headers=world.headers(role), json={"open": True})).status_code
+        for role in ("candidate", "mobilizer")
+    ]
+
+    assert before["open"] is False
+    assert refused == [403, 403, 403, 403]
+    closed = await client.post(f"/api/join/{before['code']}/", json=_person())
+    assert (closed.status_code, closed.json()["detail"]) == (400, "Sign-ups are closed.")
+
+
+async def test_the_campaign_link_files_a_person_at_the_ward_they_pick_from_the_campaign(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    code = await _open_campaign_link(client, world)
+    elsewhere = (await make_geography(session))[2]
+
+    page = (await client.get(f"/api/join/{code}/")).json()
+    no_ward = await client.post(f"/api/join/{code}/", json=_person())
+    off_campaign = await client.post(f"/api/join/{code}/", json=_person(place=str(elsewhere.id)))
+    joined = await client.post(f"/api/join/{code}/", json=_person(place=str(world.other_ward.id)))
+    register = (await client.get("/api/supporters/", headers=world.headers("manager"))).json()
+
+    assert (page["place"], [p["name"] for p in page["places"]]) == (
+        "ward",
+        ["Githurai", "Zimmerman"],
+    )
+    assert [no_ward.status_code, off_campaign.status_code, joined.status_code] == [400, 400, 201]
+    assert [s["ward"] for s in register] == [str(world.other_ward.id)]
+
+
+async def test_an_mca_person_unsure_of_their_centre_waits_to_be_placed(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    from backend.services.strategy import read_strategy
+    from backend.services.targets import generate_targets
+    from tests.factories import make_campaign
+
+    mca = await make_campaign(session, world.ward)
+    await generate_targets(session, mca)
+    mca.signups_open = True
+    await session.commit()
+
+    page = (await client.get(f"/api/join/{mca.signup_code}/")).json()
+    joined = await client.post(f"/api/join/{mca.signup_code}/", json=_person())
+    strategy = await read_strategy(session, campaign_ids=frozenset({mca.id}))
+
+    assert (page["place"], [p["name"] for p in page["places"]]) == ("centre", ["Zimmerman Primary"])
+    assert joined.status_code == 201
+    assert [n.title for n in strategy.notes][0] == "1 supporter needs a centre"
+
+
+async def test_a_person_withdraws_with_their_own_link_and_no_link_tells_anything(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    event = await _event(session, world)
+    url = f"/api/join/{event.signup_code}/"
+    first = (await client.post(url, json=_person())).json()
+    repeat = (await client.post(url, json=_person(full_name="Someone Else"))).json()
+
+    answers = [
+        (r.status_code, r.json())
+        for r in [
+            await client.post(f"/api/join/withdraw/{repeat['withdraw_code']}/"),
+            await client.post("/api/join/withdraw/made-up-code/"),
+        ]
+    ]
+    still_there = await session.scalar(
+        select(Supporter.full_name).where(Supporter.phone == "+254712345678")
+    )
+    gone = await client.post(f"/api/join/withdraw/{first['withdraw_code']}/")
+    used_again = await client.post(f"/api/join/withdraw/{first['withdraw_code']}/")
+    register = (await client.get("/api/supporters/", headers=world.headers("manager"))).json()
+
+    assert first["withdraw_code"] != repeat["withdraw_code"]
+    assert still_there == "Wanjiku Njeri"
+    assert answers == [(gone.status_code, gone.json())] * 2
+    assert (used_again.status_code, used_again.json()) == (gone.status_code, gone.json())
+    assert register == []
+
+
+async def test_withdrawal_tries_are_limited_like_sign_ups(client: httpx.AsyncClient) -> None:
+    answers = [(await client.post(f"/api/join/withdraw/guess-{n}/")).status_code for n in range(21)]
+
+    assert answers == [200] * 20 + [429]
+
+
+async def test_another_campaign_s_manager_cannot_read_or_open_the_link(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    from backend.models import UserRole
+    from backend.services.accounts import add_member
+    from tests.factories import auth, make_rival_campaign, make_user, sign_in
+
+    rival = await make_rival_campaign(session, world.other_ward)
+    other = await make_user(session, username="othermanager", role=UserRole.MANAGER)
+    await add_member(session, rival.id, other)
+    await session.commit()
+    head = auth(await sign_in(client, "othermanager"))
+    url = f"/api/campaigns/{world.campaign.id}/signups/"
+
+    read = await client.get(url, headers=head)
+    opened = await client.post(url, headers=head, json={"open": True})
+
+    assert (read.status_code, opened.status_code) == (404, 404)
+    assert world.campaign.signups_open is False

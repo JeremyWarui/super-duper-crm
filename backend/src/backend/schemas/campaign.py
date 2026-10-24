@@ -137,6 +137,13 @@ class EventSignups(WriteModel):
     open: bool
 
 
+class CampaignSignups(ORMModel):
+    """The campaign-wide sign-up link's code, and whether it takes sign-ups."""
+
+    code: str
+    open: bool
+
+
 class EventCreate(WriteModel):
     campaign: uuid.UUID
     ward: uuid.UUID

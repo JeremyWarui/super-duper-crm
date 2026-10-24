@@ -9,7 +9,7 @@ import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
   useInviteToEvent, useCreateUser, useUpdateMobilizer, useTeam, useSetManager, useResetTeamPassword,
-  usePayments, useSchedulePayment, useMarkPaid, useCancelPayment, usePayoutMode, useReleasePayment, useMarkNotSent, useSetSignups, useCentres, usePlaceSupporter,
+  usePayments, useSchedulePayment, useMarkPaid, useCancelPayment, usePayoutMode, useReleasePayment, useMarkNotSent, useSetSignups, useCentres, usePlaceSupporter, useCampaignSignups, useSetCampaignSignups,
 } from "./api/hooks";
 
 const C = {
@@ -448,6 +448,49 @@ function EventList({ events, showActions, onRecord, onInvite, onQr }) {
 }
 
 // An event's sign-up QR code and link, to print or show at the rally.
+// Copy a sign-up link, or send it on WhatsApp with a line saying what it is for.
+function ShareLink({ link, message }) {
+  const [copied, setCopied] = useState(null);  // null until tried, then true or false
+  const copy = () => (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(() => setCopied(true), () => setCopied(false));
+  const whatsapp = `https://wa.me/?text=${encodeURIComponent(`${message} ${link}`)}`;
+  return (
+    <div className="flex gap-2" style={{ marginTop: 12 }}>
+      <Btn onClick={copy}>{copied ? "Copied" : "Copy link"}</Btn>
+      <a href={whatsapp} target="_blank" rel="noreferrer" style={{ padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, border: `1px solid ${C.green}`, color: C.green, textDecoration: "none" }}>Share on WhatsApp</a>
+      {copied === false && <span style={{ fontSize: 12.5, color: C.sub, alignSelf: "center" }}>This browser blocked copying; select the link above instead.</span>}
+    </div>
+  );
+}
+
+// The campaign-wide sign-up link for posters and messages; the manager opens and closes it.
+function CampaignLinkModal({ campaign, onClose }) {
+  const signups = useCampaignSignups(campaign.id);
+  const setSignups = useSetCampaignSignups();
+  const sub = "People open it, pick where they vote, and sign up as supporters.";
+  if (signups.isLoading) return <Modal title="Campaign sign-up link" sub={sub} onClose={onClose}><Loading /></Modal>;
+  if (signups.error) return <Modal title="Campaign sign-up link" sub={sub} onClose={onClose}><ErrorMsg error={signups.error} /></Modal>;
+  const { code, open } = signups.data;
+  const link = `${window.location.origin}/join/${code}`;
+  return (
+    <Modal title="Campaign sign-up link" sub={sub} onClose={onClose}>
+      <div className="qr-print">
+        <div style={{ fontWeight: 700, marginBottom: 12 }}>{campaign.title}</div>
+        <QRCodeSVG value={link} size={220} marginSize={2} title={`Sign-up link for ${campaign.title}`} />
+        <div style={{ fontSize: 12.5, color: C.sub, marginTop: 10, wordBreak: "break-all" }}>{link}</div>
+      </div>
+      {open
+        ? <ShareLink link={link} message={`Sign up to support ${campaign.title}:`} />
+        : <div style={{ color: C.sub, fontSize: 12.5, marginTop: 12 }}>The link is closed: anyone who opens it sees a "closed" page. Open it to start taking sign-ups.</div>}
+      {setSignups.error && <ErrorMsg error={setSignups.error} />}
+      <div className="flex justify-end gap-2" style={{ marginTop: 20 }}>
+        <Btn onClick={() => setSignups.mutate({ campaign: campaign.id, open: !open })} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Open sign-ups"}</Btn>
+        <Btn onClick={() => window.print()}>Print</Btn>
+        <PrimaryBtn onClick={onClose}>Done</PrimaryBtn>
+      </div>
+    </Modal>
+  );
+}
+
 function QrModal({ event, canClose, onClose }) {
   const setSignups = useSetSignups();
   const link = `${window.location.origin}/join/${event.signup_code}`;
@@ -460,6 +503,7 @@ function QrModal({ event, canClose, onClose }) {
         <QRCodeSVG value={link} size={220} marginSize={2} title={`Sign-up link for ${event.title || event.ward_name}`} />
         <div style={{ fontSize: 12.5, color: C.sub, marginTop: 10, wordBreak: "break-all" }}>{link}</div>
       </div>
+      {open && <ShareLink link={link} message={`Sign up as a supporter at ${event.title || event.ward_name}:`} />}
       {!open && <div style={{ color: C.red, fontSize: 12.5, marginTop: 12 }}>Sign-ups are closed: the code shows a "closed" page.</div>}
       {setSignups.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{setSignups.error.message}</div>}
       <div className="flex justify-end gap-2" style={{ marginTop: 20 }}>
@@ -471,7 +515,8 @@ function QrModal({ event, canClose, onClose }) {
   );
 }
 
-function SupportersView({ campaignId, centreWard }) {
+function SupportersView({ campaignId, centreWard, share }) {
+  const [sharing, setSharing] = useState(false);
   const { data, isLoading, error } = useSupporters(campaignId);
   const targetsQuery = useTargets(campaignId);
   const targeted = new Set((targetsQuery.data || []).map((t) => t.registration_centre));
@@ -486,7 +531,7 @@ function SupportersView({ campaignId, centreWard }) {
   const col = { supporter: [C.green, C.greenSoft], undecided: [C.amber, C.amberSoft], opposed: [C.red, C.redSoft] };
   return (
     <>
-      <PageTitle title="Supporters" sub={`${all.length} on the register`} />
+      <PageTitle title="Supporters" sub={`${all.length} on the register`} action={share ? <Btn primary onClick={() => setSharing(true)}>Sign-up link</Btn> : null} />
       <div className="flex gap-1" style={{ marginBottom: 12, fontSize: 12 }}>
         {["all", "supporter", "undecided", "opposed"].map((f) => <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", textTransform: "capitalize", border: `1px solid ${filter === f ? C.ink : C.line}`, background: filter === f ? C.ink : "transparent", color: filter === f ? "#fff" : C.sub }}>{f}</button>)}
       </div>
@@ -500,6 +545,7 @@ function SupportersView({ campaignId, centreWard }) {
           {shown.length === 0 && <tr><td colSpan={5} style={{ padding: 20, color: C.sub }}>None yet.</td></tr>}</tbody>
         </table>
       </div></Card>
+      {sharing && <CampaignLinkModal campaign={share} onClose={() => setSharing(false)} />}
     </>
   );
 }
@@ -978,7 +1024,7 @@ export default function App() {
       case "targets": return <TargetsView campaignId={campaignId} />;
       case "team": return <TeamView campaignId={campaignId} role={role} onManager={(sitting) => setModal({ type: "manager", sitting })} onReset={(person) => setModal({ type: "reset", person })} />;
       case "mobilizers": return <MobilizersView campaignId={campaignId} units={units} byCentre={campaign.operational_grain === "centre"} onAdd={() => setModal({ type: "mobilizer" })} onEdit={(m) => setModal({ type: "mobilizer", mobilizer: m })} />;
-      case "supporters": return <SupportersView campaignId={campaignId} centreWard={campaign.operational_grain === "centre" ? campaign.ward : null} />;
+      case "supporters": return <SupportersView campaignId={campaignId} share={campaign} centreWard={campaign.operational_grain === "centre" ? campaign.ward : null} />;
       case "events":
       case "myevents":
         if (events.isLoading) return <Loading />; if (events.error) return <ErrorMsg error={events.error} />;

@@ -58,6 +58,9 @@ class Supporter(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # Consent to hold their data, required by the Data Protection Act 2019.
     consent_given: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # The private code a self-signed supporter withdraws with; None for anyone else.
+    withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
+
     campaign: Mapped["Campaign"] = relationship(back_populates="supporters")
     ward: Mapped["Ward | None"] = relationship(back_populates="supporters")
     mobilizer: Mapped["Mobilizer | None"] = relationship(back_populates="supporters")

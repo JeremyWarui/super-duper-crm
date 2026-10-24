@@ -63,9 +63,12 @@ def _mount_spa(app: FastAPI, static_dir: str) -> None:
         raise RuntimeError(f"STATIC_DIR is set to {directory}, which is not a directory.")
     index = directory / "index.html"
 
+    # The public pages a QR code or a withdrawal link opens, by their own address.
     @app.get("/join/{code}", include_in_schema=False)
     @app.get("/join/{code}/", include_in_schema=False)
-    async def join_page(code: str) -> FileResponse:
+    @app.get("/withdraw/{code}", include_in_schema=False)
+    @app.get("/withdraw/{code}/", include_in_schema=False)
+    async def public_page(code: str) -> FileResponse:
         return FileResponse(index)
 
     app.mount("/", StaticFiles(directory=directory, html=True), name="spa")

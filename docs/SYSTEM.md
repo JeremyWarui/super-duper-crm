@@ -70,9 +70,9 @@ campaign runs its own team.
 |---|---|
 | **Operator** (superuser) | Runs the deployment from the admin console: creates campaigns and their first logins, repairs logins, deletes campaigns. Never sits on a campaign. |
 | **Aspirant** (candidate) | Owns the campaign. Watches progress and strategy, adds or replaces the one manager, adds and places mobilizers, resets the team's passwords. |
-| **Campaign manager** | Runs the day to day: targets, events, the supporter register, payments to mobilizers, adding mobilizers and resetting their passwords. |
+| **Campaign manager** | Runs the day to day: targets, events, the supporter register, sign-up links to share, payments to mobilizers, adding mobilizers and resetting their passwords. |
 | **Mobilizer** | Works one unit: a ward, or in an MCA race a registration centre. Records events and registers supporters in their ward, and sees their own payments. |
-| **Supporter** (no login) | Signs up from an event's QR code on their own phone, or is registered by a mobilizer. |
+| **Supporter** (no login) | Signs up on their own phone, from an event's QR code or the campaign's sign-up link, and withdraws with their private link; or is registered by a mobilizer. |
 
 ---
 
@@ -80,10 +80,13 @@ campaign runs its own team.
 
 A supporter is a person on a campaign's register: a name, a phone number, a
 support level (Supporter, Undecided or Opposed), the unit they are filed under,
-and whether they consented. There are two ways onto the register, and **both
-require consent**, as the Data Protection Act 2019 asks.
+and whether they consented. **Consent is the person's own**, as the Data
+Protection Act 2019 asks, so people sign themselves up: from an event's QR code,
+or from the campaign's own sign-up link. A mobilizer can also enter someone met
+in person who has no smartphone. The manager does not register people; the
+manager shares the links.
 
-### Signing themselves up at an event (QR code)
+### Signing up from an event's QR code
 
 Nobody needs a login. Every event has its own sign-up code.
 
@@ -93,18 +96,19 @@ sequenceDiagram
   actor Person as Person at the event
   participant App as MZIGO CRM
   Team->>App: Events, then "Sign-up QR" on an event
-  App-->>Team: QR code for /join/{code}
-  Person->>App: Scans the code on their own phone
+  App-->>Team: QR code for /join/{code}, Copy link, Share on WhatsApp
+  Person->>App: Scans the code, or opens the shared link
   App-->>Person: Campaign, event and candidate's name
   Person->>App: Full name, phone, ticks consent, "Sign up"
   App->>App: Checks the rate, that sign-ups are open, consent and the number
-  App-->>Person: "Thank you, you're signed up."
+  App-->>Person: Thank-you, and their private withdrawal link
 ```
 
 1. The manager, or a mobilizer working the event's ward, opens **Sign-up QR**
-   on the event and shows the code. It links to `/join/<code>`.
-2. The person scans it and sees the campaign, the event and the candidate's
-   name.
+   on the event. It shows the code and its link (`/join/<code>`), with
+   **Copy link** and **Share on WhatsApp** while sign-ups are open.
+2. The person scans it or opens the link, and sees the campaign, the event and
+   the candidate's name.
 3. They enter their **full name** and **phone number**, and tick:
    *"I agree that this campaign may keep my name and phone number to contact
    me."* The **Sign up** button stays off until the box is ticked, and the
@@ -116,37 +120,80 @@ sequenceDiagram
    (and, in an MCA race, the event's centre), and linked to the event and its
    mobilizer. The events list shows how many people each event brought in;
    the link to each person is stored but not shown yet. They count toward
-   progress straight away, except in an MCA race when the
-   event's centre has no target; such a sign-up waits to be placed at a
-   targeted centre, and the strategy read says how many are waiting.
+   progress straight away, except in an MCA race when the event's centre has
+   no target; such a sign-up waits to be placed at a targeted centre, and the
+   strategy read says how many are waiting.
 
-Guards on the public page (`backend/src/backend/api/routers/join.py`):
+### Signing up from the campaign's own link
+
+For posters, WhatsApp groups and social media, each campaign has one sign-up
+link that is not tied to an event. The manager finds it under **Supporters**,
+**Sign-up link**: a QR code, the link, **Copy link**, **Share on WhatsApp**, and
+**Open sign-ups** or **Close sign-ups**. It starts **closed**, and only the
+manager reads, opens or closes it.
+
+The page works like an event's, and also asks where the person votes:
+
+- **Ward seats** (MP, Governor, Senator, Women Rep): the person picks their
+  ward from the campaign's wards; sign-up waits until they do.
+- **MCA**: the person picks their registration centre from the centres with a
+  target, or leaves it at **Not sure**. Someone not sure is filed at the
+  campaign's ward with no centre, and waits for the team to place them.
+
+A place outside the campaign is refused.
+
+### Guards on both public pages
+
+(`backend/src/backend/api/routers/join.py`)
 
 - **One entry per phone per campaign.** A number already on the register is
   left as it is (including its support level), and the person sees the same
   thank-you, so the page never reveals who is already registered.
-- **The manager closes and reopens sign-ups** per event; a cancelled event
-  takes none.
+- **The manager closes and reopens sign-ups**, per event and for the campaign
+  link; a cancelled event takes none.
 - **At most 20 sign-up attempts an hour from one network address.** Every
-  attempt the page sends counts, including a mistyped number, a closed event
-  or a repeat scan. The count is kept in the server's memory and starts again when the
-  server restarts. Phones on the same venue wifi, or behind the same mobile
+  attempt the page sends counts, including a mistyped number, a closed link or
+  a repeat scan. The count is kept in the server's memory and starts again when
+  the server restarts. Phones on the same venue wifi, or behind the same mobile
   network address, share one allowance, so a large rally can reach it.
 
 ### Registered by a mobilizer
 
-A mobilizer uses **Register supporter** in their own ward: full name, phone,
-the ward (in an MCA race, a centre with a target, starting at the mobilizer's
-own), support level, and a consent box: *"Consent to hold these details under
-the Data Protection Act, 2019."* Saving stays off until the box is ticked, and
-the server refuses the record without it. The phone may be left blank. A
-Kenyan mobile number is stored as `+254...`; anything else is kept as typed,
-so it cannot be texted and is not matched against the same number written
-another way. A number already on the campaign's register is refused.
+For people met in person who have no smartphone or data, a mobilizer uses
+**Register supporter** in their own ward: full name, phone, the ward (in an MCA
+race, a centre with a target, starting at the mobilizer's own), support level,
+and a consent box: *"Consent to hold these details under the Data Protection
+Act, 2019."* The mobilizer ticks it after asking the person. Saving stays off
+until the box is ticked, and the server refuses the record without it. The
+phone may be left blank. A Kenyan mobile number is stored as `+254...`; anything
+else is kept as typed, so it cannot be texted and is not matched against the
+same number written another way. A number already on the campaign's register
+is refused.
 
-The API lets the manager register supporters too, but the manager's screens
-have no Register supporter page yet. The manager reviews supporters on
-**Supporters**, and in an MCA race places them at a centre there.
+The server would accept the same record from the manager, but the manager's
+screens have no Register supporter page, on purpose. The manager reviews
+everyone on **Supporters**, and in an MCA race places people at a centre there.
+
+### Withdrawing
+
+People take themselves off the register; no screen lets the team remove them.
+The server still has a delete route (`DELETE /api/supporters/{id}/`) that the
+manager, or a mobilizer in their own ward, can call; the screens do not use it.
+
+- After signing up, the thank-you screen shows the person a **private
+  withdrawal link** (`/withdraw/<code>`) to keep. Opening it and pressing
+  **Remove my details** deletes their record for good.
+- The withdrawal page gives **the same answer for every link**: a real one, one
+  already used, or one made up. So nobody can use it to test whether a code, or
+  a phone number, is on a register. It is rate limited like sign-up.
+- A person whose phone was **already on the register** when they signed up
+  again is shown a link too, but it removes nothing; a working link would let
+  anyone who knows a phone number remove that person.
+
+**Not covered yet:** people a mobilizer registered by hand have no withdrawal
+link, nor does a person who signed up again and lost their first link. Both
+need a channel that proves the phone is theirs, such as an SMS they reply to
+(planning question 9).
 
 ### What consent is used for
 
@@ -160,16 +207,12 @@ have no Register supporter page yet. The manager reviews supporters on
 
 - **Recorded:** consent as yes or no on each supporter
   (`models/supporter.py`), the time the record was created (consent is
-  required to create it), and, for a QR sign-up, the event it came from
-  (lost if the event is later deleted).
+  required to create it), for a QR sign-up the event it came from (lost if
+  the event is later deleted), and for a self sign-up its withdrawal code.
 - **Not recorded yet:** the wording the person agreed to. The two screens show
   different wordings, and the record does not say which one was shown.
-- **Withdrawing consent:** a supporter cannot withdraw it themselves, and no
-  screen deletes a supporter yet; the API can delete one
-  (`DELETE /api/supporters/{id}/`), so today a withdrawal is handled outside
-  the screens.
 
-Both gaps are in planning question 9 (section 11).
+Both open items are in planning question 9 (section 11).
 
 ---
 
@@ -182,7 +225,9 @@ Both gaps are in planning question 9 (section 11).
 - Win number and targets per unit, with editable turnout per unit.
 - The ground team: mobilizers placed one per unit.
 - Events: schedule, record reached and attended, invite supporters by SMS,
-  open a QR sign-up.
+  open a QR sign-up and share it.
+- A campaign-wide sign-up link, and private withdrawal links for the people
+  who sign up.
 - The supporter register, with consent and one entry per phone per campaign.
 - The strategy read: progress, the biggest gaps, and what to do next.
 - Payments to mobilizers for events, in practice mode (see section 7, Outside services).
@@ -191,7 +236,7 @@ Both gaps are in planning question 9 (section 11).
 
 ### Deliberately out of scope
 
-- **Public sign-up for campaigns.** Every campaign is onboarded by the operator.
+- **Campaigns signing themselves up.** Every campaign is onboarded by the operator.
 - **Several campaigns per login.** A login belongs to one campaign.
 - **Polling-station level work.** Targets stop at the registration centre;
   election-day work would need polling stations, which are not loaded.
@@ -228,7 +273,9 @@ Each rule is enforced on the server; the screens only reflect it.
 | Every unit inside the seat gets a target; MCA targets are per centre | `services/targets.py` `generate_targets` |
 | Win number = half the projected votes plus one, per unit | `models/target.py` `compute_win_number` |
 | One supporter per phone per campaign | unique index `uq_supporters_campaign_phone` |
-| A QR sign-up needs consent, and one network address may try 20 an hour | `api/routers/join.py`, `schemas/join.py` |
+| A sign-up needs consent, and one network address may try 20 an hour | `api/routers/join.py`, `schemas/join.py` |
+| The campaign's sign-up link starts closed; only the manager reads or opens it | `models/campaign.py`, `api/routers/campaigns.py` |
+| A withdrawal link answers the same whether it is real or not; a repeat sign-up's link removes nothing | `api/routers/join.py` |
 | One live payment per mobilizer per event | unique index `uq_payments_event_mobilizer` |
 | Asking for a campaign you are not on answers 404, as if it did not exist | `api/scope.py` `require_visible_campaign` |
 
@@ -247,7 +294,8 @@ Paths are under `backend/src/backend/`.
 | Reset a teammate's password | manager, mobilizers | mobilizers | no |
 | Change targets | no | yes | no |
 | Schedule and record events | no | yes | their ward |
-| Register supporters | no | yes (no screen yet) | their ward |
+| Register supporters by hand | no | no screen, on purpose | their ward |
+| Share and open the campaign's sign-up link | no | yes | no |
 | Schedule and release payments | no | yes | no |
 
 A mobilizer's reach is their **ward**, in every race. In an MCA race the whole
@@ -267,7 +315,9 @@ counts toward, not what they can see.
 | Targets and win number, turnout slider | Built | |
 | Mobilizers, placed by ward or centre | Built | The console's centre picker for MCA mobilizers is waiting to be committed with the styling work (section 9) |
 | Team page: manager, password resets | Built | |
-| Events, recording, QR sign-up | Built | |
+| Events, recording, QR sign-up with Copy and WhatsApp sharing | Built | |
+| Campaign-wide sign-up link, with ward or centre picker | Built | |
+| Supporters withdrawing themselves | Built | Only for people who signed up themselves (section 3) |
 | SMS invitations | Built, not live | Sends nothing until a provider is configured |
 | Supporter register, placing supporters at centres | Built | |
 | Strategy read and notes | Built | |
@@ -286,7 +336,7 @@ counts toward, not what they can see.
 flowchart LR
   subgraph Browser
     SPA["React SPA<br/>(Vite, React Query, Zustand)"]
-    QR["QR sign-up page<br/>/join/{code}"]
+    QR["Public pages<br/>/join/{code}, /withdraw/{code}"]
   end
   subgraph Fly["Fly.io app (one container)"]
     API["FastAPI<br/>/api/*"]
@@ -371,7 +421,7 @@ erDiagram
 
 ### The API
 
-56 operations across 43 paths, grouped by purpose. The live list is at `/docs`
+59 operations across 45 paths, grouped by purpose. The live list is at `/docs`
 on a server started with `DEBUG=true`; it is off otherwise.
 
 | Group | Routes | Who |
@@ -379,10 +429,11 @@ on a server started with `DEBUG=true`; it is off otherwise.
 | Auth | `/api/auth/login/`, `/logout/` | anyone signs in; signing out needs a login |
 | Reference data | `/api/counties/`, `/constituencies/`, `/wards/`, `/centres/` | any signed-in login |
 | Campaign | `/api/campaigns/`, `/targets/`, `/strategy/` | the campaign |
+| Campaign sign-up link | `/api/campaigns/{id}/signups/` | manager |
 | Ground | `/api/mobilizers/`, `/events/`, `/supporters/`, `/users/` | the campaign, by role |
 | Team | `/api/campaigns/{id}/team/` | aspirant and manager |
 | Payments | `/api/payments/` | the manager writes; the aspirant reads all; a mobilizer reads their own |
-| Public sign-up | `/api/join/{code}/` | anyone with the event's code |
+| Public sign-up and withdrawal | `/api/join/{code}/`, `/api/join/withdraw/{code}/` | anyone with an event's, a campaign's or a withdrawal code |
 | Console | `/api/admin/` | superuser only |
 | Health | `/health` | Fly's checks |
 
@@ -492,7 +543,8 @@ Open choices that will shape the next stage:
    and decide whether to add a router so each page has its own address.
 8. **Election day:** whether to load polling stations and support agents' work
    on the day, which is a different product surface from campaigning.
-9. **Consent records:** store the wording each supporter agreed to, and give
-   supporters a way to withdraw (for example replying STOP to an SMS, or a
-   link) plus a screen for the team to remove a record, so the campaign can
-   prove and honour consent under the Data Protection Act 2019.
+9. **Consent the person confirms:** once SMS is live, text each new supporter
+   and count them only when they reply YES, with STOP to withdraw. That covers
+   people a mobilizer registers by hand, and anyone who lost their withdrawal
+   link. Also store the wording each supporter agreed to, so the campaign can
+   prove consent under the Data Protection Act 2019.

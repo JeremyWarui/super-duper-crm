@@ -33,6 +33,15 @@ if TYPE_CHECKING:
     )
 
 
+@pytest.fixture(autouse=True)
+def fresh_rate_limits() -> None:
+    """Each test starts with the public pages' allowances unused."""
+    from backend.api.routers import join
+
+    join.SIGNUPS._hits.clear()
+    join.WITHDRAWALS._hits.clear()
+
+
 @pytest.fixture(autouse=True, scope="session")
 def cheap_password_hashing() -> Iterator[None]:
     """Hash with minimal Argon2 cost; the real parameters are checked in test_security.py."""
