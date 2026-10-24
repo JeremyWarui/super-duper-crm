@@ -140,7 +140,7 @@ async def test_an_admin_deletes_a_campaign_everything_on_it_and_its_logins(
     assert (missing.status_code, missing.json()["detail"]) == (404, "No such campaign.")
 
 
-async def test_the_console_creates_a_manager_on_a_campaign_but_no_aspirant_on_their_own(
+async def test_the_console_gives_a_campaign_no_second_manager_and_no_lone_aspirant(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
     manager = await client.post(
@@ -154,15 +154,17 @@ async def test_the_console_creates_a_manager_on_a_campaign_but_no_aspirant_on_th
         json={"username": "loneaspirant", "role": "candidate"},
     )
 
-    assert manager.status_code == 201
-    head = auth(await sign_in(client, "newmgr", manager.json()["password"]))
-    listed = (await client.get("/api/campaigns/", headers=head)).json()
-    assert [c["id"] for c in listed] == [str(world.campaign.id)]
+    assert (manager.status_code, manager.json()["detail"]) == (
+        400,
+        "That campaign already has a manager, amina. "
+        "Its aspirant replaces them from the Team page.",
+    )
     assert (aspirant.status_code, aspirant.json()["detail"]) == (
         400,
         "An aspirant gets their login with their campaign: use New campaign.",
     )
-    assert await session.scalar(select(User).where(User.username == "loneaspirant")) is None
+    for gone in ("newmgr", "loneaspirant"):
+        assert await session.scalar(select(User).where(User.username == gone)) is None
 
 
 async def test_the_console_creates_a_campaign_whose_aspirant_and_manager_see_only_it(

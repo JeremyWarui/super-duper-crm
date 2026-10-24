@@ -1,4 +1,4 @@
-"""Refusals the services raise; the API answers them as 400, or 404 for NotFound."""
+"""Refusals the services raise; the API answers them as 400, 403 for Forbidden, 404 for NotFound."""
 
 
 class Refused(Exception):
@@ -7,3 +7,7 @@ class Refused(Exception):
 
 class NotFound(Refused):
     """The named row does not exist."""
+
+
+class Forbidden(Refused):
+    """The caller may not do this."""

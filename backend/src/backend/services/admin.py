@@ -12,6 +12,7 @@ from backend.models import (
     CampaignMember,
     Event,
     Mobilizer,
+    RegistrationCentre,
     Supporter,
     Target,
     User,
@@ -20,6 +21,7 @@ from backend.models import (
 )
 from backend.schemas.admin import (
     AdminCampaignRead,
+    AdminCentreRead,
     AdminUserRead,
     AdminWardRead,
     MemberRead,
@@ -92,6 +94,16 @@ async def campaigns(
             .group_by(Target.campaign_id)
         )
     }
+    centres: dict[uuid.UUID, list[AdminCentreRead]] = {}
+    for cid, centre in await session.execute(
+        select(Target.campaign_id, RegistrationCentre)
+        .join(RegistrationCentre, RegistrationCentre.id == Target.registration_centre_id)
+        .where(Target.campaign_id.in_(ids))
+        .order_by(RegistrationCentre.name)
+    ):
+        centres.setdefault(cid, []).append(
+            AdminCentreRead(id=centre.id, name=centre.name, ward=centre.ward_id)
+        )
     # Votes committed are read from the strategy, so both screens show one number.
     votes = {}
     for cid in ids:
@@ -126,6 +138,7 @@ async def campaigns(
                     AdminWardRead(id=w.id, name=w.name)
                     for w in await wards_in_area(session, campaign)
                 ],
+                centres=centres.get(campaign.id, []),
                 **{name: counted.get(campaign.id, 0) for name, counted in counts.items()},
                 votes_needed=int(needed),
                 votes_committed=int(committed),
@@ -340,6 +353,7 @@ async def create_user(
     phone: str = "",
     campaign_id: uuid.UUID | None = None,
     ward_id: uuid.UUID | None = None,
+    centre_id: uuid.UUID | None = None,
 ) -> tuple[User, str]:
     """Create a login, on a campaign when one is named; returns it and its password."""
     target = await session.get(Campaign, campaign_id) if campaign_id is not None else None
@@ -359,18 +373,22 @@ async def create_user(
     if role is UserRole.CANDIDATE:
         raise Refused("An aspirant gets their login with their campaign: use New campaign.")
 
-    created, password = await new_login(
-        session,
-        username=username,
-        role=role,
-        first_name=first_name,
-        last_name=last_name,
-        email=email,
-        phone=phone,
-    )
-    if ward is not None:
-        await add_mobilizer(session, target, ward.id, created)
-    elif target is not None:
-        await join(session, target.id, created)
+    try:
+        created, password = await new_login(
+            session,
+            username=username,
+            role=role,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            phone=phone,
+        )
+        if ward is not None:
+            await add_mobilizer(session, target, ward.id, created, centre_id=centre_id)
+        elif target is not None:
+            await join(session, target.id, created)
+    except Refused:
+        await session.rollback()
+        raise
     await session.commit()
     return created, password

@@ -32,6 +32,12 @@ class AdminWardRead(ORMModel):
     name: str
 
 
+class AdminCentreRead(ORMModel):
+    id: uuid.UUID
+    name: str
+    ward: uuid.UUID
+
+
 class AdminCampaignRead(ORMModel):
     id: uuid.UUID
     title: str
@@ -40,6 +46,8 @@ class AdminCampaignRead(ORMModel):
     election_date: str | None
     members: list[MemberRead]
     wards: list[AdminWardRead]
+    # The centres with a target; empty unless the race is run by centre (MCA).
+    centres: list[AdminCentreRead] = []
     targets: int
     mobilizers: int
     events: int
@@ -92,11 +100,12 @@ class MemberAdd(WriteModel):
 
 
 class AdminUserCreate(LoginDetails):
-    """A new login, optionally put on a campaign, and a ward for a mobilizer."""
+    """A new login, optionally put on a campaign; a mobilizer gets a ward, or an MCA centre."""
 
     role: UserRole
     campaign: uuid.UUID | None = None
     ward: uuid.UUID | None = None
+    registration_centre: uuid.UUID | None = None
 
 
 class AdminUserCreated(NewLogin):

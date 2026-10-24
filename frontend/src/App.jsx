@@ -8,7 +8,7 @@ import { winNumber } from "./winNumber";
 import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
-  useInviteToEvent, useCreateUser, useUpdateMobilizer,
+  useInviteToEvent, useCreateUser, useUpdateMobilizer, useTeam, useSetManager, useResetTeamPassword,
   usePayments, useSchedulePayment, useMarkPaid, useCancelPayment, usePayoutMode, useReleasePayment, useMarkNotSent, useSetSignups, useCentres, usePlaceSupporter,
 } from "./api/hooks";
 
@@ -39,8 +39,8 @@ const PageTitle = ({ title, sub, action }) => <div className="flex flex-wrap ite
 const Loading = () => <div style={{ color: C.sub, fontSize: 14, padding: 20 }}>Loading…</div>;
 const ErrorMsg = ({ error }) => <div style={{ color: C.red, fontSize: 14, padding: 20 }}>{error?.message || "Something went wrong."}</div>;
 
-const Modal = ({ title, sub, onClose, children }) => (
-  <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(20,26,22,.45)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "6vh 16px", zIndex: 50 }}>
+const Modal = ({ title, sub, onClose, locked, children }) => (
+  <div onClick={locked ? undefined : onClose} style={{ position: "fixed", inset: 0, background: "rgba(20,26,22,.45)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "6vh 16px", zIndex: 50 }}>
     <div onClick={(e) => e.stopPropagation()} style={{ background: C.panel, borderRadius: 14, width: "100%", maxWidth: 440 }}>
       <div className="flex items-start justify-between" style={{ padding: "18px 20px", borderBottom: `1px solid ${C.line}` }}>
         <div><div style={{ ...DISPLAY, fontSize: 20, fontWeight: 700 }}>{title}</div>{sub && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>{sub}</div>}</div>
@@ -49,6 +49,18 @@ const Modal = ({ title, sub, onClose, children }) => (
       <div style={{ padding: 20 }}>{children}</div>
     </div>
   </div>
+);
+
+// A password shown once; a click on the backdrop leaves it open.
+const PasswordModal = ({ title, password, onClose, children }) => (
+  <Modal title={title} sub="Write the password down now. It is shown once." onClose={onClose} locked>
+    <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>{children}</div>
+    <div style={{ marginTop: 12, padding: "12px 14px", background: C.paper, border: `1px solid ${C.line}`, borderRadius: 10 }}>
+      <div style={{ fontSize: 12, color: C.sub }}>Password</div>
+      <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, marginTop: 2 }}>{password}</div>
+    </div>
+    <div className="flex justify-end gap-2" style={{ marginTop: 22 }}><PrimaryBtn onClick={onClose}>Done</PrimaryBtn></div>
+  </Modal>
 );
 
 // ---- dashboard blocks (fed by the /strategy/ endpoint) --------------------
@@ -165,7 +177,7 @@ const freeUnits = (units, mobilizers, keep) =>
   units.filter((u) => { const h = holderOf(mobilizers, u); return !h || h.id === keep?.id; });
 
 // Adds a mobilizer, or edits one when `mobilizer` is given; the unit is optional.
-function MobilizerForm({ campaignId, units, mobilizers, mobilizer, onClose }) {
+function MobilizerForm({ campaignId, units, byCentre, mobilizers, mobilizer, onClose }) {
   const add = useAddMobilizer();
   const update = useUpdateMobilizer();
   const createUser = useCreateUser();
@@ -179,7 +191,7 @@ function MobilizerForm({ campaignId, units, mobilizers, mobilizer, onClose }) {
   const error = add.error || update.error || createUser.error;
   const ok = name.trim() && (!withLogin || username.trim().length >= 3);
   const choices = freeUnits(units, mobilizers, mobilizer);
-  const byCentre = units.some((u) => u.registration_centre);
+  const unitWord = byCentre ? "centre" : "ward";
 
   const save = () => {
     const [first, ...rest] = name.trim().split(/\s+/);
@@ -191,7 +203,7 @@ function MobilizerForm({ campaignId, units, mobilizers, mobilizer, onClose }) {
     } else if (withLogin) {
       createUser.mutate(
         { username: username.trim().toLowerCase(), role: "mobilizer", first_name: first, last_name: rest.join(" "), phone: phone.trim(), campaign: campaignId, ...place },
-        { onSuccess: setMade },
+        { onSuccess: (created) => setMade({ ...created, place: unit?.name }) },
       );
     } else {
       add.mutate({ campaign: campaignId, ...place, full_name: name.trim(), phone: phone.trim() }, { onSuccess: onClose });
@@ -200,26 +212,19 @@ function MobilizerForm({ campaignId, units, mobilizers, mobilizer, onClose }) {
 
   if (made) {
     return (
-      <Modal title="Mobilizer added" sub="Write the password down now — it is shown once." onClose={onClose}>
-        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-          <b>{made.username}</b> can now sign in{made.ward_name ? <> and work {made.ward_name}.</> : <>. Assign them a ward from the Wards page.</>}
-        </div>
-        <div style={{ marginTop: 12, padding: "12px 14px", background: C.paper, border: `1px solid ${C.line}`, borderRadius: 10 }}>
-          <div style={{ fontSize: 12, color: C.sub }}>Password</div>
-          <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, marginTop: 2 }}>{made.password}</div>
-        </div>
-        <div className="flex justify-end gap-2" style={{ marginTop: 22 }}><PrimaryBtn onClick={onClose}>Done</PrimaryBtn></div>
-      </Modal>
+      <PasswordModal title="Mobilizer added" password={made.password} onClose={onClose}>
+        <b>{made.username}</b> can now sign in{made.place ? <> and work {made.place}.</> : <>. Assign them a {unitWord} from the Overview.</>}
+      </PasswordModal>
     );
   }
 
   return (
-    <Modal title={mobilizer ? "Edit mobilizer" : "Add mobilizer"} sub="One mobilizer per ward. The ward can be left for later." onClose={onClose}>
+    <Modal title={mobilizer ? "Edit mobilizer" : "Add mobilizer"} sub={`One mobilizer per ${unitWord}. The ${unitWord} can be left for later.`} onClose={onClose}>
       <Label>Full name</Label><input style={FIELD} value={name} onChange={(e) => setName(e.target.value)} />
       <div style={{ height: 14 }} /><Label>Phone</Label><input style={FIELD} value={phone} onChange={(e) => setPhone(e.target.value)} />
       <div style={{ height: 14 }} /><Label>{byCentre ? "Registration centre" : "Ward"}</Label>
-      <select aria-label="Ward" style={FIELD} value={unitKey} onChange={(e) => setPicked(e.target.value)}>
-        <option value="">No ward yet</option>
+      <select aria-label={byCentre ? "Registration centre" : "Ward"} style={FIELD} value={unitKey} onChange={(e) => setPicked(e.target.value)}>
+        <option value="">No {unitWord} yet</option>
         {choices.map((u) => <option key={u.key} value={u.key}>{u.name}</option>)}
       </select>
       {!mobilizer && (
@@ -247,13 +252,14 @@ function MobilizerForm({ campaignId, units, mobilizers, mobilizer, onClose }) {
 function AssignMobilizerForm({ unit, holder, mobilizers, onClose }) {
   const update = useUpdateMobilizer();
   const free = mobilizers.filter((m) => !m.ward);
+  const unitWord = unit.registration_centre ? "centre" : "ward";
   const [picked, setPicked] = useState("");
   const chosen = picked || free[0]?.id || "";
   const assign = () => update.mutate({ id: chosen, ward: unit.ward, registration_centre: unit.registration_centre ?? null }, { onSuccess: onClose });
   const remove = () => update.mutate({ id: holder.id, ward: null, registration_centre: null }, { onSuccess: onClose });
 
   return (
-    <Modal title={`Mobilizer for ${unit.unit}`} sub={holder ? `Now: ${holder.full_name}` : "Pick a mobilizer without a ward."} onClose={onClose}>
+    <Modal title={`Mobilizer for ${unit.unit}`} sub={holder ? `Now: ${holder.full_name}` : `Pick a mobilizer without a ${unitWord}.`} onClose={onClose}>
       {free.length > 0 ? (
         <>
           <Label>Mobilizer</Label>
@@ -262,7 +268,7 @@ function AssignMobilizerForm({ unit, holder, mobilizers, onClose }) {
           </select>
         </>
       ) : (
-        <div style={{ fontSize: 13.5, color: C.sub }}>Every mobilizer already has a ward. Add one on the Mobilizers page.</div>
+        <div style={{ fontSize: 13.5, color: C.sub }}>Every mobilizer already has a {unitWord}. Add one on the Mobilizers page.</div>
       )}
       {update.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{update.error.message}</div>}
       <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
@@ -582,16 +588,21 @@ function TargetsView({ campaignId }) {
   );
 }
 
-function MobilizersView({ campaignId, onAdd, onEdit }) {
+function MobilizersView({ campaignId, units, byCentre, onAdd, onEdit }) {
   const { data, isLoading, error } = useMobilizers(campaignId);
   if (isLoading) return <Loading />; if (error) return <ErrorMsg error={error} />;
+  const placeOf = (m) => {
+    if (!byCentre) return m.ward_name;
+    if (!m.registration_centre) return null;
+    return units.find((u) => u.registration_centre === m.registration_centre)?.name || "A centre with no target";
+  };
   return (
     <>
-      <PageTitle title="Mobilizers" sub="Ground organisers by ward." action={<Btn primary onClick={onAdd}>Add mobilizer</Btn>} />
+      <PageTitle title="Mobilizers" sub={`Ground organisers by ${byCentre ? "registration centre" : "ward"}.`} action={<Btn primary onClick={onAdd}>Add mobilizer</Btn>} />
       <Card pad={0}><div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-          <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Name</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Ward</th><th style={{ padding: "10px 18px", fontWeight: 500 }}>Phone</th><th /></tr></thead>
-          <tbody>{(data || []).map((m) => (<tr key={m.id} style={{ borderTop: `1px solid ${C.line}` }}><td style={{ padding: "12px 18px", fontWeight: 600 }}>{m.full_name}</td><td style={{ padding: "12px 8px", color: m.ward_name ? C.ink : C.sub }}>{m.ward_name || "No ward yet"}</td><td style={{ padding: "12px 18px", color: C.sub }}>{m.phone || "—"}</td><td style={{ padding: "12px 18px", textAlign: "right" }}><Btn onClick={() => onEdit(m)}>Edit</Btn></td></tr>))}
+          <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Name</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>{byCentre ? "Centre" : "Ward"}</th><th style={{ padding: "10px 18px", fontWeight: 500 }}>Phone</th><th /></tr></thead>
+          <tbody>{(data || []).map((m) => (<tr key={m.id} style={{ borderTop: `1px solid ${C.line}` }}><td style={{ padding: "12px 18px", fontWeight: 600 }}>{m.full_name}</td><td style={{ padding: "12px 8px", color: placeOf(m) ? C.ink : C.sub }}>{placeOf(m) || `No ${byCentre ? "centre" : "ward"} yet`}</td><td style={{ padding: "12px 18px", color: C.sub }}>{m.phone || "—"}</td><td style={{ padding: "12px 18px", textAlign: "right" }}><Btn onClick={() => onEdit(m)}>Edit</Btn></td></tr>))}
           {(!data || data.length === 0) && <tr><td colSpan={4} style={{ padding: 20, color: C.sub }}>No mobilizers yet.</td></tr>}</tbody>
         </table>
       </div></Card>
@@ -825,10 +836,88 @@ function CancelPaymentForm({ payment, onClose }) {
   );
 }
 
+// ---- team -------------------------------------------------------------------
+// As the API allows: the aspirant resets the manager and mobilizers, the manager resets mobilizers.
+const canReset = (role, person) => person.is_active && (person.role === "mobilizer" || (person.role === "manager" && role === "candidate"));
+
+function TeamView({ campaignId, role, onManager, onReset }) {
+  const { data, isLoading, error } = useTeam(campaignId);
+  if (isLoading) return <Loading />; if (error) return <ErrorMsg error={error} />;
+  const people = data || [];
+  const manager = people.find((p) => p.role === "manager");
+  const action = role === "candidate" ? <Btn primary onClick={() => onManager(manager)}>{manager ? "Replace manager" : "Add manager"}</Btn> : null;
+  return (
+    <>
+      <PageTitle title="Team" sub="Everyone with a login on this campaign." action={action} />
+      <Card pad={0}><div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
+          <thead><tr style={{ color: C.sub, textAlign: "left" }}><th style={{ padding: "10px 18px", fontWeight: 500 }}>Name</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Username</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Role</th><th /></tr></thead>
+          <tbody>{people.map((p) => (<tr key={p.id} style={{ borderTop: `1px solid ${C.line}` }}><td style={{ padding: "12px 18px", fontWeight: 600 }}>{p.full_name || p.username}</td><td style={{ padding: "12px 8px", color: C.sub }}>{p.username}</td><td style={{ padding: "12px 8px" }}>{ROLE_LABEL[p.role]}{!p.is_active && <span style={{ color: C.sub }}> · turned off</span>}</td><td style={{ padding: "12px 18px", textAlign: "right" }}>{canReset(role, p) && <Btn onClick={() => onReset(p)}>Reset password</Btn>}</td></tr>))}</tbody>
+        </table>
+      </div></Card>
+      {!manager && role === "candidate" && <div style={{ fontSize: 12, color: C.sub, marginTop: 10 }}>This campaign has no manager yet. Add one to run the day-to-day.</div>}
+    </>
+  );
+}
+
+// The aspirant adds the manager, or replaces `sitting`, whose login is then turned off.
+function ManagerForm({ campaignId, sitting, onClose }) {
+  const set = useSetManager();
+  const [name, setName] = useState(""); const [username, setUsername] = useState(""); const [phone, setPhone] = useState("");
+  const ok = name.trim() && username.trim().length >= 3;
+  const made = set.data;
+
+  if (made) {
+    return (
+      <PasswordModal title="Manager added" password={made.password} onClose={onClose}>
+        <b>{made.username}</b> can now sign in and run this campaign.{made.replaced && <> {made.replaced} is off the campaign and can no longer sign in.</>}
+      </PasswordModal>
+    );
+  }
+
+  const save = () => {
+    const [first, ...rest] = name.trim().split(/\s+/);
+    set.mutate({ campaign: campaignId, username: username.trim().toLowerCase(), first_name: first, last_name: rest.join(" "), phone: phone.trim(), replace: !!sitting });
+  };
+  return (
+    <Modal title={sitting ? "Replace manager" : "Add manager"} sub={sitting ? `${sitting.full_name || sitting.username} comes off the campaign and their login is turned off.` : "One manager per campaign. They add mobilizers and run the day-to-day."} onClose={onClose}>
+      <Label>Full name</Label><input aria-label="Full name" style={FIELD} value={name} onChange={(e) => setName(e.target.value)} />
+      <div style={{ height: 14 }} /><Label>Username</Label><input aria-label="Username" style={FIELD} value={username} onChange={(e) => setUsername(e.target.value)} placeholder="amina" />
+      <div style={{ height: 14 }} /><Label>Phone</Label><input aria-label="Phone" style={FIELD} value={phone} onChange={(e) => setPhone(e.target.value)} />
+      {set.error && <div style={{ color: C.red, fontSize: 12.5, marginTop: 8 }}>{set.error.message}</div>}
+      <div className="flex justify-end gap-2" style={{ marginTop: 22 }}>
+        <Btn onClick={onClose}>Cancel</Btn>
+        <PrimaryBtn disabled={!ok || set.isPending} onClick={save}>{set.isPending ? "Saving…" : sitting ? "Replace manager" : "Add manager"}</PrimaryBtn>
+      </div>
+    </Modal>
+  );
+}
+
+function ResetPasswordForm({ campaignId, person, onClose }) {
+  const reset = useResetTeamPassword();
+  const name = person.full_name || person.username;
+  if (reset.data) {
+    return (
+      <PasswordModal title="New password" password={reset.data.password} onClose={onClose}>
+        <b>{reset.data.username}</b> signs in with this from now on. Their old password no longer works.
+      </PasswordModal>
+    );
+  }
+  return (
+    <Modal title={`Reset ${name}'s password`} sub="Their old password stops working and they are signed out." onClose={onClose}>
+      {reset.error && <div style={{ color: C.red, fontSize: 12.5 }}>{reset.error.message}</div>}
+      <div className="flex justify-end gap-2" style={{ marginTop: reset.error ? 14 : 0 }}>
+        <Btn onClick={onClose}>Cancel</Btn>
+        <PrimaryBtn disabled={reset.isPending} onClick={() => reset.mutate({ campaign: campaignId, user: person.id })}>{reset.isPending ? "Resetting…" : "Reset password"}</PrimaryBtn>
+      </div>
+    </Modal>
+  );
+}
+
 // ---- nav ------------------------------------------------------------------
 const NAV = {
-  candidate: [["overview", "Overview"], ["units", "Ward performance"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["payments", "Payments"], ["strategy", "Strategy"]],
-  manager: [["overview", "Overview"], ["targets", "Targets"], ["units", "Wards"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["supporters", "Supporters"], ["payments", "Payments"], ["strategy", "Strategy"]],
+  candidate: [["overview", "Overview"], ["units", "Ward performance"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["team", "Team"], ["payments", "Payments"], ["strategy", "Strategy"]],
+  manager: [["overview", "Overview"], ["targets", "Targets"], ["units", "Wards"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["team", "Team"], ["supporters", "Supporters"], ["payments", "Payments"], ["strategy", "Strategy"]],
   mobilizer: [["myevents", "My events"], ["register", "Register supporter"], ["mysupporters", "My supporters"], ["mypayments", "My payments"]],
 };
 const ROLE_LABEL = { candidate: "Candidate", manager: "Campaign Manager", mobilizer: "Mobilizer" };
@@ -887,7 +976,8 @@ export default function App() {
         if (strategy.isLoading) return <Loading />; if (strategy.error) return <ErrorMsg error={strategy.error} />;
         return (<><PageTitle title="Strategy read" sub="Your next moves, computed from your own data." /><StrategyPanel notes={strategy.data.notes} /></>);
       case "targets": return <TargetsView campaignId={campaignId} />;
-      case "mobilizers": return <MobilizersView campaignId={campaignId} onAdd={() => setModal({ type: "mobilizer" })} onEdit={(m) => setModal({ type: "mobilizer", mobilizer: m })} />;
+      case "team": return <TeamView campaignId={campaignId} role={role} onManager={(sitting) => setModal({ type: "manager", sitting })} onReset={(person) => setModal({ type: "reset", person })} />;
+      case "mobilizers": return <MobilizersView campaignId={campaignId} units={units} byCentre={campaign.operational_grain === "centre"} onAdd={() => setModal({ type: "mobilizer" })} onEdit={(m) => setModal({ type: "mobilizer", mobilizer: m })} />;
       case "supporters": return <SupportersView campaignId={campaignId} centreWard={campaign.operational_grain === "centre" ? campaign.ward : null} />;
       case "events":
       case "myevents":
@@ -928,7 +1018,9 @@ export default function App() {
         </div>
       </div>
 
-      {modal?.type === "mobilizer" && <MobilizerForm campaignId={campaignId} units={units} mobilizers={mobilizers.data || []} mobilizer={modal.mobilizer} onClose={() => setModal(null)} />}
+      {modal?.type === "mobilizer" && <MobilizerForm campaignId={campaignId} units={units} byCentre={campaign.operational_grain === "centre"} mobilizers={mobilizers.data || []} mobilizer={modal.mobilizer} onClose={() => setModal(null)} />}
+      {modal?.type === "manager" && <ManagerForm campaignId={campaignId} sitting={modal.sitting} onClose={() => setModal(null)} />}
+      {modal?.type === "reset" && <ResetPasswordForm campaignId={campaignId} person={modal.person} onClose={() => setModal(null)} />}
       {modal?.type === "assign" && <AssignMobilizerForm unit={modal.unit} holder={modal.holder} mobilizers={mobilizers.data || []} onClose={() => setModal(null)} />}
       {modal?.type === "event" && <ScheduleEventForm campaignId={campaignId} wardOptions={wardOptions} byCentre={campaign.operational_grain === "centre"} onClose={() => setModal(null)} />}
       {modal?.type === "record" && <RecordForm event={modal.event} onClose={() => setModal(null)} />}

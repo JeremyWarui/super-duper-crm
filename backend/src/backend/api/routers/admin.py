@@ -128,9 +128,10 @@ async def create_user(
     """Create a login; its password is shown once."""
     created, password = await service.create_user(
         session,
-        **payload.model_dump(exclude={"campaign", "ward"}),
+        **payload.model_dump(exclude={"campaign", "ward", "registration_centre"}),
         campaign_id=payload.campaign,
         ward_id=payload.ward,
+        centre_id=payload.registration_centre,
     )
     return AdminUserCreated(
         id=created.id,

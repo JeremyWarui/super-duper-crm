@@ -43,8 +43,8 @@ same campaign, so you sign out and back in to switch.
 
 | Sign in as | What you get |
 |---|---|
-| `aspirant` | **Candidate.** Overview, ward performance, events, mobilizers, strategy. Adds and assigns mobilizers; reads everything else. |
-| `manager` | **Campaign manager.** All of that plus targets, mobilizers and supporters, and every write. |
+| `aspirant` | **Candidate.** Overview, ward performance, events, mobilizers, team, strategy. Adds or replaces the one manager, adds and assigns mobilizers, resets the team's passwords; reads everything else. |
+| `manager` | **Campaign manager.** Targets, mobilizers, team and supporters, and every write. Adds mobilizers and resets their passwords. |
 | `mobilizer` | **Mobilizer.** One ward. Record events, register supporters, nothing else. |
 The demo makes no superuser. Only a superuser creates campaigns, from the admin
 console's **New campaign** button, with the aspirant's and manager's logins.

@@ -14,6 +14,7 @@ from backend.api.routers import (
     strategy,
     supporters,
     targets,
+    team,
     users,
 )
 
@@ -30,6 +31,7 @@ for module in (
     payments,
     supporters,
     strategy,
+    team,
     users,
 ):
     api_router.include_router(module.router)

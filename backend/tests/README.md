@@ -23,6 +23,7 @@ is needed and nothing touches the network.
 | `test_geography_api.py` | Reference reads, and a mobilizer's one ward |
 | `test_campaigns_api.py` | Campaign reads, setup refusals, and that nobody sets one up for themselves |
 | `test_users_api.py` | Mobilizer logins added and removed from inside a campaign |
+| `test_team_api.py` | The aspirant sets the one manager, team password resets, and an MCA mobilizer's centre |
 | `test_ground_api.py` | Mobilizers, events and the supporter register |
 | `test_ward_in_campaign.py` | A ward or centre in a request must lie inside the seat |
 | `test_targets_api.py` | Reading and editing the win number |

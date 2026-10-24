@@ -27,6 +27,13 @@ class CampaignMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             postgresql_where=text("role = 'candidate'"),
             sqlite_where=text("role = 'candidate'"),
         ),
+        Index(
+            "uq_campaign_members_one_manager",
+            "campaign_id",
+            unique=True,
+            postgresql_where=text("role = 'manager'"),
+            sqlite_where=text("role = 'manager'"),
+        ),
     )
 
     campaign_id: Mapped[uuid.UUID] = mapped_column(

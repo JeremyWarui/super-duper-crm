@@ -6,7 +6,15 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Campaign, CampaignMember, Mobilizer, OperationalGrain, User, UserRole
+from backend.models import (
+    Campaign,
+    CampaignMember,
+    Mobilizer,
+    OperationalGrain,
+    Target,
+    User,
+    UserRole,
+)
 from backend.security import hash_password, new_password
 from backend.services.errors import Refused
 
@@ -74,16 +82,23 @@ async def membership_refusal(
     current = await campaign_of(session, user.id)
     if current is not None and current.id != campaign_id:
         return f"{user.username} is already on {current.title}; a login belongs to one campaign."
-    if user.role is UserRole.CANDIDATE:
+    if user.role in (UserRole.CANDIDATE, UserRole.MANAGER):
         sitting = await session.scalar(
-            select(CampaignMember.user_id).where(
+            select(User.username)
+            .join(CampaignMember, CampaignMember.user_id == User.id)
+            .where(
                 CampaignMember.campaign_id == campaign_id,
-                CampaignMember.role == UserRole.CANDIDATE,
+                CampaignMember.role == user.role,
                 CampaignMember.user_id != user.id,
             )
         )
-        if sitting is not None:
+        if sitting is not None and user.role is UserRole.CANDIDATE:
             return f"{user.username} is a candidate, and that campaign already has its candidate."
+        if sitting is not None:
+            return (
+                f"That campaign already has a manager, {sitting}. "
+                "Its aspirant replaces them from the Team page."
+            )
     return None
 
 
@@ -124,14 +139,29 @@ async def unit_holder(
     return await session.scalar(statement)
 
 
-def require_unit(
-    campaign: Campaign, ward_id: uuid.UUID | None, centre_id: uuid.UUID | None
+async def require_unit(
+    session: AsyncSession,
+    campaign: Campaign,
+    ward_id: uuid.UUID | None,
+    centre_id: uuid.UUID | None,
 ) -> None:
-    """A whole ward in a seat organised by ward; a centre is allowed only in a ward race."""
+    """A whole ward in a seat organised by ward; a centre with a target in an MCA race."""
     if centre_id is not None and ward_id is None:
         raise Refused("A registration centre needs its ward.")
-    if centre_id is not None and campaign.operational_grain is not OperationalGrain.CENTRE:
-        raise Refused("In this race a mobilizer works a whole ward; leave the centre out.")
+    if campaign.operational_grain is not OperationalGrain.CENTRE:
+        if centre_id is not None:
+            raise Refused("In this race a mobilizer works a whole ward; leave the centre out.")
+        return
+    if ward_id is not None and centre_id is None:
+        raise Refused("In an MCA race a mobilizer works one registration centre; pick a centre.")
+    if centre_id is not None:
+        targeted = await session.scalar(
+            select(Target.id).where(
+                Target.campaign_id == campaign.id, Target.registration_centre_id == centre_id
+            )
+        )
+        if targeted is None:
+            raise Refused("That centre has no target, so work there would count toward nothing.")
 
 
 async def move_mobilizer(
@@ -142,7 +172,7 @@ async def move_mobilizer(
     centre_id: uuid.UUID | None = None,
 ) -> None:
     """Put a mobilizer on a unit, or on none; whoever held that unit is left unassigned."""
-    require_unit(campaign, ward_id, centre_id)
+    await require_unit(session, campaign, ward_id, centre_id)
     holder = await unit_holder(session, mobilizer.campaign_id, ward_id, centre_id)
     moved = [mobilizer]
     if holder is not None and holder.id != mobilizer.id:
@@ -171,7 +201,7 @@ async def add_mobilizer(
 
     Name and phone default to the login's.
     """
-    require_unit(campaign, ward_id, centre_id)
+    await require_unit(session, campaign, ward_id, centre_id)
     holder = await unit_holder(session, campaign.id, ward_id, centre_id)
     if holder is not None:
         unit = "centre" if centre_id is not None else "ward"

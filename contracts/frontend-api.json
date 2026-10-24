@@ -197,6 +197,22 @@
     "POST /api/admin/campaigns/": [
       "setup",
       "logins"
+    ],
+    "GET /api/campaigns/{campaign_id}/team/": [
+      "id",
+      "username",
+      "full_name",
+      "role",
+      "is_active"
+    ],
+    "POST /api/campaigns/{campaign_id}/team/manager/": [
+      "username",
+      "password",
+      "replaced"
+    ],
+    "POST /api/campaigns/{campaign_id}/team/{user_id}/reset-password/": [
+      "username",
+      "password"
     ]
   },
   "nested_reads": {
@@ -256,7 +272,8 @@
       "supporters",
       "votes_needed",
       "votes_committed",
-      "wards"
+      "wards",
+      "centres"
     ],
     "POST /api/admin/campaigns/{campaign_id}/members/.members": [
       "user_id",
@@ -365,7 +382,8 @@
       "email",
       "phone",
       "campaign",
-      "ward"
+      "ward",
+      "registration_centre"
     ],
     "PATCH /api/admin/campaigns/{campaign_id}/": [
       "title"
@@ -413,7 +431,15 @@
       "last_name",
       "phone",
       "email"
-    ]
+    ],
+    "POST /api/campaigns/{campaign_id}/team/manager/": [
+      "username",
+      "first_name",
+      "last_name",
+      "phone",
+      "replace"
+    ],
+    "POST /api/campaigns/{campaign_id}/team/{user_id}/reset-password/": []
   },
   "enums": {
     "user.role": [

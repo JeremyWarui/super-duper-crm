@@ -5,10 +5,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
-from backend.services.errors import NotFound, Refused
+from backend.services.errors import Forbidden, NotFound, Refused
 
 # The one-campaign index, as Postgres and SQLite name it.
 ONE_CAMPAIGN = ("uq_campaign_members_one_campaign_per_user", "campaign_members.user_id")
+# One manager per campaign. SQLite names only the column, which the one-candidate index shares.
+ONE_MANAGER = ("uq_campaign_members_one_manager",)
+ONE_PLACE = ("campaign_members.campaign_id",)
 # One supporter per phone per campaign, as Postgres and SQLite name it.
 ONE_SUPPORTER = ("uq_supporters_campaign_phone", "supporters.campaign_id, supporters.phone")
 # One live payment per mobilizer per event, as Postgres and SQLite name it.
@@ -41,9 +44,11 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Refused)
     async def _refused(_: Request, exc: Refused) -> JSONResponse:
-        code = (
-            status.HTTP_404_NOT_FOUND if isinstance(exc, NotFound) else status.HTTP_400_BAD_REQUEST
-        )
+        code = status.HTTP_400_BAD_REQUEST
+        if isinstance(exc, NotFound):
+            code = status.HTTP_404_NOT_FOUND
+        elif isinstance(exc, Forbidden):
+            code = status.HTTP_403_FORBIDDEN
         return _detail(str(exc), code)
 
     @app.exception_handler(IntegrityError)
@@ -52,6 +57,13 @@ def register_error_handlers(app: FastAPI) -> None:
         if any(name in str(exc.orig) for name in ONE_CAMPAIGN):
             return _detail(
                 "That login is already on a campaign; a login belongs to one campaign.",
+                status.HTTP_400_BAD_REQUEST,
+            )
+        if any(name in str(exc.orig) for name in ONE_MANAGER):
+            return _detail("That campaign already has a manager.", status.HTTP_400_BAD_REQUEST)
+        if any(name in str(exc.orig) for name in ONE_PLACE):
+            return _detail(
+                "That campaign already has its aspirant or its manager.",
                 status.HTTP_400_BAD_REQUEST,
             )
         if any(name in str(exc.orig) for name in ONE_SUPPORTER):

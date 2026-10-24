@@ -129,6 +129,10 @@ def test_the_unique_indexes_keep_their_where_clause_in_postgres() -> None:
         "(campaign_id) WHERE role = 'candidate'" in sql
     )
     assert (
+        "CREATE UNIQUE INDEX uq_campaign_members_one_manager ON campaign_members "
+        "(campaign_id) WHERE role = 'manager'" in sql
+    )
+    assert (
         "CREATE UNIQUE INDEX uq_campaign_members_one_campaign_per_user ON campaign_members "
         "(user_id)" in sql
     )

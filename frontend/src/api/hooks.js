@@ -302,6 +302,33 @@ export function useCreateUser() {
   });
 }
 
+// ---- the campaign's own team ----------------------------------------------
+export const useTeam = (campaignId) =>
+  useQuery({
+    queryKey: ["team", campaignId],
+    queryFn: () => api(`/campaigns/${campaignId}/team/`),
+    enabled: !!campaignId,
+  });
+
+// The aspirant adds the manager, or replaces the one there with `replace: true`.
+export function useSetManager() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ campaign, ...body }) =>
+      api(`/campaigns/${campaign}/team/manager/`, { method: "POST", body }),
+    onSuccess: () => invalidate("team"),
+  });
+}
+
+export function useResetTeamPassword() {
+  return useMutation({
+    mutationFn: ({ campaign, user }) =>
+      api(`/campaigns/${campaign}/team/${user}/reset-password/`, {
+        method: "POST",
+      }),
+  });
+}
+
 // ---- admin console --------------------------------------------------------
 // Only a superuser may call these; every route checks the flag again itself.
 export const useAdminOverview = () =>

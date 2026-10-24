@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
-import { dashboardRoutes, renderApp, signIn, stubApi } from "./helpers";
+import { CAMPAIGN, TARGETS, dashboardRoutes, renderApp, signIn, stubApi } from "./helpers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -72,5 +72,29 @@ describe("editing a mobilizer", () => {
         full_name: "Juma Otieno", phone: "0700",
       }),
     );
+  });
+});
+
+describe("an MCA campaign", () => {
+  it("places and shows each mobilizer by registration centre, never by ward", async () => {
+    const centreTarget = (id, rc, name) => ({ ...TARGETS[0], id, registration_centre: rc, centre_name: name });
+    const { user } = await open("Mobilizers", {
+      "GET /campaigns/": [{ ...CAMPAIGN, operational_grain: "centre", seat: "MCA seat" }],
+      "GET /targets/": [centreTarget("t1", "rc1", "Zimmerman Primary"), centreTarget("t2", "rc2", "Kamae Primary")],
+      "GET /mobilizers/": [
+        { ...MOBILIZERS[0], registration_centre: "rc1" },
+        { ...MOBILIZERS[0], id: "m3", full_name: "Otieno Ouma", registration_centre: "rc9" },
+        MOBILIZERS[1],
+      ],
+    });
+
+    const table = (await screen.findByText("Juma Otieno")).closest("table");
+    const places = within(table).getAllByRole("row").slice(1).map((r) => within(r).getAllByRole("cell")[1].textContent);
+    await user.click(screen.getByRole("button", { name: "Add mobilizer" }));
+    const picker = screen.getByRole("combobox", { name: "Registration centre" });
+
+    expect(within(table).getAllByRole("columnheader")[1].textContent).toBe("Centre");
+    expect(places).toEqual(["Zimmerman Primary", "A centre with no target", "No centre yet"]);
+    expect(within(picker).getAllByRole("option").map((o) => o.textContent)).toEqual(["No centre yet", "Kamae Primary"]);
   });
 });
