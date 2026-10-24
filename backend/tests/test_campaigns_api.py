@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Campaign
 from tests.conftest import World
-from tests.factories import make_rival_campaign
+from tests.factories import fresh_password, make_rival_campaign
 
 
 def _setup_body(world: World, **overrides) -> dict:
@@ -74,7 +74,7 @@ async def test_nobody_signs_up_or_sets_up_a_campaign_for_themselves(
     response = await client.post(
         path,
         headers=world.headers("manager"),
-        json={**_setup_body(world), "username": "walkin", "password": "a-long-password"},
+        json={**_setup_body(world), "username": "walkin", "password": fresh_password()},
     )
 
     assert response.status_code in (404, 405)

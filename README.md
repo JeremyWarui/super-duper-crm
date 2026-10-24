@@ -7,6 +7,9 @@ works - a ward for an MP or governor race, a registration centre for an MCA one.
 FastAPI and SQLAlchemy on Postgres, React and Vite in the browser, on the real
 GE2022 register.
 
+What the system is for, its rules, scope and architecture:
+[`docs/SYSTEM.md`](docs/SYSTEM.md).
+
 ## Run it
 
 Two terminals. Backend first.
@@ -66,7 +69,8 @@ strategy read has real gaps to point at.
 ```
 ├── backend/     FastAPI + SQLAlchemy 2.0 + Pydantic v2, Postgres, uv
 ├── frontend/    React 19 + Vite, React Query, Zustand
-└── contracts/   what the two agree on, checked from both sides
+├── contracts/   what the two agree on, checked from both sides
+└── docs/        the system brief: concept, rules, scope, architecture
 ```
 
 Each service has its own README, its own tests, and runs on its own.
@@ -91,8 +95,8 @@ disagree with the rows underneath it.
 ## Checks
 
 ```bash
-cd backend  && uv run pytest && uv run ruff check .   # 201 tests
-cd frontend && npm test && npm run build              # 60 tests
+cd backend  && uv run pytest && uv run ruff check .   # 243 tests
+cd frontend && npm test && npm run build              # 81 tests
 ```
 
 Neither suite needs a database server or the network. One check does, and is

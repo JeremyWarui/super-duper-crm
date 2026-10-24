@@ -72,7 +72,7 @@ async def read_signup(code: str, session: SessionDep) -> JoinRead:
 async def sign_up(
     code: str, payload: JoinCreate, request: Request, session: SessionDep
 ) -> JoinDone:
-    """Sign a person up from the event; someone already on the register is updated, not added."""
+    """Sign a person up from the event; someone already on the register is left as they are."""
     if not SIGNUPS.allow(_client(request)):
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS, "Too many sign-ups from this device; try later."
