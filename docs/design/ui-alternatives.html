@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MZIGO UI Alternatives</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] } } } };
+</script>
+<style>
+  /* Page chrome: the switcher bar and the comparison section. */
+  :root { --chrome-bg: #0f172a; }
+  html, body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #e5e7eb; }
+  .switcher {
+    position: sticky; top: 0; z-index: 100; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: 10px 16px; background: var(--chrome-bg); color: #e2e8f0; font-size: 13px;
+  }
+  .switcher strong { margin-right: 8px; font-size: 14px; color: #fff; }
+  .switcher button {
+    padding: 6px 12px; border: 1px solid #334155; border-radius: 999px; background: transparent;
+    color: #cbd5e1; font: inherit; font-weight: 500; cursor: pointer;
+  }
+  .switcher button[aria-pressed="true"] { border-color: #fff; background: #fff; color: #0f172a; }
+  .switcher .spacer { flex: 1; }
+  .switcher label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .frame { margin: 0 auto; background: #fff; transition: max-width 0.2s; }
+  .frame.phone { max-width: 390px; margin: 24px auto; box-shadow: 0 20px 60px rgb(0 0 0 / 0.25); border-radius: 24px; overflow: hidden; }
+  .variant { display: none; }
+  .variant.on { display: block; }
+  .about {
+    padding: 14px 24px; border-bottom: 1px solid #e5e7eb; background: #fffbeb; color: #78350f; font-size: 13px; line-height: 1.6;
+  }
+  .about b { color: #451a03; }
+  .icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+  /* ================= A: current (plain CSS, neutral cards) ================= */
+  .va { --bg:#f6f7f9; --s:#fff; --sm:#f9fafb; --t:#111827; --t2:#374151; --m:#6b7280; --sub:#9ca3af; --b:#e5e7eb; --bs:#d1d5db; --ns:#f3f4f6;
+        --p:#0b6b3a; --ps:#e8f3ec; --d:#b42318; --ds:#fef3f2; --w:#b54708; --ws:#fffaeb;
+        background: var(--bg); color: var(--t); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+  .va .top { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 24px; background:#fff; border-bottom:1px solid var(--b); }
+  .va .brand { font-weight:700; font-size:16px; } .va .brand i { font-style:normal; color:var(--p); }
+  .va .camp b { display:block; font-weight:600; } .va .camp span { color:var(--m); font-size:12px; }
+  .va .ident { display:flex; align-items:center; gap:12px; } .va .div { width:1px; height:28px; background:var(--b); }
+  .va .layout { display:flex; }
+  .va .side { width:232px; flex-shrink:0; min-height:calc(100vh - 100px); padding:24px 12px; background:#fff; border-right:1px solid var(--b); }
+  .va .side h6 { margin:0 0 8px; padding:0 12px; font-size:11px; letter-spacing:.08em; color:var(--sub); font-weight:600; }
+  .va .nav a { display:block; padding:8px 12px; border-radius:8px; color:var(--t2); text-decoration:none; font-weight:500; }
+  .va .nav a.on { background:var(--ps); color:var(--p); font-weight:600; }
+  .va main { flex:1; min-width:0; padding:28px 32px 64px; }
+  .va h1 { margin:0; font-size:24px; font-weight:600; letter-spacing:-.02em; } .va .sub { margin:4px 0 20px; color:var(--m); }
+  .va .card { background:#fff; border:1px solid var(--b); border-radius:12px; box-shadow:0 1px 2px rgb(16 24 40 / .05); }
+  .va .eyebrow { font-size:12px; font-weight:600; letter-spacing:.06em; color:var(--m); }
+  .va .hero { padding:20px; } .va .heroRow { display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap; margin-top:8px; }
+  .va .big { font-size:48px; font-weight:700; letter-spacing:-.03em; line-height:1; font-variant-numeric:tabular-nums; }
+  .va .com { font-size:20px; font-weight:600; color:var(--w); }
+  .va .winbar { position:relative; height:10px; margin-top:40px; background:var(--ns); border-radius:99px; }
+  .va .winbar .fill { position:absolute; inset:0 auto 0 0; border-radius:99px; background:var(--w); }
+  .va .winbar .line { position:absolute; top:-6px; bottom:-6px; width:2px; background:var(--t); }
+  .va .winbar .lbl { position:absolute; top:-26px; transform:translateX(-50%); font-size:11px; font-weight:600; letter-spacing:.06em; color:var(--t2); }
+  .va .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin:16px 0; }
+  .va .kpi { padding:20px; } .va .kpi span { color:var(--m); font-size:13px; font-weight:500; } .va .kpi b { display:block; margin-top:4px; font-size:24px; font-weight:600; }
+  .va .grid2 { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr); gap:20px; align-items:start; }
+  .va .chead { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; padding:14px 20px; border-bottom:1px solid var(--b); }
+  .va .ctitle { font-size:16px; font-weight:600; }
+  .va .seg { display:inline-flex; padding:3px; background:var(--ns); border-radius:8px; }
+  .va .seg button { border:0; background:transparent; padding:4px 10px; border-radius:6px; font:inherit; font-size:13px; color:var(--m); }
+  .va .seg button.on { background:#fff; color:var(--t); box-shadow:0 1px 3px rgb(16 24 40 / .08); }
+  .va table { width:100%; border-collapse:collapse; }
+  .va th { padding:10px 12px; background:var(--sm); color:var(--m); font-size:12px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; text-align:left; border-bottom:1px solid var(--b); }
+  .va td { padding:12px; border-top:1px solid var(--b); } .va tr:first-child td { border-top:0; }
+  .va th:first-child, .va td:first-child { padding-left:20px; } .va th:last-child, .va td:last-child { padding-right:20px; }
+  .va .num { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+  .va .bar { height:6px; background:var(--ns); border-radius:99px; overflow:hidden; } .va .bar i { display:block; height:100%; border-radius:99px; }
+  .va .meta { font-size:12px; color:var(--m); margin-top:4px; }
+  .va .badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; font-weight:500; }
+  .va .good { background:var(--ps); color:var(--p); } .va .warn { background:var(--ws); color:var(--w); } .va .bad { background:var(--ds); color:var(--d); }
+  .va .btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border:1px solid var(--bs); border-radius:8px; background:#fff; font:inherit; font-weight:500; box-shadow:0 1px 2px rgb(16 24 40 / .05); cursor:pointer; }
+  .va .btn.sm { padding:4px 10px; font-size:13px; }
+  .va .btn.pri { background:var(--p); border-color:var(--p); color:#fff; } .va .btn.dan { border-color:#fda29b; color:var(--d); }
+  .va .note { padding-left:12px; border-left:3px solid var(--p); margin-top:14px; } .va .note.w { border-color:var(--w); }
+  .va .note b { display:block; } .va .note span { color:var(--m); font-size:13px; }
+  .va .field label { display:block; font-size:13px; font-weight:500; color:var(--t2); }
+  .va .field input, .va .field select { width:100%; margin-top:6px; padding:8px 12px; border:1px solid var(--bs); border-radius:8px; font:inherit; box-shadow:0 1px 2px rgb(16 24 40 / .05); }
+  .va .field input:focus { outline:none; border-color:var(--p); box-shadow:0 0 0 3px rgb(11 107 58 / .22); }
+  .va .modal { max-width:440px; box-shadow:0 20px 40px -12px rgb(16 24 40 / .25); }
+  .va .mhead { padding:20px 24px 16px; border-bottom:1px solid var(--b); } .va .mhead b { font-size:20px; font-weight:600; } .va .mhead p { margin:4px 0 0; color:var(--m); font-size:13px; }
+  .va .mbody { padding:20px 24px 24px; }
+  .va .strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; margin-top:28px; }
+  .va .strip h3, .vd .strip h3 { margin:0 0 12px; font-size:13px; font-weight:600; color:var(--m); letter-spacing:.04em; text-transform:uppercase; }
+
+  /* ================= D: plain CSS, dark sidebar, compact ================= */
+  .vd { --bg:#fafafa; --t:#18181b; --m:#71717a; --b:#e4e4e7; --rail:#0c1210; --rail2:#16201b; --railt:#a1a1aa;
+        --p:#16a34a; --pd:#15803d; --ps:#dcfce7; --d:#dc2626; --ds:#fee2e2; --w:#d97706; --ws:#fef3c7;
+        background:var(--bg); color:var(--t); font-size:13px; line-height:1.45; min-height:100vh; display:flex; }
+  .vd .rail { width:220px; flex-shrink:0; background:var(--rail); color:var(--railt); padding:14px 10px; display:flex; flex-direction:column; gap:2px; }
+  .vd .rail .brand { display:flex; align-items:center; gap:8px; padding:6px 8px 14px; color:#fff; font-weight:700; letter-spacing:-.01em; }
+  .vd .rail .logo { width:24px; height:24px; border-radius:6px; background:var(--p); display:grid; place-items:center; color:#fff; font-size:12px; }
+  .vd .rail .camp { margin:0 0 12px; padding:8px; border:1px solid #243028; border-radius:8px; background:var(--rail2); }
+  .vd .rail .camp b { display:block; color:#fff; font-weight:600; } .vd .rail .camp span { font-size:11px; }
+  .vd .rail h6 { margin:10px 8px 4px; font-size:10.5px; font-weight:600; letter-spacing:.08em; color:#52525b; }
+  .vd .rail a { display:flex; align-items:center; gap:10px; padding:6px 8px; border-radius:6px; color:var(--railt); text-decoration:none; font-weight:500; }
+  .vd .rail a:hover { background:var(--rail2); color:#fff; }
+  .vd .rail a.on { background:var(--rail2); color:#fff; box-shadow:inset 2px 0 0 var(--p); }
+  .vd .rail .count { margin-left:auto; padding:0 6px; border-radius:99px; background:#243028; font-size:11px; }
+  .vd .rail .me { margin-top:auto; display:flex; align-items:center; gap:8px; padding:8px; border-top:1px solid #1f2a24; }
+  .vd .avatar { width:28px; height:28px; border-radius:99px; background:#243028; color:#fff; display:grid; place-items:center; font-size:11px; font-weight:600; }
+  .vd .body { flex:1; min-width:0; }
+  .vd .bar1 { display:flex; align-items:center; justify-content:space-between; gap:12px; height:48px; padding:0 20px; border-bottom:1px solid var(--b); background:#fff; }
+  .vd .crumb { color:var(--m); } .vd .crumb b { color:var(--t); font-weight:600; }
+  .vd .search { display:flex; align-items:center; gap:8px; width:260px; padding:5px 10px; border:1px solid var(--b); border-radius:6px; color:var(--m); background:var(--bg); }
+  .vd .search kbd { margin-left:auto; font:11px Inter; padding:0 5px; border:1px solid var(--b); border-radius:4px; background:#fff; }
+  .vd main { padding:20px; }
+  .vd .stats { display:grid; grid-template-columns:2fr repeat(4,1fr); border:1px solid var(--b); border-radius:8px; background:#fff; overflow:hidden; }
+  .vd .stat { padding:14px 16px; border-left:1px solid var(--b); } .vd .stat:first-child { border-left:0; }
+  .vd .stat span { color:var(--m); font-size:12px; } .vd .stat b { display:block; margin-top:2px; font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+  .vd .stat.win b { font-size:30px; } .vd .stat em { font-style:normal; font-size:12px; color:var(--w); font-weight:600; }
+  .vd .meter { display:flex; height:6px; margin-top:10px; border-radius:99px; overflow:hidden; background:#f4f4f5; position:relative; }
+  .vd .meter i { background:var(--w); } .vd .meter u { position:absolute; left:50%; top:0; bottom:0; width:2px; background:var(--t); }
+  .vd .row2 { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; margin-top:16px; align-items:start; }
+  .vd .panel { border:1px solid var(--b); border-radius:8px; background:#fff; }
+  .vd .phead { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; padding:10px 14px; border-bottom:1px solid var(--b); }
+  .vd .phead b { font-weight:600; }
+  .vd .tabs a { padding:4px 8px; border-radius:6px; color:var(--m); text-decoration:none; font-weight:500; } .vd .tabs a.on { background:#f4f4f5; color:var(--t); }
+  .vd table { width:100%; border-collapse:collapse; }
+  .vd th { padding:7px 14px; text-align:left; font-size:11.5px; font-weight:500; color:var(--m); border-bottom:1px solid var(--b); }
+  .vd td { padding:8px 14px; border-bottom:1px solid #f4f4f5; } .vd tr:last-child td { border-bottom:0; }
+  .vd tr:hover td { background:#fafafa; }
+  .vd .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .vd .dot { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:500; }
+  .vd .dot::before { content:""; width:7px; height:7px; border-radius:99px; background:currentColor; }
+  .vd .g { color:var(--pd); } .vd .y { color:var(--w); } .vd .r { color:var(--d); }
+  .vd .mini { width:80px; height:5px; background:#f4f4f5; border-radius:99px; overflow:hidden; display:inline-block; vertical-align:middle; margin-right:8px; } .vd .mini i { display:block; height:100%; }
+  .vd .btn { display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 10px; border:1px solid var(--b); border-radius:6px; background:#fff; font:inherit; font-weight:500; cursor:pointer; }
+  .vd .btn.pri { background:var(--t); border-color:var(--t); color:#fff; } .vd .btn.ghost { border-color:transparent; background:transparent; color:var(--m); }
+  .vd .btn.dan { color:var(--d); }
+  .vd .feed li { display:flex; gap:10px; padding:10px 14px; border-bottom:1px solid #f4f4f5; list-style:none; } .vd .feed { margin:0; padding:0; }
+  .vd .feed li:last-child { border-bottom:0; } .vd .feed i { width:8px; height:8px; margin-top:5px; border-radius:99px; flex-shrink:0; }
+  .vd .feed span { display:block; color:var(--m); font-size:12px; }
+  .vd .field label { display:block; font-size:12px; font-weight:500; color:var(--m); margin-bottom:4px; }
+  .vd .field input, .vd .field select { width:100%; height:32px; padding:0 10px; border:1px solid var(--b); border-radius:6px; font:inherit; background:#fff; }
+  .vd .field input:focus { outline:2px solid var(--t); outline-offset:-1px; }
+  .vd .strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:20px; }
+  .vd .strip h3 { color:var(--m); }
+
+  /* Narrow screens, for the phone-width preview and real phones. */
+  .phone .va .side, .phone .vd .rail { display:none; }
+  .phone .va .kpis, .phone .vd .stats { grid-template-columns:1fr 1fr; }
+  .phone .vd .stat.win { grid-column:1 / -1; } .phone .vd .stat { border-left:0; border-top:1px solid var(--b); }
+  .phone .va .grid2, .phone .vd .row2 { grid-template-columns:1fr; }
+  .phone .va main, .phone .vd main { padding:16px; }
+  .phone .va .big { font-size:40px; } .phone .vd .search, .phone .va .who { display:none; }
+  .phone .tbl { overflow-x:auto; }
+  .phone .va .mobnav, .phone .vd .mobnav { display:flex; }
+  /* Tailwind breakpoints follow the window, not the preview frame; these mimic its phone layout. */
+  .phone .sidebar-b, .phone .searchb { display:none !important; }
+  .phone .kgrid { grid-template-columns:1fr 1fr !important; gap:12px !important; }
+  .phone .g2b { grid-template-columns:1fr !important; }
+  .phone .g2b > * { grid-column:auto !important; }
+  .phone .stripb { grid-template-columns:1fr !important; }
+  .g2b > *, .va .grid2 > *, .vd .row2 > *, .va .strip > *, .vd .strip > * { min-width:0; }
+  .tbl { overflow-x:auto; }
+  .phone .mainb { padding:16px !important; }
+  .mobnav { display:none; gap:4px; overflow-x:auto; padding:8px 16px; border-bottom:1px solid #e5e7eb; background:#fff; }
+  .mobnav a { flex:0 0 auto; padding:6px 12px; border-radius:8px; color:#374151; text-decoration:none; font-size:13px; font-weight:500; }
+  .mobnav a.on { background:#e8f3ec; color:#0b6b3a; }
+  .vd .mobnav a.on { background:#18181b; color:#fff; }
+
+  /* Comparison section. */
+  .compare { padding:32px 24px 64px; background:#fff; color:#111827; font-size:14px; }
+  .compare h2 { margin:0 0 4px; font-size:22px; letter-spacing:-.02em; } .compare p.lead { margin:0 0 20px; color:#6b7280; }
+  .compare table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  .compare th, .compare td { padding:10px 12px; border-bottom:1px solid #e5e7eb; text-align:left; vertical-align:top; }
+  .compare th { background:#f9fafb; font-size:12px; color:#6b7280; font-weight:600; }
+  .compare td:first-child { font-weight:600; white-space:nowrap; }
+  .compare .rec { margin-top:20px; padding:14px 16px; border:1px solid #bbf7d0; border-radius:10px; background:#f0fdf4; line-height:1.6; }
+  .compare .wrap { overflow-x:auto; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M17 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 22V4s2-1 6-1 6 2 10 2v10c-4 0-6-2-10-2s-6 1-6 1"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 17 17 7M8 7h9v9"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+</svg>
+
+<div class="switcher" role="toolbar" aria-label="Design variants">
+  <strong>MZIGO · UI alternatives</strong>
+  <button data-v="a" aria-pressed="true">A · Current (plain CSS)</button>
+  <button data-v="b" aria-pressed="false">B · shadcn/ui</button>
+  <button data-v="c" aria-pressed="false">C · Tremor / Tailwind</button>
+  <button data-v="d" aria-pressed="false">D · Plain CSS, dark rail</button>
+  <button data-v="cmp" aria-pressed="false">Compare</button>
+  <span class="spacer"></span>
+  <label><input type="checkbox" id="phone" /> Phone width</label>
+</div>
+
+<div class="frame" id="frame">
+
+<!-- ============================ A ============================ -->
+<section class="variant on" id="v-a">
+  <div class="about"><b>A · Current, plain CSS.</b> What ships today: Inter, neutral greys, white cards with a hairline and soft shadow, green brand, light sidebar. <b>Cost to keep:</b> nothing. <b>Dependencies:</b> none.</div>
+  <div class="va">
+    <div class="top">
+      <div class="ident"><div class="brand">MZIGO<i>·</i>CRM</div><div class="div"></div><div class="camp"><b>Jane for Roysambu</b><span>for Jane Wanjiru · MP seat · Roysambu</span></div></div>
+      <div class="ident"><span class="who" style="color:#6b7280;font-size:13px">Amina Kariuki · Campaign Manager</span><button class="btn">Sign out</button></div>
+    </div>
+    <div class="mobnav"><a class="on">Overview</a><a>Targets</a><a>Wards</a><a>Events</a><a>Mobilizers</a><a>Team</a></div>
+    <div class="layout">
+      <aside class="side"><h6>CAMPAIGN MANAGER</h6><nav class="nav">
+        <a class="on">Overview</a><a>Targets</a><a>Wards</a><a>Events</a><a>Mobilizers</a><a>Team</a><a>Supporters</a><a>Payments</a><a>Strategy</a>
+      </nav></aside>
+      <main>
+        <h1>Overview</h1><p class="sub">Your command view of the seat.</p>
+        <div class="card hero">
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><span class="eyebrow">VOTES TO WIN THE SEAT</span><span class="meta" style="margin:0;font-size:13px">5 units · 86,096 projected votes cast</span></div>
+          <div class="heroRow"><span class="big">43,050</span><div><div class="com">18,420 committed</div><div class="meta" style="font-size:13px;margin:0">43% there · 24,630 to go</div></div></div>
+          <div class="winbar"><div class="fill" style="width:21.4%"></div><div class="line" style="left:50%"></div><div class="lbl" style="left:50%">WIN LINE</div></div>
+        </div>
+        <div class="kpis">
+          <div class="card kpi"><span>Registered voters</span><b>153,772</b></div>
+          <div class="card kpi"><span>Units covered</span><b>4 / 5</b></div>
+          <div class="card kpi"><span>Mobilizers</span><b>3 / 5</b></div>
+          <div class="card kpi"><span>Units behind</span><b>2</b></div>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="chead"><span class="ctitle">Targeting</span><div class="seg"><button class="on">Biggest gap</button><button>Win number</button><button>Least progress</button></div></div>
+            <div class="tbl"><table><thead><tr><th>Unit</th><th style="text-align:right">Need</th><th>Progress</th><th>Mobilizer</th></tr></thead><tbody>
+              <tr><td><b>Kahawa West</b><div style="margin-top:4px"><span class="badge bad">Behind</span></div></td><td class="num">10,803</td><td style="min-width:140px"><div class="bar"><i style="width:22%;background:var(--d)"></i></div><div class="meta">2,377 · 22%</div></td><td><button class="btn sm">Assign</button></td></tr>
+              <tr><td><b>Githurai</b><div style="margin-top:4px"><span class="badge warn">Building</span></div></td><td class="num">10,050</td><td><div class="bar"><i style="width:71%;background:var(--w)"></i></div><div class="meta">7,136 · 71%</div></td><td><b>Juma Otieno</b></td></tr>
+              <tr><td><b>Kahawa</b><div style="margin-top:4px"><span class="badge good">Target met</span></div></td><td class="num">4,879</td><td><div class="bar"><i style="width:100%;background:var(--p)"></i></div><div class="meta">4,907 · 100%</div></td><td><b>Mary Wairimu</b></td></tr>
+            </tbody></table></div>
+          </div>
+          <div class="card" style="padding:20px">
+            <div class="ctitle">Strategy read</div><div class="meta" style="font-size:13px;margin-top:2px">Computed from your targets, events and mobilizers.</div>
+            <div class="note"><b>Go next: Kahawa West</b><span>Biggest winnable gap: 8,426 votes short, no events yet.</span></div>
+            <div class="note w"><b>2 units unstaffed</b><span>Roysambu and Zimmerman have no ground organiser.</span></div>
+          </div>
+        </div>
+        <div class="strip">
+          <div><h3>Buttons and badges</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri">Schedule event</button><button class="btn">Invite</button><button class="btn dan">Reset password</button></div>
+            <div style="display:flex;gap:6px;margin-top:12px"><span class="badge good">Supporter</span><span class="badge warn">Undecided</span><span class="badge bad">Opposed</span></div></div>
+          <div class="card modal"><div class="mhead"><b>Add mobilizer</b><p>One mobilizer per ward.</p></div><div class="mbody">
+            <div class="field"><label>Full name</label><input value="Juma Otieno" /></div>
+            <div class="field" style="margin-top:14px"><label>Ward</label><select><option>Githurai</option></select></div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:24px"><button class="btn">Cancel</button><button class="btn pri">Save mobilizer</button></div></div></div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ B ============================ -->
+<section class="variant" id="v-b">
+  <div class="about"><b>B · shadcn/ui.</b> Zinc neutrals, near-black primary buttons, rounded-xl cards with an icon in the header, sentence-case table headers, tabs and outline badges. Green is used only for status. <b>Needs:</b> Tailwind v4, Radix primitives, <code>class-variance-authority</code>, <code>clsx</code>, <code>tailwind-merge</code>, <code>lucide-react</code>. Components are copied into <code>src/components/ui</code> by its CLI.</div>
+  <div class="bg-white text-zinc-950 text-sm min-h-screen flex">
+    <aside class="hidden md:flex w-60 shrink-0 flex-col border-r border-zinc-200 bg-zinc-50/60 sidebar-b">
+      <div class="h-14 flex items-center gap-2 px-4 border-b border-zinc-200 font-semibold"><span class="grid place-items-center w-7 h-7 rounded-md bg-zinc-900 text-white text-xs">M</span>Mzigo CRM</div>
+      <div class="p-3">
+        <button class="w-full flex items-center justify-between rounded-md border border-zinc-200 bg-white px-3 py-2 shadow-sm text-left"><span><span class="block font-medium">Jane for Roysambu</span><span class="block text-xs text-zinc-500">MP seat · Roysambu</span></span><span class="text-zinc-400">⌄</span></button>
+      </div>
+      <nav class="px-3 grid gap-0.5 text-zinc-600">
+        <a class="flex items-center gap-3 rounded-md px-3 py-2 bg-zinc-100 text-zinc-900 font-medium"><svg class="icon"><use href="#i-home"/></svg>Overview</a>
+        <a class="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-zinc-100 hover:text-zinc-900"><svg class="icon"><use href="#i-target"/></svg>Targets</a>
+        <a class="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-zinc-100 hover:text-zinc-900"><svg class="icon"><use href="#i-map"/></svg>Wards</a>
+        <a class="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-zinc-100 hover:text-zinc-900"><svg class="icon"><use href="#i-cal"/></svg>Events<span class="ml-auto rounded-full bg-zinc-900 text-white text-[11px] px-1.5">2</span></a>
+        <a class="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-zinc-100 hover:text-zinc-900"><svg class="icon"><use href="#i-flag"/></svg>Mobilizers</a>
+        <a class="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-zinc-100 hover:text-zinc-900"><svg class="icon"><use href="#i-users"/></svg>Team</a>
+        <a class="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-zinc-100 hover:text-zinc-900"><svg class="icon"><use href="#i-heart"/></svg>Supporters</a>
+        <a class="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-zinc-100 hover:text-zinc-900"><svg class="icon"><use href="#i-wallet"/></svg>Payments</a>
+        <a class="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-zinc-100 hover:text-zinc-900"><svg class="icon"><use href="#i-bulb"/></svg>Strategy</a>
+      </nav>
+      <div class="mt-auto p-3 border-t border-zinc-200 flex items-center gap-3"><span class="grid place-items-center w-8 h-8 rounded-full bg-zinc-200 text-xs font-semibold">AK</span><span class="leading-tight"><span class="block font-medium">Amina Kariuki</span><span class="block text-xs text-zinc-500">Campaign manager</span></span></div>
+    </aside>
+    <div class="flex-1 min-w-0">
+      <header class="h-14 flex items-center gap-4 border-b border-zinc-200 px-6">
+        <span class="text-zinc-500">Campaign</span><span class="text-zinc-300">/</span><span class="font-medium">Overview</span>
+        <div class="ml-auto flex items-center gap-2">
+          <div class="hidden sm:flex items-center gap-2 h-9 w-64 rounded-md border border-zinc-200 px-3 text-zinc-500 shadow-sm searchb"><svg class="icon"><use href="#i-search"/></svg>Search supporters…</div>
+          <button class="h-9 px-4 rounded-md bg-zinc-900 text-white font-medium shadow inline-flex items-center gap-2 hover:bg-zinc-800"><svg class="icon"><use href="#i-plus"/></svg>New event</button>
+        </div>
+      </header>
+      <div class="mobnav"><a class="on">Overview</a><a>Targets</a><a>Wards</a><a>Events</a><a>Mobilizers</a></div>
+      <main class="p-6 space-y-4 mainb">
+        <div class="flex items-end justify-between flex-wrap gap-3">
+          <div><h1 class="text-3xl font-bold tracking-tight">Overview</h1><p class="text-zinc-500 mt-1">Your command view of the seat.</p></div>
+          <div class="inline-flex rounded-lg bg-zinc-100 p-1 text-zinc-500"><button class="rounded-md bg-white px-3 py-1 font-medium text-zinc-900 shadow-sm">Overview</button><button class="px-3 py-1 font-medium">Analytics</button><button class="px-3 py-1 font-medium">Reports</button></div>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 kgrid">
+          <div class="rounded-xl border border-zinc-200 bg-white shadow-sm p-6"><div class="flex justify-between text-sm font-medium"><span>Win number</span><svg class="icon text-zinc-400"><use href="#i-target"/></svg></div><div class="mt-2 text-2xl font-bold tabular-nums">43,050</div><p class="text-xs text-zinc-500">votes to take the seat</p></div>
+          <div class="rounded-xl border border-zinc-200 bg-white shadow-sm p-6"><div class="flex justify-between text-sm font-medium"><span>Committed</span><svg class="icon text-zinc-400"><use href="#i-heart"/></svg></div><div class="mt-2 text-2xl font-bold tabular-nums">18,420</div><p class="text-xs text-zinc-500"><span class="text-emerald-600 font-medium">+1,204</span> this week</p></div>
+          <div class="rounded-xl border border-zinc-200 bg-white shadow-sm p-6"><div class="flex justify-between text-sm font-medium"><span>Units covered</span><svg class="icon text-zinc-400"><use href="#i-map"/></svg></div><div class="mt-2 text-2xl font-bold tabular-nums">4 / 5</div><p class="text-xs text-zinc-500">at least one event held</p></div>
+          <div class="rounded-xl border border-zinc-200 bg-white shadow-sm p-6"><div class="flex justify-between text-sm font-medium"><span>Mobilizers</span><svg class="icon text-zinc-400"><use href="#i-flag"/></svg></div><div class="mt-2 text-2xl font-bold tabular-nums">3 / 5</div><p class="text-xs text-zinc-500">2 units unstaffed</p></div>
+        </div>
+        <div class="grid gap-4 lg:grid-cols-7 g2b">
+          <div class="lg:col-span-4 rounded-xl border border-zinc-200 bg-white shadow-sm">
+            <div class="p-6 pb-2"><h3 class="font-semibold leading-none tracking-tight">Targeting</h3><p class="text-zinc-500 mt-1.5">Units sorted by the biggest gap to their win number.</p></div>
+            <div class="px-2 pb-2 tbl"><table class="w-full text-sm">
+              <thead><tr class="border-b border-zinc-200 text-zinc-500"><th class="h-10 px-4 text-left font-medium">Unit</th><th class="h-10 px-4 text-left font-medium">Status</th><th class="h-10 px-4 text-right font-medium">Need</th><th class="h-10 px-4 text-left font-medium">Progress</th><th class="h-10 px-4"></th></tr></thead>
+              <tbody>
+                <tr class="border-b border-zinc-100 hover:bg-zinc-50"><td class="p-4 font-medium">Kahawa West</td><td class="p-4"><span class="inline-flex rounded-md bg-red-600 text-white px-2.5 py-0.5 text-xs font-semibold">Behind</span></td><td class="p-4 text-right tabular-nums">10,803</td><td class="p-4 w-40"><div class="h-2 rounded-full bg-zinc-100"><div class="h-2 rounded-full bg-zinc-900" style="width:22%"></div></div></td><td class="p-4 text-right"><button class="h-8 px-3 rounded-md border border-zinc-200 shadow-sm text-xs font-medium hover:bg-zinc-100">Assign</button></td></tr>
+                <tr class="border-b border-zinc-100 hover:bg-zinc-50"><td class="p-4 font-medium">Githurai</td><td class="p-4"><span class="inline-flex rounded-md bg-zinc-100 text-zinc-900 px-2.5 py-0.5 text-xs font-semibold">Building</span></td><td class="p-4 text-right tabular-nums">10,050</td><td class="p-4"><div class="h-2 rounded-full bg-zinc-100"><div class="h-2 rounded-full bg-zinc-900" style="width:71%"></div></div></td><td class="p-4 text-right text-zinc-500">Juma O.</td></tr>
+                <tr class="hover:bg-zinc-50"><td class="p-4 font-medium">Kahawa</td><td class="p-4"><span class="inline-flex rounded-md border border-zinc-200 px-2.5 py-0.5 text-xs font-semibold">Target met</span></td><td class="p-4 text-right tabular-nums">4,879</td><td class="p-4"><div class="h-2 rounded-full bg-zinc-100"><div class="h-2 rounded-full bg-zinc-900" style="width:100%"></div></div></td><td class="p-4 text-right text-zinc-500">Mary W.</td></tr>
+              </tbody></table></div>
+          </div>
+          <div class="lg:col-span-3 rounded-xl border border-zinc-200 bg-white shadow-sm">
+            <div class="p-6 pb-4"><h3 class="font-semibold leading-none tracking-tight">Strategy read</h3><p class="text-zinc-500 mt-1.5">Computed from your targets, events and mobilizers.</p></div>
+            <div class="px-6 pb-6 space-y-5">
+              <div class="flex gap-4"><span class="grid place-items-center w-9 h-9 rounded-full bg-zinc-100 shrink-0"><svg class="icon"><use href="#i-target"/></svg></span><div><p class="font-medium leading-none">Go next: Kahawa West</p><p class="text-zinc-500 mt-1">8,426 votes short, no events yet.</p></div></div>
+              <div class="flex gap-4"><span class="grid place-items-center w-9 h-9 rounded-full bg-zinc-100 shrink-0"><svg class="icon"><use href="#i-flag"/></svg></span><div><p class="font-medium leading-none">2 units unstaffed</p><p class="text-zinc-500 mt-1">Roysambu and Zimmerman have no organiser.</p></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid gap-6 md:grid-cols-2 pt-4 stripb">
+          <div><p class="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Buttons and badges</p>
+            <div class="flex flex-wrap gap-2"><button class="h-9 px-4 rounded-md bg-zinc-900 text-white font-medium shadow">Default</button><button class="h-9 px-4 rounded-md border border-zinc-200 shadow-sm font-medium">Outline</button><button class="h-9 px-4 rounded-md bg-zinc-100 font-medium">Secondary</button><button class="h-9 px-4 rounded-md font-medium hover:bg-zinc-100">Ghost</button><button class="h-9 px-4 rounded-md bg-red-600 text-white font-medium shadow">Destructive</button></div>
+            <div class="flex flex-wrap gap-2 mt-3"><span class="rounded-md bg-zinc-900 text-white px-2.5 py-0.5 text-xs font-semibold">Supporter</span><span class="rounded-md bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold">Undecided</span><span class="rounded-md bg-red-600 text-white px-2.5 py-0.5 text-xs font-semibold">Opposed</span><span class="rounded-md border border-zinc-200 px-2.5 py-0.5 text-xs font-semibold">Outline</span></div></div>
+          <div class="rounded-lg border border-zinc-200 bg-white shadow-lg p-6 max-w-md relative">
+            <button class="absolute right-4 top-4 text-zinc-500"><svg class="icon"><use href="#i-x"/></svg></button>
+            <h2 class="text-lg font-semibold">Add mobilizer</h2><p class="text-zinc-500 mt-1.5">One mobilizer per ward. The ward can be left for later.</p>
+            <div class="grid gap-4 mt-4"><div class="grid gap-2"><label class="font-medium">Full name</label><input class="h-9 rounded-md border border-zinc-200 px-3 shadow-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" value="Juma Otieno"/></div>
+              <div class="grid gap-2"><label class="font-medium">Ward</label><select class="h-9 rounded-md border border-zinc-200 px-3 shadow-sm bg-white"><option>Githurai</option></select></div></div>
+            <div class="flex justify-end gap-2 mt-6"><button class="h-9 px-4 rounded-md border border-zinc-200 shadow-sm font-medium">Cancel</button><button class="h-9 px-4 rounded-md bg-zinc-900 text-white font-medium shadow">Save mobilizer</button></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ C ============================ -->
+<section class="variant" id="v-c">
+  <div class="about"><b>C · Tremor / Tailwind dashboard.</b> Data-first: a top navigation bar with tabs, metric cards with change badges, a progress-to-win bar, a per-unit tracker strip, a bar list, and a small chart. Colour carries meaning. <b>Needs:</b> Tailwind, plus Tremor's copy-paste components (Radix and Recharts) for the charts. This variant is the strongest at analytics, and it pays for that in bundle size.</div>
+  <div class="bg-gray-50 text-gray-900 text-sm min-h-screen">
+    <header class="bg-white border-b border-gray-200">
+      <div class="px-6 h-14 flex items-center gap-6">
+        <span class="font-semibold flex items-center gap-2"><span class="w-6 h-6 rounded bg-emerald-600 grid place-items-center text-white text-xs">M</span>Mzigo</span>
+        <span class="text-gray-300">/</span><span class="font-medium">Jane for Roysambu</span><span class="hidden sm:inline rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-600 searchb">MP · Roysambu</span>
+        <div class="ml-auto flex items-center gap-3"><span class="hidden sm:inline text-gray-500 searchb">Amina Kariuki</span><span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center text-xs font-semibold">AK</span></div>
+      </div>
+      <nav class="px-6 flex gap-6 overflow-x-auto text-gray-500 font-medium">
+        <a class="py-3 border-b-2 border-emerald-600 text-emerald-700 whitespace-nowrap">Overview</a><a class="py-3 border-b-2 border-transparent hover:text-gray-900 whitespace-nowrap">Targets</a><a class="py-3 border-b-2 border-transparent whitespace-nowrap">Wards</a><a class="py-3 border-b-2 border-transparent whitespace-nowrap">Events</a><a class="py-3 border-b-2 border-transparent whitespace-nowrap">Mobilizers</a><a class="py-3 border-b-2 border-transparent whitespace-nowrap">Team</a><a class="py-3 border-b-2 border-transparent whitespace-nowrap">Supporters</a><a class="py-3 border-b-2 border-transparent whitespace-nowrap">Payments</a><a class="py-3 border-b-2 border-transparent whitespace-nowrap">Strategy</a>
+      </nav>
+    </header>
+    <main class="p-6 space-y-6 mainb">
+      <div class="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div><p class="text-gray-500">Votes committed toward the win number</p>
+            <p class="mt-1 text-4xl font-semibold tabular-nums tracking-tight">18,420 <span class="text-lg font-normal text-gray-400">/ 43,050</span></p></div>
+          <span class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20"><svg class="icon" style="width:12px;height:12px"><use href="#i-up"/></svg>+7.0% this week</span>
+        </div>
+        <div class="mt-5 flex justify-between text-xs text-gray-500"><span>43% of the win number</span><span>24,630 to go</span></div>
+        <div class="mt-2 h-2 rounded-full bg-emerald-100"><div class="h-2 rounded-full bg-emerald-600" style="width:43%"></div></div>
+        <p class="mt-6 text-gray-500">Units, by status</p>
+        <div class="mt-2 flex gap-1">
+          <div class="h-10 flex-1 rounded bg-red-500" title="Kahawa West: behind"></div><div class="h-10 flex-1 rounded bg-amber-400" title="Githurai: building"></div><div class="h-10 flex-1 rounded bg-emerald-500" title="Kahawa: met"></div><div class="h-10 flex-1 rounded bg-red-500" title="Roysambu: behind"></div><div class="h-10 flex-1 rounded bg-amber-400" title="Zimmerman: building"></div>
+        </div>
+        <div class="mt-2 flex gap-4 text-xs text-gray-500"><span class="flex items-center gap-1.5"><i class="w-2 h-2 rounded-full bg-emerald-500"></i>Met 1</span><span class="flex items-center gap-1.5"><i class="w-2 h-2 rounded-full bg-amber-400"></i>Building 2</span><span class="flex items-center gap-1.5"><i class="w-2 h-2 rounded-full bg-red-500"></i>Behind 2</span></div>
+      </div>
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 kgrid">
+        <div class="rounded-lg bg-white p-5 shadow-sm ring-1 ring-gray-200 border-l-4 border-l-emerald-500"><p class="text-gray-500">Registered voters</p><p class="mt-1 text-2xl font-semibold tabular-nums">153,772</p></div>
+        <div class="rounded-lg bg-white p-5 shadow-sm ring-1 ring-gray-200 border-l-4 border-l-emerald-500"><div class="flex justify-between"><p class="text-gray-500">Supporters</p><span class="rounded bg-emerald-50 text-emerald-700 px-1.5 text-xs font-medium">+112</span></div><p class="mt-1 text-2xl font-semibold tabular-nums">2,846</p></div>
+        <div class="rounded-lg bg-white p-5 shadow-sm ring-1 ring-gray-200 border-l-4 border-l-amber-400"><p class="text-gray-500">Mobilizers</p><p class="mt-1 text-2xl font-semibold tabular-nums">3 <span class="text-base text-gray-400">/ 5</span></p></div>
+        <div class="rounded-lg bg-white p-5 shadow-sm ring-1 ring-gray-200 border-l-4 border-l-red-500"><div class="flex justify-between"><p class="text-gray-500">Units behind</p><span class="rounded bg-red-50 text-red-700 px-1.5 text-xs font-medium">needs action</span></div><p class="mt-1 text-2xl font-semibold tabular-nums">2</p></div>
+      </div>
+      <div class="grid gap-6 lg:grid-cols-2 g2b">
+        <div class="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div class="flex justify-between"><h3 class="font-medium">Gap to win number, by unit</h3><span class="text-gray-500">votes</span></div>
+          <div class="mt-4 space-y-2">
+            <div class="flex items-center gap-3"><div class="relative flex-1 h-8 rounded bg-gray-50"><div class="absolute inset-y-0 left-0 rounded bg-red-100" style="width:100%"></div><span class="absolute inset-y-0 left-3 flex items-center">Kahawa West</span></div><span class="w-16 text-right tabular-nums">8,426</span></div>
+            <div class="flex items-center gap-3"><div class="relative flex-1 h-8 rounded bg-gray-50"><div class="absolute inset-y-0 left-0 rounded bg-red-100" style="width:84%"></div><span class="absolute inset-y-0 left-3 flex items-center">Roysambu</span></div><span class="w-16 text-right tabular-nums">7,102</span></div>
+            <div class="flex items-center gap-3"><div class="relative flex-1 h-8 rounded bg-gray-50"><div class="absolute inset-y-0 left-0 rounded bg-amber-100" style="width:42%"></div><span class="absolute inset-y-0 left-3 flex items-center">Zimmerman</span></div><span class="w-16 text-right tabular-nums">3,588</span></div>
+            <div class="flex items-center gap-3"><div class="relative flex-1 h-8 rounded bg-gray-50"><div class="absolute inset-y-0 left-0 rounded bg-amber-100" style="width:34%"></div><span class="absolute inset-y-0 left-3 flex items-center">Githurai</span></div><span class="w-16 text-right tabular-nums">2,914</span></div>
+            <div class="flex items-center gap-3"><div class="relative flex-1 h-8 rounded bg-gray-50"><div class="absolute inset-y-0 left-0 rounded bg-emerald-100" style="width:2%"></div><span class="absolute inset-y-0 left-3 flex items-center">Kahawa</span></div><span class="w-16 text-right tabular-nums text-emerald-700">met</span></div>
+          </div>
+        </div>
+        <div class="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div class="flex justify-between"><h3 class="font-medium">Supporters signed up, last 8 weeks</h3><span class="text-gray-500">per week</span></div>
+          <svg viewBox="0 0 320 140" class="mt-4 w-full h-40" role="img" aria-label="Weekly sign-ups rising from 120 to 410">
+            <g stroke="#f3f4f6"><line x1="0" y1="20" x2="320" y2="20"/><line x1="0" y1="60" x2="320" y2="60"/><line x1="0" y1="100" x2="320" y2="100"/></g>
+            <g fill="#10b981" rx="3">
+              <rect x="8" y="104" width="26" height="30" rx="3"/><rect x="48" y="96" width="26" height="38" rx="3"/><rect x="88" y="88" width="26" height="46" rx="3"/><rect x="128" y="70" width="26" height="64" rx="3"/>
+              <rect x="168" y="76" width="26" height="58" rx="3"/><rect x="208" y="52" width="26" height="82" rx="3"/><rect x="248" y="40" width="26" height="94" rx="3"/><rect x="288" y="30" width="26" height="104" rx="3"/>
+            </g>
+          </svg>
+          <div class="flex justify-between text-xs text-gray-400"><span>8 Sept</span><span>27 Oct</span></div>
+        </div>
+      </div>
+      <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-200 tbl">
+        <table class="w-full text-sm"><thead class="border-b border-gray-200"><tr class="text-gray-900"><th class="px-6 py-3 text-left font-semibold">Event</th><th class="px-6 py-3 text-left font-semibold">Ward</th><th class="px-6 py-3 text-left font-semibold">Status</th><th class="px-6 py-3 text-right font-semibold">Turnout</th><th class="px-6 py-3"></th></tr></thead>
+          <tbody class="divide-y divide-gray-100 text-gray-600">
+            <tr><td class="px-6 py-3 font-medium text-gray-900">Kahawa rally</td><td class="px-6 py-3">Kahawa</td><td class="px-6 py-3"><span class="rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20">Planned</span></td><td class="px-6 py-3 text-right">—</td><td class="px-6 py-3 text-right"><button class="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm">Record</button></td></tr>
+            <tr><td class="px-6 py-3 font-medium text-gray-900">Githurai town hall</td><td class="px-6 py-3">Githurai</td><td class="px-6 py-3"><span class="rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20">Done</span></td><td class="px-6 py-3 text-right tabular-nums text-gray-900">70%</td><td class="px-6 py-3 text-right"><button class="rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-900 ring-1 ring-gray-300 shadow-sm">Invite</button></td></tr>
+          </tbody></table>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ============================ D ============================ -->
+<section class="variant" id="v-d">
+  <div class="about"><b>D · Plain CSS, dark rail, compact.</b> In the style of Linear or Vercel's dashboard: a dark sidebar with icons, counts and the user at the bottom; a 48px command bar with breadcrumb and search; one joined stat strip instead of separate cards; dense tables with dot statuses. <b>Needs:</b> nothing new. It is a re-theme of <code>index.css</code> plus icons, and fits more on screen for power users.</div>
+  <div class="vd">
+    <aside class="rail">
+      <div class="brand"><span class="logo">M</span>Mzigo CRM</div>
+      <div class="camp"><b>Jane for Roysambu</b><span>MP seat · Roysambu</span></div>
+      <h6>CAMPAIGN</h6>
+      <a class="on"><svg class="icon"><use href="#i-home"/></svg>Overview</a>
+      <a><svg class="icon"><use href="#i-target"/></svg>Targets</a>
+      <a><svg class="icon"><use href="#i-map"/></svg>Wards<span class="count">5</span></a>
+      <a><svg class="icon"><use href="#i-cal"/></svg>Events<span class="count">2</span></a>
+      <h6>PEOPLE</h6>
+      <a><svg class="icon"><use href="#i-flag"/></svg>Mobilizers</a>
+      <a><svg class="icon"><use href="#i-users"/></svg>Team</a>
+      <a><svg class="icon"><use href="#i-heart"/></svg>Supporters<span class="count">2.8k</span></a>
+      <a><svg class="icon"><use href="#i-wallet"/></svg>Payments</a>
+      <a><svg class="icon"><use href="#i-bulb"/></svg>Strategy</a>
+      <div class="me"><span class="avatar">AK</span><span><b style="color:#fff;font-weight:500;display:block">Amina Kariuki</b><span style="font-size:11px">Campaign manager</span></span></div>
+    </aside>
+    <div class="body">
+      <div class="bar1"><span class="crumb">Jane for Roysambu / <b>Overview</b></span><div style="display:flex;gap:8px;align-items:center"><span class="search"><svg class="icon"><use href="#i-search"/></svg>Search<kbd>Ctrl K</kbd></span><button class="btn pri"><svg class="icon"><use href="#i-plus"/></svg>New event</button></div></div>
+      <div class="mobnav"><a class="on">Overview</a><a>Targets</a><a>Wards</a><a>Events</a><a>Mobilizers</a></div>
+      <main>
+        <div class="stats">
+          <div class="stat win"><span>Win number</span><b>43,050</b><em>18,420 committed · 43%</em><div class="meter"><i style="width:21.4%"></i><u></u></div></div>
+          <div class="stat"><span>Registered</span><b>153,772</b></div>
+          <div class="stat"><span>Units covered</span><b>4/5</b></div>
+          <div class="stat"><span>Mobilizers</span><b>3/5</b></div>
+          <div class="stat"><span>Behind</span><b class="r">2</b></div>
+        </div>
+        <div class="row2">
+          <div class="panel">
+            <div class="phead"><b>Targeting</b><span class="tabs"><a class="on">Biggest gap</a><a>Win number</a><a>Least progress</a></span></div>
+            <div class="tbl"><table><thead><tr><th>Unit</th><th>Status</th><th class="num">Need</th><th>Progress</th><th>Mobilizer</th><th></th></tr></thead><tbody>
+              <tr><td><b style="font-weight:500">Kahawa West</b></td><td><span class="dot r">Behind</span></td><td class="num">10,803</td><td><span class="mini"><i style="width:22%;background:var(--d)"></i></span>22%</td><td style="color:var(--m)">None</td><td class="num"><button class="btn">Assign</button></td></tr>
+              <tr><td><b style="font-weight:500">Roysambu</b></td><td><span class="dot r">Behind</span></td><td class="num">8,723</td><td><span class="mini"><i style="width:19%;background:var(--d)"></i></span>19%</td><td style="color:var(--m)">None</td><td class="num"><button class="btn">Assign</button></td></tr>
+              <tr><td><b style="font-weight:500">Githurai</b></td><td><span class="dot y">Building</span></td><td class="num">10,050</td><td><span class="mini"><i style="width:71%;background:var(--w)"></i></span>71%</td><td>Juma Otieno</td><td class="num"><button class="btn ghost">Change</button></td></tr>
+              <tr><td><b style="font-weight:500">Zimmerman</b></td><td><span class="dot y">Building</span></td><td class="num">8,595</td><td><span class="mini"><i style="width:58%;background:var(--w)"></i></span>58%</td><td>Peter Mwangi</td><td class="num"><button class="btn ghost">Change</button></td></tr>
+              <tr><td><b style="font-weight:500">Kahawa</b></td><td><span class="dot g">Target met</span></td><td class="num">4,879</td><td><span class="mini"><i style="width:100%;background:var(--p)"></i></span>100%</td><td>Mary Wairimu</td><td class="num"><button class="btn ghost">Change</button></td></tr>
+            </tbody></table></div>
+          </div>
+          <div class="panel">
+            <div class="phead"><b>Strategy read</b></div>
+            <ul class="feed">
+              <li><i style="background:var(--p)"></i><div>Go next: Kahawa West<span>8,426 short, no events yet.</span></div></li>
+              <li><i style="background:var(--w)"></i><div>2 units unstaffed<span>Roysambu has no organiser.</span></div></li>
+              <li><i style="background:#a1a1aa"></i><div>Githurai rally on 2 Nov<span>Invite 640 supporters.</span></div></li>
+            </ul>
+          </div>
+        </div>
+        <div class="strip">
+          <div><h3>Buttons and statuses</h3><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn pri">Schedule event</button><button class="btn">Invite</button><button class="btn ghost">Cancel</button><button class="btn dan">Reset password</button></div>
+            <div style="display:flex;gap:14px;margin-top:12px"><span class="dot g">Supporter</span><span class="dot y">Undecided</span><span class="dot r">Opposed</span></div></div>
+          <div class="panel" style="max-width:420px;box-shadow:0 16px 40px -12px rgb(0 0 0 / .25)"><div class="phead"><b>Add mobilizer</b><button class="btn ghost" style="padding:0 6px"><svg class="icon"><use href="#i-x"/></svg></button></div>
+            <div style="padding:14px;display:grid;gap:12px"><div class="field"><label>Full name</label><input value="Juma Otieno" /></div><div class="field"><label>Ward</label><select><option>Githurai</option></select></div>
+              <div style="display:flex;justify-content:flex-end;gap:6px"><button class="btn">Cancel</button><button class="btn pri">Save</button></div></div></div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ Compare ============================ -->
+<section class="variant" id="v-cmp">
+  <div class="compare">
+    <h2>How the four compare</h2>
+    <p class="lead">Cost and fit for this codebase: React 19 + Vite, about 2,900 lines of JSX and 450 class names, one stylesheet today.</p>
+    <div class="wrap"><table>
+      <thead><tr><th>Option</th><th>New dependencies</th><th>Work to adopt</th><th>Bundle added (approx.)</th><th>Best at</th><th>Watch out for</th></tr></thead>
+      <tbody>
+        <tr><td>A · Current CSS</td><td>None</td><td>Done</td><td>0</td><td>Zero cost, one file to retheme</td><td>Every new widget (dropdown menu, date picker, combobox) is hand-built</td></tr>
+        <tr><td>B · shadcn/ui</td><td>Tailwind v4, Radix, cva, clsx, tailwind-merge, lucide-react</td><td>High: rewrite most className uses and delete index.css. About 3 to 5 days with screenshot checks</td><td>20 to 40 KB gzip for the components used</td><td>Forms, dialogs, dropdowns, comboboxes and tables, with accessibility built in</td><td>Monochrome by default, so the campaign green needs theming. You own the copied component code.</td></tr>
+        <tr><td>C · Tremor / Tailwind</td><td>Tailwind, Radix, Recharts (for charts)</td><td>High: the same Tailwind rewrite as B, plus chart wiring</td><td>60 to 120 KB gzip once charts are in</td><td>Analytics: trends, bar lists, trackers</td><td>Charts need time-series data the API doesn't return yet. Heavier on phones in the field.</td></tr>
+        <tr><td>D · CSS, dark rail</td><td>None (inline SVG icons)</td><td>Low: re-theme index.css, add icons and counts to the nav. About 1 day</td><td>A few KB of icons</td><td>Density and a "command centre" feel for managers</td><td>Compact text is harder for mobilizers on phones; keep public pages (join, withdraw) roomy.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="rec"><b>Recommendation.</b> Stay on plain CSS and take the best ideas from the others without their dependencies: D's navigation icons, counts and user block; B's card header icons and the change line under each metric ("+1,204 this week"); C's unit-status tracker strip. Move to B (shadcn + Tailwind) only if the roadmap fills up with complex form controls such as searchable selects, date pickers and multi-step dialogs. Take C only once the API serves time series worth charting.</div>
+    <p style="color:#6b7280;font-size:12.5px;margin-top:16px">All numbers on the mock screens are sample data. Bundle sizes are estimates, not measured in this repo. Variants B and C load Tailwind from its CDN for this preview only.</p>
+  </div>
+</section>
+
+</div>
+
+<script>
+  const buttons = document.querySelectorAll(".switcher button[data-v]");
+  const show = (v) => {
+    document.querySelectorAll(".variant").forEach((s) => s.classList.toggle("on", s.id === "v-" + v));
+    buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+    try { localStorage.setItem("mzigo-variant", v); } catch {}
+  };
+  buttons.forEach((b) => b.addEventListener("click", () => show(b.dataset.v)));
+  try { const saved = localStorage.getItem("mzigo-variant"); if (saved) show(saved); } catch {}
+  document.getElementById("phone").addEventListener("change", (e) => document.getElementById("frame").classList.toggle("phone", e.target.checked));
+</script>
+</body>
+</html>
