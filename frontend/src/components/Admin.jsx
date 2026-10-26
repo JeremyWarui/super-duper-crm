@@ -54,7 +54,7 @@ function Danger({ label, question, onConfirm, disabled, busy }) {
   const [asking, setAsking] = useState(false);
   if (!asking)
     return (
-      <Btn tone="danger" disabled={disabled} onClick={() => setAsking(true)}>
+      <Btn disabled={disabled} onClick={() => setAsking(true)}>
         {busy ? "Working…" : label}
       </Btn>
     );

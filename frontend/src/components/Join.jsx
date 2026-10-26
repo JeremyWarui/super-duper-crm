@@ -7,9 +7,9 @@ import { Button, ErrorState, FieldLabel, LoadingState } from "./ui";
 function WithdrawNote({ code }) {
   const link = `${window.location.origin}/withdraw/${code}`;
   return (
-    <div style={{ marginTop: 18, fontSize: 13, color: "#5C655F", lineHeight: 1.5 }}>
+    <div className="join-note">
       Changed your mind later? Keep this link. Opening it lets you take your details off the
-      register: <a href={link} style={{ color: "#0B6B3A", wordBreak: "break-all" }}>{link}</a>
+      register: <a href={link} className="join-link">{link}</a>
     </div>
   );
 }
@@ -51,9 +51,8 @@ export default function Join({ code }) {
       <input aria-label="Phone" className="join-field" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" placeholder="0712 345678" />
       {p.places.length > 0 && (
         <>
-          <div style={{ marginTop: 14, fontSize: 13, fontWeight: 600 }}>{p.place === "centre" ? "Your registration centre" : "Your ward"}</div>
-          <select aria-label="Where you vote" value={place} onChange={(e) => setPlace(e.target.value)}
-            style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid #D7DBD4", fontSize: 16, marginTop: 6, fontFamily: "inherit", background: "#FFFFFF" }}>
+          <FieldLabel className="join-label join-label-phone">{p.place === "centre" ? "Your registration centre" : "Your ward"}</FieldLabel>
+          <select aria-label="Where you vote" value={place} onChange={(e) => setPlace(e.target.value)} className="join-field">
             <option value="">{p.place === "centre" ? "Not sure" : "Pick your ward"}</option>
             {p.places.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
           </select>
@@ -68,7 +67,8 @@ export default function Join({ code }) {
         type="button"
         disabled={!ok || join.isPending}
         onClick={() => join.mutate({ full_name: name.trim(), phone: phone.trim(), consent_given: true, place: place || null })}
-        className={`join-submit ${ok ? "join-submit-enabled" : "join-submit-disabled"}`}
+        primary
+        className="join-submit"
       >
         {join.isPending ? "Signing up…" : "Sign up"}
       </Button>

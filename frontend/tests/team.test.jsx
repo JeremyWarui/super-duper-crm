@@ -85,7 +85,7 @@ describe("resetting a password", () => {
     await user.click(screen.getAllByRole("button", { name: "Reset password" }).at(-1));
 
     expect(await screen.findByText(password)).toBeTruthy();
-    await user.click(screen.getByText(password).closest('[style*="position: fixed"]'));
+    await user.click(screen.getByText(password).closest(".modal-backdrop"));
     expect(screen.getByText(password)).toBeTruthy();
     await waitFor(() => expect(calls.filter((c) => c.method === "POST").map((c) => c.path)).toEqual([
       "/campaigns/c1/team/u2/reset-password/",

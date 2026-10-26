@@ -19,7 +19,7 @@ npm run dev        # http://localhost:5173
 Checks:
 
 ```bash
-npm test           # 60 tests, jsdom, no server needed
+npm test           # 86 tests, jsdom, no server needed
 npm run build
 npm run lint
 ```
@@ -37,6 +37,25 @@ against the same campaign. Sign out and back in to switch between them.
 
 The passwords are generated per run and printed by `campaign-crm demo`. Pass
 `--password <value>` to pin all three instead.
+
+## Styling
+
+Plain CSS, no framework. Everything lives in `src/index.css`:
+
+- **Tokens** at the top of `:root`: the colours, type scale (12 to 48px), radii and
+  shadows. Change them there to retheme every screen.
+- **One typeface**, Inter, loaded in `index.html`. Figures use tabular numbers so
+  columns line up.
+- **Tones**: a badge, bar, note or result takes `tone-good`, `tone-warn`,
+  `tone-bad` or `tone-neutral`; components never carry colours of their own.
+- **Shared pieces**: `Panel` (the card), `Button` (`primary`, secondary, or
+  `tone="danger"`) and the field components in `src/components/ui`. In `App.jsx`
+  the table, chip, segmented control, badge and modal classes are reused by every
+  page.
+
+Inline `style` is used only for values computed at runtime, such as a progress
+bar's width. `tests/styles.test.js` fails if a component uses a class the
+stylesheet does not define.
 
 ## Layout
 
