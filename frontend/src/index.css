@@ -490,10 +490,7 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
   backdrop-filter: saturate(180%) blur(8px);
 }
 
-.topbar-inner {
-  max-width: 1280px;
-  padding: 12px 24px;
-}
+.topbar-inner { padding: 12px 24px; }
 
 .brand {
   font-size: var(--text-md);
@@ -515,18 +512,18 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
 .topbar-meta { color: var(--color-text-muted); font-size: var(--text-xs); }
 .topbar-user { color: var(--color-text-muted); font-size: var(--text-sm); }
 
-.layout {
-  display: flex;
-  max-width: 1280px;
-}
+.layout { display: flex; }
 
 .sidebar {
   position: sticky;
   top: 61px;
   align-self: flex-start;
   flex-shrink: 0;
-  width: 224px;
+  width: 232px;
+  min-height: calc(100vh - 61px);
   padding: 24px 12px;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .sidebar-label {
@@ -568,7 +565,7 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
 .main {
   flex: 1;
   min-width: 0;
-  padding: 28px 24px 64px;
+  padding: 28px 32px 64px;
 }
 
 .not-on-campaign { padding: 40px; }
@@ -983,9 +980,7 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
 .admin-header-description { margin-left: 12px; }
 
 .admin-content {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 28px 24px 64px;
+  padding: 28px 32px 64px;
 }
 
 .admin-card {
@@ -1557,7 +1552,9 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
   .sidebar {
     position: static;
     width: auto;
+    min-height: 0;
     padding: 8px 16px;
+    border-right: 0;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-surface);
   }
