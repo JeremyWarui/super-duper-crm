@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.db.session import get_session
-from backend.models import AuthToken, User, UserRole
+from backend.models import AuthToken, PartyRoleName, User, UserRole
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -35,7 +35,10 @@ async def get_current_user(
     token = await session.scalar(
         select(AuthToken)
         .where(AuthToken.key == key.strip())
-        .options(selectinload(AuthToken.user).selectinload(User.mobilizer_profile))
+        .options(
+            selectinload(AuthToken.user).selectinload(User.mobilizer_profile),
+            selectinload(AuthToken.user).selectinload(User.party_roles),
+        )
     )
     if token is None or not token.user.is_active:
         raise _unauthorized("Invalid token.")
@@ -68,7 +71,19 @@ async def require_superuser(user: CurrentUser) -> User:
     return user
 
 
+def require_party_role(*roles: PartyRoleName):
+    """A guard letting a superuser or a holder of one of these party roles through."""
+
+    async def dependency(user: CurrentUser) -> User:
+        if user.is_superuser or any(held.role in roles for held in user.party_roles):
+            return user
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This needs a party office you do not hold.")
+
+    return dependency
+
+
 AdminUser = Annotated[User, Depends(require_superuser)]
+MembershipOfficer = Annotated[User, Depends(require_party_role(PartyRoleName.MEMBERSHIP_OFFICER))]
 Writer = Annotated[User, Depends(require_role(UserRole.MANAGER))]
 MobilizerWriter = Annotated[User, Depends(require_role(UserRole.MANAGER, UserRole.MOBILIZER))]
 TeamWriter = Annotated[

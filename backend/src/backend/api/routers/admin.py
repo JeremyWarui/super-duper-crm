@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Response, status
 
 from backend.api.deps import AdminUser, SessionDep
-from backend.models import UserRole
+from backend.models import PartyRoleName, UserRole
 from backend.schemas.admin import (
     ActiveSet,
     AdminCampaignCreate,
@@ -18,6 +18,7 @@ from backend.schemas.admin import (
     CampaignRename,
     MemberAdd,
     Overview,
+    PartyRoleGrant,
     PasswordReset,
     PasswordResult,
 )
@@ -178,6 +179,28 @@ async def set_active(
         raise Refused("You cannot disable your own login.")
     await service.set_active(session, user_id, payload.active, actor=admin)
     return await service.user(session, user_id)
+
+
+@router.post(
+    "/users/{user_id}/party-roles/",
+    response_model=AdminUserRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def grant_party_role(
+    user_id: uuid.UUID, payload: PartyRoleGrant, session: SessionDep, admin: AdminUser
+) -> AdminUserRead:
+    """Give a staff login a party office."""
+    await service.grant_party_role(session, user_id, payload.role, actor=admin)
+    return await service.user(session, user_id)
+
+
+@router.delete("/users/{user_id}/party-roles/{role}/", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_party_role(
+    user_id: uuid.UUID, role: PartyRoleName, session: SessionDep, admin: AdminUser
+) -> Response:
+    """Take a party office from a login."""
+    await service.revoke_party_role(session, user_id, role, actor=admin)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/audit/", response_model=list[AuditEventRead])

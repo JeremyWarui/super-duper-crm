@@ -5,7 +5,7 @@ from datetime import date
 
 from pydantic import Field
 
-from backend.models.enums import Seat, UserRole
+from backend.models.enums import PartyRoleName, Seat, UserRole
 from backend.schemas.campaign import SetupSummary
 from backend.schemas.common import LoginDetails, NewLogin, ORMModel, WriteModel
 
@@ -69,6 +69,7 @@ class AdminUserRead(ORMModel):
     is_superuser: bool
     last_login_at: str | None
     campaign: str | None
+    party_roles: list[PartyRoleName] = []
 
 
 class Overview(ORMModel):
@@ -100,16 +101,19 @@ class MemberAdd(WriteModel):
 
 
 class AdminUserCreate(LoginDetails):
-    """A new login, optionally put on a campaign; a mobilizer gets a ward, or an MCA centre."""
+    """A new login, optionally put on a campaign; a mobilizer gets a ward, or an MCA centre.
 
-    role: UserRole
+    A null `role` makes a staff login for a party office.
+    """
+
+    role: UserRole | None
     campaign: uuid.UUID | None = None
     ward: uuid.UUID | None = None
     registration_centre: uuid.UUID | None = None
 
 
 class AdminUserCreated(NewLogin):
-    role: UserRole
+    role: UserRole | None
 
 
 class AdminCampaignCreate(WriteModel):
@@ -131,6 +135,10 @@ class AdminCampaignCreated(ORMModel):
     campaign: AdminCampaignRead
     setup: SetupSummary
     logins: list[AdminUserCreated]
+
+
+class PartyRoleGrant(WriteModel):
+    role: PartyRoleName
 
 
 class CampaignRename(WriteModel):

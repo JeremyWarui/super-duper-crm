@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from backend.models.auth_token import AuthToken
     from backend.models.membership import CampaignMember
     from backend.models.mobilizer import Mobilizer
+    from backend.models.party import PartyRole
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -38,6 +39,10 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     mobilizer_profile: Mapped["Mobilizer | None"] = relationship(back_populates="user")
     auth_token: Mapped["AuthToken | None"] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+    party_roles: Mapped[list["PartyRole"]] = relationship(
         back_populates="user", cascade="all, delete-orphan", passive_deletes=True
     )
 

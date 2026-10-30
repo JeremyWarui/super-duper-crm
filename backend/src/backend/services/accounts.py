@@ -5,6 +5,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from backend.models import (
     Campaign,
@@ -19,8 +20,13 @@ from backend.security import hash_password, new_password
 from backend.services.errors import Refused
 
 
-async def user_named(session: AsyncSession, username: str) -> User | None:
-    return await session.scalar(select(User).where(User.username == username))
+async def user_named(
+    session: AsyncSession, username: str, *, with_party_roles: bool = False
+) -> User | None:
+    query = select(User).where(User.username == username)
+    if with_party_roles:
+        query = query.options(selectinload(User.party_roles))
+    return await session.scalar(query)
 
 
 async def new_login(

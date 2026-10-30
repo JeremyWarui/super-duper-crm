@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import CurrentUser, SessionDep
 from backend.models import AuthToken, User
-from backend.schemas.auth import LoginRequest, LoginResponse
+from backend.schemas.auth import LoginRequest, LoginResponse, LoginUser
 from backend.security import hash_password, needs_rehash, new_token_key, verify_password
 from backend.services.accounts import user_named
 
@@ -32,7 +32,7 @@ async def _signed_in(session: AsyncSession, user: User) -> dict:
 @router.post("/login/", response_model=LoginResponse, responses={400: {"description": "Rejected"}})
 async def login(payload: LoginRequest, session: SessionDep) -> object:
     """Exchange a username and password for a token."""
-    user = await user_named(session, payload.username)
+    user = await user_named(session, payload.username, with_party_roles=True)
     if (
         user is None
         or not user.is_active
@@ -46,6 +46,12 @@ async def login(payload: LoginRequest, session: SessionDep) -> object:
     if needs_rehash(user.password_hash):
         user.password_hash = hash_password(payload.password)
     return await _signed_in(session, user)
+
+
+@router.get("/me/", response_model=LoginUser)
+async def me(user: CurrentUser) -> User:
+    """The signed-in login, as the sign-in returns it."""
+    return user
 
 
 @router.post("/logout/", status_code=status.HTTP_204_NO_CONTENT)

@@ -1,11 +1,27 @@
 """The party's public identity: one row, id 1."""
 
+import uuid
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, Integer, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    Uuid,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base
+from backend.db.base import Base, TimestampMixin, choice_type
+from backend.models.enums import PartyRoleName
+
+if TYPE_CHECKING:
+    from backend.models.user import User
 
 HEX_DIGITS = "'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'"
 
@@ -45,3 +61,18 @@ class PartySettings(Base):
         default=lambda: datetime.now(UTC),
         nullable=False,
     )
+
+
+class PartyRole(TimestampMixin, Base):
+    """A party office held by a login; (user, role) is the key."""
+
+    __tablename__ = "party_roles"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    role: Mapped[PartyRoleName] = mapped_column(
+        choice_type(PartyRoleName, "party_role", length=30), primary_key=True
+    )
+
+    user: Mapped["User"] = relationship(back_populates="party_roles")

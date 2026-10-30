@@ -19,6 +19,7 @@ async def test_the_login_the_browser_keeps_never_carries_the_password_hash(
         role=UserRole.CANDIDATE,
         password_hash="argon2$do-not-serialize-me",
         is_superuser=True,
+        party_roles=[],
     )
     session.add(user)
     await session.commit()

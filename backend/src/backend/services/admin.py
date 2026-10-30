@@ -12,6 +12,8 @@ from backend.models import (
     CampaignMember,
     Event,
     Mobilizer,
+    PartyRole,
+    PartyRoleName,
     RegistrationCentre,
     Supporter,
     Target,
@@ -166,6 +168,7 @@ async def users(
         select(User, Campaign.title)
         .outerjoin(CampaignMember, CampaignMember.user_id == User.id)
         .outerjoin(Campaign, Campaign.id == CampaignMember.campaign_id)
+        .options(selectinload(User.party_roles))
         .order_by(User.username)
     )
     if role is not None:
@@ -186,6 +189,7 @@ async def users(
             is_superuser=login.is_superuser,
             last_login_at=login.last_login_at.isoformat() if login.last_login_at else None,
             campaign=title,
+            party_roles=[held.role for held in login.party_roles],
         )
         for login, title in await session.execute(statement)
     ]
@@ -424,7 +428,7 @@ async def create_user(
     *,
     actor: User | None,
     username: str,
-    role: UserRole,
+    role: UserRole | None,
     first_name: str = "",
     last_name: str = "",
     email: str = "",
@@ -433,7 +437,12 @@ async def create_user(
     ward_id: uuid.UUID | None = None,
     centre_id: uuid.UUID | None = None,
 ) -> tuple[User, str]:
-    """Create a login, on a campaign when one is named; returns it and its password."""
+    """Create a login, on a campaign when one is named; returns it and its password.
+
+    A `role` of None makes a staff login, which stays off every campaign.
+    """
+    if role is None and (campaign_id or ward_id or centre_id):
+        raise Refused("A staff login has no campaign role, so it cannot be put on a campaign.")
     target = await session.get(Campaign, campaign_id) if campaign_id is not None else None
     if campaign_id is not None and target is None:
         raise Refused("No such campaign.")
@@ -475,7 +484,61 @@ async def create_user(
         subject_type="user",
         subject_id=created.id,
         campaign_id=target.id if target is not None else None,
-        detail={"role": role.value},
+        detail={"role": role.value if role else None},
     )
     await session.commit()
     return created, password
+
+
+async def grant_party_role(
+    session: AsyncSession, user_id: uuid.UUID, role: PartyRoleName, *, actor: User | None
+) -> None:
+    """Give a staff login a party office."""
+    login = await session.get(
+        User, user_id, options=[selectinload(User.party_roles)], populate_existing=True
+    )
+    if login is None:
+        raise NotFound("No such user.")
+    if login.is_superuser:
+        raise Refused("A superuser reaches the party through the console and needs no office.")
+    if login.role is not None:
+        raise Refused(
+            f"{login.username} works on a campaign, and a login is campaign or party, not both. "
+            "Create a staff login for the party office."
+        )
+    if any(held.role is role for held in login.party_roles):
+        raise Refused(f"{login.username} is already a {role.label}.")
+    login.party_roles.append(PartyRole(role=role))
+    record(
+        session,
+        actor=actor,
+        action="party_role.grant",
+        subject_type="user",
+        subject_id=login.id,
+        detail={"role": role.value},
+    )
+    await session.commit()
+
+
+async def revoke_party_role(
+    session: AsyncSession, user_id: uuid.UUID, role: PartyRoleName, *, actor: User | None
+) -> None:
+    """Take a party office from a login."""
+    login = await session.get(
+        User, user_id, options=[selectinload(User.party_roles)], populate_existing=True
+    )
+    if login is None:
+        raise NotFound("No such user.")
+    held = next((item for item in login.party_roles if item.role is role), None)
+    if held is None:
+        raise NotFound(f"{login.username} is not a {role.label}.")
+    login.party_roles.remove(held)
+    record(
+        session,
+        actor=actor,
+        action="party_role.revoke",
+        subject_type="user",
+        subject_id=login.id,
+        detail={"role": role.value},
+    )
+    await session.commit()

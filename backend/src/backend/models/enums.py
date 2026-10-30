@@ -21,6 +21,14 @@ class UserRole(LabelledStrEnum):
     MOBILIZER = ("mobilizer", "Mobilizer")
 
 
+class PartyRoleName(LabelledStrEnum):
+    """A party office held by a login that has no campaign role."""
+
+    MEMBERSHIP_OFFICER = ("membership_officer", "Membership Officer")
+    NOMINATIONS_OFFICER = ("nominations_officer", "Nominations Officer")
+    FINANCE_OFFICER = ("finance_officer", "Finance Officer")
+
+
 class OfficeLevel(LabelledStrEnum):
     WARD = ("ward", "Ward (MCA)")
     CONSTITUENCY = ("constituency", "Constituency (MP)")
