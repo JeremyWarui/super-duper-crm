@@ -5,6 +5,7 @@ from backend.models.audit import AuditEvent
 from backend.models.auth_token import AuthToken
 from backend.models.campaign import Campaign
 from backend.models.enums import (
+    ConsentChannel,
     EventStatus,
     LabelledStrEnum,
     OfficeLevel,
@@ -41,6 +42,7 @@ __all__ = [
     "LabelledStrEnum",
     "Mobilizer",
     "OfficeLevel",
+    "ConsentChannel",
     "OperationalGrain",
     "Payment",
     "PaymentStatus",

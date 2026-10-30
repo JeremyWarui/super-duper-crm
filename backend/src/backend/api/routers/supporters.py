@@ -20,6 +20,7 @@ from backend.api.scope import (
 )
 from backend.models import Mobilizer, OperationalGrain, Supporter
 from backend.schemas.campaign import SupporterCreate, SupporterPlace, SupporterRead
+from backend.services.consent import WORDING, ConsentChannel
 from backend.services.sms import normalise_phone
 
 router = APIRouter(prefix="/supporters", tags=["supporters"])
@@ -31,6 +32,12 @@ async def list_supporters(
 ) -> list[Supporter]:
     statement = await scoped(session, user, select(Supporter), Supporter, campaign)
     return await all_rows(session, statement.order_by(Supporter.created_at.desc()))
+
+
+@router.get("/consent-wording/")
+async def consent_wording(user: SupporterTeam) -> dict[str, str]:
+    """The wording a mobilizer's sign-up form shows and the server records."""
+    return {"consent_wording": WORDING[ConsentChannel.MOBILIZER]}
 
 
 @router.post("/", response_model=SupporterRead, status_code=status.HTTP_201_CREATED)
@@ -76,6 +83,8 @@ async def register_supporter(
         phone=phone,
         support_level=payload.support_level,
         consent_given=payload.consent_given,
+        consent_channel=ConsentChannel.MOBILIZER,
+        consent_wording=WORDING[ConsentChannel.MOBILIZER],
     )
     session.add(supporter)
     await session.commit()

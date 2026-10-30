@@ -3,11 +3,11 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, Index, String, Uuid, text
+from sqlalchemy import Boolean, ForeignKey, Index, String, Text, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
-from backend.models.enums import SupportLevel
+from backend.models.enums import ConsentChannel, SupportLevel
 
 if TYPE_CHECKING:
     from backend.models.campaign import Campaign
@@ -57,6 +57,11 @@ class Supporter(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     # Consent to hold their data, required by the Data Protection Act 2019.
     consent_given: Mapped[bool] = mapped_column(Boolean, default=False)
+    # The channel they signed up through and the wording shown there; None for older rows.
+    consent_channel: Mapped[ConsentChannel | None] = mapped_column(
+        choice_type(ConsentChannel, "consent_channel"), default=None
+    )
+    consent_wording: Mapped[str | None] = mapped_column(Text, default=None)
 
     # The private code a self-signed supporter withdraws with; None for anyone else.
     withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)

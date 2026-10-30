@@ -193,6 +193,7 @@
       "event_title",
       "ward_name",
       "open",
+      "consent_wording",
       "place",
       "places"
     ],

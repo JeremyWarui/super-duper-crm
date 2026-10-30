@@ -26,6 +26,7 @@ from backend.models import (
     Target,
 )
 from backend.schemas.join import JoinCreate, JoinDone, JoinPlace, JoinRead, Withdrawn
+from backend.services.consent import WORDING, ConsentChannel
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import normalise_phone
 from backend.services.targets import wards_in_area
@@ -59,6 +60,10 @@ class Link:
         if self.event is not None:
             return self.event.signups_open and self.event.status is not EventStatus.CANCELLED
         return self.campaign.signups_open
+
+    @property
+    def channel(self) -> ConsentChannel:
+        return ConsentChannel.CAMPAIGN_LINK if self.event is None else ConsentChannel.EVENT_QR
 
 
 async def _link(session: SessionDep, code: str) -> Link:
@@ -123,6 +128,7 @@ async def read_signup(code: str, session: SessionDep) -> JoinRead:
         event_title=link.event.title if link.event else "",
         ward_name=link.event.ward.name if link.event else (area.name if area else ""),
         open=link.open,
+        consent_wording=WORDING[link.channel],
         place=("centre" if by_centre else "ward") if on_campaign_link else None,
         places=await _places(session, campaign) if on_campaign_link else [],
     )
@@ -186,6 +192,8 @@ async def sign_up(
                 phone=phone,
                 support_level=SupportLevel.SUPPORTER,
                 consent_given=True,
+                consent_channel=link.channel,
+                consent_wording=WORDING[link.channel],
                 withdraw_code=withdraw_code,
             )
         )

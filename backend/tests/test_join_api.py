@@ -54,6 +54,19 @@ async def test_a_qr_sign_up_counts_once_toward_its_ward_and_credits_the_event(
     assert {u["unit"]: u["committed"] for u in units}["Zimmerman"] == 1
 
 
+async def test_a_qr_sign_up_stores_the_wording_the_page_served_and_its_channel(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    event = await _event(session, world)
+
+    served = (await client.get(f"/api/join/{event.signup_code}/")).json()["consent_wording"]
+    await client.post(f"/api/join/{event.signup_code}/", json=_person())
+    stored = (await session.scalars(select(Supporter))).one()
+
+    assert (stored.consent_channel, stored.consent_wording) == ("event_qr", served)
+    assert served
+
+
 async def test_a_closed_or_unconsented_sign_up_is_refused(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:

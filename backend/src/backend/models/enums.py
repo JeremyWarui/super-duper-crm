@@ -53,6 +53,14 @@ class OperationalGrain(StrEnum):
     WARD = "ward"
 
 
+class ConsentChannel(StrEnum):
+    """Where a supporter gave consent."""
+
+    EVENT_QR = "event_qr"
+    CAMPAIGN_LINK = "campaign_link"
+    MOBILIZER = "mobilizer"
+
+
 class EventStatus(LabelledStrEnum):
     PLANNED = ("planned", "Planned")
     DONE = ("done", "Done")

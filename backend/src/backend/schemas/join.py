@@ -24,6 +24,7 @@ class JoinRead(BaseModel):
     event_title: str
     ward_name: str
     open: bool
+    consent_wording: str
     place: Literal["ward", "centre"] | None = None
     places: list[JoinPlace] = []
 
