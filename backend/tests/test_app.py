@@ -66,3 +66,18 @@ async def test_the_spa_does_not_shadow_the_api_or_the_docs(tmp_path: Path) -> No
     async for built in _client_with_static(tmp_path):
         assert (await built.get("/health")).json()["status"] == "ok"
         assert (await built.get("/api/campaigns/")).status_code == 401
+
+
+async def test_a_client_side_path_serves_the_spa_and_an_unknown_api_path_stays_json(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "index.html").write_text("<h1>war room</h1>", encoding="utf-8")
+
+    async for built in _client_with_static(tmp_path):
+        page = await built.get("/campaign/events")
+        assert (page.status_code, "war room" in page.text) == (200, True)
+        missing = await built.get("/api/nope/")
+        assert missing.status_code == 404
+        assert "war room" not in missing.text
+        assert isinstance(missing.json(), dict)
+        assert (await built.get("/assets/gone.js")).status_code == 404

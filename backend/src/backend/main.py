@@ -6,8 +6,10 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException
+from starlette.responses import Response
+from starlette.types import Scope
 
 from backend import __version__
 from backend.api.errors import register_error_handlers
@@ -61,17 +63,23 @@ def _mount_spa(app: FastAPI, static_dir: str) -> None:
     directory = Path(static_dir)
     if not directory.is_dir():
         raise RuntimeError(f"STATIC_DIR is set to {directory}, which is not a directory.")
-    index = directory / "index.html"
+    app.mount("/", _SPAFiles(directory=directory, html=True), name="spa")
 
-    # The public pages a QR code or a withdrawal link opens, by their own address.
-    @app.get("/join/{code}", include_in_schema=False)
-    @app.get("/join/{code}/", include_in_schema=False)
-    @app.get("/withdraw/{code}", include_in_schema=False)
-    @app.get("/withdraw/{code}/", include_in_schema=False)
-    async def public_page(code: str) -> FileResponse:
-        return FileResponse(index)
 
-    app.mount("/", StaticFiles(directory=directory, html=True), name="spa")
+class _SPAFiles(StaticFiles):
+    """Static files that answer an unknown page address with index.html.
+
+    API paths and missing files (anything with an extension) still 404.
+    """
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        try:
+            return await super().get_response(path, scope)
+        except HTTPException as exc:
+            asked = Path(path)
+            if exc.status_code != 404 or asked.parts[:1] == ("api",) or asked.suffix:
+                raise
+            return await super().get_response("index.html", scope)
 
 
 app = create_app()
