@@ -10,7 +10,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const PAGE = { campaign_title: "Jane for Roysambu", candidate_name: "Jane", event_title: "Zimmerman town hall", ward_name: "Zimmerman", open: true, place: null, places: [] };
+const PAGE = { campaign_title: "Jane for Roysambu", candidate_name: "Jane", event_title: "Zimmerman town hall", ward_name: "Zimmerman", open: true, consent_wording: "I agree to the server wording.", place: null, places: [] };
 const CAMPAIGN_PAGE = { ...PAGE, event_title: "", ward_name: "Roysambu", place: "ward", places: [{ id: "w2", name: "Githurai" }, { id: "w1", name: "Zimmerman" }] };
 const DONE = { message: "Thank you, you're signed up.", withdraw_code: "private-code" };
 
@@ -32,6 +32,13 @@ describe("signing up from an event's QR code", () => {
     expect(await screen.findByText("Thank you, you're signed up.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /\/withdraw\/private-code$/ })).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST").body).toEqual({ full_name: "Wanjiku Njeri", phone: "0712 345678", consent_given: true, place: null });
+  });
+
+  it("labels the consent box with the wording the server sends", async () => {
+    stubApi({ "GET /join/abc123/": PAGE });
+    renderApp(<Join code="abc123" />);
+
+    expect(await screen.findByRole("checkbox", { name: "I agree to the server wording." })).toBeInTheDocument();
   });
 
   it("shows the manager the event's sign-up link, ready to share", async () => {

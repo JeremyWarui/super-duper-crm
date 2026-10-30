@@ -43,6 +43,13 @@ export const useSupporters = (campaignId) =>
     enabled: !!campaignId,
   });
 
+export const useConsentWording = () =>
+  useQuery({
+    queryKey: ["consent-wording"],
+    queryFn: () => api("/supporters/consent-wording/"),
+    staleTime: Infinity,
+  });
+
 export const useStrategy = (campaignId) =>
   useQuery({
     queryKey: ["strategy", campaignId],

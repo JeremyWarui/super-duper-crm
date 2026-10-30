@@ -63,6 +63,9 @@
       "signup_code",
       "signups_open"
     ],
+    "GET /api/supporters/consent-wording/": [
+      "consent_wording"
+    ],
     "GET /api/supporters/": [
       "id",
       "full_name",

@@ -337,7 +337,7 @@ describe("the routes", () => {
 
   it("opens the sign-up page at /join/:code without a login", async () => {
     stubApi({
-      "GET /join/x/": { campaign_title: "Jane for Roysambu", candidate_name: "Jane", event_title: "Town hall", ward_name: "Zimmerman", open: true, place: null, places: [] },
+      "GET /join/x/": { campaign_title: "Jane for Roysambu", candidate_name: "Jane", event_title: "Town hall", ward_name: "Zimmerman", open: true, consent_wording: "Consent wording.", place: null, places: [] },
     });
     renderApp(<AppRoutes />, { path: "/join/x" });
 

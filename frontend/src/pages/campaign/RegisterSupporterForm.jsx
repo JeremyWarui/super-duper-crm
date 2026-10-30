@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useAuth } from "../../store/auth";
-import { useCentres, useMobilizers, useRegisterSupporter, useTargets } from "../../api/hooks";
+import { useCentres, useConsentWording, useMobilizers, useRegisterSupporter, useTargets } from "../../api/hooks";
 import { Btn, Card, Label, PrimaryBtn } from "./controls";
 
 // In an MCA race the supporter is filed to a registration centre with a target, the mobilizer's own to start.
 export default function RegisterSupporterForm({ campaignId, wardOptions, byCentre }) {
   const reg = useRegisterSupporter();
+  const wording = useConsentWording().data?.consent_wording;
   const user = useAuth((s) => s.user);
   const own = (useMobilizers(campaignId).data || []).find((m) => m.user === user?.id);
   const [form, setForm] = useState({ full_name: "", phone: "", ward: "", support_level: "supporter", consent_given: false });
@@ -41,9 +42,9 @@ export default function RegisterSupporterForm({ campaignId, wardOptions, byCentr
         <option value="undecided">Undecided</option>
         <option value="opposed">Opposed</option>
       </select>
-      <label className="flex items-start gap-2 checkbox-row"><input type="checkbox" checked={form.consent_given} onChange={(e) => setForm({ ...form, consent_given: e.target.checked })} className="checkbox" />Consent to hold these details under the Data Protection Act, 2019.</label>
+      <label className="flex items-start gap-2 checkbox-row"><input type="checkbox" checked={form.consent_given} onChange={(e) => setForm({ ...form, consent_given: e.target.checked })} className="checkbox" />{wording}</label>
       {reg.isError && <div className="form-error">{reg.error.message}</div>}
-      <div className="form-actions"><PrimaryBtn disabled={!ok || reg.isPending} onClick={() => reg.mutate({ campaign: campaignId, ...form, ward, registration_centre: centre || null })}>{reg.isPending ? "Saving…" : "Register supporter"}</PrimaryBtn></div>
+      <div className="form-actions"><PrimaryBtn disabled={!ok || !wording || reg.isPending} onClick={() => reg.mutate({ campaign: campaignId, ...form, ward, registration_centre: centre || null })}>{reg.isPending ? "Saving…" : "Register supporter"}</PrimaryBtn></div>
     </Card>
   );
 }

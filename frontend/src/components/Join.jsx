@@ -60,7 +60,7 @@ export default function Join({ code }) {
       )}
       <label className="join-consent">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-        I agree that this campaign may keep my name and phone number to contact me.
+        {p.consent_wording}
       </label>
       {join.error && <ErrorState className="join-error" error={join.error} />}
       <Button
