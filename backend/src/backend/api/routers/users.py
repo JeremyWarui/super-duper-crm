@@ -9,6 +9,7 @@ from backend.api.scope import require_visible_campaign, require_ward_in_campaign
 from backend.models import User, UserRole, Ward
 from backend.schemas.user import UserCreate, UserCreated
 from backend.services.accounts import add_mobilizer, new_login
+from backend.services.audit import record
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -37,6 +38,15 @@ async def create_user(payload: UserCreate, session: SessionDep, user: TeamWriter
     mobilizer = await add_mobilizer(
         session, campaign, payload.ward, created, centre_id=payload.registration_centre
     )
+    record(
+        session,
+        actor=user,
+        action="mobilizer_login.create",
+        subject_type="user",
+        subject_id=created.id,
+        campaign_id=campaign.id,
+        detail={"mobilizer_id": str(mobilizer.id)},
+    )
     await session.commit()
     return UserCreated(
         id=created.id,
@@ -64,6 +74,13 @@ async def delete_user(user_id: uuid.UUID, session: SessionDep, user: TeamWriter)
             "Only a mobilizer is removed from inside a campaign. "
             "An admin can disable any other login.",
         )
+    record(
+        session,
+        actor=user,
+        action="mobilizer_login.delete",
+        subject_type="user",
+        subject_id=target.id,
+    )
     await session.delete(target)
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -24,6 +24,7 @@ from backend.seed.reference import (
 )
 from backend.services import admin
 from backend.services.accounts import new_login
+from backend.services.audit import record
 from backend.services.errors import Refused
 
 
@@ -88,6 +89,14 @@ async def _createuser(args: argparse.Namespace, session: AsyncSession) -> int:
         phone=args.phone,
         is_superuser=args.superuser,
     )
+    record(
+        session,
+        actor=None,
+        action="user.create",
+        subject_type="user",
+        subject_id=user.id,
+        detail={"role": user.role.value, "superuser": args.superuser},
+    )
     await session.commit()
     print(f"Created {user}.")
     return 0
@@ -139,7 +148,7 @@ async def _users(args: argparse.Namespace, session: AsyncSession) -> int:
 
 async def _reset_password(args: argparse.Namespace, session: AsyncSession) -> int:
     user = await admin.user_by_name(session, args.username)
-    password = await admin.reset_password(session, user.id, args.password)
+    password = await admin.reset_password(session, user.id, args.password, actor=None)
     print(f"{args.username} signs in with: {password}")
     print("Shown once, and every other session is signed out.")
     return 0
@@ -147,14 +156,14 @@ async def _reset_password(args: argparse.Namespace, session: AsyncSession) -> in
 
 async def _add_member(args: argparse.Namespace, session: AsyncSession) -> int:
     user = await admin.user_by_name(session, args.username)
-    member = await admin.add_member(session, args.campaign, user.id)
+    member = await admin.add_member(session, args.campaign, user.id, actor=None)
     print(f"{args.username} is on that campaign as its {member.role.label.lower()}.")
     return 0
 
 
 async def _remove_member(args: argparse.Namespace, session: AsyncSession) -> int:
     user = await admin.user_by_name(session, args.username)
-    await admin.remove_member(session, args.campaign, user.id)
+    await admin.remove_member(session, args.campaign, user.id, actor=None)
     print(f"{args.username} is off that campaign.")
     return 0
 
@@ -187,7 +196,7 @@ async def _reset_database(args: argparse.Namespace, session: AsyncSession) -> in
 
 
 async def _rename_campaign(args: argparse.Namespace, session: AsyncSession) -> int:
-    campaign = await admin.rename_campaign(session, args.campaign, args.title)
+    campaign = await admin.rename_campaign(session, args.campaign, args.title, actor=None)
     print(f"The campaign is now called {campaign.title}.")
     return 0
 
@@ -205,14 +214,14 @@ async def _delete_campaign(args: argparse.Namespace, session: AsyncSession) -> i
     if not args.yes:
         print(f"This would delete {what}. Run it again with --yes.", file=sys.stderr)
         return 1
-    gone = await admin.delete_campaign(session, args.campaign)
+    gone = await admin.delete_campaign(session, args.campaign, actor=None)
     print(f"Deleted {row.title} and {len(gone)} logins: {', '.join(gone) or 'none'}.")
     return 0
 
 
 async def _set_active(args: argparse.Namespace, session: AsyncSession) -> int:
     user = await admin.user_by_name(session, args.username)
-    await admin.set_active(session, user.id, args.active)
+    await admin.set_active(session, user.id, args.active, actor=None)
     print(f"{args.username} is {'enabled' if args.active else 'disabled'}.")
     return 0
 

@@ -31,6 +31,7 @@ from backend.schemas.campaign import SetupSummary
 from backend.security import hash_password, new_password
 from backend.services.accounts import add_member as join
 from backend.services.accounts import add_mobilizer, new_login, user_named
+from backend.services.audit import record
 from backend.services.campaigns import build_campaign
 from backend.services.errors import NotFound, Refused
 from backend.services.strategy import read_strategy
@@ -204,7 +205,15 @@ async def user_by_name(session: AsyncSession, username: str) -> User:
     return found
 
 
-async def reset_password(session: AsyncSession, user_id: uuid.UUID, password: str | None) -> str:
+async def reset_password(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    password: str | None,
+    *,
+    actor: User | None,
+    action: str = "user.reset_password",
+    campaign_id: uuid.UUID | None = None,
+) -> str:
     """Give a login a new password and sign out its session."""
     login = await _user(session, user_id)
     if not login.is_active:
@@ -215,11 +224,21 @@ async def reset_password(session: AsyncSession, user_id: uuid.UUID, password: st
     chosen = password or new_password()
     login.password_hash = hash_password(chosen)
     await session.execute(delete(AuthToken).where(AuthToken.user_id == login.id))
+    record(
+        session,
+        actor=actor,
+        action=action,
+        subject_type="user",
+        subject_id=login.id,
+        campaign_id=campaign_id,
+    )
     await session.commit()
     return chosen
 
 
-async def set_active(session: AsyncSession, user_id: uuid.UUID, active: bool) -> User:
+async def set_active(
+    session: AsyncSession, user_id: uuid.UUID, active: bool, *, actor: User | None
+) -> User:
     """Turn a login on or off; off signs it out. The last active superuser stays on."""
     login = await _user(session, user_id)
     if login.is_superuser and not active:
@@ -233,23 +252,41 @@ async def set_active(session: AsyncSession, user_id: uuid.UUID, active: bool) ->
     login.is_active = active
     if not active:
         await session.execute(delete(AuthToken).where(AuthToken.user_id == login.id))
+    record(
+        session,
+        actor=actor,
+        action="user.activate" if active else "user.deactivate",
+        subject_type="user",
+        subject_id=login.id,
+    )
     await session.commit()
     return login
 
 
 async def add_member(
-    session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID
+    session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID, *, actor: User | None
 ) -> CampaignMember:
     target = await _campaign(session, campaign_id)
     login = await session.get(User, user_id)
     if login is None:
         raise Refused("No such user.")
     member = await join(session, target.id, login)
+    record(
+        session,
+        actor=actor,
+        action="member.add",
+        subject_type="user",
+        subject_id=login.id,
+        campaign_id=target.id,
+        detail={"role": member.role.value},
+    )
     await session.commit()
     return member
 
 
-async def remove_member(session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID) -> None:
+async def remove_member(
+    session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID, *, actor: User | None
+) -> None:
     """Take somebody off a campaign, freeing a mobilizer's ground row there; the login stays."""
     await _campaign(session, campaign_id)
     place = await session.scalar(
@@ -271,14 +308,33 @@ async def remove_member(session: AsyncSession, campaign_id: uuid.UUID, user_id: 
         .where(Mobilizer.campaign_id == campaign_id, Mobilizer.user_id == user_id)
         .values(user_id=None)
     )
+    record(
+        session,
+        actor=actor,
+        action="member.remove",
+        subject_type="user",
+        subject_id=user_id,
+        campaign_id=campaign_id,
+        detail={"role": place.value},
+    )
     await session.commit()
 
 
-async def rename_campaign(session: AsyncSession, campaign_id: uuid.UUID, title: str) -> Campaign:
+async def rename_campaign(
+    session: AsyncSession, campaign_id: uuid.UUID, title: str, *, actor: User | None
+) -> Campaign:
     renamed = await _campaign(session, campaign_id)
     if not title.strip():
         raise Refused("A campaign needs a name.")
     renamed.title = title.strip()
+    record(
+        session,
+        actor=actor,
+        action="campaign.rename",
+        subject_type="campaign",
+        subject_id=renamed.id,
+        campaign_id=renamed.id,
+    )
     await session.commit()
     return renamed
 
@@ -307,10 +363,21 @@ async def remove_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list
     return [p.username for p in people]
 
 
-async def delete_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list[str]:
+async def delete_campaign(
+    session: AsyncSession, campaign_id: uuid.UUID, *, actor: User | None
+) -> list[str]:
     """Delete a campaign, everything on it and its people's logins; returns their usernames."""
     await _campaign(session, campaign_id)
     gone = await remove_campaign(session, campaign_id)
+    record(
+        session,
+        actor=actor,
+        action="campaign.delete",
+        subject_type="campaign",
+        subject_id=campaign_id,
+        campaign_id=campaign_id,
+        detail={"logins": len(gone)},
+    )
     await session.commit()
     return gone
 
@@ -318,6 +385,7 @@ async def delete_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list
 async def create_campaign(
     session: AsyncSession,
     *,
+    actor: User | None,
     aspirant: dict,
     manager: dict | None = None,
     **campaign_fields,
@@ -338,6 +406,15 @@ async def create_campaign(
     except Refused:
         await session.rollback()
         raise
+    record(
+        session,
+        actor=actor,
+        action="campaign.create",
+        subject_type="campaign",
+        subject_id=created.id,
+        campaign_id=created.id,
+        detail={"logins": len(logins)},
+    )
     await session.commit()
     return created, summary, logins
 
@@ -345,6 +422,7 @@ async def create_campaign(
 async def create_user(
     session: AsyncSession,
     *,
+    actor: User | None,
     username: str,
     role: UserRole,
     first_name: str = "",
@@ -390,5 +468,14 @@ async def create_user(
     except Refused:
         await session.rollback()
         raise
+    record(
+        session,
+        actor=actor,
+        action="user.create",
+        subject_type="user",
+        subject_id=created.id,
+        campaign_id=target.id if target is not None else None,
+        detail={"role": role.value},
+    )
     await session.commit()
     return created, password

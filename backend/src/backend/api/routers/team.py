@@ -36,7 +36,11 @@ async def set_manager(
     """Add the campaign's manager, or replace the one it has; the password is shown once."""
     campaign = await require_visible_campaign(session, user, campaign_id)
     created, password, replaced = await team.set_manager(
-        session, campaign, payload.model_dump(exclude={"replace"}), replace=payload.replace
+        session,
+        campaign,
+        payload.model_dump(exclude={"replace"}),
+        replace=payload.replace,
+        actor=user,
     )
     return ManagerCreated(
         id=created.id,
@@ -55,5 +59,7 @@ async def reset_password(
     await require_visible_campaign(session, user, campaign_id)
     member = await team.resettable(session, user, campaign_id, user_id)
     username = member.username
-    password = await admin.reset_password(session, member.id, None)
+    password = await admin.reset_password(
+        session, member.id, None, actor=user, action="team.reset_password", campaign_id=campaign_id
+    )
     return TeamPassword(username=username, password=password)

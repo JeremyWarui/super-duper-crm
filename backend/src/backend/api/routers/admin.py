@@ -45,11 +45,12 @@ async def list_campaigns(session: SessionDep, _: AdminUser) -> list[AdminCampaig
     "/campaigns/", response_model=AdminCampaignCreated, status_code=status.HTTP_201_CREATED
 )
 async def create_campaign(
-    payload: AdminCampaignCreate, session: SessionDep, _: AdminUser
+    payload: AdminCampaignCreate, session: SessionDep, admin: AdminUser
 ) -> AdminCampaignCreated:
     """Create a campaign with its aspirant's and manager's logins; passwords are shown once."""
     created, summary, logins = await service.create_campaign(
         session,
+        actor=admin,
         **payload.model_dump(exclude={"aspirant", "manager"}),
         aspirant=payload.aspirant.model_dump(),
         manager=payload.manager.model_dump() if payload.manager else None,
@@ -79,16 +80,18 @@ async def get_campaign(
 
 @router.patch("/campaigns/{campaign_id}/", response_model=AdminCampaignRead)
 async def rename_campaign(
-    campaign_id: uuid.UUID, payload: CampaignRename, session: SessionDep, _: AdminUser
+    campaign_id: uuid.UUID, payload: CampaignRename, session: SessionDep, admin: AdminUser
 ) -> AdminCampaignRead:
-    await service.rename_campaign(session, campaign_id, payload.title)
+    await service.rename_campaign(session, campaign_id, payload.title, actor=admin)
     return await service.campaign(session, campaign_id)
 
 
 @router.delete("/campaigns/{campaign_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_campaign(campaign_id: uuid.UUID, session: SessionDep, _: AdminUser) -> Response:
+async def delete_campaign(
+    campaign_id: uuid.UUID, session: SessionDep, admin: AdminUser
+) -> Response:
     """Delete a campaign, everything on it, and its people's logins."""
-    await service.delete_campaign(session, campaign_id)
+    await service.delete_campaign(session, campaign_id, actor=admin)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -98,9 +101,9 @@ async def delete_campaign(campaign_id: uuid.UUID, session: SessionDep, _: AdminU
     status_code=status.HTTP_201_CREATED,
 )
 async def add_member(
-    campaign_id: uuid.UUID, payload: MemberAdd, session: SessionDep, _: AdminUser
+    campaign_id: uuid.UUID, payload: MemberAdd, session: SessionDep, admin: AdminUser
 ) -> AdminCampaignRead:
-    await service.add_member(session, campaign_id, payload.user)
+    await service.add_member(session, campaign_id, payload.user, actor=admin)
     return await service.campaign(session, campaign_id)
 
 
@@ -108,9 +111,9 @@ async def add_member(
     "/campaigns/{campaign_id}/members/{user_id}/", status_code=status.HTTP_204_NO_CONTENT
 )
 async def remove_member(
-    campaign_id: uuid.UUID, user_id: uuid.UUID, session: SessionDep, _: AdminUser
+    campaign_id: uuid.UUID, user_id: uuid.UUID, session: SessionDep, admin: AdminUser
 ) -> Response:
-    await service.remove_member(session, campaign_id, user_id)
+    await service.remove_member(session, campaign_id, user_id, actor=admin)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -126,11 +129,12 @@ async def list_users(
 
 @router.post("/users/", response_model=AdminUserCreated, status_code=status.HTTP_201_CREATED)
 async def create_user(
-    payload: AdminUserCreate, session: SessionDep, _: AdminUser
+    payload: AdminUserCreate, session: SessionDep, admin: AdminUser
 ) -> AdminUserCreated:
     """Create a login; its password is shown once."""
     created, password = await service.create_user(
         session,
+        actor=admin,
         **payload.model_dump(exclude={"campaign", "ward", "registration_centre"}),
         campaign_id=payload.campaign,
         ward_id=payload.ward,
@@ -147,10 +151,10 @@ async def create_user(
 
 @router.post("/users/{user_id}/reset-password/", response_model=PasswordResult)
 async def reset_password(
-    user_id: uuid.UUID, payload: PasswordReset, session: SessionDep, _: AdminUser
+    user_id: uuid.UUID, payload: PasswordReset, session: SessionDep, admin: AdminUser
 ) -> PasswordResult:
     """Hand out a new password; the login's session is signed out."""
-    password = await service.reset_password(session, user_id, payload.password)
+    password = await service.reset_password(session, user_id, payload.password, actor=admin)
     return PasswordResult(
         username=(await service.user(session, user_id)).username, password=password
     )
@@ -162,7 +166,7 @@ async def set_active(
 ) -> AdminUserRead:
     if user_id == admin.id:
         raise Refused("You cannot disable your own login.")
-    await service.set_active(session, user_id, payload.active)
+    await service.set_active(session, user_id, payload.active, actor=admin)
     return await service.user(session, user_id)
 
 

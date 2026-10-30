@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import AuthToken, Campaign, CampaignMember, User, UserRole
 from backend.services.accounts import add_member, new_login
+from backend.services.audit import record
 from backend.services.errors import Forbidden, NotFound, Refused
 
 ORDER = {UserRole.CANDIDATE: 0, UserRole.MANAGER: 1, UserRole.MOBILIZER: 2}
@@ -31,7 +32,7 @@ async def manager_of(session: AsyncSession, campaign_id: uuid.UUID) -> User | No
 
 
 async def set_manager(
-    session: AsyncSession, campaign: Campaign, details: dict, *, replace: bool
+    session: AsyncSession, campaign: Campaign, details: dict, *, replace: bool, actor: User | None
 ) -> tuple[User, str, str | None]:
     """Give a campaign a new manager login, shown with its password once.
 
@@ -56,6 +57,15 @@ async def set_manager(
     except Refused:
         await session.rollback()
         raise
+    record(
+        session,
+        actor=actor,
+        action="team.set_manager",
+        subject_type="user",
+        subject_id=created.id,
+        campaign_id=campaign.id,
+        detail={"replaced_user_id": str(sitting.id) if sitting is not None else None},
+    )
     await session.commit()
     return created, password, replaced
 
