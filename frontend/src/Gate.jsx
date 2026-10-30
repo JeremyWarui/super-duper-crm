@@ -1,8 +1,11 @@
+import { Route, Routes, useParams } from "react-router-dom";
 import { useAuth } from "./store/auth";
 import { useCampaigns } from "./api/hooks";
 import Login from "./components/Login";
 import Admin from "./components/Admin";
 import App from "./App";
+import Join from "./components/Join";
+import Withdraw from "./components/Withdraw";
 
 /** Drop every cached read when the signed-in user changes, so nobody sees the last user's data. */
 export function forgetOnSwitch(queryClient) {
@@ -53,4 +56,24 @@ export default function Root() {
   const token = useAuth((s) => s.token);
   // A new key per sign-in starts every screen fresh for the new user.
   return token ? <Inside key={token} /> : <Login />;
+}
+
+function JoinPage() {
+  return <Join code={useParams().code} />;
+}
+
+function WithdrawPage() {
+  return <Withdraw code={useParams().code} />;
+}
+
+// A sign-up link opens /join/<code>, and a supporter's withdrawal link /withdraw/<code>;
+// neither needs a login.
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/join/:code" element={<JoinPage />} />
+      <Route path="/withdraw/:code" element={<WithdrawPage />} />
+      <Route path="/*" element={<Root />} />
+    </Routes>
+  );
 }
