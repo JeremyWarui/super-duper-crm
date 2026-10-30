@@ -22,8 +22,10 @@ from backend.schemas.admin import (
     PasswordResult,
 )
 from backend.schemas.audit import AuditEventRead
+from backend.schemas.party import PartySettingsRead, PartySettingsUpdate
 from backend.services import admin as service
 from backend.services import audit
+from backend.services import party as party_service
 from backend.services.errors import Refused
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -34,6 +36,14 @@ async def overview(session: SessionDep, _: AdminUser) -> Overview:
     return Overview(
         totals=await service.totals(session), campaigns=await service.campaigns(session)
     )
+
+
+@router.put("/party/", response_model=PartySettingsRead)
+async def update_party(
+    payload: PartySettingsUpdate, session: SessionDep, admin: AdminUser
+) -> PartySettingsRead:
+    """Replace the party's settings."""
+    return await party_service.update_settings(session, payload, actor=admin)
 
 
 @router.get("/campaigns/", response_model=list[AdminCampaignRead])
