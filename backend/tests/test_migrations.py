@@ -149,3 +149,37 @@ def test_a_password_with_a_percent_survives_the_alembic_config(
     config = Config()
     config.set_main_option("sqlalchemy.url", alembic_url())
     assert config.get_main_option("sqlalchemy.url") == dsn
+
+
+def test_the_member_role_migration_refuses_a_member_whose_role_differs_from_its_user() -> None:
+    by_id = {m.revision: m for m in revision_modules()}
+    first, second = by_id["schema_20261024"], by_id["member_role_fk"]
+    engine = sa.create_engine("sqlite://")
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            first.upgrade()
+        connection.execute(
+            sa.text(
+                "INSERT INTO users (id, username, email, first_name, last_name, phone, role, "
+                "password_hash, is_active, is_superuser) VALUES "
+                "('u1', 'amina', '', '', '', '', 'mobilizer', '', 1, 0)"
+            )
+        )
+        connection.execute(
+            sa.text(
+                "INSERT INTO campaigns (id, title, office_level, seat, signup_code, signups_open) "
+                "VALUES ('c1', 'C', 'ward', 'mca', 'code', 1)"
+            )
+        )
+        connection.execute(
+            sa.text(
+                "INSERT INTO campaign_members (id, campaign_id, user_id, role) "
+                "VALUES ('m1', 'c1', 'u1', 'manager')"
+            )
+        )
+        with (
+            Operations.context(MigrationContext.configure(connection)),
+            pytest.raises(RuntimeError, match="m1"),
+        ):
+            second.upgrade()
+    engine.dispose()

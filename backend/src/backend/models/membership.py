@@ -3,7 +3,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Index, Uuid, text
+from sqlalchemy import ForeignKey, ForeignKeyConstraint, Index, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
@@ -19,6 +19,8 @@ class CampaignMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     __tablename__ = "campaign_members"
     __table_args__ = (
+        # The role here always equals the user's own role.
+        ForeignKeyConstraint(["user_id", "role"], ["users.id", "users.role"], ondelete="CASCADE"),
         Index("uq_campaign_members_one_campaign_per_user", "user_id", unique=True),
         Index(
             "uq_campaign_members_one_candidate",
@@ -39,7 +41,7 @@ class CampaignMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     campaign_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
     )
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"))
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid)
     role: Mapped[UserRole] = mapped_column(choice_type(UserRole, "member_role"))
 
     campaign: Mapped["Campaign"] = relationship(back_populates="members")

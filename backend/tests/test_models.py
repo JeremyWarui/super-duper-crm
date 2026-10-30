@@ -46,6 +46,20 @@ async def test_a_login_cannot_be_on_two_campaigns(session: AsyncSession) -> None
         await session.commit()
 
 
+async def test_a_login_on_a_campaign_cannot_change_role(session: AsyncSession) -> None:
+    _, _, ward, _ = await make_geography(session)
+    campaign = await make_campaign(session, ward)
+    manager = User(username="amina", role=UserRole.MANAGER)
+    session.add(manager)
+    await session.flush()
+    session.add(CampaignMember(campaign_id=campaign.id, user_id=manager.id, role=UserRole.MANAGER))
+    await session.commit()
+
+    manager.role = UserRole.MOBILIZER
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
 async def test_deleting_a_mobilizers_user_keeps_the_mobilizer(
     session: AsyncSession,
 ) -> None:
