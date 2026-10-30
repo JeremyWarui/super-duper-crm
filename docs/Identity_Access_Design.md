@@ -374,14 +374,14 @@ R1-4. Non-schema tickets run in parallel with them.
 - Postgres proof (gate item): on the local Postgres, `campaign-crm seed` + `demo`, then `alembic upgrade head`, an `UPDATE users SET role='mobilizer'` on the demo manager refused, `alembic downgrade -1` and `upgrade head` again clean; a hand-made mismatched row makes the upgrade abort naming it. Commands and output pasted in the ticket report.
 - Depends: none.
 
-**R0-3 Audit log** (Sonnet, schema)
+**R0-3 Audit log** (Sonnet, schema) — done 30 Oct 2026
 - Files: new `models/audit.py`, `models/__init__.py`, new `services/audit.py`, new `schemas/audit.py`, `api/routers/admin.py`, new revision, new `tests/test_audit.py`, `contracts/frontend-api.json` only if the console reads it (not in R0).
 - API: `GET /api/admin/audit/?subject_type=&subject_id=&limit=` superuser only.
 - Tests: an action that rolls back leaves no audit row; a non-superuser gets 403 on the read.
 - Accept: `record()` adds to the session without committing.
 - Depends: R0-2 (migration order only).
 
-**R0-4 Audit the existing sensitive actions** (Sonnet)
+**R0-4 Audit the existing sensitive actions** (Sonnet) — done 30 Oct 2026
 - Files: `services/admin.py`, `services/team.py`, `api/routers/admin.py`, `api/routers/team.py`, `api/routers/users.py`, `cli.py`, `tests/test_audit.py`.
 - Actions: `campaign.create`, `campaign.delete`, `campaign.rename`, `user.create`, `user.reset_password`, `user.activate`, `user.deactivate`, `member.add`, `member.remove`, `team.set_manager`, `team.reset_password`, `mobilizer_login.create`, `mobilizer_login.delete`.
 - Service functions take `actor: User | None`; CLI passes `None` (recorded as `cli`).
@@ -389,14 +389,14 @@ R1-4. Non-schema tickets run in parallel with them.
 - Accept: no response body or status changes; existing tests untouched except call sites.
 - Depends: R0-3.
 
-**R0-5 Record the consent wording and channel for supporters** (Sonnet, schema, backend)
+**R0-5 Record the consent wording and channel for supporters** (Sonnet, schema, backend) — done 30 Oct 2026
 - Files: new `services/consent.py`, `models/supporter.py`, `api/routers/join.py`, `api/routers/supporters.py`, `schemas/join.py`, new revision, `contracts/frontend-api.json`, `tests/test_join_api.py`.
 - API: `GET /api/join/{code}/` adds `consent_wording`. `GET /api/supporters/consent-wording/` (SupporterTeam) for the mobilizer form.
 - Tests: a QR sign-up stores the wording that `GET` served and channel `event_qr`.
 - Accept: older rows stay NULL; client cannot set wording.
 - Depends: R0-3 (migration order).
 
-**R0-6 Show server consent wording on both screens** (Sonnet, frontend)
+**R0-6 Show server consent wording on both screens** (Sonnet, frontend) — done 30 Oct 2026
 - Files: `frontend/src/components/Join.jsx`, `frontend/src/App.jsx` (`RegisterSupporterForm` only), `frontend/src/api/hooks.js`, `frontend/tests/join.test.jsx`.
 - Tests: the checkbox label is the wording the API returned.
 - Depends: R0-5.
@@ -407,19 +407,19 @@ R1-4. Non-schema tickets run in parallel with them.
 - Tests: `/campaign/events` returns the index; `/api/nope/` returns 404.
 - Depends: none.
 
-**R0-8 Router** (Sonnet, frontend)
+**R0-8 Router** (Sonnet, frontend) — done 30 Oct 2026
 - Files: `frontend/package.json` (add `react-router-dom` pinned), `frontend/src/main.jsx`, `frontend/src/Gate.jsx`, `frontend/tests/app.test.jsx`, `frontend/tests/gate.test.jsx`.
 - Behaviour: same three entry points by route; no page changes.
 - Tests: `/join/x` renders Join; `/` renders the gate.
 - Depends: none (R0-7 for production refresh).
 
-**R0-9 Portal layout and shared UI pieces** (Sonnet, frontend)
+**R0-9 Portal layout and shared UI pieces** (Sonnet, frontend) — done 30 Oct 2026
 - Files: `frontend/src/App.jsx`, new `frontend/src/components/PortalLayout.jsx`, `frontend/src/components/ui/index.jsx`, `frontend/tests/styles.test.js` must pass.
 - Moves `Badge`, `Bar`, `Chip`, `Modal`, `PasswordModal`, `PageTitle` to `components/ui`; topbar + sidebar to `PortalLayout` (props: brand, title, meta, user line, nav, children).
 - Tests: existing 86 pass unchanged.
 - Depends: none; must not run at the same time as R0-10.
 
-**R0-10 Split `App.jsx` into routed pages** (Sonnet, frontend)
+**R0-10 Split `App.jsx` into routed pages** (Sonnet, frontend) — done 30 Oct 2026
 - Files: `frontend/src/App.jsx`, new `frontend/src/pages/campaign/*.jsx` (one per `NAV` key and per form), `frontend/tests/*` only where a test navigates.
 - Routes `/campaign/:page`; a page not in the role's `NAV` redirects to the first; unknown role shows the no-campaign screen instead of the candidate menu.
 - Tests: a manager opening `/campaign/team` is sent to their first page.

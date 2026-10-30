@@ -165,8 +165,9 @@ For people met in person who have no smartphone or data, a mobilizer uses
 **Register supporter** in their own ward: full name, phone, the ward (in an MCA
 race, a centre with a target, starting at the mobilizer's own), support level,
 and a consent box: *"Consent to hold these details under the Data Protection
-Act, 2019."* The mobilizer ticks it after asking the person. Saving stays off
-until the box is ticked, and the server refuses the record without it. The
+Act, 2019."* The form shows the wording the server sends. The mobilizer ticks
+it after asking the person. Saving stays off until the wording has loaded and
+the box is ticked, and the server refuses the record without it. The
 phone may be left blank. A Kenyan mobile number is stored as `+254...`; anything
 else is kept as typed, so it cannot be texted and is not matched against the
 same number written another way. A number already on the campaign's register
@@ -210,12 +211,15 @@ campaign does.
 
 - **Recorded:** consent as yes or no on each supporter
   (`models/supporter.py`), the time the record was created (consent is
-  required to create it), for a QR sign-up the event it came from (lost if
-  the event is later deleted), and for a self sign-up its withdrawal code.
-- **Not recorded yet:** the wording the person agreed to. The two screens show
-  different wordings, and the record does not say which one was shown.
-
-Both open items are in planning question 9 (section 11).
+  required to create it), the channel (`event_qr`, `campaign_link` or
+  `mobilizer`) and the exact wording that screen showed, for a QR sign-up the
+  event it came from (lost if the event is later deleted), and for a self
+  sign-up its withdrawal code. The wording lives once in
+  `services/consent.py`; both screens show what the server sends, and the
+  server stores the wording it served, never text from the client. Supporters
+  added before 30 October 2026 have no channel or wording.
+- **Not recorded yet:** a confirmation from the person themselves, which is
+  planning question 9 (section 11).
 
 ---
 
@@ -426,7 +430,7 @@ erDiagram
 
 ### The API
 
-58 operations across 45 paths, grouped by purpose. The live list is at `/docs`
+60 operations across 47 paths, grouped by purpose. The live list is at `/docs`
 on a server started with `DEBUG=true`; it is off otherwise.
 
 | Group | Routes | Who |
@@ -439,7 +443,7 @@ on a server started with `DEBUG=true`; it is off otherwise.
 | Team | `/api/campaigns/{id}/team/` | aspirant and manager |
 | Payments | `/api/payments/` | the manager writes; the aspirant reads all; a mobilizer reads their own |
 | Public sign-up and withdrawal | `/api/join/{code}/`, `/api/join/withdraw/{code}/` | anyone with an event's, a campaign's or a withdrawal code |
-| Console | `/api/admin/` | superuser only |
+| Console, including the audit trail (`/api/admin/audit/`) | `/api/admin/` | superuser only |
 | Health | `/health` | Fly's checks |
 
 ### Outside services
@@ -467,7 +471,7 @@ in full without either:
 | Live database check | TLS, the latest migration and the seeded geography on a real database | `LIVE_DATABASE=1`, by hand; 7 checks skipped otherwise |
 | Secret scan | No password, key or token reaches the repository | a pre-commit hook (`git config core.hooksPath .githooks`), and again on every push in GitHub Actions (`.github/workflows/secret-scan.yml`) |
 
-`cd backend && uv run pytest` runs the tests and the evals together (273).
+`cd backend && uv run pytest` runs the tests and the evals together (293).
 
 ---
 
@@ -493,7 +497,7 @@ Where it stands on 25 October 2026 (paths under `frontend/src/`):
 | `components/Admin.jsx`, `Onboarding.jsx`, `Login.jsx`, `Gate.jsx` | 0 |
 | `components/Join.jsx` | 4, the place picker and withdrawal note added after the move |
 | `components/Withdraw.jsx` | 7, a page added after the move |
-| `App.jsx` | 33: values computed at run time, such as progress bar widths and status colours, and the sharing buttons and campaign-link dialog added after the move |
+| `App.jsx`, `pages/campaign/`, `components/PortalLayout.jsx` | 5: values computed at run time, such as progress bar widths |
 
 `frontend/tests/styles.test.js` reads every component and fails on a class name
 no stylesheet defines, so a missing style is caught by the tests, not by a user.
@@ -502,9 +506,10 @@ no stylesheet defines, so a missing style is caught by the tests, not by a user.
 
 - **Finish the move** for the screens added since (the sign-up place picker,
   the withdrawal page, the sharing buttons).
-- **Split `App.jsx`** (1,075 lines: every campaign screen, form and modal)
-  into one file per page and per form, built from `components/ui/`. This is
-  the largest piece of structural debt in the frontend.
+- **`App.jsx` is split.** It holds the `/campaign/:page` routes and the
+  shell; each page and form is a file under `pages/campaign/`, the topbar and
+  side menu are `components/PortalLayout.jsx`, and shared pieces are in
+  `components/ui/`.
 - **Rework the phone layout.** `index.css` already stacks the side menu above
   the page below 860px and drops grids to one column below 720px; the tables
   and forms mobilizers use in the field have not been designed for a phone.
@@ -547,12 +552,11 @@ Open choices that will shape the next stage:
    who pays for messages, and how campaigns top up.
 6. **Invitations:** replace passwords handed over in person with links the new
    user claims, once email or SMS sending is live.
-7. **Frontend structure:** after the style extraction, split `App.jsx` by page
-   and decide whether to add a router so each page has its own address.
+7. **Frontend structure:** settled. Pages have their own addresses through
+   `react-router-dom` (`/campaign/:page`, `/join/:code`, `/withdraw/:code`).
 8. **Election day:** whether to load polling stations and support agents' work
    on the day, which is a different product surface from campaigning.
 9. **Consent the person confirms:** once SMS is live, text each new supporter
    and count them only when they reply YES, with STOP to withdraw. That covers
    people a mobilizer registers by hand, and anyone who lost their withdrawal
-   link. Also store the wording each supporter agreed to, so the campaign can
-   prove consent under the Data Protection Act 2019.
+   link. The wording each supporter agreed to is already stored with them.
