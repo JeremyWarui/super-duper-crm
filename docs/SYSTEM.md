@@ -5,7 +5,7 @@ Use it to plan features, refine the architecture, or bring someone new up to
 speed. How to run the code lives in the READMEs; this document says what the
 code is for.
 
-Last checked against the code: 24 October 2026, commit `dc71b22`.
+Last checked against the code: 30 October 2026, commit `886b0d0` plus Release 0 tickets R0-1, R0-2, R0-7, R0-11.
 
 ---
 
@@ -59,17 +59,19 @@ underneath it.
 
 **Sold on subscription to several campaigns at once.** Each campaign has its own
 aspirant, manager, mobilizers and supporters, and never sees another campaign's
-data. One login belongs to exactly one campaign.
+data. A campaign login is on at most one campaign; the operator is on none.
 
 **The operator (superuser) onboards every campaign.** There is no public
 sign-up. The operator creates a campaign from the admin console, which also
 creates the aspirant's login and, optionally, the manager's. From then on the
-campaign runs its own team.
+campaign runs its own team. The command line can also make a candidate login
+with no campaign (`campaign-crm createuser --role candidate`); the console
+refuses that.
 
 | Person | What they do in the app |
 |---|---|
 | **Operator** (superuser) | Runs the deployment from the admin console: creates campaigns and their first logins, repairs logins, deletes campaigns. Never sits on a campaign. |
-| **Aspirant** (candidate) | Owns the campaign. Watches progress and strategy, adds or replaces the one manager, adds and places mobilizers, resets the team's passwords. |
+| **Aspirant** (role `candidate` in the code, labelled Candidate on screen) | Owns the campaign. Watches progress and strategy, adds or replaces the one manager, adds and places mobilizers, resets the team's passwords. |
 | **Campaign manager** | Runs the day to day: targets, events, the supporter register, sign-up links to share, payments to mobilizers, adding mobilizers and resetting their passwords. |
 | **Mobilizer** | Works one unit: a ward, or in an MCA race a registration centre. Records events and registers supporters in their ward, and sees their own payments. |
 | **Supporter** (no login) | Signs up on their own phone, from an event's QR code or the campaign's sign-up link, and withdraws with their private link; or is registered by a mobilizer. |
@@ -263,6 +265,8 @@ Each rule is enforced on the server; the screens only reflect it.
 |---|---|
 | Only the operator creates campaigns; nobody signs themselves up | `services/admin.py` `create_campaign`; no public route exists |
 | A login is on at most one campaign | unique index `uq_campaign_members_one_campaign_per_user` |
+| A campaign member's role always equals its login's role: role guards read `users.role`, the one-aspirant and one-manager indexes read `campaign_members.role`, and a login on a campaign cannot change role. A login made with no campaign defaults to `manager`, the superuser included | composite foreign key `campaign_members(user_id, role)` → `users(id, role)` |
+| Every API route needs a login except sign-in, the public sign-up and withdrawal routes, and `/health` | `tests/test_route_guards.py` |
 | A campaign has exactly one aspirant | at most one: unique index `uq_campaign_members_one_candidate`; at least one: `services/admin.py` `create_campaign` makes them with the campaign, and `remove_member` refuses to take them off |
 | A campaign has at most one manager; only its aspirant adds or replaces them | unique index `uq_campaign_members_one_manager`, `services/team.py`, `api/routers/team.py` |
 | A replaced manager comes off the campaign, is turned off and signed out | `services/team.py` `set_manager` |
@@ -360,7 +364,7 @@ flowchart LR
 | Frontend | React 19, Vite, TanStack Query, Zustand, `qrcode.react` | `frontend/` |
 | Contract | The fields the frontend reads and sends, checked from both sides | `contracts/frontend-api.json` |
 | Database | Postgres: Neon in production, a local Postgres in development | |
-| Hosting | One Fly.io app (`mzigo-crm`); the Docker build bakes the SPA into the API image | `Dockerfile`, `fly.toml` |
+| Hosting | One Fly.io app (`mzigo-crm`); the Docker build bakes the SPA into the API image, and any page address outside `/api` with no file behind it serves the SPA's `index.html`, so direct links and refreshes work (`main.py` `_SPAFiles`) | `Dockerfile`, `fly.toml` |
 | Migrations | Alembic, run by Fly's release step before a new version starts | `backend/alembic/versions/` |
 
 ### How a request is scoped
@@ -456,14 +460,14 @@ in full without either:
 
 | Check | What it proves | Runs |
 |---|---|---|
-| Backend tests (164) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
-| Backend evals (79) | The API still offers what the frontend's contract lists | `cd backend && uv run pytest evals` |
-| Frontend tests (81) | Each screen per role, the forms, the contract from the frontend side | `cd frontend && npm test` |
+| Backend tests (180) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
+| Backend evals (93: 86 run, 7 live checks skipped) | The API still offers what the frontend's contract lists | `cd backend && uv run pytest evals` |
+| Frontend tests (86) | Each screen per role, the forms, the contract from the frontend side | `cd frontend && npm test` |
 | Migration tests | The migrations build the models' schema and render correctly for Postgres | part of the backend tests |
 | Live database check | TLS, the latest migration and the seeded geography on a real database | `LIVE_DATABASE=1`, by hand; 7 checks skipped otherwise |
 | Secret scan | No password, key or token reaches the repository | a pre-commit hook (`git config core.hooksPath .githooks`), and again on every push in GitHub Actions (`.github/workflows/secret-scan.yml`) |
 
-`cd backend && uv run pytest` runs the tests and the evals together (243).
+`cd backend && uv run pytest` runs the tests and the evals together (273).
 
 ---
 
@@ -498,7 +502,7 @@ no stylesheet defines, so a missing style is caught by the tests, not by a user.
 
 - **Finish the move** for the screens added since (the sign-up place picker,
   the withdrawal page, the sharing buttons).
-- **Split `App.jsx`** (about 1,000 lines: every campaign screen, form and modal)
+- **Split `App.jsx`** (1,075 lines: every campaign screen, form and modal)
   into one file per page and per form, built from `components/ui/`. This is
   the largest piece of structural debt in the frontend.
 - **Rework the phone layout.** `index.css` already stacks the side menu above
