@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 import { useAuth } from "../src/store/auth";
 
@@ -62,15 +63,17 @@ export function signIn(role = "manager") {
   });
 }
 
-/** Render inside a fresh query client. */
-export function renderApp(ui) {
+/** Render inside a fresh query client and a router that starts at `path`. */
+export function renderApp(ui, { path = "/" } = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
   return {
     queryClient,
     ...render(
-      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>
+      </QueryClientProvider>,
     ),
   };
 }

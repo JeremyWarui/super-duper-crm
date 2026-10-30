@@ -1,7 +1,6 @@
 /** Which screen you land on. */
 import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../src/store/auth";
 import Root, { AppRoutes, forgetOnSwitch } from "../src/Gate";
@@ -27,11 +26,7 @@ describe("the gate", () => {
 
   it("shows the sign-in screen at / when signed out", () => {
     stubApi({});
-    renderApp(
-      <MemoryRouter initialEntries={["/"]}>
-        <AppRoutes />
-      </MemoryRouter>,
-    );
+    renderApp(<AppRoutes />);
 
     expect(screen.getByText("Sign in to the war room")).toBeInTheDocument();
   });

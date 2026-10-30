@@ -273,7 +273,7 @@ describe("the source against the contract", () => {
   });
 
   it("names the centre field the API returns, not the prototype's", () => {
-    const source = read("App.jsx");
+    const source = read("pages/campaign/helpers.js");
     expect(source).toContain("centre_name");
     expect(source).not.toContain("station_name");
   });

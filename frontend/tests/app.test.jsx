@@ -1,6 +1,5 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
 import { AppRoutes } from "../src/Gate";
@@ -327,15 +326,20 @@ describe("adding a mobilizer", () => {
 });
 
 describe("the routes", () => {
+  it("sends a manager who opens a page outside their menu to their first page", async () => {
+    signIn("manager");
+    stubApi(dashboardRoutes());
+    renderApp(<App />, { path: "/campaign/mypayments" });
+
+    expect(await screen.findByText("Your command view of the seat.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Overview" })).toHaveAttribute("aria-current", "page");
+  });
+
   it("opens the sign-up page at /join/:code without a login", async () => {
     stubApi({
       "GET /join/x/": { campaign_title: "Jane for Roysambu", candidate_name: "Jane", event_title: "Town hall", ward_name: "Zimmerman", open: true, place: null, places: [] },
     });
-    renderApp(
-      <MemoryRouter initialEntries={["/join/x"]}>
-        <AppRoutes />
-      </MemoryRouter>,
-    );
+    renderApp(<AppRoutes />, { path: "/join/x" });
 
     expect(await screen.findByRole("textbox", { name: "Full name" })).toBeInTheDocument();
   });
