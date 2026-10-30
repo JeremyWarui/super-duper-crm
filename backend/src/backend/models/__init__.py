@@ -1,6 +1,7 @@
 """Every model, imported here so `Base.metadata` holds the full schema."""
 
 from backend.db.base import Base
+from backend.models.audit import AuditEvent
 from backend.models.auth_token import AuthToken
 from backend.models.campaign import Campaign
 from backend.models.enums import (
@@ -28,6 +29,7 @@ from backend.models.target import Target, compute_win_number, unit_key
 from backend.models.user import User
 
 __all__ = [
+    "AuditEvent",
     "AuthToken",
     "Base",
     "Campaign",

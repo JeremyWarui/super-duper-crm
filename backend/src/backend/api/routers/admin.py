@@ -1,8 +1,9 @@
 """The admin console: every campaign and login on the deployment, for a superuser only."""
 
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Query, Response, status
 
 from backend.api.deps import AdminUser, SessionDep
 from backend.models import UserRole
@@ -20,7 +21,9 @@ from backend.schemas.admin import (
     PasswordReset,
     PasswordResult,
 )
+from backend.schemas.audit import AuditEventRead
 from backend.services import admin as service
+from backend.services import audit
 from backend.services.errors import Refused
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -161,3 +164,17 @@ async def set_active(
         raise Refused("You cannot disable your own login.")
     await service.set_active(session, user_id, payload.active)
     return await service.user(session, user_id)
+
+
+@router.get("/audit/", response_model=list[AuditEventRead])
+async def audit_events(
+    session: SessionDep,
+    _: AdminUser,
+    subject_type: str | None = None,
+    subject_id: uuid.UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+) -> list[AuditEventRead]:
+    """The audit trail, newest first."""
+    return await audit.events(
+        session, subject_type=subject_type, subject_id=subject_id, limit=limit
+    )
