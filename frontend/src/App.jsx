@@ -7,12 +7,19 @@ import { useAuth } from "./store/auth";
 import { winNumber } from "./winNumber";
 import { formatNumber as fmt } from "./lib/format";
 import {
+  Badge,
+  Bar,
   Button,
+  Chip,
   ErrorState,
   FieldLabel,
   LoadingState,
+  Modal,
+  PageTitle,
   Panel,
+  PasswordModal,
 } from "./components/ui";
+import PortalLayout from "./components/PortalLayout";
 import {
   useCampaigns, useStrategy, useTargets, useEvents, useMobilizers, useSupporters,
   useScheduleEvent, useRecordEvent, useAddMobilizer, useRegisterSupporter, useUpdateTarget,
@@ -29,41 +36,13 @@ function statusOf(progress) {
 }
 
 // ---- shared UI ------------------------------------------------------------
-const Badge = ({ text, tone = "neutral" }) => <span className={`badge tone-${tone}`}>{text}</span>;
-const Bar = ({ pct, tone }) => <div className="bar"><div className={`bar-fill tone-${tone}`} style={{width: `${Math.min(pct, 100)}%`}} /></div>;
-// A pill that toggles, for sort orders and filters.
-const Chip = ({ on, onClick, className = "", children }) => <button type="button" aria-pressed={on} onClick={onClick} className={`chip ${on ? "chip-on" : ""} ${className}`.trim()}>{children}</button>;
 const Card = Panel;
 const Label = FieldLabel;
 const Btn = Button;
 const PrimaryBtn = ({ children, onClick, disabled }) => <Button primary onClick={onClick} disabled={disabled}>{children}</Button>;
-const PageTitle = ({ title, sub, action }) => <div className="flex flex-wrap items-end justify-between gap-3 page-head"><div><div className="page-title">{title}</div>{sub && <div className="page-sub">{sub}</div>}</div>{action}</div>;
 const Loading = LoadingState;
 const ErrorMsg = ErrorState;
 
-const Modal = ({ title, sub, onClose, locked, children }) => (
-  <div onClick={locked ? undefined : onClose} className="modal-backdrop">
-    <div onClick={(e) => e.stopPropagation()} className="modal">
-      <div className="flex items-start justify-between modal-head">
-        <div><div className="modal-title">{title}</div>{sub && <div className="modal-sub">{sub}</div>}</div>
-        <button onClick={onClose} className="modal-close">×</button>
-      </div>
-      <div className="modal-body">{children}</div>
-    </div>
-  </div>
-);
-
-// A password shown once; a click on the backdrop leaves it open.
-const PasswordModal = ({ title, password, onClose, children }) => (
-  <Modal title={title} sub="Write the password down now. It is shown once." onClose={onClose} locked>
-    <div className="modal-text">{children}</div>
-    <div className="secret-box">
-      <div className="meta">Password</div>
-      <div className="secret-value">{password}</div>
-    </div>
-    <div className="flex justify-end gap-2 form-actions"><PrimaryBtn onClick={onClose}>Done</PrimaryBtn></div>
-  </Modal>
-);
 
 // ---- dashboard blocks (fed by the /strategy/ endpoint) --------------------
 function TallyHero({ s }) {
@@ -1041,26 +1020,20 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
-      <div className="topbar">
-        <div className="mx-auto flex flex-wrap items-center justify-between gap-3 topbar-inner">
-          <div className="flex items-center gap-3 topbar-identity"><div className="brand">MZIGO<span className="brand-mark">·</span>CRM</div><div className="topbar-divider" /><div><div className="topbar-campaign">{campaign.title}</div><div className="topbar-meta">{[campaign.candidate_name && `for ${campaign.candidate_name}`, campaign.seat, campaign.area_name].filter(Boolean).join(" · ")}</div></div></div>
-          <div className="flex items-center gap-3"><span className="topbar-user">{user?.full_name || user?.username} · {ROLE_LABEL[role]}</span><Btn onClick={logout}>Sign out</Btn></div>
-        </div>
-      </div>
-
-      <div className="mx-auto layout">
-        <nav className="sidebar">
-          <div className="sidebar-label">{ROLE_LABEL[role].toUpperCase()}</div>
-          <div className="nav">
-            {nav.map(([key, label]) => <button key={key} type="button" aria-current={page === key ? "page" : undefined} onClick={() => setPage(key)} className={`nav-item ${page === key ? "nav-item-active" : ""}`.trim()}>{label}</button>)}
-          </div>
-        </nav>
-
-        <main className="main">
-          {renderPage()}
-        </main>
-      </div>
+    <>
+      <PortalLayout
+        brand={<>MZIGO<span className="brand-mark">·</span>CRM</>}
+        title={campaign.title}
+        meta={[campaign.candidate_name && `for ${campaign.candidate_name}`, campaign.seat, campaign.area_name].filter(Boolean).join(" · ")}
+        user={`${user?.full_name || user?.username} · ${ROLE_LABEL[role]}`}
+        navLabel={ROLE_LABEL[role].toUpperCase()}
+        nav={nav}
+        page={page}
+        onSelect={setPage}
+        onLogout={logout}
+      >
+        {renderPage()}
+      </PortalLayout>
 
       {modal?.type === "mobilizer" && <MobilizerForm campaignId={campaignId} units={units} byCentre={campaign.operational_grain === "centre"} mobilizers={mobilizers.data || []} mobilizer={modal.mobilizer} onClose={() => setModal(null)} />}
       {modal?.type === "manager" && <ManagerForm campaignId={campaignId} sitting={modal.sitting} onClose={() => setModal(null)} />}
@@ -1070,6 +1043,6 @@ export default function App() {
       {modal?.type === "record" && <RecordForm event={modal.event} onClose={() => setModal(null)} />}
       {modal?.type === "invite" && <InviteForm event={modal.event} onClose={() => setModal(null)} />}
       {modal?.type === "qr" && <QrModal event={modal.event} canClose={role === "manager"} onClose={() => setModal(null)} />}
-    </div>
+    </>
   );
 }
