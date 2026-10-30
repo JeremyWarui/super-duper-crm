@@ -19,7 +19,7 @@ class LoginUser(ORMModel):
     id: uuid.UUID
     username: str
     full_name: str
-    role: UserRole
+    role: UserRole | None
     is_superuser: bool
 
 

@@ -26,10 +26,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     last_name: Mapped[str] = mapped_column(String(150), default="")
     phone: Mapped[str] = mapped_column(String(20), default="")
 
-    role: Mapped[UserRole] = mapped_column(
-        choice_type(UserRole, "user_role"),
-        default=UserRole.MANAGER,
-    )
+    role: Mapped[UserRole | None] = mapped_column(choice_type(UserRole, "user_role"), default=None)
 
     password_hash: Mapped[str] = mapped_column(String(128), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -49,4 +46,5 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         return f"{self.first_name} {self.last_name}".strip()
 
     def __str__(self) -> str:
-        return f"{self.full_name or self.username} ({self.role.label})"
+        role = self.role.label if self.role else "no campaign role"
+        return f"{self.full_name or self.username} ({role})"

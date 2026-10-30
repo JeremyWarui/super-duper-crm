@@ -95,7 +95,7 @@ async def _createuser(args: argparse.Namespace, session: AsyncSession) -> int:
         action="user.create",
         subject_type="user",
         subject_id=user.id,
-        detail={"role": user.role.value, "superuser": args.superuser},
+        detail={"role": user.role.value if user.role else None, "superuser": args.superuser},
     )
     await session.commit()
     print(f"Created {user}.")
@@ -139,7 +139,8 @@ async def _users(args: argparse.Namespace, session: AsyncSession) -> int:
             "  [superuser]" if user.is_superuser else ""
         )
         seen = user.last_login_at[:10] if user.last_login_at else "never"
-        print(f"{user.username:20} {user.role.value:10} last in {seen}{flags}")
+        role = user.role.value if user.role else "-"
+        print(f"{user.username:20} {role:10} last in {seen}{flags}")
         print(f"    {user.campaign or 'on no campaign'}")
     if not people:
         print("No users.")

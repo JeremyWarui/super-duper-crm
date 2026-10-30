@@ -69,3 +69,23 @@ async def test_no_token_is_401(client: httpx.AsyncClient) -> None:
     response = await client.post("/api/auth/logout/")
     assert response.status_code == 401
     assert "not provided" in response.json()["detail"]
+
+
+async def test_a_login_without_a_campaign_role_is_refused_writes_and_sees_no_campaign(
+    client: httpx.AsyncClient, session, world
+) -> None:
+    await make_user(session, username="roleless", role=None)
+    token = await sign_in(client, "roleless")
+    campaign_id = world.campaign.id
+
+    signed_in = await client.post(
+        "/api/auth/login/", json={"username": "roleless", "password": TEST_PASSWORD}
+    )
+    write = await client.post(
+        f"/api/campaigns/{campaign_id}/signups/", json={"open": True}, headers=auth(token)
+    )
+    read = await client.get(f"/api/campaigns/{campaign_id}/", headers=auth(token))
+
+    assert signed_in.json()["user"]["role"] is None
+    assert write.status_code == 403
+    assert read.status_code == 404

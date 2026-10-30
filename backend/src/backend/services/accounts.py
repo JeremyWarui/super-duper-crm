@@ -27,7 +27,7 @@ async def new_login(
     session: AsyncSession,
     *,
     username: str,
-    role: UserRole,
+    role: UserRole | None,
     password: str | None = None,
     first_name: str = "",
     last_name: str = "",
@@ -77,6 +77,8 @@ async def membership_refusal(
             "A superuser reaches every campaign through the console, and would lose the "
             "campaign app by being put on one."
         )
+    if user.role is None:
+        return f"{user.username} has no campaign role, so they cannot be put on a campaign."
     if not user.is_active:
         return f"{user.username} is disabled, so they could not sign in to work on it."
     current = await campaign_of(session, user.id)

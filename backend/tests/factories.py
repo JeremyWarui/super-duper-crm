@@ -48,7 +48,7 @@ async def make_user(
     session,
     *,
     username: str = "manager",
-    role: UserRole = UserRole.MANAGER,
+    role: UserRole | None = UserRole.MANAGER,
     password: str = TEST_PASSWORD,
     **fields,
 ) -> User:

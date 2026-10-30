@@ -64,7 +64,7 @@ class AdminUserRead(ORMModel):
     full_name: str
     email: str
     phone: str
-    role: UserRole
+    role: UserRole | None
     is_active: bool
     is_superuser: bool
     last_login_at: str | None

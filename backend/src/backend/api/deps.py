@@ -49,6 +49,10 @@ def require_role(*roles: UserRole, message: str | None = None):
     """A guard letting only these roles through; 403 otherwise."""
 
     async def dependency(user: CurrentUser) -> User:
+        if user.role is None:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, message or "This login has no campaign role."
+            )
         if user.role not in roles:
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN, message or f"A {user.role.label} may not change this."
