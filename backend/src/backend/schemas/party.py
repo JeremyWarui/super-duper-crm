@@ -12,10 +12,11 @@ from pydantic import (
     StrictBool,
     StringConstraints,
     field_validator,
+    model_validator,
 )
 
 from backend.models import PartyConsentChannel, PartyMemberStatus
-from backend.schemas.common import ORMModel, WriteModel
+from backend.schemas.common import ORMModel, WriteModel, plain_text
 from backend.services.consent import PARTY_WORDING
 
 COLOUR = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -31,6 +32,8 @@ def _colour(value: str) -> str:
 def _link(value: str) -> str:
     if value and not value.startswith(("http://", "https://", "/static/")):
         raise ValueError("Use a web address starting with http:// or https://.")
+    if value.startswith("/static/") and ".." in value:
+        raise ValueError("Use a file under /static/.")
     return value
 
 
@@ -79,6 +82,17 @@ class PartySettingsUpdate(WriteModel):
     manifesto_url: Link = ""
     social_links: dict[Annotated[str, Field(max_length=40)], Link] = Field(default_factory=dict)
 
+    @model_validator(mode="after")
+    def _plain(self) -> "PartySettingsUpdate":
+        for name in ("name", "short_name", "logo_url", "contact_email", "contact_phone"):
+            plain_text(getattr(self, name))
+        for name in ("address", "description", "manifesto_text", "manifesto_url"):
+            plain_text(getattr(self, name), lines=True)
+        for key, link in self.social_links.items():
+            plain_text(key)
+            plain_text(link)
+        return self
+
 
 class PartyJoinCreate(WriteModel):
     full_name: Annotated[
@@ -91,10 +105,14 @@ class PartyJoinCreate(WriteModel):
 
     @field_validator("full_name", "phone", "email")
     @classmethod
-    def _printable(cls, value: str | None) -> str | None:
-        """Refuse control characters; Postgres text cannot hold NUL."""
-        if value is not None and any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
-            raise ValueError("Use letters, numbers and punctuation only.")
+    def _plain(cls, value: str | None) -> str | None:
+        return plain_text(value)
+
+    @field_validator("full_name")
+    @classmethod
+    def _has_a_letter(cls, value: str) -> str:
+        if not any(ch.isalpha() for ch in value):
+            raise ValueError("Enter your name.")
         return value
 
     @field_validator("consent_given")
@@ -158,3 +176,8 @@ class MemberPage(BaseModel):
 class MemberMove(WriteModel):
     status: PartyMemberStatus
     reason: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("reason")
+    @classmethod
+    def _plain(cls, value: str | None) -> str | None:
+        return plain_text(value, lines=True)

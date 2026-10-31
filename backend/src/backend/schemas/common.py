@@ -1,8 +1,25 @@
 """Base classes shared by the request and response schemas."""
 
+import unicodedata
 import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
+
+# Control, invisible formatting (zero-width, direction overrides), surrogate, private, unassigned.
+HIDDEN = frozenset({"Cc", "Cf", "Cs", "Co", "Cn"})
+
+
+def plain_text(value: str | None, *, lines: bool = False) -> str | None:
+    """Refuse characters a person never types, NUL among them, which Postgres text cannot hold.
+
+    With `lines`, newlines and tabs are allowed.
+    """
+    if value is None:
+        return value
+    allowed = "\t\n\r" if lines else ""
+    if any(unicodedata.category(ch) in HIDDEN and ch not in allowed for ch in value):
+        raise ValueError("Use letters, numbers and punctuation only.")
+    return value
 
 
 class ORMModel(BaseModel):

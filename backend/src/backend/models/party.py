@@ -117,3 +117,11 @@ class PartyMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     def __str__(self) -> str:
         return self.full_name
+
+
+class PartyDecoyCode(TimestampMixin, Base):
+    """A withdrawal code handed to a number already on the register; it withdraws nothing."""
+
+    __tablename__ = "party_decoy_codes"
+
+    code: Mapped[str] = mapped_column(String(32), primary_key=True)

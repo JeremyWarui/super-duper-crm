@@ -306,8 +306,17 @@ allowed):
 | suspended | approved | officer |
 | approved, suspended | withdrawn | the member (withdraw link) or officer |
 | rejected, withdrawn | pending | the person re-applying from the public form |
+| rejected | withdrawn | the member (withdraw link) or officer |
 
-Every officer move writes an audit event with old and new status.
+Every officer move writes an audit event with old and new status. A public
+re-application or withdrawal writes one too, with actor `public`.
+
+**Form privacy.** A number already on the register gets the same answer, link
+shape and work as a new one: its link is a stored decoy (`party_decoy_codes`)
+that spending deletes, so a withdrawal is one write and commit for a real or a
+decoy code and nothing for a code already spent. Every status write is
+conditional on the status it was checked against, so concurrent moves cannot
+skip the table.
 
 ### Permissions
 

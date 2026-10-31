@@ -5,12 +5,19 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import Select, func, select, update
+from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm.attributes import set_committed_value
 
-from backend.models import Constituency, PartyMember, PartyMemberStatus, User, Ward
+from backend.models import (
+    Constituency,
+    PartyDecoyCode,
+    PartyMember,
+    PartyMemberStatus,
+    User,
+    Ward,
+)
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
 
@@ -20,7 +27,7 @@ MOVES: dict[PartyMemberStatus, frozenset[PartyMemberStatus]] = {
     S.PENDING: frozenset({S.APPROVED, S.REJECTED, S.WITHDRAWN}),
     S.APPROVED: frozenset({S.SUSPENDED, S.WITHDRAWN}),
     S.SUSPENDED: frozenset({S.APPROVED, S.WITHDRAWN}),
-    S.REJECTED: frozenset({S.PENDING}),
+    S.REJECTED: frozenset({S.PENDING, S.WITHDRAWN}),
     S.WITHDRAWN: frozenset({S.PENDING}),
 }
 
@@ -69,7 +76,25 @@ async def reapply(session: AsyncSession, member: PartyMember, **values) -> bool:
         )
         .execution_options(synchronize_session=False)
     )
-    return changed.rowcount == 1
+    if changed.rowcount != 1:
+        return False
+    record(
+        session,
+        actor=None,
+        actor_name="public",
+        action="member.reapply",
+        subject_type="party_member",
+        subject_id=member.id,
+        detail={"from": member.status.value, "to": S.PENDING.value},
+    )
+    return True
+
+
+def decoy(session: AsyncSession) -> str:
+    """Hand out a code for a number already on the register; spending it withdraws nothing."""
+    code = new_withdraw_code()
+    session.add(PartyDecoyCode(code=code))
+    return code
 
 
 async def move(
@@ -118,6 +143,37 @@ async def withdraw(session: AsyncSession, member: PartyMember) -> None:
         decided_by_id=None,
         withdraw_code=None,
     )
+    record(
+        session,
+        actor=None,
+        actor_name="public",
+        action="member.withdraw",
+        subject_type="party_member",
+        subject_id=member.id,
+        detail={"from": old.value, "to": S.WITHDRAWN.value},
+    )
+
+
+async def withdraw_by_code(session: AsyncSession, code: str) -> None:
+    """Withdraw the member a code belongs to, or spend a decoy: one write either way.
+
+    A code that was spent or never handed out writes nothing, the same as a second call on a
+    real or a decoy code. The caller commits.
+    """
+    for _ in range(2):
+        member = await session.scalar(
+            select(PartyMember)
+            .where(PartyMember.withdraw_code == code)
+            .execution_options(populate_existing=True)
+        )
+        if member is None:
+            break
+        try:
+            await withdraw(session, member)
+            return
+        except Refused:
+            continue  # an officer moved them between the read and the write; read again
+    await session.execute(delete(PartyDecoyCode).where(PartyDecoyCode.code == code))
 
 
 @dataclass(frozen=True)

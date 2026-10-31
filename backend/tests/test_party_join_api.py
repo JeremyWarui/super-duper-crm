@@ -4,7 +4,7 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import PartyMember, PartyMemberStatus
+from backend.models import AuditEvent, PartyDecoyCode, PartyMember, PartyMemberStatus
 from tests.conftest import World
 
 
@@ -61,3 +61,45 @@ async def test_the_place_picker_walks_county_constituency_ward_without_a_login(
     assert str(world.county.id) in [c["id"] for c in counties]
     assert [c["name"] for c in constituencies] == ["Roysambu"]
     assert [w["name"] for w in wards] == ["Githurai", "Zimmerman"]
+
+
+async def test_a_repeat_phones_link_is_a_stored_decoy_that_spends_without_touching_the_member(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await client.post("/api/party/join/", json=_application(world))
+    member = await session.scalar(select(PartyMember))
+    member.status = PartyMemberStatus.APPROVED
+    await session.commit()
+
+    repeat = await client.post("/api/party/join/", json=_application(world))
+    decoy = repeat.json()["withdraw_url"].rsplit("/", 1)[1]
+    stored = await session.scalar(select(PartyDecoyCode.code))
+    spent = await client.post(f"/api/party/withdraw/{decoy}/")
+    await session.refresh(member)
+
+    assert stored == decoy
+    assert spent.status_code == 200
+    assert await session.scalar(select(PartyDecoyCode.code)) is None
+    assert member.status is PartyMemberStatus.APPROVED
+    assert (
+        await session.scalar(select(AuditEvent).where(AuditEvent.action == "member.withdraw"))
+        is None
+    )
+
+
+async def test_the_members_own_link_withdraws_them_once_and_is_audited_as_public(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    joined = await client.post("/api/party/join/", json=_application(world))
+    code = joined.json()["withdraw_url"].rsplit("/", 1)[1]
+
+    first = await client.post(f"/api/party/withdraw/{code}/")
+    second = await client.post(f"/api/party/withdraw/{code}/")
+    member = await session.scalar(select(PartyMember))
+    events = (await session.scalars(select(AuditEvent))).all()
+
+    assert first.json() == second.json()
+    assert (member.status, member.withdraw_code) == (PartyMemberStatus.WITHDRAWN, None)
+    assert [(e.action, e.actor_name, e.detail) for e in events] == [
+        ("member.withdraw", "public", {"from": "pending", "to": "withdrawn"})
+    ]

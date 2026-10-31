@@ -5,11 +5,12 @@ import io
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
 from backend.api.deps import MembershipOfficer, SessionDep
 from backend.models import PartyMember, PartyMemberStatus
+from backend.schemas.common import plain_text
 from backend.schemas.party import MemberDetail, MemberMove, MemberPage, MemberRead
 from backend.services import membership
 from backend.services.audit import record
@@ -36,6 +37,10 @@ def _filters(
     constituency: uuid.UUID | None = None,
     ward: uuid.UUID | None = None,
 ) -> MemberFilters:
+    try:
+        plain_text(q)
+    except ValueError as refused:
+        raise HTTPException(status_code=400, detail=str(refused)) from None
     return MemberFilters(q=q, status=status, county=county, constituency=constituency, ward=ward)
 
 

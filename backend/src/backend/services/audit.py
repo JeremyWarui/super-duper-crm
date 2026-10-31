@@ -17,11 +17,12 @@ def record(
     subject_id: uuid.UUID | None = None,
     campaign_id: uuid.UUID | None = None,
     detail: dict | None = None,
+    actor_name: str = "cli",
 ) -> AuditEvent:
     """Add an event to the session; the caller's commit or rollback decides whether it stays."""
     event = AuditEvent(
         actor_id=actor.id if actor else None,
-        actor_name=actor.username if actor else "cli",
+        actor_name=actor.username if actor else actor_name,
         action=action,
         subject_type=subject_type,
         subject_id=subject_id,

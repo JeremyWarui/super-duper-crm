@@ -1,11 +1,10 @@
 """The party's public identity, and joining or withdrawing from the register without a login."""
 
-import secrets
 import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request, status
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from backend.api.deps import SessionDep
@@ -28,7 +27,6 @@ from backend.schemas.party import (
 from backend.services import membership
 from backend.services import party as service
 from backend.services.consent import PARTY_WORDING
-from backend.services.errors import Refused
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import normalise_phone
 
@@ -40,9 +38,10 @@ WITHDRAWALS = RateLimit(limit=20, window=3600)
 WITHDRAW_PATH = "/party/withdraw/"
 # The same answer for every code, so a code cannot be tested for whether it was real.
 WITHDRAWN = (
-    "Done. If this link came with your application, that application or membership is now "
-    "withdrawn; the party keeps your details with that status. If your number was already on "
-    "the register when you applied, this link changes nothing: ask the party to withdraw you."
+    "Done. If this is the latest link from your application, that application or membership "
+    "is now withdrawn, and the party keeps a record of it with that status. If your number was "
+    "already on the register when you applied, this link changes nothing: ask the party to "
+    "withdraw you."
 )
 S = PartyMemberStatus
 
@@ -122,16 +121,14 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
             withdraw_code=code,
         )
     if not written:
-        # The same write and commit as a new application, so the timing does not tell them apart.
-        await session.execute(
-            update(PartyMember).where(PartyMember.id == member.id).values(phone=member.phone)
-        )
-        await session.commit()
-        return _done(secrets.token_urlsafe(18))
+        # One insert and commit, as a new application makes, and a code that spends like a real one.
+        code = membership.decoy(session)
     try:
         await session.commit()
     except IntegrityError:
         await session.rollback()  # the same phone applied a moment ago
+        code = membership.decoy(session)
+        await session.commit()
     return _done(code)
 
 
@@ -140,14 +137,8 @@ async def withdraw(code: str, request: Request, session: SessionDep) -> PartyWit
     """Withdraw from the register; the answer is the same for any code."""
     if not WITHDRAWALS.allow(_client(request)):
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
-    member = await session.scalar(select(PartyMember).where(PartyMember.withdraw_code == code))
-    if member is not None and member.status in (S.PENDING, S.APPROVED, S.SUSPENDED):
-        try:
-            await membership.withdraw(session, member)
-        except Refused:
-            await (
-                session.rollback()
-            )  # an officer moved them a moment ago; the answer stays the same
-        else:
-            await session.commit()
+    # Codes are url-safe and at most 32 characters; anything else matches nothing.
+    if len(code) <= 32 and code.replace("-", "").replace("_", "").isalnum() and code.isascii():
+        await membership.withdraw_by_code(session, code)
+        await session.commit()
     return PartyWithdrawn(message=WITHDRAWN)

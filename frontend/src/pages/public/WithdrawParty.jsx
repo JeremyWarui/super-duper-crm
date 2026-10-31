@@ -15,9 +15,9 @@ export default function WithdrawParty({ code }) {
         ) : (
           <>
             <div className="join-note">
-              This withdraws your application or membership, and the party will not contact you
-              about it. The party keeps a record that you withdrew; to have your details erased,
-              contact the party.
+              If this is the latest link from your application, this withdraws that application
+              or membership. The party keeps the record with the status withdrawn; to have your
+              details erased, contact the party.
             </div>
             {withdraw.error && <div className="join-error">{withdraw.error.message}</div>}
             <Button tone="danger" disabled={withdraw.isPending} onClick={() => withdraw.mutate()} className="join-submit">
