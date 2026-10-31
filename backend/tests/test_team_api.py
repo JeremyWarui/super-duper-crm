@@ -127,10 +127,11 @@ async def test_the_database_holds_one_manager_per_campaign_whatever_the_route(
         "That campaign already has a manager, amina. "
         "Its aspirant replaces them from the Team page.",
     )
-    assert (raced.status_code, raced.json()["detail"]) == (
-        400,
-        "That campaign already has its aspirant or its manager.",
-    )
+    # Postgres names the index, so it gives the narrower of the two answers.
+    assert (raced.status_code, raced.json()["detail"]) in [
+        (400, "That campaign already has its aspirant or its manager."),
+        (400, "That campaign already has a manager."),
+    ]
 
 
 async def test_the_aspirant_resets_the_manager_and_the_manager_only_mobilizers(

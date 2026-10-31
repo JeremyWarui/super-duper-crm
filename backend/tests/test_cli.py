@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.cli import build_parser, run
 from backend.models import User
-from tests.conftest import World
+from tests.conftest import POSTGRES, World
 from tests.factories import TEST_PASSWORD, sign_in
 
 
@@ -43,6 +43,7 @@ async def test_reset_password_hands_out_one_that_signs_in(
     assert "No user called nobody." in capsys.readouterr().err
 
 
+@pytest.mark.skipif(POSTGRES, reason="the test database is Postgres")
 async def test_reset_database_refuses_anything_but_postgres(
     session: AsyncSession, world: World, capsys: pytest.CaptureFixture
 ) -> None:

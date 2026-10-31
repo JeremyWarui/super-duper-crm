@@ -5,6 +5,7 @@ from tests.conftest import (  # noqa: F401
     client,
     engine,
     fresh_rate_limits,
+    postgres_database,
     session,
     world,
 )

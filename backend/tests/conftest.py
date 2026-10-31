@@ -13,6 +13,8 @@ import pytest
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 
+# TEST_POSTGRES=1 runs the suite on a throwaway database on the local Postgres in backend/.env.
+POSTGRES = os.environ.get("TEST_POSTGRES") == "1"
 os.environ.setdefault("SECRET_KEY", secrets.token_urlsafe(48))
 # Overrides a developer's .env, so the suite always exercises the generated password.
 os.environ["DEFAULT_USER_PASSWORD"] = ""
@@ -120,11 +122,72 @@ def upgrade_head(connection) -> None:
             module.upgrade()
 
 
+def postgres_url(database: str | None = None) -> str:
+    """The local Postgres from backend/.env, on `database` or the throwaway test database.
+
+    Refuses any host but this machine, so the suite can never reach a deployed database.
+    """
+    from pathlib import Path
+
+    from dotenv import dotenv_values
+    from sqlalchemy.engine import URL
+
+    env = dotenv_values(Path(__file__).parent.parent / ".env")
+    if env.get("DB_HOST") not in ("localhost", "127.0.0.1", "::1"):
+        raise RuntimeError("TEST_POSTGRES needs DB_HOST in backend/.env to be this machine.")
+    url = URL.create(
+        "postgresql+asyncpg",
+        username=env.get("DB_USER"),
+        password=env.get("DB_PASSWORD"),
+        host=env["DB_HOST"],
+        port=int(env.get("DB_PORT") or 5432),
+        database=database or f"{env.get('DB_NAME') or 'campaign_crm'}_pytest",
+    )
+    return url.render_as_string(hide_password=False)
+
+
+async def _migrated_postgres() -> None:
+    """Recreate the test database and build it with the real migrations."""
+    from sqlalchemy import text
+    from sqlalchemy.engine import make_url
+
+    name = make_url(postgres_url()).database
+    admin = create_async_engine(postgres_url("postgres"), isolation_level="AUTOCOMMIT")
+    async with admin.connect() as connection:
+        await connection.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+        await connection.execute(text(f'CREATE DATABASE "{name}"'))
+    await admin.dispose()
+    migrated = create_async_engine(postgres_url())
+    async with migrated.begin() as connection:
+        await connection.run_sync(upgrade_head)
+    await migrated.dispose()
+
+
+@pytest.fixture(scope="session")
+def postgres_database() -> None:
+    """The migrated test database, built once per run when TEST_POSTGRES=1."""
+    if POSTGRES:
+        import asyncio
+
+        asyncio.run(_migrated_postgres())
+
+
 @pytest.fixture
-async def engine() -> AsyncIterator[AsyncEngine]:
-    engine = enforce_foreign_keys(create_async_engine("sqlite+aiosqlite://"))
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
+async def engine(postgres_database: None) -> AsyncIterator[AsyncEngine]:
+    if POSTGRES:
+        from sqlalchemy import text
+
+        engine = create_async_engine(
+            postgres_url(),
+            connect_args={"server_settings": {"synchronous_commit": "off"}},
+        )
+        async with engine.begin() as connection:
+            for table in reversed(Base.metadata.sorted_tables):
+                await connection.execute(text(f'DELETE FROM "{table.name}"'))
+    else:
+        engine = enforce_foreign_keys(create_async_engine("sqlite+aiosqlite://"))
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
     yield engine
     await engine.dispose()
 
