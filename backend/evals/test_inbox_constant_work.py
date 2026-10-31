@@ -8,18 +8,22 @@ public caller can average out of the server's latency.
 from datetime import UTC, datetime
 
 import pytest
-from sqlalchemy import event
+from sqlalchemy import event, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from backend.models import (
+    Aspirant,
+    AspirantStatus,
     ContactMethod,
     PartyConsentChannel,
     PartyMember,
     PartyMemberStatus,
+    Seat,
     VolunteerProfile,
     VolunteerStatus,
 )
 from backend.services import membership
+from backend.services.aspirants import LIVE
 from backend.services.consent import PARTY_WORDING, VOLUNTEER_WORDING
 from tests.conftest import World
 
@@ -125,6 +129,41 @@ async def test_one_request_shape_sends_one_statement_list(
     await _register(session, world, member_status, volunteer_status)
     sent = set()
     for variant in SHAPES[shape]:
+        _queue(session, world, variant)
+        await session.commit()
+        sent.add(await _sent(engine, session))
+
+    assert len(sent) == 1
+
+
+ASPIRANT_STATES = [None, *sorted(LIVE)]
+# A live nomination exists only for an approved or suspended member, and a suspended member's
+# approved nomination is suspended with them.
+NOMINATED = (PartyMemberStatus.APPROVED, PartyMemberStatus.SUSPENDED)
+
+
+@pytest.mark.parametrize("member_status", NOMINATED, ids=str)
+@pytest.mark.parametrize("aspirant_status", ASPIRANT_STATES, ids=str)
+async def test_a_withdrawal_sends_one_statement_list_whatever_the_nomination(
+    engine: AsyncEngine,
+    session: AsyncSession,
+    world: World,
+    member_status: PartyMemberStatus,
+    aspirant_status: AspirantStatus | None,
+) -> None:
+    if (member_status, aspirant_status) == (PartyMemberStatus.SUSPENDED, AspirantStatus.APPROVED):
+        pytest.skip("a suspended member's approved nomination is suspended")
+    await _register(session, world, member_status, None)
+    if aspirant_status is not None:
+        member_id = await session.scalar(select(PartyMember.id).where(PartyMember.phone == PHONE))
+        session.add(
+            Aspirant(
+                member_id=member_id, seat=Seat.MCA, ward_id=world.ward.id, status=aspirant_status
+            )
+        )
+        await session.commit()
+    sent = set()
+    for variant in SHAPES["withdraw"]:
         _queue(session, world, variant)
         await session.commit()
         sent.add(await _sent(engine, session))

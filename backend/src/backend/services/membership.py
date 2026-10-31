@@ -25,7 +25,7 @@ from backend.models import (
     VolunteerInterest,
     Ward,
 )
-from backend.services import volunteers
+from backend.services import aspirants, volunteers
 from backend.services.audit import record, record_if
 from backend.services.consent import PARTY_WORDING
 from backend.services.errors import NotFound, Refused
@@ -103,6 +103,7 @@ async def move(
         detail={"from": old.value, "to": to.value},
     )
     await volunteers.follow_member(session, member, to)
+    await aspirants.follow_member(session, member, to)
 
 
 def request_join(
@@ -236,6 +237,7 @@ async def _apply_withdraw(session: AsyncSession, code: str, p: dict) -> None:
         detail={"from": old.status.value if old else None, "to": S.WITHDRAWN.value},
     )
     await volunteers.follow_withdrawal(session, old.id if old else None, withdrawn)
+    await aspirants.follow_withdrawal(session, old.id if old else None, withdrawn)
 
 
 async def _apply_volunteer_withdraw(session: AsyncSession, code: str, p: dict) -> None:
