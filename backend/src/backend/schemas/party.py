@@ -9,6 +9,7 @@ from pydantic import AfterValidator, BaseModel, Field, StringConstraints, field_
 
 from backend.models import PartyConsentChannel, PartyMemberStatus
 from backend.schemas.common import ORMModel, WriteModel
+from backend.services.consent import PARTY_WORDING
 
 COLOUR = re.compile(r"^#[0-9a-fA-F]{6}$")
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -51,6 +52,8 @@ class PartySettingsRead(ORMModel):
     manifesto_url: str
     social_links: dict[str, str]
     updated_at: datetime
+    # The application form's consent label; the server records this same text.
+    consent_wording: str = PARTY_WORDING[PartyConsentChannel.WEB_FORM]
 
 
 class PartySettingsUpdate(WriteModel):

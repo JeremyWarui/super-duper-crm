@@ -5,7 +5,8 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AuditEvent, PartySettings
+from backend.models import AuditEvent, PartyConsentChannel, PartySettings
+from backend.services.consent import PARTY_WORDING
 from tests.conftest import World
 
 CHANGE = {
@@ -28,6 +29,7 @@ async def test_anyone_reads_the_party_settings_without_a_login(client: httpx.Asy
     assert response.status_code == 200
     assert response.json()["name"] == "Party name"
     assert response.json()["primary_colour"] == "#1f2937"
+    assert response.json()["consent_wording"] == PARTY_WORDING[PartyConsentChannel.WEB_FORM]
 
 
 async def test_only_a_superuser_changes_them_and_the_change_is_audited(
