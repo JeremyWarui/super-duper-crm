@@ -8,7 +8,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const PARTY = { name: "Umoja Party", logo_url: "", primary_colour: "#112233", secondary_colour: "#445566", description: "One country.", consent_wording: "Umoja may keep my details." };
+const PARTY = { name: "Umoja Party", logo_url: "", primary_colour: "#112233", secondary_colour: "#445566", description: "One country.", consent_wording: "Umoja may keep my details.", volunteer_consent_wording: "Umoja may contact me about volunteering." };
 const ROUTES = {
   "GET /party/": PARTY,
   "GET /party/places/": [{ id: "c1", name: "Nairobi" }],
@@ -43,13 +43,37 @@ describe("applying to join the party", () => {
     expect(send.disabled).toBe(false);
   });
 
+  it("requires the volunteer consent only when the volunteer section is ticked", async () => {
+    const calls = stubApi({ ...ROUTES, "POST /party/join/": { withdraw_url: "/party/withdraw/a", volunteer_withdraw_url: "/party/volunteer/withdraw/b" } });
+    renderApp(<JoinParty />);
+    const user = userEvent.setup();
+    await fillIn(user);
+    await user.click(screen.getByRole("checkbox", { name: PARTY.consent_wording }));
+    const send = screen.getByRole("button", { name: "Join the party" });
+    const offered = send.disabled;
+
+    await user.click(screen.getByRole("checkbox", { name: "I would like to volunteer for the party" }));
+    const offWithoutVolunteerDetails = send.disabled;
+    await user.click(screen.getByRole("checkbox", { name: "Events" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Preferred contact" }), "sms");
+    const offWithoutVolunteerConsent = send.disabled;
+    await user.click(screen.getByRole("checkbox", { name: PARTY.volunteer_consent_wording }));
+    await user.click(send);
+
+    expect(offered).toBe(false);
+    expect(offWithoutVolunteerDetails).toBe(true);
+    expect(offWithoutVolunteerConsent).toBe(true);
+    expect(calls.find((c) => c.method === "POST").body.volunteer).toEqual({ interests: ["events"], preferred_contact: "sms", consent_given: true });
+    expect(await screen.findByRole("link", { name: "Stop volunteer contact" })).toHaveAttribute("href", `${window.location.origin}/party/volunteer/withdraw/b`);
+  });
+
   it("thanks the applicant and shows the withdrawal link in full", async () => {
     const calls = stubApi(ROUTES);
     renderApp(<JoinParty />);
     const user = userEvent.setup();
 
     await fillIn(user);
-    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("checkbox", { name: PARTY.consent_wording }));
     await user.click(screen.getByRole("button", { name: "Join the party" }));
 
     expect(await screen.findByText(/pending review/)).toBeInTheDocument();

@@ -10,6 +10,7 @@ import Join from "./components/Join";
 import Withdraw from "./components/Withdraw";
 import JoinParty from "./pages/public/JoinParty";
 import WithdrawParty from "./pages/public/WithdrawParty";
+import WithdrawVolunteer from "./pages/public/WithdrawVolunteer";
 
 /** Drop every cached read when the signed-in user changes, so nobody sees the last user's data. */
 export function forgetOnSwitch(queryClient) {
@@ -58,6 +59,10 @@ function WithdrawPartyPage() {
   return <WithdrawParty code={useParams().code} />;
 }
 
+function WithdrawVolunteerPage() {
+  return <WithdrawVolunteer code={useParams().code} />;
+}
+
 // A sign-up link opens /join/<code>, and a supporter's withdrawal link /withdraw/<code>;
 // neither needs a login. The party's application form and withdrawal page are public too.
 export function AppRoutes() {
@@ -67,6 +72,7 @@ export function AppRoutes() {
       <Route path="/withdraw/:code" element={<WithdrawPage />} />
       <Route path="/join-party" element={<JoinParty />} />
       <Route path="/party/withdraw/:code" element={<WithdrawPartyPage />} />
+      <Route path="/party/volunteer/withdraw/:code" element={<WithdrawVolunteerPage />} />
       <Route path="/*" element={<Root />} />
     </Routes>
   );

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useJoinParty, useParty, usePartyPlaces } from "../../api/hooks";
 import { Button, ErrorState, FieldLabel, LoadingState } from "../../components/ui";
+import { CONTACT_METHODS, INTERESTS } from "../party/helpers";
 import { partyColours } from "./colours";
 
 function PlaceSelect({ label, value, onChange, places, disabled }) {
@@ -32,10 +33,17 @@ export default function JoinParty() {
   const [constituency, setConstituency] = useState("");
   const [ward, setWard] = useState("");
   const [consent, setConsent] = useState(false);
+  const [volunteer, setVolunteer] = useState(false);
+  const [interests, setInterests] = useState([]);
+  const [contact, setContact] = useState("");
+  const [volunteerConsent, setVolunteerConsent] = useState(false);
   const counties = usePartyPlaces();
   const constituencies = usePartyPlaces({ county, enabled: !!county });
   const wards = usePartyPlaces({ constituency, enabled: !!constituency });
-  const ok = name.trim() && phone.trim() && ward && consent;
+  const volunteerOk = !volunteer || (interests.length > 0 && contact && volunteerConsent);
+  const ok = name.trim() && phone.trim() && ward && consent && volunteerOk;
+  const toggleInterest = (value) =>
+    setInterests((now) => (now.includes(value) ? now.filter((x) => x !== value) : [...now, value]));
 
   const shell = (children) => (
     <div className="join-shell" style={partyColours(party.data)}>
@@ -56,6 +64,9 @@ export default function JoinParty() {
 
   if (join.isSuccess) {
     const link = `${window.location.origin}${join.data.withdraw_url}`;
+    const volunteerLink = join.data.volunteer_withdraw_url
+      ? `${window.location.origin}${join.data.volunteer_withdraw_url}`
+      : "";
     return shell(
       <>
         {heading}
@@ -69,6 +80,12 @@ export default function JoinParty() {
           application or membership, nothing changes and the link does nothing; contact the party
           instead.
         </div>
+        {volunteerLink && (
+          <div className="join-note">
+            This link stops volunteer contact and leaves your membership as it is:{" "}
+            <a href={volunteerLink} className="join-link">Stop volunteer contact</a>
+          </div>
+        )}
       </>,
     );
   }
@@ -100,6 +117,29 @@ export default function JoinParty() {
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
         {p.consent_wording}
       </label>
+      <label className="join-consent">
+        <input type="checkbox" checked={volunteer} onChange={(e) => setVolunteer(e.target.checked)} />
+        I would like to volunteer for the party
+      </label>
+      {volunteer && (
+        <>
+          {INTERESTS.map(([value, label]) => (
+            <label key={value} className="join-consent">
+              <input type="checkbox" checked={interests.includes(value)} onChange={() => toggleInterest(value)} />
+              {label}
+            </label>
+          ))}
+          <FieldLabel className="join-label join-label-phone">Preferred contact</FieldLabel>
+          <select aria-label="Preferred contact" className="join-field" value={contact} onChange={(e) => setContact(e.target.value)}>
+            <option value="">Pick a contact method</option>
+            {CONTACT_METHODS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <label className="join-consent">
+            <input type="checkbox" checked={volunteerConsent} onChange={(e) => setVolunteerConsent(e.target.checked)} />
+            {p.volunteer_consent_wording}
+          </label>
+        </>
+      )}
       {join.error && <ErrorState className="join-error" error={join.error} />}
       <Button
         type="button"
@@ -111,6 +151,9 @@ export default function JoinParty() {
             email: email.trim() || null,
             ward,
             consent_given: true,
+            ...(volunteer && {
+              volunteer: { interests, preferred_contact: contact, consent_given: true },
+            }),
           })
         }
         primary

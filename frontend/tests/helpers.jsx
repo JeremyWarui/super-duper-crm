@@ -406,3 +406,28 @@ export function memberRoutes(overrides = {}) {
     ...overrides,
   };
 }
+
+export const VOLUNTEER = {
+  id: "vp1",
+  member_id: "pm1",
+  full_name: "Achieng Otieno",
+  phone: "+254712345678",
+  ...PLACE,
+  status: "interested",
+  interests: ["events", "fundraising"],
+  preferred_contact: "sms",
+  availability_notes: null,
+  member_status: "approved",
+  created_at: "2026-10-01T08:00:00Z",
+};
+
+/** What the volunteers page reads, with the officer's activation answered. */
+export function volunteerRoutes(overrides = {}) {
+  return {
+    "GET /party/": PARTY,
+    "GET /party/places/": [PLACE.county],
+    "GET /party/volunteers/": { total: 1, items: [VOLUNTEER] },
+    "PATCH /party/volunteers/vp1/": { ...VOLUNTEER, status: "active" },
+    ...overrides,
+  };
+}

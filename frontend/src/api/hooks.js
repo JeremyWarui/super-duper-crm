@@ -524,6 +524,13 @@ export function useWithdrawParty(code) {
   });
 }
 
+export function useWithdrawVolunteer(code) {
+  return useMutation({
+    mutationFn: () =>
+      api(`/party/volunteer/withdraw/${encodeURIComponent(code)}/`, { method: "POST", anonymous: true }),
+  });
+}
+
 export function useSaveParty() {
   const qc = useQueryClient();
   return useMutation({
@@ -604,3 +611,23 @@ export function useMoveMember() {
 
 export const exportPartyMembers = (filters) =>
   download(`/party/members/export.csv?${memberQuery(filters)}`, "party-members.csv");
+
+// ---- party volunteer register ---------------------------------------------
+export const usePartyVolunteers = (filters) =>
+  useQuery({
+    queryKey: ["party-volunteers", filters],
+    queryFn: () => api(`/party/volunteers/?${memberQuery(filters)}`),
+    placeholderData: keepPreviousData,
+  });
+
+export function useUpdateVolunteer() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, ...body }) =>
+      api(`/party/volunteers/${id}/`, { method: "PATCH", body }),
+    onSuccess: () => invalidate("party-volunteers"),
+  });
+}
+
+export const exportPartyVolunteers = (filters) =>
+  download(`/party/volunteers/export.csv?${memberQuery(filters)}`, "party-volunteers.csv");

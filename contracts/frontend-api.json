@@ -250,7 +250,8 @@
       "manifesto_url",
       "social_links",
       "updated_at",
-      "consent_wording"
+      "consent_wording",
+      "volunteer_consent_wording"
     ],
     "PUT /api/admin/party/": [
       "name",
@@ -278,7 +279,8 @@
       "name"
     ],
     "POST /api/party/join/": [
-      "withdraw_url"
+      "withdraw_url",
+      "volunteer_withdraw_url"
     ],
     "POST /api/party/withdraw/{code}/": [
       "message"
@@ -314,6 +316,26 @@
     "POST /api/party/members/{member_id}/status/": [
       "id",
       "status"
+    ],
+    "POST /api/party/volunteer/withdraw/{code}/": [
+      "message"
+    ],
+    "GET /api/party/volunteers/": [
+      "total",
+      "items"
+    ],
+    "PATCH /api/party/volunteers/{volunteer_id}/": [
+      "id",
+      "full_name",
+      "phone",
+      "ward",
+      "constituency",
+      "county",
+      "status",
+      "interests",
+      "preferred_contact",
+      "availability_notes",
+      "member_status"
     ]
   },
   "nested_reads": {
@@ -411,6 +433,19 @@
       "constituency",
       "county",
       "created_at"
+    ],
+    "GET /api/party/volunteers/.items": [
+      "id",
+      "full_name",
+      "phone",
+      "ward",
+      "constituency",
+      "county",
+      "status",
+      "interests",
+      "preferred_contact",
+      "availability_notes",
+      "member_status"
     ]
   },
   "writes": {
@@ -584,12 +619,23 @@
       "phone",
       "email",
       "ward",
-      "consent_given"
+      "consent_given",
+      "volunteer"
     ],
     "POST /api/party/withdraw/{code}/": [],
     "POST /api/party/members/{member_id}/status/": [
       "status",
       "reason"
+    ],
+    "POST /api/party/join/.volunteer": [
+      "interests",
+      "preferred_contact",
+      "consent_given"
+    ],
+    "POST /api/party/volunteer/withdraw/{code}/": [],
+    "PATCH /api/party/volunteers/{volunteer_id}/": [
+      "status",
+      "availability_notes"
     ]
   },
   "enums": {
