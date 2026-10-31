@@ -3,3 +3,4 @@ some_env.txt
 DEPLOY.md
 KNOWN-GAPS.md
 __pycache__/
+.tokens_for_env.txt

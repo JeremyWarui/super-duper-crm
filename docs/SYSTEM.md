@@ -5,7 +5,7 @@ Use it to plan features, refine the architecture, or bring someone new up to
 speed. How to run the code lives in the READMEs; this document says what the
 code is for.
 
-Last checked against the code: 30 October 2026, commit `886b0d0` plus Release 0 tickets R0-1, R0-2, R0-7, R0-11.
+Last checked against the code: 31 October 2026, after Release 0 and Release 1 (party register).
 
 ---
 
@@ -52,6 +52,54 @@ the team to ease off a unit that has met its target after 4 or more events.
 The read is computed fresh on every request (`backend/src/backend/services/strategy.py`)
 and nothing about it is stored, so the screen can never disagree with the rows
 underneath it.
+
+### The party platform
+
+The same deployment also serves **one political party** (there is no party id;
+one deployment, one party). Party access and campaign access never mix: a
+campaign login has a campaign role (`users.role`) and is on one campaign; a
+party staff login has `role = NULL`, holds party offices (`party_roles`), and is
+never on a campaign, which the database enforces. The superuser is the party's
+super admin.
+
+- **Party settings:** one row (`party_settings`) holding the party's name,
+  branding, contacts and manifesto. Anyone reads it at `GET /api/party/`; the
+  superuser edits it in the console.
+- **Party offices:** membership, nominations and finance officer. The superuser
+  grants and revokes them on staff logins in the console; only membership
+  officer is used so far.
+- **Member register:** `party_members`, one row per phone, tied to a ward
+  (county and constituency come from the ward). People apply at `/join-party`
+  with a county, constituency and ward picker and the consent box, whose
+  wording the server serves and records. A membership officer reviews them at
+  `/party/members`: search, filter by status and place, approve, reject,
+  suspend, reinstate, withdraw, and export CSV.
+- **Volunteers:** an optional volunteer profile per member
+  (`volunteer_profiles`), made from the form's volunteer section (interests,
+  preferred contact, and its own consent box). Officers see them at
+  `/party/volunteers`, filter by place, interest and status, edit availability
+  notes, and make an approved member's profile active or inactive. The profile
+  follows the member: withdrawn or rejected withdraws it, suspended makes it
+  inactive. Its own link (`/party/volunteer/withdraw/<code>`) stops volunteer
+  contact and leaves the membership as it is. Volunteers have no login.
+- **Status moves** are one table in `services/membership.py`; any other move is
+  refused, and a move only lands if the row still has the status it was checked
+  against. Every officer move and every export is in the audit trail, with ids,
+  statuses, filters and counts only.
+- **Withdrawing:** the applicant's link (`/party/withdraw/<code>`) withdraws
+  them once and answers the same for any code. A withdrawn member's row is
+  kept with status `withdrawn`; erasing it on request is planned as a separate
+  superuser action.
+- **Privacy of the form:** the public join and withdraw routes only queue a
+  request (`party_requests`), one insert each whatever the register holds, so
+  neither the answer nor its timing shows who is registered. The app applies
+  the queue oldest first, every minute and before every officer request, and
+  each request runs the same statements whatever the register holds, so the
+  server's latency does not show it either; a withdrawal lands within minutes. Public re-applications and withdrawals are audited as
+  `public`. Nobody proves they hold the number yet, so anyone can re-apply for
+  a rejected or withdrawn number until SMS verification exists.
+
+The design and its decisions are in `docs/Identity_Access_Design.md`.
 
 ---
 
@@ -307,6 +355,10 @@ Paths are under `backend/src/backend/`.
 | Share and open the campaign's sign-up link | no | yes | no |
 | Schedule and release payments | no | yes | no |
 
+Party offices sit outside this table: a membership officer reads and changes
+the party register only, and sees no campaign; a campaign login gets 403 on
+every party register route.
+
 A mobilizer's reach is their **ward**, in every race. In an MCA race the whole
 campaign is one ward, so a mobilizer placed on one centre still reads and writes
 everything in the campaign's ward; the centre decides which target their work
@@ -331,6 +383,13 @@ counts toward, not what they can see.
 | Supporter register, placing supporters at centres | Built | |
 | Strategy read and notes | Built | |
 | Payments to mobilizers | Built, practice mode | References read `PRACTICE`; no money moves |
+| Party settings, edited in the console | Built | `GET /api/party/`, `PUT /api/admin/party/` |
+| Party offices granted to staff logins | Built | Membership officer in use; nominations and finance reserved |
+| Public Join the Party page and withdrawal link | Built | `frontend/src/pages/public/` |
+| Party member register for membership officers | Built | `frontend/src/pages/party/Members.jsx`, CSV export |
+| Volunteer register: form section, own withdraw link, officer page | Built | `frontend/src/pages/party/Volunteers.jsx`, CSV export |
+| Audit trail of sensitive actions | Built | Read at `GET /api/admin/audit/`; no console screen yet |
+| Erasing a withdrawn member on request | Planned | Decision 3 in the design |
 | Subscription, read-only and locked states | Planned | On hold |
 | Email password reset | Planned | |
 | Ward managers | Planned | |
@@ -413,6 +472,12 @@ erDiagram
   EVENT |o--o{ SUPPORTER : "signed up at"
   EVENT |o--o{ PAYMENT : "paid for"
   MOBILIZER |o--o{ PAYMENT : receives
+  USER ||--o{ PARTY_ROLE : "holds (staff logins)"
+  WARD ||--o{ PARTY_MEMBER : "lives in"
+  PARTY_MEMBER ||--o| VOLUNTEER_PROFILE : "may have"
+  PARTY_REQUEST
+  AUDIT_EVENT }o--o| USER : actor
+  PARTY_SETTINGS
 ```
 
 - **Reference data** (counties, constituencies, wards, registration centres) is
@@ -430,12 +495,12 @@ erDiagram
 
 ### The API
 
-60 operations across 47 paths, grouped by purpose. The live list is at `/docs`
+72 operations across 59 paths, grouped by purpose. The live list is at `/docs`
 on a server started with `DEBUG=true`; it is off otherwise.
 
 | Group | Routes | Who |
 |---|---|---|
-| Auth | `/api/auth/login/`, `/logout/` | anyone signs in; signing out needs a login |
+| Auth | `/api/auth/login/`, `/logout/`, `/me/` | anyone signs in; the rest need a login |
 | Reference data | `/api/counties/`, `/constituencies/`, `/wards/`, `/centres/` | any signed-in login |
 | Campaign | `/api/campaigns/`, `/targets/`, `/strategy/` | the campaign |
 | Campaign sign-up link | `/api/campaigns/{id}/signups/` | manager |
@@ -443,7 +508,9 @@ on a server started with `DEBUG=true`; it is off otherwise.
 | Team | `/api/campaigns/{id}/team/` | aspirant and manager |
 | Payments | `/api/payments/` | the manager writes; the aspirant reads all; a mobilizer reads their own |
 | Public sign-up and withdrawal | `/api/join/{code}/`, `/api/join/withdraw/{code}/` | anyone with an event's, a campaign's or a withdrawal code |
-| Console, including the audit trail (`/api/admin/audit/`) | `/api/admin/` | superuser only |
+| Party, public | `/api/party/`, `/api/party/places/`, `/api/party/join/`, `/api/party/withdraw/{code}/`, `/api/party/volunteer/withdraw/{code}/` | anyone; join and withdraws are rate limited |
+| Party register | `/api/party/members/` (list, detail, status, `export.csv`), `/api/party/volunteers/` (list, update, `export.csv`) | membership officer and superuser |
+| Console, including party settings, party offices and the audit trail | `/api/admin/` | superuser only |
 | Health | `/health` | Fly's checks |
 
 ### Outside services
@@ -464,14 +531,14 @@ in full without either:
 
 | Check | What it proves | Runs |
 |---|---|---|
-| Backend tests (180) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
-| Backend evals (93: 86 run, 7 live checks skipped) | The API still offers what the frontend's contract lists | `cd backend && uv run pytest evals` |
-| Frontend tests (86) | Each screen per role, the forms, the contract from the frontend side | `cd frontend && npm test` |
+| Backend tests (228) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
+| Backend evals (238: 215 run, 7 live checks and 16 impossible member/volunteer pairs skipped) | The API still offers what the frontend's contract lists | `cd backend && uv run pytest evals` |
+| Frontend tests (97) | Each screen per role, the forms, the contract from the frontend side | `cd frontend && npm test` |
 | Migration tests | The migrations build the models' schema and render correctly for Postgres | part of the backend tests |
 | Live database check | TLS, the latest migration and the seeded geography on a real database | `LIVE_DATABASE=1`, by hand; 7 checks skipped otherwise |
 | Secret scan | No password, key or token reaches the repository | a pre-commit hook (`git config core.hooksPath .githooks`), and again on every push in GitHub Actions (`.github/workflows/secret-scan.yml`) |
 
-`cd backend && uv run pytest` runs the tests and the evals together (293).
+`cd backend && uv run pytest` runs the tests and the evals together (466: 443 run, 23 skipped).
 
 ---
 

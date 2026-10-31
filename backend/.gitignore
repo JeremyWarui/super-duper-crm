@@ -8,3 +8,4 @@ __pycache__/
 .ruff_cache/
 *.sqlite3
 some_env.txt
+.tokens_for_env.txt
