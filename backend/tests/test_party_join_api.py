@@ -49,3 +49,15 @@ async def test_a_repeat_phone_answers_like_a_new_one_and_leaves_the_member_alone
         PartyMemberStatus.APPROVED,
         code,
     )
+
+
+async def test_the_place_picker_walks_county_constituency_ward_without_a_login(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    counties = (await client.get("/api/party/places/")).json()
+    constituencies = (await client.get(f"/api/party/places/?county={world.county.id}")).json()
+    wards = (await client.get(f"/api/party/places/?constituency={world.constituency.id}")).json()
+
+    assert str(world.county.id) in [c["id"] for c in counties]
+    assert [c["name"] for c in constituencies] == ["Roysambu"]
+    assert [w["name"] for w in wards] == ["Githurai", "Zimmerman"]

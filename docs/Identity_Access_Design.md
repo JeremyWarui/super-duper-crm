@@ -314,6 +314,7 @@ Every officer move writes an audit event with old and new status.
 | Route | Anyone | Campaign user | Membership officer | Superuser |
 |---|---|---|---|---|
 | `GET /api/party/` (public settings) | yes | yes | yes | yes |
+| `GET /api/party/places/` (counties, constituencies, wards for the form) | yes | yes | yes | yes |
 | `POST /api/party/join/` | yes, rate limited | yes | yes | yes |
 | `POST /api/party/withdraw/{code}/` | yes, same answer always | | | |
 | `GET /api/party/members/` (search, filter, page) | 401 | 403 | yes | yes |

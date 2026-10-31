@@ -13,6 +13,7 @@ PUBLIC_ROUTES = {
     ("POST", "/api/join/{code}/"),
     ("POST", "/api/join/withdraw/{code}/"),
     ("GET", "/api/party/"),
+    ("GET", "/api/party/places/"),
     ("POST", "/api/party/join/"),
     ("POST", "/api/party/withdraw/{code}/"),
     ("GET", "/health"),

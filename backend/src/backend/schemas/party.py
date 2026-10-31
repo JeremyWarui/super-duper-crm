@@ -95,3 +95,10 @@ class PartyJoinDone(BaseModel):
 
 class PartyWithdrawn(BaseModel):
     message: str
+
+
+class PartyPlace(ORMModel):
+    """A county, constituency or ward on the public application's place picker."""
+
+    id: uuid.UUID
+    name: str

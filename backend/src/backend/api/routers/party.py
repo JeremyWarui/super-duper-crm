@@ -1,6 +1,7 @@
 """The party's public identity, and joining or withdrawing from the register without a login."""
 
 import secrets
+import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -9,8 +10,21 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.api.deps import SessionDep
 from backend.api.routers.join import _client
-from backend.models import PartyConsentChannel, PartyMember, PartyMemberStatus, Ward
-from backend.schemas.party import PartyJoinCreate, PartyJoinDone, PartySettingsRead, PartyWithdrawn
+from backend.models import (
+    Constituency,
+    County,
+    PartyConsentChannel,
+    PartyMember,
+    PartyMemberStatus,
+    Ward,
+)
+from backend.schemas.party import (
+    PartyJoinCreate,
+    PartyJoinDone,
+    PartyPlace,
+    PartySettingsRead,
+    PartyWithdrawn,
+)
 from backend.services import membership
 from backend.services import party as service
 from backend.services.consent import PARTY_WORDING
@@ -31,6 +45,22 @@ S = PartyMemberStatus
 @router.get("/", response_model=PartySettingsRead)
 async def get_party(session: SessionDep) -> PartySettingsRead:
     return await service.read_settings(session)
+
+
+@router.get("/places/", response_model=list[PartyPlace])
+async def places(
+    session: SessionDep, county: uuid.UUID | None = None, constituency: uuid.UUID | None = None
+) -> list[PartyPlace]:
+    """Counties; a county's constituencies; or a constituency's wards, by name."""
+    if constituency is not None:
+        statement = select(Ward).where(Ward.constituency_id == constituency).order_by(Ward.name)
+    elif county is not None:
+        statement = (
+            select(Constituency).where(Constituency.county_id == county).order_by(Constituency.name)
+        )
+    else:
+        statement = select(County).order_by(County.name)
+    return list(await session.scalars(statement))
 
 
 def _done(code: str) -> PartyJoinDone:
