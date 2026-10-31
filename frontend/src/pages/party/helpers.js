@@ -24,7 +24,7 @@ export const STATUS_TONE = {
 
 // The moves an officer offers for each status: [new status, button label].
 export const MOVES = {
-  pending: [["approved", "Approve"], ["rejected", "Reject"]],
+  pending: [["approved", "Approve"], ["rejected", "Reject"], ["withdrawn", "Withdraw"]],
   approved: [["suspended", "Suspend"], ["withdrawn", "Withdraw"]],
   suspended: [["approved", "Reinstate"], ["withdrawn", "Withdraw"]],
   rejected: [],

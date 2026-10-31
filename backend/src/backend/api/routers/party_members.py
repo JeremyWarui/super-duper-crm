@@ -73,7 +73,7 @@ async def list_members(
     session: SessionDep,
     filters: FiltersDep,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
+    offset: Annotated[int, Query(ge=0, le=1_000_000)] = 0,
 ) -> MemberPage:
     """A page of the register, newest first."""
     total, rows = await membership.members(session, filters, limit, offset)

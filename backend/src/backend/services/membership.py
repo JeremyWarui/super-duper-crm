@@ -52,6 +52,26 @@ async def _set_status(
         set_committed_value(member, name, value)
 
 
+async def reapply(session: AsyncSession, member: PartyMember, **values) -> bool:
+    """Put a rejected or withdrawn member back to pending; False if an officer moved them first."""
+    changed = await session.execute(
+        update(PartyMember)
+        .where(
+            PartyMember.id == member.id,
+            PartyMember.status.in_((S.REJECTED, S.WITHDRAWN)),
+        )
+        .values(
+            status=S.PENDING,
+            status_reason=None,
+            decided_at=None,
+            decided_by_id=None,
+            **values,
+        )
+        .execution_options(synchronize_session=False)
+    )
+    return changed.rowcount == 1
+
+
 async def move(
     session: AsyncSession,
     member: PartyMember,

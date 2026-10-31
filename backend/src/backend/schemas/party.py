@@ -89,6 +89,14 @@ class PartyJoinCreate(WriteModel):
     ward: uuid.UUID
     consent_given: StrictBool
 
+    @field_validator("full_name", "phone", "email")
+    @classmethod
+    def _printable(cls, value: str | None) -> str | None:
+        """Refuse control characters; Postgres text cannot hold NUL."""
+        if value is not None and any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+            raise ValueError("Use letters, numbers and punctuation only.")
+        return value
+
     @field_validator("consent_given")
     @classmethod
     def _consent_is_required(cls, value: bool) -> bool:

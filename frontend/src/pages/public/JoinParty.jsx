@@ -60,11 +60,12 @@ export default function JoinParty() {
       <>
         {heading}
         <div className="join-message-success">
-          Thank you. Your application is pending review by the party.
+          Thank you. A new application is now pending review by the party.
         </div>
         <div className="join-note">
-          Changed your mind later? Keep this link. Opening it lets you take your details off the
-          register: <a href={link} className="join-link">{link}</a>
+          Keep this link: opening it withdraws this application, and the party keeps your details
+          with that status. <a href={link} className="join-link">{link}</a> If your number was
+          already on the register, this link changes nothing; contact the party instead.
         </div>
       </>,
     );

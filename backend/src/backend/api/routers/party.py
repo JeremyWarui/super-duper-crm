@@ -40,9 +40,9 @@ WITHDRAWALS = RateLimit(limit=20, window=3600)
 WITHDRAW_PATH = "/party/withdraw/"
 # The same answer for every code, so a code cannot be tested for whether it was real.
 WITHDRAWN = (
-    "Done. If you applied or were a member, you are withdrawn and the party will not contact "
-    "you about membership. It keeps a record that you withdrew; to have your details erased, "
-    "contact the party."
+    "Done. If this link came with your application, that application or membership is now "
+    "withdrawn; the party keeps your details with that status. If your number was already on "
+    "the register when you applied, this link changes nothing: ask the party to withdraw you."
 )
 S = PartyMemberStatus
 
@@ -93,6 +93,7 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
     code = membership.new_withdraw_code()
     wording = PARTY_WORDING[PartyConsentChannel.WEB_FORM]
     member = await session.scalar(select(PartyMember).where(PartyMember.phone == phone))
+    written = False
     if member is None:
         session.add(
             PartyMember(
@@ -107,20 +108,20 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
                 withdraw_code=code,
             )
         )
+        written = True
     elif member.status in (S.REJECTED, S.WITHDRAWN):
-        membership.check_move(member.status, S.PENDING)
-        member.status = S.PENDING
-        member.full_name = payload.full_name
-        member.email = payload.email or None
-        member.ward_id = payload.ward
-        member.consent_channel = PartyConsentChannel.WEB_FORM
-        member.consent_wording = wording
-        member.consent_at = datetime.now(UTC)
-        member.status_reason = None
-        member.decided_at = None
-        member.decided_by_id = None
-        member.withdraw_code = code
-    else:
+        written = await membership.reapply(
+            session,
+            member,
+            full_name=payload.full_name,
+            email=payload.email or None,
+            ward_id=payload.ward,
+            consent_channel=PartyConsentChannel.WEB_FORM,
+            consent_wording=wording,
+            consent_at=datetime.now(UTC),
+            withdraw_code=code,
+        )
+    if not written:
         # The same write and commit as a new application, so the timing does not tell them apart.
         await session.execute(
             update(PartyMember).where(PartyMember.id == member.id).values(phone=member.phone)

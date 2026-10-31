@@ -23,6 +23,9 @@ export function forgetOnSwitch(queryClient) {
 function SignedIn() {
   const campaigns = useCampaigns();
   const partyRoles = useAuth((s) => s.user?.party_roles);
+  const staff = useAuth((s) => s.user?.role === null);
+  // A staff login is never on a campaign, so it needs no campaign list to be routed.
+  if (staff && partyRoles?.length) return <Portal />;
   if (campaigns.isSuccess && campaigns.data.length === 0) {
     return partyRoles?.length ? <Portal /> : <NoCampaign />;
   }
