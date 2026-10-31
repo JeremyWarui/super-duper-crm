@@ -5,9 +5,10 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager
+from sqlalchemy.orm.attributes import set_committed_value
 
 from backend.models import Constituency, PartyMember, PartyMemberStatus, User, Ward
 from backend.services.audit import record
@@ -35,6 +36,22 @@ def check_move(frm: PartyMemberStatus, to: PartyMemberStatus) -> None:
         raise Refused(f"A {frm.label.lower()} member cannot be moved to {to.label.lower()}.")
 
 
+async def _set_status(
+    session: AsyncSession, member: PartyMember, old: PartyMemberStatus, **values
+) -> None:
+    """Write the move only if the row still has the status it was checked against."""
+    changed = await session.execute(
+        update(PartyMember)
+        .where(PartyMember.id == member.id, PartyMember.status == old)
+        .values(**values)
+        .execution_options(synchronize_session=False)
+    )
+    if changed.rowcount != 1:
+        raise Refused("This member's status changed meanwhile; reload and try again.")
+    for name, value in values.items():
+        set_committed_value(member, name, value)
+
+
 async def move(
     session: AsyncSession,
     member: PartyMember,
@@ -48,10 +65,15 @@ async def move(
     if to is S.PENDING:
         raise Refused("Only the person re-applying puts a member back to pending.")
     check_move(old, to)
-    member.status = to
-    member.status_reason = reason
-    member.decided_at = datetime.now(UTC)
-    member.decided_by_id = actor.id
+    await _set_status(
+        session,
+        member,
+        old,
+        status=to,
+        status_reason=reason,
+        decided_at=datetime.now(UTC),
+        decided_by_id=actor.id,
+    )
     record(
         session,
         actor=actor,
@@ -62,14 +84,20 @@ async def move(
     )
 
 
-def withdraw(member: PartyMember) -> None:
+async def withdraw(session: AsyncSession, member: PartyMember) -> None:
     """The member's own withdrawal through their link; the link works once. The caller commits."""
-    check_move(member.status, S.WITHDRAWN)
-    member.status = S.WITHDRAWN
-    member.status_reason = None
-    member.decided_at = datetime.now(UTC)
-    member.decided_by_id = None
-    member.withdraw_code = None
+    old = member.status
+    check_move(old, S.WITHDRAWN)
+    await _set_status(
+        session,
+        member,
+        old,
+        status=S.WITHDRAWN,
+        status_reason=None,
+        decided_at=datetime.now(UTC),
+        decided_by_id=None,
+        withdraw_code=None,
+    )
 
 
 @dataclass(frozen=True)
@@ -111,10 +139,14 @@ def _query(filters: MemberFilters) -> Select:
     )
     if filters.q and filters.q.strip():
         pattern = _like(filters.q.strip())
-        statement = statement.where(
-            func.lower(PartyMember.full_name).like(pattern, escape="\\")
-            | PartyMember.phone.like(pattern, escape="\\")
+        matches = func.lower(PartyMember.full_name).like(pattern, escape="\\") | (
+            PartyMember.phone.like(pattern, escape="\\")
         )
+        local = filters.q.replace(" ", "")
+        if local.startswith("0") and local[1:].isdigit():
+            # Phones are stored as +254...; a number typed as 07... finds them too.
+            matches |= PartyMember.phone.like(_like("+254" + local[1:]), escape="\\")
+        statement = statement.where(matches)
     if filters.status is not None:
         statement = statement.where(PartyMember.status == filters.status)
     if filters.county is not None:

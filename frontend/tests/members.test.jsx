@@ -3,7 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Root from "../src/Gate";
-import { memberRoutes, renderApp, signIn, signInAsParty, stubApi } from "./helpers";
+import { memberRoutes, renderApp, signInAsParty, stubApi } from "./helpers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -30,8 +30,8 @@ describe("the members page", () => {
     await waitFor(() => expect(lists()).toBeGreaterThan(before));
   });
 
-  it("never shows the register to a login with no party role and no campaign", async () => {
-    signIn("manager");
+  it("never shows the register to a staff login with no party office", async () => {
+    signInAsParty([]);
     const calls = stubApi(memberRoutes({ "GET /campaigns/": [] }));
     renderApp(<Root />, { path: "/party/members" });
 

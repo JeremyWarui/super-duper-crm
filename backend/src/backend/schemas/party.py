@@ -5,7 +5,14 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, Field, StringConstraints, field_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    Field,
+    StrictBool,
+    StringConstraints,
+    field_validator,
+)
 
 from backend.models import PartyConsentChannel, PartyMemberStatus
 from backend.schemas.common import ORMModel, WriteModel
@@ -80,7 +87,7 @@ class PartyJoinCreate(WriteModel):
     phone: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
     email: Annotated[Email, StringConstraints(strip_whitespace=True)] | None = None
     ward: uuid.UUID
-    consent_given: bool
+    consent_given: StrictBool
 
     @field_validator("consent_given")
     @classmethod

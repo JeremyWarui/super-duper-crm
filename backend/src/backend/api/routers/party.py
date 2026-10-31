@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
 from backend.api.deps import SessionDep
@@ -28,6 +28,7 @@ from backend.schemas.party import (
 from backend.services import membership
 from backend.services import party as service
 from backend.services.consent import PARTY_WORDING
+from backend.services.errors import Refused
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import normalise_phone
 
@@ -38,7 +39,11 @@ JOINS = RateLimit(limit=20, window=3600)
 WITHDRAWALS = RateLimit(limit=20, window=3600)
 WITHDRAW_PATH = "/party/withdraw/"
 # The same answer for every code, so a code cannot be tested for whether it was real.
-WITHDRAWN = "Done. If you were on the party register, you are off it now."
+WITHDRAWN = (
+    "Done. If you applied or were a member, you are withdrawn and the party will not contact "
+    "you about membership. It keeps a record that you withdrew; to have your details erased, "
+    "contact the party."
+)
 S = PartyMemberStatus
 
 
@@ -116,6 +121,11 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
         member.decided_by_id = None
         member.withdraw_code = code
     else:
+        # The same write and commit as a new application, so the timing does not tell them apart.
+        await session.execute(
+            update(PartyMember).where(PartyMember.id == member.id).values(phone=member.phone)
+        )
+        await session.commit()
         return _done(secrets.token_urlsafe(18))
     try:
         await session.commit()
@@ -131,6 +141,12 @@ async def withdraw(code: str, request: Request, session: SessionDep) -> PartyWit
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
     member = await session.scalar(select(PartyMember).where(PartyMember.withdraw_code == code))
     if member is not None and member.status in (S.PENDING, S.APPROVED, S.SUSPENDED):
-        membership.withdraw(member)
-        await session.commit()
+        try:
+            await membership.withdraw(session, member)
+        except Refused:
+            await (
+                session.rollback()
+            )  # an officer moved them a moment ago; the answer stays the same
+        else:
+            await session.commit()
     return PartyWithdrawn(message=WITHDRAWN)

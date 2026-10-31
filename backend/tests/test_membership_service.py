@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,3 +43,22 @@ async def test_the_database_refuses_a_second_member_with_the_same_phone(
     session.add(make_member(world, full_name="Someone Else"))
     with pytest.raises(IntegrityError):
         await session.commit()
+
+
+async def test_a_move_on_a_stale_read_is_refused_and_leaves_the_other_move_standing(
+    session: AsyncSession, world: World
+):
+    member = make_member(world)
+    session.add(member)
+    await session.commit()
+    await session.execute(
+        update(PartyMember)
+        .where(PartyMember.id == member.id)
+        .values(status=PartyMemberStatus.APPROVED)
+        .execution_options(synchronize_session=False)
+    )
+
+    with pytest.raises(Refused, match="changed meanwhile"):
+        await membership.move(session, member, PartyMemberStatus.REJECTED, actor=world.candidate)
+    stored = await session.scalar(select(PartyMember.status).where(PartyMember.id == member.id))
+    assert stored is PartyMemberStatus.APPROVED
