@@ -21,10 +21,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
 from backend.models.enums import (
+    ContactMethod,
     PartyConsentChannel,
     PartyMemberStatus,
     PartyRequestKind,
     PartyRoleName,
+    VolunteerStatus,
 )
 
 if TYPE_CHECKING:
@@ -120,6 +122,9 @@ class PartyMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
 
     ward: Mapped["Ward"] = relationship()
+    volunteer: Mapped["VolunteerProfile | None"] = relationship(
+        back_populates="member", uselist=False, passive_deletes=True
+    )
 
     def __str__(self) -> str:
         return self.full_name
@@ -137,3 +142,40 @@ class PartyRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # A join's new withdraw code, or the code a withdrawal presents.
     code: Mapped[str] = mapped_column(String(32))
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class VolunteerProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A party member's offer to volunteer; the volunteer has no login."""
+
+    __tablename__ = "volunteer_profiles"
+    __table_args__ = (
+        UniqueConstraint("member_id", name="uq_volunteer_profiles_member_id"),
+        CheckConstraint("consent_wording <> ''", name="consent_wording_not_empty"),
+    )
+
+    member_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("party_members.id", ondelete="CASCADE")
+    )
+    status: Mapped[VolunteerStatus] = mapped_column(
+        choice_type(VolunteerStatus, "volunteer_status"),
+        default=VolunteerStatus.INTERESTED,
+    )
+    # A list of VolunteerInterest values.
+    interests: Mapped[list[str]] = mapped_column(JSON, default=list)
+    availability_notes: Mapped[str | None] = mapped_column(Text, default=None)
+    preferred_contact: Mapped[ContactMethod] = mapped_column(
+        choice_type(ContactMethod, "contact_method")
+    )
+    consent_wording: Mapped[str] = mapped_column(Text)
+    consent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+        sort_order=101,
+    )
+
+    member: Mapped[PartyMember] = relationship(back_populates="volunteer")

@@ -21,6 +21,7 @@ from backend.models import (
     User,
     Ward,
 )
+from backend.services import volunteers
 from backend.services.audit import record
 from backend.services.consent import PARTY_WORDING
 from backend.services.errors import NotFound, Refused
@@ -122,6 +123,7 @@ async def move(
         subject_id=member.id,
         detail={"from": old.value, "to": to.value},
     )
+    await volunteers.follow_member(session, member, to)
 
 
 async def withdraw(session: AsyncSession, member: PartyMember) -> None:
@@ -147,6 +149,7 @@ async def withdraw(session: AsyncSession, member: PartyMember) -> None:
         subject_id=member.id,
         detail={"from": old.value, "to": S.WITHDRAWN.value},
     )
+    await volunteers.follow_member(session, member, S.WITHDRAWN)
 
 
 def request_join(
@@ -180,6 +183,11 @@ def request_withdraw(session: AsyncSession, code: str) -> None:
     session.add(PartyRequest(kind=PartyRequestKind.WITHDRAW, code=code, payload={}))
 
 
+def request_volunteer_withdraw(session: AsyncSession, code: str) -> None:
+    """Queue a public volunteer withdrawal by code; the caller commits."""
+    session.add(PartyRequest(kind=PartyRequestKind.VOLUNTEER_WITHDRAW, code=code, payload={}))
+
+
 async def _fresh(session: AsyncSession, where) -> PartyMember | None:
     """The member matching `where`, read from the database rather than the session."""
     return await session.scalar(
@@ -201,13 +209,18 @@ async def _apply_join(session: AsyncSession, request: PartyRequest) -> None:
     for _ in range(2):
         member = await _fresh(session, PartyMember.phone == p["phone"])
         if member is None:
-            session.add(PartyMember(phone=p["phone"], status=S.PENDING, **values))
+            member = PartyMember(phone=p["phone"], status=S.PENDING, **values)
+            session.add(member)
             await session.flush()
-            return
+            break
         if member.status not in (S.REJECTED, S.WITHDRAWN):
-            return  # already an application or membership; the code withdraws nothing
+            break  # already an application or membership; the code withdraws nothing
         if await reapply(session, member, member.status, **values):
-            return
+            break
+    else:
+        return
+    if "volunteer" in p:
+        await volunteers.apply_volunteer(session, member, p["volunteer"], request.code)
 
 
 async def _apply_withdraw(session: AsyncSession, code: str) -> None:
@@ -238,8 +251,10 @@ async def process_requests(session: AsyncSession, *, limit: int = 500) -> int:
             async with session.begin_nested():
                 if request.kind is PartyRequestKind.JOIN:
                     await _apply_join(session, request)
-                else:
+                elif request.kind is PartyRequestKind.WITHDRAW:
                     await _apply_withdraw(session, request.code)
+                else:
+                    await volunteers.withdraw_by_code(session, request.code)
         except (IntegrityError, Refused):
             pass  # the same phone was added by a concurrent processor, or an officer moved it
         applied += 1

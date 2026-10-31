@@ -109,3 +109,28 @@ class PartyRequestKind(StrEnum):
 
     JOIN = "join"
     WITHDRAW = "withdraw"
+    VOLUNTEER_WITHDRAW = "volunteer_withdraw"
+
+
+class VolunteerStatus(LabelledStrEnum):
+    INTERESTED = ("interested", "Interested")
+    ACTIVE = ("active", "Active")
+    INACTIVE = ("inactive", "Inactive")
+    WITHDRAWN = ("withdrawn", "Withdrawn")
+
+
+class VolunteerInterest(LabelledStrEnum):
+    MOBILISATION = ("mobilisation", "Mobilisation")
+    EVENTS = ("events", "Events")
+    COMMUNICATIONS = ("communications", "Communications")
+    SOCIAL_MEDIA = ("social_media", "Social media")
+    FUNDRAISING = ("fundraising", "Fundraising")
+    ADMINISTRATION = ("administration", "Administration")
+    POLLING_DAY = ("polling_day", "Polling day")
+
+
+class ContactMethod(LabelledStrEnum):
+    CALL = ("call", "Call")
+    SMS = ("sms", "SMS")
+    WHATSAPP = ("whatsapp", "WhatsApp")
+    EMAIL = ("email", "Email")

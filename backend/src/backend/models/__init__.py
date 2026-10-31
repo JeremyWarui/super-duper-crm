@@ -6,6 +6,7 @@ from backend.models.auth_token import AuthToken
 from backend.models.campaign import Campaign
 from backend.models.enums import (
     ConsentChannel,
+    ContactMethod,
     EventStatus,
     LabelledStrEnum,
     OfficeLevel,
@@ -18,6 +19,8 @@ from backend.models.enums import (
     Seat,
     SupportLevel,
     UserRole,
+    VolunteerInterest,
+    VolunteerStatus,
 )
 from backend.models.event import Event
 from backend.models.geography import (
@@ -28,7 +31,13 @@ from backend.models.geography import (
 )
 from backend.models.membership import CampaignMember
 from backend.models.mobilizer import Mobilizer
-from backend.models.party import PartyMember, PartyRequest, PartyRole, PartySettings
+from backend.models.party import (
+    PartyMember,
+    PartyRequest,
+    PartyRole,
+    PartySettings,
+    VolunteerProfile,
+)
 from backend.models.payment import Payment
 from backend.models.supporter import Supporter
 from backend.models.target import Target, compute_win_number, unit_key
@@ -48,6 +57,7 @@ __all__ = [
     "Mobilizer",
     "OfficeLevel",
     "ConsentChannel",
+    "ContactMethod",
     "OperationalGrain",
     "PartyConsentChannel",
     "PartyMember",
@@ -65,6 +75,9 @@ __all__ = [
     "Supporter",
     "Target",
     "User",
+    "VolunteerInterest",
+    "VolunteerProfile",
+    "VolunteerStatus",
     "UserRole",
     "Ward",
     "compute_win_number",
