@@ -1,8 +1,9 @@
 """The audit trail: events are added inside the caller's transaction and never changed."""
 
 import uuid
+from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import Boolean, insert, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import AuditEvent, User
@@ -31,6 +32,38 @@ def record(
     )
     session.add(event)
     return event
+
+
+async def record_if(
+    session: AsyncSession,
+    write: bool,
+    *,
+    actor_name: str,
+    action: str,
+    subject_type: str,
+    subject_id: uuid.UUID | None,
+    detail: dict,
+) -> None:
+    """Add an event without a login only when `write` holds.
+
+    Runs the same single statement either way, so the work does not show whether it wrote.
+    """
+    columns = AuditEvent.__table__.c
+    values = {
+        "id": uuid.uuid4(),
+        "created_at": datetime.now(UTC),
+        "actor_id": None,
+        "actor_name": actor_name,
+        "action": action,
+        "subject_type": subject_type,
+        "subject_id": subject_id,
+        "campaign_id": None,
+        "detail": detail,
+    }
+    row = select(*(literal(v, columns[k].type).label(k) for k, v in values.items())).where(
+        literal(write, Boolean)
+    )
+    await session.execute(insert(AuditEvent).from_select(list(values), row))
 
 
 async def events(

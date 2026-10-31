@@ -61,10 +61,12 @@ async def test_an_officer_cannot_activate_a_volunteer_until_the_member_is_approv
 async def test_withdrawing_the_member_withdraws_the_profile(session: AsyncSession, world: World):
     member, profile = await make_volunteer(session, world)
     profile.withdraw_code = "volunteer-code"
+    member.withdraw_code = "member-code"
     await session.commit()
 
-    await membership.withdraw(session, member)
+    membership.request_withdraw(session, "member-code")
     await session.commit()
+    await membership.process_requests(session)
 
     await session.refresh(profile)
     assert profile.status is VolunteerStatus.WITHDRAWN

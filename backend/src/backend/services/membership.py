@@ -7,11 +7,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import Select, delete, func, select, update
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm.attributes import set_committed_value
 
+from backend.db.session import upsert
 from backend.models import (
     Constituency,
     ContactMethod,
@@ -20,12 +20,13 @@ from backend.models import (
     PartyMemberStatus,
     PartyRequest,
     PartyRequestKind,
+    PartySettings,
     User,
     VolunteerInterest,
     Ward,
 )
 from backend.services import volunteers
-from backend.services.audit import record
+from backend.services.audit import record, record_if
 from backend.services.consent import PARTY_WORDING
 from backend.services.errors import NotFound, Refused
 
@@ -69,35 +70,6 @@ async def _set_status(
         set_committed_value(member, name, value)
 
 
-async def reapply(
-    session: AsyncSession, member: PartyMember, old: PartyMemberStatus, **values
-) -> bool:
-    """Put a rejected or withdrawn member back to pending, audited with the status it left.
-
-    False when the row no longer has status `old`, because an officer moved it meanwhile.
-    """
-    if old not in (S.REJECTED, S.WITHDRAWN):
-        return False
-    changed = await session.execute(
-        update(PartyMember)
-        .where(PartyMember.id == member.id, PartyMember.status == old)
-        .values(status=S.PENDING, status_reason=None, decided_at=None, decided_by_id=None, **values)
-        .execution_options(synchronize_session=False)
-    )
-    if changed.rowcount != 1:
-        return False
-    record(
-        session,
-        actor=None,
-        actor_name="public",
-        action="member.reapply",
-        subject_type="party_member",
-        subject_id=member.id,
-        detail={"from": old.value, "to": S.PENDING.value},
-    )
-    return True
-
-
 async def move(
     session: AsyncSession,
     member: PartyMember,
@@ -131,32 +103,6 @@ async def move(
         detail={"from": old.value, "to": to.value},
     )
     await volunteers.follow_member(session, member, to)
-
-
-async def withdraw(session: AsyncSession, member: PartyMember) -> None:
-    """The member's own withdrawal through their link; the link works once. The caller commits."""
-    old = member.status
-    check_move(old, S.WITHDRAWN)
-    await _set_status(
-        session,
-        member,
-        old,
-        status=S.WITHDRAWN,
-        status_reason=None,
-        decided_at=datetime.now(UTC),
-        decided_by_id=None,
-        withdraw_code=None,
-    )
-    record(
-        session,
-        actor=None,
-        actor_name="public",
-        action="member.withdraw",
-        subject_type="party_member",
-        subject_id=member.id,
-        detail={"from": old.value, "to": S.WITHDRAWN.value},
-    )
-    await volunteers.follow_member(session, member, S.WITHDRAWN)
 
 
 def request_join(
@@ -208,15 +154,15 @@ def request_volunteer_withdraw(session: AsyncSession, code: str) -> None:
     session.add(PartyRequest(kind=PartyRequestKind.VOLUNTEER_WITHDRAW, code=code, payload={}))
 
 
-async def _fresh(session: AsyncSession, where) -> PartyMember | None:
-    """The member matching `where`, read from the database rather than the session."""
-    return await session.scalar(
-        select(PartyMember).where(where).execution_options(populate_existing=True)
-    )
+# Statuses a member's own link can withdraw from.
+WITHDRAWABLE = frozenset(old for old, targets in MOVES.items() if S.WITHDRAWN in targets)
 
 
-async def _apply_join(session: AsyncSession, request: PartyRequest) -> None:
-    p = request.payload
+async def _apply_join(session: AsyncSession, code: str, p: dict) -> None:
+    """Add the applicant, or put a rejected or withdrawn member back to pending.
+
+    Any other member is left as they are and the code withdraws nothing.
+    """
     values = {
         "full_name": p["full_name"],
         "email": p["email"],
@@ -224,70 +170,121 @@ async def _apply_join(session: AsyncSession, request: PartyRequest) -> None:
         "consent_channel": PartyConsentChannel.WEB_FORM,
         "consent_wording": p["consent_wording"],
         "consent_at": datetime.fromisoformat(p["consent_at"]),
-        "withdraw_code": request.code,
+        "withdraw_code": code,
     }
-    for _ in range(2):
-        member = await _fresh(session, PartyMember.phone == p["phone"])
-        if member is None:
-            member = PartyMember(phone=p["phone"], status=S.PENDING, **values)
-            session.add(member)
-            await session.flush()
-            break
-        if member.status not in (S.REJECTED, S.WITHDRAWN):
-            break  # already an application or membership; the code withdraws nothing
-        if await reapply(session, member, member.status, **values):
-            break
-    else:
-        return
+    found = select(PartyMember.id, PartyMember.status).where(PartyMember.phone == p["phone"])
+    old = (await session.execute(found.with_for_update())).first()
+    changed = await session.scalar(
+        upsert(session, PartyMember)
+        .values(id=uuid.uuid4(), phone=p["phone"], status=S.PENDING, **values)
+        .on_conflict_do_update(
+            index_elements=["phone"],
+            set_={
+                **values,
+                "status": S.PENDING,
+                "status_reason": None,
+                "decided_at": None,
+                "decided_by_id": None,
+            },
+            where=PartyMember.status.in_([S.REJECTED, S.WITHDRAWN]),
+        )
+        .returning(PartyMember.id)
+    )
+    member = (await session.execute(found)).one()
+    await record_if(
+        session,
+        changed is not None and old is not None,
+        actor_name="public",
+        action="member.reapply",
+        subject_type="party_member",
+        subject_id=member.id,
+        detail={"from": old.status.value if old else None, "to": S.PENDING.value},
+    )
     if "volunteer" in p:
-        await volunteers.apply_volunteer(session, member, p["volunteer"], p["volunteer"]["code"])
+        await volunteers.apply_part(session, member.id, p["volunteer"])
 
 
-async def _apply_withdraw(session: AsyncSession, code: str) -> None:
-    for _ in range(2):
-        member = await _fresh(session, PartyMember.withdraw_code == code)
-        if member is None:
-            return
-        try:
-            await withdraw(session, member)
-            return
-        except Refused:
-            continue  # an officer moved them between the read and the write; read again
+async def _apply_withdraw(session: AsyncSession, code: str, p: dict) -> None:
+    """Withdraw the member holding `code`, and their volunteer profile."""
+    old = (
+        await session.execute(
+            select(PartyMember.id, PartyMember.status)
+            .where(PartyMember.withdraw_code == code)
+            .with_for_update()
+        )
+    ).first()
+    changed = await session.execute(
+        update(PartyMember)
+        .where(PartyMember.withdraw_code == code, PartyMember.status.in_(WITHDRAWABLE))
+        .values(
+            status=S.WITHDRAWN,
+            status_reason=None,
+            decided_at=datetime.now(UTC),
+            decided_by_id=None,
+            withdraw_code=None,
+        )
+        .execution_options(synchronize_session=False)
+    )
+    withdrawn = changed.rowcount == 1
+    await record_if(
+        session,
+        withdrawn,
+        actor_name="public",
+        action="member.withdraw",
+        subject_type="party_member",
+        subject_id=old.id if old else None,
+        detail={"from": old.status.value if old else None, "to": S.WITHDRAWN.value},
+    )
+    await volunteers.follow_withdrawal(session, old.id if old else None, withdrawn)
+
+
+async def _apply_volunteer_withdraw(session: AsyncSession, code: str, p: dict) -> None:
+    await volunteers.withdraw_by_code(session, code)
+
+
+APPLY = {
+    PartyRequestKind.JOIN: _apply_join,
+    PartyRequestKind.WITHDRAW: _apply_withdraw,
+    PartyRequestKind.VOLUNTEER_WITHDRAW: _apply_volunteer_withdraw,
+}
 
 
 async def process_requests(session: AsyncSession, *, limit: int = 100) -> int:
-    """Apply queued public requests in order, each once and in its own transaction.
+    """Apply queued public requests oldest first, one at a time, each in its own transaction.
 
-    A request that cannot be applied is logged by id and dropped, so it never blocks the queue.
-    Returns how many requests were taken.
+    A request of each kind runs the same statements whatever the register holds, so how long
+    the work takes never depends on it. Processors take turns on the party settings row, so a
+    withdrawal is never applied before the join it belongs to. A request that cannot be applied
+    is logged by id and dropped. Returns how many requests were taken.
     """
-    queued = (
-        await session.scalars(
-            select(PartyRequest).order_by(PartyRequest.created_at, PartyRequest.id).limit(limit)
-        )
-    ).all()
     await session.commit()
-    applied = 0
-    for request in queued:
-        claimed = await session.execute(delete(PartyRequest).where(PartyRequest.id == request.id))
+    taken = 0
+    while taken < limit:
+        await session.execute(
+            select(PartySettings.id).where(PartySettings.id == 1).with_for_update()
+        )
+        oldest = (
+            await session.execute(
+                select(PartyRequest.id, PartyRequest.kind, PartyRequest.code, PartyRequest.payload)
+                .order_by(PartyRequest.created_at, PartyRequest.id)
+                .limit(1)
+            )
+        ).first()
+        if oldest is None:
+            await session.commit()
+            break
+        claimed = await session.execute(delete(PartyRequest).where(PartyRequest.id == oldest.id))
         if claimed.rowcount != 1:
             await session.commit()
-            continue  # another processor took it
+            continue
         try:
             async with session.begin_nested():
-                if request.kind is PartyRequestKind.JOIN:
-                    await _apply_join(session, request)
-                elif request.kind is PartyRequestKind.WITHDRAW:
-                    await _apply_withdraw(session, request.code)
-                else:
-                    await volunteers.withdraw_by_code(session, request.code)
-        except (IntegrityError, Refused):
-            pass  # the same phone was added by a concurrent processor, or an officer moved it
+                await APPLY[oldest.kind](session, oldest.code, oldest.payload)
         except Exception:
-            log.exception("Party request %s could not be applied and was dropped.", request.id)
+            log.exception("Party request %s could not be applied and was dropped.", oldest.id)
         await session.commit()
-        applied += 1
-    return applied
+        taken += 1
+    return taken
 
 
 @dataclass(frozen=True)

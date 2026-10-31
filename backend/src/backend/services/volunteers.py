@@ -2,13 +2,26 @@
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
-from sqlalchemy import Select, String, cast, func, select, update
+from sqlalchemy import (
+    Boolean,
+    Select,
+    String,
+    Uuid,
+    bindparam,
+    case,
+    cast,
+    func,
+    literal,
+    select,
+    update,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm.attributes import set_committed_value
 
+from backend.db.session import upsert
 from backend.models import (
     Constituency,
     ContactMethod,
@@ -20,7 +33,7 @@ from backend.models import (
     VolunteerStatus,
     Ward,
 )
-from backend.services.audit import record
+from backend.services.audit import record, record_if
 from backend.services.consent import VOLUNTEER_WORDING
 from backend.services.errors import NotFound, Refused
 
@@ -94,9 +107,11 @@ async def set_status(
         raise Refused("An officer can only make a volunteer active or inactive.")
     check_move(old, to)
     if to is V.ACTIVE:
+        # The lock makes a concurrent member move wait, or this wait for it.
         member_status = await session.scalar(
             select(PartyMember.status)
             .where(PartyMember.id == profile.member_id)
+            .with_for_update()
             .execution_options(populate_existing=True)
         )
         if member_status is not PartyMemberStatus.APPROVED:
@@ -150,61 +165,100 @@ async def follow_member(
         return
 
 
-async def apply_volunteer(
-    session: AsyncSession, member: PartyMember, part: dict, code: str
-) -> None:
-    """Create or refresh the member's profile from a queued join's volunteer part."""
+async def apply_part(session: AsyncSession, member_id: uuid.UUID, part: dict) -> None:
+    """Create or refresh the member's profile from a queued join's volunteer part.
+
+    Runs the same statements whether or not the member already has a profile.
+    """
+    now = datetime.now(UTC)
     values = {
         "interests": [VolunteerInterest(i).value for i in part["interests"]],
         "preferred_contact": ContactMethod(part["preferred_contact"]),
         "consent_wording": VOLUNTEER_WORDING,
         "consent_at": datetime.fromisoformat(part["consent_at"]),
-        "withdraw_code": code,
+        "withdraw_code": part["code"],
+        "updated_at": now,
     }
-    old = None
-    for attempt in range(2):
-        profile = await _fresh(session, VolunteerProfile.member_id == member.id)
-        if profile is None:
-            profile = VolunteerProfile(member_id=member.id, status=V.INTERESTED, **values)
-            session.add(profile)
-            await session.flush()
-            break
-        old = profile.status
-        to = V.INTERESTED if old is V.WITHDRAWN else old
-        try:
-            await _set_status(session, profile, old, status=to, **values)
-        except Refused:
-            if attempt:
-                raise
-            continue
-        break
-    _audit(
+    old = (
+        await session.execute(
+            select(VolunteerProfile.id, VolunteerProfile.status)
+            .where(VolunteerProfile.member_id == member_id)
+            .with_for_update()
+        )
+    ).first()
+    revived = case(
+        (
+            VolunteerProfile.status == V.WITHDRAWN,
+            literal(V.INTERESTED, VolunteerProfile.status.type),
+        ),
+        else_=VolunteerProfile.status,
+    )
+    new_id = uuid.uuid4()
+    await session.execute(
+        upsert(session, VolunteerProfile)
+        .values(id=new_id, member_id=member_id, status=V.INTERESTED, created_at=now, **values)
+        .on_conflict_do_update(index_elements=["member_id"], set_={**values, "status": revived})
+    )
+    to = V.INTERESTED if old is None or old.status is V.WITHDRAWN else old.status
+    await record_if(
         session,
-        profile,
-        "volunteer.interest",
-        {"from": old.value if old else None, "to": profile.status.value},
+        True,
+        actor_name="public",
+        action="volunteer.interest",
+        subject_type="volunteer_profile",
+        subject_id=old.id if old else new_id,
+        detail={"from": old.status.value if old else None, "to": to.value},
     )
 
 
-async def withdraw_volunteer(session: AsyncSession, profile: VolunteerProfile) -> None:
-    """The volunteer's own withdrawal through their link; the link works once."""
-    old = profile.status
-    check_move(old, V.WITHDRAWN)
-    await _set_status(session, profile, old, status=V.WITHDRAWN, withdraw_code=None)
-    _audit(session, profile, "volunteer.withdraw", {"from": old.value, "to": V.WITHDRAWN.value})
+async def _withdraw_where(
+    session: AsyncSession, where, applies: bool, *, actor_name: str, action: str
+) -> None:
+    """Withdraw the profile matching `where` when `applies`, with the same statements either way."""
+    old = (
+        await session.execute(
+            select(VolunteerProfile.id, VolunteerProfile.status).where(where).with_for_update()
+        )
+    ).first()
+    changed = await session.execute(
+        update(VolunteerProfile)
+        .where(where, VolunteerProfile.status != V.WITHDRAWN, literal(applies, Boolean))
+        .values(status=V.WITHDRAWN, withdraw_code=None, updated_at=datetime.now(UTC))
+        .execution_options(synchronize_session=False)
+    )
+    await record_if(
+        session,
+        changed.rowcount == 1,
+        actor_name=actor_name,
+        action=action,
+        subject_type="volunteer_profile",
+        subject_id=old.id if old else None,
+        detail={"from": old.status.value if old else None, "to": V.WITHDRAWN.value},
+    )
+
+
+async def follow_withdrawal(
+    session: AsyncSession, member_id: uuid.UUID | None, withdrawn: bool
+) -> None:
+    """Withdraw the profile of a member the public link just withdrew, audited as "system"."""
+    await _withdraw_where(
+        session,
+        VolunteerProfile.member_id == bindparam("member_id", member_id, type_=Uuid),
+        withdrawn,
+        actor_name="system",
+        action="volunteer.status",
+    )
 
 
 async def withdraw_by_code(session: AsyncSession, code: str) -> None:
-    """Withdraw the profile holding `code`; reads again once if an officer moved it."""
-    for _ in range(2):
-        profile = await _fresh(session, VolunteerProfile.withdraw_code == code)
-        if profile is None:
-            return
-        try:
-            await withdraw_volunteer(session, profile)
-            return
-        except Refused:
-            continue
+    """The volunteer's own withdrawal through their link; the link works once."""
+    await _withdraw_where(
+        session,
+        VolunteerProfile.withdraw_code == code,
+        True,
+        actor_name="public",
+        action="volunteer.withdraw",
+    )
 
 
 def _like(text: str) -> str:

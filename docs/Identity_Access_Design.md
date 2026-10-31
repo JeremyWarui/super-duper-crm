@@ -315,11 +315,19 @@ re-application or withdrawal writes one too, with actor `public`.
 Each valid request is one insert into `party_requests`, the same work and the
 same answer whatever the register holds, so no answer or timing shows whether a
 number is registered. `services/membership.py` `process_requests()` applies the
-inbox in order: before every membership-officer request, and every
-`PARTY_INBOX_SECONDS` (60 by default) in the app. It claims each request by
-deleting it, so a request is applied once, and every status write is
-conditional on the status it read, so concurrent moves cannot skip the table
-or audit a status the row did not have. A code from an application that did not
+inbox oldest first: before every membership-officer request, and every
+`PARTY_INBOX_SECONDS` (60 by default) in the app. Processors take turns on the
+`party_settings` row and each takes the oldest request, so a withdrawal is never
+applied before its join. Each request is claimed by deleting it and applied in
+its own transaction. Applying one runs the same statements whatever the register
+holds: an upsert whose `ON CONFLICT` condition decides whether a re-application
+lands, conditional updates for withdrawals, and an audit insert that writes only
+when a row changed (`audit.record_if`). The processor's work therefore cannot be
+read from the server's latency either. `evals/test_inbox_constant_work.py` checks
+every member and volunteer status for each request shape. Officer status writes
+are conditional on the status read, and activating a volunteer locks the member
+row, so concurrent moves cannot skip the table or leave an active volunteer on a
+member who is not approved. A code from an application that did not
 put the number on the register matches nothing when processed. Known gap:
 nobody proves they hold the number, so anyone can re-apply for a rejected or
 withdrawn number; closing it needs SMS verification.

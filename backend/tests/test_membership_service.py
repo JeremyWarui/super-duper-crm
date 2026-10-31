@@ -3,9 +3,9 @@
 from datetime import UTC, datetime
 
 import pytest
-from sqlalchemy import select, update
+from sqlalchemy import event, select, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from backend.models import (
     PartyConsentChannel,
@@ -70,27 +70,22 @@ async def test_a_move_on_a_stale_read_is_refused_and_leaves_the_other_move_stand
     assert stored is PartyMemberStatus.APPROVED
 
 
-async def test_a_reapplication_read_before_an_approval_does_not_undo_it(
+async def test_a_join_for_an_approved_member_leaves_them_approved_and_unchanged(
     session: AsyncSession, world: World
 ):
     member = make_member(world)
-    member.status = PartyMemberStatus.WITHDRAWN
+    member.status = PartyMemberStatus.APPROVED
     session.add(member)
     await session.commit()
-    await session.execute(
-        update(PartyMember)
-        .where(PartyMember.id == member.id)
-        .values(status=PartyMemberStatus.APPROVED)
-        .execution_options(synchronize_session=False)
+    membership.request_join(
+        session, full_name="Someone Else", phone=member.phone, email=None, ward_id=world.ward.id
     )
+    await session.commit()
 
-    reapplied = await membership.reapply(
-        session, member, PartyMemberStatus.WITHDRAWN, full_name="Someone Else"
-    )
-    stored = await session.scalar(select(PartyMember.status).where(PartyMember.id == member.id))
+    await membership.process_requests(session)
+    await session.refresh(member)
 
-    assert reapplied is False
-    assert stored is PartyMemberStatus.APPROVED
+    assert (member.status, member.full_name) == (PartyMemberStatus.APPROVED, "Wanjiru Kamau")
 
 
 async def test_a_request_that_cannot_be_applied_is_dropped_and_the_queue_moves_on(
@@ -119,3 +114,37 @@ async def test_a_request_that_cannot_be_applied_is_dropped_and_the_queue_moves_o
     assert taken == 2
     assert phones == ["+254711222333"]
     assert (await session.scalars(select(PartyRequest))).all() == []
+
+
+async def _statements(engine: AsyncEngine, session: AsyncSession) -> list[str]:
+    """The SQL the next inbox run sends, in order."""
+    sent: list[str] = []
+
+    def keep(_conn, _cursor, statement, *_args):  # type: ignore[no-untyped-def]
+        sent.append(statement)
+
+    event.listen(engine.sync_engine, "before_cursor_execute", keep)
+    try:
+        await membership.process_requests(session)
+    finally:
+        event.remove(engine.sync_engine, "before_cursor_execute", keep)
+    return sent
+
+
+async def test_the_inbox_runs_the_same_statements_whether_or_not_the_phone_is_registered(
+    engine: AsyncEngine, session: AsyncSession, world: World
+):
+    member = make_member(world)
+    member.status = PartyMemberStatus.APPROVED
+    session.add(member)
+    await session.commit()
+    runs = []
+    for phone in (member.phone, "+254799000111"):
+        code, _ = membership.request_join(
+            session, full_name="Achieng Otieno", phone=phone, email=None, ward_id=world.ward.id
+        )
+        membership.request_withdraw(session, code)
+        await session.commit()
+        runs.append(await _statements(engine, session))
+
+    assert runs[0] == runs[1]

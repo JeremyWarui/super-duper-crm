@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from functools import lru_cache
 
 import certifi
+from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -65,3 +66,9 @@ async def get_session() -> AsyncIterator[AsyncSession]:
         except Exception:
             await session.rollback()
             raise
+
+
+def upsert(session: AsyncSession, model: type):
+    """An INSERT into `model` that takes `on_conflict_do_update`, on Postgres or SQLite."""
+    dialect = postgresql if session.get_bind().dialect.name == "postgresql" else sqlite
+    return dialect.insert(model)
