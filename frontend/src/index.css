@@ -1622,3 +1622,17 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
   .join-card,
   .onboarding-card { padding: 22px; }
 }
+
+.filter-field { width: auto; min-width: 160px; margin-top: 0; }
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link-button:hover { text-decoration: underline; }

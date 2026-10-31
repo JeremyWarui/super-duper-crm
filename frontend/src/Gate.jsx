@@ -1,10 +1,11 @@
 import { Route, Routes, useParams } from "react-router-dom";
 import { useAuth } from "./store/auth";
-import { useCampaigns } from "./api/hooks";
+import { useCampaigns, useMe } from "./api/hooks";
 import Login from "./components/Login";
 import Admin from "./components/Admin";
 import NoCampaign from "./components/NoCampaign";
 import App from "./App";
+import Portal from "./pages/party/Portal";
 import Join from "./components/Join";
 import Withdraw from "./components/Withdraw";
 import JoinParty from "./pages/public/JoinParty";
@@ -17,18 +18,21 @@ export function forgetOnSwitch(queryClient) {
   });
 }
 
+// A login on a campaign gets the campaign app; one on none but holding a party
+// role gets the party portal; anyone else waits to be put on a campaign.
 function SignedIn() {
   const campaigns = useCampaigns();
-  return campaigns.isSuccess && campaigns.data.length === 0 ? (
-    <NoCampaign />
-  ) : (
-    <App />
-  );
+  const partyRoles = useAuth((s) => s.user?.party_roles);
+  if (campaigns.isSuccess && campaigns.data.length === 0) {
+    return partyRoles?.length ? <Portal /> : <NoCampaign />;
+  }
+  return <App />;
 }
 
 // A superuser runs the deployment rather than a campaign, so they get the
 // console instead of the campaign gate.
 function Inside() {
+  useMe();
   const isSuperuser = useAuth((s) => s.user?.is_superuser);
   return isSuperuser ? <Admin /> : <SignedIn />;
 }

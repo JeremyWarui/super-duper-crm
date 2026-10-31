@@ -3,13 +3,15 @@
 // caches that changed — e.g. scheduling an event refreshes both the event list
 // AND the strategy read, because the strategy is computed from events.
 
+import { useEffect } from "react";
 import {
   keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { api } from "./client";
+import { api, download } from "./client";
+import { useAuth } from "../store/auth";
 
 // ---- Queries --------------------------------------------------------------
 export const useWards = () =>
@@ -551,3 +553,54 @@ export function useRevokePartyRole() {
     onSuccess: invalidate,
   });
 }
+
+// ---- signed-in login ------------------------------------------------------
+// Refreshes the stored user, so roles changed since sign-in take effect.
+export function useMe() {
+  const query = useQuery({ queryKey: ["me"], queryFn: () => api("/auth/me/") });
+  const fresh = query.data;
+  useEffect(() => {
+    if (fresh && JSON.stringify(fresh) !== JSON.stringify(useAuth.getState().user)) {
+      useAuth.setState({ user: fresh });
+    }
+  }, [fresh]);
+  return query;
+}
+
+// ---- party member register ------------------------------------------------
+const memberQuery = (filters) => {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters || {})) {
+    if (value !== "" && value != null) params.set(key, value);
+  }
+  return params.toString();
+};
+
+export const usePartyMembers = (filters) =>
+  useQuery({
+    queryKey: ["party-members", filters],
+    queryFn: () => api(`/party/members/?${memberQuery(filters)}`),
+    placeholderData: keepPreviousData,
+  });
+
+export const usePartyMember = (id) =>
+  useQuery({
+    queryKey: ["party-member", id],
+    queryFn: () => api(`/party/members/${id}/`),
+    enabled: !!id,
+  });
+
+export function useMoveMember() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, status, reason }) =>
+      api(`/party/members/${id}/status/`, {
+        method: "POST",
+        body: reason ? { status, reason } : { status },
+      }),
+    onSuccess: () => invalidate("party-members", "party-member"),
+  });
+}
+
+export const exportPartyMembers = (filters) =>
+  download(`/party/members/export.csv?${memberQuery(filters)}`, "party-members.csv");

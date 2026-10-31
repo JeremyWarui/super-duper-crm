@@ -34,3 +34,27 @@ export async function api(path, { method = "GET", body, anonymous = false } = {}
   }
   return data;
 }
+
+// Fetches a file with the token and hands it to the browser as a download.
+export async function download(path, filename) {
+  const token = useAuth.getState().token;
+  const res = await fetch(`${BASE}${path}`, {
+    headers: token ? { Authorization: `Token ${token}` } : {},
+  });
+  if (res.status === 401) {
+    useAuth.getState().logout();
+    throw new Error("Your session expired — please sign in again.");
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.detail || "Download failed.");
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}

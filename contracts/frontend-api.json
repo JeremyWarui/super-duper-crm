@@ -281,6 +281,38 @@
     ],
     "POST /api/party/withdraw/{code}/": [
       "message"
+    ],
+    "GET /api/auth/me/": [
+      "id",
+      "username",
+      "full_name",
+      "role",
+      "is_superuser",
+      "party_roles"
+    ],
+    "GET /api/party/members/": [
+      "total",
+      "items"
+    ],
+    "GET /api/party/members/{member_id}/": [
+      "id",
+      "full_name",
+      "phone",
+      "email",
+      "status",
+      "ward",
+      "constituency",
+      "county",
+      "created_at",
+      "status_reason",
+      "decided_at",
+      "consent_channel",
+      "consent_wording",
+      "consent_at"
+    ],
+    "POST /api/party/members/{member_id}/status/": [
+      "id",
+      "status"
     ]
   },
   "nested_reads": {
@@ -289,7 +321,8 @@
       "username",
       "full_name",
       "role",
-      "is_superuser"
+      "is_superuser",
+      "party_roles"
     ],
     "GET /api/strategy/.units": [
       "unit",
@@ -366,6 +399,17 @@
     "GET /api/join/{code}/.places": [
       "id",
       "name"
+    ],
+    "GET /api/party/members/.items": [
+      "id",
+      "full_name",
+      "phone",
+      "email",
+      "status",
+      "ward",
+      "constituency",
+      "county",
+      "created_at"
     ]
   },
   "writes": {
@@ -541,7 +585,11 @@
       "ward",
       "consent_given"
     ],
-    "POST /api/party/withdraw/{code}/": []
+    "POST /api/party/withdraw/{code}/": [],
+    "POST /api/party/members/{member_id}/status/": [
+      "status",
+      "reason"
+    ]
   },
   "enums": {
     "user.role": [

@@ -26,7 +26,11 @@ export function stubApi(routes) {
     });
 
     const match =
-      routes[`${method} ${path}`] ?? routes[`${method} ${path.split("?")[0]}`];
+      routes[`${method} ${path}`] ??
+      routes[`${method} ${path.split("?")[0]}`] ??
+      (method === "GET" && path === "/auth/me/"
+        ? useAuth.getState().user
+        : undefined);
     if (match === undefined) {
       return jsonResponse(404, { detail: `No stub for ${method} ${path}` });
     }
@@ -59,7 +63,22 @@ function jsonResponse(status, body) {
 export function signIn(role = "manager") {
   useAuth.setState({
     token: TEST_TOKEN,
-    user: { id: "u1", username: role, full_name: "Test User", role },
+    user: {
+      id: "u1",
+      username: role,
+      full_name: "Test User",
+      role,
+      is_superuser: false,
+      party_roles: [],
+    },
+  });
+}
+
+/** A login with no campaign and the given party roles. */
+export function signInAsParty(partyRoles = ["membership_officer"]) {
+  signIn(null);
+  useAuth.setState({
+    user: { ...useAuth.getState().user, username: "officer", full_name: "Mary Officer", party_roles: partyRoles },
   });
 }
 
@@ -347,3 +366,43 @@ export const ADMIN_USERS = [
     party_roles: [],
   },
 ];
+
+// ---- party member register -----------------------------------------------
+export const PARTY = { name: "Mzigo Party", short_name: "MZP" };
+
+const PLACE = {
+  ward: { id: "w1", name: "Zimmerman" },
+  constituency: { id: "k1", name: "Roysambu" },
+  county: { id: "n1", name: "Nairobi" },
+};
+
+export const MEMBER = {
+  id: "pm1",
+  full_name: "Achieng Otieno",
+  phone: "+254712345678",
+  email: null,
+  status: "pending",
+  ...PLACE,
+  created_at: "2026-10-01T08:00:00Z",
+};
+
+export const MEMBER_DETAIL = {
+  ...MEMBER,
+  status_reason: null,
+  decided_at: null,
+  consent_channel: "web_form",
+  consent_wording: "I agree that the party may keep my details.",
+  consent_at: "2026-10-01T08:00:00Z",
+};
+
+/** What the members page reads, with the officer's approval answered. */
+export function memberRoutes(overrides = {}) {
+  return {
+    "GET /party/": PARTY,
+    "GET /party/places/": [PLACE.county],
+    "GET /party/members/": { total: 1, items: [MEMBER] },
+    "GET /party/members/pm1/": MEMBER_DETAIL,
+    "POST /party/members/pm1/status/": { ...MEMBER_DETAIL, status: "approved" },
+    ...overrides,
+  };
+}

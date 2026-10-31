@@ -3,6 +3,7 @@
 // login, and the few repairs that cannot be done from inside a campaign.
 // Shown only to a superuser; every route it calls checks the flag again.
 import React, { useState } from "react";
+import { PARTY_ROLES, PARTY_ROLE_LABEL } from "../pages/party/helpers";
 import {
   useAdminOverview,
   useAdminUsers,
@@ -321,12 +322,6 @@ const ROLES = [
   ["staff", "Party staff (no campaign)"],
 ];
 
-const PARTY_ROLES = [
-  ["membership_officer", "Membership Officer"],
-  ["nominations_officer", "Nominations Officer"],
-  ["finance_officer", "Finance Officer"],
-];
-const PARTY_ROLE_LABEL = Object.fromEntries(PARTY_ROLES);
 
 const Field = ({ label, children }) => (
   <SharedField label={label} className="admin-field-label">
