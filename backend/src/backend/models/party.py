@@ -12,15 +12,17 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     Uuid,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, TimestampMixin, choice_type
-from backend.models.enums import PartyRoleName
+from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.models.enums import PartyConsentChannel, PartyMemberStatus, PartyRoleName
 
 if TYPE_CHECKING:
+    from backend.models.geography import Ward
     from backend.models.user import User
 
 HEX_DIGITS = "'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'"
@@ -76,3 +78,42 @@ class PartyRole(TimestampMixin, Base):
     )
 
     user: Mapped["User"] = relationship(back_populates="party_roles")
+
+
+class PartyMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A person on the party register; most never sign in."""
+
+    __tablename__ = "party_members"
+    __table_args__ = (
+        UniqueConstraint("phone", name="uq_party_members_phone"),
+        CheckConstraint("length(trim(full_name)) > 0", name="full_name_not_blank"),
+        CheckConstraint("consent_wording <> ''", name="consent_wording_not_empty"),
+    )
+
+    full_name: Mapped[str] = mapped_column(String(150), index=True)
+    phone: Mapped[str] = mapped_column(String(20))
+    email: Mapped[str | None] = mapped_column(String(254), default=None)
+    ward_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("wards.id", ondelete="RESTRICT"), index=True
+    )
+    status: Mapped[PartyMemberStatus] = mapped_column(
+        choice_type(PartyMemberStatus, "party_member_status"),
+        default=PartyMemberStatus.PENDING,
+        index=True,
+    )
+    status_reason: Mapped[str | None] = mapped_column(Text, default=None)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    decided_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    consent_wording: Mapped[str] = mapped_column(Text)
+    consent_channel: Mapped[PartyConsentChannel] = mapped_column(
+        choice_type(PartyConsentChannel, "party_consent_channel")
+    )
+    consent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
+
+    ward: Mapped["Ward"] = relationship()
+
+    def __str__(self) -> str:
+        return self.full_name

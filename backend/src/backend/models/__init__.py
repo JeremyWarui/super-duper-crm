@@ -10,6 +10,8 @@ from backend.models.enums import (
     LabelledStrEnum,
     OfficeLevel,
     OperationalGrain,
+    PartyConsentChannel,
+    PartyMemberStatus,
     PartyRoleName,
     PaymentStatus,
     Seat,
@@ -25,7 +27,7 @@ from backend.models.geography import (
 )
 from backend.models.membership import CampaignMember
 from backend.models.mobilizer import Mobilizer
-from backend.models.party import PartyRole, PartySettings
+from backend.models.party import PartyMember, PartyRole, PartySettings
 from backend.models.payment import Payment
 from backend.models.supporter import Supporter
 from backend.models.target import Target, compute_win_number, unit_key
@@ -46,6 +48,9 @@ __all__ = [
     "OfficeLevel",
     "ConsentChannel",
     "OperationalGrain",
+    "PartyConsentChannel",
+    "PartyMember",
+    "PartyMemberStatus",
     "PartyRole",
     "PartyRoleName",
     "PartySettings",

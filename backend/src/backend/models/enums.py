@@ -69,6 +69,21 @@ class ConsentChannel(StrEnum):
     MOBILIZER = "mobilizer"
 
 
+class PartyMemberStatus(LabelledStrEnum):
+    PENDING = ("pending", "Pending")
+    APPROVED = ("approved", "Approved")
+    REJECTED = ("rejected", "Rejected")
+    SUSPENDED = ("suspended", "Suspended")
+    WITHDRAWN = ("withdrawn", "Withdrawn")
+
+
+class PartyConsentChannel(StrEnum):
+    """Where a party member gave consent."""
+
+    WEB_FORM = "web_form"
+    OFFICER_ENTRY = "officer_entry"
+
+
 class EventStatus(LabelledStrEnum):
     PLANNED = ("planned", "Planned")
     DONE = ("done", "Done")

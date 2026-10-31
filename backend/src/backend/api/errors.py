@@ -16,6 +16,8 @@ ONE_PLACE = ("campaign_members.campaign_id",)
 ONE_SUPPORTER = ("uq_supporters_campaign_phone", "supporters.campaign_id, supporters.phone")
 # One of each party office per login, as Postgres and SQLite name it.
 ONE_OFFICE = ("pk_party_roles", "party_roles.user_id, party_roles.role")
+# One party member per phone, as Postgres and SQLite name it.
+ONE_PARTY_MEMBER = ("uq_party_members_phone", "party_members.phone")
 # One live payment per mobilizer per event, as Postgres and SQLite name it.
 ONE_PAYMENT = ("uq_payments_event_mobilizer", "payments.event_id, payments.mobilizer_id")
 # The one-mobilizer-per-unit indexes, as Postgres and SQLite name them.
@@ -71,6 +73,11 @@ def register_error_handlers(app: FastAPI) -> None:
         if any(name in str(exc.orig) for name in ONE_SUPPORTER):
             return _detail(
                 "That phone number is already on this campaign's register.",
+                status.HTTP_400_BAD_REQUEST,
+            )
+        if any(name in str(exc.orig) for name in ONE_PARTY_MEMBER):
+            return _detail(
+                "That phone number is already on the party register.",
                 status.HTTP_400_BAD_REQUEST,
             )
         if any(name in str(exc.orig) for name in ONE_PAYMENT):
