@@ -1493,6 +1493,18 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
 
 .join-loading { padding: 0; }
 
+.party-banner {
+  padding-bottom: 16px;
+  border-bottom: 3px solid var(--party-secondary, var(--color-border));
+}
+
+.party-logo {
+  display: block;
+  max-width: 120px;
+  max-height: 80px;
+  margin-bottom: 12px;
+}
+
 .join-message-success {
   margin-top: 20px;
   color: var(--color-primary);

@@ -494,7 +494,33 @@ export function useRemoveMember() {
 
 // ---- party settings and offices -------------------------------------------
 export const useParty = () =>
-  useQuery({ queryKey: ["party"], queryFn: () => api("/party/") });
+  useQuery({ queryKey: ["party"], queryFn: () => api("/party/", { anonymous: true }) });
+
+// Counties, or one county's constituencies, or one constituency's wards.
+export const usePartyPlaces = ({ county, constituency, enabled = true } = {}) =>
+  useQuery({
+    queryKey: ["party-places", county || null, constituency || null],
+    enabled,
+    queryFn: () => {
+      if (constituency) return api(`/party/places/?constituency=${constituency}`, { anonymous: true });
+      if (county) return api(`/party/places/?county=${county}`, { anonymous: true });
+      return api("/party/places/", { anonymous: true });
+    },
+    staleTime: Infinity,
+  });
+
+export const useJoinParty = () =>
+  useMutation({
+    mutationFn: (payload) =>
+      api("/party/join/", { method: "POST", body: payload, anonymous: true }),
+  });
+
+export function useWithdrawParty(code) {
+  return useMutation({
+    mutationFn: () =>
+      api(`/party/withdraw/${encodeURIComponent(code)}/`, { method: "POST", anonymous: true }),
+  });
+}
 
 export function useSaveParty() {
   const qc = useQueryClient();

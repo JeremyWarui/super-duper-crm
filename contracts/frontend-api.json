@@ -271,6 +271,16 @@
       "username",
       "role",
       "party_roles"
+    ],
+    "GET /api/party/places/": [
+      "id",
+      "name"
+    ],
+    "POST /api/party/join/": [
+      "withdraw_url"
+    ],
+    "POST /api/party/withdraw/{code}/": [
+      "message"
     ]
   },
   "nested_reads": {
@@ -523,7 +533,15 @@
     ],
     "POST /api/admin/users/{user_id}/party-roles/": [
       "role"
-    ]
+    ],
+    "POST /api/party/join/": [
+      "full_name",
+      "phone",
+      "email",
+      "ward",
+      "consent_given"
+    ],
+    "POST /api/party/withdraw/{code}/": []
   },
   "enums": {
     "user.role": [
