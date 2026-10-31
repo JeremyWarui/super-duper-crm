@@ -1020,11 +1020,24 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
 .admin-pill-superuser { background: var(--color-primary-soft); color: var(--color-primary); }
 .admin-pill-manager { background: var(--color-neutral-soft); color: var(--color-text-secondary); }
 .admin-pill-mobilizer { background: var(--color-warning-soft); color: var(--color-warning); }
+.admin-pill-party { background: var(--color-primary-soft); color: var(--color-primary); }
 .admin-pill-disabled { background: var(--color-danger-soft); color: var(--color-danger); }
 
 .admin-field { width: auto; margin-top: 0; font-size: var(--text-sm); }
 .admin-field-wide { width: 100%; }
 .admin-field-campaign { min-width: 240px; }
+.admin-field-link { min-width: 280px; flex: 1; }
+.admin-field-area { min-height: 90px; resize: vertical; }
+.admin-link-row { margin-top: 8px; }
+
+.admin-pill-remove {
+  margin-left: 6px;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  line-height: 1;
+}
 
 .admin-confirmation { font-size: var(--text-sm); }
 .admin-red { color: var(--color-danger); }

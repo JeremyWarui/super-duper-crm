@@ -106,6 +106,38 @@ describe("what the console can repair", () => {
   });
 });
 
+describe("party offices", () => {
+  it("grants Membership Officer to a staff login and shows the office", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    const staff = ADMIN_USERS.find((u) => u.username === "wafula");
+    const granted = { ...staff, party_roles: ["membership_officer"] };
+    const routes = adminRoutes({
+      "POST /admin/users/u-wafula/party-roles/": granted,
+    });
+    const calls = stubApi(routes);
+    renderApp(<Admin />);
+
+    await user.click(await screen.findByRole("button", { name: /Logins/ }));
+    await user.selectOptions(
+      await screen.findByLabelText("Party office for wafula"),
+      "membership_officer",
+    );
+    routes["GET /admin/users/"] = ADMIN_USERS.map((u) =>
+      u.id === granted.id ? granted : u,
+    );
+    await user.click(screen.getByRole("button", { name: "Grant" }));
+
+    expect(
+      await screen.findByRole("button", { name: "Revoke Membership Officer" }),
+    ).toBeInTheDocument();
+    const posted = calls.find(
+      (c) => c.method === "POST" && c.path === "/admin/users/u-wafula/party-roles/",
+    );
+    expect(posted.body).toEqual({ role: "membership_officer" });
+  });
+});
+
 describe("creating a login from the console", () => {
   async function openForm(user) {
     await user.click(await screen.findByRole("button", { name: /Logins/ }));

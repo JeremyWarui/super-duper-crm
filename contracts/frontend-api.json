@@ -118,7 +118,8 @@
       "is_active",
       "is_superuser",
       "last_login_at",
-      "campaign"
+      "campaign",
+      "party_roles"
     ],
     "POST /api/admin/users/{user_id}/reset-password/": [
       "username",
@@ -234,6 +235,42 @@
     "POST /api/campaigns/{campaign_id}/signups/": [
       "code",
       "open"
+    ],
+    "GET /api/party/": [
+      "name",
+      "short_name",
+      "logo_url",
+      "primary_colour",
+      "secondary_colour",
+      "contact_email",
+      "contact_phone",
+      "address",
+      "description",
+      "manifesto_text",
+      "manifesto_url",
+      "social_links",
+      "updated_at"
+    ],
+    "PUT /api/admin/party/": [
+      "name",
+      "short_name",
+      "logo_url",
+      "primary_colour",
+      "secondary_colour",
+      "contact_email",
+      "contact_phone",
+      "address",
+      "description",
+      "manifesto_text",
+      "manifesto_url",
+      "social_links",
+      "updated_at"
+    ],
+    "POST /api/admin/users/{user_id}/party-roles/": [
+      "id",
+      "username",
+      "role",
+      "party_roles"
     ]
   },
   "nested_reads": {
@@ -469,6 +506,23 @@
     "POST /api/join/withdraw/{code}/": [],
     "POST /api/campaigns/{campaign_id}/signups/": [
       "open"
+    ],
+    "PUT /api/admin/party/": [
+      "name",
+      "short_name",
+      "logo_url",
+      "primary_colour",
+      "secondary_colour",
+      "contact_email",
+      "contact_phone",
+      "address",
+      "description",
+      "manifesto_text",
+      "manifesto_url",
+      "social_links"
+    ],
+    "POST /api/admin/users/{user_id}/party-roles/": [
+      "role"
     ]
   },
   "enums": {
@@ -527,7 +581,8 @@
     "_comment": "Routes that answer 204 with no body. Only that they still exist is checked.",
     "routes": [
       "DELETE /api/admin/campaigns/{campaign_id}/",
-      "DELETE /api/admin/campaigns/{campaign_id}/members/{user_id}/"
+      "DELETE /api/admin/campaigns/{campaign_id}/members/{user_id}/",
+      "DELETE /api/admin/users/{user_id}/party-roles/{role}/"
     ]
   }
 }

@@ -491,3 +491,37 @@ export function useRemoveMember() {
     onSuccess: invalidate,
   });
 }
+
+// ---- party settings and offices -------------------------------------------
+export const useParty = () =>
+  useQuery({ queryKey: ["party"], queryFn: () => api("/party/") });
+
+export function useSaveParty() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload) =>
+      api("/admin/party/", { method: "PUT", body: payload }),
+    onSuccess: (data) => qc.setQueryData(["party"], data),
+  });
+}
+
+export function useGrantPartyRole() {
+  const invalidate = useAdminInvalidator();
+  return useMutation({
+    mutationFn: ({ user, role }) =>
+      api(`/admin/users/${user}/party-roles/`, {
+        method: "POST",
+        body: { role },
+      }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useRevokePartyRole() {
+  const invalidate = useAdminInvalidator();
+  return useMutation({
+    mutationFn: ({ user, role }) =>
+      api(`/admin/users/${user}/party-roles/${role}/`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  });
+}

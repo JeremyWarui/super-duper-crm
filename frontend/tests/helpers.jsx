@@ -305,6 +305,7 @@ export const ADMIN_USERS = [
     is_superuser: false,
     last_login_at: "2026-09-10T08:00:00+00:00",
     campaign: "Jane for Roysambu",
+    party_roles: [],
   },
   {
     id: "u-jane",
@@ -317,6 +318,7 @@ export const ADMIN_USERS = [
     is_superuser: false,
     last_login_at: null,
     campaign: "Jane for Roysambu",
+    party_roles: [],
   },
   {
     id: "root",
@@ -329,5 +331,19 @@ export const ADMIN_USERS = [
     is_superuser: true,
     last_login_at: "2026-09-12T09:00:00+00:00",
     campaign: null,
+    party_roles: [],
+  },
+  {
+    id: "u-wafula",
+    username: "wafula",
+    full_name: "Wafula O",
+    email: "",
+    phone: "",
+    role: null,
+    is_active: true,
+    is_superuser: false,
+    last_login_at: null,
+    campaign: null,
+    party_roles: [],
   },
 ];

@@ -9,6 +9,10 @@ import {
   useAddMember,
   useCreateLogin,
   useDeleteCampaign,
+  useGrantPartyRole,
+  useParty,
+  useRevokePartyRole,
+  useSaveParty,
   useRenameCampaign,
   useRemoveMember,
   useResetPassword,
@@ -132,11 +136,12 @@ function CampaignCard({ campaign, users }) {
   const [adding, setAdding] = useState(false);
   const [pick, setPick] = useState("");
 
-  // A login belongs to one campaign, so only a login on none is offered. A
+  // A login belongs to one campaign, so only a login on none is offered, and
+  // staff with no campaign role cannot take a place. A
   // superuser reads every campaign through this console, and a disabled login
   // cannot sign in, so neither is offered either.
   const available = users.filter(
-    (u) => !u.campaign && !u.is_superuser && u.is_active,
+    (u) => u.role && !u.campaign && !u.is_superuser && u.is_active,
   );
   const error = remove.error || add.error || rename.error || drop.error;
 
@@ -313,7 +318,15 @@ const USERNAME = /^[A-Za-z0-9._-]+$/;
 const ROLES = [
   ["manager", "Campaign manager"],
   ["mobilizer", "Mobilizer"],
+  ["staff", "Party staff (no campaign)"],
 ];
+
+const PARTY_ROLES = [
+  ["membership_officer", "Membership Officer"],
+  ["nominations_officer", "Nominations Officer"],
+  ["finance_officer", "Finance Officer"],
+];
+const PARTY_ROLE_LABEL = Object.fromEntries(PARTY_ROLES);
 
 const Field = ({ label, children }) => (
   <SharedField label={label} className="admin-field-label">
@@ -328,6 +341,7 @@ function NewLogin({ campaigns, create }) {
 
   const chosen = campaigns.find((c) => c.id === form.campaign);
   const isMobilizer = form.role === "mobilizer";
+  const isStaff = form.role === "staff";
   // An MCA campaign is worked by centre, so its mobilizer is placed on one with a target.
   const centres = chosen?.centres || [];
   const byCentre = centres.length > 0;
@@ -349,12 +363,12 @@ function NewLogin({ campaigns, create }) {
     create.mutate(
       {
         username: name.toLowerCase(),
-        role: form.role,
+        role: isStaff ? null : form.role,
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
-        campaign: form.campaign || null,
+        campaign: isStaff ? null : form.campaign || null,
         ward: isMobilizer ? form.ward || null : null,
         registration_centre: isMobilizer && byCentre ? form.centre || null : null,
       },
@@ -436,6 +450,7 @@ function NewLogin({ campaigns, create }) {
         </Field>
       </div>
 
+      {!isStaff && (
       <>
         <div className="admin-form-spacer" />
         <div className="flex flex-wrap gap-2">
@@ -493,9 +508,12 @@ function NewLogin({ campaigns, create }) {
           )}
         </div>
       </>
+      )}
 
       <div className="admin-form-help">
-        {isMobilizer
+        {isStaff
+          ? "Party staff have no campaign. Give them a party office from their row once the login exists."
+          : isMobilizer
           ? byCentre
             ? "In an MCA race a mobilizer works one registration centre."
             : "A mobilizer works one ward, and sees only that ward."
@@ -529,8 +547,19 @@ function NewLogin({ campaigns, create }) {
 
 function UserRow({ user, me, onReset, resetting, resetError }) {
   const active = useSetActive();
+  const grant = useGrantPartyRole();
+  const revoke = useRevokePartyRole();
+  const [office, setOffice] = useState("");
   const isMe = user.id === me;
-  const error = resetError || active.error?.message;
+  const staff = !user.role && !user.is_superuser;
+  const offered = PARTY_ROLES.filter(
+    ([value]) => !user.party_roles?.includes(value),
+  );
+  const error =
+    resetError ||
+    active.error?.message ||
+    grant.error?.message ||
+    revoke.error?.message;
 
   return (
     <div
@@ -541,7 +570,20 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
         <div>
           <b>{user.username}</b>{" "}
           <span className="admin-subtle">{user.full_name}</span>{" "}
-          <Pill text={user.role} />{" "}
+          {user.role && <Pill text={user.role} />}{" "}
+          {user.party_roles?.map((r) => (
+            <span key={r} className="admin-pill admin-pill-party">
+              {PARTY_ROLE_LABEL[r] || r}
+              <button
+                className="admin-pill-remove"
+                aria-label={`Revoke ${PARTY_ROLE_LABEL[r] || r}`}
+                disabled={revoke.isPending}
+                onClick={() => revoke.mutate({ user: user.id, role: r })}
+              >
+                ×
+              </button>
+            </span>
+          ))}{" "}
           {user.is_superuser && (
             <Pill text="superuser" />
           )}
@@ -552,6 +594,38 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
             {user.email || "no email"} · last in{" "}
             {user.last_login_at ? user.last_login_at.slice(0, 10) : "never"} ·{" "}
             {user.campaign || "on no campaign"}
+          </div>
+          <div className="admin-user-meta">
+            {staff
+              ? offered.length > 0 && (
+                  <span className="flex flex-wrap items-center gap-2">
+                    <select
+                      className="admin-field"
+                      aria-label={`Party office for ${user.username}`}
+                      value={office}
+                      onChange={(e) => setOffice(e.target.value)}
+                    >
+                      <option value="">Give a party office…</option>
+                      {offered.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                    <Btn
+                      disabled={!office || grant.isPending}
+                      onClick={() =>
+                        grant.mutate(
+                          { user: user.id, role: office },
+                          { onSuccess: () => setOffice("") },
+                        )
+                      }
+                    >
+                      {grant.isPending ? "Granting…" : "Grant"}
+                    </Btn>
+                  </span>
+                )
+              : "Party offices go only to staff logins with no campaign role."}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -590,6 +664,166 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
       )}
     </div>
   );
+}
+
+const PARTY_TEXT = [
+  ["name", "Name"],
+  ["short_name", "Short name"],
+  ["logo_url", "Logo URL"],
+  ["contact_email", "Contact email"],
+  ["contact_phone", "Phone"],
+  ["address", "Address"],
+  ["manifesto_url", "Manifesto URL"],
+];
+
+const partyForm = (party) => ({
+  ...Object.fromEntries(
+    [
+      ...PARTY_TEXT.map(([key]) => key),
+      "primary_colour",
+      "secondary_colour",
+      "description",
+      "manifesto_text",
+    ].map((key) => [key, party[key] ?? ""]),
+  ),
+  links: Object.entries(party.social_links || {}),
+});
+
+function PartyForm({ party }) {
+  const save = useSaveParty();
+  const [form, setForm] = useState(() => partyForm(party));
+  const [saved, setSaved] = useState(false);
+  const set = (patch) => {
+    setSaved(false);
+    setForm((f) => ({ ...f, ...patch }));
+  };
+  const setLink = (i, at, value) =>
+    set({
+      links: form.links.map((pair, j) =>
+        j === i ? pair.map((v, k) => (k === at ? value : v)) : pair,
+      ),
+    });
+
+  const submit = () => {
+    const { links, ...rest } = form;
+    save.mutate(
+      {
+        ...rest,
+        social_links: Object.fromEntries(
+          links
+            .map(([name, url]) => [name.trim(), url.trim()])
+            .filter(([name]) => name),
+        ),
+      },
+      { onSuccess: () => setSaved(true) },
+    );
+  };
+
+  return (
+    <Card>
+      <div className="admin-display admin-form-heading">Party settings</div>
+      <div className="flex flex-wrap gap-2">
+        {PARTY_TEXT.map(([key, label]) => (
+          <Field key={key} label={label}>
+            <input
+              className="admin-field admin-field-wide"
+              value={form[key]}
+              onChange={(e) => set({ [key]: e.target.value })}
+            />
+          </Field>
+        ))}
+        <Field label="Primary colour">
+          <input
+            className="admin-field admin-field-wide"
+            value={form.primary_colour}
+            onChange={(e) => set({ primary_colour: e.target.value })}
+            placeholder="#1f2937"
+          />
+        </Field>
+        <Field label="Secondary colour">
+          <input
+            className="admin-field admin-field-wide"
+            value={form.secondary_colour}
+            onChange={(e) => set({ secondary_colour: e.target.value })}
+            placeholder="#f59e0b"
+          />
+        </Field>
+      </div>
+      <div className="admin-form-spacer" />
+      <Field label="Description">
+        <textarea
+          className="admin-field admin-field-wide admin-field-area"
+          value={form.description}
+          onChange={(e) => set({ description: e.target.value })}
+        />
+      </Field>
+      <div className="admin-form-spacer" />
+      <Field label="Manifesto text">
+        <textarea
+          className="admin-field admin-field-wide admin-field-area"
+          value={form.manifesto_text}
+          onChange={(e) => set({ manifesto_text: e.target.value })}
+        />
+      </Field>
+      <div className="admin-form-spacer" />
+      <div className="admin-form-heading">Social links</div>
+      {form.links.map(([name, url], i) => (
+        <div key={i} className="flex flex-wrap items-center gap-2 admin-link-row">
+          <input
+            className="admin-field"
+            aria-label={`Social link ${i + 1} name`}
+            value={name}
+            onChange={(e) => setLink(i, 0, e.target.value)}
+            placeholder="facebook"
+          />
+          <input
+            className="admin-field admin-field-link"
+            aria-label={`Social link ${i + 1} address`}
+            value={url}
+            onChange={(e) => setLink(i, 1, e.target.value)}
+            placeholder="https://"
+          />
+          <Btn
+            onClick={() =>
+              set({ links: form.links.filter((_, j) => j !== i) })
+            }
+          >
+            Remove
+          </Btn>
+        </div>
+      ))}
+      <div className="admin-link-row">
+        <Btn onClick={() => set({ links: [...form.links, ["", ""]] })}>
+          Add a link
+        </Btn>
+      </div>
+
+      {save.error && <div className="admin-error">{save.error.message}</div>}
+      {saved && <div className="admin-form-help">Saved.</div>}
+
+      <div className="flex flex-wrap gap-2 admin-form-actions">
+        <Btn disabled={save.isPending} onClick={submit}>
+          {save.isPending ? "Saving…" : "Save the party settings"}
+        </Btn>
+      </div>
+    </Card>
+  );
+}
+
+function PartySettings() {
+  const party = useParty();
+  if (party.isPending)
+    return <LoadingState className="admin-loading" message="Loading the party settings…" />;
+  if (party.error)
+    return (
+      <Card>
+        <div className="admin-red">{party.error.message}</div>
+        <div className="admin-overview-action">
+          <Btn onClick={() => party.refetch()}>Try again</Btn>
+        </div>
+      </Card>
+    );
+  return <PartyForm key={party.data.updated_at} party={party.data} />;
 }
 
 // The header carries the only way out of the console, so every state renders
@@ -721,6 +955,7 @@ export default function Admin() {
           {[
             ["campaigns", `Campaigns (${campaigns.length})`],
             ["users", `Logins (${everyone.length})`],
+            ["party", "Party"],
           ].map(([key, label]) => (
             <button
               key={key}
@@ -750,6 +985,8 @@ export default function Admin() {
               <CampaignCard key={c.id} campaign={c} users={everyone} />
             ))
           ))}
+
+        {tab === "party" && <PartySettings />}
 
         {tab === "users" && (
           <Card>
