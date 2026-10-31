@@ -165,10 +165,13 @@ async def follow_member(
         return
 
 
-async def apply_part(session: AsyncSession, member_id: uuid.UUID, part: dict) -> None:
-    """Create or refresh the member's profile from a queued join's volunteer part.
+async def apply_part(
+    session: AsyncSession, member_id: uuid.UUID, part: dict, applies: bool
+) -> None:
+    """Create or refresh the member's profile from a queued join's volunteer part, when `applies`.
 
-    Runs the same statements whether or not the member already has a profile.
+    `applies` holds only when the join added or re-pended the member, so a join with someone
+    else's phone never touches their profile. Runs the same statements whatever the register holds.
     """
     now = datetime.now(UTC)
     values = {
@@ -194,15 +197,28 @@ async def apply_part(session: AsyncSession, member_id: uuid.UUID, part: dict) ->
         else_=VolunteerProfile.status,
     )
     new_id = uuid.uuid4()
+    columns = VolunteerProfile.__table__.c
+    row = {
+        "id": new_id,
+        "member_id": member_id,
+        "status": V.INTERESTED,
+        "created_at": now,
+        **values,
+    }
     await session.execute(
         upsert(session, VolunteerProfile)
-        .values(id=new_id, member_id=member_id, status=V.INTERESTED, created_at=now, **values)
+        .from_select(
+            list(row),
+            select(*(literal(v, columns[k].type).label(k) for k, v in row.items())).where(
+                literal(applies, Boolean)
+            ),
+        )
         .on_conflict_do_update(index_elements=["member_id"], set_={**values, "status": revived})
     )
     to = V.INTERESTED if old is None or old.status is V.WITHDRAWN else old.status
     await record_if(
         session,
-        True,
+        applies,
         actor_name="public",
         action="volunteer.interest",
         subject_type="volunteer_profile",

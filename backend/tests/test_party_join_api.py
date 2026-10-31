@@ -148,3 +148,49 @@ async def test_a_volunteer_section_without_its_consent_queues_nothing(
 
     assert refused.status_code == 400
     assert (await session.scalars(select(PartyRequest))).all() == []
+
+
+async def test_a_join_with_a_members_phone_cannot_take_over_their_volunteer_profile(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await client.post("/api/party/join/", json=_application(world, volunteer=_volunteer()))
+    await process_requests(session)
+    member = await session.scalar(select(PartyMember))
+    profile = await session.scalar(select(VolunteerProfile))
+    member.status, profile.status = PartyMemberStatus.APPROVED, VolunteerStatus.ACTIVE
+    await session.commit()
+    owner_code = profile.withdraw_code
+
+    stranger = await client.post(
+        "/api/party/join/",
+        json=_application(world, volunteer=_volunteer(interests=["fundraising"])),
+    )
+    await process_requests(session)
+    stranger_code = stranger.json()["volunteer_withdraw_url"].rsplit("/", 1)[1]
+    await client.post(f"/api/party/volunteer/withdraw/{stranger_code}/")
+    await process_requests(session)
+    await session.refresh(profile)
+
+    assert (profile.status, profile.interests, profile.withdraw_code) == (
+        VolunteerStatus.ACTIVE,
+        ["events", "polling_day"],
+        owner_code,
+    )
+
+
+async def test_a_join_with_a_members_phone_does_not_sign_them_up_to_volunteer(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await client.post("/api/party/join/", json=_application(world))
+    await process_requests(session)
+    member = await session.scalar(select(PartyMember))
+    member.status = PartyMemberStatus.APPROVED
+    await session.commit()
+
+    await client.post(
+        "/api/party/join/",
+        json=_application(world, volunteer=_volunteer()),
+    )
+    await process_requests(session)
+
+    assert (await session.scalars(select(VolunteerProfile))).all() == []
