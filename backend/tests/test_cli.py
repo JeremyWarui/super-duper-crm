@@ -18,9 +18,12 @@ async def cli(session: AsyncSession, *argv: str) -> int:
 async def test_createuser_makes_a_login_with_the_superuser_flag_only_when_asked(
     session: AsyncSession, world: World, capsys: pytest.CaptureFixture
 ) -> None:
-    assert await cli(session, "createuser", "-u", "root", "-p", TEST_PASSWORD, "--superuser") == 0
-    assert await cli(session, "createuser", "-u", "plain", "-p", TEST_PASSWORD) == 0
-    assert await cli(session, "createuser", "-u", "amina", "-p", TEST_PASSWORD) == 1
+    assert (
+        await cli(session, "createuser", "-u", "root", f"--password={TEST_PASSWORD}", "--superuser")
+        == 0
+    )
+    assert await cli(session, "createuser", "-u", "plain", f"--password={TEST_PASSWORD}") == 0
+    assert await cli(session, "createuser", "-u", "amina", f"--password={TEST_PASSWORD}") == 1
 
     flags = dict((await session.execute(select(User.username, User.is_superuser))).tuples().all())
     assert (flags["root"], flags["plain"]) == (True, False)
