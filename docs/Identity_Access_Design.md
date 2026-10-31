@@ -324,6 +324,49 @@ put the number on the register matches nothing when processed. Known gap:
 nobody proves they hold the number, so anyone can re-apply for a rejected or
 withdrawn number; closing it needs SMS verification.
 
+#### R1: `volunteer_profiles` (added 31 Oct 2026, owner decision)
+
+One optional profile per party member (`member_id` unique, FK `party_members`
+`ON DELETE CASCADE`). A volunteer is a party member; volunteers have no login
+and no portal or campaign access.
+
+| Column | Rule |
+|---|---|
+| `id` | UUID PK |
+| `member_id` | FK party_members, unique, cascade |
+| `status` | `interested | active | inactive | withdrawn`, default `interested` |
+| `interests` | JSON list of `mobilisation, events, communications, social_media, fundraising, administration, polling_day` |
+| `availability_notes` | text NULL, officer-edited |
+| `preferred_contact` | `call | sms | whatsapp | email` |
+| `consent_wording` | text NOT NULL, `CHECK <> ''`; its own wording, separate from membership |
+| `consent_at` | timestamptz NOT NULL |
+| `withdraw_code` | unique, NULL once spent; withdraws volunteer contact only |
+| `created_at`, `updated_at` | |
+
+Volunteer moves (enforced in `services/volunteers.py`, conditional writes like
+members):
+
+| From | To | Who / when |
+|---|---|---|
+| interested, inactive | active | officer, only while the member is approved |
+| active | inactive | officer; or automatically when the member is suspended |
+| interested, active, inactive | withdrawn | the volunteer (their own link); or automatically when the member is withdrawn or rejected |
+| withdrawn | interested | the person ticking the volunteer box again on the public form, with fresh consent |
+
+How a profile is made: the public form gains an optional volunteer section
+(the box "I would like to volunteer for the party", interests, preferred contact,
+and a separate consent box). Ticking it queues the volunteer part with the
+application in the same `party_requests` row. When processed, a new or
+re-applying member gets an `interested` profile; an existing member (pending,
+approved or suspended) gets one added or refreshed while their membership is
+untouched, which is how an approved member expresses interest without a login.
+The volunteer withdraw link (`/party/volunteer/withdraw/<code>`) is queued the
+same way and answers the same for any code. The join answer carries
+`volunteer_withdraw_url` only when the box was ticked, which depends on the
+form alone, never on the register. Every officer move, notes edit and export is
+audited; public volunteer moves are audited as `public`. Same known gap as
+members: nobody proves they hold the number.
+
 ### Permissions
 
 | Route | Anyone | Campaign user | Membership officer | Superuser |
@@ -336,6 +379,10 @@ withdrawn number; closing it needs SMS verification.
 | `GET /api/party/members/{id}/` | 401 | 403 | yes | yes |
 | `POST /api/party/members/{id}/status/` | 401 | 403 | yes | yes |
 | `GET /api/party/members/export.csv` | 401 | 403 | yes, audited | yes, audited |
+| `POST /api/party/volunteer/withdraw/{code}/` | yes, same answer always | | | |
+| `GET /api/party/volunteers/` (search by place, interest, status; page) | 401 | 403 | yes | yes |
+| `PATCH /api/party/volunteers/{id}/` (status active/inactive, availability notes) | 401 | 403 | yes, audited | yes, audited |
+| `GET /api/party/volunteers/export.csv` | 401 | 403 | yes, audited | yes, audited |
 | `PUT /api/admin/party/` | 401 | 403 | 403 | yes |
 | `POST/DELETE /api/admin/users/{id}/party-roles/` | 401 | 403 | 403 | yes |
 | `GET /api/admin/audit/` | 401 | 403 | 403 | yes |
@@ -350,10 +397,10 @@ holding one of `roles`; otherwise 403. `get_current_user` eager-loads
 | Path | Who | Release |
 |---|---|---|
 | `/join/:code`, `/withdraw/:code` | public | unchanged |
-| `/join-party`, `/party/withdraw/:code` | public | R1 |
+| `/join-party`, `/party/withdraw/:code`, `/party/volunteer/withdraw/:code` | public | R1 |
 | `/` | signed in: Gate picks the home | R0 |
 | `/campaign/:page` | campaign users, page in their `NAV` | R0 |
-| `/party/members` | membership officer, superuser | R1 |
+| `/party/members`, `/party/volunteers` | membership officer, superuser | R1 |
 | `/admin/*` | superuser | R0 (existing console) |
 
 Gate order: superuser → `/admin`; else campaign membership → `/campaign`; else
@@ -503,6 +550,29 @@ R1-4. Non-schema tickets run in parallel with them.
 - Files: `frontend/src/components/Admin.jsx`, `frontend/src/api/hooks.js`, `frontend/tests/admin.test.jsx`.
 - Tests: granting Membership Officer calls the endpoint and shows the role.
 - Depends: R1-2, R1-3.
+
+**R1-11 Volunteer profiles** (Sonnet, schema)
+- Files: `models/party.py`, `models/enums.py`, new revision on `party_requests`, new `services/volunteers.py` (moves, conditional writes, consent wording in `services/consent.py`), `services/membership.py` (apply the volunteer part of a queued join; member withdrawn, rejected or suspended moves the profile), new `tests/test_volunteers_service.py`.
+- Tests: an officer cannot activate a volunteer whose member is not approved; withdrawing the member withdraws the profile.
+- Depends: R1-4 (members), the inbox.
+
+**R1-12 Public volunteer section and withdraw link** (Sonnet, backend)
+- Files: `schemas/party.py`, `api/routers/party.py`, `services/membership.py` (`request_join` payload), `tests/test_route_guards.py`, `tests/test_party_join_api.py`.
+- API: `POST /api/party/join/` accepts optional `volunteer: {interests, preferred_contact, consent_given}` and returns `volunteer_withdraw_url` when given; `POST /api/party/volunteer/withdraw/{code}/` queues and answers the same for any code; `GET /api/party/` serves `volunteer_consent_wording`.
+- Tests: a volunteer withdrawal leaves the membership approved; a volunteer section without its consent is 400.
+- Depends: R1-11.
+
+**R1-13 Volunteer management API** (Sonnet, backend)
+- Files: new `api/routers/party_volunteers.py`, `services/volunteers.py`, `schemas/party.py`, `tests/test_party_volunteers_api.py`.
+- API: list with `q`, `status`, `interest`, `county`, `constituency`, `ward`, `limit`, `offset`; `PATCH` status (active/inactive) and `availability_notes`; `export.csv`. Inbox processed first, like the member routes.
+- Audit: every status change and notes edit (ids and statuses only); export with filters and row count.
+- Tests: campaign logins get 403 on every volunteer route; an officer activates an approved member's volunteer.
+- Depends: R1-11.
+
+**R1-14 Frontend: volunteer section, withdraw page, volunteers page** (Sonnet, frontend)
+- Files: `pages/public/JoinParty.jsx`, new `pages/public/WithdrawVolunteer.jsx`, new `pages/party/Volunteers.jsx`, `pages/party/Portal.jsx` (nav), `Gate.jsx` (route), `api/hooks.js`, `contracts/frontend-api.json`, tests.
+- Tests: the volunteer consent box is required only when the section is ticked; an officer filters by interest and activates a volunteer.
+- Depends: R1-12, R1-13.
 
 **R1-10 Integration** (lead)
 - Run every suite, the contract evals, the route guard test; update `docs/SYSTEM.md`; cold critic pass on isolation (attacker probes every new route with each role).

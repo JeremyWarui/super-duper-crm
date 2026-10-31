@@ -7,7 +7,13 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import PartyConsentChannel, PartyMember, PartyMemberStatus
+from backend.models import (
+    PartyConsentChannel,
+    PartyMember,
+    PartyMemberStatus,
+    PartyRequest,
+    PartyRequestKind,
+)
 from backend.services import membership
 from backend.services.consent import PARTY_WORDING
 from backend.services.errors import Refused
@@ -85,3 +91,31 @@ async def test_a_reapplication_read_before_an_approval_does_not_undo_it(
 
     assert reapplied is False
     assert stored is PartyMemberStatus.APPROVED
+
+
+async def test_a_request_that_cannot_be_applied_is_dropped_and_the_queue_moves_on(
+    session: AsyncSession, world: World
+):
+    session.add(
+        PartyRequest(
+            kind=PartyRequestKind.JOIN,
+            code="broken",
+            payload={"phone": "+254700000009", "ward_id": "not-a-uuid"},
+        )
+    )
+    await session.commit()
+    membership.request_join(
+        session,
+        full_name="Achieng Otieno",
+        phone="+254711222333",
+        email=None,
+        ward_id=world.ward.id,
+    )
+    await session.commit()
+
+    taken = await membership.process_requests(session)
+    phones = (await session.scalars(select(PartyMember.phone))).all()
+
+    assert taken == 2
+    assert phones == ["+254711222333"]
+    assert (await session.scalars(select(PartyRequest))).all() == []

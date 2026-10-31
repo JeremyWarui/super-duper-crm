@@ -1,5 +1,6 @@
 """The party register: allowed status moves, officer moves, and the public request inbox."""
 
+import logging
 import secrets
 import uuid
 from dataclasses import dataclass
@@ -27,6 +28,8 @@ from backend.services import volunteers
 from backend.services.audit import record
 from backend.services.consent import PARTY_WORDING
 from backend.services.errors import NotFound, Refused
+
+log = logging.getLogger(__name__)
 
 S = PartyMemberStatus
 
@@ -108,6 +111,7 @@ async def move(
     if to is S.PENDING:
         raise Refused("Only the person re-applying puts a member back to pending.")
     check_move(old, to)
+    cleared = {"withdraw_code": None} if to is S.WITHDRAWN else {}
     await _set_status(
         session,
         member,
@@ -116,6 +120,7 @@ async def move(
         status_reason=reason,
         decided_at=datetime.now(UTC),
         decided_by_id=actor.id,
+        **cleared,
     )
     record(
         session,
@@ -250,17 +255,23 @@ async def _apply_withdraw(session: AsyncSession, code: str) -> None:
             continue  # an officer moved them between the read and the write; read again
 
 
-async def process_requests(session: AsyncSession, *, limit: int = 500) -> int:
-    """Apply queued public requests in order, each once, and commit; returns how many."""
+async def process_requests(session: AsyncSession, *, limit: int = 100) -> int:
+    """Apply queued public requests in order, each once and in its own transaction.
+
+    A request that cannot be applied is logged by id and dropped, so it never blocks the queue.
+    Returns how many requests were taken.
+    """
     queued = (
         await session.scalars(
             select(PartyRequest).order_by(PartyRequest.created_at, PartyRequest.id).limit(limit)
         )
     ).all()
+    await session.commit()
     applied = 0
     for request in queued:
         claimed = await session.execute(delete(PartyRequest).where(PartyRequest.id == request.id))
         if claimed.rowcount != 1:
+            await session.commit()
             continue  # another processor took it
         try:
             async with session.begin_nested():
@@ -272,8 +283,10 @@ async def process_requests(session: AsyncSession, *, limit: int = 500) -> int:
                     await volunteers.withdraw_by_code(session, request.code)
         except (IntegrityError, Refused):
             pass  # the same phone was added by a concurrent processor, or an officer moved it
+        except Exception:
+            log.exception("Party request %s could not be applied and was dropped.", request.id)
+        await session.commit()
         applied += 1
-    await session.commit()
     return applied
 
 

@@ -64,7 +64,8 @@ describe("applying to join the party", () => {
     expect(offWithoutVolunteerDetails).toBe(true);
     expect(offWithoutVolunteerConsent).toBe(true);
     expect(calls.find((c) => c.method === "POST").body.volunteer).toEqual({ interests: ["events"], preferred_contact: "sms", consent_given: true });
-    expect(await screen.findByRole("link", { name: "Stop volunteer contact" })).toHaveAttribute("href", `${window.location.origin}/party/volunteer/withdraw/b`);
+    const stop = `${window.location.origin}/party/volunteer/withdraw/b`;
+    expect(await screen.findByRole("link", { name: stop })).toHaveAttribute("href", stop);
   });
 
   it("thanks the applicant and shows the withdrawal link in full", async () => {

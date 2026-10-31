@@ -25,9 +25,16 @@ log = logging.getLogger(__name__)
 
 
 async def _apply_party_requests(every: int) -> None:
-    """Apply queued public party requests every `every` seconds until cancelled."""
+    """Apply queued public party requests on a fixed clock, every `every` seconds.
+
+    Runs start on the clock rather than after the last run ends, so how long a run takes does
+    not shift when the next one starts.
+    """
+    loop = asyncio.get_running_loop()
+    tick = loop.time()
     while True:
-        await asyncio.sleep(every)
+        tick += every
+        await asyncio.sleep(max(0.0, tick - loop.time()))
         try:
             async with get_sessionmaker()() as session:
                 await membership.process_requests(session)

@@ -82,8 +82,8 @@ export default function JoinParty() {
         </div>
         {volunteerLink && (
           <div className="join-note">
-            This link stops volunteer contact and leaves your membership as it is:{" "}
-            <a href={volunteerLink} className="join-link">Stop volunteer contact</a>
+            Keep this link too: it stops volunteer contact and leaves your membership as it
+            is: <a href={volunteerLink} className="join-link">{volunteerLink}</a>
           </div>
         )}
       </>,
