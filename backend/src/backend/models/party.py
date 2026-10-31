@@ -17,21 +17,25 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
 from backend.models.enums import (
+    AspirantStatus,
     ContactMethod,
     PartyConsentChannel,
     PartyMemberStatus,
     PartyRequestKind,
     PartyRoleName,
+    Seat,
     VolunteerStatus,
 )
 
 if TYPE_CHECKING:
-    from backend.models.geography import Ward
+    from backend.models.campaign import Campaign
+    from backend.models.geography import Constituency, County, Ward
     from backend.models.user import User
 
 HEX_DIGITS = "'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'"
@@ -184,3 +188,76 @@ class VolunteerProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
     member: Mapped[PartyMember] = relationship(back_populates="volunteer")
+
+
+# A member has at most one nomination in these statuses.
+LIVE_NOMINATION = "status IN ('draft', 'submitted', 'approved', 'suspended')"
+
+
+class Aspirant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A party member's nomination for a seat, and the campaign made for it."""
+
+    __tablename__ = "aspirants"
+    __table_args__ = (
+        CheckConstraint(
+            "(seat = 'mca' AND ward_id IS NOT NULL "
+            "AND constituency_id IS NULL AND county_id IS NULL) "
+            "OR (seat = 'mp' AND constituency_id IS NOT NULL "
+            "AND ward_id IS NULL AND county_id IS NULL) "
+            "OR (seat IN ('governor', 'senator', 'women_rep') AND county_id IS NOT NULL "
+            "AND ward_id IS NULL AND constituency_id IS NULL)",
+            name="area_matches_seat",
+        ),
+        UniqueConstraint("campaign_id", name="uq_aspirants_campaign_id"),
+        Index(
+            "uq_aspirants_one_live_per_member",
+            "member_id",
+            unique=True,
+            sqlite_where=text(LIVE_NOMINATION),
+            postgresql_where=text(LIVE_NOMINATION),
+        ),
+    )
+
+    member_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("party_members.id", ondelete="RESTRICT"), index=True
+    )
+    seat: Mapped[Seat] = mapped_column(choice_type(Seat, "seat"), index=True)
+    county_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("counties.id", ondelete="RESTRICT"), default=None
+    )
+    constituency_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("constituencies.id", ondelete="RESTRICT"), default=None
+    )
+    ward_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("wards.id", ondelete="RESTRICT"), default=None
+    )
+    status: Mapped[AspirantStatus] = mapped_column(
+        choice_type(AspirantStatus, "aspirant_status"),
+        default=AspirantStatus.DRAFT,
+        index=True,
+    )
+    status_reason: Mapped[str | None] = mapped_column(Text, default=None)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    decided_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    campaign_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("campaigns.id", ondelete="SET NULL"), default=None
+    )
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+        sort_order=101,
+    )
+
+    member: Mapped[PartyMember] = relationship()
+    county: Mapped["County | None"] = relationship()
+    constituency: Mapped["Constituency | None"] = relationship()
+    ward: Mapped["Ward | None"] = relationship()
+    campaign: Mapped["Campaign | None"] = relationship()

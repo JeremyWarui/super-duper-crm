@@ -5,6 +5,7 @@ from backend.models.audit import AuditEvent
 from backend.models.auth_token import AuthToken
 from backend.models.campaign import Campaign
 from backend.models.enums import (
+    AspirantStatus,
     ConsentChannel,
     ContactMethod,
     EventStatus,
@@ -33,6 +34,7 @@ from backend.models.geography import (
 from backend.models.membership import CampaignMember
 from backend.models.mobilizer import Mobilizer
 from backend.models.party import (
+    Aspirant,
     PartyMember,
     PartyRequest,
     PartyRole,
@@ -45,6 +47,8 @@ from backend.models.target import Target, compute_win_number, unit_key
 from backend.models.user import User
 
 __all__ = [
+    "Aspirant",
+    "AspirantStatus",
     "AuditEvent",
     "AuthToken",
     "Base",

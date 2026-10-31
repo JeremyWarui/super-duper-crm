@@ -18,6 +18,9 @@ ONE_SUPPORTER = ("uq_supporters_campaign_phone", "supporters.campaign_id, suppor
 ONE_OFFICE = ("pk_party_roles", "party_roles.user_id, party_roles.role")
 # One party member per phone, as Postgres and SQLite name it.
 ONE_PARTY_MEMBER = ("uq_party_members_phone", "party_members.phone")
+# One live nomination per member, and one aspirant per campaign, as Postgres and SQLite name them.
+ONE_NOMINATION = ("uq_aspirants_one_live_per_member", "aspirants.member_id")
+ONE_WORKSPACE = ("uq_aspirants_campaign_id", "aspirants.campaign_id")
 # One live payment per mobilizer per event, as Postgres and SQLite name it.
 ONE_PAYMENT = ("uq_payments_event_mobilizer", "payments.event_id, payments.mobilizer_id")
 # The one-mobilizer-per-unit indexes, as Postgres and SQLite name them.
@@ -75,6 +78,12 @@ def register_error_handlers(app: FastAPI) -> None:
                 "That phone number is already on this campaign's register.",
                 status.HTTP_400_BAD_REQUEST,
             )
+        if any(name in str(exc.orig) for name in ONE_NOMINATION):
+            return _detail(
+                "That member already has a live nomination.", status.HTTP_400_BAD_REQUEST
+            )
+        if any(name in str(exc.orig) for name in ONE_WORKSPACE):
+            return _detail("That aspirant already has a workspace.", status.HTTP_400_BAD_REQUEST)
         if any(name in str(exc.orig) for name in ONE_PARTY_MEMBER):
             return _detail(
                 "That phone number is already on the party register.",

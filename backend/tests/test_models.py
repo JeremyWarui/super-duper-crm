@@ -5,15 +5,19 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import (
+    Aspirant,
+    AspirantStatus,
     Campaign,
     CampaignMember,
     Mobilizer,
     OfficeLevel,
     OperationalGrain,
+    PartyRoleName,
+    Seat,
     User,
     UserRole,
 )
-from tests.factories import make_campaign, make_geography
+from tests.factories import make_campaign, make_geography, make_officer
 
 
 async def test_ward_campaign_operates_at_centre_grain(session: AsyncSession) -> None:
@@ -75,3 +79,37 @@ async def test_deleting_a_mobilizers_user_keeps_the_mobilizer(
     await session.refresh(mobilizer)
     assert mobilizer.user_id is None
     assert mobilizer.full_name == "Juma"
+
+
+async def test_a_member_has_one_live_nomination_and_keeps_the_withdrawn_ones(
+    session: AsyncSession,
+) -> None:
+    _, _, ward, _ = await make_geography(session)
+    member_id = (
+        await make_officer(session, ward, PartyRoleName.MEMBERSHIP_OFFICER)
+    ).party_member_id
+    nomination = {"member_id": member_id, "seat": Seat.MCA, "ward_id": ward.id}
+    session.add(Aspirant(**nomination, status=AspirantStatus.WITHDRAWN))
+    session.add(Aspirant(**nomination))
+    await session.commit()
+
+    session.add(Aspirant(**nomination, status=AspirantStatus.SUBMITTED))
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
+async def test_a_nomination_names_only_the_area_its_seat_is_fought_over(
+    session: AsyncSession,
+) -> None:
+    _, constituency, ward, _ = await make_geography(session)
+    member_id = (
+        await make_officer(session, ward, PartyRoleName.MEMBERSHIP_OFFICER)
+    ).party_member_id
+    session.add(
+        Aspirant(
+            member_id=member_id, seat=Seat.MP, constituency_id=constituency.id, ward_id=ward.id
+        )
+    )
+
+    with pytest.raises(IntegrityError):
+        await session.commit()

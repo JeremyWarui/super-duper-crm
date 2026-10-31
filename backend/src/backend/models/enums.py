@@ -61,6 +61,15 @@ class Seat(LabelledStrEnum):
         return OfficeLevel.COUNTY
 
 
+class AspirantStatus(LabelledStrEnum):
+    DRAFT = ("draft", "Draft")
+    SUBMITTED = ("submitted", "Submitted")
+    APPROVED = ("approved", "Approved")
+    REJECTED = ("rejected", "Rejected")
+    WITHDRAWN = ("withdrawn", "Withdrawn")
+    SUSPENDED = ("suspended", "Suspended")
+
+
 class OperationalGrain(StrEnum):
     """The unit a campaign organizes on."""
 
