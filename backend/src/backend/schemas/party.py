@@ -7,6 +7,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, Field, StringConstraints, field_validator
 
+from backend.models import PartyConsentChannel, PartyMemberStatus
 from backend.schemas.common import ORMModel, WriteModel
 
 COLOUR = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -102,3 +103,40 @@ class PartyPlace(ORMModel):
 
     id: uuid.UUID
     name: str
+
+
+class MemberPlace(ORMModel):
+    id: uuid.UUID
+    name: str
+
+
+class MemberRead(ORMModel):
+    """A register row as the officer's list shows it."""
+
+    id: uuid.UUID
+    full_name: str
+    phone: str
+    email: str | None
+    status: PartyMemberStatus
+    ward: MemberPlace
+    constituency: MemberPlace
+    county: MemberPlace
+    created_at: datetime
+
+
+class MemberDetail(MemberRead):
+    status_reason: str | None
+    decided_at: datetime | None
+    consent_channel: PartyConsentChannel
+    consent_wording: str
+    consent_at: datetime
+
+
+class MemberPage(BaseModel):
+    total: int
+    items: list[MemberRead]
+
+
+class MemberMove(WriteModel):
+    status: PartyMemberStatus
+    reason: str | None = Field(default=None, max_length=1000)
