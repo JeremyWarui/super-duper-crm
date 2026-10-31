@@ -1,10 +1,11 @@
 """The party's settings as the public site reads them and the console writes them."""
 
 import re
+import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import AfterValidator, Field
+from pydantic import AfterValidator, BaseModel, Field, StringConstraints, field_validator
 
 from backend.schemas.common import ORMModel, WriteModel
 
@@ -66,3 +67,31 @@ class PartySettingsUpdate(WriteModel):
     manifesto_text: str = ""
     manifesto_url: Link = ""
     social_links: dict[Annotated[str, Field(max_length=40)], Link] = Field(default_factory=dict)
+
+
+class PartyJoinCreate(WriteModel):
+    full_name: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)
+    ]
+    phone: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
+    email: Annotated[Email, StringConstraints(strip_whitespace=True)] | None = None
+    ward: uuid.UUID
+    consent_given: bool
+
+    @field_validator("consent_given")
+    @classmethod
+    def _consent_is_required(cls, value: bool) -> bool:
+        # Data Protection Act 2019.
+        if not value:
+            raise ValueError("Consent is required before we can store these details.")
+        return value
+
+
+class PartyJoinDone(BaseModel):
+    """`withdraw_url` is the path of the applicant's withdrawal page."""
+
+    withdraw_url: str
+
+
+class PartyWithdrawn(BaseModel):
+    message: str

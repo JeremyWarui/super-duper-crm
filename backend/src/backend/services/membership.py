@@ -12,7 +12,7 @@ from backend.services.errors import Refused
 S = PartyMemberStatus
 
 MOVES: dict[PartyMemberStatus, frozenset[PartyMemberStatus]] = {
-    S.PENDING: frozenset({S.APPROVED, S.REJECTED}),
+    S.PENDING: frozenset({S.APPROVED, S.REJECTED, S.WITHDRAWN}),
     S.APPROVED: frozenset({S.SUSPENDED, S.WITHDRAWN}),
     S.SUSPENDED: frozenset({S.APPROVED, S.WITHDRAWN}),
     S.REJECTED: frozenset({S.PENDING}),
@@ -56,3 +56,13 @@ async def move(
         subject_id=member.id,
         detail={"from": old.value, "to": to.value},
     )
+
+
+def withdraw(member: PartyMember) -> None:
+    """The member's own withdrawal through their link; the link works once. The caller commits."""
+    check_move(member.status, S.WITHDRAWN)
+    member.status = S.WITHDRAWN
+    member.status_reason = None
+    member.decided_at = datetime.now(UTC)
+    member.decided_by_id = None
+    member.withdraw_code = None

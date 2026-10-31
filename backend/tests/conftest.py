@@ -36,10 +36,12 @@ if TYPE_CHECKING:
 @pytest.fixture(autouse=True)
 def fresh_rate_limits() -> None:
     """Each test starts with the public pages' allowances unused."""
-    from backend.api.routers import join
+    from backend.api.routers import join, party
 
     join.SIGNUPS._hits.clear()
     join.WITHDRAWALS._hits.clear()
+    party.JOINS._hits.clear()
+    party.WITHDRAWALS._hits.clear()
 
 
 @pytest.fixture(autouse=True, scope="session")

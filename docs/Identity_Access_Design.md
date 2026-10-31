@@ -301,6 +301,7 @@ allowed):
 | From | To | Who |
 |---|---|---|
 | pending | approved, rejected | officer |
+| pending | withdrawn | the member (withdraw link) or officer |
 | approved | suspended | officer |
 | suspended | approved | officer |
 | approved, suspended | withdrawn | the member (withdraw link) or officer |
