@@ -42,6 +42,7 @@ def fresh_rate_limits() -> None:
     join.WITHDRAWALS._hits.clear()
     party.JOINS._hits.clear()
     party.WITHDRAWALS._hits.clear()
+    party.VOLUNTEER_WITHDRAWALS._hits.clear()
 
 
 @pytest.fixture(autouse=True, scope="session")

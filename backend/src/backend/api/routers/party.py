@@ -29,7 +29,9 @@ router = APIRouter(prefix="/party", tags=["party"])
 # Applications one device may send in an hour, and withdrawal attempts.
 JOINS = RateLimit(limit=20, window=3600)
 WITHDRAWALS = RateLimit(limit=20, window=3600)
+VOLUNTEER_WITHDRAWALS = RateLimit(limit=20, window=3600)
 WITHDRAW_PATH = "/party/withdraw/"
+VOLUNTEER_WITHDRAW_PATH = "/party/volunteer/withdraw/"
 # The same answer for every code, so a code cannot be tested for whether it was real.
 WITHDRAWN = (
     "Received. If this link came with the application that put your number on the register, "
@@ -37,6 +39,15 @@ WITHDRAWN = (
     "the record with the status withdrawn. Otherwise this link changes nothing: ask the party "
     "to withdraw you."
 )
+VOLUNTEER_WITHDRAWN = (
+    "Received. If this link came with your volunteer sign-up, the party will stop contacting you "
+    "about volunteering within a few minutes. Your membership is unchanged."
+)
+
+
+def _well_formed(code: str) -> bool:
+    """Codes are url-safe and at most 32 characters; anything else matches nothing."""
+    return len(code) <= 32 and code.replace("-", "").replace("_", "").isalnum() and code.isascii()
 
 
 @router.get("/", response_model=PartySettingsRead)
@@ -78,15 +89,21 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
         )
     if await session.get(Ward, payload.ward) is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such ward.")
-    code = membership.request_join(
+    code, volunteer_code = membership.request_join(
         session,
         full_name=payload.full_name,
         phone=phone,
         email=payload.email or None,
         ward_id=payload.ward,
+        volunteer=payload.volunteer.model_dump() if payload.volunteer else None,
     )
     await session.commit()
-    return PartyJoinDone(withdraw_url=f"{WITHDRAW_PATH}{code}")
+    return PartyJoinDone(
+        withdraw_url=f"{WITHDRAW_PATH}{code}",
+        volunteer_withdraw_url=(
+            f"{VOLUNTEER_WITHDRAW_PATH}{volunteer_code}" if volunteer_code else None
+        ),
+    )
 
 
 @router.post("/withdraw/{code}/", response_model=PartyWithdrawn)
@@ -94,8 +111,18 @@ async def withdraw(code: str, request: Request, session: SessionDep) -> PartyWit
     """Queue a withdrawal by code; the answer is the same for any code."""
     if not WITHDRAWALS.allow(_client(request)):
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
-    # Codes are url-safe and at most 32 characters; anything else matches nothing.
-    if len(code) <= 32 and code.replace("-", "").replace("_", "").isalnum() and code.isascii():
+    if _well_formed(code):
         membership.request_withdraw(session, code)
         await session.commit()
     return PartyWithdrawn(message=WITHDRAWN)
+
+
+@router.post("/volunteer/withdraw/{code}/", response_model=PartyWithdrawn)
+async def withdraw_volunteer(code: str, request: Request, session: SessionDep) -> PartyWithdrawn:
+    """Queue a volunteer withdrawal by code; the answer is the same for any code."""
+    if not VOLUNTEER_WITHDRAWALS.allow(_client(request)):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    if _well_formed(code):
+        membership.request_volunteer_withdraw(session, code)
+        await session.commit()
+    return PartyWithdrawn(message=VOLUNTEER_WITHDRAWN)

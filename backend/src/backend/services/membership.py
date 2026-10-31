@@ -13,12 +13,14 @@ from sqlalchemy.orm.attributes import set_committed_value
 
 from backend.models import (
     Constituency,
+    ContactMethod,
     PartyConsentChannel,
     PartyMember,
     PartyMemberStatus,
     PartyRequest,
     PartyRequestKind,
     User,
+    VolunteerInterest,
     Ward,
 )
 from backend.services import volunteers
@@ -153,29 +155,42 @@ async def withdraw(session: AsyncSession, member: PartyMember) -> None:
 
 
 def request_join(
-    session: AsyncSession, *, full_name: str, phone: str, email: str | None, ward_id: uuid.UUID
-) -> str:
-    """Queue a public application and return its withdraw code; the caller commits.
+    session: AsyncSession,
+    *,
+    full_name: str,
+    phone: str,
+    email: str | None,
+    ward_id: uuid.UUID,
+    volunteer: dict | None = None,
+) -> tuple[str, str | None]:
+    """Queue a public application; returns its withdraw code and the volunteer one, if any.
+
+    The caller commits.
 
     Every application is this one insert, whatever the register holds, so neither the answer
     nor its timing shows whether the phone is registered.
     """
     code = new_withdraw_code()
-    session.add(
-        PartyRequest(
-            kind=PartyRequestKind.JOIN,
-            code=code,
-            payload={
-                "full_name": full_name,
-                "phone": phone,
-                "email": email,
-                "ward_id": str(ward_id),
-                "consent_wording": PARTY_WORDING[PartyConsentChannel.WEB_FORM],
-                "consent_at": datetime.now(UTC).isoformat(),
-            },
-        )
-    )
-    return code
+    now = datetime.now(UTC).isoformat()
+    payload = {
+        "full_name": full_name,
+        "phone": phone,
+        "email": email,
+        "ward_id": str(ward_id),
+        "consent_wording": PARTY_WORDING[PartyConsentChannel.WEB_FORM],
+        "consent_at": now,
+    }
+    volunteer_code = None
+    if volunteer is not None:
+        volunteer_code = new_withdraw_code()
+        payload["volunteer"] = {
+            "interests": [VolunteerInterest(i).value for i in volunteer["interests"]],
+            "preferred_contact": ContactMethod(volunteer["preferred_contact"]).value,
+            "consent_at": now,
+            "code": volunteer_code,
+        }
+    session.add(PartyRequest(kind=PartyRequestKind.JOIN, code=code, payload=payload))
+    return code, volunteer_code
 
 
 def request_withdraw(session: AsyncSession, code: str) -> None:
@@ -220,7 +235,7 @@ async def _apply_join(session: AsyncSession, request: PartyRequest) -> None:
     else:
         return
     if "volunteer" in p:
-        await volunteers.apply_volunteer(session, member, p["volunteer"], request.code)
+        await volunteers.apply_volunteer(session, member, p["volunteer"], p["volunteer"]["code"])
 
 
 async def _apply_withdraw(session: AsyncSession, code: str) -> None:

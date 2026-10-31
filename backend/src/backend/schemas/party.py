@@ -15,9 +15,9 @@ from pydantic import (
     model_validator,
 )
 
-from backend.models import PartyConsentChannel, PartyMemberStatus
+from backend.models import ContactMethod, PartyConsentChannel, PartyMemberStatus, VolunteerInterest
 from backend.schemas.common import ORMModel, WriteModel, plain_text
-from backend.services.consent import PARTY_WORDING
+from backend.services.consent import PARTY_WORDING, VOLUNTEER_WORDING
 
 COLOUR = re.compile(r"^#[0-9a-fA-F]{6}$")
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -64,6 +64,7 @@ class PartySettingsRead(ORMModel):
     updated_at: datetime
     # The application form's consent label; the server records this same text.
     consent_wording: str = PARTY_WORDING[PartyConsentChannel.WEB_FORM]
+    volunteer_consent_wording: str = VOLUNTEER_WORDING
 
 
 class PartySettingsUpdate(WriteModel):
@@ -94,6 +95,28 @@ class PartySettingsUpdate(WriteModel):
         return self
 
 
+class VolunteerPart(WriteModel):
+    """The application form's optional volunteer section."""
+
+    interests: Annotated[list[VolunteerInterest], Field(min_length=1)]
+    preferred_contact: ContactMethod
+    consent_given: StrictBool
+
+    @field_validator("interests")
+    @classmethod
+    def _no_duplicates(cls, value: list[VolunteerInterest]) -> list[VolunteerInterest]:
+        if len(set(value)) != len(value):
+            raise ValueError("List each interest once.")
+        return value
+
+    @field_validator("consent_given")
+    @classmethod
+    def _consent_is_required(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("Consent is required before the party can contact you.")
+        return value
+
+
 class PartyJoinCreate(WriteModel):
     full_name: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)
@@ -102,6 +125,7 @@ class PartyJoinCreate(WriteModel):
     email: Annotated[Email, StringConstraints(strip_whitespace=True)] | None = None
     ward: uuid.UUID
     consent_given: StrictBool
+    volunteer: VolunteerPart | None = None
 
     @field_validator("full_name", "phone", "email")
     @classmethod
@@ -125,9 +149,10 @@ class PartyJoinCreate(WriteModel):
 
 
 class PartyJoinDone(BaseModel):
-    """`withdraw_url` is the path of the applicant's withdrawal page."""
+    """The paths of the applicant's withdrawal pages; the volunteer one only if they volunteered."""
 
     withdraw_url: str
+    volunteer_withdraw_url: str | None = None
 
 
 class PartyWithdrawn(BaseModel):

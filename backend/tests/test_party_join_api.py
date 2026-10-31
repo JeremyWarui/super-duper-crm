@@ -4,7 +4,14 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AuditEvent, PartyMember, PartyMemberStatus, PartyRequest
+from backend.models import (
+    AuditEvent,
+    PartyMember,
+    PartyMemberStatus,
+    PartyRequest,
+    VolunteerProfile,
+    VolunteerStatus,
+)
 from backend.services.membership import process_requests
 from tests.conftest import World
 
@@ -98,3 +105,46 @@ async def test_the_members_own_link_withdraws_them_once_and_is_audited_as_public
     assert [(e.action, e.actor_name, e.detail) for e in events] == [
         ("member.withdraw", "public", {"from": "pending", "to": "withdrawn"})
     ]
+
+
+def _volunteer(**overrides) -> dict:
+    return {
+        "interests": ["events", "polling_day"],
+        "preferred_contact": "whatsapp",
+        "consent_given": True,
+        **overrides,
+    }
+
+
+async def test_a_volunteer_withdrawal_leaves_the_membership_approved(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    joined = await client.post("/api/party/join/", json=_application(world, volunteer=_volunteer()))
+    await process_requests(session)
+    member = await session.scalar(select(PartyMember))
+    member.status = PartyMemberStatus.APPROVED
+    await session.commit()
+    code = joined.json()["volunteer_withdraw_url"].rsplit("/", 1)[1]
+
+    done = await client.post(f"/api/party/volunteer/withdraw/{code}/")
+    await process_requests(session)
+    profile = await session.scalar(select(VolunteerProfile))
+    await session.refresh(member)
+
+    assert done.status_code == 200
+    assert code != joined.json()["withdraw_url"].rsplit("/", 1)[1]
+    assert (profile.status, member.status) == (
+        VolunteerStatus.WITHDRAWN,
+        PartyMemberStatus.APPROVED,
+    )
+
+
+async def test_a_volunteer_section_without_its_consent_queues_nothing(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    refused = await client.post(
+        "/api/party/join/", json=_application(world, volunteer=_volunteer(consent_given=False))
+    )
+
+    assert refused.status_code == 400
+    assert (await session.scalars(select(PartyRequest))).all() == []
