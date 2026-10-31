@@ -1,5 +1,7 @@
 """The ASGI application."""
 
+import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -15,13 +17,31 @@ from backend import __version__
 from backend.api.errors import register_error_handlers
 from backend.api.routers import api_router
 from backend.config import get_settings
-from backend.db.session import get_engine
+from backend.db.session import get_engine, get_sessionmaker
 from backend.models import Base  # noqa: F401
+from backend.services import membership
+
+log = logging.getLogger(__name__)
+
+
+async def _apply_party_requests(every: int) -> None:
+    """Apply queued public party requests every `every` seconds until cancelled."""
+    while True:
+        await asyncio.sleep(every)
+        try:
+            async with get_sessionmaker()() as session:
+                await membership.process_requests(session)
+        except Exception:
+            log.exception("Applying party requests failed; retrying next run.")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    every = get_settings().party_inbox_seconds
+    task = asyncio.create_task(_apply_party_requests(every)) if every > 0 else None
     yield
+    if task is not None:
+        task.cancel()
     await get_engine().dispose()
 
 

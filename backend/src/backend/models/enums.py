@@ -102,3 +102,10 @@ class SupportLevel(LabelledStrEnum):
     SUPPORTER = ("supporter", "Supporter")
     UNDECIDED = ("undecided", "Undecided")
     OPPOSED = ("opposed", "Opposed")
+
+
+class PartyRequestKind(StrEnum):
+    """What a public request to the party register asks for."""
+
+    JOIN = "join"
+    WITHDRAW = "withdraw"

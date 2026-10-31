@@ -60,14 +60,14 @@ export default function JoinParty() {
       <>
         {heading}
         <div className="join-message-success">
-          Thank you, the party has your details.
+          Thank you, the party has received your application.
         </div>
         <div className="join-note">
-          If this number is new to the register, or was rejected or withdrawn before, your
-          application is now pending review, and this link withdraws it:{" "}
+          If this number is new to the register, or was rejected or withdrawn before, the
+          application will be pending review within a few minutes, and this link withdraws it:{" "}
           <a href={link} className="join-link">{link}</a> If the number already belongs to an
-          application or membership, nothing has changed and the link does nothing; contact the
-          party instead.
+          application or membership, nothing changes and the link does nothing; contact the party
+          instead.
         </div>
       </>,
     );

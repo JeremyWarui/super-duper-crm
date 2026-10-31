@@ -1,4 +1,4 @@
-"""The party register: which status moves are allowed, and the officer's move."""
+"""The party register: allowed status moves, officer moves, and the public request inbox."""
 
 import secrets
 import uuid
@@ -6,19 +6,23 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import Select, delete, func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm.attributes import set_committed_value
 
 from backend.models import (
     Constituency,
-    PartyDecoyCode,
+    PartyConsentChannel,
     PartyMember,
     PartyMemberStatus,
+    PartyRequest,
+    PartyRequestKind,
     User,
     Ward,
 )
 from backend.services.audit import record
+from backend.services.consent import PARTY_WORDING
 from backend.services.errors import NotFound, Refused
 
 S = PartyMemberStatus
@@ -59,21 +63,19 @@ async def _set_status(
         set_committed_value(member, name, value)
 
 
-async def reapply(session: AsyncSession, member: PartyMember, **values) -> bool:
-    """Put a rejected or withdrawn member back to pending; False if an officer moved them first."""
+async def reapply(
+    session: AsyncSession, member: PartyMember, old: PartyMemberStatus, **values
+) -> bool:
+    """Put a rejected or withdrawn member back to pending, audited with the status it left.
+
+    False when the row no longer has status `old`, because an officer moved it meanwhile.
+    """
+    if old not in (S.REJECTED, S.WITHDRAWN):
+        return False
     changed = await session.execute(
         update(PartyMember)
-        .where(
-            PartyMember.id == member.id,
-            PartyMember.status.in_((S.REJECTED, S.WITHDRAWN)),
-        )
-        .values(
-            status=S.PENDING,
-            status_reason=None,
-            decided_at=None,
-            decided_by_id=None,
-            **values,
-        )
+        .where(PartyMember.id == member.id, PartyMember.status == old)
+        .values(status=S.PENDING, status_reason=None, decided_at=None, decided_by_id=None, **values)
         .execution_options(synchronize_session=False)
     )
     if changed.rowcount != 1:
@@ -85,16 +87,9 @@ async def reapply(session: AsyncSession, member: PartyMember, **values) -> bool:
         action="member.reapply",
         subject_type="party_member",
         subject_id=member.id,
-        detail={"from": member.status.value, "to": S.PENDING.value},
+        detail={"from": old.value, "to": S.PENDING.value},
     )
     return True
-
-
-def decoy(session: AsyncSession) -> str:
-    """Hand out a code for a number already on the register; spending it withdraws nothing."""
-    code = new_withdraw_code()
-    session.add(PartyDecoyCode(code=code))
-    return code
 
 
 async def move(
@@ -154,26 +149,102 @@ async def withdraw(session: AsyncSession, member: PartyMember) -> None:
     )
 
 
-async def withdraw_by_code(session: AsyncSession, code: str) -> None:
-    """Withdraw the member a code belongs to, or spend a decoy: one write either way.
+def request_join(
+    session: AsyncSession, *, full_name: str, phone: str, email: str | None, ward_id: uuid.UUID
+) -> str:
+    """Queue a public application and return its withdraw code; the caller commits.
 
-    A code that was spent or never handed out writes nothing, the same as a second call on a
-    real or a decoy code. The caller commits.
+    Every application is this one insert, whatever the register holds, so neither the answer
+    nor its timing shows whether the phone is registered.
     """
-    for _ in range(2):
-        member = await session.scalar(
-            select(PartyMember)
-            .where(PartyMember.withdraw_code == code)
-            .execution_options(populate_existing=True)
+    code = new_withdraw_code()
+    session.add(
+        PartyRequest(
+            kind=PartyRequestKind.JOIN,
+            code=code,
+            payload={
+                "full_name": full_name,
+                "phone": phone,
+                "email": email,
+                "ward_id": str(ward_id),
+                "consent_wording": PARTY_WORDING[PartyConsentChannel.WEB_FORM],
+                "consent_at": datetime.now(UTC).isoformat(),
+            },
         )
+    )
+    return code
+
+
+def request_withdraw(session: AsyncSession, code: str) -> None:
+    """Queue a public withdrawal by code; the caller commits."""
+    session.add(PartyRequest(kind=PartyRequestKind.WITHDRAW, code=code, payload={}))
+
+
+async def _fresh(session: AsyncSession, where) -> PartyMember | None:
+    """The member matching `where`, read from the database rather than the session."""
+    return await session.scalar(
+        select(PartyMember).where(where).execution_options(populate_existing=True)
+    )
+
+
+async def _apply_join(session: AsyncSession, request: PartyRequest) -> None:
+    p = request.payload
+    values = {
+        "full_name": p["full_name"],
+        "email": p["email"],
+        "ward_id": uuid.UUID(p["ward_id"]),
+        "consent_channel": PartyConsentChannel.WEB_FORM,
+        "consent_wording": p["consent_wording"],
+        "consent_at": datetime.fromisoformat(p["consent_at"]),
+        "withdraw_code": request.code,
+    }
+    for _ in range(2):
+        member = await _fresh(session, PartyMember.phone == p["phone"])
         if member is None:
-            break
+            session.add(PartyMember(phone=p["phone"], status=S.PENDING, **values))
+            await session.flush()
+            return
+        if member.status not in (S.REJECTED, S.WITHDRAWN):
+            return  # already an application or membership; the code withdraws nothing
+        if await reapply(session, member, member.status, **values):
+            return
+
+
+async def _apply_withdraw(session: AsyncSession, code: str) -> None:
+    for _ in range(2):
+        member = await _fresh(session, PartyMember.withdraw_code == code)
+        if member is None:
+            return
         try:
             await withdraw(session, member)
             return
         except Refused:
             continue  # an officer moved them between the read and the write; read again
-    await session.execute(delete(PartyDecoyCode).where(PartyDecoyCode.code == code))
+
+
+async def process_requests(session: AsyncSession, *, limit: int = 500) -> int:
+    """Apply queued public requests in order, each once, and commit; returns how many."""
+    queued = (
+        await session.scalars(
+            select(PartyRequest).order_by(PartyRequest.created_at, PartyRequest.id).limit(limit)
+        )
+    ).all()
+    applied = 0
+    for request in queued:
+        claimed = await session.execute(delete(PartyRequest).where(PartyRequest.id == request.id))
+        if claimed.rowcount != 1:
+            continue  # another processor took it
+        try:
+            async with session.begin_nested():
+                if request.kind is PartyRequestKind.JOIN:
+                    await _apply_join(session, request)
+                else:
+                    await _apply_withdraw(session, request.code)
+        except (IntegrityError, Refused):
+            pass  # the same phone was added by a concurrent processor, or an officer moved it
+        applied += 1
+    await session.commit()
+    return applied
 
 
 @dataclass(frozen=True)

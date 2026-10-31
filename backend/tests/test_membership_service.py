@@ -78,7 +78,9 @@ async def test_a_reapplication_read_before_an_approval_does_not_undo_it(
         .execution_options(synchronize_session=False)
     )
 
-    reapplied = await membership.reapply(session, member, full_name="Someone Else")
+    reapplied = await membership.reapply(
+        session, member, PartyMemberStatus.WITHDRAWN, full_name="Someone Else"
+    )
     stored = await session.scalar(select(PartyMember.status).where(PartyMember.id == member.id))
 
     assert reapplied is False

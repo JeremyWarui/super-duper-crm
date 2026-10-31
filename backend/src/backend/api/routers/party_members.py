@@ -81,6 +81,7 @@ async def list_members(
     offset: Annotated[int, Query(ge=0, le=1_000_000)] = 0,
 ) -> MemberPage:
     """A page of the register, newest first."""
+    await membership.process_requests(session)
     total, rows = await membership.members(session, filters, limit, offset)
     return MemberPage(total=total, items=[_read(row, MemberRead) for row in rows])
 
@@ -90,6 +91,7 @@ async def export_members(
     user: MembershipOfficer, session: SessionDep, filters: FiltersDep
 ) -> Response:
     """Every matching member as CSV; the export is audited before it is sent."""
+    await membership.process_requests(session)
     rows = await membership.export_rows(session, filters)
     record(
         session,
@@ -125,6 +127,7 @@ async def export_members(
 
 @router.get("/{member_id}/", response_model=MemberDetail)
 async def get_member(member_id: uuid.UUID, user: MembershipOfficer, session: SessionDep):
+    await membership.process_requests(session)
     member = await membership.get_member(session, member_id)
     return _read(member, MemberDetail)
 
@@ -134,6 +137,7 @@ async def move_member(
     member_id: uuid.UUID, payload: MemberMove, user: MembershipOfficer, session: SessionDep
 ):
     """Move a member to a new status, with an optional reason."""
+    await membership.process_requests(session)
     member = await membership.get_member(session, member_id)
     await membership.move(session, member, payload.status, actor=user, reason=payload.reason)
     await session.commit()

@@ -9,6 +9,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -19,7 +20,12 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
-from backend.models.enums import PartyConsentChannel, PartyMemberStatus, PartyRoleName
+from backend.models.enums import (
+    PartyConsentChannel,
+    PartyMemberStatus,
+    PartyRequestKind,
+    PartyRoleName,
+)
 
 if TYPE_CHECKING:
     from backend.models.geography import Ward
@@ -119,9 +125,15 @@ class PartyMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         return self.full_name
 
 
-class PartyDecoyCode(TimestampMixin, Base):
-    """A withdrawal code handed to a number already on the register; it withdraws nothing."""
+class PartyRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A public join or withdrawal waiting to be applied to the register; deleted once applied."""
 
-    __tablename__ = "party_decoy_codes"
+    __tablename__ = "party_requests"
+    __table_args__ = (Index("ix_party_requests_created_at", "created_at"),)
 
-    code: Mapped[str] = mapped_column(String(32), primary_key=True)
+    kind: Mapped[PartyRequestKind] = mapped_column(
+        choice_type(PartyRequestKind, "party_request_kind")
+    )
+    # A join's new withdraw code, or the code a withdrawal presents.
+    code: Mapped[str] = mapped_column(String(32))
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)

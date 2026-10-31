@@ -5,8 +5,11 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# Control, invisible formatting (zero-width, direction overrides), surrogate, private, unassigned.
-HIDDEN = frozenset({"Cc", "Cf", "Cs", "Co", "Cn"})
+# Control, invisible formatting (zero-width, direction overrides), surrogate, private, unassigned,
+# and line or paragraph separators.
+HIDDEN = frozenset({"Cc", "Cf", "Cs", "Co", "Cn", "Zl", "Zp"})
+# Characters that draw nothing but count as letters or symbols: Hangul fillers, Braille blank.
+BLANK = frozenset("ᅟᅠㅤﾠ⠀")
 
 
 def plain_text(value: str | None, *, lines: bool = False) -> str | None:
@@ -17,7 +20,9 @@ def plain_text(value: str | None, *, lines: bool = False) -> str | None:
     if value is None:
         return value
     allowed = "\t\n\r" if lines else ""
-    if any(unicodedata.category(ch) in HIDDEN and ch not in allowed for ch in value):
+    if any(
+        (unicodedata.category(ch) in HIDDEN and ch not in allowed) or ch in BLANK for ch in value
+    ):
         raise ValueError("Use letters, numbers and punctuation only.")
     return value
 

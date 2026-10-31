@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     # A built SPA served at "/"; blank serves the API alone.
     static_dir: str = ""
 
+    # Seconds between runs applying public party requests to the register; 0 switches it off.
+    party_inbox_seconds: int = 60
+
     # One password for every account the app creates; blank generates one each.
     default_user_password: str = ""
 

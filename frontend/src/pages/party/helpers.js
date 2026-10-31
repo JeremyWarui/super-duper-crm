@@ -27,6 +27,6 @@ export const MOVES = {
   pending: [["approved", "Approve"], ["rejected", "Reject"], ["withdrawn", "Withdraw"]],
   approved: [["suspended", "Suspend"], ["withdrawn", "Withdraw"]],
   suspended: [["approved", "Reinstate"], ["withdrawn", "Withdraw"]],
-  rejected: [],
+  rejected: [["withdrawn", "Withdraw"]],
   withdrawn: [],
 };

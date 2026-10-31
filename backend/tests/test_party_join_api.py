@@ -4,7 +4,8 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AuditEvent, PartyDecoyCode, PartyMember, PartyMemberStatus
+from backend.models import AuditEvent, PartyMember, PartyMemberStatus, PartyRequest
+from backend.services.membership import process_requests
 from tests.conftest import World
 
 
@@ -31,6 +32,7 @@ async def test_a_repeat_phone_answers_like_a_new_one_and_leaves_the_member_alone
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     new = await client.post("/api/party/join/", json=_application(world))
+    await process_requests(session)
     member = await session.scalar(select(PartyMember))
     member.status = PartyMemberStatus.APPROVED
     await session.commit()
@@ -39,6 +41,7 @@ async def test_a_repeat_phone_answers_like_a_new_one_and_leaves_the_member_alone
     repeat = await client.post(
         "/api/party/join/", json=_application(world, full_name="Someone Else")
     )
+    await process_requests(session)
     await session.refresh(member)
 
     assert (repeat.status_code, set(repeat.json())) == (new.status_code, set(new.json()))
@@ -63,28 +66,19 @@ async def test_the_place_picker_walks_county_constituency_ward_without_a_login(
     assert [w["name"] for w in wards] == ["Githurai", "Zimmerman"]
 
 
-async def test_a_repeat_phones_link_is_a_stored_decoy_that_spends_without_touching_the_member(
+async def test_a_public_join_only_queues_a_request_until_the_inbox_is_applied(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     await client.post("/api/party/join/", json=_application(world))
+    queued = (await session.scalars(select(PartyRequest))).all()
+    before = (await session.scalars(select(PartyMember))).all()
+
+    await process_requests(session)
     member = await session.scalar(select(PartyMember))
-    member.status = PartyMemberStatus.APPROVED
-    await session.commit()
 
-    repeat = await client.post("/api/party/join/", json=_application(world))
-    decoy = repeat.json()["withdraw_url"].rsplit("/", 1)[1]
-    stored = await session.scalar(select(PartyDecoyCode.code))
-    spent = await client.post(f"/api/party/withdraw/{decoy}/")
-    await session.refresh(member)
-
-    assert stored == decoy
-    assert spent.status_code == 200
-    assert await session.scalar(select(PartyDecoyCode.code)) is None
-    assert member.status is PartyMemberStatus.APPROVED
-    assert (
-        await session.scalar(select(AuditEvent).where(AuditEvent.action == "member.withdraw"))
-        is None
-    )
+    assert (len(queued), before) == (1, [])
+    assert (member.status, member.phone) == (PartyMemberStatus.PENDING, "+254712345678")
+    assert (await session.scalars(select(PartyRequest))).all() == []
 
 
 async def test_the_members_own_link_withdraws_them_once_and_is_audited_as_public(
@@ -95,6 +89,7 @@ async def test_the_members_own_link_withdraws_them_once_and_is_audited_as_public
 
     first = await client.post(f"/api/party/withdraw/{code}/")
     second = await client.post(f"/api/party/withdraw/{code}/")
+    await process_requests(session)
     member = await session.scalar(select(PartyMember))
     events = (await session.scalars(select(AuditEvent))).all()
 
