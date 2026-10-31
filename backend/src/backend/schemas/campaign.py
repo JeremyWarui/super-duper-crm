@@ -185,6 +185,12 @@ class SupporterRead(ORMModel):
     created_at: datetime
 
 
+class ConsentWording(ORMModel):
+    """The wording a sign-up form shows beside its consent box."""
+
+    consent_wording: str
+
+
 class SupporterPlace(WriteModel):
     registration_centre: uuid.UUID
 
