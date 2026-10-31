@@ -4,10 +4,6 @@ import { useJoinParty, useParty, usePartyPlaces } from "../../api/hooks";
 import { Button, ErrorState, FieldLabel, LoadingState } from "../../components/ui";
 import { partyColours } from "./colours";
 
-// The sentence the server records for this form (PARTY_WORDING in services/consent.py).
-const CONSENT_WORDING =
-  "I agree that the party may keep my name, phone number and ward to manage my membership.";
-
 function PlaceSelect({ label, value, onChange, places, disabled }) {
   return (
     <>
@@ -99,7 +95,7 @@ export default function JoinParty() {
       <PlaceSelect label="Ward" value={ward} places={constituency ? wards.data : []} disabled={!constituency} onChange={setWard} />
       <label className="join-consent">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-        {CONSENT_WORDING}
+        {p.consent_wording}
       </label>
       {join.error && <ErrorState className="join-error" error={join.error} />}
       <Button

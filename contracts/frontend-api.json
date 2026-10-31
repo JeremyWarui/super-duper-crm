@@ -249,7 +249,8 @@
       "manifesto_text",
       "manifesto_url",
       "social_links",
-      "updated_at"
+      "updated_at",
+      "consent_wording"
     ],
     "PUT /api/admin/party/": [
       "name",

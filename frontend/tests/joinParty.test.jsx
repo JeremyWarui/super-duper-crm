@@ -8,7 +8,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const PARTY = { name: "Umoja Party", logo_url: "", primary_colour: "#112233", secondary_colour: "#445566", description: "One country." };
+const PARTY = { name: "Umoja Party", logo_url: "", primary_colour: "#112233", secondary_colour: "#445566", description: "One country.", consent_wording: "Umoja may keep my details." };
 const ROUTES = {
   "GET /party/": PARTY,
   "GET /party/places/": [{ id: "c1", name: "Nairobi" }],
@@ -37,7 +37,7 @@ describe("applying to join the party", () => {
     await fillIn(user);
     const send = screen.getByRole("button", { name: "Join the party" });
     const offWithoutConsent = send.disabled;
-    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("checkbox", { name: PARTY.consent_wording }));
 
     expect(offWithoutConsent).toBe(true);
     expect(send.disabled).toBe(false);
