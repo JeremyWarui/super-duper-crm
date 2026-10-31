@@ -21,6 +21,13 @@ class UserRole(LabelledStrEnum):
     MOBILIZER = ("mobilizer", "Mobilizer")
 
 
+class UserKind(LabelledStrEnum):
+    """A login either works on a campaign or holds party offices, never both."""
+
+    CAMPAIGN = ("campaign", "Campaign login")
+    STAFF = ("staff", "Party staff login")
+
+
 class PartyRoleName(LabelledStrEnum):
     """A party office held by a login that has no campaign role."""
 

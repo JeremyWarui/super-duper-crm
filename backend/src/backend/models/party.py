@@ -9,6 +9,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     String,
@@ -77,10 +78,14 @@ class PartyRole(TimestampMixin, Base):
     """A party office held by a login; (user, role) is the key."""
 
     __tablename__ = "party_roles"
-
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    # Only a staff login can hold an office; the database refuses a campaign login.
+    __table_args__ = (
+        ForeignKeyConstraint(["user_id", "kind"], ["users.id", "users.kind"], ondelete="CASCADE"),
+        CheckConstraint("kind = 'staff'", name="kind_is_staff"),
     )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(8), default="staff", server_default="staff")
     role: Mapped[PartyRoleName] = mapped_column(
         choice_type(PartyRoleName, "party_role", length=30), primary_key=True
     )

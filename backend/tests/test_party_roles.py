@@ -3,13 +3,15 @@
 import httpx
 import pytest
 from fastapi import HTTPException
+from sqlalchemy import update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import require_party_role
-from backend.models import PartyRole, PartyRoleName
+from backend.models import PartyRole, PartyRoleName, User, UserKind, UserRole
 from backend.services import audit
 from tests.conftest import World
-from tests.factories import auth, make_user, sign_in
+from tests.factories import auth, make_officer, make_user, sign_in
 
 OFFICER = PartyRoleName.MEMBERSHIP_OFFICER
 
@@ -17,9 +19,7 @@ OFFICER = PartyRoleName.MEMBERSHIP_OFFICER
 async def test_an_officer_passes_the_guard_and_sees_no_campaign(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ):
-    officer = await make_user(session, username="ofisa", role=None)
-    session.add(PartyRole(user_id=officer.id, role=OFFICER))
-    await session.commit()
+    officer = await make_officer(session, world.ward, OFFICER)
     headers = auth(await sign_in(client, "ofisa"))
 
     me = (await client.get("/api/auth/me/", headers=headers)).json()
@@ -55,3 +55,25 @@ async def test_a_manager_login_cannot_be_given_a_party_role(
     assert granted.json()["party_roles"] == ["membership_officer"]
     event = (await audit.events(session, subject_id=staff.id))[0]
     assert (event.action, event.detail) == ("party_role.grant", {"role": "membership_officer"})
+
+
+async def test_the_database_refuses_a_party_office_on_a_campaign_login(
+    session: AsyncSession, world: World
+):
+    session.add(PartyRole(user_id=world.manager.id, role=OFFICER))
+
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
+async def test_the_database_refuses_a_campaign_role_on_an_officer_login(
+    session: AsyncSession, world: World
+):
+    officer = await make_officer(session, world.ward, OFFICER)
+
+    with pytest.raises(IntegrityError):
+        await session.execute(
+            update(User)
+            .where(User.id == officer.id)
+            .values(role=UserRole.MANAGER, kind=UserKind.CAMPAIGN)
+        )

@@ -11,12 +11,11 @@ from backend.models import (
     PartyConsentChannel,
     PartyMember,
     PartyMemberStatus,
-    PartyRole,
     PartyRoleName,
 )
 from backend.services import audit
 from tests.conftest import World
-from tests.factories import auth, make_user, sign_in
+from tests.factories import auth, make_officer, sign_in
 
 
 async def _pending(session: AsyncSession, world: World) -> PartyMember:
@@ -55,9 +54,7 @@ async def test_an_officer_approves_a_pending_member_and_it_is_audited(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ):
     member = await _pending(session, world)
-    officer = await make_user(session, username="ofisa", role=None)
-    session.add(PartyRole(user_id=officer.id, role=PartyRoleName.MEMBERSHIP_OFFICER))
-    await session.commit()
+    await make_officer(session, world.ward, PartyRoleName.MEMBERSHIP_OFFICER)
     headers = auth(await sign_in(client, "ofisa"))
 
     moved = await client.post(

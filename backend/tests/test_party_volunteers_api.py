@@ -12,14 +12,13 @@ from backend.models import (
     PartyConsentChannel,
     PartyMember,
     PartyMemberStatus,
-    PartyRole,
     PartyRoleName,
     VolunteerProfile,
 )
 from backend.services import audit
 from backend.services.consent import VOLUNTEER_WORDING
 from tests.conftest import World
-from tests.factories import auth, make_user, sign_in
+from tests.factories import auth, make_officer, sign_in
 
 
 @pytest.mark.parametrize("role", ["candidate", "manager", "mobilizer"])
@@ -60,9 +59,7 @@ async def test_an_officer_activates_an_approved_members_volunteer_and_it_is_audi
         consent_at=datetime.now(UTC),
     )
     session.add(profile)
-    officer = await make_user(session, username="ofisa", role=None)
-    session.add(PartyRole(user_id=officer.id, role=PartyRoleName.MEMBERSHIP_OFFICER))
-    await session.commit()
+    await make_officer(session, world.ward, PartyRoleName.MEMBERSHIP_OFFICER)
     headers = auth(await sign_in(client, "ofisa"))
 
     moved = await client.patch(

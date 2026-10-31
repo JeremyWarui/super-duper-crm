@@ -2,6 +2,8 @@
 
 import secrets
 import uuid
+import zlib
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 
@@ -12,6 +14,11 @@ from backend.models import (
     County,
     Mobilizer,
     OfficeLevel,
+    PartyConsentChannel,
+    PartyMember,
+    PartyMemberStatus,
+    PartyRole,
+    PartyRoleName,
     RegistrationCentre,
     User,
     UserRole,
@@ -19,6 +26,7 @@ from backend.models import (
 )
 from backend.security import hash_password
 from backend.services.accounts import add_member
+from backend.services.consent import PARTY_WORDING
 
 # Generated per run, so no literal reads as a credential.
 TEST_PASSWORD = secrets.token_urlsafe(16)
@@ -64,6 +72,25 @@ async def make_user(
     session.add(user)
     await session.commit()
     return user
+
+
+async def make_officer(session, ward: Ward, *roles: PartyRoleName, username: str = "ofisa") -> User:
+    """A staff login holding `roles`, linked to its own approved party member."""
+    member = PartyMember(
+        full_name=f"Officer {username}",
+        phone=f"+2547{zlib.crc32(username.encode()) % 100_000_000:08d}",
+        ward_id=ward.id,
+        status=PartyMemberStatus.APPROVED,
+        consent_wording=PARTY_WORDING[PartyConsentChannel.OFFICER_ENTRY],
+        consent_channel=PartyConsentChannel.OFFICER_ENTRY,
+        consent_at=datetime.now(UTC),
+    )
+    session.add(member)
+    await session.flush()
+    officer = await make_user(session, username=username, role=None, party_member_id=member.id)
+    session.add_all(PartyRole(user_id=officer.id, role=role) for role in roles)
+    await session.commit()
+    return officer
 
 
 async def make_campaign(session, ward: Ward, *, office_level=OfficeLevel.WARD) -> Campaign:

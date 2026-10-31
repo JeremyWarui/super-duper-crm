@@ -154,8 +154,8 @@ campaign membership, never inside it.
 3. **Party member ≠ login ≠ supporter.** `party_members` is a register of
    people; most will never sign in. Supporters stay per campaign, untouched.
 4. **One login, one campaign, unchanged.** An aspirant is a login with role
-   `candidate` on one campaign, later linked from their `party_members` row
-   (R2).
+   `candidate` on one campaign, linked to their party member through
+   `users.party_member_id` (R2).
 5. **No party id anywhere.** One deployment, one party; `party_settings` is a
    singleton.
 6. **A party staff login is never on a campaign**, the same rule the superuser
@@ -274,6 +274,11 @@ handle "missing".
 
 All three values exist from R1 so R2/R3 need no CHECK migration; only
 `membership_officer` is used by R1 routes.
+
+From R2 (`docs/Aspirants_Design.md`, R2-1): `party_roles.kind` (always
+`staff`) and `users.kind` (`staff` exactly when `role` is NULL) carry a
+composite FK `party_roles(user_id, kind) → users(id, kind)`, so the database
+refuses an office on a campaign login and a campaign role on an office holder.
 
 #### R1: `party_members`
 
@@ -397,7 +402,8 @@ members: nobody proves they hold the number.
 | Every existing campaign route | unchanged | unchanged | 404 / empty (no membership) | unchanged |
 
 `require_party_role(*roles)` in `api/deps.py`: passes a superuser or a user
-holding one of `roles`; otherwise 403. `get_current_user` eager-loads
+holding one of `roles`; otherwise 403. From R2 (R2-6) the holder must also be
+linked to an approved party member (`users.party_member_id`). `get_current_user` eager-loads
 `User.party_roles` alongside `mobilizer_profile`.
 
 ### Frontend routes
@@ -596,7 +602,7 @@ R1-4. Non-schema tickets run in parallel with them.
 | 3 | `None is not MOBILIZER` skips the ward filter in `scope.py` | Would widen a read if a null-role login were on a campaign | R0-2 makes that impossible at the database |
 | 4 | A future "party admin sees campaigns" shortcut through `visible_campaign_ids` | Breaks campaign isolation for every campaign | Party roles never feed campaign scope; R4 dashboards read aggregates through their own service; R0-11 inventory test |
 | 5 | New routes added without a guard | Open data | R0-11 |
-| 6 | `remove_campaign` deletes the aspirant's login | In R2 deletes the party-linked login and its party roles | R2 must stop deleting a login that has party roles or a member link; `party_members.user_id` `SET NULL` |
+| 6 | `remove_campaign` deletes the aspirant's login | In R2 deletes the party-linked login and its party roles | Settled in R2 (`docs/Aspirants_Design.md`): a campaign login can never hold a party office (database, R2-1), and the candidate login is campaign-only, so deleting it loses no party access. The member link is `users.party_member_id` `SET NULL`, not `party_members.user_id`, because one member can have two logins |
 | 7 | Member export | Largest PII leak path | Officer and superuser only; every export audited with filters and count |
 | 8 | Public join form | Phone enumeration, spam | Same answer for new and existing; rate limit; officer review gates approval. Rate limit resets on restart and is shared behind one NAT (known) |
 | 9 | Audit rows mutable by code | Weak trail | No update/delete path; Postgres trigger can be added later if required |

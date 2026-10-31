@@ -12,7 +12,7 @@ from alembic.operations import Operations
 
 from backend.config import alembic_url, get_settings
 from backend.models import Base
-from tests.conftest import revision_modules, upgrade_head
+from tests.conftest import POSTGRES, postgres_url, revision_modules, upgrade_head
 
 
 @pytest.fixture
@@ -73,6 +73,37 @@ def test_downgrade_removes_every_table() -> None:
         left_over.reflect(bind=connection)
     engine.dispose()
     assert set(left_over.tables) == set()
+
+
+def _down_and_up(connection) -> None:
+    with Operations.context(MigrationContext.configure(connection)):
+        for module in reversed(revision_modules()):
+            module.downgrade()
+        for module in revision_modules():
+            module.upgrade()
+
+
+@pytest.mark.skipif(not POSTGRES, reason="needs TEST_POSTGRES=1")
+async def test_every_revision_downgrades_and_upgrades_again_on_postgres() -> None:
+    from sqlalchemy.engine import make_url
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    name = f"{make_url(postgres_url()).database}_downgrade"
+    admin = create_async_engine(postgres_url("postgres"), isolation_level="AUTOCOMMIT")
+    async with admin.connect() as connection:
+        await connection.execute(sa.text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+        await connection.execute(sa.text(f'CREATE DATABASE "{name}"'))
+    scratch = create_async_engine(postgres_url(name))
+    try:
+        async with scratch.begin() as connection:
+            await connection.run_sync(upgrade_head)
+        async with scratch.begin() as connection:
+            await connection.run_sync(_down_and_up)
+    finally:
+        await scratch.dispose()
+        async with admin.connect() as connection:
+            await connection.execute(sa.text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+        await admin.dispose()
 
 
 @functools.cache
