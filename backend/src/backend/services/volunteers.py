@@ -1,12 +1,16 @@
 """Volunteer profiles: the move table, officer moves, and the public volunteer requests."""
 
+import uuid
+from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import Select, String, cast, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm.attributes import set_committed_value
 
 from backend.models import (
+    Constituency,
     ContactMethod,
     PartyMember,
     PartyMemberStatus,
@@ -14,10 +18,11 @@ from backend.models import (
     VolunteerInterest,
     VolunteerProfile,
     VolunteerStatus,
+    Ward,
 )
 from backend.services.audit import record
 from backend.services.consent import VOLUNTEER_WORDING
-from backend.services.errors import Refused
+from backend.services.errors import NotFound, Refused
 
 V = VolunteerStatus
 
@@ -200,3 +205,103 @@ async def withdraw_by_code(session: AsyncSession, code: str) -> None:
             return
         except Refused:
             continue
+
+
+def _like(text: str) -> str:
+    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped.lower()}%"
+
+
+@dataclass(frozen=True)
+class VolunteerFilters:
+    q: str | None = None
+    status: VolunteerStatus | None = None
+    interest: VolunteerInterest | None = None
+    county: uuid.UUID | None = None
+    constituency: uuid.UUID | None = None
+    ward: uuid.UUID | None = None
+
+    def given(self) -> dict[str, str | bool]:
+        """The filters in use, for the audit trail; `q` is recorded only as set."""
+        found: dict[str, str | bool] = {}
+        if self.q:
+            found["q"] = True
+        if self.status is not None:
+            found["status"] = self.status.value
+        if self.interest is not None:
+            found["interest"] = self.interest.value
+        for name in ("county", "constituency", "ward"):
+            if getattr(self, name) is not None:
+                found[name] = str(getattr(self, name))
+        return found
+
+
+def _query(filters: VolunteerFilters) -> Select:
+    statement = (
+        select(VolunteerProfile)
+        .join(VolunteerProfile.member)
+        .join(PartyMember.ward)
+        .join(Ward.constituency)
+        .options(
+            contains_eager(VolunteerProfile.member)
+            .contains_eager(PartyMember.ward)
+            .contains_eager(Ward.constituency)
+            .joinedload(Constituency.county)
+        )
+    )
+    if filters.q and filters.q.strip():
+        pattern = _like(filters.q.strip())
+        matches = func.lower(PartyMember.full_name).like(pattern, escape="\\") | (
+            PartyMember.phone.like(pattern, escape="\\")
+        )
+        local = filters.q.replace(" ", "")
+        if local.startswith("0") and local[1:].isdigit():
+            matches |= PartyMember.phone.like(_like("+254" + local[1:]), escape="\\")
+        statement = statement.where(matches)
+    if filters.status is not None:
+        statement = statement.where(VolunteerProfile.status == filters.status)
+    if filters.interest is not None:
+        # The JSON list as text holds each value quoted, so "events" matches only that value.
+        statement = statement.where(
+            cast(VolunteerProfile.interests, String).like(
+                _like(f'"{filters.interest.value}"'), escape="\\"
+            )
+        )
+    if filters.county is not None:
+        statement = statement.where(Constituency.county_id == filters.county)
+    if filters.constituency is not None:
+        statement = statement.where(Ward.constituency_id == filters.constituency)
+    if filters.ward is not None:
+        statement = statement.where(PartyMember.ward_id == filters.ward)
+    return statement.order_by(VolunteerProfile.created_at.desc(), VolunteerProfile.id)
+
+
+async def volunteers(
+    session: AsyncSession, filters: VolunteerFilters, limit: int, offset: int
+) -> tuple[int, list[VolunteerProfile]]:
+    """One page of the volunteer register, newest first, and the count of all that match."""
+    statement = _query(filters)
+    total = await session.scalar(
+        select(func.count()).select_from(
+            statement.order_by(None).with_only_columns(VolunteerProfile.id).subquery()
+        )
+    )
+    page = await session.scalars(statement.limit(limit).offset(offset))
+    return total or 0, list(page.unique())
+
+
+async def export_rows(session: AsyncSession, filters: VolunteerFilters) -> list[VolunteerProfile]:
+    """Every volunteer matching the filters, newest first."""
+    return list((await session.scalars(_query(filters))).unique())
+
+
+async def get_volunteer(session: AsyncSession, volunteer_id: uuid.UUID) -> VolunteerProfile:
+    """The profile with its member and places loaded; NotFound when missing."""
+    profile = await session.scalar(
+        _query(VolunteerFilters())
+        .where(VolunteerProfile.id == volunteer_id)
+        .execution_options(populate_existing=True)
+    )
+    if profile is None:
+        raise NotFound("No such volunteer.")
+    return profile
