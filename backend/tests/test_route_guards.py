@@ -22,10 +22,11 @@ PUBLIC_ROUTES = {
 
 
 # Signed-in routes that skip the closed-campaign check, so a closed campaign's login can still
-# see who it is and sign out.
+# see who it is, see how to pay, and sign out.
 SIGNED_IN_ONLY = {
     ("GET", "/api/auth/me/"),
     ("POST", "/api/auth/logout/"),
+    ("GET", "/api/subscription/"),
 }
 
 
@@ -75,7 +76,7 @@ def test_the_route_walk_reports_a_route_with_no_login():
     assert inventory[("GET", "/closed")] is True
 
 
-def test_only_me_and_logout_skip_the_closed_campaign_check():
+def test_only_me_logout_and_the_subscription_skip_the_closed_campaign_check():
     skipping = set()
     for route in iter_route_contexts(app.routes):
         if not isinstance(route.original_route, APIRoute):

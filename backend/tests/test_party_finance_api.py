@@ -3,7 +3,7 @@
 import asyncio
 import json
 import uuid
-from datetime import timedelta
+from datetime import date, timedelta
 
 import httpx
 import pytest
@@ -16,14 +16,16 @@ from backend.models import (
     AuditEvent,
     CampaignSubscription,
     PartyRoleName,
+    PartySettings,
     ReceiptMethod,
     Seat,
+    SubscriptionHold,
     User,
 )
 from backend.schemas.billing import PaymentCreate
 from backend.services import billing
 from tests.conftest import POSTGRES, World
-from tests.factories import TEST_TODAY, auth, make_officer, sign_in
+from tests.factories import TEST_TODAY, auth, make_officer, make_rival_campaign, sign_in
 
 DAYS = 30
 
@@ -391,3 +393,81 @@ async def test_the_audit_trail_holds_no_reference_or_note(
     for secret in ("AUDIT77", "Kamau", "Rainy", "Wrong amount", "Fraud"):
         assert secret not in details
     assert not any({"reference", "note", "reason"} & set(detail) for _, detail in events)
+
+
+async def test_revenue_counts_live_payments_only(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    headers = await _finance(client, session, world)
+    sub_id = await _on_plan(client, headers, world)
+    await _paid_until(session, world, None)
+    base = f"/api/party/finance/subscriptions/{sub_id}"
+    await _pay(client, headers, sub_id, "KEPT", TEST_TODAY - timedelta(days=40))
+    wrong = (await _pay(client, headers, sub_id, "WRONG")).json()["entries"][0]["id"]
+    await client.post(f"{base}/entries/{wrong}/void/", headers=headers, json={"reason": "Typo"})
+    await client.post(f"{base}/extensions/", headers=headers, json={"days": 5, "note": "Free"})
+
+    report = (await client.get("/api/party/finance/reports/revenue/", headers=headers)).json()
+
+    assert (report["start"], report["end"]) == ("2026-01-01", "2026-12-31")
+    assert (report["total_kes"], report["count"]) == (5_000, 1)
+    assert report["by_month"] == [{"month": "2026-09", "total_kes": 5_000, "count": 1}]
+    assert [line["plan"]["name"] for line in report["by_plan"]] == ["Monthly"]
+
+
+async def _rival(session: AsyncSession, world: World, title: str, paid_until, **fields):
+    campaign = await make_rival_campaign(session, world.ward, title=title, owner=title.lower())
+    await session.execute(
+        update(CampaignSubscription)
+        .where(CampaignSubscription.campaign_id == campaign.id)
+        .values(paid_until=paid_until, **fields)
+    )
+    await session.commit()
+    return campaign
+
+
+async def test_the_expiring_list_holds_lapsing_campaigns_soonest_first(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
+) -> None:
+    session.add(PartySettings(id=1, name="Party", grace_days=3, read_only_days=4))
+    headers = await _finance(client, session, world)
+    day = lambda n: TEST_TODAY + timedelta(days=n)  # noqa: E731
+    await _paid_until(session, world, day(14))
+    await _rival(session, world, "Due later", day(15))
+    await _rival(session, world, "In grace", day(-2))
+    await _rival(session, world, "Read only", day(-5))
+    await _rival(session, world, "Locked", day(-9))
+    await _rival(session, world, "Held", day(5), hold=SubscriptionHold.SUSPENDED, hold_reason="x")
+    deleted = await _rival(session, world, "Deleted", day(3))
+    await client.delete(f"/api/admin/campaigns/{deleted.id}/", headers=admin_headers)
+
+    listed = (await client.get("/api/party/finance/reports/expiring/", headers=headers)).json()
+
+    assert [(row["title"], row["state"]) for row in listed] == [
+        ("Read only", "read_only"),
+        ("In grace", "grace_period"),
+        ("Jane for Roysambu", "active"),
+    ]
+
+
+async def test_revenue_takes_both_end_days_and_deleted_campaigns(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
+) -> None:
+    headers = await _finance(client, session, world)
+    sub_id = await _on_plan(client, headers, world)
+    await _paid_until(session, world, None)
+    for n, received in enumerate(["2026-09-21", "2026-09-22", "2026-10-31", "2026-11-01"]):
+        await _pay(client, headers, sub_id, f"EDGE{n}", date.fromisoformat(received))
+    await client.delete(f"/api/admin/campaigns/{world.campaign.id}/", headers=admin_headers)
+
+    report = (
+        await client.get(
+            "/api/party/finance/reports/revenue/?from=2026-09-22&to=2026-10-31", headers=headers
+        )
+    ).json()
+
+    assert [(m["month"], m["count"]) for m in report["by_month"]] == [
+        ("2026-09", 1),
+        ("2026-10", 1),
+    ]
+    assert report["total_kes"] == 10_000

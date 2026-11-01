@@ -1,6 +1,7 @@
 """The finance officer's plans, campaign subscriptions, ledger and lapse settings."""
 
 import uuid
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -8,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from backend.api.deps import FinanceOfficer, SessionDep, Today
 from backend.models import AccessState
 from backend.schemas.billing import (
+    ExpiringRow,
     ExtensionCreate,
     FinanceSettings,
     FinanceSettingsUpdate,
@@ -17,6 +19,7 @@ from backend.schemas.billing import (
     PlanCreate,
     PlanRead,
     PlanUpdate,
+    Revenue,
     SubscriptionDetail,
     SubscriptionPage,
     VoidCreate,
@@ -25,6 +28,8 @@ from backend.schemas.common import plain_text
 from backend.services import billing
 
 router = APIRouter(prefix="/party/finance", tags=["party"])
+
+MAX_REPORT_DAYS = 3_660
 
 
 @router.get("/plans/", response_model=list[PlanRead])
@@ -156,3 +161,32 @@ async def get_settings(user: FinanceOfficer, session: SessionDep):
 async def put_settings(payload: FinanceSettingsUpdate, user: FinanceOfficer, session: SessionDep):
     """Grace days, read-only days and the payment instructions; every campaign's state moves."""
     return await billing.update_settings(session, payload, actor=user)
+
+
+@router.get("/reports/revenue/", response_model=Revenue)
+async def revenue_report(
+    user: FinanceOfficer,
+    session: SessionDep,
+    today: Today,
+    start: Annotated[date | None, Query(alias="from")] = None,
+    end: Annotated[date | None, Query(alias="to")] = None,
+) -> Revenue:
+    """Live payments received between two days, both included; this calendar year by default."""
+    start = start or date(today.year, 1, 1)
+    end = end or date(today.year, 12, 31)
+    if start > end:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "The start is after the end.")
+    if (end - start).days > MAX_REPORT_DAYS:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Ask for ten years or less.")
+    return await billing.revenue(session, start, end)
+
+
+@router.get("/reports/expiring/", response_model=list[ExpiringRow])
+async def expiring_report(
+    user: FinanceOfficer,
+    session: SessionDep,
+    today: Today,
+    days: Annotated[int, Query(ge=1, le=90)] = 14,
+) -> list[ExpiringRow]:
+    """Campaigns in grace or read-only, and those whose paid period ends within `days`."""
+    return await billing.expiring(session, today, days)

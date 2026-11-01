@@ -17,6 +17,7 @@ from backend.api.routers import (
     party_volunteers,
     payments,
     strategy,
+    subscription,
     supporters,
     targets,
     team,
@@ -41,6 +42,7 @@ for module in (
     payments,
     supporters,
     strategy,
+    subscription,
     team,
     users,
 ):

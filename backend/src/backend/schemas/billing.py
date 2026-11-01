@@ -215,3 +215,52 @@ class FinanceSettingsUpdate(WriteModel):
     @classmethod
     def _plain(cls, value: str) -> str:
         return plain_text(value, lines=True)
+
+
+class RevenueLine(BaseModel):
+    total_kes: int
+    count: int
+
+
+class RevenueMonth(RevenueLine):
+    month: str  # "2026-11"
+
+
+class RevenuePlan(RevenueLine):
+    plan: PlanName
+
+
+class Revenue(BaseModel):
+    """Live payments received from `start` to `end`, both days included; extensions excluded."""
+
+    start: date
+    end: date
+    total_kes: int
+    count: int
+    by_month: list[RevenueMonth]
+    by_plan: list[RevenuePlan]
+
+
+class ExpiringRow(SubscriptionRow):
+    read_only_from: date | None
+    locks_on: date | None
+
+
+class PlanTerms(BaseModel):
+    name: str
+    price_kes: int
+    duration_days: int
+
+
+class OwnSubscription(BaseModel):
+    """A campaign's own subscription. The plan, price, last payment and hold reason are only
+    for its candidate and manager."""
+
+    state: AccessState
+    paid_until: date | None
+    read_only_from: date | None
+    locks_on: date | None
+    payment_instructions: str
+    plan: PlanTerms | None = None
+    last_paid_on: date | None = None
+    hold_reason: str | None = None

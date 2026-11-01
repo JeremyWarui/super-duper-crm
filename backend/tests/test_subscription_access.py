@@ -1,14 +1,22 @@
 """A campaign works as far as its subscription allows on the day of the request."""
 
 import uuid
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import CampaignSubscription, SubscriptionHold, Supporter
+from backend.models import (
+    CampaignSubscription,
+    CrmPlan,
+    EntryKind,
+    ReceiptMethod,
+    SubscriptionEntry,
+    SubscriptionHold,
+    Supporter,
+)
 from backend.services.billing import GRACE_DAYS, READ_ONLY_DAYS
 from tests.conftest import World
 from tests.factories import TEST_TODAY
@@ -109,3 +117,85 @@ async def test_an_unpaid_campaign_takes_no_sign_ups_but_a_supporter_can_still_wi
     assert refused.status_code == 400
     assert withdrawn.status_code == 200
     assert left is None
+
+
+async def test_a_locked_campaign_sees_how_to_pay_and_only_its_leaders_see_the_price(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
+) -> None:
+    plan = CrmPlan(name="Monthly", price_kes=5_000, duration_days=30)
+    session.add(plan)
+    await session.flush()
+    world.campaign.subscription.plan_id = plan.id
+    await _never_paid(session, world)
+
+    leader = (await client.get("/api/subscription/", headers=world.headers("manager"))).json()
+    candidate = (await client.get("/api/subscription/", headers=world.headers("candidate"))).json()
+    mobilizer = (await client.get("/api/subscription/", headers=world.headers("mobilizer"))).json()
+    console = await client.get("/api/subscription/", headers=admin_headers)
+
+    assert (leader["state"], leader["plan"]["price_kes"]) == ("pending_payment", 5_000)
+    assert candidate["plan"]["price_kes"] == 5_000
+    assert mobilizer["state"] == "pending_payment"
+    assert (mobilizer["plan"], mobilizer["last_paid_on"], mobilizer["hold_reason"]) == (
+        None,
+        None,
+        None,
+    )
+    assert console.status_code == 403
+
+
+async def test_the_leaders_see_the_last_live_payment_and_why_access_is_stopped(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    plan = CrmPlan(name="Monthly", price_kes=5_000, duration_days=30)
+    session.add(plan)
+    await session.flush()
+    sub = world.campaign.subscription
+    paid = {"kind": EntryKind.PAYMENT, "plan_id": plan.id, "amount_kes": 5_000}
+    paid |= {"method": ReceiptMethod.MPESA, "days": 30}
+    session.add_all(
+        [
+            SubscriptionEntry(
+                subscription_id=sub.id,
+                **paid,
+                reference="LIVE1",
+                received_on=TEST_TODAY - timedelta(days=10),
+                paid_until_after=TEST_TODAY + timedelta(days=19),
+            ),
+            SubscriptionEntry(
+                subscription_id=sub.id,
+                **paid,
+                reference="VOID1",
+                received_on=TEST_TODAY - timedelta(days=2),
+                paid_until_after=TEST_TODAY + timedelta(days=49),
+                voided_at=datetime.now(UTC),
+                void_reason="Typo",
+            ),
+            SubscriptionEntry(
+                subscription_id=sub.id,
+                kind=EntryKind.EXTENSION,
+                received_on=TEST_TODAY,
+                days=3,
+                paid_until_after=TEST_TODAY + timedelta(days=22),
+                note="Goodwill",
+            ),
+        ]
+    )
+    sub.hold = SubscriptionHold.SUSPENDED
+    sub.hold_reason = "Cheque bounced"
+    await session.commit()
+
+    seen = (await client.get("/api/subscription/", headers=world.headers("candidate"))).json()
+
+    assert seen["last_paid_on"] == (TEST_TODAY - timedelta(days=10)).isoformat()
+    assert (seen["state"], seen["hold_reason"]) == ("locked", "Cheque bounced")
+
+
+async def test_a_campaign_with_no_subscription_reads_as_locked(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await _no_subscription(session, world)
+
+    seen = await client.get("/api/subscription/", headers=world.headers("manager"))
+
+    assert (seen.status_code, seen.json()["state"]) == (200, "locked")

@@ -8,34 +8,42 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta, timezone
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.models import (
     Aspirant,
     Campaign,
+    CampaignMember,
     CampaignSubscription,
     CrmPlan,
     PartySettings,
     SubscriptionEntry,
     User,
+    UserRole,
 )
 from backend.models.enums import AccessState, EntryKind, SubscriptionHold
 from backend.schemas.billing import (
     EntryRead,
+    ExpiringRow,
     ExtensionCreate,
     FinanceSettingsUpdate,
+    OwnSubscription,
     PaymentCreate,
     PlanCreate,
     PlanName,
+    PlanTerms,
     PlanUpdate,
+    Revenue,
+    RevenueMonth,
+    RevenuePlan,
     SubscriptionDetail,
     SubscriptionPage,
     SubscriptionRow,
 )
 from backend.services.audit import record
-from backend.services.errors import NotFound, Refused, refuse_own_record
+from backend.services.errors import Forbidden, NotFound, Refused, refuse_own_record
 
 # Kenya keeps UTC+3 all year.
 NAIROBI = timezone(timedelta(hours=3))
@@ -211,7 +219,9 @@ async def subscriptions(
     lapse = await lapse_days(session)
     rows = [
         _row(sub, on, lapse)
-        for sub in await session.scalars(select(CampaignSubscription).options(*_LOADS))
+        for sub in await session.scalars(
+            select(CampaignSubscription).options(*_LOADS).execution_options(populate_existing=True)
+        )
     ]
     needle = q.strip().casefold()
     kept = [
@@ -221,6 +231,125 @@ async def subscriptions(
     ]
     kept.sort(key=lambda row: (row.title.casefold(), str(row.id)))
     return SubscriptionPage(total=len(kept), items=kept[offset : offset + limit])
+
+
+async def expiring(session: AsyncSession, on: date, days: int) -> list[ExpiringRow]:
+    """Campaigns in grace or read-only, and active ones whose paid period ends within `days`,
+    soonest first."""
+    lapse = await lapse_days(session)
+    due = on + timedelta(days=days)
+    rows = []
+    for sub in await session.scalars(
+        select(CampaignSubscription).options(*_LOADS).execution_options(populate_existing=True)
+    ):
+        if sub.campaign_id is None:
+            continue  # a deleted campaign has nobody to renew it
+        dates = access(sub.paid_until, sub.hold, on, *lapse)
+        soon = dates.state is AccessState.ACTIVE and sub.paid_until <= due
+        if soon or dates.state in (AccessState.GRACE_PERIOD, AccessState.READ_ONLY):
+            rows.append(
+                ExpiringRow(
+                    **_row(sub, on, lapse).model_dump(),
+                    read_only_from=dates.read_only_from,
+                    locks_on=dates.locks_on,
+                )
+            )
+    rows.sort(key=lambda row: (row.paid_until, row.title.casefold(), str(row.id)))
+    return rows
+
+
+async def revenue(session: AsyncSession, start: date, end: date) -> Revenue:
+    """Totals of the live payments received from `start` to `end`, by month and by plan."""
+    payments = (
+        await session.execute(
+            select(
+                SubscriptionEntry.received_on,
+                SubscriptionEntry.amount_kes,
+                CrmPlan.id,
+                CrmPlan.name,
+            )
+            .join(CrmPlan, CrmPlan.id == SubscriptionEntry.plan_id)
+            .where(
+                SubscriptionEntry.kind == EntryKind.PAYMENT,
+                SubscriptionEntry.voided_at.is_(None),
+                SubscriptionEntry.received_on >= start,
+                SubscriptionEntry.received_on <= end,
+            )
+        )
+    ).all()
+    months: dict[str, list[int]] = {}
+    by_plan: dict[uuid.UUID, tuple[str, list[int]]] = {}
+    for received_on, amount, plan_id, plan_name in payments:
+        month = months.setdefault(received_on.strftime("%Y-%m"), [0, 0])
+        plan = by_plan.setdefault(plan_id, (plan_name, [0, 0]))[1]
+        for line in (month, plan):
+            line[0] += amount
+            line[1] += 1
+    return Revenue(
+        start=start,
+        end=end,
+        total_kes=sum(amount for _, amount, _, _ in payments),
+        count=len(payments),
+        by_month=[
+            RevenueMonth(month=month, total_kes=total, count=count)
+            for month, (total, count) in sorted(months.items())
+        ],
+        by_plan=[
+            RevenuePlan(plan=PlanName(id=plan_id, name=name), total_kes=total, count=count)
+            for plan_id, (name, (total, count)) in sorted(
+                by_plan.items(), key=lambda item: (-item[1][1][0], item[1][0])
+            )
+        ],
+    )
+
+
+async def own(session: AsyncSession, user: User, on: date) -> OwnSubscription:
+    """The caller's campaign's subscription; 403 for a login that is not on a campaign.
+
+    A campaign without a subscription row reads as locked.
+    """
+    campaign_id = await session.scalar(
+        select(CampaignMember.campaign_id).where(CampaignMember.user_id == user.id)
+    )
+    if user.role is None or user.is_superuser or campaign_id is None:
+        raise Forbidden("This login is not on a campaign.")
+    settings = await session.get(PartySettings, 1)
+    instructions = settings.payment_instructions if settings else ""
+    sub = await session.scalar(
+        select(CampaignSubscription)
+        .where(CampaignSubscription.campaign_id == campaign_id)
+        .options(selectinload(CampaignSubscription.plan))
+    )
+    if sub is None:
+        return OwnSubscription(
+            state=AccessState.LOCKED,
+            paid_until=None,
+            read_only_from=None,
+            locks_on=None,
+            payment_instructions=instructions,
+        )
+    dates = access(sub.paid_until, sub.hold, on, *await lapse_days(session))
+    terms = {}
+    if user.role in (UserRole.CANDIDATE, UserRole.MANAGER):
+        terms = {
+            "plan": PlanTerms.model_validate(sub.plan, from_attributes=True) if sub.plan else None,
+            "last_paid_on": await session.scalar(
+                select(func.max(SubscriptionEntry.received_on)).where(
+                    SubscriptionEntry.subscription_id == sub.id,
+                    SubscriptionEntry.kind == EntryKind.PAYMENT,
+                    SubscriptionEntry.voided_at.is_(None),
+                )
+            ),
+            "hold_reason": sub.hold_reason,
+        }
+    return OwnSubscription(
+        state=dates.state,
+        paid_until=dates.paid_until,
+        read_only_from=dates.read_only_from,
+        locks_on=dates.locks_on,
+        payment_instructions=instructions,
+        **terms,
+    )
 
 
 async def subscription(

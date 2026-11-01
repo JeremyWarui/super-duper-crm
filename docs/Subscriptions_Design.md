@@ -256,9 +256,10 @@ when a `GET` route appears that the set does not hold.
 
 `GET /api/subscription/` uses `get_signed_in_user`, so it answers while
 locked. It needs a campaign role (403 otherwise) and returns `state`,
-`paid_until`, `read_only_from`, `locks_on`, `hold_reason` when held, and the
-party's `payment_instructions`. For the candidate and the manager it adds
-`plan {name, price_kes, duration_days}` and `last_paid_on`.
+`paid_until`, `read_only_from`, `locks_on` and the party's
+`payment_instructions`. For the candidate and the manager it adds
+`plan {name, price_kes, duration_days}`, `last_paid_on` and `hold_reason` when
+held. A campaign with no subscription row reads as `locked`.
 `tests/test_route_guards.py` `SIGNED_IN_ONLY` gains it.
 
 Public sign-up (decision 4): `_link` reads the subscription in the same query
@@ -306,7 +307,7 @@ Reports:
   per plan.
 - **Expiring**: subscriptions in `grace_period` or `read_only`, and `active`
   ones whose `paid_until` is within `days` (default 14, at most 90), ordered by
-  `paid_until`.
+  `paid_until`. A deleted campaign's subscription is left out.
 
 ### Frontend
 
@@ -346,7 +347,7 @@ Officers in tests come from `make_officer(session, world, FINANCE_OFFICER)`.
 - Tests: a payment on a lapsed subscription starts on the day received and makes it active; an early payment stacks on the paid period; voiding the latest entry restores the previous `paid_until`, and voiding an older one is refused; a hold locks and lifting it restores the dated state; a nominations officer gets 403; a finance officer on their own campaign gets 403; deleting a campaign keeps its ledger.
 - The concurrent payment test runs in the Postgres lane.
 
-**R3-4 Reports and the campaign's own view** (backend)
+**R3-4 Reports and the campaign's own view** (backend) — done 1 Nov 2026
 - Files: `services/billing.py` (revenue, expiring), `api/routers/party_finance.py`, new `api/routers/subscription.py`, `api/routers/__init__.py`, `tests/test_route_guards.py` (`SIGNED_IN_ONLY`), tests.
 - Tests: revenue leaves out voided payments and extensions; the expiring list holds grace and read-only campaigns and active ones due within the window; a mobilizer's `/api/subscription/` has no plan or price.
 
