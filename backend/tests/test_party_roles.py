@@ -27,7 +27,7 @@ async def test_an_officer_passes_the_guard_and_sees_no_campaign(
     assert (await client.get("/api/campaigns/", headers=headers)).json() == []
 
     officer = await session.get(type(officer), officer.id, populate_existing=True)
-    await session.refresh(officer, ["party_roles"])
+    await session.refresh(officer, ["party_roles", "party_member"])
     assert await require_party_role(OFFICER)(officer) is officer
 
 
@@ -50,11 +50,19 @@ async def test_a_manager_login_cannot_be_given_a_party_role(
 
     staff = await make_user(session, username="staff", role=None)
     url = f"/api/admin/users/{staff.id}/party-roles/"
+    unlinked = await client.post(url, json={"role": "membership_officer"}, headers=admin_headers)
+    member_id = (await make_officer(session, world.ward, username="kin")).party_member_id
+    await client.put(
+        f"/api/admin/users/{staff.id}/party-member/",
+        json={"member": str(member_id)},
+        headers=admin_headers,
+    )
     granted = await client.post(url, json={"role": "membership_officer"}, headers=admin_headers)
+    assert unlinked.status_code == 400
     assert granted.status_code == 201
     assert granted.json()["party_roles"] == ["membership_officer"]
-    event = (await audit.events(session, subject_id=staff.id))[0]
-    assert (event.action, event.detail) == ("party_role.grant", {"role": "membership_officer"})
+    actions = [event.action for event in await audit.events(session, subject_id=staff.id)]
+    assert set(actions) == {"user.party_member", "party_role.grant"}
 
 
 async def test_the_database_refuses_a_party_office_on_a_campaign_login(

@@ -35,7 +35,7 @@ from backend.models import (
 )
 from backend.services.audit import record, record_if
 from backend.services.consent import VOLUNTEER_WORDING
-from backend.services.errors import NotFound, Refused
+from backend.services.errors import NotFound, Refused, refuse_own_record
 
 V = VolunteerStatus
 
@@ -102,6 +102,7 @@ async def set_status(
     session: AsyncSession, profile: VolunteerProfile, to: VolunteerStatus, *, actor: User
 ) -> None:
     """An officer's move to active or inactive, audited; the caller commits."""
+    refuse_own_record(actor, profile.member_id)
     old = profile.status
     if to not in OFFICER_TARGETS:
         raise Refused("An officer can only make a volunteer active or inactive.")
@@ -124,6 +125,7 @@ def set_notes(
     session: AsyncSession, profile: VolunteerProfile, notes: str | None, *, actor: User
 ) -> None:
     """Replace the officer's availability notes; the audit never holds the text."""
+    refuse_own_record(actor, profile.member_id)
     profile.availability_notes = notes
     _audit(session, profile, "volunteer.notes", {}, actor=actor)
 

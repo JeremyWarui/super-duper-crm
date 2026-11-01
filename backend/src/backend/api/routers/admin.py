@@ -18,6 +18,7 @@ from backend.schemas.admin import (
     CampaignRename,
     MemberAdd,
     Overview,
+    PartyMemberLink,
     PartyRoleGrant,
     PasswordReset,
     PasswordResult,
@@ -191,6 +192,15 @@ async def grant_party_role(
 ) -> AdminUserRead:
     """Give a staff login a party office."""
     await service.grant_party_role(session, user_id, payload.role, actor=admin)
+    return await service.user(session, user_id)
+
+
+@router.put("/users/{user_id}/party-member/", response_model=AdminUserRead)
+async def link_party_member(
+    user_id: uuid.UUID, payload: PartyMemberLink, session: SessionDep, admin: AdminUser
+) -> AdminUserRead:
+    """Link a login to the party member it belongs to, or unlink it with null."""
+    await service.link_party_member(session, user_id, payload.member, actor=admin)
     return await service.user(session, user_id)
 
 

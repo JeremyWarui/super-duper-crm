@@ -8,12 +8,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.db.base import require_loaded
 from backend.db.session import get_session
 from backend.models import (
     Aspirant,
     AspirantStatus,
     AuthToken,
     CampaignMember,
+    PartyMemberStatus,
     PartyRoleName,
     User,
     UserRole,
@@ -47,6 +49,7 @@ async def get_signed_in_user(
         .options(
             selectinload(AuthToken.user).selectinload(User.mobilizer_profile),
             selectinload(AuthToken.user).selectinload(User.party_roles),
+            selectinload(AuthToken.user).selectinload(User.party_member),
         )
     )
     if token is None or not token.user.is_active:
@@ -102,12 +105,23 @@ async def require_superuser(user: CurrentUser) -> User:
 
 
 def require_party_role(*roles: PartyRoleName):
-    """A guard letting a superuser or a holder of one of these party roles through."""
+    """A guard letting through a superuser, or a holder of one of these offices whose login is
+    linked to an approved party member."""
 
     async def dependency(user: CurrentUser) -> User:
-        if user.is_superuser or any(held.role in roles for held in user.party_roles):
+        if user.is_superuser:
             return user
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "This needs a party office you do not hold.")
+        if not any(held.role in roles for held in user.party_roles):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "This needs a party office you do not hold."
+            )
+        require_loaded(user, "party_member")
+        if user.party_member is None or user.party_member.status is not PartyMemberStatus.APPROVED:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "This login needs to be linked to an approved party member.",
+            )
+        return user
 
     return dependency
 

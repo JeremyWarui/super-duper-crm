@@ -13,6 +13,8 @@ from backend.models import (
     CampaignMember,
     Event,
     Mobilizer,
+    PartyMember,
+    PartyMemberStatus,
     PartyRole,
     PartyRoleName,
     RegistrationCentre,
@@ -169,7 +171,7 @@ async def users(
         select(User, Campaign.title)
         .outerjoin(CampaignMember, CampaignMember.user_id == User.id)
         .outerjoin(Campaign, Campaign.id == CampaignMember.campaign_id)
-        .options(selectinload(User.party_roles))
+        .options(selectinload(User.party_roles), selectinload(User.party_member))
         .order_by(User.username)
     )
     if role is not None:
@@ -191,6 +193,7 @@ async def users(
             last_login_at=login.last_login_at.isoformat() if login.last_login_at else None,
             campaign=title,
             party_roles=[held.role for held in login.party_roles],
+            party_member=login.party_member,
         )
         for login, title in await session.execute(statement)
     ]
@@ -533,6 +536,11 @@ async def grant_party_role(
         )
     if any(held.role is role for held in login.party_roles):
         raise Refused(f"{login.username} is already a {role.label}.")
+    member = (
+        await session.get(PartyMember, login.party_member_id) if login.party_member_id else None
+    )
+    if member is None or member.status is not PartyMemberStatus.APPROVED:
+        raise Refused(f"Link {login.username} to their approved party member first.")
     login.party_roles.append(PartyRole(role=role))
     record(
         session,
@@ -565,5 +573,36 @@ async def revoke_party_role(
         subject_type="user",
         subject_id=login.id,
         detail={"role": role.value},
+    )
+    await session.commit()
+
+
+async def link_party_member(
+    session: AsyncSession, user_id: uuid.UUID, member_id: uuid.UUID | None, *, actor: User | None
+) -> None:
+    """Link a login to the party member it belongs to, or unlink it.
+
+    An office holder stays linked to an approved member.
+    """
+    login = await session.get(
+        User, user_id, options=[selectinload(User.party_roles)], populate_existing=True
+    )
+    if login is None:
+        raise NotFound("No such user.")
+    member = await session.get(PartyMember, member_id) if member_id else None
+    if member_id is not None and member is None:
+        raise NotFound("No such member.")
+    if login.party_roles and (member is None or member.status is not PartyMemberStatus.APPROVED):
+        raise Refused(
+            f"{login.username} holds a party office, so it stays linked to an approved member."
+        )
+    login.party_member_id = member_id
+    record(
+        session,
+        actor=actor,
+        action="user.party_member",
+        subject_type="user",
+        subject_id=login.id,
+        detail={"member": str(member_id) if member_id else None},
     )
     await session.commit()

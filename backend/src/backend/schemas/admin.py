@@ -5,7 +5,7 @@ from datetime import date
 
 from pydantic import Field
 
-from backend.models.enums import PartyRoleName, Seat, UserRole
+from backend.models.enums import PartyMemberStatus, PartyRoleName, Seat, UserRole
 from backend.schemas.campaign import SetupSummary
 from backend.schemas.common import CampaignTitle, LoginDetails, NewLogin, ORMModel, WriteModel
 
@@ -56,6 +56,20 @@ class AdminCampaignRead(ORMModel):
     votes_committed: int
 
 
+class LinkedMember(ORMModel):
+    """The party member a login belongs to."""
+
+    id: uuid.UUID
+    full_name: str
+    status: PartyMemberStatus
+
+
+class PartyMemberLink(WriteModel):
+    """Null unlinks."""
+
+    member: uuid.UUID | None
+
+
 class AdminUserRead(ORMModel):
     """A login and the title of the campaign it is on, if any."""
 
@@ -70,6 +84,7 @@ class AdminUserRead(ORMModel):
     last_login_at: str | None
     campaign: str | None
     party_roles: list[PartyRoleName] = []
+    party_member: LinkedMember | None = None
 
 
 class Overview(ORMModel):

@@ -28,7 +28,7 @@ from backend.models import (
 from backend.services import aspirants, volunteers
 from backend.services.audit import record, record_if
 from backend.services.consent import PARTY_WORDING
-from backend.services.errors import NotFound, Refused
+from backend.services.errors import NotFound, Refused, refuse_own_record
 
 log = logging.getLogger(__name__)
 
@@ -79,6 +79,7 @@ async def move(
     reason: str | None = None,
 ) -> None:
     """An officer's status move, audited; the caller commits."""
+    refuse_own_record(actor, member.id)
     old = member.status
     if to is S.PENDING:
         raise Refused("Only the person re-applying puts a member back to pending.")

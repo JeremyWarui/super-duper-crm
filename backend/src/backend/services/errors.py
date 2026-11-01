@@ -15,3 +15,14 @@ class Forbidden(Refused):
 
 class CampaignClosed(Exception):
     """The caller's campaign belongs to an aspirant who is not approved."""
+
+
+def refuse_own_record(actor, member_id) -> None:  # type: ignore[no-untyped-def]
+    """Forbidden when the acting officer's login belongs to this party member.
+
+    The superuser is exempt.
+    """
+    if actor is None or actor.is_superuser:
+        return
+    if actor.party_member_id is not None and actor.party_member_id == member_id:
+        raise Forbidden("You cannot act on your own party record.")

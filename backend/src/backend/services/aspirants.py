@@ -22,7 +22,7 @@ from backend.schemas.campaign import SetupSummary
 from backend.services import admin
 from backend.services.audit import record, record_if
 from backend.services.campaigns import AREA_FIELD, AREA_MODEL
-from backend.services.errors import NotFound, Refused
+from backend.services.errors import NotFound, Refused, refuse_own_record
 from backend.services.sms import normalise_phone
 
 A = AspirantStatus
@@ -71,6 +71,7 @@ async def nominate(
     actor: User,
 ) -> Aspirant:
     """A draft nomination for an approved member with no live one; the caller commits."""
+    refuse_own_record(actor, member_id)
     await _approved_member(session, member_id)
     area_field = AREA_FIELD[seat.office_level]
     areas = {"county": county, "constituency": constituency, "ward": ward}
@@ -109,6 +110,7 @@ async def move(
     reason: str | None = None,
 ) -> None:
     """An officer's move on a nomination, audited; the caller commits."""
+    refuse_own_record(actor, aspirant.member_id)
     old = aspirant.status
     if to not in MOVES[old]:
         raise Refused(f"A {old.label.lower()} nomination cannot be moved to {to.label.lower()}.")
@@ -306,6 +308,7 @@ async def create_workspace(
     Everything rolls back unless the aspirant is still approved and still has no campaign when
     the link is written, so two officers at once make one campaign.
     """
+    refuse_own_record(actor, aspirant.member_id)
     if aspirant.status is not A.APPROVED:
         raise Refused("Only an approved aspirant gets a workspace.")
     if aspirant.campaign_id is not None:
