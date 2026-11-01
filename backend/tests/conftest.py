@@ -123,7 +123,7 @@ def upgrade_head(connection) -> None:
 
 
 def postgres_url(database: str | None = None) -> str:
-    """The local Postgres from backend/.env, on `database` or the throwaway test database.
+    """The local Postgres from backend/.env, on `database` or this run's throwaway database.
 
     Refuses any host but this machine, so the suite can never reach a deployed database.
     """
@@ -141,7 +141,7 @@ def postgres_url(database: str | None = None) -> str:
         password=env.get("DB_PASSWORD"),
         host=env["DB_HOST"],
         port=int(env.get("DB_PORT") or 5432),
-        database=database or f"{env.get('DB_NAME') or 'campaign_crm'}_pytest",
+        database=database or f"{env.get('DB_NAME') or 'campaign_crm'}_pytest_{os.getpid()}",
     )
     return url.render_as_string(hide_password=False)
 
@@ -163,13 +163,30 @@ async def _migrated_postgres() -> None:
     await migrated.dispose()
 
 
-@pytest.fixture(scope="session")
-def postgres_database() -> None:
-    """The migrated test database, built once per run when TEST_POSTGRES=1."""
-    if POSTGRES:
-        import asyncio
+async def _drop_postgres() -> None:
+    from sqlalchemy import text
+    from sqlalchemy.engine import make_url
 
+    name = make_url(postgres_url()).database
+    admin = create_async_engine(postgres_url("postgres"), isolation_level="AUTOCOMMIT")
+    async with admin.connect() as connection:
+        await connection.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+    await admin.dispose()
+
+
+@pytest.fixture(scope="session")
+def postgres_database() -> Iterator[None]:
+    """This run's migrated test database when TEST_POSTGRES=1, dropped when the run ends.
+
+    Each run has its own database, so two runs at once never share one.
+    """
+    import asyncio
+
+    if POSTGRES:
         asyncio.run(_migrated_postgres())
+    yield
+    if POSTGRES:
+        asyncio.run(_drop_postgres())
 
 
 @pytest.fixture

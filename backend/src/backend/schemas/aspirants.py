@@ -1,12 +1,20 @@
 """Nominations as the nominations officer reads and writes them."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field, field_validator
 
 from backend.models import AspirantStatus, Seat
-from backend.schemas.common import ORMModel, WriteModel, plain_text
+from backend.schemas.admin import AdminUserCreated
+from backend.schemas.campaign import SetupSummary
+from backend.schemas.common import (
+    CampaignTitle,
+    LoginDetails,
+    ORMModel,
+    WriteModel,
+    plain_text,
+)
 from backend.schemas.party import MemberPlace
 
 
@@ -57,3 +65,20 @@ class AspirantMove(WriteModel):
     @classmethod
     def _plain(cls, value: str | None) -> str | None:
         return plain_text(value, lines=True)
+
+
+class WorkspaceCreate(WriteModel):
+    """An approved aspirant's campaign: its title and date, and its new logins."""
+
+    title: CampaignTitle | None = None
+    election_date: date | None = None
+    candidate: LoginDetails
+    manager: LoginDetails | None = None
+
+
+class WorkspaceCreated(BaseModel):
+    """`logins` carry passwords shown this once."""
+
+    aspirant: AspirantRead
+    setup: SetupSummary
+    logins: list[AdminUserCreated]

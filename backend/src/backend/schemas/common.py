@@ -2,8 +2,16 @@
 
 import unicodedata
 import uuid
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+)
 
 # Control, invisible formatting (zero-width, direction overrides), surrogate, private, unassigned,
 # and line or paragraph separators.
@@ -27,6 +35,14 @@ def plain_text(value: str | None, *, lines: bool = False) -> str | None:
     return value
 
 
+# A campaign title: trimmed, never blank, plain text.
+CampaignTitle = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=150),
+    AfterValidator(plain_text),
+]
+
+
 class ORMModel(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, extra="forbid")
 
@@ -45,6 +61,11 @@ class LoginDetails(WriteModel):
     last_name: str = Field(default="", max_length=150)
     phone: str = Field(default="", max_length=20)
     email: str = Field(default="", max_length=254)
+
+    @field_validator("first_name", "last_name", "phone", "email")
+    @classmethod
+    def _plain(cls, value: str) -> str:
+        return plain_text(value)
 
 
 class NewLogin(ORMModel):

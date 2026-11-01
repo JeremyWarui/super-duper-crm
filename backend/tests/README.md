@@ -11,8 +11,8 @@ is needed and nothing touches the network.
 
 `TEST_POSTGRES=1 uv run pytest` runs the same tests on the local Postgres named
 by the `DB_*` values in `backend/.env`. It recreates the database
-`<DB_NAME>_pytest`, builds it with the real migrations, and empties every table
-before each test. It refuses any `DB_HOST` but this machine. Use it for
+`<DB_NAME>_pytest_<process id>`, builds it with the real migrations, and empties every table
+before each test, and drops it when the run ends, so two runs at once never collide. It refuses any `DB_HOST` but this machine. Use it for
 migrations, row locks and anything else SQLite cannot prove.
 
 | File | What it covers |

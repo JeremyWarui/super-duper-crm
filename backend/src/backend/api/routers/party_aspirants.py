@@ -3,10 +3,11 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from backend.api.deps import NominationsOfficer, SessionDep
 from backend.models import Aspirant, AspirantStatus, Seat
+from backend.schemas.admin import AdminUserCreated
 from backend.schemas.aspirants import (
     AspirantArea,
     AspirantCreate,
@@ -14,7 +15,10 @@ from backend.schemas.aspirants import (
     AspirantPage,
     AspirantRead,
     CandidateRead,
+    WorkspaceCreate,
+    WorkspaceCreated,
 )
+from backend.schemas.common import plain_text
 from backend.services import aspirants, membership
 from backend.services.aspirants import AspirantFilters
 from backend.services.campaigns import AREA_FIELD
@@ -57,6 +61,10 @@ async def list_candidates(
     q: Annotated[str, Query(max_length=100)] = "",
 ) -> list:
     """Approved members without a live nomination, by name or exact full phone; at most 20."""
+    try:
+        plain_text(q)
+    except ValueError as refused:
+        raise HTTPException(status_code=400, detail=str(refused)) from None
     await membership.process_requests(session)
     return await aspirants.candidates(session, q)
 
@@ -112,3 +120,39 @@ async def move_aspirant(
     await aspirants.move(session, aspirant, payload.status, actor=user, reason=payload.reason)
     await session.commit()
     return _read(await aspirants.get_aspirant(session, aspirant_id))
+
+
+@router.post(
+    "/{aspirant_id}/workspace/",
+    response_model=WorkspaceCreated,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_workspace(
+    aspirant_id: uuid.UUID, payload: WorkspaceCreate, user: NominationsOfficer, session: SessionDep
+) -> WorkspaceCreated:
+    """An approved aspirant's campaign on their seat and area; passwords are shown once."""
+    await membership.process_requests(session)
+    aspirant = await aspirants.get_aspirant(session, aspirant_id)
+    _, summary, logins = await aspirants.create_workspace(
+        session,
+        aspirant,
+        actor=user,
+        candidate=payload.candidate.model_dump(),
+        manager=payload.manager.model_dump() if payload.manager else None,
+        title=payload.title,
+        election_date=payload.election_date,
+    )
+    return WorkspaceCreated(
+        aspirant=_read(await aspirants.get_aspirant(session, aspirant_id)),
+        setup=summary,
+        logins=[
+            AdminUserCreated(
+                id=login.id,
+                username=login.username,
+                full_name=login.full_name,
+                role=login.role,
+                password=password,
+            )
+            for login, password in logins
+        ],
+    )

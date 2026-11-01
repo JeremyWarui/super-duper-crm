@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.models import (
+    Aspirant,
     AuthToken,
     Campaign,
     CampaignMember,
@@ -372,7 +373,11 @@ async def delete_campaign(
 ) -> list[str]:
     """Delete a campaign, everything on it and its people's logins; returns their usernames."""
     await _campaign(session, campaign_id)
+    aspirant = await session.scalar(select(Aspirant.id).where(Aspirant.campaign_id == campaign_id))
     gone = await remove_campaign(session, campaign_id)
+    detail: dict = {"logins": len(gone)}
+    if aspirant is not None:
+        detail["aspirant"] = str(aspirant)
     record(
         session,
         actor=actor,
@@ -380,10 +385,35 @@ async def delete_campaign(
         subject_type="campaign",
         subject_id=campaign_id,
         campaign_id=campaign_id,
-        detail={"logins": len(gone)},
+        detail=detail,
     )
     await session.commit()
     return gone
+
+
+async def build_workspace(
+    session: AsyncSession,
+    *,
+    aspirant: dict,
+    manager: dict | None = None,
+    party_member_id: uuid.UUID | None = None,
+    **campaign_fields,
+) -> tuple[Campaign, SetupSummary, list[tuple[User, str]]]:
+    """Build a campaign, its targets and its aspirant's and manager's logins, without committing.
+
+    `party_member_id` links the aspirant's login to their party member. A username clash rolls
+    the session back, so the caller treats any `Refused` as the end of its transaction.
+    """
+    if manager is not None and manager["username"] == aspirant["username"]:
+        raise Refused("The aspirant and the manager need different usernames.")
+    created, summary = await build_campaign(session, **campaign_fields)
+    logins = [await new_login(session, role=UserRole.CANDIDATE, **aspirant)]
+    logins[0][0].party_member_id = party_member_id
+    if manager is not None:
+        logins.append(await new_login(session, role=UserRole.MANAGER, **manager))
+    for login, _ in logins:
+        await join(session, created.id, login)
+    return created, summary, logins
 
 
 async def create_campaign(
@@ -398,15 +428,10 @@ async def create_campaign(
 
     Returns the campaign, the setup summary and each login with its password.
     """
-    if manager is not None and manager["username"] == aspirant["username"]:
-        raise Refused("The aspirant and the manager need different usernames.")
     try:
-        created, summary = await build_campaign(session, **campaign_fields)
-        logins = [await new_login(session, role=UserRole.CANDIDATE, **aspirant)]
-        if manager is not None:
-            logins.append(await new_login(session, role=UserRole.MANAGER, **manager))
-        for login, _ in logins:
-            await join(session, created.id, login)
+        created, summary, logins = await build_workspace(
+            session, aspirant=aspirant, manager=manager, **campaign_fields
+        )
     except Refused:
         await session.rollback()
         raise

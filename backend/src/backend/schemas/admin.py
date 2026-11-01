@@ -7,7 +7,7 @@ from pydantic import Field
 
 from backend.models.enums import PartyRoleName, Seat, UserRole
 from backend.schemas.campaign import SetupSummary
-from backend.schemas.common import LoginDetails, NewLogin, ORMModel, WriteModel
+from backend.schemas.common import CampaignTitle, LoginDetails, NewLogin, ORMModel, WriteModel
 
 
 class Totals(ORMModel):
@@ -119,7 +119,7 @@ class AdminUserCreated(NewLogin):
 class AdminCampaignCreate(WriteModel):
     """A campaign on its seat and area, with new logins for its aspirant and optional manager."""
 
-    title: str = Field(min_length=1, max_length=150)
+    title: CampaignTitle
     seat: Seat
     election_date: date | None = None
     county: uuid.UUID | None = None
@@ -142,4 +142,4 @@ class PartyRoleGrant(WriteModel):
 
 
 class CampaignRename(WriteModel):
-    title: str = Field(min_length=1, max_length=150)
+    title: CampaignTitle

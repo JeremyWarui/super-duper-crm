@@ -2,7 +2,7 @@
 
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import Boolean, Select, Uuid, bindparam, func, literal, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,12 +11,15 @@ from sqlalchemy.orm import selectinload
 from backend.models import (
     Aspirant,
     AspirantStatus,
+    Campaign,
     PartyMember,
     PartyMemberStatus,
     Seat,
     User,
     Ward,
 )
+from backend.schemas.campaign import SetupSummary
+from backend.services import admin
 from backend.services.audit import record, record_if
 from backend.services.campaigns import AREA_FIELD, AREA_MODEL
 from backend.services.errors import NotFound, Refused
@@ -159,7 +162,7 @@ async def follow_member(
     await session.execute(
         update(Aspirant)
         .where(Aspirant.id == old.id, Aspirant.status == old.status)
-        .values(status=to, decided_at=datetime.now(UTC), decided_by_id=None)
+        .values(status=to, status_reason=None, decided_at=datetime.now(UTC), decided_by_id=None)
         .execution_options(synchronize_session=False)
     )
     await record_if(
@@ -190,7 +193,9 @@ async def follow_withdrawal(
     changed = await session.execute(
         update(Aspirant)
         .where(*where, literal(withdrawn, Boolean))
-        .values(status=A.WITHDRAWN, decided_at=datetime.now(UTC), decided_by_id=None)
+        .values(
+            status=A.WITHDRAWN, status_reason=None, decided_at=datetime.now(UTC), decided_by_id=None
+        )
         .execution_options(synchronize_session=False)
     )
     await record_if(
@@ -276,3 +281,71 @@ async def candidates(session: AsyncSession, q: str) -> list[PartyMember]:
         .limit(CANDIDATE_LIMIT)
     )
     return list(rows.all())
+
+
+TITLE_LENGTH = 150
+
+
+def default_title(aspirant: Aspirant) -> str:
+    """ "<member name> for <seat>", cut to the campaign title's length."""
+    return f"{aspirant.member.full_name} for {aspirant.seat.label}"[:TITLE_LENGTH]
+
+
+async def create_workspace(
+    session: AsyncSession,
+    aspirant: Aspirant,
+    *,
+    actor: User,
+    candidate: dict,
+    manager: dict | None = None,
+    title: str | None = None,
+    election_date: date | None = None,
+) -> tuple[Campaign, SetupSummary, list[tuple[User, str]]]:
+    """Build an approved aspirant's campaign on their seat and area, and commit it.
+
+    Everything rolls back unless the aspirant is still approved and still has no campaign when
+    the link is written, so two officers at once make one campaign.
+    """
+    if aspirant.status is not A.APPROVED:
+        raise Refused("Only an approved aspirant gets a workspace.")
+    if aspirant.campaign_id is not None:
+        raise Refused("That aspirant already has a workspace.")
+    try:
+        campaign, summary, logins = await admin.build_workspace(
+            session,
+            aspirant=candidate,
+            manager=manager,
+            party_member_id=aspirant.member_id,
+            title=title or default_title(aspirant),
+            seat=aspirant.seat,
+            election_date=election_date,
+            county=aspirant.county_id,
+            constituency=aspirant.constituency_id,
+            ward=aspirant.ward_id,
+        )
+        linked = await session.execute(
+            update(Aspirant)
+            .where(
+                Aspirant.id == aspirant.id,
+                Aspirant.campaign_id.is_(None),
+                Aspirant.status == A.APPROVED,
+            )
+            .values(campaign_id=campaign.id)
+            .execution_options(synchronize_session=False)
+        )
+        if linked.rowcount != 1:
+            raise Refused("That aspirant already has a workspace, or is no longer approved.")
+    except Refused:
+        await session.rollback()
+        raise
+    record(
+        session,
+        actor=actor,
+        action="aspirant.workspace",
+        subject_type="aspirant",
+        subject_id=aspirant.id,
+        campaign_id=campaign.id,
+        detail={"campaign": str(campaign.id), "logins": len(logins)},
+    )
+    await session.commit()
+    return campaign, summary, logins
