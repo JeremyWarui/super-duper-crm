@@ -1,3 +1,4 @@
+import { useEffect, useId, useRef } from "react";
 
 export function Button({
   children,
@@ -92,17 +93,61 @@ export const Bar = ({ pct, tone }) => <div className="bar"><div className={`bar-
 export const Chip = ({ on, onClick, className = "", children }) => <button type="button" aria-pressed={on} onClick={onClick} className={`chip ${on ? "chip-on" : ""} ${className}`.trim()}>{children}</button>;
 export const PageTitle = ({ title, sub, action }) => <div className="flex flex-wrap items-end justify-between gap-3 page-head"><div><div className="page-title">{title}</div>{sub && <div className="page-sub">{sub}</div>}</div>{action}</div>;
 
-export const Modal = ({ title, sub, onClose, locked, children }) => (
-  <div onClick={locked ? undefined : onClose} className="modal-backdrop">
-    <div onClick={(e) => e.stopPropagation()} className="modal">
-      <div className="flex items-start justify-between modal-head">
-        <div><div className="modal-title">{title}</div>{sub && <div className="modal-sub">{sub}</div>}</div>
-        <button onClick={onClose} className="modal-close">×</button>
+const FOCUSABLE = "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";
+
+// Tab from the last control goes to the first, and Shift+Tab from the first to the last.
+function keepFocusInside(box, e) {
+  const controls = [...box.querySelectorAll(FOCUSABLE)];
+  if (!controls.length) return;
+  const first = controls[0];
+  const last = controls[controls.length - 1];
+  const at = document.activeElement;
+  if (e.shiftKey && (at === first || at === box)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && at === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+// Takes focus when it opens and gives it back when it closes; Escape closes it unless `locked`.
+export function Modal({ title, sub, onClose, locked, children }) {
+  const box = useRef(null);
+  const titleId = useId();
+  useEffect(() => {
+    const before = document.activeElement;
+    box.current?.focus();
+    return () => before?.focus?.();
+  }, []);
+  const onKeyDown = (e) => {
+    if (e.key === "Escape" && !locked) {
+      e.stopPropagation();
+      onClose();
+    }
+    if (e.key === "Tab") keepFocusInside(box.current, e);
+  };
+  return (
+    <div onClick={locked ? undefined : onClose} className="modal-backdrop">
+      <div
+        ref={box}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        onKeyDown={onKeyDown}
+        onClick={(e) => e.stopPropagation()}
+        className="modal"
+      >
+        <div className="flex items-start justify-between modal-head">
+          <div><div id={titleId} className="modal-title">{title}</div>{sub && <div className="modal-sub">{sub}</div>}</div>
+          <button type="button" aria-label="Close" onClick={onClose} className="modal-close">×</button>
+        </div>
+        <div className="modal-body">{children}</div>
       </div>
-      <div className="modal-body">{children}</div>
     </div>
-  </div>
-);
+  );
+}
 
 // A password shown once; a click on the backdrop leaves it open.
 export const PasswordModal = ({ title, password, onClose, children }) => (

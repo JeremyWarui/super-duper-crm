@@ -54,6 +54,13 @@ const CHASE_DAYS = 14;
 const daysFrom = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
 const plural = (n, word) => `${formatNumber(n)} ${word}${n === 1 ? "" : "s"}`;
 const whole = (text) => /^\d+$/.test(String(text).trim());
+// The server's spelling of a reference: compatibility forms folded, no spaces, upper case.
+const normalReference = (text) => text.normalize("NFKC").replace(/\s+/g, "").toUpperCase();
+const oldest = (today) => addDays(today, -365);
+// The server's limits.
+const MAX_KES = 10_000_000;
+const MAX_DAYS = 730;
+const REFERENCE = /^[A-Z0-9/-]{1,40}$/;
 const describe = (s) => [s.candidate_name, SEAT_LABEL[s.seat], s.area_name].filter(Boolean).join(" · ");
 
 const Result = ({ tone, children }) => <div className={`result tone-${tone}`}>{children}</div>;
@@ -71,7 +78,22 @@ function nextStep(row, today) {
     const left = daysFrom(today, row.paid_until);
     return left === 0 ? "Paid period ends today" : `Paid period ends in ${plural(left, "day")}`;
   }
+  if (row.state === "pending_payment") return "Never paid; locked until a payment is recorded";
+  if (row.hold === "suspended") return "Access stopped by the finance office";
+  if (row.state === "locked") return `Locked; the paid period ended ${formatDate(row.paid_until)}`;
   return "—";
+}
+
+const URGENT = new Set(["read_only", "locked"]);
+const CHASE_SHOWN = 6;
+
+// How long is left on the paid period, or how long ago it ended.
+function timeLeft(paidUntil, today) {
+  if (!paidUntil) return null;
+  const left = daysFrom(today, paidUntil);
+  if (left > 0) return [`${plural(left, "day")} left`, left <= CHASE_DAYS ? "text-warn" : "muted"];
+  if (left === 0) return ["Ends today", "text-warn"];
+  return [`Ended ${plural(-left, "day")} ago`, "text-bad"];
 }
 
 // ---- Forms ---------------------------------------------------------------------
@@ -80,7 +102,7 @@ function PaymentForm({ subscription, plans, onClose, onDone }) {
   const choosePlan = useChoosePlan();
   const pay = useRecordSubscriptionPayment();
   const today = nairobiDate();
-  const current = subscription.plan?.id || "";
+  const [current, setCurrent] = useState(subscription.plan?.id || "");
   const offered = plans.filter((p) => p.active || p.id === current);
   const [planId, setPlanId] = useState(current || (offered.length === 1 ? offered[0].id : ""));
   const [typedAmount, setTypedAmount] = useState(null);
@@ -90,7 +112,10 @@ function PaymentForm({ subscription, plans, onClose, onDone }) {
   const [note, setNote] = useState("");
   const plan = plans.find((p) => p.id === planId);
   const amount = typedAmount ?? (plan ? String(plan.price_kes) : "");
-  const ready = plan && whole(amount) && Number(amount) > 0 && reference.trim() && received;
+  const inRange = received >= oldest(today) && received <= today;
+  const amountOk = whole(amount) && Number(amount) > 0 && Number(amount) <= MAX_KES;
+  const referenceOk = REFERENCE.test(reference);
+  const ready = plan && amountOk && referenceOk && inRange;
   const busy = choosePlan.isPending || pay.isPending;
   const error = pay.error || choosePlan.error;
   const until = plan && received ? paidUntilAfter(subscription.paid_until, received, plan.duration_days) : null;
@@ -99,7 +124,10 @@ function PaymentForm({ subscription, plans, onClose, onDone }) {
     choosePlan.reset();
     pay.reset();
     try {
-      if (planId !== current) await choosePlan.mutateAsync({ id: subscription.id, plan: planId });
+      if (planId !== current) {
+        await choosePlan.mutateAsync({ id: subscription.id, plan: planId });
+        setCurrent(planId);
+      }
       const detail = await pay.mutateAsync({
         id: subscription.id,
         amount_kes: Number(amount),
@@ -120,8 +148,14 @@ function PaymentForm({ subscription, plans, onClose, onDone }) {
       sub={`${subscription.title} · ${subscription.paid_until ? `paid until ${formatDate(subscription.paid_until)}` : "nothing paid yet"}`}
       onClose={onClose}
     >
+      {offered.length === 0 && (
+        <>
+          <div className="form-error">No plan is offered yet. Create one on the Plans tab first.</div>
+          <div className="field-gap" />
+        </>
+      )}
       <Field label="Plan">
-        <select aria-label="Plan" className="app-field" value={planId} onChange={(e) => { setPlanId(e.target.value); setTypedAmount(null); }}>
+        <select aria-label="Plan" className="app-field" value={planId} disabled={offered.length === 0} onChange={(e) => { setPlanId(e.target.value); setTypedAmount(null); }}>
           <option value="">Choose a plan</option>
           {offered.map((p) => (
             <option key={p.id} value={p.id}>{p.name} · {formatKes(p.price_kes)} for {plural(p.duration_days, "day")}</option>
@@ -141,7 +175,10 @@ function PaymentForm({ subscription, plans, onClose, onDone }) {
           onChange={(e) => setTypedAmount(e.target.value.replace(/[,\s]/g, ""))}
         />
       </Field>
-      {plan && whole(amount) && Number(amount) !== plan.price_kes && (
+      {whole(amount) && Number(amount) > MAX_KES && (
+        <div className="field-hint text-bad">A payment is at most {formatKes(MAX_KES)}.</div>
+      )}
+      {plan && amountOk && Number(amount) !== plan.price_kes && (
         <div className="field-hint text-warn">The plan's price is {formatKes(plan.price_kes)}; the amount is recorded as received.</div>
       )}
       <div className="field-gap" />
@@ -152,7 +189,7 @@ function PaymentForm({ subscription, plans, onClose, onDone }) {
           </select>
         </Field>
         <Field label="Received on">
-          <input aria-label="Received on" type="date" className="app-field" max={today} value={received} onChange={(e) => setReceived(e.target.value)} />
+          <input aria-label="Received on" type="date" className="app-field" min={oldest(today)} max={today} value={received} onChange={(e) => setReceived(e.target.value)} />
         </Field>
       </div>
       <div className="field-gap" />
@@ -161,11 +198,14 @@ function PaymentForm({ subscription, plans, onClose, onDone }) {
           aria-label="Reference"
           className="app-field"
           placeholder="M-Pesa code, bank slip or receipt number"
-          maxLength={80}
+          maxLength={40}
           value={reference}
-          onChange={(e) => setReference(e.target.value)}
+          onChange={(e) => setReference(normalReference(e.target.value))}
         />
       </Field>
+      {reference && !referenceOk && (
+        <div className="field-hint text-bad">Use letters, digits, - and / only.</div>
+      )}
       <div className="field-gap" />
       <Field label="Note (optional)">
         <input aria-label="Note" className="app-field" maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
@@ -311,7 +351,7 @@ function ChasingTable({ rows, today, onOpen, onPay, empty }) {
               </td>
               <td><AccessBadge row={row} /></td>
               <td className="muted">{formatDate(row.paid_until)}</td>
-              <td className={row.state === "read_only" ? "text-bad" : "text-warn"}>{nextStep(row, today)}</td>
+              <td className={URGENT.has(row.state) ? "text-bad" : "text-warn"}>{nextStep(row, today)}</td>
               {onPay && (
                 <td className="actions-cell">
                   <Button aria-label={`Record payment for ${row.title}`} onClick={() => onPay(row)}>Record payment</Button>
@@ -336,11 +376,21 @@ function CampaignList({ onOpen }) {
   const counts = useFinanceStateCounts(COUNTED);
   const list = useFinanceSubscriptions({ state, q: q.trim(), limit: PAGE_SIZE, offset });
   const chasing = useExpiringReport(CHASE_DAYS);
+  const lockedRows = useFinanceSubscriptions({ state: "locked", limit: 200 });
+  const pendingRows = useFinanceSubscriptions({ state: "pending_payment", limit: 200 });
+  const [allChasing, setAllChasing] = useState(false);
   const plans = useFinancePlans();
   const total = list.data?.total ?? 0;
   const items = list.data?.items || [];
   const filter = (next) => { setState(next); setOffset(0); };
   const count = (key) => (counts[key] == null ? "" : ` ${formatNumber(counts[key])}`);
+  const chaseError = chasing.error || lockedRows.error || pendingRows.error;
+  const chaseReady = chasing.data && lockedRows.data && pendingRows.data;
+  const chaseRows = chaseReady
+    ? [...chasing.data, ...lockedRows.data.items, ...pendingRows.data.items].filter(
+        (row, i, rows) => row.campaign_id && rows.findIndex((r) => r.id === row.id) === i,
+      )
+    : [];
 
   return (
     <>
@@ -349,22 +399,35 @@ function CampaignList({ onOpen }) {
         <div className="card-head">
           <div className="card-title">Needs chasing</div>
           <div className="card-sub">
-            In grace, read-only, or with a paid period ending within {CHASE_DAYS} days, soonest first.
-            Locked and unpaid campaigns are under their filters below.
+            Read-only, in grace or ending within {CHASE_DAYS} days, soonest first; then locked and never-paid
+            campaigns.
           </div>
         </div>
-        {chasing.error ? (
-          <ErrorState error={chasing.error} />
-        ) : chasing.isLoading ? (
+        {chaseError ? (
+          <ErrorState error={chaseError} />
+        ) : !chaseReady ? (
           <LoadingState />
         ) : (
-          <ChasingTable
-            rows={chasing.data}
-            today={today}
-            onOpen={onOpen}
-            onPay={(row) => { setDone(null); setPaying(row); }}
-            empty="Nobody to chase: every campaign is paid beyond the next two weeks."
-          />
+          <>
+            <ChasingTable
+              rows={allChasing ? chaseRows : chaseRows.slice(0, CHASE_SHOWN)}
+              today={today}
+              onOpen={onOpen}
+              onPay={(row) => { setDone(null); setPaying(row); }}
+              empty="Nobody to chase: every campaign is paid beyond the next two weeks."
+            />
+            {(lockedRows.data.total > lockedRows.data.items.length ||
+              pendingRows.data.total > pendingRows.data.items.length) && (
+              <div className="field-hint">More locked or never-paid campaigns than shown here: use their filters below.</div>
+            )}
+            {chaseRows.length > CHASE_SHOWN && (
+              <div className="flex justify-end chip-row">
+                <Button onClick={() => setAllChasing(!allChasing)}>
+                  {allChasing ? "Show fewer" : `Show all ${formatNumber(chaseRows.length)}`}
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </Panel>
       <div className="field-gap" />
@@ -402,7 +465,14 @@ function CampaignList({ onOpen }) {
                         <div className="cell-sub">{row.campaign_id ? describe(row) : "Campaign deleted; its ledger is kept"}</div>
                       </td>
                       <td className="muted">{row.plan?.name || "No plan yet"}</td>
-                      <td className="muted">{formatDate(row.paid_until)}</td>
+                      <td className="muted">
+                        {formatDate(row.paid_until)}
+                        {timeLeft(row.paid_until, today) && (
+                          <div className="cell-sub">
+                            <span className={timeLeft(row.paid_until, today)[1]}>{timeLeft(row.paid_until, today)[0]}</span>
+                          </div>
+                        )}
+                      </td>
                       <td><AccessBadge row={row} /></td>
                       <td className="actions-cell">
                         {row.campaign_id && (
@@ -464,6 +534,7 @@ function PlanPicker({ subscription, plans }) {
         ))}
       </select>
       {plan && <div className="field-hint">{formatKes(plan.price_kes)} for {plural(plan.duration_days, "day")}</div>}
+      {offered.length === 0 && <div className="field-hint">No plan is offered yet. Create one on the Plans tab.</div>}
       {choose.isPending && <div className="save-status muted">Saving…</div>}
       {choose.isError && <div className="form-error">{choose.error.message}</div>}
     </Panel>
@@ -475,14 +546,14 @@ function EntryLine({ entry }) {
     return (
       <>
         <div className="strong">Payment · {RECEIPT_LABEL[entry.method] || entry.method}</div>
-        <div className="cell-sub">{[entry.reference, entry.plan_name, entry.note].filter(Boolean).join(" · ")}</div>
+        <div className="cell-sub">{[`+${plural(entry.days, "day")}`, entry.reference, entry.plan_name, entry.note].filter(Boolean).join(" · ")}</div>
       </>
     );
   }
   return (
     <>
       <div className="strong">Extension</div>
-      <div className="cell-sub">{entry.note}</div>
+      <div className="cell-sub">{[`+${plural(entry.days, "day")}`, entry.note].filter(Boolean).join(" · ")}</div>
     </>
   );
 }
@@ -615,7 +686,9 @@ function PlanForm({ plan, onClose }) {
     description: plan?.description || "",
   });
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
-  const ready = form.name.trim() && whole(form.price_kes) && whole(form.duration_days) && Number(form.duration_days) >= 1;
+  const priceOk = whole(form.price_kes) && Number(form.price_kes) <= MAX_KES;
+  const daysOk = whole(form.duration_days) && Number(form.duration_days) >= 1 && Number(form.duration_days) <= MAX_DAYS;
+  const ready = form.name.trim() && priceOk && daysOk;
 
   const save = () => {
     const body = {
@@ -646,6 +719,9 @@ function PlanForm({ plan, onClose }) {
         <Field label="Days of access">
           <input aria-label="Days of access" className="app-field" inputMode="numeric" value={form.duration_days} onChange={set("duration_days")} />
         </Field>
+      </div>
+      <div className={`field-hint ${(form.price_kes && !priceOk) || (form.duration_days && !daysOk) ? "text-bad" : ""}`.trim()}>
+        Up to {formatKes(MAX_KES)}, for 1 to {formatNumber(MAX_DAYS)} days.
       </div>
       <div className="field-gap" />
       <Field label="Description (optional)">
@@ -731,6 +807,7 @@ function ranges(today) {
     ["Last month", lastMonthStart, addDays(monthStart, -1)],
     ["This year", `${year}-01-01`, `${year}-12-31`],
     ["Last year", `${year - 1}-01-01`, `${year - 1}-12-31`],
+    ["Last 12 months", addDays(today, -364), today],
   ];
 }
 

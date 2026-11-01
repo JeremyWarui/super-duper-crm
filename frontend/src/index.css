@@ -768,6 +768,11 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
   box-shadow: var(--shadow-pop);
 }
 
+/* The dialog takes focus on open so the keyboard starts inside it; it draws no ring. */
+.modal:focus {
+  outline: none;
+}
+
 .modal-head {
   gap: 12px;
   padding: 20px 24px 16px;

@@ -109,6 +109,7 @@ export const SEATS = [
 ];
 
 export const SEAT_LABEL = Object.fromEntries(SEATS.map(([value, label]) => [value, label]));
+export const SEAT_AREA = Object.fromEntries(SEATS.map(([value, , area]) => [value, area]));
 
 // A campaign's access state, its label, and its tone by how urgently it needs chasing.
 export const ACCESS_STATES = [
@@ -143,4 +144,3 @@ export function paidUntilAfter(paidUntil, received, days) {
   const start = next > received ? next : received;
   return addDays(start, days - 1);
 }
-export const SEAT_AREA = Object.fromEntries(SEATS.map(([value, , area]) => [value, area]));

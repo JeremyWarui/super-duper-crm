@@ -351,7 +351,7 @@ Officers in tests come from `make_officer(session, world, FINANCE_OFFICER)`.
 - Files: `services/billing.py` (revenue, expiring), `api/routers/party_finance.py`, new `api/routers/subscription.py`, `api/routers/__init__.py`, `tests/test_route_guards.py` (`SIGNED_IN_ONLY`), tests.
 - Tests: revenue leaves out voided payments and extensions; the expiring list holds grace and read-only campaigns and active ones due within the window; a mobilizer's `/api/subscription/` has no plan or price.
 
-**R3-5 Finance page** (frontend)
+**R3-5 Finance page** (frontend) — done 1 Nov 2026
 - Files: new `pages/party/Finance.jsx`, `pages/party/Portal.jsx`, `api/hooks`, `contracts/frontend-api.json` (finance routes), tests.
 - Tests: a finance officer sees Finance and not Members; recording a payment, voiding and holding call the right routes; the amount defaults to the plan price.
 - Depends: R3-3, R3-4 merged.

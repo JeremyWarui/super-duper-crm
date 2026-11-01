@@ -19,8 +19,8 @@ describe("the finance page", () => {
     renderApp(<Root />, { path: "/party" });
 
     expect((await screen.findAllByRole("button", { name: "Jane for Roysambu" })).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Finance").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Members")).toBeNull();
+    expect(screen.getByRole("button", { name: "Finance" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("button", { name: "Members" })).toBeNull();
   });
 
   it("records a payment whose amount defaults to the plan's price", async () => {
@@ -51,7 +51,9 @@ describe("the finance page", () => {
     const calls = stubApi(financeRoutes());
     renderApp(<Root />, { path: "/party/finance?subscription=s1" });
 
-    await user.click(await screen.findByRole("button", { name: "Void" }));
+    const offered = await screen.findAllByRole("button", { name: "Void" });
+    expect(offered).toHaveLength(1);
+    await user.click(offered[0]);
     await user.type(screen.getByLabelText("Reason"), "Recorded twice");
     await user.click(screen.getAllByRole("button", { name: "Void" }).at(-1));
 
@@ -78,5 +80,24 @@ describe("the finance page", () => {
         reason: "Cheque bounced",
       }),
     );
+  });
+
+  it("keeps the keyboard inside a dialog, closes it on Escape, and gives the focus back", async () => {
+    const user = userEvent.setup();
+    signInAsParty(["finance_officer"]);
+    stubApi(financeRoutes());
+    renderApp(<Root />, { path: "/party/finance" });
+
+    const [pay] = await screen.findAllByRole("button", { name: "Record payment for Jane for Roysambu" });
+    await user.click(pay);
+    const dialog = screen.getByRole("dialog", { name: "Record payment" });
+    expect(dialog).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(dialog).toContainElement(document.activeElement);
+    expect(document.activeElement).not.toBe(dialog);
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(pay).toHaveFocus();
   });
 });
