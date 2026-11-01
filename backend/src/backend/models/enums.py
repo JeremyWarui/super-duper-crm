@@ -150,3 +150,25 @@ class ContactMethod(LabelledStrEnum):
     SMS = ("sms", "SMS")
     WHATSAPP = ("whatsapp", "WhatsApp")
     EMAIL = ("email", "Email")
+
+
+class SubscriptionHold(LabelledStrEnum):
+    """A finance officer's stop on a campaign's access, whatever has been paid."""
+
+    NONE = ("none", "None")
+    SUSPENDED = ("suspended", "Suspended")
+    CANCELLED = ("cancelled", "Cancelled")
+
+
+class EntryKind(LabelledStrEnum):
+    PAYMENT = ("payment", "Payment")
+    EXTENSION = ("extension", "Extension")
+
+
+class ReceiptMethod(LabelledStrEnum):
+    """How a subscription payment reached the party."""
+
+    MPESA = ("mpesa", "M-Pesa")
+    BANK = ("bank", "Bank")
+    CASH = ("cash", "Cash")
+    OTHER = ("other", "Other")

@@ -6,10 +6,9 @@ Technical design for Release 3 of `docs/Implementation_Plan.md`. It builds on
 access comes only from `campaign_members`, party access only from
 `party_roles`, and nothing in `api/scope.py` reads a party table.
 
-Status: draft, 1 November 2026, waiting on Jeremy's decisions below.
+Status: approved 1 November 2026.
 
-Proposed for Jeremy to decide (the recommended option is written into the
-design; changing one changes only the section named):
+Decisions taken by Jeremy on 1 November 2026:
 
 1. **Timeline after the paid period ends**: 7 days of grace with full access
    and a banner, then 7 days read-only, then locked. Both lengths are party
@@ -333,7 +332,7 @@ R3-5 for the finance routes, R3-6 for `GET /api/subscription/` and the two new
 codes. A frontend ticket starts after the backend tickets it calls have merged.
 Officers in tests come from `make_officer(session, world, FINANCE_OFFICER)`.
 
-**R3-1 Plans, subscriptions and the ledger** (schema)
+**R3-1 Plans, subscriptions and the ledger** (schema) — done 1 Nov 2026
 - Files: new `models/billing.py`, `models/enums.py` (`SubscriptionHold`, `EntryKind`, `PaymentMethod`), `models/campaign.py` (relationship and the default row), `models/party.py` (three settings columns), `models/__init__.py`, new revision `subscriptions` (tables, backfill), `api/errors.py` (two constraint messages), `tests/test_models.py`.
 - Tests: a payment entry without a reference fails at the database; the same reference twice fails, and succeeds once the first is voided; a new `Campaign` has a subscription row.
 

@@ -55,6 +55,8 @@ class PartySettings(Base):
         CheckConstraint("id = 1", name="singleton"),
         CheckConstraint(hex_colour("primary_colour"), name="primary_colour_hex"),
         CheckConstraint(hex_colour("secondary_colour"), name="secondary_colour_hex"),
+        CheckConstraint("grace_days BETWEEN 0 AND 60", name="grace_days_range"),
+        CheckConstraint("read_only_days BETWEEN 0 AND 60", name="read_only_days_range"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False, default=1)
@@ -70,6 +72,10 @@ class PartySettings(Base):
     manifesto_text: Mapped[str] = mapped_column(Text, default="")
     manifesto_url: Mapped[str] = mapped_column(String(500), default="")
     social_links: Mapped[dict] = mapped_column(JSON, default=dict)
+    # Days of full access, then of read-only access, after a campaign's paid period ends.
+    grace_days: Mapped[int] = mapped_column(Integer, default=7, server_default=text("7"))
+    read_only_days: Mapped[int] = mapped_column(Integer, default=7, server_default=text("7"))
+    payment_instructions: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

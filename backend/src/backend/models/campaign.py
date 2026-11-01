@@ -20,6 +20,7 @@ from backend.models.membership import CampaignMember
 from backend.models.user import User
 
 if TYPE_CHECKING:
+    from backend.models.billing import CampaignSubscription
     from backend.models.event import Event
     from backend.models.geography import Constituency, County, Ward
     from backend.models.mobilizer import Mobilizer
@@ -98,12 +99,19 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     supporters: Mapped[list["Supporter"]] = relationship(
         back_populates="campaign", cascade="all, delete-orphan", passive_deletes=True
     )
+    subscription: Mapped["CampaignSubscription | None"] = relationship(
+        back_populates="campaign", passive_deletes=True
+    )
 
     def __init__(self, **kwargs) -> None:
         if kwargs.get("seat") is not None:
             kwargs["seat"] = Seat(kwargs["seat"])
         elif kwargs.get("office_level") is not None:
             kwargs["seat"] = _seat_for_level(OfficeLevel(kwargs["office_level"]))
+        if "subscription" not in kwargs:
+            from backend.models.billing import CampaignSubscription
+
+            kwargs["subscription"] = CampaignSubscription()
         super().__init__(**kwargs)
 
     def __str__(self) -> str:

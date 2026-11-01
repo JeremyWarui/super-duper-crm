@@ -214,3 +214,26 @@ def test_the_member_role_migration_refuses_a_member_whose_role_differs_from_its_
         ):
             second.upgrade()
     engine.dispose()
+
+
+def test_the_subscriptions_migration_gives_each_existing_campaign_an_unpaid_subscription() -> None:
+    revisions = revision_modules()
+    last = next(i for i, m in enumerate(revisions) if m.revision == "subscriptions")
+    engine = sa.create_engine("sqlite://")
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            for module in revisions[:last]:
+                module.upgrade()
+        connection.execute(
+            sa.text(
+                "INSERT INTO campaigns (id, title, office_level, seat, signup_code, signups_open) "
+                "VALUES ('c1', 'C', 'ward', 'mca', 'code', 1)"
+            )
+        )
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].upgrade()
+        rows = connection.execute(
+            sa.text("SELECT campaign_id, paid_until, hold FROM campaign_subscriptions")
+        ).all()
+    engine.dispose()
+    assert [tuple(row) for row in rows] == [("c1", None, "none")]
