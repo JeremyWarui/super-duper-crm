@@ -274,13 +274,10 @@ given a new one. `docs/Identity_Access_Design.md` risk 6 is updated to say so.
   office requires it; the link endpoint refuses to move an office holder's link
   to a member who is not approved, or to remove it; and `require_party_role`
   checks it on every request, so an officer whose member is later suspended or
-  withdrawn stops acting at once. The user query (in `get_signed_in_user`
-  once R2-5 splits it) eager-loads `User.party_member` (a relationship with `foreign_keys=[User.party_member_id]`,
-  since `party_members.decided_by_id` is a second path between the tables), so
-  the guard stays a plain function of the user and needs no session. The
-  guard checks the office first and the link second, reading the link through
-  `require_loaded`, so a caller that did not load it gets a clear error (403, "This login needs to be linked to an
-  approved party member."). The superuser
+  withdrawn stops acting at once. The guard first applies the party inbox, then
+  reads the member's status fresh, so a queued public withdrawal of the
+  officer's own membership stops them on that same request (403, "This login
+  needs to be linked to an approved party member."). The superuser
   is exempt from the link and from the own-record refusals: the superuser is
   the party's operator, every superuser action is audited, and Release 1
   decision 1 makes it the Party Super Admin. "No officer acts on their own

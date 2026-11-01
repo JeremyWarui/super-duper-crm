@@ -72,3 +72,18 @@ async def test_an_officer_works_only_while_linked_to_an_approved_member(
     loose = await client.get("/api/party/members/", headers=auth(await sign_in(client, "loose")))
 
     assert (before.status_code, after.status_code, loose.status_code) == (200, 403, 403)
+
+
+async def test_an_officer_whose_own_withdrawal_is_queued_is_stopped_on_the_next_request(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    officer = await make_officer(session, world.ward, PartyRoleName.MEMBERSHIP_OFFICER)
+    member = await session.get(PartyMember, officer.party_member_id)
+    member.withdraw_code = "officer-own-code"
+    await session.commit()
+    headers = auth(await sign_in(client, "ofisa"))
+
+    await client.post("/api/party/withdraw/officer-own-code/")
+    acted = await client.get("/api/party/members/", headers=headers)
+
+    assert acted.status_code == 403

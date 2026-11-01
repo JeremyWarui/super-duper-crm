@@ -27,14 +27,14 @@ async def test_an_officer_passes_the_guard_and_sees_no_campaign(
     assert (await client.get("/api/campaigns/", headers=headers)).json() == []
 
     officer = await session.get(type(officer), officer.id, populate_existing=True)
-    await session.refresh(officer, ["party_roles", "party_member"])
-    assert await require_party_role(OFFICER)(officer) is officer
+    await session.refresh(officer, ["party_roles"])
+    assert await require_party_role(OFFICER)(officer, session) is officer
 
 
 async def test_a_candidate_gets_403_from_the_guard(session: AsyncSession, world: World):
     await session.refresh(world.candidate, ["party_roles"])
     with pytest.raises(HTTPException) as refused:
-        await require_party_role(OFFICER)(world.candidate)
+        await require_party_role(OFFICER)(world.candidate, session)
     assert refused.value.status_code == 403
 
 

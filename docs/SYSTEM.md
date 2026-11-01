@@ -5,7 +5,7 @@ Use it to plan features, refine the architecture, or bring someone new up to
 speed. How to run the code lives in the READMEs; this document says what the
 code is for.
 
-Last checked against the code: 31 October 2026, after Release 0 and Release 1 (party register).
+Last checked against the code: 1 November 2026, after Release 2 (aspirants and campaign workspaces).
 
 ---
 
@@ -59,15 +59,37 @@ The same deployment also serves **one political party** (there is no party id;
 one deployment, one party). Party access and campaign access never mix: a
 campaign login has a campaign role (`users.role`) and is on one campaign; a
 party staff login has `role = NULL`, holds party offices (`party_roles`), and is
-never on a campaign, which the database enforces. The superuser is the party's
-super admin.
+never on a campaign. The database enforces both directions: a role-less login
+cannot be put on a campaign, and a login with a campaign role cannot hold an
+office (`users.kind`). The superuser is the party's super admin.
 
 - **Party settings:** one row (`party_settings`) holding the party's name,
   branding, contacts and manifesto. Anyone reads it at `GET /api/party/`; the
   superuser edits it in the console.
 - **Party offices:** membership, nominations and finance officer. The superuser
-  grants and revokes them on staff logins in the console; only membership
-  officer is used so far.
+  grants and revokes them on staff logins in the console; membership and
+  nominations officer are in use, finance officer waits for Release 3. Every
+  office holder's login is linked to its own party member
+  (`users.party_member_id`, set in the console), and an officer works only
+  while that member is approved, checked on every request. An officer is
+  refused on their own membership, volunteer profile and nomination; the
+  superuser is exempt.
+- **Aspirants:** a nominations officer nominates an approved member for a seat
+  and exactly the area that seat is fought over (`aspirants`, one live
+  nomination per member). Nominations move draft → submitted → approved or
+  rejected; approved ↔ suspended; anything live → withdrawn. Rejecting and
+  suspending need a reason; approving needs the member approved. The
+  nomination follows the member: suspending the member suspends an approved
+  nomination, and withdrawing or rejecting the member, including through their
+  public withdrawal link, withdraws it.
+- **Campaign workspaces:** a nominations officer (or the superuser) creates an
+  approved aspirant's campaign at `/party/aspirants`. It is built on the
+  aspirant's seat and area with a candidate login linked to the member and an
+  optional manager; one per aspirant, even with two officers at once. While the
+  aspirant is not approved, every login on that campaign gets 403
+  `campaign_suspended` and a "suspended" or "closed" screen, and its public
+  sign-up links close; the data is kept. Deleting the campaign keeps the
+  aspirant and member.
 - **Member register:** `party_members`, one row per phone, tied to a ward
   (county and constituency come from the ward). People apply at `/join-party`
   with a county, constituency and ward picker and the consent box, whose
@@ -99,7 +121,8 @@ super admin.
   `public`. Nobody proves they hold the number yet, so anyone can re-apply for
   a rejected or withdrawn number until SMS verification exists.
 
-The design and its decisions are in `docs/Identity_Access_Design.md`.
+The designs and their decisions are in `docs/Identity_Access_Design.md`
+(Releases 0 and 1) and `docs/Aspirants_Design.md` (Release 2).
 
 ---
 
@@ -109,16 +132,20 @@ The design and its decisions are in `docs/Identity_Access_Design.md`.
 aspirant, manager, mobilizers and supporters, and never sees another campaign's
 data. A campaign login is on at most one campaign; the operator is on none.
 
-**The operator (superuser) onboards every campaign.** There is no public
-sign-up. The operator creates a campaign from the admin console, which also
-creates the aspirant's login and, optionally, the manager's. From then on the
+**The operator (superuser) or the party's nominations officer onboards every
+campaign.** There is no public sign-up. The operator creates a campaign from
+the admin console; a nominations officer creates one only as the workspace of
+an approved aspirant. Either way the aspirant's login and, optionally, the
+manager's are created with it. From then on the
 campaign runs its own team. The command line can also make a candidate login
 with no campaign (`campaign-crm createuser --role candidate`); the console
 refuses that.
 
 | Person | What they do in the app |
 |---|---|
-| **Operator** (superuser) | Runs the deployment from the admin console: creates campaigns and their first logins, repairs logins, deletes campaigns. Never sits on a campaign. |
+| **Operator** (superuser) | Runs the deployment from the admin console: creates campaigns and their first logins, repairs logins, links logins to party members, grants party offices, deletes campaigns. Opens every party page. Never sits on a campaign. |
+| **Membership officer** (party staff) | Reviews the member and volunteer registers at `/party/members` and `/party/volunteers`. Sees no campaign. |
+| **Nominations officer** (party staff) | Nominates approved members, moves nominations, and creates an approved aspirant's campaign workspace at `/party/aspirants`. Sees no campaign. |
 | **Aspirant** (role `candidate` in the code, labelled Candidate on screen) | Owns the campaign. Watches progress and strategy, adds or replaces the one manager, adds and places mobilizers, resets the team's passwords. |
 | **Campaign manager** | Runs the day to day: targets, events, the supporter register, sign-up links to share, payments to mobilizers, adding mobilizers and resetting their passwords. |
 | **Mobilizer** | Works one unit: a ward, or in an MCA race a registration centre. Records events and registers supporters in their ward, and sees their own payments. |
@@ -288,10 +315,13 @@ campaign does.
 - Payments to mobilizers for events, in practice mode (see section 7, Outside services).
 - The admin console for the operator, and a command line (`campaign-crm`) for
   the same operations.
+- The party platform: settings, offices, the member and volunteer registers,
+  nominations and campaign workspaces for approved aspirants.
 
 ### Deliberately out of scope
 
-- **Campaigns signing themselves up.** Every campaign is onboarded by the operator.
+- **Campaigns signing themselves up.** Every campaign is onboarded by the operator,
+  or by the nominations officer for an approved aspirant.
 - **Several campaigns per login.** A login belongs to one campaign.
 - **Polling-station level work.** Targets stop at the registration centre;
   election-day work would need polling stations, which are not loaded.
@@ -356,8 +386,8 @@ Paths are under `backend/src/backend/`.
 | Schedule and release payments | no | yes | no |
 
 Party offices sit outside this table: a membership officer reads and changes
-the party register only, and sees no campaign; a campaign login gets 403 on
-every party register route.
+the party register only, a nominations officer the nominations only, and
+neither sees a campaign; a campaign login gets 403 on every party route.
 
 A mobilizer's reach is their **ward**, in every race. In an MCA race the whole
 campaign is one ward, so a mobilizer placed on one centre still reads and writes
@@ -384,7 +414,11 @@ counts toward, not what they can see.
 | Strategy read and notes | Built | |
 | Payments to mobilizers | Built, practice mode | References read `PRACTICE`; no money moves |
 | Party settings, edited in the console | Built | `GET /api/party/`, `PUT /api/admin/party/` |
-| Party offices granted to staff logins | Built | Membership officer in use; nominations and finance reserved |
+| Party offices granted to staff logins | Built | Membership and nominations officer in use; finance reserved for Release 3; holders linked to an approved member |
+| Nominations: nominate, move, follow the member | Built | `frontend/src/pages/party/Aspirants.jsx` |
+| Campaign workspace from an approved aspirant | Built | One per aspirant; passwords shown once |
+| Campaign closed while its aspirant is not approved | Built | 403 `campaign_suspended`, its own screen, sign-up links closed |
+| Console: link a login to its party member | Built | `PUT /api/admin/users/{id}/party-member/` |
 | Public Join the Party page and withdrawal link | Built | `frontend/src/pages/public/` |
 | Party member register for membership officers | Built | `frontend/src/pages/party/Members.jsx`, CSV export |
 | Volunteer register: form section, own withdraw link, officer page | Built | `frontend/src/pages/party/Volunteers.jsx`, CSV export |
@@ -473,6 +507,9 @@ erDiagram
   EVENT |o--o{ PAYMENT : "paid for"
   MOBILIZER |o--o{ PAYMENT : receives
   USER ||--o{ PARTY_ROLE : "holds (staff logins)"
+  USER }o--o| PARTY_MEMBER : "belongs to"
+  PARTY_MEMBER ||--o{ ASPIRANT : "nominated as"
+  ASPIRANT |o--o| CAMPAIGN : "workspace"
   WARD ||--o{ PARTY_MEMBER : "lives in"
   PARTY_MEMBER ||--o| VOLUNTEER_PROFILE : "may have"
   PARTY_REQUEST
@@ -495,7 +532,7 @@ erDiagram
 
 ### The API
 
-72 operations across 59 paths, grouped by purpose. The live list is at `/docs`
+82 operations across 68 paths, grouped by purpose. The live list is at `/docs`
 on a server started with `DEBUG=true`; it is off otherwise.
 
 | Group | Routes | Who |
@@ -510,7 +547,8 @@ on a server started with `DEBUG=true`; it is off otherwise.
 | Public sign-up and withdrawal | `/api/join/{code}/`, `/api/join/withdraw/{code}/` | anyone with an event's, a campaign's or a withdrawal code |
 | Party, public | `/api/party/`, `/api/party/places/`, `/api/party/join/`, `/api/party/withdraw/{code}/`, `/api/party/volunteer/withdraw/{code}/` | anyone; join and withdraws are rate limited |
 | Party register | `/api/party/members/` (list, detail, status, `export.csv`), `/api/party/volunteers/` (list, update, `export.csv`) | membership officer and superuser |
-| Console, including party settings, party offices and the audit trail | `/api/admin/` | superuser only |
+| Nominations | `/api/party/aspirants/` (candidates, list, detail, create, status, workspace) | nominations officer and superuser |
+| Console, including party settings, party offices, member links and the audit trail | `/api/admin/` | superuser only |
 | Health | `/health` | Fly's checks |
 
 ### Outside services
@@ -531,14 +569,15 @@ in full without either:
 
 | Check | What it proves | Runs |
 |---|---|---|
-| Backend tests (228) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
-| Backend evals (238: 215 run, 7 live checks and 16 impossible member/volunteer pairs skipped) | The API still offers what the frontend's contract lists | `cd backend && uv run pytest evals` |
-| Frontend tests (97) | Each screen per role, the forms, the contract from the frontend side | `cd frontend && npm test` |
+| Backend tests (254: 252 run, 2 Postgres-only skipped) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
+| Backend evals (261: 237 run, 7 live checks and 17 impossible register states skipped) | The API still offers what the frontend's contract lists | `cd backend && uv run pytest evals` |
+| Frontend tests (102) | Each screen per role, the forms, the contract from the frontend side | `cd frontend && npm test` |
 | Migration tests | The migrations build the models' schema and render correctly for Postgres | part of the backend tests |
+| Postgres lane | The same suite on a throwaway local Postgres built by the migrations: row locks, races, every migration down and up | `cd backend && TEST_POSTGRES=1 uv run pytest` |
 | Live database check | TLS, the latest migration and the seeded geography on a real database | `LIVE_DATABASE=1`, by hand; 7 checks skipped otherwise |
 | Secret scan | No password, key or token reaches the repository | a pre-commit hook (`git config core.hooksPath .githooks`), and again on every push in GitHub Actions (`.github/workflows/secret-scan.yml`) |
 
-`cd backend && uv run pytest` runs the tests and the evals together (466: 443 run, 23 skipped).
+`cd backend && uv run pytest` runs the tests and the evals together (515: 489 run, 26 skipped). With `TEST_POSTGRES=1`, 490 run: the two Postgres-only tests run and the SQLite-only CLI check skips.
 
 ---
 
@@ -587,7 +626,7 @@ no stylesheet defines, so a missing style is caught by the tests, not by a user.
 
 | Decision | Why |
 |---|---|
-| Only the operator creates campaigns | A subscription product onboards paying customers; open sign-up let anyone create a campaign and see the product unpaid. |
+| Only the operator, or a nominations officer from an approved aspirant, creates campaigns | A subscription product onboards paying customers; open sign-up let anyone create a campaign and see the product unpaid. The party decides who stands, so its nominations officer may open an approved aspirant's workspace. |
 | One login, one campaign | Keeps isolation simple and provable: scoping is a single membership lookup. |
 | One manager per campaign | Matches how the campaigns being sold are run; ward managers can come later as a separate role. |
 | MCA races counted by centre, other seats by ward | That is the unit each team actually works; a ward-level MCA target would hide where the votes are. |
@@ -596,7 +635,7 @@ no stylesheet defines, so a missing style is caught by the tests, not by a user.
 | Shared reference geography loaded first | Every campaign is built from the same register; a ward with no centres loaded is refused at setup rather than giving a win number of zero. |
 | Rules held by database indexes as well as code | Two requests at once cannot break a rule the code checked. |
 | Practice-mode payouts and console SMS by default | The full flow can be shown and tested without moving money or sending messages. |
-| Tests on SQLite, production on Postgres | Fast tests with no server; migration tests render the Postgres SQL, and a live check runs against a real database. |
+| Tests on SQLite, and the same tests on local Postgres | Fast tests with no server by default; `TEST_POSTGRES=1` runs the whole suite on a throwaway local Postgres database built by the real migrations, for row locks, races and every migration's downgrade. |
 | A contract file between frontend and backend | Renaming a field on one side fails both test suites until the other side follows. |
 
 ---
