@@ -1,6 +1,6 @@
 # Identity and access design: Release 0 and Release 1
 
-Status: approved 30 October 2026, decisions in section 7. Release 0 in progress.
+Status: approved 30 October 2026, decisions in section 7. Release 0 done 30 October 2026; Release 1 done 31 October 2026.
 
 Baseline: `main` at `886b0d0`, 30 October 2026. Backend 175 tests pass,
 frontend 86 tests pass (run on that commit before writing this).
@@ -512,83 +512,83 @@ R1-4. Non-schema tickets run in parallel with them.
 
 ### Release 1
 
-**R1-1 Logins without a campaign role** (Sonnet, schema)
+**R1-1 Logins without a campaign role** (Sonnet, schema) — done 30 Oct 2026
 - Files: `models/user.py`, `api/deps.py`, `schemas/auth.py`, `schemas/admin.py`, `cli.py`, `services/admin.py` (`users` print), new revision, `contracts/frontend-api.json`, `tests/test_auth_api.py`.
 - API: `LoginUser.role` nullable; `AdminUserRead.role` nullable.
 - Tests: a login with no role gets 403 (not 500) on a `Writer` route and 404 on `GET /api/campaigns/{id}/`.
 - Depends: R0-2, R0-5 (migration order).
 
-**R1-2 Party settings** (Sonnet, schema)
+**R1-2 Party settings** (Sonnet, schema) — done 30 Oct 2026
 - Files: new `models/party.py`, new `schemas/party.py`, new `api/routers/party.py`, `api/routers/admin.py`, `api/routers/__init__.py`, new revision, `contracts/frontend-api.json`, new `tests/test_party_settings.py`.
 - API: `GET /api/party/` public; `PUT /api/admin/party/` superuser, audited `party_settings.update`.
 - Tests: public read works without a token; a manager gets 403 on the write.
 - Depends: R0-3, R1-1 (order).
 
-**R1-3 Party roles and the party guard** (Sonnet, schema)
+**R1-3 Party roles and the party guard** (Sonnet, schema) — done 30 Oct 2026
 - Files: `models/party.py`, `models/user.py` (relationship), `api/deps.py` (`require_party_role`, `MembershipOfficer`, eager load), `api/routers/auth.py` (`GET /api/auth/me/`), `schemas/auth.py` (`party_roles`), `api/routers/admin.py`, `services/admin.py`, new revision, `contracts/frontend-api.json`, new `tests/test_party_roles.py`.
 - API: `POST /api/admin/users/{id}/party-roles/` `{role}`, `DELETE …/party-roles/{role}/`; both audited. `POST /api/admin/users/` accepts `role: null` for a staff login.
 - Rule: granting refuses a login with a non-NULL `role` or a superuser (principle 6).
 - Tests: an officer passes the guard and sees no campaign; a candidate gets 403 from the guard; granting a role to a manager login is refused.
 - Depends: R1-1, R0-3.
 
-**R1-4 Party member register** (Sonnet, schema)
+**R1-4 Party member register** (Sonnet, schema) — done 31 Oct 2026
 - Files: `models/party.py`, new `services/membership.py`, `services/consent.py` (party wording), new revision, new `tests/test_membership_service.py`.
 - Tests: an illegal move (pending → suspended) is refused; the database refuses a second member with the same phone.
 - Depends: R1-3 (order), R0-5 (consent module).
 
-**R1-5 Public join and withdraw** (Sonnet)
+**R1-5 Public join and withdraw** (Sonnet) — done 31 Oct 2026
 - Files: `api/routers/party.py`, `schemas/party.py`, `services/membership.py`, `contracts/frontend-api.json`, new `tests/test_party_join_api.py`.
 - API: `POST /api/party/join/` `{full_name, phone, email?, ward, consent_given}` → `{withdraw_url}`; `POST /api/party/withdraw/{code}/`.
 - Rules: consent required; Kenyan number normalised; rate limited with `services/ratelimit.py`; existing phone gets the same answer and a link that does nothing, rejected/withdrawn rows go back to pending with fresh consent.
 - Tests: no consent is 400; a repeat phone answers the same as a new one.
 - Depends: R1-4.
 
-**R1-6 Member management API** (Sonnet)
+**R1-6 Member management API** (Sonnet) — done 31 Oct 2026
 - Files: `api/routers/party.py`, `schemas/party.py`, `services/membership.py`, `contracts/frontend-api.json`, new `tests/test_party_members_api.py`.
 - API: list with `q`, `status`, `county`, `constituency`, `ward`, `limit`, `offset`; detail; `POST /status/` `{status, reason}`; `GET export.csv`.
 - Audit: every status move; export with filters and row count.
 - Tests: one parametrised test: aspirant, manager and mobilizer get 403 on every member route; an officer approves a pending member.
 - Depends: R1-3, R1-5.
 
-**R1-7 Join the Party page** (Sonnet, frontend)
+**R1-7 Join the Party page** (Sonnet, frontend) — done 31 Oct 2026
 - Files: new `frontend/src/pages/public/JoinParty.jsx`, `frontend/src/main.jsx`, `frontend/src/api/hooks.js`, new `frontend/tests/joinParty.test.jsx`.
 - Tests: submit stays off until consent is ticked; thank-you shows the withdraw link.
 - Depends: R0-8, R1-5.
 
-**R1-8 Party portal: members page** (Sonnet, frontend)
+**R1-8 Party portal: members page** (Sonnet, frontend) — done 31 Oct 2026
 - Files: new `frontend/src/pages/party/Members.jsx`, `frontend/src/Gate.jsx`, `frontend/src/api/hooks.js`, `frontend/tests/helpers.jsx`, new `frontend/tests/members.test.jsx`.
 - Tests: an officer sees the list and approves; a login with `party_roles: []` never sees the page.
 - Depends: R0-9, R0-10, R1-6.
 
-**R1-9 Console: party settings and officer roles** (Sonnet, frontend)
+**R1-9 Console: party settings and officer roles** (Sonnet, frontend) — done 31 Oct 2026
 - Files: `frontend/src/components/Admin.jsx`, `frontend/src/api/hooks.js`, `frontend/tests/admin.test.jsx`.
 - Tests: granting Membership Officer calls the endpoint and shows the role.
 - Depends: R1-2, R1-3.
 
-**R1-11 Volunteer profiles** (Sonnet, schema)
+**R1-11 Volunteer profiles** (Sonnet, schema) — done 31 Oct 2026
 - Files: `models/party.py`, `models/enums.py`, new revision on `party_requests`, new `services/volunteers.py` (moves, conditional writes, consent wording in `services/consent.py`), `services/membership.py` (apply the volunteer part of a queued join; member withdrawn, rejected or suspended moves the profile), new `tests/test_volunteers_service.py`.
 - Tests: an officer cannot activate a volunteer whose member is not approved; withdrawing the member withdraws the profile.
 - Depends: R1-4 (members), the inbox.
 
-**R1-12 Public volunteer section and withdraw link** (Sonnet, backend)
+**R1-12 Public volunteer section and withdraw link** (Sonnet, backend) — done 31 Oct 2026
 - Files: `schemas/party.py`, `api/routers/party.py`, `services/membership.py` (`request_join` payload), `tests/test_route_guards.py`, `tests/test_party_join_api.py`.
 - API: `POST /api/party/join/` accepts optional `volunteer: {interests, preferred_contact, consent_given}` and returns `volunteer_withdraw_url` when given; `POST /api/party/volunteer/withdraw/{code}/` queues and answers the same for any code; `GET /api/party/` serves `volunteer_consent_wording`.
 - Tests: a volunteer withdrawal leaves the membership approved; a volunteer section without its consent is 400.
 - Depends: R1-11.
 
-**R1-13 Volunteer management API** (Sonnet, backend)
+**R1-13 Volunteer management API** (Sonnet, backend) — done 31 Oct 2026
 - Files: new `api/routers/party_volunteers.py`, `services/volunteers.py`, `schemas/party.py`, `tests/test_party_volunteers_api.py`.
 - API: list with `q`, `status`, `interest`, `county`, `constituency`, `ward`, `limit`, `offset`; `PATCH` status (active/inactive) and `availability_notes`; `export.csv`. Inbox processed first, like the member routes.
 - Audit: every status change and notes edit (ids and statuses only); export with filters and row count.
 - Tests: campaign logins get 403 on every volunteer route; an officer activates an approved member's volunteer.
 - Depends: R1-11.
 
-**R1-14 Frontend: volunteer section, withdraw page, volunteers page** (Sonnet, frontend)
+**R1-14 Frontend: volunteer section, withdraw page, volunteers page** (Sonnet, frontend) — done 31 Oct 2026
 - Files: `pages/public/JoinParty.jsx`, new `pages/public/WithdrawVolunteer.jsx`, new `pages/party/Volunteers.jsx`, `pages/party/Portal.jsx` (nav), `Gate.jsx` (route), `api/hooks.js`, `contracts/frontend-api.json`, tests.
 - Tests: the volunteer consent box is required only when the section is ticked; an officer filters by interest and activates a volunteer.
 - Depends: R1-12, R1-13.
 
-**R1-10 Integration** (lead)
+**R1-10 Integration** (lead) — done 31 Oct 2026
 - Run every suite, the contract evals, the route guard test; update `docs/SYSTEM.md`; cold critic pass on isolation (attacker probes every new route with each role).
 
 ---

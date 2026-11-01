@@ -5,6 +5,8 @@ Technical design for Release 2 of `docs/Implementation_Plan.md`. It builds on
 campaign access comes only from `campaign_members`, party access only from
 `party_roles`, and one login is on at most one campaign.
 
+Status: approved 1 November 2026; Release 2 done 1 November 2026.
+
 Decisions taken by Jeremy on 1 November 2026:
 
 1. **The Nominations Officer creates the workspace**, and only from an approved
@@ -330,43 +332,43 @@ calls it: R2-7 for the aspirant routes, R2-8 for the member link, the admin
 user field and the `campaign_suspended` shape. A frontend ticket starts after
 the backend tickets it calls have merged.
 
-**R2-1 Staff and campaign logins at the database; login → member link** (schema)
+**R2-1 Staff and campaign logins at the database; login → member link** (schema) — done 1 Nov 2026
 - Files: `models/user.py`, `models/party.py`, new revision, `tests/factories.py` (new `make_officer(session, world, *roles)`: a staff login linked to a new approved member, holding the offices), `tests/test_party_roles.py`, `tests/test_party_members_api.py`, `tests/test_party_volunteers_api.py` (officer fixtures switch to `make_officer`), `docs/Identity_Access_Design.md` (principle 4, risk 6, the R1 `party_roles` table, the `require_party_role` description).
 - Tests: a `party_roles` row for a manager fails at the database; changing an officer's login to a campaign role fails at the database. Both lanes.
 - Every later ticket's tests make officers with `make_officer`.
 
-**R2-2 Aspirants table** (schema)
+**R2-2 Aspirants table** (schema) — done 1 Nov 2026
 - Files: `models/party.py`, `models/enums.py`, `models/__init__.py`, new revision, `api/errors.py` (two constraint messages), `tests/test_models.py`.
 - Tests: a second live nomination fails at the database; the area CHECK refuses an MP aspirant with a ward.
 
-**R2-3 Aspirant service and API** (backend)
+**R2-3 Aspirant service and API** (backend) — done 1 Nov 2026
 - Files: new `services/aspirants.py`, new `schemas/aspirants.py`, new `api/routers/party_aspirants.py`, `api/routers/__init__.py`, `api/deps.py` (`NominationsOfficer`), `services/membership.py` (officer and public follow), `evals/test_inbox_constant_work.py`, new `tests/test_party_aspirants_api.py`. No contract change (R2-7 adds the routes).
 - Tests: only an approved member is nominated; approval refuses a suspended member; a member suspension suspends the approved aspirant; a public withdrawal withdraws it; a membership officer gets 403.
 
-**R2-4 Workspace** (backend)
+**R2-4 Workspace** (backend) — done 1 Nov 2026
 - Files: `services/admin.py` (`build_workspace` split, delete audit), `services/aspirants.py`, `api/routers/party_aspirants.py`, tests.
 - Tests: the workspace takes the aspirant's seat and area and links the candidate login; a second request is refused and leaves no campaign; deleting the campaign leaves the aspirant approved without one. The race test runs in the Postgres lane.
 
-**R2-5 Campaign access follows the aspirant** (backend)
+**R2-5 Campaign access follows the aspirant** (backend) — done 1 Nov 2026
 - Files: `api/deps.py`, `api/errors.py`, `api/routers/auth.py`, `api/routers/join.py`, `tests/test_route_guards.py`, new `tests/test_campaign_access.py`. No contract change (R2-8 adds the shape).
 - Tests: a manager on a suspended aspirant's campaign gets 403 `campaign_suspended` and can still read `/me` and log out; reinstating restores access; the sign-up link closes; a console campaign is unaffected.
 
-**R2-6 Own record and console member link** (backend)
+**R2-6 Own record and console member link** (backend) — done 1 Nov 2026
 - Files: `api/deps.py`, `services/admin.py`, `api/routers/admin.py`, `schemas/admin.py`, `services/membership.py`, `services/volunteers.py`, `services/aspirants.py`, `tests/test_party_roles.py` (the grant test links first; an unlinked grant expects 400), new `tests/test_own_record.py`.
 - Tests: an officer is refused on their own member, volunteer profile and nomination; an unlinked officer, and one whose member is suspended, gets 403; linking is audited.
 - Between R2-6 and R2-8 the console cannot link a login, so offices are granted by API or CLI only; nothing is deployed in between.
 - `tests/test_party_roles.py:29-38` refresh `party_member` before calling the guard directly.
 
-**R2-7 Aspirants page** (frontend)
+**R2-7 Aspirants page** (frontend) — done 1 Nov 2026
 - Files: new `pages/party/Aspirants.jsx`, `pages/party/Portal.jsx` (every menu for the superuser; the "needs to be linked" 403 as a message, not an error page), `api/hooks`, `contracts/frontend-api.json` (the aspirant routes), tests.
 - Tests: a nominations officer sees Aspirants and not Members; a superuser sees all three; nominating, a status move and the workspace form call the right routes; the passwords show once.
 - Depends: R2-3, R2-4, R2-6 merged.
 
-**R2-8 Suspended screen, error codes, console link** (frontend)
+**R2-8 Suspended screen, error codes, console link** (frontend) — done 1 Nov 2026
 - Files: `api/client.js`, `main.jsx` (no retry on 403), `Gate.jsx` (the suspended screen; a superuser may open `/party/*`), `components/Admin.jsx`, `contracts/frontend-api.json` (member link, admin user field, `campaign_suspended`), tests.
 - Depends: R2-5, R2-6 merged.
 
-**R2-9 Integration** (lead)
+**R2-9 Integration** (lead) — done 1 Nov 2026
 - Both test lanes, the contract evals, the guard inventory; `docs/SYSTEM.md`; cold isolation critic against section 4.
 
 ---
