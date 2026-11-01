@@ -30,7 +30,8 @@ export async function api(path, { method = "GET", body, anonymous = false } = {}
     // DRF errors look like {"detail": "..."} or {"field": ["msg"]}
     const first = data?.detail || (data && Object.values(data)[0]);
     const msg = Array.isArray(first) ? first[0] : first || "Request failed.";
-    throw new Error(msg);
+    // `status` and `code` let a screen tell a closed campaign from any other refusal.
+    throw Object.assign(new Error(msg), { status: res.status, code: data?.code });
   }
   return data;
 }

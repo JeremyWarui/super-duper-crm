@@ -3,6 +3,7 @@
 // login, and the few repairs that cannot be done from inside a campaign.
 // Shown only to a superuser; every route it calls checks the flag again.
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PARTY_ROLES, PARTY_ROLE_LABEL } from "../pages/party/helpers";
 import {
   useAdminOverview,
@@ -11,7 +12,9 @@ import {
   useCreateLogin,
   useDeleteCampaign,
   useGrantPartyRole,
+  useLinkPartyMember,
   useParty,
+  usePartyMembers,
   useRevokePartyRole,
   useSaveParty,
   useRenameCampaign,
@@ -540,6 +543,54 @@ function NewLogin({ campaigns, create }) {
   );
 }
 
+// The party member a login belongs to; an office holder must be linked to an approved one.
+function MemberLink({ user }) {
+  const link = useLinkPartyMember();
+  const [q, setQ] = useState("");
+  const found = usePartyMembers({ q: q.trim(), status: "approved", limit: 5 });
+  const searching = q.trim().length >= 2;
+  return (
+    <div className="admin-user-meta">
+      {user.party_member ? (
+        <span className="flex flex-wrap items-center gap-2">
+          Party member: {user.party_member.full_name} ({user.party_member.status})
+          {!user.party_roles?.length && (
+            <Btn
+              disabled={link.isPending}
+              onClick={() => link.mutate({ user: user.id, member: null })}
+            >
+              Unlink
+            </Btn>
+          )}
+        </span>
+      ) : (
+        <span className="flex flex-wrap items-center gap-2">
+          <input
+            className="admin-field"
+            aria-label={`Party member for ${user.username}`}
+            placeholder="Link to a party member…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          {searching &&
+            (found.data?.items || []).map((m) => (
+              <Btn
+                key={m.id}
+                disabled={link.isPending}
+                onClick={() =>
+                  link.mutate({ user: user.id, member: m.id }, { onSuccess: () => setQ("") })
+                }
+              >
+                {m.full_name}
+              </Btn>
+            ))}
+        </span>
+      )}
+      {link.isError && <div className="admin-red">{link.error.message}</div>}
+    </div>
+  );
+}
+
 function UserRow({ user, me, onReset, resetting, resetError }) {
   const active = useSetActive();
   const grant = useGrantPartyRole();
@@ -622,6 +673,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
                 )
               : "Party offices go only to staff logins with no campaign role."}
           </div>
+          {staff && <MemberLink user={user} />}
         </div>
         <div className="flex flex-wrap gap-2">
           <Danger
@@ -854,6 +906,7 @@ export default function Admin() {
   const [roleFilter, setRoleFilter] = useState("");
   const users = useAdminUsers(roleFilter);
   const [tab, setTab] = useState("campaigns");
+  const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [handouts, setHandouts] = useState([]);
   // Owned here, not in the row: a row unmounts on every refetch and would take
@@ -981,6 +1034,11 @@ export default function Admin() {
             ))
           ))}
 
+        {tab === "party" && (
+          <div className="admin-section-action">
+            <Btn onClick={() => navigate("/party/aspirants")}>Open aspirants</Btn>
+          </div>
+        )}
         {tab === "party" && <PartySettings />}
 
         {tab === "users" && (

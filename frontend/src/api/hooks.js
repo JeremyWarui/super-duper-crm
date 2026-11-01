@@ -631,3 +631,63 @@ export function useUpdateVolunteer() {
 
 export const exportPartyVolunteers = (filters) =>
   download(`/party/volunteers/export.csv?${memberQuery(filters)}`, "party-volunteers.csv");
+
+// ---- nominations ----------------------------------------------------------
+export const useAspirants = (filters) =>
+  useQuery({
+    queryKey: ["aspirants", filters],
+    queryFn: () => api(`/party/aspirants/?${memberQuery(filters)}`),
+    placeholderData: keepPreviousData,
+  });
+
+export const useAspirant = (id) =>
+  useQuery({
+    queryKey: ["aspirant", id],
+    queryFn: () => api(`/party/aspirants/${id}/`),
+    enabled: !!id,
+  });
+
+export const useCandidates = (q) =>
+  useQuery({
+    queryKey: ["aspirant-candidates", q],
+    queryFn: () => api(`/party/aspirants/candidates/?q=${encodeURIComponent(q)}`),
+    enabled: q.trim().length >= 2,
+  });
+
+export function useNominate() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (body) => api("/party/aspirants/", { method: "POST", body }),
+    onSuccess: () => invalidate("aspirants", "aspirant-candidates"),
+  });
+}
+
+export function useMoveAspirant() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, status, reason }) =>
+      api(`/party/aspirants/${id}/status/`, {
+        method: "POST",
+        body: reason ? { status, reason } : { status },
+      }),
+    onSuccess: () => invalidate("aspirants", "aspirant"),
+  });
+}
+
+export function useCreateWorkspace() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, ...body }) =>
+      api(`/party/aspirants/${id}/workspace/`, { method: "POST", body }),
+    onSuccess: () => invalidate("aspirants", "aspirant"),
+  });
+}
+
+export function useLinkPartyMember() {
+  const invalidate = useAdminInvalidator();
+  return useMutation({
+    mutationFn: ({ user, member }) =>
+      api(`/admin/users/${user}/party-member/`, { method: "PUT", body: { member } }),
+    onSuccess: invalidate,
+  });
+}

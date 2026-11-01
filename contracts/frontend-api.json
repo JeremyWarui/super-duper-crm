@@ -119,7 +119,8 @@
       "is_superuser",
       "last_login_at",
       "campaign",
-      "party_roles"
+      "party_roles",
+      "party_member"
     ],
     "POST /api/admin/users/{user_id}/reset-password/": [
       "username",
@@ -336,6 +337,42 @@
       "preferred_contact",
       "availability_notes",
       "member_status"
+    ],
+    "GET /api/party/aspirants/": [
+      "total",
+      "items"
+    ],
+    "GET /api/party/aspirants/{aspirant_id}/": [
+      "id",
+      "member",
+      "seat",
+      "area",
+      "status",
+      "status_reason",
+      "decided_at",
+      "campaign_id",
+      "created_at"
+    ],
+    "GET /api/party/aspirants/candidates/": [
+      "id",
+      "full_name",
+      "ward"
+    ],
+    "POST /api/party/aspirants/": [
+      "id",
+      "status"
+    ],
+    "POST /api/party/aspirants/{aspirant_id}/status/": [
+      "id",
+      "status"
+    ],
+    "POST /api/party/aspirants/{aspirant_id}/workspace/": [
+      "aspirant",
+      "logins"
+    ],
+    "PUT /api/admin/users/{user_id}/party-member/": [
+      "id",
+      "party_member"
     ]
   },
   "nested_reads": {
@@ -446,6 +483,20 @@
       "preferred_contact",
       "availability_notes",
       "member_status"
+    ],
+    "GET /api/party/aspirants/.items": [
+      "id",
+      "member",
+      "seat",
+      "area",
+      "status",
+      "campaign_id",
+      "created_at"
+    ],
+    "POST /api/party/aspirants/{aspirant_id}/workspace/.logins": [
+      "username",
+      "role",
+      "password"
     ]
   },
   "writes": {
@@ -636,6 +687,26 @@
     "PATCH /api/party/volunteers/{volunteer_id}/": [
       "status",
       "availability_notes"
+    ],
+    "POST /api/party/aspirants/": [
+      "member",
+      "seat",
+      "county",
+      "constituency",
+      "ward"
+    ],
+    "POST /api/party/aspirants/{aspirant_id}/status/": [
+      "status",
+      "reason"
+    ],
+    "POST /api/party/aspirants/{aspirant_id}/workspace/": [
+      "title",
+      "election_date",
+      "candidate",
+      "manager"
+    ],
+    "PUT /api/admin/users/{user_id}/party-member/": [
+      "member"
     ]
   },
   "enums": {
@@ -687,8 +758,9 @@
     ]
   },
   "error_shape": {
-    "_comment": "src/api/client.js reads detail first, then the first value of the first field. Login also reads non_field_errors[0].",
-    "detail": "string"
+    "_comment": "src/api/client.js reads detail first, then the first value of the first field. Login also reads non_field_errors[0]. A closed campaign's 403 also carries code: \"campaign_suspended\", which src/Gate.jsx reads.",
+    "detail": "string",
+    "code": "string, on a closed campaign's 403 only"
   },
   "no_content": {
     "_comment": "Routes that answer 204 with no body. Only that they still exist is checked.",

@@ -3,9 +3,17 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-
 import { useAuth } from "../../store/auth";
 import { useParty } from "../../api/hooks";
 import PortalLayout from "../../components/PortalLayout";
+import Aspirants from "./Aspirants";
 import Members from "./Members";
 import Volunteers from "./Volunteers";
 import { PARTY_ROLE_LABEL } from "./helpers";
+
+// Each page and the office that opens it; the superuser opens every one.
+const PAGES = [
+  ["members", "Members", "membership_officer", <Members key="members" />],
+  ["volunteers", "Volunteers", "membership_officer", <Volunteers key="volunteers" />],
+  ["aspirants", "Aspirants", "nominations_officer", <Aspirants key="aspirants" />],
+];
 
 export default function Portal() {
   const user = useAuth((s) => s.user);
@@ -14,8 +22,15 @@ export default function Portal() {
   const { pathname } = useLocation();
   const party = useParty().data;
   const roles = user?.party_roles || [];
-  const nav = roles.includes("membership_officer") ? [["members", "Members"], ["volunteers", "Volunteers"]] : [];
-  const office = roles.map((r) => PARTY_ROLE_LABEL[r] || r).join(", ");
+  const pages = PAGES.filter(([, , office]) => user?.is_superuser || roles.includes(office));
+  const nav = [
+    ...pages.map(([key, label]) => [key, label]),
+    ...(user?.is_superuser ? [["console", "Console"]] : []),
+  ];
+  const office = user?.is_superuser
+    ? "Party super admin"
+    : roles.map((r) => PARTY_ROLE_LABEL[r] || r).join(", ");
+  const current = pages.find(([key]) => pathname.startsWith(`/party/${key}`))?.[0] ?? pages[0]?.[0];
 
   return (
     <PortalLayout
@@ -25,15 +40,16 @@ export default function Portal() {
       user={`${user?.full_name || user?.username} · ${office}`}
       navLabel="PARTY"
       nav={nav}
-      page={nav.length ? (pathname.startsWith("/party/volunteers") ? "volunteers" : "members") : null}
-      onSelect={(key) => navigate(`/party/${key}`)}
+      page={pages.length ? current : null}
+      onSelect={(key) => navigate(key === "console" ? "/" : `/party/${key}`)}
       onLogout={logout}
     >
-      {nav.length ? (
+      {pages.length ? (
         <Routes>
-          <Route path="party/members" element={<Members />} />
-          <Route path="party/volunteers" element={<Volunteers />} />
-          <Route path="*" element={<Navigate to="/party/members" replace />} />
+          {pages.map(([key, , , element]) => (
+            <Route key={key} path={`party/${key}`} element={element} />
+          ))}
+          <Route path="*" element={<Navigate to={`/party/${pages[0][0]}`} replace />} />
         </Routes>
       ) : (
         <div className="empty-row">There is nothing for your office here yet.</div>

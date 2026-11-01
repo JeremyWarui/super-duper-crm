@@ -325,6 +325,7 @@ export const ADMIN_USERS = [
     last_login_at: "2026-09-10T08:00:00+00:00",
     campaign: "Jane for Roysambu",
     party_roles: [],
+    party_member: null,
   },
   {
     id: "u-jane",
@@ -338,6 +339,7 @@ export const ADMIN_USERS = [
     last_login_at: null,
     campaign: "Jane for Roysambu",
     party_roles: [],
+    party_member: null,
   },
   {
     id: "root",
@@ -351,6 +353,7 @@ export const ADMIN_USERS = [
     last_login_at: "2026-09-12T09:00:00+00:00",
     campaign: null,
     party_roles: [],
+    party_member: null,
   },
   {
     id: "u-wafula",
@@ -364,6 +367,7 @@ export const ADMIN_USERS = [
     last_login_at: null,
     campaign: null,
     party_roles: [],
+    party_member: null,
   },
 ];
 
@@ -428,6 +432,37 @@ export function volunteerRoutes(overrides = {}) {
     "GET /party/places/": [PLACE.county],
     "GET /party/volunteers/": { total: 1, items: [VOLUNTEER] },
     "PATCH /party/volunteers/vp1/": { ...VOLUNTEER, status: "active" },
+    ...overrides,
+  };
+}
+
+// ---- nominations -----------------------------------------------------------
+export const WORKSPACE_SECRET = fakeSecret();
+
+export const ASPIRANT = {
+  id: "as1",
+  member: { id: "pm1", full_name: "Achieng Otieno", ward: { id: "w1", name: "Githurai" } },
+  seat: "mca",
+  area: { level: "ward", id: "w1", name: "Githurai" },
+  status: "approved",
+  status_reason: null,
+  decided_at: "2026-10-20T08:00:00Z",
+  campaign_id: null,
+  created_at: "2026-10-10T08:00:00Z",
+};
+
+/** What the aspirants page reads, with a workspace answered. */
+export function aspirantRoutes(overrides = {}) {
+  return {
+    "GET /party/": PARTY,
+    "GET /party/places/": [PLACE.county],
+    "GET /party/aspirants/": { total: 1, items: [ASPIRANT] },
+    "GET /party/aspirants/as1/": ASPIRANT,
+    "POST /party/aspirants/as1/workspace/": {
+      aspirant: { ...ASPIRANT, campaign_id: "c9" },
+      setup: {},
+      logins: [{ id: "u9", username: "achieng", full_name: "", role: "candidate", password: WORKSPACE_SECRET }],
+    },
     ...overrides,
   };
 }

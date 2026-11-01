@@ -7,7 +7,10 @@ import { BrowserRouter } from "react-router-dom";
 import { AppRoutes, forgetOnSwitch } from "./Gate";
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
+  // A refusal does not change on a retry, so a 403 is shown at once.
+  defaultOptions: {
+    queries: { staleTime: 30_000, retry: (count, error) => error?.status !== 403 && count < 1 },
+  },
 });
 forgetOnSwitch(queryClient);
 

@@ -1,9 +1,10 @@
-import { Route, Routes, useParams } from "react-router-dom";
+import { Route, Routes, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "./store/auth";
 import { useCampaigns, useMe } from "./api/hooks";
 import Login from "./components/Login";
 import Admin from "./components/Admin";
 import NoCampaign from "./components/NoCampaign";
+import CampaignClosed from "./components/CampaignClosed";
 import App from "./App";
 import Portal from "./pages/party/Portal";
 import Join from "./components/Join";
@@ -27,6 +28,9 @@ function SignedIn() {
   const staff = useAuth((s) => s.user?.role === null);
   // A staff login is never on a campaign, so it needs no campaign list to be routed.
   if (staff && partyRoles?.length) return <Portal />;
+  if (campaigns.error?.code === "campaign_suspended") {
+    return <CampaignClosed message={campaigns.error.message} />;
+  }
   if (campaigns.isSuccess && campaigns.data.length === 0) {
     return partyRoles?.length ? <Portal /> : <NoCampaign />;
   }
@@ -34,11 +38,13 @@ function SignedIn() {
 }
 
 // A superuser runs the deployment rather than a campaign, so they get the
-// console instead of the campaign gate.
+// console instead of the campaign gate, and the party portal under /party.
 function Inside() {
   useMe();
   const isSuperuser = useAuth((s) => s.user?.is_superuser);
-  return isSuperuser ? <Admin /> : <SignedIn />;
+  const { pathname } = useLocation();
+  if (isSuperuser) return pathname.startsWith("/party") ? <Portal /> : <Admin />;
+  return <SignedIn />;
 }
 
 export default function Root() {

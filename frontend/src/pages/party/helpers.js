@@ -65,3 +65,46 @@ export const VOLUNTEER_STATUS_TONE = {
   inactive: "neutral",
   withdrawn: "neutral",
 };
+
+export const ASPIRANT_STATUS_LABEL = {
+  draft: "Draft",
+  submitted: "Submitted",
+  approved: "Approved",
+  suspended: "Suspended",
+  rejected: "Rejected",
+  withdrawn: "Withdrawn",
+};
+
+export const ASPIRANT_STATUS_TONE = {
+  draft: "neutral",
+  submitted: "warn",
+  approved: "good",
+  suspended: "warn",
+  rejected: "bad",
+  withdrawn: "neutral",
+};
+
+// The moves an officer offers for each nomination status: [new status, button label].
+export const ASPIRANT_MOVES = {
+  draft: [["submitted", "Mark submitted"], ["withdrawn", "Withdraw"]],
+  submitted: [["approved", "Approve"], ["rejected", "Reject"], ["withdrawn", "Withdraw"]],
+  approved: [["suspended", "Suspend"], ["withdrawn", "Withdraw"]],
+  suspended: [["approved", "Reinstate"], ["withdrawn", "Withdraw"]],
+  rejected: [],
+  withdrawn: [],
+};
+
+// Moves the server refuses without a reason.
+export const NEEDS_REASON = new Set(["rejected", "suspended"]);
+
+// Each seat and the one area it is fought over.
+export const SEATS = [
+  ["mca", "MCA", "ward"],
+  ["mp", "MP", "constituency"],
+  ["governor", "Governor", "county"],
+  ["senator", "Senator", "county"],
+  ["women_rep", "Women Rep", "county"],
+];
+
+export const SEAT_LABEL = Object.fromEntries(SEATS.map(([value, label]) => [value, label]));
+export const SEAT_AREA = Object.fromEntries(SEATS.map(([value, , area]) => [value, area]));
