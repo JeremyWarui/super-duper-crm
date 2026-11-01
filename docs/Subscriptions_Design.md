@@ -129,7 +129,7 @@ NULL, so pending payment (decision 2).
 | `plan_id` | FK `crm_plans` NULL, `ON DELETE RESTRICT`; the plan paid on |
 | `amount_kes` | integer NULL |
 | `method` | `mpesa, bank, cash, other`, NULL |
-| `reference` | `varchar(40)` NULL, stored trimmed and upper-cased |
+| `reference` | `varchar(40)` NULL, stored folded (NFKC), without spaces and upper-cased; letters, digits, `-` and `/` only |
 | `received_on` | date NOT NULL: the day the money arrived, or the day an extension was granted |
 | `days` | integer, `CHECK (days BETWEEN 1 AND 730)` |
 | `paid_until_before` | date NULL |
@@ -201,7 +201,7 @@ officers recording at once queue, and each write reads the `paid_until` the
 previous one left.
 
 **Payment** (`amount_kes > 0`, `method`, `reference`, `received_on`, `note`):
-needs a plan on the subscription; `received_on` may not be after today. With
+needs a plan on the subscription; `received_on` may not be after today or more than 365 days before it. With
 `D` the plan's `duration_days`:
 
 - `start = received_on` when `P` is NULL, else `max(P + 1, received_on)`
@@ -341,7 +341,7 @@ Officers in tests come from `make_officer(session, world, FINANCE_OFFICER)`.
 - Tests: a read-only campaign answers a `GET` and refuses a `POST` with `campaign_read_only`; a locked one refuses both with `campaign_locked` and still answers `/me`; its sign-up link is closed and a supporter's withdrawal still works.
 - Eval: walks every day from `P - 1` to `P + G + R + 1` for `(G, R)` in `(7, 7), (0, 7), (7, 0), (0, 0)` and checks the state sequence, and the HTTP answer to one read and one write, on each day.
 
-**R3-3 Finance API** (backend)
+**R3-3 Finance API** (backend) — done 1 Nov 2026
 - Files: `services/billing.py` (plans, plan, payment, extension, void, hold, settings), new `schemas/billing.py`, new `api/routers/party_finance.py`, `api/routers/__init__.py`, `api/deps.py` (`FinanceOfficer`), `services/admin.py` (`remove_campaign` writes `campaign_title`), new `tests/test_party_finance_api.py`.
 - Tests: a payment on a lapsed subscription starts on the day received and makes it active; an early payment stacks on the paid period; voiding the latest entry restores the previous `paid_until`, and voiding an older one is refused; a hold locks and lifting it restores the dated state; a nominations officer gets 403; a finance officer on their own campaign gets 403; deleting a campaign keeps its ledger.
 - The concurrent payment test runs in the Postgres lane.

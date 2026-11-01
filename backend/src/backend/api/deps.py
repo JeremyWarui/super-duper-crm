@@ -192,6 +192,7 @@ def require_party_role(*roles: PartyRoleName):
 AdminUser = Annotated[User, Depends(require_superuser)]
 MembershipOfficer = Annotated[User, Depends(require_party_role(PartyRoleName.MEMBERSHIP_OFFICER))]
 NominationsOfficer = Annotated[User, Depends(require_party_role(PartyRoleName.NOMINATIONS_OFFICER))]
+FinanceOfficer = Annotated[User, Depends(require_party_role(PartyRoleName.FINANCE_OFFICER))]
 Writer = Annotated[User, Depends(require_role(UserRole.MANAGER))]
 MobilizerWriter = Annotated[User, Depends(require_role(UserRole.MANAGER, UserRole.MOBILIZER))]
 TeamWriter = Annotated[

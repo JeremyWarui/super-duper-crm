@@ -11,6 +11,7 @@ from backend.models import (
     AuthToken,
     Campaign,
     CampaignMember,
+    CampaignSubscription,
     Event,
     Mobilizer,
     PartyMember,
@@ -366,6 +367,16 @@ async def remove_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list
     people = await logins_on(session, campaign_id)
     if people:
         await session.execute(delete(User).where(User.id.in_([p.id for p in people])))
+    # The subscription outlives the campaign, under the campaign's name.
+    await session.execute(
+        update(CampaignSubscription)
+        .where(CampaignSubscription.campaign_id == campaign_id)
+        .values(
+            campaign_title=select(Campaign.title)
+            .where(Campaign.id == campaign_id)
+            .scalar_subquery()
+        )
+    )
     # The database's ON DELETE rules take the rest.
     await session.execute(delete(Campaign).where(Campaign.id == campaign_id))
     return [p.username for p in people]

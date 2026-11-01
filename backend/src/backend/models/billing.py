@@ -26,6 +26,7 @@ from backend.models.enums import EntryKind, ReceiptMethod, SubscriptionHold
 
 if TYPE_CHECKING:
     from backend.models.campaign import Campaign
+    from backend.models.user import User
 
 LIVE_PAYMENT = "kind = 'payment' AND voided_at IS NULL"
 
@@ -145,3 +146,4 @@ class SubscriptionEntry(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     subscription: Mapped[CampaignSubscription] = relationship(back_populates="entries")
     plan: Mapped[CrmPlan | None] = relationship()
+    recorded_by: Mapped["User | None"] = relationship(foreign_keys=[recorded_by_id])
