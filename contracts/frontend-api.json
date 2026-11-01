@@ -373,6 +373,87 @@
     "PUT /api/admin/users/{user_id}/party-member/": [
       "id",
       "party_member"
+    ],
+    "GET /api/party/finance/plans/": [
+      "id",
+      "name",
+      "price_kes",
+      "duration_days",
+      "description",
+      "active"
+    ],
+    "GET /api/party/finance/subscriptions/": [
+      "total",
+      "items"
+    ],
+    "GET /api/party/finance/subscriptions/{subscription_id}/": [
+      "id",
+      "campaign_id",
+      "title",
+      "seat",
+      "area_name",
+      "candidate_name",
+      "plan",
+      "paid_until",
+      "state",
+      "hold",
+      "hold_reason",
+      "read_only_from",
+      "locks_on",
+      "entries"
+    ],
+    "PUT /api/party/finance/subscriptions/{subscription_id}/plan/": [
+      "id",
+      "entries"
+    ],
+    "POST /api/party/finance/subscriptions/{subscription_id}/payments/": [
+      "id",
+      "title",
+      "paid_until",
+      "state",
+      "entries"
+    ],
+    "POST /api/party/finance/subscriptions/{subscription_id}/extensions/": [
+      "id",
+      "entries"
+    ],
+    "POST /api/party/finance/subscriptions/{subscription_id}/entries/{entry_id}/void/": [
+      "id",
+      "entries"
+    ],
+    "PUT /api/party/finance/subscriptions/{subscription_id}/hold/": [
+      "id",
+      "entries"
+    ],
+    "GET /api/party/finance/settings/": [
+      "grace_days",
+      "read_only_days",
+      "payment_instructions"
+    ],
+    "PUT /api/party/finance/settings/": [
+      "grace_days",
+      "read_only_days",
+      "payment_instructions"
+    ],
+    "GET /api/party/finance/reports/revenue/": [
+      "total_kes",
+      "count",
+      "by_month",
+      "by_plan"
+    ],
+    "GET /api/party/finance/reports/expiring/": [
+      "id",
+      "campaign_id",
+      "title",
+      "seat",
+      "area_name",
+      "candidate_name",
+      "plan",
+      "paid_until",
+      "state",
+      "hold",
+      "read_only_from",
+      "locks_on"
     ]
   },
   "nested_reads": {
@@ -497,6 +578,49 @@
       "username",
       "role",
       "password"
+    ],
+    "GET /api/party/finance/subscriptions/.items": [
+      "id",
+      "campaign_id",
+      "title",
+      "seat",
+      "area_name",
+      "candidate_name",
+      "plan",
+      "paid_until",
+      "state",
+      "hold"
+    ],
+    "GET /api/party/finance/subscriptions/{subscription_id}/.entries": [
+      "id",
+      "kind",
+      "plan_name",
+      "amount_kes",
+      "method",
+      "reference",
+      "received_on",
+      "days",
+      "paid_until_before",
+      "paid_until_after",
+      "note",
+      "recorded_by",
+      "voided_at",
+      "void_reason",
+      "can_void"
+    ],
+    "GET /api/party/finance/subscriptions/{subscription_id}/.plan": [
+      "id",
+      "name"
+    ],
+    "GET /api/party/finance/reports/revenue/.by_month": [
+      "month",
+      "total_kes",
+      "count"
+    ],
+    "GET /api/party/finance/reports/revenue/.by_plan": [
+      "plan",
+      "total_kes",
+      "count"
     ]
   },
   "writes": {
@@ -707,6 +831,45 @@
     ],
     "PUT /api/admin/users/{user_id}/party-member/": [
       "member"
+    ],
+    "POST /api/party/finance/plans/": [
+      "name",
+      "price_kes",
+      "duration_days",
+      "description"
+    ],
+    "PATCH /api/party/finance/plans/{plan_id}/": [
+      "name",
+      "price_kes",
+      "duration_days",
+      "description",
+      "active"
+    ],
+    "PUT /api/party/finance/subscriptions/{subscription_id}/plan/": [
+      "plan"
+    ],
+    "POST /api/party/finance/subscriptions/{subscription_id}/payments/": [
+      "amount_kes",
+      "method",
+      "reference",
+      "received_on",
+      "note"
+    ],
+    "POST /api/party/finance/subscriptions/{subscription_id}/extensions/": [
+      "days",
+      "note"
+    ],
+    "POST /api/party/finance/subscriptions/{subscription_id}/entries/{entry_id}/void/": [
+      "reason"
+    ],
+    "PUT /api/party/finance/subscriptions/{subscription_id}/hold/": [
+      "hold",
+      "reason"
+    ],
+    "PUT /api/party/finance/settings/": [
+      "grace_days",
+      "read_only_days",
+      "payment_instructions"
     ]
   },
   "enums": {

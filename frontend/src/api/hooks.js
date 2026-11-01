@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import {
   keepPreviousData,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -680,6 +681,112 @@ export function useCreateWorkspace() {
     mutationFn: ({ id, ...body }) =>
       api(`/party/aspirants/${id}/workspace/`, { method: "POST", body }),
     onSuccess: () => invalidate("aspirants", "aspirant"),
+  });
+}
+
+// ---- party finance --------------------------------------------------------
+export const useFinancePlans = () =>
+  useQuery({ queryKey: ["finance", "plans"], queryFn: () => api("/party/finance/plans/") });
+
+export const useFinanceSubscriptions = (filters) =>
+  useQuery({
+    queryKey: ["finance", "subscriptions", filters],
+    queryFn: () => api(`/party/finance/subscriptions/?${memberQuery(filters)}`),
+    placeholderData: keepPreviousData,
+  });
+
+// How many campaigns are in each state; "" counts them all.
+export const useFinanceStateCounts = (states) =>
+  useQueries({
+    queries: states.map((state) => ({
+      queryKey: ["finance", "subscriptions", { state, limit: 1 }],
+      queryFn: () => api(`/party/finance/subscriptions/?${memberQuery({ state, limit: 1 })}`),
+    })),
+    combine: (results) =>
+      Object.fromEntries(states.map((state, i) => [state, results[i].data?.total])),
+  });
+
+export const useFinanceSubscription = (id) =>
+  useQuery({
+    queryKey: ["finance", "subscription", id],
+    queryFn: () => api(`/party/finance/subscriptions/${id}/`),
+    enabled: !!id,
+  });
+
+export const useFinanceSettings = () =>
+  useQuery({ queryKey: ["finance", "settings"], queryFn: () => api("/party/finance/settings/") });
+
+export const useRevenueReport = ({ from, to }) =>
+  useQuery({
+    queryKey: ["finance", "revenue", from, to],
+    queryFn: () => api(`/party/finance/reports/revenue/?${memberQuery({ from, to })}`),
+    enabled: !!from && !!to,
+    placeholderData: keepPreviousData,
+  });
+
+export const useExpiringReport = (days) =>
+  useQuery({
+    queryKey: ["finance", "expiring", days],
+    queryFn: () => api(`/party/finance/reports/expiring/?days=${days}`),
+    placeholderData: keepPreviousData,
+  });
+
+// Every finance write refreshes every finance read: a payment moves the lists,
+// the reports and the detail, and a settings change moves every campaign's state.
+function useFinanceWrite(mutationFn) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: (data) => {
+      if (data?.entries) qc.setQueryData(["finance", "subscription", data.id], data);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["finance"] }),
+  });
+}
+
+export const useCreatePlan = () =>
+  useFinanceWrite((body) => api("/party/finance/plans/", { method: "POST", body }));
+
+export const useUpdatePlan = () =>
+  useFinanceWrite(({ id, ...body }) =>
+    api(`/party/finance/plans/${id}/`, { method: "PATCH", body }),
+  );
+
+export const useChoosePlan = () =>
+  useFinanceWrite(({ id, plan }) =>
+    api(`/party/finance/subscriptions/${id}/plan/`, { method: "PUT", body: { plan } }),
+  );
+
+export const useRecordSubscriptionPayment = () =>
+  useFinanceWrite(({ id, ...body }) =>
+    api(`/party/finance/subscriptions/${id}/payments/`, { method: "POST", body }),
+  );
+
+export const useExtendSubscription = () =>
+  useFinanceWrite(({ id, ...body }) =>
+    api(`/party/finance/subscriptions/${id}/extensions/`, { method: "POST", body }),
+  );
+
+export const useVoidEntry = () =>
+  useFinanceWrite(({ id, entry, reason }) =>
+    api(`/party/finance/subscriptions/${id}/entries/${entry}/void/`, {
+      method: "POST",
+      body: { reason },
+    }),
+  );
+
+// `hold: "none"` lifts it; the server drops the reason.
+export const useSetHold = () =>
+  useFinanceWrite(({ id, ...body }) =>
+    api(`/party/finance/subscriptions/${id}/hold/`, { method: "PUT", body }),
+  );
+
+export function useSaveFinanceSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => api("/party/finance/settings/", { method: "PUT", body }),
+    onSuccess: (data) => qc.setQueryData(["finance", "settings"], data),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["finance"] }),
   });
 }
 

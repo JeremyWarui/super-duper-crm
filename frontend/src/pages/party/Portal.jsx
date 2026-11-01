@@ -4,6 +4,7 @@ import { useAuth } from "../../store/auth";
 import { useParty } from "../../api/hooks";
 import PortalLayout from "../../components/PortalLayout";
 import Aspirants from "./Aspirants";
+import Finance from "./Finance";
 import Members from "./Members";
 import Volunteers from "./Volunteers";
 import { PARTY_ROLE_LABEL } from "./helpers";
@@ -13,6 +14,7 @@ const PAGES = [
   ["members", "Members", "membership_officer", <Members key="members" />],
   ["volunteers", "Volunteers", "membership_officer", <Volunteers key="volunteers" />],
   ["aspirants", "Aspirants", "nominations_officer", <Aspirants key="aspirants" />],
+  ["finance", "Finance", "finance_officer", <Finance key="finance" />],
 ];
 
 export default function Portal() {

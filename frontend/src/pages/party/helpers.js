@@ -1,3 +1,5 @@
+import { addDays } from "../../lib/format";
+
 export const PARTY_ROLES = [
   ["membership_officer", "Membership Officer"],
   ["nominations_officer", "Nominations Officer"],
@@ -107,4 +109,38 @@ export const SEATS = [
 ];
 
 export const SEAT_LABEL = Object.fromEntries(SEATS.map(([value, label]) => [value, label]));
+
+// A campaign's access state, its label, and its tone by how urgently it needs chasing.
+export const ACCESS_STATES = [
+  ["pending_payment", "Pending payment", "warn"],
+  ["active", "Active", "good"],
+  ["grace_period", "Grace period", "warn"],
+  ["read_only", "Read-only", "bad"],
+  ["locked", "Locked", "bad"],
+  ["cancelled", "Cancelled", "neutral"],
+];
+
+export const ACCESS_LABEL = Object.fromEntries(ACCESS_STATES.map(([value, label]) => [value, label]));
+export const ACCESS_TONE = Object.fromEntries(ACCESS_STATES.map(([value, , tone]) => [value, tone]));
+
+export const RECEIPT_METHODS = [
+  ["mpesa", "M-Pesa"],
+  ["bank", "Bank"],
+  ["cash", "Cash"],
+  ["other", "Other"],
+];
+
+export const RECEIPT_LABEL = Object.fromEntries(RECEIPT_METHODS);
+
+export const HOLDS = [
+  ["suspended", "Suspend", "Suspended"],
+  ["cancelled", "Cancel", "Cancelled"],
+];
+
+/** The paid-until date a payment or extension of `days` leaves, received on `received`. */
+export function paidUntilAfter(paidUntil, received, days) {
+  const next = paidUntil ? addDays(paidUntil, 1) : received;
+  const start = next > received ? next : received;
+  return addDays(start, days - 1);
+}
 export const SEAT_AREA = Object.fromEntries(SEATS.map(([value, , area]) => [value, area]));

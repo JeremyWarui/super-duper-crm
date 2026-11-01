@@ -824,6 +824,13 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
 
 .field-gap { height: 14px; }
 
+/* Two form fields side by side, one above the other on a phone. */
+.field-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .field-hint {
   margin-top: 6px;
   color: var(--color-text-muted);
@@ -1618,6 +1625,7 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
   .hero-number { font-size: 40px; }
   .kpi-grid { gap: 10px; }
   .modal-backdrop { padding: 16px 12px; }
+  .field-pair { grid-template-columns: minmax(0, 1fr); }
   .login-card,
   .join-card,
   .onboarding-card { padding: 22px; }
