@@ -544,7 +544,7 @@ function NewLogin({ campaigns, create }) {
 }
 
 // The party member a login belongs to; an office holder must be linked to an approved one.
-function MemberLink({ user }) {
+function MemberLink({ user, onLinked }) {
   const link = useLinkPartyMember();
   const [q, setQ] = useState("");
   const found = usePartyMembers({ q: q.trim(), status: "approved", limit: 5 });
@@ -578,7 +578,10 @@ function MemberLink({ user }) {
                 key={m.id}
                 disabled={link.isPending}
                 onClick={() =>
-                  link.mutate({ user: user.id, member: m.id }, { onSuccess: () => setQ("") })
+                  link.mutate(
+                    { user: user.id, member: m.id },
+                    { onSuccess: () => { setQ(""); onLinked(); } },
+                  )
                 }
               >
                 {m.full_name}
@@ -673,7 +676,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
                 )
               : "Party offices go only to staff logins with no campaign role."}
           </div>
-          {staff && <MemberLink user={user} />}
+          {staff && <MemberLink user={user} onLinked={() => grant.reset()} />}
         </div>
         <div className="flex flex-wrap gap-2">
           <Danger

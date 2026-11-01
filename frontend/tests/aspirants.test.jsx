@@ -112,3 +112,36 @@ describe("the console's member link", () => {
     );
   });
 });
+
+describe("the nominate dialog", () => {
+  it("drops a refusal once another member is chosen", async () => {
+    const user = userEvent.setup();
+    signInAsParty(["nominations_officer"]);
+    stubApi(
+      aspirantRoutes({
+        "GET /campaigns/": [],
+        "GET /party/aspirants/candidates/": [
+          { id: "pm1", full_name: "Achieng Otieno", ward: { id: "w1", name: "Githurai" } },
+        ],
+        "GET /party/places/": [{ id: "k1", name: "Nairobi City" }],
+        "POST /party/aspirants/": {
+          status: 403,
+          body: { detail: "You cannot act on your own party record." },
+        },
+      }),
+    );
+    renderApp(<Root />, { path: "/party/aspirants" });
+
+    await user.click(await screen.findByRole("button", { name: "Nominate a member" }));
+    await user.type(screen.getByLabelText("Find a member"), "Achieng");
+    await user.click(await screen.findByRole("button", { name: "Achieng Otieno · Githurai" }));
+    await user.selectOptions(screen.getByLabelText("Seat"), "governor");
+    await user.selectOptions(await screen.findByLabelText("County"), "k1");
+    await user.click(screen.getByRole("button", { name: "Nominate" }));
+    expect(await screen.findByText("You cannot act on your own party record.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Choose someone else" }));
+
+    expect(screen.queryByText("You cannot act on your own party record.")).toBeNull();
+  });
+});

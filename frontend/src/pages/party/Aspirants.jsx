@@ -107,7 +107,7 @@ function Nominate({ onClose }) {
         <div className="modal-text">
           <div className="strong">{member.full_name}</div>
           <div className="muted">{member.ward.name}</div>
-          <Button onClick={() => setMember(null)}>Choose someone else</Button>
+          <Button onClick={() => { setMember(null); nominate.reset(); }}>Choose someone else</Button>
         </div>
       ) : (
         <>
@@ -122,7 +122,7 @@ function Nominate({ onClose }) {
           {candidates.error && <ErrorState error={candidates.error} />}
           <div className="modal-text">
             {(candidates.data || []).map((c) => (
-              <button key={c.id} type="button" className="link-button" onClick={() => setMember(c)}>
+              <button key={c.id} type="button" className="link-button" onClick={() => { setMember(c); nominate.reset(); }}>
                 {c.full_name} · {c.ward.name}
               </button>
             ))}
