@@ -11,3 +11,7 @@ class NotFound(Refused):
 
 class Forbidden(Refused):
     """The caller may not do this."""
+
+
+class CampaignClosed(Exception):
+    """The caller's campaign belongs to an aspirant who is not approved."""

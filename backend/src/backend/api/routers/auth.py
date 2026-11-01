@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import CurrentUser, SessionDep
+from backend.api.deps import SessionDep, SignedInUser
 from backend.models import AuthToken, User
 from backend.schemas.auth import LoginRequest, LoginResponse, LoginUser
 from backend.security import hash_password, needs_rehash, new_token_key, verify_password
@@ -49,13 +49,13 @@ async def login(payload: LoginRequest, session: SessionDep) -> object:
 
 
 @router.get("/me/", response_model=LoginUser)
-async def me(user: CurrentUser) -> User:
+async def me(user: SignedInUser) -> User:
     """The signed-in login, as the sign-in returns it."""
     return user
 
 
 @router.post("/logout/", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(user: CurrentUser, session: SessionDep) -> Response:
+async def logout(user: SignedInUser, session: SessionDep) -> Response:
     """Delete the caller's token everywhere."""
     await session.execute(delete(AuthToken).where(AuthToken.user_id == user.id))
     await session.commit()

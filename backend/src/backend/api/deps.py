@@ -9,7 +9,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.db.session import get_session
-from backend.models import AuthToken, PartyRoleName, User, UserRole
+from backend.models import (
+    Aspirant,
+    AspirantStatus,
+    AuthToken,
+    CampaignMember,
+    PartyRoleName,
+    User,
+    UserRole,
+)
+from backend.services.errors import CampaignClosed
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -23,7 +32,7 @@ def _unauthorized(detail: str) -> HTTPException:
     )
 
 
-async def get_current_user(
+async def get_signed_in_user(
     session: SessionDep, header: Annotated[str | None, Depends(_header)]
 ) -> User:
     """The caller named by "Authorization: Token <key>"; 401 when absent or unknown."""
@@ -43,6 +52,27 @@ async def get_current_user(
     if token is None or not token.user.is_active:
         raise _unauthorized("Invalid token.")
     return token.user
+
+
+SignedInUser = Annotated[User, Depends(get_signed_in_user)]
+
+SUSPENDED = "This campaign is suspended by the party."
+CLOSED = "This campaign is closed: its aspirant has withdrawn."
+
+
+async def get_current_user(user: SignedInUser, session: SessionDep) -> User:
+    """The signed-in caller, refused while their campaign's aspirant is not approved."""
+    if user.role is not None and not user.is_superuser:
+        aspirant = await session.scalar(
+            select(Aspirant.status)
+            .join(CampaignMember, CampaignMember.campaign_id == Aspirant.campaign_id)
+            .where(CampaignMember.user_id == user.id)
+        )
+        if aspirant is AspirantStatus.SUSPENDED:
+            raise CampaignClosed(SUSPENDED)
+        if aspirant is not None and aspirant is not AspirantStatus.APPROVED:
+            raise CampaignClosed(CLOSED)
+    return user
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

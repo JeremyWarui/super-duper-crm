@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
-from backend.services.errors import Forbidden, NotFound, Refused
+from backend.services.errors import CampaignClosed, Forbidden, NotFound, Refused
 
 # The one-campaign index, as Postgres and SQLite name it.
 ONE_CAMPAIGN = ("uq_campaign_members_one_campaign_per_user", "campaign_members.user_id")
@@ -57,6 +57,13 @@ def register_error_handlers(app: FastAPI) -> None:
         elif isinstance(exc, Forbidden):
             code = status.HTTP_403_FORBIDDEN
         return _detail(str(exc), code)
+
+    @app.exception_handler(CampaignClosed)
+    async def _campaign_closed(_: Request, exc: CampaignClosed) -> JSONResponse:
+        return JSONResponse(
+            {"detail": str(exc), "code": "campaign_suspended"},
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
 
     @app.exception_handler(IntegrityError)
     async def _integrity_error(_: Request, exc: IntegrityError) -> JSONResponse:

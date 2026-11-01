@@ -4,7 +4,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.dependencies.models import Dependant
 from fastapi.routing import APIRoute, iter_route_contexts
 
-from backend.api.deps import CurrentUser, get_current_user
+from backend.api.deps import CurrentUser, get_current_user, get_signed_in_user
 from backend.main import app
 
 PUBLIC_ROUTES = {
@@ -21,8 +21,20 @@ PUBLIC_ROUTES = {
 }
 
 
+# Signed-in routes that skip the closed-campaign check, so a closed campaign's login can still
+# see who it is and sign out.
+SIGNED_IN_ONLY = {
+    ("GET", "/api/auth/me/"),
+    ("POST", "/api/auth/logout/"),
+}
+
+
+def _depends_on(dependant: Dependant, call) -> bool:
+    return any(sub.call is call or _depends_on(sub, call) for sub in dependant.dependencies)
+
+
 def _needs_login(dependant: Dependant) -> bool:
-    return any(sub.call is get_current_user or _needs_login(sub) for sub in dependant.dependencies)
+    return _depends_on(dependant, get_signed_in_user)
 
 
 def _api_routes(application: FastAPI) -> dict[tuple[str, str], bool]:
@@ -61,3 +73,15 @@ def test_the_route_walk_reports_a_route_with_no_login():
     inventory = _api_routes(probe)
     assert {key for key, guarded in inventory.items() if not guarded} == {("GET", "/open")}
     assert inventory[("GET", "/closed")] is True
+
+
+def test_only_me_and_logout_skip_the_closed_campaign_check():
+    skipping = set()
+    for route in iter_route_contexts(app.routes):
+        if not isinstance(route.original_route, APIRoute):
+            continue
+        dependant = route.dependant
+        if _needs_login(dependant) and not _depends_on(dependant, get_current_user):
+            skipping |= {(method, route.path) for method in route.methods}
+
+    assert skipping == SIGNED_IN_ONLY
