@@ -160,6 +160,17 @@ class SubscriptionHold(LabelledStrEnum):
     CANCELLED = ("cancelled", "Cancelled")
 
 
+class AccessState(LabelledStrEnum):
+    """What a campaign's subscription allows today; computed, never stored."""
+
+    PENDING_PAYMENT = ("pending_payment", "Pending payment")
+    ACTIVE = ("active", "Active")
+    GRACE_PERIOD = ("grace_period", "Grace period")
+    READ_ONLY = ("read_only", "Read-only")
+    LOCKED = ("locked", "Locked")
+    CANCELLED = ("cancelled", "Cancelled")
+
+
 class EntryKind(LabelledStrEnum):
     PAYMENT = ("payment", "Payment")
     EXTENSION = ("extension", "Extension")

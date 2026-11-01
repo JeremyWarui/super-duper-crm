@@ -64,7 +64,7 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(CampaignClosed)
     async def _campaign_closed(_: Request, exc: CampaignClosed) -> JSONResponse:
         return JSONResponse(
-            {"detail": str(exc), "code": "campaign_suspended"},
+            {"detail": str(exc), "code": exc.code},
             status_code=status.HTTP_403_FORBIDDEN,
         )
 

@@ -85,3 +85,39 @@ def test_only_me_and_logout_skip_the_closed_campaign_check():
             skipping |= {(method, route.path) for method in route.methods}
 
     assert skipping == SIGNED_IN_ONLY
+
+
+# Every GET route behind the campaign check, each reviewed to write nothing: a read-only
+# campaign is let through on GET alone, so a GET that wrote would be an edit while unpaid.
+CAMPAIGN_READS = {
+    "/api/campaigns/",
+    "/api/campaigns/{campaign_id}/",
+    "/api/campaigns/{campaign_id}/signups/",
+    "/api/campaigns/{campaign_id}/team/",
+    "/api/centres/",
+    "/api/constituencies/",
+    "/api/counties/",
+    "/api/counties/{county_id}/",
+    "/api/events/",
+    "/api/mobilizers/",
+    "/api/payments/",
+    "/api/payments/payout-mode/",
+    "/api/strategy/",
+    "/api/supporters/",
+    "/api/supporters/consent-wording/",
+    "/api/targets/",
+    "/api/wards/",
+}
+
+
+def test_every_campaign_read_route_is_a_reviewed_one():
+    reads = {
+        route.path
+        for route in iter_route_contexts(app.routes)
+        if isinstance(route.original_route, APIRoute)
+        and "GET" in route.methods
+        and _depends_on(route.dependant, get_current_user)
+        and not route.path.startswith(("/api/party/", "/api/admin/"))
+    }
+
+    assert reads == CAMPAIGN_READS

@@ -3,13 +3,14 @@
 import secrets
 import uuid
 import zlib
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from backend.models import (
     Campaign,
     CampaignMember,
+    CampaignSubscription,
     Constituency,
     County,
     Mobilizer,
@@ -27,6 +28,27 @@ from backend.models import (
 from backend.security import hash_password
 from backend.services.accounts import add_member
 from backend.services.consent import PARTY_WORDING
+
+# The date every API test runs on; test campaigns are paid a year past it.
+TEST_TODAY = date(2026, 11, 1)
+PAID_UNTIL = TEST_TODAY + timedelta(days=365)
+
+
+def paid(campaign: Campaign) -> Campaign:
+    """The campaign, its subscription paid until a year after the test date."""
+    campaign.subscription.paid_until = PAID_UNTIL
+    return campaign
+
+
+async def pay(session, campaign_id: uuid.UUID | str) -> None:
+    """Pay a campaign made through the API until a year after the test date."""
+    await session.execute(
+        update(CampaignSubscription)
+        .where(CampaignSubscription.campaign_id == uuid.UUID(str(campaign_id)))
+        .values(paid_until=PAID_UNTIL)
+    )
+    await session.commit()
+
 
 # Generated per run, so no literal reads as a credential.
 TEST_PASSWORD = secrets.token_urlsafe(16)
@@ -102,7 +124,7 @@ async def make_campaign(session, ward: Ward, *, office_level=OfficeLevel.WARD) -
         first_name="Asha",
         last_name="Mwangi",
     )
-    campaign = Campaign(title=f"{ward.name} MCA 2027", office_level=office_level, ward=ward)
+    campaign = paid(Campaign(title=f"{ward.name} MCA 2027", office_level=office_level, ward=ward))
     session.add(campaign)
     await session.flush()
     await add_member(session, campaign.id, candidate)
@@ -115,7 +137,7 @@ async def make_rival_campaign(
 ) -> Campaign:
     """A ward campaign that belongs to somebody else."""
     rival = await make_user(session, username=owner, role=UserRole.CANDIDATE)
-    campaign = Campaign(title=title, office_level=OfficeLevel.WARD, ward_id=ward.id)
+    campaign = paid(Campaign(title=title, office_level=OfficeLevel.WARD, ward_id=ward.id))
     session.add(campaign)
     await session.flush()
     await add_member(session, campaign.id, rival)

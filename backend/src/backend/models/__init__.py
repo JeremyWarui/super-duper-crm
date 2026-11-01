@@ -6,6 +6,7 @@ from backend.models.auth_token import AuthToken
 from backend.models.billing import CampaignSubscription, CrmPlan, SubscriptionEntry
 from backend.models.campaign import Campaign
 from backend.models.enums import (
+    AccessState,
     AspirantStatus,
     ConsentChannel,
     ContactMethod,
@@ -51,6 +52,7 @@ from backend.models.target import Target, compute_win_number, unit_key
 from backend.models.user import User
 
 __all__ = [
+    "AccessState",
     "Aspirant",
     "AspirantStatus",
     "AuditEvent",

@@ -336,7 +336,7 @@ Officers in tests come from `make_officer(session, world, FINANCE_OFFICER)`.
 - Files: new `models/billing.py`, `models/enums.py` (`SubscriptionHold`, `EntryKind`, `PaymentMethod`), `models/campaign.py` (relationship and the default row), `models/party.py` (three settings columns), `models/__init__.py`, new revision `subscriptions` (tables, backfill), `api/errors.py` (two constraint messages), `tests/test_models.py`.
 - Tests: a payment entry without a reference fails at the database; the same reference twice fails, and succeeds once the first is voided; a new `Campaign` has a subscription row.
 
-**R3-2 Access follows the subscription** (backend)
+**R3-2 Access follows the subscription** (backend) — done 1 Nov 2026
 - Files: new `services/billing.py` (`today`, `access`), `services/errors.py` (`CampaignClosed` code), `api/deps.py` (`get_today`, `Today`, the access check), `api/errors.py`, `api/routers/join.py`, `tests/conftest.py` and `tests/factories.py` (test campaigns get a paid subscription running a year past the fixed test date), `tests/test_route_guards.py`, new `tests/test_subscription_access.py`, new `evals/test_access_timeline.py`.
 - Tests: a read-only campaign answers a `GET` and refuses a `POST` with `campaign_read_only`; a locked one refuses both with `campaign_locked` and still answers `/me`; its sign-up link is closed and a supporter's withdrawal still works.
 - Eval: walks every day from `P - 1` to `P + G + R + 1` for `(G, R)` in `(7, 7), (0, 7), (7, 0), (0, 0)` and checks the state sequence, and the HTTP answer to one read and one write, on each day.

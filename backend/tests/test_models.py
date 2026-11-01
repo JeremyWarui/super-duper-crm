@@ -149,7 +149,9 @@ def _payment(subscription_id, plan_id, **fields):
 
 async def test_a_new_campaign_has_an_unpaid_subscription(session: AsyncSession) -> None:
     _, _, ward, _ = await make_geography(session)
-    campaign = await make_campaign(session, ward)
+    campaign = Campaign(title="Githurai MCA 2027", office_level=OfficeLevel.WARD, ward=ward)
+    session.add(campaign)
+    await session.commit()
 
     stored = await session.scalar(
         select(CampaignSubscription).where(CampaignSubscription.campaign_id == campaign.id)

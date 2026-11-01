@@ -85,13 +85,16 @@ def enforce_foreign_keys(engine: AsyncEngine) -> AsyncEngine:
 @asynccontextmanager
 async def app_client(session: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
     """The real app, serving every request from this session."""
+    from backend.api.deps import get_today
     from backend.db.session import get_session
     from backend.main import app
+    from tests.factories import TEST_TODAY
 
     async def _use_it() -> AsyncIterator[AsyncSession]:
         yield session
 
     app.dependency_overrides[get_session] = _use_it
+    app.dependency_overrides[get_today] = lambda: TEST_TODAY
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as http_client:
         yield http_client
@@ -256,7 +259,7 @@ async def world(session: AsyncSession, client: httpx.AsyncClient) -> World:
     )
     from backend.services.accounts import add_member
     from backend.services.targets import generate_targets
-    from tests.factories import make_user, sign_in
+    from tests.factories import make_user, paid, sign_in
 
     county = County(
         name="Nairobi City",
@@ -279,10 +282,12 @@ async def world(session: AsyncSession, client: httpx.AsyncClient) -> World:
     manager = await make_user(session, username="amina", role=UserRole.MANAGER)
     mobilizer_user = await make_user(session, username="juma", role=UserRole.MOBILIZER)
 
-    campaign = Campaign(
-        title="Jane for Roysambu",
-        office_level=OfficeLevel.CONSTITUENCY,
-        constituency_id=constituency.id,
+    campaign = paid(
+        Campaign(
+            title="Jane for Roysambu",
+            office_level=OfficeLevel.CONSTITUENCY,
+            constituency_id=constituency.id,
+        )
     )
     session.add(campaign)
     await session.flush()

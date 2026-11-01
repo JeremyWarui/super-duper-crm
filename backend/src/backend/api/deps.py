@@ -1,8 +1,9 @@
 """Request dependencies: the session, the signed-in caller, and role guards."""
 
+from datetime import date
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,17 +11,20 @@ from sqlalchemy.orm import selectinload
 
 from backend.db.session import get_session
 from backend.models import (
+    AccessState,
     Aspirant,
     AspirantStatus,
     AuthToken,
     CampaignMember,
+    CampaignSubscription,
     PartyMember,
     PartyMemberStatus,
     PartyRoleName,
+    PartySettings,
     User,
     UserRole,
 )
-from backend.services import membership
+from backend.services import billing, membership
 from backend.services.errors import CampaignClosed
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -59,22 +63,70 @@ async def get_signed_in_user(
 
 SignedInUser = Annotated[User, Depends(get_signed_in_user)]
 
+
+async def get_today() -> date:
+    return billing.today()
+
+
+Today = Annotated[date, Depends(get_today)]
+
 SUSPENDED = "This campaign is suspended by the party."
 CLOSED = "This campaign is closed: its aspirant has withdrawn."
+LOCKED = "This campaign's subscription is not active."
+READ_ONLY = "This campaign is read-only until its subscription is renewed."
+READS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
-async def get_current_user(user: SignedInUser, session: SessionDep) -> User:
-    """The signed-in caller, refused while their campaign's aspirant is not approved."""
-    if user.role is not None and not user.is_superuser:
-        aspirant = await session.scalar(
-            select(Aspirant.status)
-            .join(CampaignMember, CampaignMember.campaign_id == Aspirant.campaign_id)
+async def get_current_user(
+    user: SignedInUser, session: SessionDep, request: Request, today: Today
+) -> User:
+    """The signed-in caller, refused while their campaign's aspirant is not approved or its
+    subscription does not allow this request.
+
+    A campaign with no subscription row counts as locked.
+    """
+    if user.role is None or user.is_superuser:
+        return user
+    row = (
+        await session.execute(
+            select(
+                Aspirant.status,
+                CampaignSubscription.id,
+                CampaignSubscription.paid_until,
+                CampaignSubscription.hold,
+                PartySettings.grace_days,
+                PartySettings.read_only_days,
+            )
+            .select_from(CampaignMember)
+            .outerjoin(Aspirant, Aspirant.campaign_id == CampaignMember.campaign_id)
+            .outerjoin(
+                CampaignSubscription,
+                CampaignSubscription.campaign_id == CampaignMember.campaign_id,
+            )
+            .outerjoin(PartySettings, PartySettings.id == 1)
             .where(CampaignMember.user_id == user.id)
         )
-        if aspirant is AspirantStatus.SUSPENDED:
-            raise CampaignClosed(SUSPENDED)
-        if aspirant is not None and aspirant is not AspirantStatus.APPROVED:
-            raise CampaignClosed(CLOSED)
+    ).first()
+    if row is None:
+        return user
+    aspirant, subscription, paid_until, hold, grace_days, read_only_days = row
+    if aspirant is AspirantStatus.SUSPENDED:
+        raise CampaignClosed(SUSPENDED)
+    if aspirant is not None and aspirant is not AspirantStatus.APPROVED:
+        raise CampaignClosed(CLOSED)
+    if subscription is None:
+        raise CampaignClosed(LOCKED, code="campaign_locked")
+    state = billing.access(
+        paid_until,
+        hold,
+        today,
+        billing.GRACE_DAYS if grace_days is None else grace_days,
+        billing.READ_ONLY_DAYS if read_only_days is None else read_only_days,
+    ).state
+    if state in billing.NO_ACCESS:
+        raise CampaignClosed(LOCKED, code="campaign_locked")
+    if state is AccessState.READ_ONLY and request.method not in READS:
+        raise CampaignClosed(READ_ONLY, code="campaign_read_only")
     return user
 
 

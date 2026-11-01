@@ -14,7 +14,11 @@ class Forbidden(Refused):
 
 
 class CampaignClosed(Exception):
-    """The caller's campaign belongs to an aspirant who is not approved."""
+    """The caller's campaign is closed to this request; `code` says why."""
+
+    def __init__(self, message: str, code: str = "campaign_suspended") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 def refuse_own_record(actor, member_id) -> None:  # type: ignore[no-untyped-def]
