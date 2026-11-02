@@ -11,7 +11,14 @@ import App from "./App";
 import Portal from "./pages/party/Portal";
 import Join from "./components/Join";
 import Withdraw from "./components/Withdraw";
+import PublicLayout from "./components/PublicLayout";
+import About from "./pages/public/About";
+import Events from "./pages/public/Events";
 import Home from "./pages/public/Home";
+import Leadership from "./pages/public/Leadership";
+import Manifesto from "./pages/public/Manifesto";
+import News from "./pages/public/News";
+import Post from "./pages/public/Post";
 import JoinParty from "./pages/public/JoinParty";
 import WithdrawParty from "./pages/public/WithdrawParty";
 import WithdrawVolunteer from "./pages/public/WithdrawVolunteer";
@@ -71,6 +78,11 @@ function SignInPage() {
   return token ? <Navigate to={homeOf(user)} replace /> : <Login />;
 }
 
+function PostPage() {
+  const { id } = useParams();
+  return <Post key={id} id={id} />;
+}
+
 function JoinPage() {
   return <Join code={useParams().code} />;
 }
@@ -93,11 +105,17 @@ function WithdrawVolunteerPage() {
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
+      <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
+      <Route path="/leadership" element={<PublicLayout><Leadership /></PublicLayout>} />
+      <Route path="/manifesto" element={<PublicLayout><Manifesto /></PublicLayout>} />
+      <Route path="/news" element={<PublicLayout><News /></PublicLayout>} />
+      <Route path="/news/:id" element={<PublicLayout><PostPage /></PublicLayout>} />
+      <Route path="/events" element={<PublicLayout><Events /></PublicLayout>} />
       <Route path="/signin" element={<SignInPage />} />
       <Route path="/join/:code" element={<JoinPage />} />
       <Route path="/withdraw/:code" element={<WithdrawPage />} />
-      <Route path="/join-party" element={<JoinParty />} />
+      <Route path="/join-party" element={<PublicLayout><JoinParty /></PublicLayout>} />
       <Route path="/party/withdraw/:code" element={<WithdrawPartyPage />} />
       <Route path="/party/volunteer/withdraw/:code" element={<WithdrawVolunteerPage />} />
       <Route path="/*" element={<Root />} />

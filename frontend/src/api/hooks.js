@@ -503,6 +503,26 @@ export function useRemoveMember() {
 export const useParty = () =>
   useQuery({ queryKey: ["party"], queryFn: () => api("/party/", { anonymous: true }) });
 
+// ---- public website content ------------------------------------------------
+export const usePublicLeaders = () =>
+  useQuery({
+    queryKey: ["public-leaders"],
+    queryFn: () => api("/party/leaders/", { anonymous: true }),
+  });
+
+// Published news, newest first, 20 per page from `offset`; or events from today on.
+export const usePublicPosts = (kind, offset = 0) =>
+  useQuery({
+    queryKey: ["public-posts", kind, offset],
+    queryFn: () => api(`/party/posts/?kind=${kind}&offset=${offset}`, { anonymous: true }),
+  });
+
+export const usePublicPost = (id) =>
+  useQuery({
+    queryKey: ["public-post", id],
+    queryFn: () => api(`/party/posts/${id}/`, { anonymous: true }),
+  });
+
 // Counties, or one county's constituencies, or one constituency's wards.
 export const usePartyPlaces = ({ county, constituency, enabled = true } = {}) =>
   useQuery({

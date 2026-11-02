@@ -170,7 +170,7 @@ The migration runs first and alone (R4-1). A route enters
 - Tests: `/` shows the public home signed out and signed in; `/signin` sends each kind of login to its home; a signed-out visit to `/console` lands on `/signin`.
 - Depends: none (the home page can be a placeholder until R4-5).
 
-**R4-5 Public pages** (frontend)
+**R4-5 Public pages** (frontend) — done 3 Nov 2026
 - Files: new `components/PublicLayout.jsx`, new pages in `pages/public/`, `api/hooks`, `contracts/frontend-api.json` (public content routes), tests.
 - Tests: the home page shows published news and events from the API; the leadership page lists leaders in order; the menu links reach every page.
 - Depends: R4-2, R4-4.

@@ -1,28 +1,33 @@
-// The party's public home page: no login.
+// The party's public home page: who it is, its latest news and next events.
 import { Link } from "react-router-dom";
-import { useParty } from "../../api/hooks";
-import { useAuth } from "../../store/auth";
-import { homeOf } from "../../lib/home";
-import { partyColours } from "./colours";
+import { useParty, usePublicPosts } from "../../api/hooks";
+import PostCard from "./PostCard";
+
+function Latest({ title, kind, to }) {
+  const posts = usePublicPosts(kind).data || [];
+  if (!posts.length) return null;
+  return (
+    <section className="site-section">
+      <h2 className="site-section-title">{title}</h2>
+      <div className="site-cards">
+        {posts.slice(0, 3).map((post) => <PostCard key={post.id} post={post} />)}
+      </div>
+      <Link className="site-link" to={to}>See all</Link>
+    </section>
+  );
+}
 
 export default function Home() {
   const party = useParty().data;
-  const token = useAuth((s) => s.token);
-  const user = useAuth((s) => s.user);
-
   return (
-    <div className="join-shell" style={partyColours(party)}>
-      <div className="join-card">
-        {party?.logo_url && <img className="party-logo" src={party.logo_url} alt="" />}
-        <div className="join-heading">{party?.name || "Welcome"}</div>
-        {party?.description && <div className="join-note">{party.description}</div>}
-        <Link className="join-link" to="/join-party">Join the party</Link>
-        {token ? (
-          <Link className="join-link" to={homeOf(user)}>Portal</Link>
-        ) : (
-          <Link className="join-link" to="/signin">Sign in</Link>
-        )}
-      </div>
-    </div>
+    <>
+      <section className="site-hero">
+        <h1 className="site-title">{party?.name || "Welcome"}</h1>
+        {party?.description && <p className="site-lead">{party.description}</p>}
+        <Link className="site-button" to="/join-party">Join the party</Link>
+      </section>
+      <Latest title="Latest news" kind="news" to="/news" />
+      <Latest title="Coming events" kind="event" to="/events" />
+    </>
   );
 }

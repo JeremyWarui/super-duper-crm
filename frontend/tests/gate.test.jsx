@@ -34,7 +34,7 @@ describe("the gate", () => {
     stubApi({ "GET /party/": { name: "Umoja Party", description: "For every ward." } });
     renderApp(<AppRoutes />);
 
-    expect(await screen.findByText("Umoja Party")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Umoja Party" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: signedIn ? "Portal" : "Sign in" })).toBeInTheDocument();
   });
 

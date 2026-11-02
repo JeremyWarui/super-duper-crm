@@ -466,6 +466,33 @@
       "hold",
       "read_only_from",
       "locks_on"
+    ],
+    "GET /api/party/leaders/": [
+      "id",
+      "name",
+      "position",
+      "bio",
+      "photo_url"
+    ],
+    "GET /api/party/posts/": [
+      "id",
+      "kind",
+      "title",
+      "body",
+      "image_url",
+      "event_date",
+      "venue",
+      "published_on"
+    ],
+    "GET /api/party/posts/{post_id}/": [
+      "id",
+      "kind",
+      "title",
+      "body",
+      "image_url",
+      "event_date",
+      "venue",
+      "published_on"
     ]
   },
   "nested_reads": {
