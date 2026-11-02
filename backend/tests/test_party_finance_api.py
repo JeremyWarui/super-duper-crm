@@ -173,6 +173,7 @@ OWN_WRITES = [
     ("POST", "payments/", _payment("OWN1")),
     ("POST", "extensions/", {"days": 5, "note": "Goodwill"}),
     ("PUT", "hold/", {"hold": "suspended", "reason": "Unpaid"}),
+    ("POST", "entries/{entry}/void/", {"reason": "Entered twice"}),
 ]
 
 
@@ -187,6 +188,7 @@ async def test_a_finance_officer_cannot_touch_their_own_campaigns_money(
 ) -> None:
     headers = await _finance(client, session, world)
     sub_id = await _on_plan(client, headers, world)
+    await _pay(client, headers, sub_id, "BEFORE1")
     officer = await session.scalar(select(User).where(User.username == "pesa"))
     session.add(
         Aspirant(
@@ -201,9 +203,10 @@ async def test_a_finance_officer_cannot_touch_their_own_campaigns_money(
 
     plan_id = (await client.get("/api/party/finance/plans/", headers=headers)).json()[0]["id"]
     url = f"/api/party/finance/subscriptions/{sub_id}/"
+    entry = (await client.get(url, headers=headers)).json()["entries"][0]["id"]
 
     written = await client.request(
-        method, url + path, headers=headers, json=body or {"plan": plan_id}
+        method, url + path.format(entry=entry), headers=headers, json=body or {"plan": plan_id}
     )
     seen = await client.get(url, headers=headers)
 

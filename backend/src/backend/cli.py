@@ -66,6 +66,7 @@ async def _demo(args: argparse.Namespace, session: AsyncSession) -> int:
     summary = await seed_demo(session, password=args.password)
     print(f"{summary.campaign_title} - {summary.office}")
     print(f"  {summary.units} units, win number {summary.win_number:,}")
+    print(f"  Paid until {summary.paid_until:%d %b %Y}")
     print("\nSign in at http://localhost:5173 as (shown once, re-run to reset):")
     width = max(len(username) for username, _, _ in summary.sign_ins)
     for username, password, description in summary.sign_ins:

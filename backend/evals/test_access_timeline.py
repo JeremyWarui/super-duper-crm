@@ -1,4 +1,5 @@
-"""Walk a lapsing subscription day by day: the state and the API's answers match the design.
+"""Walk a lapsing subscription day by day: the state, the API's answers and whether the
+sign-up link is open match the design.
 
 docs/Subscriptions_Design.md, "Access state": active through the last paid day, then
 `grace_days` of full access, then `read_only_days` of reads only, then locked.
@@ -15,6 +16,7 @@ from backend.main import app
 from backend.models import AccessState, PartySettings, SubscriptionHold
 from backend.services.billing import access
 from tests.conftest import World
+from tests.test_join_api import _event
 
 PAID_UNTIL = date(2026, 11, 30)
 
@@ -30,11 +32,12 @@ def expected(day: date, grace_days: int, read_only_days: int) -> AccessState:
     return AccessState.LOCKED
 
 
+# A read, a write, and whether the public sign-up link is open.
 ANSWERS = {
-    AccessState.ACTIVE: ((200, None), (400, None)),
-    AccessState.GRACE_PERIOD: ((200, None), (400, None)),
-    AccessState.READ_ONLY: ((200, None), (403, "campaign_read_only")),
-    AccessState.LOCKED: ((403, "campaign_locked"), (403, "campaign_locked")),
+    AccessState.ACTIVE: ((200, None), (400, None), True),
+    AccessState.GRACE_PERIOD: ((200, None), (400, None), True),
+    AccessState.READ_ONLY: ((200, None), (403, "campaign_read_only"), False),
+    AccessState.LOCKED: ((403, "campaign_locked"), (403, "campaign_locked"), False),
 }
 
 
@@ -57,6 +60,7 @@ async def test_each_day_of_a_lapse_answers_as_the_design_says(
     world.campaign.subscription.paid_until = PAID_UNTIL
     await session.commit()
     headers = world.headers("manager")
+    link = f"/api/join/{(await _event(session, world)).signup_code}/"
 
     seen, wanted = [], []
     for offset in range(-1, grace_days + read_only_days + 2):
@@ -65,8 +69,9 @@ async def test_each_day_of_a_lapse_answers_as_the_design_says(
         state = expected(day, grace_days, read_only_days)
         read = await client.get("/api/supporters/", headers=headers)
         write = await client.post("/api/supporters/", headers=headers, json={})
+        signup = (await client.get(link)).json()["open"]
         computed = access(PAID_UNTIL, SubscriptionHold.NONE, day, grace_days, read_only_days)
-        seen.append((day, computed.state, _answer(read), _answer(write)))
+        seen.append((day, computed.state, _answer(read), _answer(write), signup))
         wanted.append((day, state, *ANSWERS[state]))
 
     assert seen == wanted

@@ -1,13 +1,14 @@
 """A campaign works as far as its subscription allows on the day of the request."""
 
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import httpx
 import pytest
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.api.deps import get_today
 from backend.models import (
     CampaignSubscription,
     CrmPlan,
@@ -17,11 +18,13 @@ from backend.models import (
     SubscriptionHold,
     Supporter,
 )
+from backend.services import billing
 from backend.services.billing import GRACE_DAYS, READ_ONLY_DAYS
 from tests.conftest import World
 from tests.factories import TEST_TODAY
 from tests.test_join_api import _event, _person
 
+ROLES = ["candidate", "manager", "mobilizer"]
 READ_ONLY_SINCE = timedelta(days=GRACE_DAYS + 1)
 LOCKED_SINCE = timedelta(days=GRACE_DAYS + READ_ONLY_DAYS + 1)
 ANY_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
@@ -32,6 +35,7 @@ async def _lapse(session: AsyncSession, world: World, by: timedelta) -> None:
     await session.commit()
 
 
+@pytest.mark.parametrize("role", ROLES)
 @pytest.mark.parametrize(
     ("method", "path"),
     [
@@ -41,12 +45,17 @@ async def _lapse(session: AsyncSession, world: World, by: timedelta) -> None:
     ],
 )
 async def test_a_read_only_campaign_answers_reads_and_refuses_writes(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, method: str, path: str
+    client: httpx.AsyncClient,
+    session: AsyncSession,
+    world: World,
+    method: str,
+    path: str,
+    role: str,
 ) -> None:
     await _lapse(session, world, READ_ONLY_SINCE)
-    headers = world.headers("manager")
+    headers = world.headers(role)
 
-    read = await client.get("/api/supporters/", headers=headers)
+    read = await client.get("/api/campaigns/", headers=headers)
     write = await client.request(method, path, headers=headers, json={})
 
     assert read.status_code == 200
@@ -84,30 +93,41 @@ CLOSED_BY = {
 }
 
 
+@pytest.mark.parametrize("role", ROLES)
 @pytest.mark.parametrize("cause", list(CLOSED_BY))
-async def test_a_locked_campaign_refuses_everything_but_who_you_are(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, cause: str
+async def test_a_locked_campaign_refuses_everything_but_who_you_are_and_signing_out(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, cause: str, role: str
 ) -> None:
     await CLOSED_BY[cause](session, world)
-    headers = world.headers("mobilizer")
+    headers = world.headers(role)
 
-    read = await client.get("/api/supporters/", headers=headers)
+    read = await client.get("/api/campaigns/", headers=headers)
     write = await client.post("/api/supporters/", headers=headers, json={})
     me = await client.get("/api/auth/me/", headers=headers)
+    out = await client.post("/api/auth/logout/", headers=headers)
 
     assert (read.status_code, read.json()["code"]) == (403, "campaign_locked")
     assert (write.status_code, write.json()["code"]) == (403, "campaign_locked")
     assert me.status_code == 200
+    assert out.status_code == 204
 
 
+UNPAID_BY = {
+    "read-only": lambda session, world: _lapse(session, world, READ_ONLY_SINCE),
+    "never paid": _never_paid,
+    "no subscription row": _no_subscription,
+}
+
+
+@pytest.mark.parametrize("cause", list(UNPAID_BY))
 async def test_an_unpaid_campaign_takes_no_sign_ups_but_a_supporter_can_still_withdraw(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+    client: httpx.AsyncClient, session: AsyncSession, world: World, cause: str
 ) -> None:
     event = await _event(session, world)
     url = f"/api/join/{event.signup_code}/"
     joined = (await client.post(url, json=_person())).json()
 
-    await _lapse(session, world, READ_ONLY_SINCE)
+    await UNPAID_BY[cause](session, world)
     page = (await client.get(url)).json()
     refused = await client.post(url, json=_person(phone="0722 000111"))
     withdrawn = await client.post(f"/api/join/withdraw/{joined['withdraw_code']}/")
@@ -202,3 +222,21 @@ async def test_a_campaign_with_no_subscription_reads_as_locked(
     seen = await client.get("/api/subscription/", headers=world.headers("manager"))
 
     assert (seen.status_code, seen.json()["state"]) == (200, "locked")
+
+
+class _LateEveningUtc(datetime):
+    """22:30 UTC on 1 Nov 2026, already 2 Nov in Nairobi."""
+
+    @classmethod
+    def now(cls, tz=None):
+        instant = datetime(2026, 11, 1, 22, 30, tzinfo=UTC)
+        return instant.astimezone(tz) if tz else instant.replace(tzinfo=None)
+
+
+async def test_today_is_the_date_in_nairobi_for_every_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(billing, "datetime", _LateEveningUtc)
+
+    assert billing.today() == date(2026, 11, 2)
+    assert await get_today() == date(2026, 11, 2)

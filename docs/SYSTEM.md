@@ -5,7 +5,7 @@ Use it to plan features, refine the architecture, or bring someone new up to
 speed. How to run the code lives in the READMEs; this document says what the
 code is for.
 
-Last checked against the code: 1 November 2026, after Release 2 (aspirants and campaign workspaces).
+Last checked against the code: 2 November 2026, after Release 3 (manual CRM subscriptions).
 
 ---
 
@@ -67,8 +67,7 @@ office (`users.kind`). The superuser is the party's super admin.
   branding, contacts and manifesto. Anyone reads it at `GET /api/party/`; the
   superuser edits it in the console.
 - **Party offices:** membership, nominations and finance officer. The superuser
-  grants and revokes them on staff logins in the console; membership and
-  nominations officer are in use, finance officer waits for Release 3. Every
+  grants and revokes them on staff logins in the console. Every
   office holder's login is linked to its own party member
   (`users.party_member_id`, set in the console), and an officer works only
   while that member is approved, checked on every request. An officer is
@@ -90,6 +89,23 @@ office (`users.kind`). The superuser is the party's super admin.
   `campaign_suspended` and a "suspended" or "closed" screen, and its public
   sign-up links close; the data is kept. Deleting the campaign keeps the
   aspirant and member.
+- **Subscriptions:** every campaign, console ones included, has one
+  subscription (`campaign_subscriptions`) with a plan once the finance officer
+  picks one, a last paid day and an optional hold, and a ledger of payments
+  and free extensions (`subscription_entries`). The finance officer records
+  money by hand at `/party/finance`; nothing is paid online. The access state is computed on
+  every request from the paid day, the hold and today's date in Nairobi: active
+  while paid; then grace (full access, a banner) for the party's grace days;
+  then read-only (every write refused with 403 `campaign_read_only`) for its
+  read-only days; then locked (403 `campaign_locked` on every campaign route,
+  and a payment screen with the party's payment instructions). A new campaign
+  is locked until its first payment or free extension; a suspended or
+  cancelled hold locks it whatever the dates say. Public sign-up links are
+  open only while active or in grace; a supporter's withdrawal always works. Deleting a campaign keeps its
+  subscription and ledger under the campaign's title. The demo seed
+  (`campaign-crm demo`) puts its campaign on a "Demo yearly" plan with one
+  payment, so it is open for a year; a re-run keeps the old demo's ledger,
+  like any deleted campaign's.
 - **Member register:** `party_members`, one row per phone, tied to a ward
   (county and constituency come from the ward). People apply at `/join-party`
   with a county, constituency and ward picker and the consent box, whose
@@ -122,7 +138,8 @@ office (`users.kind`). The superuser is the party's super admin.
   a rejected or withdrawn number until SMS verification exists.
 
 The designs and their decisions are in `docs/Identity_Access_Design.md`
-(Releases 0 and 1) and `docs/Aspirants_Design.md` (Release 2).
+(Releases 0 and 1), `docs/Aspirants_Design.md` (Release 2) and
+`docs/Subscriptions_Design.md` (Release 3).
 
 ---
 
@@ -146,6 +163,7 @@ refuses that.
 | **Operator** (superuser) | Runs the deployment from the admin console: creates campaigns and their first logins, repairs logins, links logins to party members, grants party offices, deletes campaigns. Opens every party page. Never sits on a campaign. |
 | **Membership officer** (party staff) | Reviews the member and volunteer registers at `/party/members` and `/party/volunteers`. Sees no campaign. |
 | **Nominations officer** (party staff) | Nominates approved members, moves nominations, and creates an approved aspirant's campaign workspace at `/party/aspirants`. Sees no campaign. |
+| **Finance officer** (party staff) | Sets CRM plans, gives each campaign a plan, records payments and extensions, voids the latest entry, holds a campaign, reads the revenue and expiring reports, and sets the grace and read-only days and the payment instructions at `/party/finance`. Never acts on their own aspirant's campaign. Sees no campaign's data. |
 | **Aspirant** (role `candidate` in the code, labelled Candidate on screen) | Owns the campaign. Watches progress and strategy, adds or replaces the one manager, adds and places mobilizers, resets the team's passwords. |
 | **Campaign manager** | Runs the day to day: targets, events, the supporter register, sign-up links to share, payments to mobilizers, adding mobilizers and resetting their passwords. |
 | **Mobilizer** | Works one unit: a ward, or in an MCA race a registration centre. Records events and registers supporters in their ward, and sees their own payments. |
@@ -317,6 +335,8 @@ campaign does.
   the same operations.
 - The party platform: settings, offices, the member and volunteer registers,
   nominations and campaign workspaces for approved aspirants.
+- Campaign subscriptions: plans, a ledger the finance officer keeps by hand,
+  and access that steps from active to grace, read-only and locked.
 
 ### Deliberately out of scope
 
@@ -330,7 +350,7 @@ campaign does.
 
 | Item | Notes |
 |---|---|
-| **Subscription and billing** | Plan, status and paid-until per campaign; when unpaid, read-only for a grace period, then locked, data kept. Self-serve payment (Paystack) later. On hold by the owner's choice until the product is ready to sell; the rules are agreed. |
+| **Self-serve subscription payment** | Campaigns pay the party by M-Pesa, bank or cash and the finance officer records it. Paying online (Paystack) with automatic recording comes later. |
 | **Real SMS** | The Africa's Talking adapter is written and tested against recorded replies; the deployment sends nothing (`SMS_PROVIDER=console`). |
 | **Real payouts** | Payments run in practice mode; a real mobile-money provider plugs in behind the same interface. |
 | **Email password reset** | Designed, waiting on a sending domain. Resets are done by the operator or, inside a campaign, by the aspirant and manager. |
@@ -365,8 +385,16 @@ Each rule is enforced on the server; the screens only reflect it.
 | A withdrawal link answers the same whether it is real or not; a repeat sign-up's link removes nothing | `api/routers/join.py` |
 | One live payment per mobilizer per event | unique index `uq_payments_event_mobilizer` |
 | Asking for a campaign you are not on answers 404, as if it did not exist | `api/scope.py` `require_visible_campaign` |
+| A campaign works only as far as its subscription allows today: read-only refuses every write, and locked, pending or cancelled refuses every campaign route; `/me`, sign-out and `/api/subscription/` still answer; a campaign with no subscription row is locked | `api/deps.py` `get_current_user`, `services/billing.py` `access` |
+| Every `GET` on a campaign route writes nothing, so read-only cannot be bypassed | reviewed route by route; `backend/tests/test_route_guards.py` `CAMPAIGN_READS` fails on a new one |
+| `paid_until` always equals the latest live ledger entry's `paid_until_after`; only the latest entry can be voided | `services/billing.py`, a row lock on the subscription |
+| A payment adds the plan's days from the later of the day after the paid period and the day received; it is never dated after today or over a year back | `services/billing.py` `extended`, `record_payment` |
+| One payment reference while it is live | partial unique index `uq_subscription_entries_reference` |
+| A finance officer never changes the subscription of their own aspirant's campaign | `services/billing.py` `_locked`, `services/errors.py` `refuse_own_record` |
+| A mobilizer sees the subscription's state and dates, never a plan or price | `services/billing.py` `own` |
+| Finance audit entries never hold a payment reference or a note | `services/billing.py` `_audit` |
 
-Paths are under `backend/src/backend/`.
+Source paths are under `backend/src/backend/`; test paths are given in full.
 
 ### Who may do what
 
@@ -386,8 +414,11 @@ Paths are under `backend/src/backend/`.
 | Schedule and release payments | no | yes | no |
 
 Party offices sit outside this table: a membership officer reads and changes
-the party register only, a nominations officer the nominations only, and
-neither sees a campaign; a campaign login gets 403 on every party route.
+the party register only, a nominations officer the nominations only, a
+finance officer the plans, subscriptions and ledger only, and none of them sees
+a campaign's data; a campaign login gets 403 on every party route. Inside a
+campaign, the aspirant and manager see their own plan and price on the payment
+screen; a mobilizer sees only the state and dates.
 
 A mobilizer's reach is their **ward**, in every race. In an MCA race the whole
 campaign is one ward, so a mobilizer placed on one centre still reads and writes
@@ -414,7 +445,7 @@ counts toward, not what they can see.
 | Strategy read and notes | Built | |
 | Payments to mobilizers | Built, practice mode | References read `PRACTICE`; no money moves |
 | Party settings, edited in the console | Built | `GET /api/party/`, `PUT /api/admin/party/` |
-| Party offices granted to staff logins | Built | Membership and nominations officer in use; finance reserved for Release 3; holders linked to an approved member |
+| Party offices granted to staff logins | Built | Membership, nominations and finance officer; holders linked to an approved member |
 | Nominations: nominate, move, follow the member | Built | `frontend/src/pages/party/Aspirants.jsx` |
 | Campaign workspace from an approved aspirant | Built | One per aspirant; passwords shown once |
 | Campaign closed while its aspirant is not approved | Built | 403 `campaign_suspended`, its own screen, sign-up links closed |
@@ -424,7 +455,10 @@ counts toward, not what they can see.
 | Volunteer register: form section, own withdraw link, officer page | Built | `frontend/src/pages/party/Volunteers.jsx`, CSV export |
 | Audit trail of sensitive actions | Built | Read at `GET /api/admin/audit/`; no console screen yet |
 | Erasing a withdrawn member on request | Planned | Decision 3 in the design |
-| Subscription, read-only and locked states | Planned | On hold |
+| Subscription, grace, read-only and locked states | Built | Computed on every request; 403 `campaign_read_only`, `campaign_locked` |
+| Finance page: campaigns and ledger, plans, reports, settings | Built | `frontend/src/pages/party/Finance.jsx` |
+| Payment screen for a locked campaign, banner while lapsing | Built | `frontend/src/components/CampaignLocked.jsx`, `AccessBanner.jsx` |
+| Self-serve subscription payment | Planned | Paystack |
 | Email password reset | Planned | |
 | Ward managers | Planned | |
 
@@ -512,6 +546,9 @@ erDiagram
   ASPIRANT |o--o| CAMPAIGN : "workspace"
   WARD ||--o{ PARTY_MEMBER : "lives in"
   PARTY_MEMBER ||--o| VOLUNTEER_PROFILE : "may have"
+  CAMPAIGN |o--o| CAMPAIGN_SUBSCRIPTION : "billed as"
+  CRM_PLAN ||--o{ CAMPAIGN_SUBSCRIPTION : "on"
+  CAMPAIGN_SUBSCRIPTION ||--o{ SUBSCRIPTION_ENTRY : "ledger"
   PARTY_REQUEST
   AUDIT_EVENT }o--o| USER : actor
   PARTY_SETTINGS
@@ -523,7 +560,8 @@ erDiagram
   the ward's register, which is how the two sources check each other.
 - **Campaign data** (members, targets, mobilizers, events, supporters, payments)
   always carries `campaign_id`, and deleting a campaign deletes all of it with
-  its people's logins.
+  its people's logins. Its subscription and ledger stay, under the campaign's
+  title, so the revenue report stays true.
 - A **unit** is a ward, or a ward plus a registration centre in an MCA race.
   Targets, mobilizers, events and supporters all name their unit the same way:
   a ward and, optionally, a registration centre. Targets and events always have
@@ -532,7 +570,7 @@ erDiagram
 
 ### The API
 
-82 operations across 68 paths, grouped by purpose. The live list is at `/docs`
+98 operations across 82 paths, grouped by purpose. The live list is at `/docs`
 on a server started with `DEBUG=true`; it is off otherwise.
 
 | Group | Routes | Who |
@@ -548,6 +586,8 @@ on a server started with `DEBUG=true`; it is off otherwise.
 | Party, public | `/api/party/`, `/api/party/places/`, `/api/party/join/`, `/api/party/withdraw/{code}/`, `/api/party/volunteer/withdraw/{code}/` | anyone; join and withdraws are rate limited |
 | Party register | `/api/party/members/` (list, detail, status, `export.csv`), `/api/party/volunteers/` (list, update, `export.csv`) | membership officer and superuser |
 | Nominations | `/api/party/aspirants/` (candidates, list, detail, create, status, workspace) | nominations officer and superuser |
+| Finance | `/api/party/finance/` (plans, subscriptions, plan, payments, extensions, void, hold, settings, revenue and expiring reports) | finance officer and superuser |
+| A campaign's own subscription | `/api/subscription/` | any campaign login, answered while locked; plan and price for aspirant and manager only |
 | Console, including party settings, party offices, member links and the audit trail | `/api/admin/` | superuser only |
 | Health | `/health` | Fly's checks |
 
@@ -569,15 +609,15 @@ in full without either:
 
 | Check | What it proves | Runs |
 |---|---|---|
-| Backend tests (254: 252 run, 2 Postgres-only skipped) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
-| Backend evals (261: 237 run, 7 live checks and 17 impossible register states skipped) | The API still offers what the frontend's contract lists | `cd backend && uv run pytest evals` |
-| Frontend tests (102) | Each screen per role, the forms, the contract from the frontend side | `cd frontend && npm test` |
+| Backend tests (337: 334 run, 3 Postgres-only skipped) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
+| Backend evals (292: 268 run, 7 live checks and 17 impossible register states skipped) | The API still offers what the frontend's contract lists; every subscription state and HTTP answer, day by day across the end of the paid period | `cd backend && uv run pytest evals` |
+| Frontend tests (113) | Each screen per role, the forms, the contract from the frontend side | `cd frontend && npm test` |
 | Migration tests | The migrations build the models' schema and render correctly for Postgres | part of the backend tests |
 | Postgres lane | The same suite on a throwaway local Postgres built by the migrations: row locks, races, every migration down and up | `cd backend && TEST_POSTGRES=1 uv run pytest` |
 | Live database check | TLS, the latest migration and the seeded geography on a real database | `LIVE_DATABASE=1`, by hand; 7 checks skipped otherwise |
 | Secret scan | No password, key or token reaches the repository | a pre-commit hook (`git config core.hooksPath .githooks`), and again on every push in GitHub Actions (`.github/workflows/secret-scan.yml`) |
 
-`cd backend && uv run pytest` runs the tests and the evals together (515: 489 run, 26 skipped). With `TEST_POSTGRES=1`, 490 run: the two Postgres-only tests run and the SQLite-only CLI check skips.
+`cd backend && uv run pytest` runs the tests and the evals together (629: 602 run, 27 skipped). With `TEST_POSTGRES=1`, 604 run: the three Postgres-only tests run and the SQLite-only CLI check skips.
 
 ---
 
@@ -636,6 +676,8 @@ no stylesheet defines, so a missing style is caught by the tests, not by a user.
 | Rules held by database indexes as well as code | Two requests at once cannot break a rule the code checked. |
 | Practice-mode payouts and console SMS by default | The full flow can be shown and tested without moving money or sending messages. |
 | Tests on SQLite, and the same tests on local Postgres | Fast tests with no server by default; `TEST_POSTGRES=1` runs the whole suite on a throwaway local Postgres database built by the real migrations, for row locks, races and every migration's downgrade. |
+| Access state computed from the paid day, never stored | Expiry needs no scheduled job, and the same dates always give the same state. |
+| Subscription payments recorded by hand | Campaigns pay by M-Pesa, bank or cash; a ledger with one live reference per payment and a void for mistakes is enough until online payment is wanted. |
 | A contract file between frontend and backend | Renaming a field on one side fails both test suites until the other side follows. |
 
 ---
@@ -644,9 +686,9 @@ no stylesheet defines, so a missing style is caught by the tests, not by a user.
 
 Open choices that will shape the next stage:
 
-1. **Subscription:** plan tiers, price, trial length, and grace period before
-   read-only and before locked. The enforcement point is already clear: the
-   sign-in dependency in `api/deps.py`.
+1. **Subscription prices and online payment:** the rules are built (Release 3)
+   and the finance officer sets plans and lapse days; still open are which
+   plans and prices to offer, and whether to take payment online (Paystack).
 2. **Bigger campaigns:** do Governor and Senator campaigns need ward managers,
    and should a manager's view be limited to their wards?
 3. **Field use:** mobilizers work from phones; the screens they use need a

@@ -364,7 +364,7 @@ Officers in tests come from `make_officer(session, world, FINANCE_OFFICER)`.
 - Tests: a locked campaign shows the payment screen with the instructions; a read-only campaign shows the banner with the lock date.
 - Depends: R3-2, R3-4 merged.
 
-**R3-7 Integration** (lead)
+**R3-7 Integration** (lead) — done 2 Nov 2026
 - `seed/demo.py` (a plan and a payment for the demo campaign); both test lanes, the contract evals, the guard inventory; `docs/SYSTEM.md` (features table, business rules, "Planned, not built" loses the subscription row); cold isolation critic against section 4.
 
 ---
