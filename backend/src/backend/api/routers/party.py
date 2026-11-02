@@ -2,16 +2,18 @@
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import select
 
-from backend.api.deps import SessionDep
+from backend.api.deps import SessionDep, Today
 from backend.api.routers.join import _client
 from backend.models import (
     Constituency,
     County,
+    PostKind,
     Ward,
 )
+from backend.schemas.content import LeaderRead, PostRead
 from backend.schemas.party import (
     PartyJoinCreate,
     PartyJoinDone,
@@ -19,7 +21,7 @@ from backend.schemas.party import (
     PartySettingsRead,
     PartyWithdrawn,
 )
-from backend.services import membership
+from backend.services import content, membership
 from backend.services import party as service
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import normalise_phone
@@ -53,6 +55,27 @@ def _well_formed(code: str) -> bool:
 @router.get("/", response_model=PartySettingsRead)
 async def get_party(session: SessionDep) -> PartySettingsRead:
     return await service.read_settings(session)
+
+
+@router.get("/leaders/", response_model=list[LeaderRead])
+async def leaders(session: SessionDep):
+    """The published leaders, in the order the party set."""
+    return await content.published_leaders(session)
+
+
+@router.get("/posts/", response_model=list[PostRead])
+async def posts(
+    session: SessionDep, today: Today, kind: PostKind, offset: int = Query(default=0, ge=0)
+):
+    """Published news, newest first and paged; or published events from today on, soonest first."""
+    if kind is PostKind.EVENT:
+        return await content.upcoming_events(session, today)
+    return await content.published_news(session, offset)
+
+
+@router.get("/posts/{post_id}/", response_model=PostRead)
+async def post(post_id: uuid.UUID, session: SessionDep):
+    return await content.published_post(session, post_id)
 
 
 @router.get("/places/", response_model=list[PartyPlace])

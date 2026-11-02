@@ -157,7 +157,7 @@ The migration runs first and alone (R4-1). A route enters
 - Files: new `models/content.py`, `models/enums.py` (`PostKind`), `models/__init__.py`, new revision `public_content`, `tests/test_models.py`.
 - Tests: an event without a date fails at the database; a news post with a date fails.
 
-**R4-2 Public content API** (backend)
+**R4-2 Public content API** (backend) — done 2 Nov 2026
 - Files: new `schemas/content.py`, new `services/content.py`, `api/routers/party.py` (public reads), `api/routers/admin.py` (editing), `tests/test_route_guards.py` (`PUBLIC_ROUTES`), new `tests/test_public_content_api.py`.
 - Tests: a draft leader or post is absent from the public routes and 404 by id; publishing sets `published_on` once; past events are not listed; a non-`https` image URL is refused; a non-superuser gets 403 on every editing route.
 

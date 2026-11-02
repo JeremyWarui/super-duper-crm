@@ -5,8 +5,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, Response, status
 
-from backend.api.deps import AdminUser, SessionDep
-from backend.models import PartyRoleName, UserRole
+from backend.api.deps import AdminUser, SessionDep, Today
+from backend.models import PartyRoleName, PostKind, UserRole
 from backend.schemas.admin import (
     ActiveSet,
     AdminCampaignCreate,
@@ -24,9 +24,17 @@ from backend.schemas.admin import (
     PasswordResult,
 )
 from backend.schemas.audit import AuditEventRead
+from backend.schemas.content import (
+    LeaderAdminRead,
+    LeaderCreate,
+    LeaderUpdate,
+    PostAdminRead,
+    PostCreate,
+    PostUpdate,
+)
 from backend.schemas.party import PartySettingsRead, PartySettingsUpdate
 from backend.services import admin as service
-from backend.services import audit
+from backend.services import audit, content
 from backend.services import party as party_service
 from backend.services.errors import Refused
 
@@ -38,6 +46,56 @@ async def overview(session: SessionDep, _: AdminUser) -> Overview:
     return Overview(
         totals=await service.totals(session), campaigns=await service.campaigns(session)
     )
+
+
+@router.get("/party/leaders/", response_model=list[LeaderAdminRead])
+async def party_leaders(session: SessionDep, _: AdminUser):
+    """Every leader, published or not."""
+    return await content.leaders(session)
+
+
+@router.post("/party/leaders/", response_model=LeaderAdminRead, status_code=status.HTTP_201_CREATED)
+async def create_party_leader(payload: LeaderCreate, session: SessionDep, admin: AdminUser):
+    return await content.create_leader(session, payload, actor=admin)
+
+
+@router.patch("/party/leaders/{leader_id}/", response_model=LeaderAdminRead)
+async def update_party_leader(
+    leader_id: uuid.UUID, payload: LeaderUpdate, session: SessionDep, admin: AdminUser
+):
+    return await content.update_leader(session, leader_id, payload, actor=admin)
+
+
+@router.delete("/party/leaders/{leader_id}/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_party_leader(leader_id: uuid.UUID, session: SessionDep, admin: AdminUser):
+    await content.delete_leader(session, leader_id, actor=admin)
+
+
+@router.get("/party/posts/", response_model=list[PostAdminRead])
+async def party_posts(session: SessionDep, _: AdminUser, kind: PostKind | None = None):
+    """Every post, drafts included, newest first."""
+    return await content.posts(session, kind)
+
+
+@router.post("/party/posts/", response_model=PostAdminRead, status_code=status.HTTP_201_CREATED)
+async def create_party_post(
+    payload: PostCreate, session: SessionDep, admin: AdminUser, today: Today
+):
+    """Add a post; publishing it sets its published date to today."""
+    return await content.create_post(session, payload, actor=admin, on=today)
+
+
+@router.patch("/party/posts/{post_id}/", response_model=PostAdminRead)
+async def update_party_post(
+    post_id: uuid.UUID, payload: PostUpdate, session: SessionDep, admin: AdminUser, today: Today
+):
+    """Change a post; the first publish sets its published date, later ones keep it."""
+    return await content.update_post(session, post_id, payload, actor=admin, on=today)
+
+
+@router.delete("/party/posts/{post_id}/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_party_post(post_id: uuid.UUID, session: SessionDep, admin: AdminUser):
+    await content.delete_post(session, post_id, actor=admin)
 
 
 @router.put("/party/", response_model=PartySettingsRead)
