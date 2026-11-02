@@ -493,6 +493,26 @@
       "event_date",
       "venue",
       "published_on"
+    ],
+    "GET /api/admin/party/leaders/": [
+      "id",
+      "name",
+      "position",
+      "bio",
+      "photo_url",
+      "sort_order",
+      "published"
+    ],
+    "GET /api/admin/party/posts/": [
+      "id",
+      "kind",
+      "title",
+      "body",
+      "image_url",
+      "event_date",
+      "venue",
+      "published_on",
+      "published"
     ]
   },
   "nested_reads": {
@@ -914,6 +934,37 @@
       "grace_days",
       "read_only_days",
       "payment_instructions"
+    ],
+    "POST /api/admin/party/leaders/": [
+      "name",
+      "position",
+      "bio",
+      "photo_url",
+      "sort_order"
+    ],
+    "PATCH /api/admin/party/leaders/{leader_id}/": [
+      "name",
+      "position",
+      "bio",
+      "photo_url",
+      "sort_order",
+      "published"
+    ],
+    "POST /api/admin/party/posts/": [
+      "kind",
+      "title",
+      "body",
+      "image_url",
+      "event_date",
+      "venue"
+    ],
+    "PATCH /api/admin/party/posts/{post_id}/": [
+      "title",
+      "body",
+      "image_url",
+      "event_date",
+      "venue",
+      "published"
     ]
   },
   "enums": {
@@ -975,7 +1026,9 @@
     "routes": [
       "DELETE /api/admin/campaigns/{campaign_id}/",
       "DELETE /api/admin/campaigns/{campaign_id}/members/{user_id}/",
-      "DELETE /api/admin/users/{user_id}/party-roles/{role}/"
+      "DELETE /api/admin/users/{user_id}/party-roles/{role}/",
+      "DELETE /api/admin/party/leaders/{leader_id}/",
+      "DELETE /api/admin/party/posts/{post_id}/"
     ]
   }
 }

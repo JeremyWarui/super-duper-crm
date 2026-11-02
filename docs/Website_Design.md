@@ -175,7 +175,7 @@ The migration runs first and alone (R4-1). A route enters
 - Tests: the home page shows published news and events from the API; the leadership page lists leaders in order; the menu links reach every page.
 - Depends: R4-2, R4-4.
 
-**R4-6 Website editor** (frontend)
+**R4-6 Website editor** (frontend) — done 3 Nov 2026
 - Files: new `pages/party/Website.jsx`, `Portal.jsx`, `api/hooks`, `contracts/frontend-api.json` (editing routes), tests.
 - Tests: adding, publishing and deleting a post call the right routes; an event needs a date before it saves.
 - Depends: R4-2.

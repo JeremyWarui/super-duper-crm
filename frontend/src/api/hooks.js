@@ -523,6 +523,46 @@ export const usePublicPost = (id) =>
     queryFn: () => api(`/party/posts/${id}/`, { anonymous: true }),
   });
 
+// The superuser's editing of the site's leaders and posts, drafts included.
+export const useSiteLeaders = () =>
+  useQuery({ queryKey: ["site", "leaders"], queryFn: () => api("/admin/party/leaders/") });
+
+export const useSitePosts = () =>
+  useQuery({ queryKey: ["site", "posts"], queryFn: () => api("/admin/party/posts/") });
+
+function useSiteWrite(mutationFn) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["site"] });
+      qc.invalidateQueries({ queryKey: ["public-leaders"] });
+      qc.invalidateQueries({ queryKey: ["public-posts"] });
+    },
+  });
+}
+
+// With an `id` the row is changed, without one it is added.
+export const useSaveLeader = () =>
+  useSiteWrite(({ id, ...body }) =>
+    id
+      ? api(`/admin/party/leaders/${id}/`, { method: "PATCH", body })
+      : api("/admin/party/leaders/", { method: "POST", body }),
+  );
+
+export const useDeleteLeader = () =>
+  useSiteWrite((id) => api(`/admin/party/leaders/${id}/`, { method: "DELETE" }));
+
+export const useSavePost = () =>
+  useSiteWrite(({ id, ...body }) =>
+    id
+      ? api(`/admin/party/posts/${id}/`, { method: "PATCH", body })
+      : api("/admin/party/posts/", { method: "POST", body }),
+  );
+
+export const useDeletePost = () =>
+  useSiteWrite((id) => api(`/admin/party/posts/${id}/`, { method: "DELETE" }));
+
 // Counties, or one county's constituencies, or one constituency's wards.
 export const usePartyPlaces = ({ county, constituency, enabled = true } = {}) =>
   useQuery({
