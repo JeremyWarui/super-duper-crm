@@ -6,7 +6,7 @@ Technical design for Release 4 of `docs/Implementation_Plan.md`. It builds on
 comes only from `campaign_members`, party access only from `party_roles`, and
 nothing in `api/scope.py` reads a party table.
 
-Status: draft, 2 November 2026, for Jeremy's review.
+Status: approved 2 November 2026.
 
 Decisions taken by Jeremy on 2 November 2026:
 
@@ -153,7 +153,7 @@ deleted campaign counts only when no place, seat or aspirant filter is set.
 The migration runs first and alone (R4-1). A route enters
 `contracts/frontend-api.json` in the frontend ticket that first calls it.
 
-**R4-1 Leaders and posts tables** (schema)
+**R4-1 Leaders and posts tables** (schema) — done 2 Nov 2026
 - Files: new `models/content.py`, `models/enums.py` (`PostKind`), `models/__init__.py`, new revision `public_content`, `tests/test_models.py`.
 - Tests: an event without a date fails at the database; a news post with a date fails.
 
