@@ -1,6 +1,7 @@
-import { Route, Routes, useLocation, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "./store/auth";
 import { useCampaigns, useMe } from "./api/hooks";
+import { homeOf } from "./lib/home";
 import Login from "./components/Login";
 import Admin from "./components/Admin";
 import NoCampaign from "./components/NoCampaign";
@@ -10,6 +11,7 @@ import App from "./App";
 import Portal from "./pages/party/Portal";
 import Join from "./components/Join";
 import Withdraw from "./components/Withdraw";
+import Home from "./pages/public/Home";
 import JoinParty from "./pages/public/JoinParty";
 import WithdrawParty from "./pages/public/WithdrawParty";
 import WithdrawVolunteer from "./pages/public/WithdrawVolunteer";
@@ -42,19 +44,31 @@ function SignedIn() {
 }
 
 // A superuser runs the deployment rather than a campaign, so they get the
-// console instead of the campaign gate, and the party portal under /party.
+// console at /console instead of the campaign gate, and the party portal under /party.
 function Inside() {
   useMe();
   const isSuperuser = useAuth((s) => s.user?.is_superuser);
   const { pathname } = useLocation();
-  if (isSuperuser) return pathname.startsWith("/party") ? <Portal /> : <Admin />;
+  if (isSuperuser) {
+    if (pathname.startsWith("/party")) return <Portal />;
+    if (pathname.startsWith("/console")) return <Admin />;
+    return <Navigate to="/console" replace />;
+  }
   return <SignedIn />;
 }
 
 export default function Root() {
   const token = useAuth((s) => s.token);
+  const { pathname } = useLocation();
+  if (!token) return pathname === "/signin" ? <Login /> : <Navigate to="/signin" replace />;
   // A new key per sign-in starts every screen fresh for the new user.
-  return token ? <Inside key={token} /> : <Login />;
+  return <Inside key={token} />;
+}
+
+function SignInPage() {
+  const token = useAuth((s) => s.token);
+  const user = useAuth((s) => s.user);
+  return token ? <Navigate to={homeOf(user)} replace /> : <Login />;
 }
 
 function JoinPage() {
@@ -73,11 +87,14 @@ function WithdrawVolunteerPage() {
   return <WithdrawVolunteer code={useParams().code} />;
 }
 
-// A sign-up link opens /join/<code>, and a supporter's withdrawal link /withdraw/<code>;
-// neither needs a login. The party's application form and withdrawal page are public too.
+// The party's public site is at / and needs no login, nor do a sign-up link (/join/<code>),
+// a supporter's withdrawal link (/withdraw/<code>) and the party's application and withdrawal
+// pages. Every other address is a signed-in app.
 export function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/signin" element={<SignInPage />} />
       <Route path="/join/:code" element={<JoinPage />} />
       <Route path="/withdraw/:code" element={<WithdrawPage />} />
       <Route path="/join-party" element={<JoinParty />} />

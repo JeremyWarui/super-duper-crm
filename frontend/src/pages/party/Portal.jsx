@@ -43,7 +43,7 @@ export default function Portal() {
       navLabel="PARTY"
       nav={nav}
       page={pages.length ? current : null}
-      onSelect={(key) => navigate(key === "console" ? "/" : `/party/${key}`)}
+      onSelect={(key) => navigate(key === "console" ? "/console" : `/party/${key}`)}
       onLogout={logout}
     >
       {pages.length ? (

@@ -1,5 +1,6 @@
 /** Which screen you land on. */
 import { act, screen } from "@testing-library/react";
+import { useLocation } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../src/store/auth";
@@ -11,6 +12,10 @@ import {
   signIn,
   stubApi,
 } from "./helpers";
+
+function Where() {
+  return <div data-testid="where">{useLocation().pathname}</div>;
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -24,11 +29,34 @@ describe("the gate", () => {
     expect(screen.getByText("Sign in to the war room")).toBeInTheDocument();
   });
 
-  it("shows the sign-in screen at / when signed out", () => {
-    stubApi({});
+  it.each([false, true])("shows the public home at /, signed in: %s", async (signedIn) => {
+    if (signedIn) signIn("manager");
+    stubApi({ "GET /party/": { name: "Umoja Party", description: "For every ward." } });
     renderApp(<AppRoutes />);
 
+    expect(await screen.findByText("Umoja Party")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: signedIn ? "Portal" : "Sign in" })).toBeInTheDocument();
+  });
+
+  it.each([
+    [{ role: "manager", is_superuser: false, party_roles: [] }, "/campaign"],
+    [{ role: null, is_superuser: false, party_roles: ["membership_officer"] }, "/party"],
+    [{ role: "manager", is_superuser: true, party_roles: [] }, "/console"],
+  ])("sends a signed-in %o from /signin to %s", (user, home) => {
+    signIn(user.role);
+    useAuth.setState({ user: { ...useAuth.getState().user, ...user } });
+    stubApi({});
+    renderApp(<><AppRoutes /><Where /></>, { path: "/signin" });
+
+    expect(screen.getByTestId("where")).toHaveTextContent(home);
+  });
+
+  it("sends a signed-out visit to /console to /signin", () => {
+    stubApi({});
+    renderApp(<><AppRoutes /><Where /></>, { path: "/console" });
+
     expect(screen.getByText("Sign in to the war room")).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent("/signin");
   });
 
   it.each(["candidate", "manager", "mobilizer"])(

@@ -165,7 +165,7 @@ The migration runs first and alone (R4-1). A route enters
 - Files: new `services/dashboard.py`, `schemas/dashboard.py`, `api/routers/party.py`, new `tests/test_dashboard_api.py`.
 - Tests: each figure counts what the table says on a small fixed world; a county filter drops another county's members and campaigns; a seat filter narrows revenue; only the superuser gets 200.
 
-**R4-4 Routes and sign-in** (frontend)
+**R4-4 Routes and sign-in** (frontend) — done 2 Nov 2026
 - Files: `Gate.jsx`, `components/Login.jsx`, `components/Admin.jsx`, `pages/party/Portal.jsx`, tests.
 - Tests: `/` shows the public home signed out and signed in; `/signin` sends each kind of login to its home; a signed-out visit to `/console` lands on `/signin`.
 - Depends: none (the home page can be a placeholder until R4-5).
