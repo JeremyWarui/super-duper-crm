@@ -425,6 +425,18 @@
       "id",
       "entries"
     ],
+    "GET /api/subscription/": [
+      "state",
+      "held",
+      "dated_state",
+      "paid_until",
+      "read_only_from",
+      "locks_on",
+      "payment_instructions",
+      "plan",
+      "last_paid_on",
+      "hold_reason"
+    ],
     "GET /api/party/finance/settings/": [
       "grace_days",
       "read_only_days",
@@ -607,6 +619,11 @@
       "voided_at",
       "void_reason",
       "can_void"
+    ],
+    "GET /api/subscription/.plan": [
+      "name",
+      "price_kes",
+      "duration_days"
     ],
     "GET /api/party/finance/subscriptions/{subscription_id}/.plan": [
       "id",
@@ -921,9 +938,10 @@
     ]
   },
   "error_shape": {
-    "_comment": "src/api/client.js reads detail first, then the first value of the first field. Login also reads non_field_errors[0]. A closed campaign's 403 also carries code: \"campaign_suspended\", which src/Gate.jsx reads.",
+    "_comment": "src/api/client.js reads detail first, then the first value of the first field. Login also reads non_field_errors[0]. A closed campaign's 403 also carries a code: src/Gate.jsx reads \"campaign_suspended\" (its aspirant is not approved) and \"campaign_locked\" (its subscription allows no access); \"campaign_read_only\" (a write while read-only) reaches the user only as that write's error sentence.",
     "detail": "string",
-    "code": "string, on a closed campaign's 403 only"
+    "code": "string, on a closed campaign's 403 only",
+    "codes": ["campaign_suspended", "campaign_locked", "campaign_read_only"]
   },
   "no_content": {
     "_comment": "Routes that answer 204 with no body. Only that they still exist is checked.",

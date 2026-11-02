@@ -186,9 +186,12 @@ async def test_the_leaders_see_the_last_live_payment_and_why_access_is_stopped(
     await session.commit()
 
     seen = (await client.get("/api/subscription/", headers=world.headers("candidate"))).json()
+    mobilizer = (await client.get("/api/subscription/", headers=world.headers("mobilizer"))).json()
 
     assert seen["last_paid_on"] == (TEST_TODAY - timedelta(days=10)).isoformat()
-    assert (seen["state"], seen["hold_reason"]) == ("locked", "Cheque bounced")
+    assert (seen["state"], seen["held"], seen["hold_reason"]) == ("locked", True, "Cheque bounced")
+    assert (mobilizer["held"], mobilizer["hold_reason"]) == (True, None)
+    assert seen["dated_state"] == "active"
 
 
 async def test_a_campaign_with_no_subscription_reads_as_locked(

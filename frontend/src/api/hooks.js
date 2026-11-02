@@ -259,6 +259,10 @@ export const useWardsIn = (constituencyId) =>
 export const useCampaigns = () =>
   useQuery({ queryKey: ["campaigns"], queryFn: () => api("/campaigns/") });
 
+// The signed-in campaign's own subscription; it answers even while the campaign is locked.
+export const useOwnSubscription = () =>
+  useQuery({ queryKey: ["subscription"], queryFn: () => api("/subscription/") });
+
 // Edit a target's turnout assumption; the server recomputes votes_needed.
 // Saves run one at a time, in order, and the saved row replaces the cached one.
 export function useUpdateTarget() {

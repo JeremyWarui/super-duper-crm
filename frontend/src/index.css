@@ -884,6 +884,25 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
   font-weight: 500;
 }
 
+.notice-bad {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+/* The party's payment instructions, as the finance officer typed them. */
+.notice-instructions {
+  margin-top: 6px;
+  color: var(--color-text);
+  font-weight: 400;
+  white-space: pre-wrap;
+}
+
 .release-list {
   display: flex;
   flex-direction: column;
@@ -963,6 +982,21 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
 }
 
 .gate-no-campaign-button { margin-top: 20px; }
+
+.locked-plan { margin-top: 12px; font-size: var(--text-base); }
+
+.locked-instructions {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.locked-actions { margin-top: 20px; }
+.locked-actions .gate-no-campaign-button { margin-top: 0; }
 
 /* ---- admin console ------------------------------------------------------ */
 

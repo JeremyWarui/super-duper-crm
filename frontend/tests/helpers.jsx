@@ -82,10 +82,14 @@ export function signInAsParty(partyRoles = ["membership_officer"]) {
   });
 }
 
-/** Render inside a fresh query client and a router that starts at `path`. */
-export function renderApp(ui, { path = "/" } = {}) {
+/** Render inside a fresh query client and a router that starts at `path`.
+
+With `appCache`, reads are kept and stay fresh as long as the app keeps them (src/main.jsx).
+*/
+export function renderApp(ui, { path = "/", appCache = false } = {}) {
+  const cache = appCache ? { staleTime: 30_000, gcTime: 5 * 60_000 } : { gcTime: 0 };
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    defaultOptions: { queries: { retry: false, ...cache } },
   });
   return {
     queryClient,

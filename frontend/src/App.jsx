@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "./store/auth";
 import { useCampaigns } from "./api/hooks";
+import AccessBanner from "./components/AccessBanner";
 import PortalLayout from "./components/PortalLayout";
 import NoCampaign from "./components/NoCampaign";
 import { ErrorMsg, Loading } from "./pages/campaign/controls";
@@ -58,6 +59,7 @@ function Shell({ campaign, role, nav }) {
         onSelect={(key) => navigate(`/campaign/${key}`)}
         onLogout={logout}
       >
+        <AccessBanner role={role} />
         <Page campaign={campaign} role={role} onModal={setModal} />
       </PortalLayout>
       <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />

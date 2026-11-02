@@ -328,7 +328,8 @@ async def own(session: AsyncSession, user: User, on: date) -> OwnSubscription:
             locks_on=None,
             payment_instructions=instructions,
         )
-    dates = access(sub.paid_until, sub.hold, on, *await lapse_days(session))
+    lapse = await lapse_days(session)
+    dates = access(sub.paid_until, sub.hold, on, *lapse)
     terms = {}
     if user.role in (UserRole.CANDIDATE, UserRole.MANAGER):
         terms = {
@@ -344,6 +345,8 @@ async def own(session: AsyncSession, user: User, on: date) -> OwnSubscription:
         }
     return OwnSubscription(
         state=dates.state,
+        held=sub.hold is SubscriptionHold.SUSPENDED,
+        dated_state=access(sub.paid_until, SubscriptionHold.NONE, on, *lapse).state,
         paid_until=dates.paid_until,
         read_only_from=dates.read_only_from,
         locks_on=dates.locks_on,

@@ -259,7 +259,10 @@ locked. It needs a campaign role (403 otherwise) and returns `state`,
 `paid_until`, `read_only_from`, `locks_on` and the party's
 `payment_instructions`. For the candidate and the manager it adds
 `plan {name, price_kes, duration_days}`, `last_paid_on` and `hold_reason` when
-held. A campaign with no subscription row reads as `locked`.
+held. Everyone on the campaign also gets `held` (the party has stopped access) and
+`dated_state` (what the paid dates alone allow, so what returns once a hold is lifted),
+so the payment screen asks for payment only when one would reopen the campaign. A
+campaign with no subscription row reads as `locked`.
 `tests/test_route_guards.py` `SIGNED_IN_ONLY` gains it.
 
 Public sign-up (decision 4): `_link` reads the subscription in the same query
@@ -356,7 +359,7 @@ Officers in tests come from `make_officer(session, world, FINANCE_OFFICER)`.
 - Tests: a finance officer sees Finance and not Members; recording a payment, voiding and holding call the right routes; the amount defaults to the plan price.
 - Depends: R3-3, R3-4 merged.
 
-**R3-6 Banner and payment screen** (frontend)
+**R3-6 Banner and payment screen** (frontend) — done 2 Nov 2026
 - Files: new `components/CampaignLocked.jsx`, new `components/AccessBanner.jsx`, `Gate.jsx`, `App.jsx`, `contracts/frontend-api.json` (`/api/subscription/`, `campaign_locked`, `campaign_read_only`), tests.
 - Tests: a locked campaign shows the payment screen with the instructions; a read-only campaign shows the banner with the lock date.
 - Depends: R3-2, R3-4 merged.

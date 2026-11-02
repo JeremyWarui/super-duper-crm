@@ -254,9 +254,13 @@ class PlanTerms(BaseModel):
 
 class OwnSubscription(BaseModel):
     """A campaign's own subscription. The plan, price, last payment and hold reason are only
-    for its candidate and manager."""
+    for its candidate and manager; `held` is for everyone on the campaign."""
 
     state: AccessState
+    # The party has stopped access, whatever has been paid; a payment does not lift it.
+    held: bool = False
+    # What the paid dates alone allow, so the state that returns once a hold is lifted.
+    dated_state: AccessState = AccessState.PENDING_PAYMENT
     paid_until: date | None
     read_only_from: date | None
     locks_on: date | None
