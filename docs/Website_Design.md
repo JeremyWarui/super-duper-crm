@@ -161,7 +161,7 @@ The migration runs first and alone (R4-1). A route enters
 - Files: new `schemas/content.py`, new `services/content.py`, `api/routers/party.py` (public reads), `api/routers/admin.py` (editing), `tests/test_route_guards.py` (`PUBLIC_ROUTES`), new `tests/test_public_content_api.py`.
 - Tests: a draft leader or post is absent from the public routes and 404 by id; publishing sets `published_on` once; past events are not listed; a non-`https` image URL is refused; a non-superuser gets 403 on every editing route.
 
-**R4-3 Dashboard API** (backend)
+**R4-3 Dashboard API** (backend) — done 2 Nov 2026
 - Files: new `services/dashboard.py`, `schemas/dashboard.py`, `api/routers/party.py`, new `tests/test_dashboard_api.py`.
 - Tests: each figure counts what the table says on a small fixed world; a county filter drops another county's members and campaigns; a seat filter narrows revenue; only the superuser gets 200.
 

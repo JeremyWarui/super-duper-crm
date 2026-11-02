@@ -1,19 +1,23 @@
 """The party's public identity, and joining or withdrawing from the register without a login."""
 
 import uuid
+from datetime import date
+from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import select
 
-from backend.api.deps import SessionDep, Today
+from backend.api.deps import AdminUser, SessionDep, Today
 from backend.api.routers.join import _client
 from backend.models import (
     Constituency,
     County,
     PostKind,
+    Seat,
     Ward,
 )
 from backend.schemas.content import LeaderRead, PostRead
+from backend.schemas.dashboard import Dashboard
 from backend.schemas.party import (
     PartyJoinCreate,
     PartyJoinDone,
@@ -21,7 +25,7 @@ from backend.schemas.party import (
     PartySettingsRead,
     PartyWithdrawn,
 )
-from backend.services import content, membership
+from backend.services import content, dashboard, membership
 from backend.services import party as service
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import normalise_phone
@@ -76,6 +80,26 @@ async def posts(
 @router.get("/posts/{post_id}/", response_model=PostRead)
 async def post(post_id: uuid.UUID, session: SessionDep):
     return await content.published_post(session, post_id)
+
+
+@router.get("/dashboard/", response_model=Dashboard)
+async def party_dashboard(
+    session: SessionDep,
+    _: AdminUser,
+    today: Today,
+    county: uuid.UUID | None = None,
+    constituency: uuid.UUID | None = None,
+    ward: uuid.UUID | None = None,
+    seat: Seat | None = None,
+    aspirant: uuid.UUID | None = None,
+    start: Annotated[date | None, Query(alias="from")] = None,
+    end: Annotated[date | None, Query(alias="to")] = None,
+) -> Dashboard:
+    """Party-wide counts; without dates, events cover the next 30 days and revenue this year."""
+    if start and end and start > end:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "The start date is after the end date.")
+    filters = dashboard.Filters(county, constituency, ward, seat, aspirant, start, end)
+    return await dashboard.dashboard(session, filters, today)
 
 
 @router.get("/places/", response_model=list[PartyPlace])
