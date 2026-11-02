@@ -5,6 +5,7 @@ from backend.models.audit import AuditEvent
 from backend.models.auth_token import AuthToken
 from backend.models.billing import CampaignSubscription, CrmPlan, SubscriptionEntry
 from backend.models.campaign import Campaign
+from backend.models.content import PartyLeader, PartyPost
 from backend.models.enums import (
     AccessState,
     AspirantStatus,
@@ -20,6 +21,7 @@ from backend.models.enums import (
     PartyRequestKind,
     PartyRoleName,
     PaymentStatus,
+    PostKind,
     ReceiptMethod,
     Seat,
     SubscriptionHold,
@@ -77,7 +79,9 @@ __all__ = [
     "ContactMethod",
     "OperationalGrain",
     "PartyConsentChannel",
+    "PartyLeader",
     "PartyMember",
+    "PartyPost",
     "PartyRequest",
     "PartyRequestKind",
     "PartyMemberStatus",
@@ -86,6 +90,7 @@ __all__ = [
     "PartySettings",
     "Payment",
     "PaymentStatus",
+    "PostKind",
     "Seat",
     "RegistrationCentre",
     "SupportLevel",

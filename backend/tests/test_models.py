@@ -18,7 +18,9 @@ from backend.models import (
     Mobilizer,
     OfficeLevel,
     OperationalGrain,
+    PartyPost,
     PartyRoleName,
+    PostKind,
     ReceiptMethod,
     Seat,
     SubscriptionEntry,
@@ -191,3 +193,15 @@ async def test_a_reference_is_recorded_once_until_that_payment_is_voided(
     )
     session.add(_payment(*ids))
     await session.commit()
+
+
+@pytest.mark.parametrize(
+    ("kind", "event_date"), [(PostKind.EVENT, None), (PostKind.NEWS, date(2026, 12, 1))]
+)
+async def test_only_an_event_has_a_date(
+    session: AsyncSession, kind: PostKind, event_date: date | None
+) -> None:
+    session.add(PartyPost(kind=kind, title="Rally in Nakuru", event_date=event_date))
+
+    with pytest.raises(IntegrityError):
+        await session.commit()

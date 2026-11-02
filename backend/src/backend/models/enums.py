@@ -152,6 +152,13 @@ class ContactMethod(LabelledStrEnum):
     EMAIL = ("email", "Email")
 
 
+class PostKind(LabelledStrEnum):
+    """What a public post is: a news item or a party event."""
+
+    NEWS = ("news", "News")
+    EVENT = ("event", "Event")
+
+
 class SubscriptionHold(LabelledStrEnum):
     """A finance officer's stop on a campaign's access, whatever has been paid."""
 
