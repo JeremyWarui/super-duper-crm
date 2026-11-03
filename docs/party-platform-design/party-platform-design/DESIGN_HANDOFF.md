@@ -4,6 +4,10 @@ Licensable "operating system for political parties" (Kenya). One codebase; each 
 
 The `screens/` folder holds the mockups as `.dc.html` files (Design canvas format). Treat them as **visual and behavioural reference**: layout, copy, states and interactions. They are not production code — rebuild them in the app stack. Each file's markup is plain HTML with inline styles; the `<script type="text/x-dc">` block at the bottom shows the screen's state and interaction logic. Values in `[brackets]` are placeholders, never real data.
 
+## Start here: `ui-kit/`
+
+`ui-kit/` is the ready styling setup (React + Vite + Tailwind v4 + shadcn-style components, light only) that reproduces these mockups: tokens, components, website header/footer, CRM shell, FastAPI branding endpoint. Follow `ui-kit/SETUP.md` before building any screen.
+
 ## Design tokens
 
 | Token | Value | Use |
