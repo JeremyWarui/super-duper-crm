@@ -1,6 +1,6 @@
-// /counties/:id: a county branch's officials, sub-branches, office and next meeting.
+// /counties/:id: a county branch's officials, coming events, sub-branches, office and next meeting.
 import { Link, useParams } from "react-router-dom";
-import { usePublicBranch } from "@/api/hooks";
+import { usePublicBranch, usePublicPosts } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
@@ -10,6 +10,7 @@ const day = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { w
 export default function Branch() {
   const { id } = useParams();
   const branch = usePublicBranch(id);
+  const events = usePublicPosts("event", 0, { county: id }).data || [];
   if (branch.isLoading) return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
   if (branch.error) return <div role="alert" className="site-container py-12">{branch.error.message}</div>;
   const b = branch.data;
@@ -46,7 +47,19 @@ export default function Branch() {
         ) : null}
         <div className="flex flex-wrap items-start gap-6">
           <Card className="min-w-0 flex-[3_1_460px] gap-2.5">
-            <h2 className="text-[22px] font-bold">Next meeting</h2>
+            {events.length ? (
+              <>
+                <h2 className="text-[22px] font-bold">Upcoming in {b.county.name}</h2>
+                {events.slice(0, 3).map((e) => (
+                  <Link key={e.id} to={`/news/${e.id}`} className="flex flex-col gap-0.5 border-t border-line-soft py-3 text-ink no-underline hover:text-primary">
+                    <strong>{e.title}</strong>
+                    <span className="text-ui text-muted-foreground">{day(e.event_date)}{e.venue ? ` · ${e.venue}` : ""}</span>
+                  </Link>
+                ))}
+                <Link to={`/events?county=${id}`} className="text-ui font-bold">All events in {b.county.name} →</Link>
+              </>
+            ) : null}
+            <h2 className={events.length ? "pt-4 text-[22px] font-bold" : "text-[22px] font-bold"}>Next meeting</h2>
             {b.next_meeting_on ? (
               <p className="text-body"><strong>{day(b.next_meeting_on)}</strong>{b.next_meeting_venue ? ` · ${b.next_meeting_venue}` : ""}</p>
             ) : (

@@ -5,8 +5,9 @@ from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from backend.models import PartyLeader, PartyPost, PostKind, User
+from backend.models import County, PartyLeader, PartyPost, PostKind, PostLabel, User
 from backend.schemas.content import LeaderCreate, LeaderUpdate, PostCreate, PostUpdate
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
@@ -27,36 +28,40 @@ async def published_leaders(session: AsyncSession) -> list[PartyLeader]:
     )
 
 
-async def published_news(session: AsyncSession, offset: int) -> list[PartyPost]:
+def _public():
+    return (
+        select(PartyPost)
+        .options(selectinload(PartyPost.county))
+        .where(PartyPost.published.is_(True))
+    )
+
+
+async def published_news(
+    session: AsyncSession, offset: int, label: PostLabel | None = None
+) -> list[PartyPost]:
+    query = _public().where(PartyPost.kind == PostKind.NEWS)
+    if label is not None:
+        query = query.where(PartyPost.label == label)
     return list(
         await session.scalars(
-            select(PartyPost)
-            .where(PartyPost.kind == PostKind.NEWS, PartyPost.published.is_(True))
-            .order_by(PartyPost.published_on.desc(), PartyPost.created_at.desc())
+            query.order_by(PartyPost.published_on.desc(), PartyPost.created_at.desc())
             .offset(offset)
             .limit(NEWS_PAGE)
         )
     )
 
 
-async def upcoming_events(session: AsyncSession, on: date) -> list[PartyPost]:
-    return list(
-        await session.scalars(
-            select(PartyPost)
-            .where(
-                PartyPost.kind == PostKind.EVENT,
-                PartyPost.published.is_(True),
-                PartyPost.event_date >= on,
-            )
-            .order_by(PartyPost.event_date, PartyPost.title)
-        )
-    )
+async def upcoming_events(
+    session: AsyncSession, on: date, county_id: uuid.UUID | None = None
+) -> list[PartyPost]:
+    query = _public().where(PartyPost.kind == PostKind.EVENT, PartyPost.event_date >= on)
+    if county_id is not None:
+        query = query.where(PartyPost.county_id == county_id)
+    return list(await session.scalars(query.order_by(PartyPost.event_date, PartyPost.title)))
 
 
 async def published_post(session: AsyncSession, post_id: uuid.UUID) -> PartyPost:
-    post = await session.scalar(
-        select(PartyPost).where(PartyPost.id == post_id, PartyPost.published.is_(True))
-    )
+    post = await session.scalar(_public().where(PartyPost.id == post_id))
     if post is None:
         raise NotFound("No such post.")
     return post
@@ -139,6 +144,7 @@ async def posts(session: AsyncSession, kind: PostKind | None) -> list[PartyPost]
 async def create_post(
     session: AsyncSession, payload: PostCreate, *, actor: User, on: date
 ) -> PartyPost:
+    await _check_county(session, payload.county_id)
     post = PartyPost(**payload.model_dump())
     if post.published:
         post.published_on = on
@@ -149,6 +155,11 @@ async def create_post(
     )
     await session.commit()
     return post
+
+
+async def _check_county(session: AsyncSession, county_id: uuid.UUID | None) -> None:
+    if county_id is not None and await session.get(County, county_id) is None:
+        raise Refused("No such county.")
 
 
 async def _post(session: AsyncSession, post_id: uuid.UUID) -> PartyPost:
@@ -162,7 +173,12 @@ async def update_post(
     session: AsyncSession, post_id: uuid.UUID, payload: PostUpdate, *, actor: User, on: date
 ) -> PartyPost:
     post = await _post(session, post_id)
-    changes = payload.model_dump(exclude_unset=True, exclude_none=True)
+    changes = {
+        name: value
+        for name, value in payload.model_dump(exclude_unset=True).items()
+        if value is not None or name == "county_id"
+    }
+    await _check_county(session, changes.get("county_id"))
     if post.kind is PostKind.NEWS and (changes.get("event_date") or changes.get("venue")):
         raise Refused("A news post has no date or venue.")
     for name, value in changes.items():

@@ -58,7 +58,11 @@ describe("the website editor", () => {
     await waitFor(() =>
       expect(sent(calls, "POST", "/admin/party/posts/")?.body).toEqual({
         kind: "news",
+        label: "news",
         title: "Rally next week",
+        place: "",
+        author: "",
+        author_photo_url: "",
         body: "",
         image_url: "",
       }),

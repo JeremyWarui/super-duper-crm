@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Response, status
 
 from backend.api.deps import AdminUser, SessionDep, Today
-from backend.models import AgendaIssue, HeroSlide, PartyRoleName, PostKind, UserRole
+from backend.models import AgendaIssue, HeroSlide, PartyDocument, PartyRoleName, PostKind, UserRole
 from backend.schemas.admin import (
     ActiveSet,
     AdminCampaignCreate,
@@ -28,6 +28,9 @@ from backend.schemas.content import (
     BranchAdminRead,
     BranchUpdate,
     CountyBranch,
+    DocumentAdminRead,
+    DocumentCreate,
+    DocumentUpdate,
     IssueAdminRead,
     IssueCreate,
     IssueUpdate,
@@ -349,3 +352,27 @@ async def update_party_issue(
 @router.delete("/party/issues/{issue_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_party_issue(issue_id: uuid.UUID, session: SessionDep, admin: AdminUser):
     await home.delete(session, AgendaIssue, issue_id, actor=admin)
+
+
+@router.get("/party/documents/", response_model=list[DocumentAdminRead])
+async def party_documents(session: SessionDep, _: AdminUser):
+    return await home.every(session, PartyDocument)
+
+
+@router.post(
+    "/party/documents/", response_model=DocumentAdminRead, status_code=status.HTTP_201_CREATED
+)
+async def create_party_document(payload: DocumentCreate, session: SessionDep, admin: AdminUser):
+    return await home.create(session, PartyDocument, payload, actor=admin)
+
+
+@router.patch("/party/documents/{document_id}/", response_model=DocumentAdminRead)
+async def update_party_document(
+    document_id: uuid.UUID, payload: DocumentUpdate, session: SessionDep, admin: AdminUser
+):
+    return await home.update(session, PartyDocument, document_id, payload, actor=admin)
+
+
+@router.delete("/party/documents/{document_id}/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_party_document(document_id: uuid.UUID, session: SessionDep, admin: AdminUser):
+    await home.delete(session, PartyDocument, document_id, actor=admin)

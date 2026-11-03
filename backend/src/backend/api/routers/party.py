@@ -15,7 +15,9 @@ from backend.models import (
     Constituency,
     County,
     HeroSlide,
+    PartyDocument,
     PostKind,
+    PostLabel,
     RegistrationCentre,
     Seat,
     Ward,
@@ -23,6 +25,7 @@ from backend.models import (
 from backend.schemas.content import (
     BranchDetail,
     BranchRead,
+    DocumentRead,
     IssueRead,
     LeaderRead,
     PostRead,
@@ -112,12 +115,18 @@ async def party_branch(county_id: uuid.UUID, session: SessionDep):
 
 @router.get("/posts/", response_model=list[PostRead])
 async def posts(
-    session: SessionDep, today: Today, kind: PostKind, offset: int = Query(default=0, ge=0)
+    session: SessionDep,
+    today: Today,
+    kind: PostKind,
+    offset: int = Query(default=0, ge=0),
+    label: PostLabel | None = None,
+    county: uuid.UUID | None = None,
 ):
-    """Published news, newest first and paged; or published events from today on, soonest first."""
+    """Published news, newest first and paged, optionally one label; or published events from
+    today on, soonest first, optionally in one county."""
     if kind is PostKind.EVENT:
-        return await content.upcoming_events(session, today)
-    return await content.published_news(session, offset)
+        return await content.upcoming_events(session, today, county)
+    return await content.published_news(session, offset, label)
 
 
 @router.get("/posts/{post_id}/", response_model=PostRead)
@@ -302,3 +311,9 @@ async def issues(session: SessionDep):
 @router.get("/issues/{issue_id}/", response_model=IssueRead)
 async def issue(issue_id: uuid.UUID, session: SessionDep):
     return await home.published_issue(session, issue_id)
+
+
+@router.get("/documents/", response_model=list[DocumentRead])
+async def documents(session: SessionDep):
+    """The published party documents, in order."""
+    return await home.published(session, PartyDocument)

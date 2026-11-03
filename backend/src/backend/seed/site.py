@@ -10,10 +10,12 @@ from backend.models import (
     Branch,
     County,
     HeroSlide,
+    PartyDocument,
     PartyLeader,
     PartyPost,
     PartySettings,
     PostKind,
+    PostLabel,
 )
 
 PHOTO = "https://randomuser.me/api/portraits/{}.jpg"
@@ -63,6 +65,22 @@ EVENTS = [
     ("Nairobi members' town hall", 6, "KICC, Nairobi"),
     ("Kisumu youth rally", 13, "Jomo Kenyatta Grounds, Kisumu"),
     ("Mombasa coast branch meeting", 27, "Tononoka Hall, Mombasa"),
+]
+
+STATEMENTS = [
+    ("Statement on the cost of living", "PP/ST/014/2026", "Grace Chebet, Secretary General", 2),
+    ("Notice to aspirants: nomination timetable", "PP/EB/006/2026", "Elections Board", 6),
+]
+
+OPINIONS = [
+    ("Why this election is about young people", "Amina Wanjiru", "women/44", 3),
+    ("Devolution works when counties publish their budgets", "Joseph Mwangi", "men/75", 8),
+]
+
+DOCUMENTS = [
+    ("Party constitution (PDF)", "https://example.com/pamoja/constitution.pdf"),
+    ("Nomination rules (PDF)", "https://example.com/pamoja/nomination-rules.pdf"),
+    ("Manifesto (PDF)", "https://example.com/pamoja/manifesto.pdf"),
 ]
 
 BODY = (
@@ -240,3 +258,56 @@ async def seed_site(session: AsyncSession, today: date) -> bool:
         )
     await session.commit()
     return True
+
+
+async def seed_news(session: AsyncSession, today: date) -> int:
+    """Demo statements, opinion pieces, event counties and documents where none exist yet;
+    returns how many rows were added or changed."""
+    changed = 0
+    if not await session.scalar(
+        select(func.count()).select_from(PartyPost).where(PartyPost.label != PostLabel.NEWS)
+    ):
+        for n, (title, ref, author, days_ago) in enumerate(STATEMENTS, 1):
+            session.add(
+                PartyPost(
+                    kind=PostKind.NEWS,
+                    label=PostLabel.STATEMENT,
+                    title=title,
+                    body=BODY,
+                    place="National",
+                    author=author,
+                    reference=ref,
+                    pdf_url=f"https://example.com/pamoja/statement-{n}.pdf",
+                    published_on=today - timedelta(days=days_ago),
+                    published=True,
+                )
+            )
+        for title, author, photo, days_ago in OPINIONS:
+            session.add(
+                PartyPost(
+                    kind=PostKind.NEWS,
+                    label=PostLabel.OPINION,
+                    title=title,
+                    body=BODY,
+                    place="National",
+                    author=author,
+                    author_photo_url=PHOTO.format(photo),
+                    published_on=today - timedelta(days=days_ago),
+                    published=True,
+                )
+            )
+        changed += len(STATEMENTS) + len(OPINIONS)
+    counties = {c.name.split()[0]: c.id for c in await session.scalars(select(County))}
+    for event in await session.scalars(
+        select(PartyPost).where(PartyPost.kind == PostKind.EVENT, PartyPost.county_id.is_(None))
+    ):
+        town = event.venue.rsplit(",", 1)[-1].strip()
+        if town in counties:
+            event.county_id = counties[town]
+            changed += 1
+    if not await session.scalar(select(func.count()).select_from(PartyDocument)):
+        for n, (title, url) in enumerate(DOCUMENTS):
+            session.add(PartyDocument(title=title, url=url, sort_order=n, published=True))
+        changed += len(DOCUMENTS)
+    await session.commit()
+    return changed

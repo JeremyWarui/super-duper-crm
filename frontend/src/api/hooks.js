@@ -510,11 +510,15 @@ export const usePublicLeaders = () =>
     queryFn: () => api("/party/leaders/", { anonymous: true }),
   });
 
-// Published news, newest first, 20 per page from `offset`; or events from today on.
-export const usePublicPosts = (kind, offset = 0) =>
+// Published news, newest first, 20 per page from `offset`, optionally one `label`;
+// or events from today on, optionally in one `county`.
+export const usePublicPosts = (kind, offset = 0, { label = "", county = "" } = {}) =>
   useQuery({
-    queryKey: ["public-posts", kind, offset],
-    queryFn: () => api(`/party/posts/?kind=${kind}&offset=${offset}`, { anonymous: true }),
+    queryKey: ["public-posts", kind, offset, label, county],
+    queryFn: () => {
+      const only = `${label ? `&label=${label}` : ""}${county ? `&county=${county}` : ""}`;
+      return api(`/party/posts/?kind=${kind}&offset=${offset}${only}`, { anonymous: true });
+    },
   });
 
 export const usePublicPost = (id) =>
@@ -540,6 +544,7 @@ function useSiteWrite(mutationFn) {
       qc.invalidateQueries({ queryKey: ["public-posts"] });
       qc.invalidateQueries({ queryKey: ["public-slides"] });
       qc.invalidateQueries({ queryKey: ["public-issues"] });
+      qc.invalidateQueries({ queryKey: ["public-documents"] });
     },
   });
 }
@@ -595,6 +600,21 @@ export const useSaveIssue = () =>
   );
 export const useDeleteSlide = () => useSiteWrite((id) => api(`/admin/party/slides/${id}/`, { method: "DELETE" }));
 export const useDeleteIssue = () => useSiteWrite((id) => api(`/admin/party/issues/${id}/`, { method: "DELETE" }));
+
+// Party documents linked from the About page: published ones, or all of them for the editor.
+export const usePublicDocuments = () =>
+  useQuery({ queryKey: ["public-documents"], queryFn: () => api("/party/documents/", { anonymous: true }) });
+
+export const useSiteDocuments = () =>
+  useQuery({ queryKey: ["site", "documents"], queryFn: () => api("/admin/party/documents/") });
+
+export const useSaveDocument = () =>
+  useSiteWrite(({ id, ...body }) =>
+    id
+      ? api(`/admin/party/documents/${id}/`, { method: "PATCH", body })
+      : api("/admin/party/documents/", { method: "POST", body }),
+  );
+export const useDeleteDocument = () => useSiteWrite((id) => api(`/admin/party/documents/${id}/`, { method: "DELETE" }));
 
 // Counties, or one county's constituencies, or one constituency's wards.
 export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = {}) =>

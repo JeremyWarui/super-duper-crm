@@ -83,6 +83,27 @@ describe("the public site", () => {
     expect(headline()).toBe("Jobs for all");
   });
 
+  it("shows a statement's reference and signed PDF", async () => {
+    stubApi({
+      ...ROUTES,
+      "GET /party/posts/s1/": post("s1", "news", "Statement on prices", {
+        label: "statement",
+        author: "Grace Chebet, Secretary General",
+        reference: "PP/ST/014/2026",
+        pdf_url: "https://example.com/statement.pdf",
+        read_minutes: 1,
+      }),
+    });
+    renderApp(<AppRoutes />, { path: "/news/s1" });
+
+    const record = within(await screen.findByRole("region", { name: "Official record" }));
+    expect(record.getByText("PP/ST/014/2026")).toBeInTheDocument();
+    expect(record.getByRole("link", { name: "Download the signed statement (PDF)" })).toHaveAttribute(
+      "href",
+      "https://example.com/statement.pdf",
+    );
+  });
+
   it("lists the leaders in the order the server gives", async () => {
     stubApi(ROUTES);
     renderApp(<AppRoutes />, { path: "/leadership" });
@@ -103,7 +124,7 @@ describe("the public site", () => {
       ["Leadership", "Leadership"],
       ["Manifesto", "Manifesto"],
       ["News", "News"],
-      ["Events", "Events"],
+      ["Events", "Events near you"],
     ];
 
     for (const [link, heading] of pages) {

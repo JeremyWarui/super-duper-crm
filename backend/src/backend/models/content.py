@@ -20,7 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
-from backend.models.enums import PostKind
+from backend.models.enums import PostKind, PostLabel
 from backend.models.geography import County
 
 
@@ -65,6 +65,18 @@ class PartyPost(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     image_url: Mapped[str] = mapped_column(String(500), default="")
     event_date: Mapped[date | None] = mapped_column(Date, default=None)
     venue: Mapped[str] = mapped_column(String(150), default="")
+    label: Mapped[PostLabel] = mapped_column(
+        choice_type(PostLabel, "post_label"), default=PostLabel.NEWS, server_default="news"
+    )
+    place: Mapped[str] = mapped_column(String(80), default="", server_default="")
+    author: Mapped[str] = mapped_column(String(150), default="", server_default="")
+    author_photo_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    reference: Mapped[str] = mapped_column(String(40), default="", server_default="")
+    pdf_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    county_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("counties.id", ondelete="SET NULL"), default=None
+    )
+    county: Mapped["County | None"] = relationship(lazy="raise")
     # The first day it was published; kept when it is unpublished and published again.
     published_on: Mapped[date | None] = mapped_column(Date, default=None)
     published: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -130,6 +142,18 @@ class AgendaIssue(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     summary: Mapped[str] = mapped_column(String(300), default="", server_default="")
     what_we_will_do: Mapped[str] = mapped_column(Text, default="", server_default="")
     why_it_matters: Mapped[str] = mapped_column(Text, default="", server_default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    updated_at: Mapped[datetime] = _updated_at()
+
+
+class PartyDocument(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A party document linked from the About page once published, such as the constitution."""
+
+    __tablename__ = "party_documents"
+
+    title: Mapped[str] = mapped_column(String(150))
+    url: Mapped[str] = mapped_column(String(500))
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     updated_at: Mapped[datetime] = _updated_at()

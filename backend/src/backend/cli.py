@@ -22,7 +22,7 @@ from backend.seed.reference import (
     import_centres,
     import_geography,
 )
-from backend.seed.site import seed_branches, seed_home, seed_site
+from backend.seed.site import seed_branches, seed_home, seed_news, seed_site
 from backend.services import admin
 from backend.services.accounts import clean_email, new_login, user_with_email
 from backend.services.audit import record
@@ -82,7 +82,10 @@ async def _demo_site(args: argparse.Namespace, session: AsyncSession) -> int:
         print(f"Published a demo branch for {added} counties.")
     if await seed_home(session):
         print("Published the demo homepage slides and agenda issues.")
-    if not await seed_site(session, today()):
+    seeded = await seed_site(session, today())
+    if await seed_news(session, today()):
+        print("Published the demo statements, opinion pieces, event counties and documents.")
+    if not seeded:
         print("The website already has leaders or posts; nothing else was added.")
         return 0
     print("Published 6 leaders, 4 news posts and 3 events for Pamoja Party.")

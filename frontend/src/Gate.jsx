@@ -132,12 +132,12 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
       <Route path="/issues/:id" element={<PublicLayout><Issue /></PublicLayout>} />
-      <Route path="/about" element={<PublicLayout><LegacySite><About /></LegacySite></PublicLayout>} />
+      <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
       <Route path="/leadership" element={<PublicLayout><LegacySite><Leadership /></LegacySite></PublicLayout>} />
       <Route path="/manifesto" element={<PublicLayout><LegacySite><Manifesto /></LegacySite></PublicLayout>} />
-      <Route path="/news" element={<PublicLayout><LegacySite><News /></LegacySite></PublicLayout>} />
-      <Route path="/news/:id" element={<PublicLayout><LegacySite><PostPage /></LegacySite></PublicLayout>} />
-      <Route path="/events" element={<PublicLayout><LegacySite><Events /></LegacySite></PublicLayout>} />
+      <Route path="/news" element={<PublicLayout><News /></PublicLayout>} />
+      <Route path="/news/:id" element={<PublicLayout><PostPage /></PublicLayout>} />
+      <Route path="/events" element={<PublicLayout><Events /></PublicLayout>} />
       <Route path="/signin" element={<SignInPage />} />
       <Route path="/signin/where" element={<SignedInOnly><Chooser /></SignedInOnly>} />
       <Route path="/account" element={<SignedInOnly><AccountPage /></SignedInOnly>} />

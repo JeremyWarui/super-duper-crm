@@ -1,14 +1,18 @@
-// The superuser's editor for the public site: carousel slides, agenda issues, posts and leaders.
+// The superuser's editor for the public site: carousel slides, agenda issues, posts, leaders and documents.
 import { useState } from "react";
 import {
+  useDeleteDocument,
   useDeleteIssue,
   useDeleteLeader,
   useDeletePost,
   useDeleteSlide,
+  useSaveDocument,
   useSaveIssue,
   useSaveLeader,
   useSavePost,
   useSaveSlide,
+  usePartyPlaces,
+  useSiteDocuments,
   useSiteIssues,
   useSiteLeaders,
   useSitePosts,
@@ -25,6 +29,7 @@ import { formatDate } from "@/lib/format";
 const HTTPS = /^https:\/\/\S+$/;
 const CHECKS = {
   image: (v) => !v || HTTPS.test(v) || "Use an address starting with https://.",
+  https: (v) => !v || HTTPS.test(v) || "Use an address starting with https://.",
   link: (v) => !v || HTTPS.test(v) || (/^\/(?!\/)\S*$/.test(v)) || "Use a page on this site such as /join-party, or an https:// address.",
   order: (v) => (/^\d{1,5}$/.test(v) && Number(v) <= 10000) || "Use a whole number from 0 to 10000.",
 };
@@ -57,13 +62,28 @@ const LEADER_FIELDS = [
 ];
 
 const isEvent = (form) => form.kind === "event";
+const isNews = (form) => form.kind !== "event";
+const isStatement = (form) => isNews(form) && form.label === "statement";
 const POST_FIELDS = [
   { key: "kind", label: "Kind", kind: "select", options: [["news", "News"], ["event", "Event"]], newOnly: true },
+  { key: "label", label: "Label", kind: "select", options: [["news", "News"], ["statement", "Statement"], ["opinion", "Opinion"]], show: isNews },
   { key: "title", label: "Title", max: 150, required: true },
   { key: "event_date", label: "Date", kind: "date", required: true, show: isEvent },
   { key: "venue", label: "Venue (optional)", max: 150, show: isEvent },
+  { key: "county_id", label: "County (optional)", kind: "county", show: isEvent },
+  { key: "place", label: "Place (optional)", max: 80, show: isNews, hint: "Shown beside the label, such as National or Nakuru." },
+  { key: "author", label: "Author (optional)", max: 150, show: isNews, hint: "For a statement, who issued it, such as Grace Chebet, Secretary General." },
+  { key: "author_photo_url", label: "Author photo address (optional)", max: 500, kind: "image", show: isNews },
+  { key: "reference", label: "Reference (optional)", max: 40, show: isStatement },
+  { key: "pdf_url", label: "Signed PDF address (optional)", max: 500, kind: "https", show: isStatement },
   { key: "body", label: "Text", max: 20000, kind: "area" },
   { key: "image_url", label: "Image address (optional)", max: 500, kind: "image" },
+];
+
+const DOCUMENT_FIELDS = [
+  { key: "title", label: "Title", max: 150, required: true, hint: "Such as Party constitution (PDF)." },
+  { key: "url", label: "Address", max: 500, kind: "https", required: true },
+  ORDER,
 ];
 
 const SECTIONS = {
@@ -76,6 +96,9 @@ const SECTIONS = {
   ],
   Leaders: [
     { noun: "leader", title: "Party leaders", fields: LEADER_FIELDS, query: useSiteLeaders, save: useSaveLeader, del: useDeleteLeader, name: (r) => r.name, meta: (r) => `${r.position} · order ${r.sort_order}` },
+  ],
+  Documents: [
+    { noun: "document", title: "Party documents", hint: "Linked from the About page.", fields: DOCUMENT_FIELDS, query: useSiteDocuments, save: useSaveDocument, del: useDeleteDocument, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
   ],
 };
 
@@ -101,10 +124,20 @@ function payload(fields, form, row) {
   for (const f of fields) {
     if ((f.show && !f.show(form)) || (f.newOnly && row)) continue;
     const v = f.kind === "area" ? form[f.key] : form[f.key].trim();
-    body[f.key] = f.kind === "order" ? Number(v) : v;
+    body[f.key] = f.kind === "order" ? Number(v) : f.kind === "county" ? v || null : v;
   }
   if (!row) return body;
-  return Object.fromEntries(Object.entries(body).filter(([k, v]) => v !== (row[k] ?? "")));
+  return Object.fromEntries(Object.entries(body).filter(([k, v]) => (v ?? "") !== (row[k] ?? "")));
+}
+
+function CountySelect(props) {
+  const counties = usePartyPlaces().data || [];
+  return (
+    <NativeSelect {...props}>
+      <option value="">No county</option>
+      {counties.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+    </NativeSelect>
+  );
 }
 
 function ItemForm({ section, row, onDone }) {
@@ -136,6 +169,7 @@ function ItemForm({ section, row, onDone }) {
             <Field key={f.key} label={f.label} hint={hint}>
               {f.kind === "area" ? <Textarea rows={4} maxLength={f.max} {...common} />
                 : f.kind === "select" ? <NativeSelect {...common}>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</NativeSelect>
+                : f.kind === "county" ? <CountySelect {...common} />
                 : <Input type={f.kind === "date" ? "date" : "text"} inputMode={f.kind === "order" ? "numeric" : undefined} maxLength={f.max} {...common} />}
             </Field>
           );

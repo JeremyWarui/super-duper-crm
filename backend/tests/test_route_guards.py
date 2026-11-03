@@ -18,6 +18,7 @@ PUBLIC_ROUTES = {
     ("GET", "/api/party/slides/"),
     ("GET", "/api/party/issues/"),
     ("GET", "/api/party/issues/{issue_id}/"),
+    ("GET", "/api/party/documents/"),
     ("GET", "/api/party/posts/"),
     ("GET", "/api/party/posts/{post_id}/"),
     ("POST", "/api/party/join/"),

@@ -1,12 +1,13 @@
 """The party's leaders and posts, as the public site reads them and the superuser edits them."""
 
+import math
 import uuid
 from datetime import date, datetime
 from typing import Annotated
 
-from pydantic import AfterValidator, Field, field_validator, model_validator
+from pydantic import AfterValidator, Field, computed_field, field_validator, model_validator
 
-from backend.models import PostKind
+from backend.models import PostKind, PostLabel
 from backend.schemas.common import ORMModel, WriteModel, plain_text
 
 
@@ -14,6 +15,13 @@ def _image(value: str) -> str:
     value = plain_text(value).strip()
     if value and (not value.startswith("https://") or any(c.isspace() for c in value)):
         raise ValueError("Use an image address starting with https://.")
+    return value
+
+
+def _https(value: str) -> str:
+    value = plain_text(value).strip()
+    if value and (not value.startswith("https://") or any(c.isspace() for c in value)):
+        raise ValueError("Use an address starting with https://.")
     return value
 
 
@@ -30,6 +38,9 @@ def _text(value: str) -> str:
 
 Image = Annotated[str, Field(max_length=500), AfterValidator(_image)]
 Line = Annotated[str, Field(min_length=1, max_length=150), AfterValidator(_line)]
+Link = Annotated[str, Field(max_length=500), AfterValidator(_https)]
+Place = Annotated[str, Field(max_length=80), AfterValidator(lambda v: plain_text(v).strip())]
+Reference = Annotated[str, Field(max_length=40), AfterValidator(lambda v: plain_text(v).strip())]
 Venue = Annotated[str, Field(max_length=150), AfterValidator(lambda v: plain_text(v).strip())]
 Body = Annotated[str, Field(max_length=20_000), AfterValidator(_text)]
 
@@ -68,18 +79,42 @@ class LeaderUpdate(WriteModel):
     published: bool | None = None
 
 
-class PostRead(ORMModel):
+class PostCounty(ORMModel):
+    id: uuid.UUID
+    name: str
+
+
+class _Post(ORMModel):
     id: uuid.UUID
     kind: PostKind
+    label: PostLabel
     title: str
     body: str
     image_url: str
     event_date: date | None
     venue: str
+    place: str
+    author: str
+    author_photo_url: str
+    reference: str
+    pdf_url: str
     published_on: date | None
 
+    @computed_field
+    @property
+    def read_minutes(self) -> int:
+        """Minutes to read the body at 200 words a minute, at least one."""
+        return max(1, math.ceil(len(self.body.split()) / 200))
 
-class PostAdminRead(PostRead):
+
+class PostRead(_Post):
+    """A published post; an event names its county when it has one."""
+
+    county: PostCounty | None
+
+
+class PostAdminRead(_Post):
+    county_id: uuid.UUID | None
     published: bool
     updated_at: datetime
 
@@ -91,6 +126,13 @@ class PostCreate(WriteModel):
     image_url: Image = ""
     event_date: date | None = None
     venue: Venue = ""
+    label: PostLabel = PostLabel.NEWS
+    place: Place = ""
+    author: Venue = ""
+    author_photo_url: Image = ""
+    reference: Reference = ""
+    pdf_url: Link = ""
+    county_id: uuid.UUID | None = None
     published: bool = False
 
     @model_validator(mode="after")
@@ -110,6 +152,13 @@ class PostUpdate(WriteModel):
     image_url: Image | None = None
     event_date: date | None = None
     venue: Venue | None = None
+    label: PostLabel | None = None
+    place: Place | None = None
+    author: Venue | None = None
+    author_photo_url: Image | None = None
+    reference: Reference | None = None
+    pdf_url: Link | None = None
+    county_id: uuid.UUID | None = Field(default=None, description="Send null to clear it.")
     published: bool | None = None
 
     @field_validator("event_date")
@@ -284,5 +333,33 @@ class IssueUpdate(WriteModel):
     summary: _short(300) | None = None
     what_we_will_do: Body | None = None
     why_it_matters: Body | None = None
+    sort_order: Order | None = None
+    published: bool | None = None
+
+
+class DocumentRead(ORMModel):
+    id: uuid.UUID
+    title: str
+    url: str
+
+
+class DocumentAdminRead(DocumentRead):
+    sort_order: int
+    published: bool
+    updated_at: datetime
+
+
+class DocumentCreate(WriteModel):
+    title: Line
+    url: Annotated[str, Field(min_length=1, max_length=500), AfterValidator(_https)]
+    sort_order: Order = 0
+    published: bool = False
+
+
+class DocumentUpdate(WriteModel):
+    """Only the fields sent change."""
+
+    title: Line | None = None
+    url: Annotated[str, Field(min_length=1, max_length=500), AfterValidator(_https)] | None = None
     sort_order: Order | None = None
     published: bool | None = None

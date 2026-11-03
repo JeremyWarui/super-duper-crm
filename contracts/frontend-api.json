@@ -497,7 +497,15 @@
       "image_url",
       "event_date",
       "venue",
-      "published_on"
+      "published_on",
+      "label",
+      "place",
+      "author",
+      "author_photo_url",
+      "reference",
+      "pdf_url",
+      "read_minutes",
+      "county"
     ],
     "GET /api/party/posts/{post_id}/": [
       "id",
@@ -507,7 +515,15 @@
       "image_url",
       "event_date",
       "venue",
-      "published_on"
+      "published_on",
+      "label",
+      "place",
+      "author",
+      "author_photo_url",
+      "reference",
+      "pdf_url",
+      "read_minutes",
+      "county"
     ],
     "GET /api/admin/party/leaders/": [
       "id",
@@ -527,7 +543,14 @@
       "event_date",
       "venue",
       "published_on",
-      "published"
+      "published",
+      "label",
+      "place",
+      "author",
+      "author_photo_url",
+      "reference",
+      "pdf_url",
+      "county_id"
     ],
     "GET /api/party/dashboard/": [
       "approved_members",
@@ -661,6 +684,18 @@
       "summary",
       "what_we_will_do",
       "why_it_matters",
+      "sort_order",
+      "published"
+    ],
+    "GET /api/party/documents/": [
+      "id",
+      "title",
+      "url"
+    ],
+    "GET /api/admin/party/documents/": [
+      "id",
+      "title",
+      "url",
       "sort_order",
       "published"
     ]
@@ -896,6 +931,10 @@
       "next_meeting_on",
       "next_meeting_venue",
       "published"
+    ],
+    "GET /api/party/posts/.county": [
+      "id",
+      "name"
     ]
   },
   "writes": {
@@ -1177,7 +1216,14 @@
       "body",
       "image_url",
       "event_date",
-      "venue"
+      "venue",
+      "label",
+      "place",
+      "author",
+      "author_photo_url",
+      "reference",
+      "pdf_url",
+      "county_id"
     ],
     "PATCH /api/admin/party/posts/{post_id}/": [
       "title",
@@ -1185,7 +1231,14 @@
       "image_url",
       "event_date",
       "venue",
-      "published"
+      "published",
+      "label",
+      "place",
+      "author",
+      "author_photo_url",
+      "reference",
+      "pdf_url",
+      "county_id"
     ],
     "POST /api/party/subscribe/": [
       "contact",
@@ -1249,6 +1302,17 @@
       "summary",
       "what_we_will_do",
       "why_it_matters",
+      "sort_order",
+      "published"
+    ],
+    "POST /api/admin/party/documents/": [
+      "title",
+      "url",
+      "sort_order"
+    ],
+    "PATCH /api/admin/party/documents/{document_id}/": [
+      "title",
+      "url",
       "sort_order",
       "published"
     ]
@@ -1321,7 +1385,8 @@
       "DELETE /api/admin/party/posts/{post_id}/",
       "POST /api/account/leave/",
       "DELETE /api/admin/party/slides/{slide_id}/",
-      "DELETE /api/admin/party/issues/{issue_id}/"
+      "DELETE /api/admin/party/issues/{issue_id}/",
+      "DELETE /api/admin/party/documents/{document_id}/"
     ]
   }
 }

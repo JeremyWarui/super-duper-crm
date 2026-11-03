@@ -171,6 +171,14 @@ class PostKind(LabelledStrEnum):
     EVENT = ("event", "Event")
 
 
+class PostLabel(LabelledStrEnum):
+    """How a news post presents itself: an official statement, news, or a writer's opinion."""
+
+    STATEMENT = ("statement", "Statement")
+    NEWS = ("news", "News")
+    OPINION = ("opinion", "Opinion")
+
+
 class SubscriptionHold(LabelledStrEnum):
     """A finance officer's stop on a campaign's access, whatever has been paid."""
 
