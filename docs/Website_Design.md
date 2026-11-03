@@ -185,8 +185,9 @@ The migration runs first and alone (R4-1). A route enters
 - Tests: the tiles show the API's figures; changing a filter refetches with it.
 - Depends: R4-3.
 
-**R4-8 Integration** (lead)
+**R4-8 Integration** (lead) — done 3 Nov 2026
 - Both test lanes; `docs/SYSTEM.md` (public site, dashboard, routes, counts); one release critic against section 4 only.
+- Release critic: PASS on all seven points.
 
 ---
 
@@ -214,3 +215,15 @@ listed as non-blocking.
 | 3 | An image URL points at an unsafe scheme | Script or tracking on the public site | Only `https://` accepted; text rendered as text |
 | 4 | Dashboard filters miscount areas | Wrong totals shown to party leaders | The filter rule is written above and tested per figure |
 | 5 | Dashboard queries slow with many campaigns | A slow page | Counts are SQL aggregates; subscription state is computed in Python over campaigns, as in R3, fine for hundreds |
+
+## Known gaps
+
+Found by the release critic outside its rubric; none blocks the release.
+
+- The dashboard's constituency, aspirant and date filters have no test of their own; the critic checked them by hand on the test world and every figure matched.
+- An event is dated by its UTC day, so one between midnight and 03:00 Nairobi time counts on the day before.
+- With only `from` set, events still end at today plus 30 days, so a `from` past that shows no events.
+- A deleted campaign's subscription is not counted as active, matching the R3 expiring report.
+- `/join-party` shows the logo twice: in the site header and in the form's own banner.
+- A login with a campaign role, party offices and no campaign lands on `/campaign`; the database refuses that mix (`users.kind`), so only hand-edited rows reach it.
+- The aspirant filter lists at most 200 approved aspirants.

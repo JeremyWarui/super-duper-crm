@@ -5,7 +5,7 @@ Use it to plan features, refine the architecture, or bring someone new up to
 speed. How to run the code lives in the READMEs; this document says what the
 code is for.
 
-Last checked against the code: 2 November 2026, after Release 3 (manual CRM subscriptions).
+Last checked against the code: 3 November 2026, after Release 4 (public website and party dashboard).
 
 ---
 
@@ -136,10 +136,39 @@ office (`users.kind`). The superuser is the party's super admin.
   server's latency does not show it either; a withdrawal lands within minutes. Public re-applications and withdrawals are audited as
   `public`. Nobody proves they hold the number yet, so anyone can re-apply for
   a rejected or withdrawn number until SMS verification exists.
+- **Public website:** the party's site is at `/`, open to anyone: Home (the
+  description, the three latest news posts, the three next events and a join
+  button), About, Leadership, Manifesto, News, one post at `/news/<id>`, Events
+  and Join, all in the party's name, logo and colours from its settings. The
+  menu's last link is Sign in (`/signin`), or Portal for a signed-in login.
+  Leaders and posts live in `party_leaders` and `party_posts`; a public route
+  returns only published ones, news newest first 20 a page, events from today
+  soonest first. The Events page lists the party's own events, never a
+  campaign's. Text is shown as text and image fields take `https://` addresses
+  only; there is no upload.
+- **Website editor:** the superuser adds, edits, publishes, unpublishes and
+  deletes leaders and posts at `/party/website`. A new row is a draft; a post
+  gets its `published_on` day the first time it is published and keeps it.
+  An event needs a date, held by the database
+  (`CHECK ((kind = 'event') = (event_date IS NOT NULL))`). Every change is
+  audited as `party.leader.*` or `party.post.*` with ids, kind and the
+  published flag, never the text.
+- **Party dashboard:** the superuser lands on `/party/dashboard`: approved
+  members, pending applications, active volunteers (per county and per
+  interest), approved aspirants, active campaigns, active CRM subscriptions,
+  campaigns per county and seat, upcoming planned campaign events per county
+  and per seat, and recorded CRM revenue. It filters by county, constituency,
+  ward, seat, aspirant and dates; by default events run over the next 30 days
+  and revenue over the calendar year. It answers counts only: no event title or
+  venue, and no supporter, member or phone detail leaves a campaign.
+- **Addresses:** a signed-out visit to any signed-in page goes to `/signin`.
+  After signing in the superuser lands on the console at `/console`, party
+  staff on `/party`, and a campaign login on `/campaign`.
 
 The designs and their decisions are in `docs/Identity_Access_Design.md`
-(Releases 0 and 1), `docs/Aspirants_Design.md` (Release 2) and
-`docs/Subscriptions_Design.md` (Release 3).
+(Releases 0 and 1), `docs/Aspirants_Design.md` (Release 2),
+`docs/Subscriptions_Design.md` (Release 3) and `docs/Website_Design.md`
+(Release 4).
 
 ---
 
@@ -160,7 +189,7 @@ refuses that.
 
 | Person | What they do in the app |
 |---|---|
-| **Operator** (superuser) | Runs the deployment from the admin console: creates campaigns and their first logins, repairs logins, links logins to party members, grants party offices, deletes campaigns. Opens every party page. Never sits on a campaign. |
+| **Operator** (superuser) | Runs the deployment from the admin console at `/console`: creates campaigns and their first logins, repairs logins, links logins to party members, grants party offices, deletes campaigns. Opens every party page, and alone reads the party dashboard and edits the public website. Never sits on a campaign. |
 | **Membership officer** (party staff) | Reviews the member and volunteer registers at `/party/members` and `/party/volunteers`. Sees no campaign. |
 | **Nominations officer** (party staff) | Nominates approved members, moves nominations, and creates an approved aspirant's campaign workspace at `/party/aspirants`. Sees no campaign. |
 | **Finance officer** (party staff) | Sets CRM plans, gives each campaign a plan, records payments and extensions, voids the latest entry, holds a campaign, reads the revenue and expiring reports, and sets the grace and read-only days and the payment instructions at `/party/finance`. Never acts on their own aspirant's campaign. Sees no campaign's data. |
@@ -337,6 +366,7 @@ campaign does.
   nominations and campaign workspaces for approved aspirants.
 - Campaign subscriptions: plans, a ledger the finance officer keeps by hand,
   and access that steps from active to grace, read-only and locked.
+- The party's public website, its editor, and the superuser's party dashboard.
 
 ### Deliberately out of scope
 
@@ -368,7 +398,11 @@ Each rule is enforced on the server; the screens only reflect it.
 | Only the operator creates campaigns; nobody signs themselves up | `services/admin.py` `create_campaign`; no public route exists |
 | A login is on at most one campaign | unique index `uq_campaign_members_one_campaign_per_user` |
 | A campaign member's role always equals its login's role: role guards read `users.role`, the one-aspirant and one-manager indexes read `campaign_members.role`, and a login on a campaign cannot change role. A login made with no campaign defaults to `manager`, the superuser included | composite foreign key `campaign_members(user_id, role)` → `users(id, role)` |
-| Every API route needs a login except sign-in, the public sign-up and withdrawal routes, and `/health` | `tests/test_route_guards.py` |
+| Every API route needs a login except sign-in, the public sign-up and withdrawal routes, the public party routes, and `/health` | `tests/test_route_guards.py` `PUBLIC_ROUTES` |
+| A public route never returns a draft leader or post | `services/content.py`, one `published` filter on every public read |
+| A leader's photo and a post's image are empty or an `https://` address | `schemas/content.py` |
+| Only the superuser edits the website and reads the dashboard | `api/deps.py` `AdminUser`, on `api/routers/admin.py` and `/api/party/dashboard/` |
+| The dashboard returns counts, county names and totals only | `schemas/dashboard.py`: no event title or venue, no person's name or phone |
 | A campaign has exactly one aspirant | at most one: unique index `uq_campaign_members_one_candidate`; at least one: `services/admin.py` `create_campaign` makes them with the campaign, and `remove_member` refuses to take them off |
 | A campaign has at most one manager; only its aspirant adds or replaces them | unique index `uq_campaign_members_one_manager`, `services/team.py`, `api/routers/team.py` |
 | A replaced manager comes off the campaign, is turned off and signed out | `services/team.py` `set_manager` |
@@ -458,6 +492,9 @@ counts toward, not what they can see.
 | Subscription, grace, read-only and locked states | Built | Computed on every request; 403 `campaign_read_only`, `campaign_locked` |
 | Finance page: campaigns and ledger, plans, reports, settings | Built | `frontend/src/pages/party/Finance.jsx` |
 | Payment screen for a locked campaign, banner while lapsing | Built | `frontend/src/components/CampaignLocked.jsx`, `AccessBanner.jsx` |
+| Public website: home, about, leadership, manifesto, news, events | Built | `frontend/src/pages/public/`, `components/PublicLayout.jsx` |
+| Website editor for leaders and posts | Built | `frontend/src/pages/party/Website.jsx` |
+| Party dashboard with filters | Built | `frontend/src/pages/party/Dashboard.jsx`, `GET /api/party/dashboard/` |
 | Self-serve subscription payment | Planned | Paystack |
 | Email password reset | Planned | |
 | Ward managers | Planned | |
@@ -472,7 +509,7 @@ counts toward, not what they can see.
 flowchart LR
   subgraph Browser
     SPA["React SPA<br/>(Vite, React Query, Zustand)"]
-    QR["Public pages<br/>/join/{code}, /withdraw/{code}"]
+    QR["Public pages<br/>/, /news, /events, /join-party,<br/>/join/{code}, /withdraw/{code}"]
   end
   subgraph Fly["Fly.io app (one container)"]
     API["FastAPI<br/>/api/*"]
@@ -552,6 +589,8 @@ erDiagram
   PARTY_REQUEST
   AUDIT_EVENT }o--o| USER : actor
   PARTY_SETTINGS
+  PARTY_LEADER
+  PARTY_POST
 ```
 
 - **Reference data** (counties, constituencies, wards, registration centres) is
@@ -570,7 +609,7 @@ erDiagram
 
 ### The API
 
-98 operations across 82 paths, grouped by purpose. The live list is at `/docs`
+110 operations across 90 paths, grouped by purpose. The live list is at `/docs`
 on a server started with `DEBUG=true`; it is off otherwise.
 
 | Group | Routes | Who |
@@ -584,11 +623,13 @@ on a server started with `DEBUG=true`; it is off otherwise.
 | Payments | `/api/payments/` | the manager writes; the aspirant reads all; a mobilizer reads their own |
 | Public sign-up and withdrawal | `/api/join/{code}/`, `/api/join/withdraw/{code}/` | anyone with an event's, a campaign's or a withdrawal code |
 | Party, public | `/api/party/`, `/api/party/places/`, `/api/party/join/`, `/api/party/withdraw/{code}/`, `/api/party/volunteer/withdraw/{code}/` | anyone; join and withdraws are rate limited |
+| Public website content | `/api/party/leaders/`, `/api/party/posts/?kind=news\|event&offset=`, `/api/party/posts/{id}/` | anyone; published rows only |
+| Party dashboard | `/api/party/dashboard/?county=&constituency=&ward=&seat=&aspirant=&from=&to=` | superuser only |
 | Party register | `/api/party/members/` (list, detail, status, `export.csv`), `/api/party/volunteers/` (list, update, `export.csv`) | membership officer and superuser |
 | Nominations | `/api/party/aspirants/` (candidates, list, detail, create, status, workspace) | nominations officer and superuser |
 | Finance | `/api/party/finance/` (plans, subscriptions, plan, payments, extensions, void, hold, settings, revenue and expiring reports) | finance officer and superuser |
 | A campaign's own subscription | `/api/subscription/` | any campaign login, answered while locked; plan and price for aspirant and manager only |
-| Console, including party settings, party offices, member links and the audit trail | `/api/admin/` | superuser only |
+| Console, including party settings, party offices, member links, the audit trail and the website's leaders and posts (`/api/admin/party/leaders/`, `/api/admin/party/posts/`) | `/api/admin/` | superuser only |
 | Health | `/health` | Fly's checks |
 
 ### Outside services
@@ -609,15 +650,15 @@ in full without either:
 
 | Check | What it proves | Runs |
 |---|---|---|
-| Backend tests (337: 334 run, 3 Postgres-only skipped) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
-| Backend evals (292: 268 run, 7 live checks and 17 impossible register states skipped) | The API still offers what the frontend's contract lists; every subscription state and HTTP answer, day by day across the end of the paid period | `cd backend && uv run pytest evals` |
-| Frontend tests (113) | Each screen per role, the forms, the contract from the frontend side | `cd frontend && npm test` |
+| Backend tests (359: 356 run, 3 Postgres-only skipped) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
+| Backend evals (310: 286 run, 7 live checks and 17 impossible register states skipped) | The API still offers what the frontend's contract lists; every subscription state and HTTP answer, day by day across the end of the paid period | `cd backend && uv run pytest evals` |
+| Frontend tests (125) | Each screen per role, the public site, the forms, the contract from the frontend side | `cd frontend && npm test` |
 | Migration tests | The migrations build the models' schema and render correctly for Postgres | part of the backend tests |
 | Postgres lane | The same suite on a throwaway local Postgres built by the migrations: row locks, races, every migration down and up | `cd backend && TEST_POSTGRES=1 uv run pytest` |
 | Live database check | TLS, the latest migration and the seeded geography on a real database | `LIVE_DATABASE=1`, by hand; 7 checks skipped otherwise |
 | Secret scan | No password, key or token reaches the repository | a pre-commit hook (`git config core.hooksPath .githooks`), and again on every push in GitHub Actions (`.github/workflows/secret-scan.yml`) |
 
-`cd backend && uv run pytest` runs the tests and the evals together (629: 602 run, 27 skipped). With `TEST_POSTGRES=1`, 604 run: the three Postgres-only tests run and the SQLite-only CLI check skips.
+`cd backend && uv run pytest` runs the tests and the evals together (669: 642 run, 27 skipped). With `TEST_POSTGRES=1`, 644 run: the three Postgres-only tests run and the SQLite-only CLI check skips.
 
 ---
 
@@ -679,6 +720,9 @@ no stylesheet defines, so a missing style is caught by the tests, not by a user.
 | Access state computed from the paid day, never stored | Expiry needs no scheduled job, and the same dates always give the same state. |
 | Subscription payments recorded by hand | Campaigns pay by M-Pesa, bank or cash; a ledger with one live reference per payment and a void for mistakes is enough until online payment is wanted. |
 | A contract file between frontend and backend | Renaming a field on one side fails both test suites until the other side follows. |
+| The public site at `/`, sign-in at `/signin`, the console at `/console` | The party's address shows the party, not a sign-in box. |
+| Leaders and posts are two small tables with `https://` image addresses | Enough for a party site; a full CMS and file upload are not needed yet. |
+| The dashboard counts campaign events, never lists them | Party leaders see where activity is without reading any campaign's records. |
 
 ---
 

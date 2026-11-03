@@ -35,13 +35,26 @@ async def test_drafts_never_reach_the_public(
     await client.post(
         POSTS, headers=admin_headers, json={"kind": "news", "title": "Out", "published": True}
     )
+    for title, published in (("Draft rally", False), ("Rally", True)):
+        await client.post(
+            POSTS,
+            headers=admin_headers,
+            json={
+                "kind": "event",
+                "title": title,
+                "event_date": "2026-11-20",
+                "published": published,
+            },
+        )
 
     leaders = (await client.get("/api/party/leaders/")).json()
     news = (await client.get("/api/party/posts/", params={"kind": "news"})).json()
+    events = (await client.get("/api/party/posts/", params={"kind": "event"})).json()
     by_id = await client.get(f"/api/party/posts/{draft['id']}/")
 
     assert [leader["name"] for leader in leaders] == ["B"]
     assert [post["title"] for post in news] == ["Out"]
+    assert [post["title"] for post in events] == ["Rally"]
     assert by_id.status_code == 404
 
 
