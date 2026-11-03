@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CRM top bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; width: 100%; background: #FFFFFF; border-bottom: 1px solid rgba(19,32,26,0.06)">
+<div style="padding: 10px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; min-height: 64px; box-sizing: border-box">
+<nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #4E5552">
+<a href="PartyCRM.dc.html" style="color: #4E5552; text-decoration: none">Party CRM</a><span aria-hidden="true">/</span><span style="color: #13201A">{{page}}</span>
+</nav>
+<div style="flex: 1 1 280px; max-width: 520px; display: flex; align-items: center; gap: 10px; background: #F4F3EF; border-radius: 999px; padding: 0 16px; height: 42px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4E5552" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<input type="search" aria-label="Search the CRM" placeholder="Search members, branches, aspirants…" style="flex: 1; min-width: 0; font: inherit; font-size: 15px; border: 0; background: transparent; outline-offset: 4px">
+<kbd style="font: inherit; font-size: 12px; font-weight: 700; color: #4E5552; background: #FFFFFF; border: 1px solid #E8E8E4; border-radius: 6px; padding: 2px 6px">Ctrl K</kbd>
+</div>
+<div style="margin-left: auto; display: flex; align-items: center; gap: 6px">
+<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4E5552">Scope
+<select onChange="{{pickScope}}" style="font: inherit; font-size: 14px; font-weight: 700; color: #13201A; height: 40px; padding: 0 10px; border: 1px solid #D3D5D3; border-radius: 999px; background: #FFFFFF">
+<sc-for list="{{scopes}}" as="s" hint-placeholder-count="3"><option value="{{s}}">{{s}}</option></sc-for>
+</select>
+</label>
+<button type="button" onClick="{{toggleBell}}" aria-label="{{bellLabel}}" aria-expanded="{{bellOpen}}" style="position: relative; width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#13201A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+<span aria-hidden="true" style="position: absolute; top: 6px; right: 6px; min-width: 18px; height: 18px; border-radius: 999px; background: #B42318; color: #FFFFFF; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box">3</span>
+</button>
+<a href="SysStates.dc.html" aria-label="Help" style="width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #13201A; text-decoration: none; font-weight: 800">?</a>
+<a href="SysChooser.dc.html" style="display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; border-radius: 999px; background: #F4F3EF; text-decoration: none; color: #13201A">
+<span style="width: 34px; height: 34px; border-radius: 50%; background: #0B5D3B; color: #F2B705; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px">[AB]</span>
+<span style="display: flex; flex-direction: column; line-height: 1.15"><span style="font-size: 14px; font-weight: 700">[Staff name]</span><span style="font-size: 12px; color: #4E5552">{{role}}</span></span>
+</a>
+</div>
+</div>
+<sc-if value="{{bellOpen}}" hint-placeholder-val="{{ false }}">
+<div role="region" aria-label="Notifications" style="margin: 0 32px 12px auto; max-width: 380px; background: #FFFFFF; border: 1px solid rgba(19,32,26,0.06); border-radius: 18px; box-shadow: 0 10px 30px rgba(19,32,26,0.12); padding: 8px">
+<sc-for list="{{notes}}" as="n" hint-placeholder-count="3">
+<a href="{{n.href}}" style="display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; text-decoration: none; color: #13201A"><span style="font-weight: 700; font-size: 14px">{{n.t}}</span><span style="font-size: 12px; color: #4E5552">{{n.w}}</span></a>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"page":{"editor":"text","default":"Overview"},"role":{"editor":"text","default":"HQ admin"},"$preview":{"width":1200,"height":64}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { bell: false, scope: 'National HQ' }; }
+  renderVals() {
+    return {
+      page: this.props.page ?? 'Overview', role: this.props.role ?? 'HQ admin',
+      scopes: ['National HQ', '[County] branch', '[County] branch'],
+      pickScope: (e) => this.setState({ scope: e.target.value }),
+      bellOpen: this.state.bell, bellLabel: 'Notifications, 3 new',
+      toggleBell: () => this.setState({ bell: !this.state.bell }),
+      notes: [
+        { t: '[00] membership applications to verify', w: '[0] min ago', href: 'Members.dc.html' },
+        { t: 'Timetable change waiting for your sign-off', w: '[0] hours ago', href: 'FlowTimetable.dc.html' },
+        { t: 'New appeal filed: [Seat]', w: 'Yesterday', href: 'CrmAppeals.dc.html' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

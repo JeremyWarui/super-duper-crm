@@ -10,15 +10,15 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F3F4F2}
+body{margin:0;background:#F7F7F5}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F7F7F5; min-height: 100vh; display: flex; flex-wrap: wrap">
 <nav aria-label="Party CRM" style="flex: 1 1 240px; max-width: 100%; background: #13201A; color: #DDE3DF; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
 <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
 <span style="width: 34px; height: 34px; border-radius: 9px; background: #F2B705; display: flex; align-items: center; justify-content: center; color: #13201A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 17px">P</span>
-<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #F6F5F0">Pamoja Party</span><span style="font-size: 12px; color: #9FAAA4">Secretariat · HQ</span></div>
+<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #FAFAF8">Pamoja Party</span><span style="font-size: 12px; color: #9FAAA4">Secretariat · HQ</span></div>
 </div>
 <div style="display: flex; flex-direction: column; gap: 2px">
 <sc-for list="{{nav}}" as="n" hint-placeholder-count="9"><a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a></sc-for>
@@ -26,27 +26,31 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <p style="margin: auto 8px 0; font-size: 12px; color: #9FAAA4">Powered by [Your product]</p>
 </nav>
 
-<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
-<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column">
+<div style="position: sticky; top: 0; z-index: 20">
+<dc-import name="CrmTopBar" page="Branches" role="HQ admin" hint-size="100%,64px"></dc-import>
+<header style="background: rgba(250,250,248,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(19,32,26,0.06); padding: 18px 32px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 4px">
-<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4B5751">Party structure</p>
-<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Branches</h1>
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4E5552">Party structure</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: -0.02em; line-height: 1.1">Branches</h1>
 </div>
 <div style="display: flex; flex-wrap: wrap; gap: 10px">
-<button type="button" style="font: inherit; font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Request branch reports</button>
+<button type="button" style="font: inherit; font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D3D5D3; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Request branch reports</button>
 <a href="FlowSubBranch.dc.html" style="font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; padding: 0 18px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">Add sub-branch</a>
 </div>
 </header>
+</div>
+<div style="padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 24px">
 
 <section aria-label="Summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px">
-<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">County branches</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">[00] / 47</span><span style="font-size: 13px; color: #4B5751">with elected officials</span></div>
-<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Constituency sub-branches</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">[000] / 290</span><span style="font-size: 13px; color: #4B5751">active</span></div>
-<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Vacant offices</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; color: #9A1C12">[00]</span><span style="font-size: 13px; color: #4B5751">across all branches</span></div>
-<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Quarterly reports in</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">[00]%</span><span style="font-size: 13px; color: #4B5751">due [date]</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4E5552">County branches</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">[00] / 47</span><span style="font-size: 13px; color: #4E5552">with elected officials</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4E5552">Constituency sub-branches</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">[000] / 290</span><span style="font-size: 13px; color: #4E5552">active</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4E5552">Vacant offices</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; color: #9A1C12">[00]</span><span style="font-size: 13px; color: #4E5552">across all branches</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4E5552">Quarterly reports in</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">[00]%</span><span style="font-size: 13px; color: #4E5552">due [date]</span></div>
 </section>
 
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-<section aria-labelledby="br-h" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<section aria-labelledby="br-h" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
 <h2 id="br-h" style="margin: 0; font-size: 20px; font-weight: 700">County branches</h2>
 <div role="group" aria-label="Filter" style="display: flex; flex-wrap: wrap; gap: 6px">
@@ -55,21 +59,21 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 </div>
 <div style="overflow-x: auto">
 <table style="width: 100%; min-width: 640px; border-collapse: collapse; font-size: 15px">
-<thead><tr style="text-align: left; color: #4B5751; font-size: 13px">
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">County</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Chairperson</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Members</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Sub-branches</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Status</th>
+<thead><tr style="text-align: left; color: #4E5552; font-size: 13px">
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">County</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Chairperson</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Members</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Sub-branches</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Status</th>
 </tr></thead>
 <tbody>
 <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
 <tr style="{{r.rowStyle}}">
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE"><button type="button" onClick="{{r.open}}" style="font: inherit; font-weight: 700; color: #13201A; background: none; border: 0; padding: 6px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #C9C5B8">{{r.county}}</button></td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{r.chair}}</td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">[0,000]</td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{r.subs}}</td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE"><span style="{{r.pill}}">{{r.status}}</span></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC"><button type="button" onClick="{{r.open}}" style="font: inherit; font-weight: 700; color: #13201A; background: none; border: 0; padding: 6px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #C9CCCF">{{r.county}}</button></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC">{{r.chair}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC">[0,000]</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC">{{r.subs}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC"><span style="{{r.pill}}">{{r.status}}</span></td>
 </tr>
 </sc-for>
 </tbody>
@@ -77,16 +81,16 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 </div>
 </section>
 
-<aside aria-labelledby="sel-h" style="flex: 2 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<aside aria-labelledby="sel-h" style="flex: 2 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px">
-<div style="display: flex; flex-direction: column; gap: 4px"><h2 id="sel-h" style="margin: 0; font-size: 22px; font-weight: 700">{{sel.county}} branch</h2><span style="font-size: 14px; color: #4B5751">Office: [address] · [phone]</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 id="sel-h" style="margin: 0; font-size: 22px; font-weight: 700">{{sel.county}} branch</h2><span style="font-size: 14px; color: #4E5552">Office: [address] · [phone]</span></div>
 <span style="{{sel.pill}}">{{sel.status}}</span>
 </div>
 <div style="display: flex; flex-direction: column; gap: 8px">
 <h3 style="margin: 0; font-size: 15px; font-weight: 700">Officials</h3>
 <sc-for list="{{sel.officials}}" as="o" hint-placeholder-count="5">
-<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: #F3F4F2">
-<span style="font-size: 14px; color: #4B5751">{{o.role}}</span><span style="{{o.style}}">{{o.name}}</span>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: #F7F7F5">
+<span style="font-size: 14px; color: #4E5552">{{o.role}}</span><span style="{{o.style}}">{{o.name}}</span>
 </div>
 </sc-for>
 </div>
@@ -97,9 +101,10 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 </div>
 <div style="display: flex; flex-wrap: wrap; gap: 8px">
 <a href="CrmComms.dc.html" style="font-weight: 700; font-size: 14px; color: #FFFFFF; background: #0B5D3B; padding: 12px 16px; border-radius: 10px; text-decoration: none">Message branch members</a>
-<a href="FlowOfficials.dc.html" style="font-weight: 600; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; padding: 0 16px; height: 44px; border-radius: 10px; display: flex; align-items: center; text-decoration: none">Edit officials</a>
+<a href="FlowOfficials.dc.html" style="font-weight: 600; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #D3D5D3; padding: 0 16px; height: 44px; border-radius: 10px; display: flex; align-items: center; text-decoration: none">Edit officials</a>
 </div>
 </aside>
+</div>
 </div>
 </main>
 </div>
@@ -121,7 +126,7 @@ class Component extends DCLogic {
     ];
     const filt = { All: () => true, Active: (d) => d.status === 'Active', 'Needs attention': (d) => d.status !== 'Active' };
     const rows = data.filter(filt[S.f]).map((d) => ({ ...d, pill: pill(d.status), rowStyle: d.county === S.sel ? 'background: #F4F8F5' : '', open: () => this.setState({ sel: d.county }) }));
-    const filters = ['All', 'Active', 'Needs attention'].map((label) => ({ label, pressed: S.f === label ? 'true' : 'false', pick: () => this.setState({ f: label }), style: 'font: inherit; font-size: 14px; font-weight: 600; min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; ' + (S.f === label ? 'background: #13201A; color: #FFFFFF; border: 1px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1px solid #D5D9D6') }));
+    const filters = ['All', 'Active', 'Needs attention'].map((label) => ({ label, pressed: S.f === label ? 'true' : 'false', pick: () => this.setState({ f: label }), style: 'font: inherit; font-size: 14px; font-weight: 600; min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; ' + (S.f === label ? 'background: #13201A; color: #FFFFFF; border: 1px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1px solid #D3D5D3') }));
     const d = data.find((x) => x.county === S.sel);
     const roles = ['Chairperson', 'Secretary', 'Treasurer', 'Youth leader', 'Women leader'];
     const sel = { county: d.county, status: d.status, pill: pill(d.status), subs: d.subs,

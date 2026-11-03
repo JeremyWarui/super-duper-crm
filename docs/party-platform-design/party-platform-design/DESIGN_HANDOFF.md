@@ -11,15 +11,42 @@ The `screens/` folder holds the mockups as `.dc.html` files (Design canvas forma
 | Party primary | `#0B5D3B` | buttons, active nav, links (configurable per party) |
 | Accent | `#F2B705` | highlights, secondary CTAs (text on it: `#13201A`) |
 | Ink | `#13201A` | text, dark panels, CRM sidebar |
-| Ground (public) | `#F6F5F0` | public site background |
-| Ground (app) | `#F3F4F2` | CRM / workspace background |
-| Muted text | `#4B5751` | secondary text (passes 4.5:1) |
-| Border | `#E1E4E2` / `#DEDBD0` | cards |
+| Ground (public) | `#FAFAF8` | faint warm-neutral page background (not cream); cards are white |
+| Ground (app) | `#F7F7F5` | CRM / workspace background; cards are white |
+| Homepage bands | `#FFFFFF` issues · `#F4F3EF` news · `#13201A` events · `#EEF4F0` counties · `#FFFFFF` candidates · `#0B5D3B` leadership · `#FFFFFF` join · `#F4F3EF` newsletter | each homepage section has its own band |
+| Muted text | `#4E5552` | secondary text (passes 4.5:1) |
+| Border | `#E9E9E5` / `#E8E8E4` | cards; inputs `#C9CCCF` |
+| Image placeholder | `#E7E6E1` | until real photos are uploaded |
 | Success / warn / danger pills | `#E3F1E8/#0B5D3B`, `#FFF3CC/#6B5100`, `#FCE4E2/#9A1C12` | status |
 | Vendor console | `#141826` sidebar, `#2F5BEA` primary | our own brand, separate from parties |
 | Fonts | Bricolage Grotesque 800 (display), Public Sans 400–700 (body) | Google Fonts |
 
+**Shared website header:** `SiteHeader` is one component (utility bar with EN/SW + sign-in, logo, main nav, Contribute, Join). Every public page uses it with its own section marked as active; signed-in pages (`MemberAccount`, `Plans`, `FlowApply`) show "My account" and "Sign out" in its place. Build it once and reuse it.
+
 Radii 10–24px, touch targets ≥ 44px, every page works at phone width.
+
+## Website patterns (see `WebPatterns` screen)
+
+Borrowed from Nation, The Standard and campaign/party sites; apply on every public page:
+
+- **Shared header** (`SiteHeader`): sticky, frosted see-through white with blur, current page as a soft green pill.
+- **Shared footer** (`SiteFooter`): SMS/email sign-up with consent wording, link columns, social, legal (privacy notice, data protection + ODPC reg., contributions disclosure, accessibility). `newsletter="false"` hides the sign-up (used on Join).
+- **Breadcrumbs** above every inner-page title.
+- **Section heads**: pill kicker + bold title + "see all →"; inside pages a 3px ink rule above section titles.
+- **News layout**: section bar + trending tags; lead story with three stories beside it; "Latest" (timestamped) and "Most read" (numbered) rails; label · place · date · read time on every card; "Watch" video strip; opinion with writer photos.
+- **Official record box** on statements: reference no., issued by, date, signed PDF.
+- **Homepage**: shorter hero with a "Find your branch" card (county → branch, events, membership check, results); agenda right after the hero; one combined "Three ways to take part" block.
+- **Phone action bar** (build rule): Join + Contribute fixed at the bottom on phone widths.
+
+**Modern-feel rules:** cards use a soft two-layer shadow (`0 1px 2px rgba(19,32,26,.04), 0 10px 30px rgba(19,32,26,.07)`) and a hairline edge instead of grey borders; radii 20–24px cards, 18px photos, round buttons/labels; photo placeholders as a soft warm gradient; hero overlay fades dark→light left to right; cards lift slightly on hover; respect reduced motion.
+
+Left out on purpose: paywall/ad slots, pop-up donation forms, WhatsApp chat buttons (political use barred), live vote counters on the homepage.
+
+## CRM header (`CrmTopBar` + page header)
+
+Every CRM screen pins two layers to the top while the content scrolls:
+1. **Top bar** (shared component): breadcrumb (Party CRM / page), global search (Ctrl K) across members, branches and aspirants, scope switcher (National HQ or one county; county officials only see their own), notifications with count and a drop-down list, help, and the signed-in person with their role.
+2. **Page header** (per screen, frosted): small context line, page title, and that page's actions on the right (primary button green, secondary outlined). Step-by-step flows (timetable, results, control room) use the same top bar; their Back/Next stay at the bottom of each step, while Save draft and Preview sit in the header.
 
 ## Roles
 
@@ -30,7 +57,7 @@ Visitor · Member · Aspirant/Candidate team · Mobilizer · Volunteer (member f
 **Sign-in** — `SignIn` (phone+SMS code for members/campaigns; email+password+2FA for staff) → `SysCode` / `SysReset` → `SysChooser` ("Where to?", only roles the person holds).
 
 **1 · Visitor → member** — `PartyHome` → `Join` (3 steps + M-Pesa fee, one-party declaration, consent) → `Members` (CRM verification queue: duplicate ID, other-party register, fee check) → `MemberAccount` (card, renewal, My branch, My tasks, Elections, My nomination, My data & privacy).
-Public pages: `PartyHome`, `News`, `PubArticle` (news article), `Events`, `PubIssue` (issue/position template), `PubBranch` (county branch), `PubAbout` (about, leadership, party organs, documents), `Candidates` (directory), `Candidate` (profile), `PubResults` (primary results + receipt checker).
+Public pages: `PartyHome` (hero is a full-width photo carousel: up to 5 slides set in Website content, 6-second rotation, prev/next, dots and a Pause control, dark overlay so text stays readable), `News`, `PubArticle` (news article), `Events`, `PubIssue` (issue/position template), `PubBranch` (county branch), `PubAbout` (about, leadership, party organs, documents), `Candidates` (directory), `Candidate` (profile), `PubResults` (primary results + receipt checker).
 
 **2 · Member → nominee** — `FlowTimetable` (dates, fees per seat, requirements; two-person sign-off) → `FlowApply` (aspirant: seat, documents, fee, declaration) → `CrmNominations` (vetting queue + checklist) → primaries: `VoteControl` (control room; counts sealed until two keyholders close polls), `VoteBallot` (online ballot, SMS-code confirm, receipt code), `VoteUssd` (USSD menu), `VoteClerk` (polling-centre check-in; one vote per member across all channels) → `FlowResults` (tally per centre, declare, certificate) → `CrmAppeals` (panel conflict declarations, ruling updates the seat) → `Nominees` (one nominee per seat; IEBC submission locked until every seat is resolved) + `CrmPartyLists` (ranked lists for nominated seats; live checks for gender alternation and special-interest inclusion; NEC approval). Public outcome: `PubResults`.
 

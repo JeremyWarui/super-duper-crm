@@ -10,72 +10,79 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F6F5F0}
+body{margin:0;background:#FAFAF8}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
-<header style="background: #F6F5F0; border-bottom: 1px solid #DEDBD0">
-<div style="max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
-<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #13201A"><span style="width: 44px; height: 44px; border-radius: 12px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">P</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Pamoja Party</span></a>
-<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px 22px; font-weight: 600; font-size: 15px">
-<a href="PubAbout.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">About</a>
-<a href="PubIssue.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Agenda &amp; issues</a>
-<a href="News.dc.html" aria-current="page" style="color: #0B5D3B; text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; padding: 10px 0">News</a>
-<a href="Events.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Events</a>
-<a href="Candidates.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Candidates</a>
-</nav>
-<a href="Join.dc.html" style="font-weight: 700; font-size: 15px; color: #13201A; background: #F2B705; padding: 13px 20px; border-radius: 999px; text-decoration: none">Join the party</a>
-</div>
-</header>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #FAFAF8; min-height: 100%">
+<div style="position: sticky; top: 0; z-index: 30"><dc-import name="SiteHeader" active="News" hint-size="100%,130px"></dc-import></div>
 
 <main style="max-width: 1240px; margin: 0 auto; padding: 40px 24px 72px; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start">
 <article style="flex: 999 1 560px; min-width: 0; max-width: 760px; display: flex; flex-direction: column; gap: 22px">
-<p style="margin: 0; font-size: 14px; color: #4B5751"><a href="PartyHome.dc.html" style="color: #4B5751">Home</a> / <a href="News.dc.html" style="color: #4B5751">News</a> / Statements</p>
-<span style="font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #0B5D3B">Statement · [dd Mon YYYY]</span>
+<p style="margin: 0; font-size: 14px; color: #4E5552"><a href="PartyHome.dc.html" style="color: #4E5552">Home</a> / <a href="News.dc.html" style="color: #4E5552">News</a> / Statements</p>
+<span style="display: flex; gap: 10px; align-items: center; font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase"><span style="background: #0B5D3B; color: #FFFFFF; padding: 4px 8px; border-radius: 6px">Statement</span><span style="color: #4E5552">National</span></span>
 <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(34px, 4.5vw, 52px); line-height: 1.05; letter-spacing: -0.02em">[Headline of the party's statement on a national issue]</h1>
-<p style="margin: 0; font-size: 20px; line-height: 1.6; color: #3D4A43">[Standfirst: one or two sentences that tell the reader what the party is saying and why it matters to them.]</p>
-<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-top: 1px solid #DEDBD0; border-bottom: 1px solid #DEDBD0">
-<div style="display: flex; align-items: center; gap: 10px"><span style="width: 40px; height: 40px; border-radius: 50%; background: #DCD8CB"></span><div style="display: flex; flex-direction: column"><strong style="font-size: 15px">[Name], Secretary General</strong><span style="font-size: 13px; color: #4B5751">[0] min read</span></div></div>
+<p style="margin: 0; font-size: 20px; line-height: 1.6; color: #3D4441">[Standfirst: one or two sentences that tell the reader what the party is saying and why it matters to them.]</p>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-top: 1px solid #E8E8E4; border-bottom: 1px solid #E8E8E4">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #EEEDE8 0%, #E1E0DA 100%)"></span><div style="display: flex; flex-direction: column"><strong style="font-size: 15px">[Name], Secretary General</strong><span style="font-size: 13px; color: #4E5552">Published [dd Mon YYYY, 00:00] · Updated [00:00] · [0] min read</span></div></div>
 <div style="display: flex; gap: 8px">
-<button type="button" onClick="{{copy}}" style="font: inherit; font-weight: 700; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #C9C5B8; height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer">{{copyLabel}}</button>
-<a href="#" style="font-weight: 700; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #C9C5B8; height: 40px; padding: 0 14px; border-radius: 999px; display: flex; align-items: center; text-decoration: none">Share by SMS</a>
-<a href="#" style="font-weight: 700; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #C9C5B8; height: 40px; padding: 0 14px; border-radius: 999px; display: flex; align-items: center; text-decoration: none">Kiswahili</a>
+<button type="button" onClick="{{copy}}" style="font: inherit; font-weight: 700; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #C9CCCF; height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer">{{copyLabel}}</button>
+<a href="#" style="font-weight: 700; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #C9CCCF; height: 40px; padding: 0 14px; border-radius: 999px; display: flex; align-items: center; text-decoration: none">Share by SMS</a>
+<a href="#" style="font-weight: 700; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #C9CCCF; height: 40px; padding: 0 14px; border-radius: 999px; display: flex; align-items: center; text-decoration: none">Kiswahili</a>
 </div>
 </div>
-<div style="aspect-ratio: 16 / 9; border-radius: 18px; background: #DCD8CB; display: flex; align-items: center; justify-content: center; color: #5B6660; font-weight: 600">[Photo with caption and credit]</div>
+<div style="aspect-ratio: 16 / 9; border-radius: 18px; background: linear-gradient(135deg, #EEEDE8 0%, #E1E0DA 100%); display: flex; align-items: center; justify-content: center; color: #5D6360; font-weight: 600">[Photo with caption and credit]</div>
 <p style="margin: 0; font-size: 18px; line-height: 1.75">[Opening paragraph setting out the situation in plain language.]</p>
 <p style="margin: 0; font-size: 18px; line-height: 1.75">[Second paragraph: the party's position and the reasons for it.]</p>
 <blockquote style="margin: 8px 0; padding: 4px 0 4px 24px; border-left: 4px solid #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px; line-height: 1.3">"[A short quote from the party leader.]"</blockquote>
 <p style="margin: 0; font-size: 18px; line-height: 1.75">[Third paragraph: what the party will do, and what it asks of members and the public.]</p>
-<div style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 16px; padding: 18px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
-<span style="font-size: 15px">Related issue: <a href="PubIssue.dc.html" style="font-weight: 700">[Jobs &amp; livelihoods]</a></span>
-<a href="#" style="font-weight: 700; font-size: 14px">Download the full statement (PDF)</a>
+<section aria-labelledby="rec-h" style="background: #FFFFFF; border: 1px solid #E8E8E4; border-left: 4px solid #0B5D3B; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="rec-h" style="margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase">Official record</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 15px">
+<dt style="color: #4E5552">Reference</dt><dd style="margin: 0; font-weight: 600">[PP/ST/000/YYYY]</dd>
+<dt style="color: #4E5552">Issued by</dt><dd style="margin: 0; font-weight: 600">[Name], Secretary General</dd>
+<dt style="color: #4E5552">Date issued</dt><dd style="margin: 0; font-weight: 600">[dd Mon YYYY]</dd>
+<dt style="color: #4E5552">Related issue</dt><dd style="margin: 0; font-weight: 600"><a href="PubIssue.dc.html">[Jobs &amp; livelihoods]</a></dd>
+</dl>
+<a href="#" style="font-weight: 700; font-size: 14px">Download the signed statement (PDF)</a>
+</section>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<span style="font-size: 13px; font-weight: 700; color: #4E5552; margin-right: 4px">Topics</span>
+<sc-for list="{{tags}}" as="g" hint-placeholder-count="3"><a href="News.dc.html" style="font-size: 14px; font-weight: 600; color: #13201A; background: #F4F3EF; padding: 6px 12px; border-radius: 999px; text-decoration: none">#{{g}}</a></sc-for>
 </div>
 </article>
 
 <aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
-<section aria-labelledby="rel-h" style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
-<h2 id="rel-h" style="margin: 0; font-size: 18px; font-weight: 700">More statements</h2>
-<sc-for list="{{related}}" as="r" hint-placeholder-count="3"><a href="PubArticle.dc.html" style="display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid #EDEBE4; text-decoration: none; color: #13201A"><span style="font-size: 12px; font-weight: 700; color: #0B5D3B">{{r.when}}</span><strong style="font-size: 15px; line-height: 1.35">{{r.title}}</strong></a></sc-for>
+<section aria-labelledby="rel-h" style="background: #FFFFFF; border: 1px solid rgba(19,32,26,0.05); border-radius: 20px; box-shadow: 0 1px 2px rgba(19,32,26,0.04), 0 10px 30px rgba(19,32,26,0.07); padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="rel-h" style="margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase">Latest statements</h2>
+<sc-for list="{{related}}" as="r" hint-placeholder-count="3"><a href="PubArticle.dc.html" style="display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid #F0F0EC; text-decoration: none; color: #13201A"><span style="font-size: 12px; font-weight: 700; color: #0B5D3B">{{r.when}}</span><strong style="font-size: 15px; line-height: 1.35">{{r.title}}</strong></a></sc-for>
 </section>
-<section style="background: #13201A; color: #F6F5F0; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
-<h2 style="margin: 0; font-size: 18px; font-weight: 700">Get statements by SMS</h2>
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #DDE3DF">Phone<input type="tel" placeholder="07XX XXX XXX" style="font: inherit; font-size: 15px; padding: 11px 12px; border: 0; border-radius: 10px"></label>
-<button type="button" style="font: inherit; font-weight: 700; font-size: 14px; color: #13201A; background: #F2B705; border: 0; height: 44px; border-radius: 10px; cursor: pointer">Subscribe</button>
-<span style="font-size: 12px; color: #B9C2BC">Reply STOP any time.</span>
+<section aria-labelledby="mr-h" style="background: #FFFFFF; border: 1px solid rgba(19,32,26,0.05); border-radius: 20px; box-shadow: 0 1px 2px rgba(19,32,26,0.04), 0 10px 30px rgba(19,32,26,0.07); padding: 20px">
+<h2 id="mr-h" style="margin: 0 0 8px; font-size: 14px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase">Most read</h2>
+<ol style="margin: 0; padding: 0; list-style: none">
+<sc-for list="{{mostRead}}" as="m" hint-placeholder-count="5"><li style="display: flex; gap: 14px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid #F0F0EC"><span style="flex: 0 0 28px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; color: #F2B705; line-height: 1">{{m.n}}</span><a href="PubArticle.dc.html" style="color: #13201A; font-weight: 600; text-decoration: none; line-height: 1.4">{{m.title}}</a></li></sc-for>
+</ol>
 </section>
 </aside>
 </main>
-<footer style="background: #13201A; color: #B9C2BC"><div style="max-width: 1240px; margin: 0 auto; padding: 28px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; font-size: 13px"><span>© [Year] Pamoja Party · Reg. No. [000]</span><span>Powered by [Your product]</span></div></footer>
+<section aria-labelledby="next-h" style="max-width: 1240px; margin: 0 auto; padding: 0 24px 72px; display: flex; flex-direction: column; gap: 20px">
+<h2 id="next-h" style="margin: 0; border-top: 3px solid #13201A; padding-top: 14px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">Read next</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px">
+<sc-for list="{{next}}" as="n" hint-placeholder-count="3"><a href="PubArticle.dc.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #13201A"><div style="aspect-ratio: 16 / 10; border-radius: 18px; background: linear-gradient(135deg, #EEEDE8 0%, #E1E0DA 100%)"></div><span style="font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">{{n.cat}}</span><span style="font-size: 18px; font-weight: 700; line-height: 1.3">{{n.title}}</span><span style="font-size: 13px; color: #4E5552">[Date] · [0] min read</span></a></sc-for>
+</div>
+</section>
+<dc-import name="SiteFooter" hint-size="100%,520px"></dc-import>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2300}}'>
 class Component extends DCLogic {
   constructor(p) { super(p); this.state = { copied: false }; }
   renderVals() {
     return {
       copy: () => this.setState({ copied: true }), copyLabel: this.state.copied ? 'Link copied ✓' : 'Copy link',
+      tags: ['[Topic one]', '[Jobs]', '[County tour]'],
+      mostRead: [1, 2, 3, 4, 5].map((n) => ({ n, title: '[Most-read headline ' + n + ']' })),
+      next: [{ cat: 'Nominations', title: '[Nomination timetable and fees published]' }, { cat: 'Counties', title: '[Branch delegates elect new officials]' }, { cat: 'Opinion', title: '[Op-ed: why devolution needs …]' }],
       related: [{ when: '[dd Mon]', title: '[Party responds to …]' }, { when: '[dd Mon]', title: '[Nominations timetable published]' }, { when: '[dd Mon]', title: '[Branch elections update]' }]
     };
   }

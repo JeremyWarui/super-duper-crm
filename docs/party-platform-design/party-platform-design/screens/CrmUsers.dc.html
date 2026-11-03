@@ -10,15 +10,15 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F3F4F2}
+body{margin:0;background:#F7F7F5}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F7F7F5; min-height: 100vh; display: flex; flex-wrap: wrap">
 <nav aria-label="Party CRM" style="flex: 1 1 240px; max-width: 100%; background: #13201A; color: #DDE3DF; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
 <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
 <span style="width: 34px; height: 34px; border-radius: 9px; background: #F2B705; display: flex; align-items: center; justify-content: center; color: #13201A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 17px">P</span>
-<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #F6F5F0">Pamoja Party</span><span style="font-size: 12px; color: #9FAAA4">Secretariat · HQ</span></div>
+<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #FAFAF8">Pamoja Party</span><span style="font-size: 12px; color: #9FAAA4">Secretariat · HQ</span></div>
 </div>
 <div style="display: flex; flex-direction: column; gap: 2px">
 <sc-for list="{{nav}}" as="n" hint-placeholder-count="8"><a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a></sc-for>
@@ -26,67 +26,71 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <p style="margin: auto 8px 0; font-size: 12px; color: #9FAAA4">Powered by [Your product]</p>
 </nav>
 
-<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
-<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column">
+<div style="position: sticky; top: 0; z-index: 20">
+<dc-import name="CrmTopBar" page="Users &amp; data" role="HQ admin" hint-size="100%,64px"></dc-import>
+<header style="background: rgba(250,250,248,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(19,32,26,0.06); padding: 18px 32px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 4px">
-<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4B5751">Settings</p>
-<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Users, roles &amp; data protection</h1>
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4E5552">Settings</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: -0.02em; line-height: 1.1">Users, roles &amp; data protection</h1>
 </div>
-<span style="font-size: 14px; color: #4B5751">Data protection officer: <strong style="color: #13201A">[Name]</strong></span>
+<span style="font-size: 14px; color: #4E5552">Data protection officer: <strong style="color: #13201A">[Name]</strong></span>
 </header>
+</div>
+<div style="padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px">
 
-<div role="tablist" aria-label="Section" style="display: flex; gap: 4px; border-bottom: 1px solid #D5D9D6">
+<div role="tablist" aria-label="Section" style="display: flex; gap: 4px; border-bottom: 1px solid #D3D5D3">
 <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
 </div>
 
 <sc-if value="{{isUsers}}" hint-placeholder-val="{{ true }}">
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-<section aria-labelledby="u-h" style="flex: 3 1 540px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<section aria-labelledby="u-h" style="flex: 3 1 540px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
 <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
 <h2 id="u-h" style="margin: 0; font-size: 20px; font-weight: 700">Staff accounts</h2>
 <a href="FlowInvite.dc.html" style="font-weight: 700; font-size: 14px; color: #FFFFFF; background: #0B5D3B; height: 40px; padding: 0 14px; border-radius: 10px; display: flex; align-items: center; text-decoration: none">Invite user</a>
 </div>
 <div style="overflow-x: auto">
 <table style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 15px">
-<thead><tr style="text-align: left; color: #4B5751; font-size: 13px">
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Name</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Role</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Scope</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">2-step</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Last active</th>
+<thead><tr style="text-align: left; color: #4E5552; font-size: 13px">
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Name</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Role</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Scope</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">2-step</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Last active</th>
 </tr></thead>
 <tbody>
 <sc-for list="{{users}}" as="u" hint-placeholder-count="6">
 <tr>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE; font-weight: 600">{{u.name}}</td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{u.role}}</td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{u.scope}}</td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE"><span style="{{u.fa}}">{{u.faLabel}}</span></td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE; color: #4B5751">{{u.last}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC; font-weight: 600">{{u.name}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC">{{u.role}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC">{{u.scope}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC"><span style="{{u.fa}}">{{u.faLabel}}</span></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC; color: #4E5552">{{u.last}}</td>
 </tr>
 </sc-for>
 </tbody>
 </table>
 </div>
 </section>
-<section aria-labelledby="p-h" style="flex: 2 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<section aria-labelledby="p-h" style="flex: 2 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
 <h2 id="p-h" style="margin: 0; font-size: 20px; font-weight: 700">What each role can do</h2>
 <div style="overflow-x: auto">
 <table style="width: 100%; min-width: 320px; border-collapse: collapse; font-size: 14px">
-<thead><tr style="color: #4B5751; font-size: 12px">
-<th scope="col" style="padding: 8px; text-align: left; font-weight: 600; border-bottom: 1px solid #E1E4E2">Area</th>
-<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">HQ admin</th>
-<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">County</th>
-<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Comms</th>
+<thead><tr style="color: #4E5552; font-size: 12px">
+<th scope="col" style="padding: 8px; text-align: left; font-weight: 600; border-bottom: 1px solid #E9E9E5">Area</th>
+<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">HQ admin</th>
+<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">County</th>
+<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Comms</th>
 </tr></thead>
 <tbody>
 <sc-for list="{{perms}}" as="p" hint-placeholder-count="6">
-<tr><td style="padding: 9px 8px; border-bottom: 1px solid #EDEFEE; font-weight: 600">{{p.area}}</td><td style="padding: 9px 8px; border-bottom: 1px solid #EDEFEE; text-align: center">{{p.a}}</td><td style="padding: 9px 8px; border-bottom: 1px solid #EDEFEE; text-align: center">{{p.b}}</td><td style="padding: 9px 8px; border-bottom: 1px solid #EDEFEE; text-align: center">{{p.c}}</td></tr>
+<tr><td style="padding: 9px 8px; border-bottom: 1px solid #F0F0EC; font-weight: 600">{{p.area}}</td><td style="padding: 9px 8px; border-bottom: 1px solid #F0F0EC; text-align: center">{{p.a}}</td><td style="padding: 9px 8px; border-bottom: 1px solid #F0F0EC; text-align: center">{{p.b}}</td><td style="padding: 9px 8px; border-bottom: 1px solid #F0F0EC; text-align: center">{{p.c}}</td></tr>
 </sc-for>
 </tbody>
 </table>
 </div>
-<p style="margin: 0; font-size: 13px; color: #4B5751">County officials see only their county's members. No party role can open a candidate's private workspace.</p>
+<p style="margin: 0; font-size: 13px; color: #4E5552">County officials see only their county's members. No party role can open a candidate's private workspace.</p>
 </section>
 </div>
 </sc-if>
@@ -94,35 +98,36 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <sc-if value="{{isData}}" hint-placeholder-val="{{ false }}">
 <div style="display: flex; flex-direction: column; gap: 20px">
 <section aria-label="Consent records" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px">
-<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Consents on record</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[000,000]</span><span style="font-size: 13px; color: #4B5751">each with date, channel &amp; notice version</span></div>
-<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Withdrawn this month</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[000]</span><span style="font-size: 13px; color: #4B5751">removed from messaging</span></div>
-<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Open requests</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">{{openCount}}</span><span style="font-size: 13px; color: #4B5751">from members &amp; supporters</span></div>
-<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Privacy notice</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">v[0.0]</span><span style="font-size: 13px; color: #4B5751">published [date]</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4E5552">Consents on record</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[000,000]</span><span style="font-size: 13px; color: #4E5552">each with date, channel &amp; notice version</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4E5552">Withdrawn this month</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[000]</span><span style="font-size: 13px; color: #4E5552">removed from messaging</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4E5552">Open requests</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">{{openCount}}</span><span style="font-size: 13px; color: #4E5552">from members &amp; supporters</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4E5552">Privacy notice</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">v[0.0]</span><span style="font-size: 13px; color: #4E5552">published [date]</span></div>
 </section>
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-<section aria-labelledby="dr-h" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<section aria-labelledby="dr-h" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
 <h2 id="dr-h" style="margin: 0; font-size: 20px; font-weight: 700">Data requests</h2>
 <sc-for list="{{requests}}" as="r" hint-placeholder-count="4">
-<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #EDEFEE">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #F0F0EC">
 <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
 <span style="font-weight: 700">{{r.type}} · {{r.who}}</span>
-<span style="font-size: 13px; color: #4B5751">Received [date] via {{r.via}} · respond by [date]</span>
+<span style="font-size: 13px; color: #4E5552">Received [date] via {{r.via}} · respond by [date]</span>
 </div>
 <sc-if value="{{r.open}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{r.done}}" style="font: inherit; font-size: 14px; font-weight: 700; color: #FFFFFF; background: #0B5D3B; border: 0; height: 40px; padding: 0 14px; border-radius: 10px; cursor: pointer">{{r.action}}</button></sc-if>
 <sc-if value="{{r.closed}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #E3F1E8; color: #0B5D3B">Completed &amp; logged</span></sc-if>
 </div>
 </sc-for>
 </section>
-<section aria-labelledby="ret-h" style="flex: 2 1 320px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<section aria-labelledby="ret-h" style="flex: 2 1 320px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
 <h2 id="ret-h" style="margin: 0; font-size: 20px; font-weight: 700">Retention rules</h2>
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Lapsed members' records<select style="font: inherit; font-weight: 500; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>Delete after [0] years</option></select></label>
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Event sign-ups (non-members)<select style="font: inherit; font-weight: 500; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>Delete [00] days after event</option></select></label>
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Audit log<select style="font: inherit; font-weight: 500; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>Keep [0] years</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Lapsed members' records<select style="font: inherit; font-weight: 500; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9CCCF; border-radius: 10px; background: #FFFFFF"><option>Delete after [0] years</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Event sign-ups (non-members)<select style="font: inherit; font-weight: 500; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9CCCF; border-radius: 10px; background: #FFFFFF"><option>Delete [00] days after event</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Audit log<select style="font: inherit; font-weight: 500; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9CCCF; border-radius: 10px; background: #FFFFFF"><option>Keep [0] years</option></select></label>
 <a href="#" style="font-weight: 700">View full audit log →</a>
 </section>
 </div>
 </div>
 </sc-if>
+</div>
 </main>
 </div>
 </x-dc>
@@ -132,7 +137,7 @@ class Component extends DCLogic {
   renderVals() {
     const S = this.state;
     const tabs = ['Users & roles', 'Data protection'].map((label) => ({ label, selected: S.tab === label ? 'true' : 'false', pick: () => this.setState({ tab: label }),
-      style: 'font: inherit; font-size: 15px; font-weight: 700; background: none; border: 0; padding: 12px 16px; min-height: 46px; cursor: pointer; margin-bottom: -1px; border-bottom: 3px solid ' + (S.tab === label ? '#0B5D3B; color: #0B5D3B' : 'transparent; color: #4B5751') }));
+      style: 'font: inherit; font-size: 15px; font-weight: 700; background: none; border: 0; padding: 12px 16px; min-height: 46px; cursor: pointer; margin-bottom: -1px; border-bottom: 3px solid ' + (S.tab === label ? '#0B5D3B; color: #0B5D3B' : 'transparent; color: #4E5552') }));
     const on = 'font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: #E3F1E8; color: #0B5D3B';
     const off = 'font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: #FCE4E2; color: #9A1C12';
     const users = [

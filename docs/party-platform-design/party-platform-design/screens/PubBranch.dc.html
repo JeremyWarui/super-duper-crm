@@ -10,31 +10,19 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F6F5F0}
+body{margin:0;background:#FAFAF8}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
-<header style="background: #F6F5F0; border-bottom: 1px solid #DEDBD0">
-<div style="max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
-<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #13201A"><span style="width: 44px; height: 44px; border-radius: 12px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">P</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Pamoja Party</span></a>
-<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px 22px; font-weight: 600; font-size: 15px">
-<a href="PubAbout.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">About</a>
-<a href="PubIssue.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Agenda &amp; issues</a>
-<a href="News.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">News</a>
-<a href="Events.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Events</a>
-<a href="Candidates.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Candidates</a>
-</nav>
-<a href="Join.dc.html" style="font-weight: 700; font-size: 15px; color: #13201A; background: #F2B705; padding: 13px 20px; border-radius: 999px; text-decoration: none">Join the party</a>
-</div>
-</header>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #FAFAF8; min-height: 100%">
+<div style="position: sticky; top: 0; z-index: 30"><dc-import name="SiteHeader" active="Counties" hint-size="100%,130px"></dc-import></div>
 
 <section style="background: #E7F0EA">
 <div style="max-width: 1240px; margin: 0 auto; padding: 44px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px">
 <div style="display: flex; flex-direction: column; gap: 10px">
-<p style="margin: 0; font-size: 14px; color: #3D4A43"><a href="PartyHome.dc.html" style="color: #3D4A43">Home</a> / Counties / Nakuru</p>
+<p style="margin: 0; font-size: 14px; color: #3D4441"><a href="PartyHome.dc.html" style="color: #3D4441">Home</a> / Counties / Nakuru</p>
 <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(40px, 5vw, 60px); letter-spacing: -0.03em">Nakuru County branch</h1>
-<p style="margin: 0; font-size: 17px; color: #3D4A43">[00] constituency sub-branches · [0,000] members</p>
+<p style="margin: 0; font-size: 17px; color: #3D4441">[00] constituency sub-branches · [0,000] members</p>
 </div>
 <div style="display: flex; flex-wrap: wrap; gap: 10px">
 <a href="Join.dc.html" style="font-weight: 700; color: #FFFFFF; background: #0B5D3B; padding: 14px 22px; border-radius: 999px; text-decoration: none">Join this branch</a>
@@ -45,49 +33,49 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 
 <main style="max-width: 1240px; margin: 0 auto; padding: 44px 24px 72px; display: flex; flex-direction: column; gap: 40px">
 <section aria-labelledby="o-h" style="display: flex; flex-direction: column; gap: 18px">
-<h2 id="o-h" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">Branch officials</h2>
+<h2 id="o-h" style="margin: 0; border-top: 3px solid #13201A; padding-top: 14px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">Branch officials</h2>
 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px">
 <sc-for list="{{officials}}" as="o" hint-placeholder-count="5">
-<div style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 18px; overflow: hidden; display: flex; flex-direction: column">
-<div style="aspect-ratio: 1 / 1; background: #DCD8CB; display: flex; align-items: center; justify-content: center; color: #5B6660; font-size: 13px; font-weight: 600">{{o.photo}}</div>
-<div style="padding: 14px; display: flex; flex-direction: column; gap: 2px"><strong>{{o.name}}</strong><span style="font-size: 14px; color: #4B5751">{{o.role}}</span></div>
+<div style="background: #FFFFFF; border: 1px solid rgba(19,32,26,0.05); border-radius: 20px; box-shadow: 0 1px 2px rgba(19,32,26,0.04), 0 10px 30px rgba(19,32,26,0.07); overflow: hidden; display: flex; flex-direction: column">
+<div style="aspect-ratio: 1 / 1; background: linear-gradient(135deg, #EEEDE8 0%, #E1E0DA 100%); display: flex; align-items: center; justify-content: center; color: #5D6360; font-size: 13px; font-weight: 600">{{o.photo}}</div>
+<div style="padding: 14px; display: flex; flex-direction: column; gap: 2px"><strong>{{o.name}}</strong><span style="font-size: 14px; color: #4E5552">{{o.role}}</span></div>
 </div>
 </sc-for>
 </div>
 </section>
 
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-<section aria-labelledby="e-h" style="flex: 3 1 460px; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+<section aria-labelledby="e-h" style="flex: 3 1 460px; background: #FFFFFF; border: 1px solid rgba(19,32,26,0.05); border-radius: 20px; box-shadow: 0 1px 2px rgba(19,32,26,0.04), 0 10px 30px rgba(19,32,26,0.07); padding: 24px; display: flex; flex-direction: column; gap: 10px">
 <h2 id="e-h" style="margin: 0; font-size: 22px; font-weight: 700">Upcoming in Nakuru</h2>
 <sc-for list="{{events}}" as="e" hint-placeholder-count="3">
-<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #EDEBE4"><div style="display: flex; flex-direction: column; gap: 2px"><strong>{{e.t}}</strong><span style="font-size: 14px; color: #4B5751">{{e.m}}</span></div><a href="Events.dc.html" style="font-weight: 700; font-size: 14px">RSVP</a></div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #F0F0EC"><div style="display: flex; flex-direction: column; gap: 2px"><strong>{{e.t}}</strong><span style="font-size: 14px; color: #4E5552">{{e.m}}</span></div><a href="Events.dc.html" style="font-weight: 700; font-size: 14px">RSVP</a></div>
 </sc-for>
 <h2 style="margin: 16px 0 0; font-size: 22px; font-weight: 700">Sub-branches</h2>
 <div style="display: flex; flex-wrap: wrap; gap: 8px">
-<sc-for list="{{subs}}" as="s" hint-placeholder-count="6"><span style="font-size: 14px; font-weight: 600; padding: 8px 14px; border-radius: 999px; background: #F3F4F2">{{s}}</span></sc-for>
+<sc-for list="{{subs}}" as="s" hint-placeholder-count="6"><span style="font-size: 14px; font-weight: 600; padding: 8px 14px; border-radius: 999px; background: #F7F7F5">{{s}}</span></sc-for>
 </div>
 </section>
 <section id="office" aria-labelledby="of-h" style="flex: 2 1 320px; display: flex; flex-direction: column; gap: 16px">
-<div style="background: #13201A; color: #F6F5F0; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 8px">
+<div style="background: #13201A; color: #FAFAF8; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 8px">
 <h2 id="of-h" style="margin: 0 0 4px; font-size: 20px; font-weight: 700">Branch office</h2>
 <span>[Building, street], [Town]</span>
 <span>Open [Mon–Fri, 8:00–17:00]</span>
 <span>[Phone] · [email]</span>
 </div>
-<div style="aspect-ratio: 4 / 3; border-radius: 20px; background: #E3E8E4; display: flex; align-items: center; justify-content: center; color: #4B5751; font-weight: 600">[Map]</div>
+<div style="aspect-ratio: 4 / 3; border-radius: 20px; background: #ECECE7; display: flex; align-items: center; justify-content: center; color: #4E5552; font-weight: 600">[Map]</div>
 </section>
 </div>
 
 <section aria-labelledby="ln-h" style="display: flex; flex-direction: column; gap: 14px">
-<h2 id="ln-h" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">Local news</h2>
+<h2 id="ln-h" style="margin: 0; border-top: 3px solid #13201A; padding-top: 14px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">Local news</h2>
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px">
-<a href="PubArticle.dc.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #13201A"><div style="aspect-ratio: 16 / 10; border-radius: 14px; background: #DCD8CB"></div><strong style="font-size: 17px">[Branch delegates elect new officials]</strong></a>
-<a href="PubArticle.dc.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #13201A"><div style="aspect-ratio: 16 / 10; border-radius: 14px; background: #DCD8CB"></div><strong style="font-size: 17px">[Youth league membership drive]</strong></a>
-<a href="PubArticle.dc.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #13201A"><div style="aspect-ratio: 16 / 10; border-radius: 14px; background: #DCD8CB"></div><strong style="font-size: 17px">[Town hall on water access]</strong></a>
+<a href="PubArticle.dc.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #13201A"><div style="aspect-ratio: 16 / 10; border-radius: 18px; background: linear-gradient(135deg, #EEEDE8 0%, #E1E0DA 100%)"></div><strong style="font-size: 17px">[Branch delegates elect new officials]</strong></a>
+<a href="PubArticle.dc.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #13201A"><div style="aspect-ratio: 16 / 10; border-radius: 18px; background: linear-gradient(135deg, #EEEDE8 0%, #E1E0DA 100%)"></div><strong style="font-size: 17px">[Youth league membership drive]</strong></a>
+<a href="PubArticle.dc.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #13201A"><div style="aspect-ratio: 16 / 10; border-radius: 18px; background: linear-gradient(135deg, #EEEDE8 0%, #E1E0DA 100%)"></div><strong style="font-size: 17px">[Town hall on water access]</strong></a>
 </div>
 </section>
 </main>
-<footer style="background: #13201A; color: #B9C2BC"><div style="max-width: 1240px; margin: 0 auto; padding: 28px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; font-size: 13px"><span>© [Year] Pamoja Party · Reg. No. [000]</span><span>Powered by [Your product]</span></div></footer>
+<dc-import name="SiteFooter" hint-size="100%,520px"></dc-import>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1400}}'>

@@ -10,15 +10,15 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F3F4F2}
+body{margin:0;background:#F7F7F5}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F7F7F5; min-height: 100vh; display: flex; flex-wrap: wrap">
 <nav aria-label="Party CRM" style="flex: 1 1 240px; max-width: 100%; background: #13201A; color: #DDE3DF; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
 <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
 <span style="width: 34px; height: 34px; border-radius: 9px; background: #F2B705; display: flex; align-items: center; justify-content: center; color: #13201A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 17px">P</span>
-<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #F6F5F0">Pamoja Party</span><span style="font-size: 12px; color: #9FAAA4">Appeals committee</span></div>
+<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #FAFAF8">Pamoja Party</span><span style="font-size: 12px; color: #9FAAA4">Appeals committee</span></div>
 </div>
 <div style="display: flex; flex-direction: column; gap: 2px">
 <sc-for list="{{nav}}" as="n" hint-placeholder-count="10"><a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a></sc-for>
@@ -26,39 +26,43 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <p style="margin: auto 8px 0; font-size: 12px; color: #9FAAA4">Powered by [Your product]</p>
 </nav>
 
-<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
-<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column">
+<div style="position: sticky; top: 0; z-index: 20">
+<dc-import name="CrmTopBar" page="Appeals" role="Appeals panel" hint-size="100%,64px"></dc-import>
+<header style="background: rgba(250,250,248,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(19,32,26,0.06); padding: 18px 32px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 4px">
-<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4B5751"><a href="CrmNominations.dc.html">Nominations</a> / Appeals</p>
-<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Appeals</h1>
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4E5552"><a href="CrmNominations.dc.html">Nominations</a> / Appeals</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: -0.02em; line-height: 1.1">Appeals</h1>
 </div>
-<span style="font-size: 14px; color: #4B5751">Rulings due within [00] days of filing, under the nomination rules</span>
+<span style="font-size: 14px; color: #4E5552">Rulings due within [00] days of filing, under the nomination rules</span>
 </header>
+</div>
+<div style="padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 22px">
 
 <div style="display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start">
-<section aria-labelledby="cases-h" style="flex: 1 1 320px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+<section aria-labelledby="cases-h" style="flex: 1 1 320px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
 <h2 id="cases-h" style="margin: 0 0 6px; font-size: 18px; font-weight: 700">Cases</h2>
 <sc-for list="{{cases}}" as="c" hint-placeholder-count="3">
 <button type="button" onClick="{{c.open}}" style="{{c.style}}">
 <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%"><strong style="font-size: 14px">{{c.no}}</strong><span style="{{c.pill}}">{{c.status}}</span></span>
 <span style="font-size: 15px; font-weight: 700; text-align: left">{{c.who}}</span>
-<span style="font-size: 13px; color: #4B5751; text-align: left">{{c.against}} · {{c.seat}}</span>
-<span style="font-size: 12px; color: #4B5751">Ruling due {{c.due}}</span>
+<span style="font-size: 13px; color: #4E5552; text-align: left">{{c.against}} · {{c.seat}}</span>
+<span style="font-size: 12px; color: #4E5552">Ruling due {{c.due}}</span>
 </button>
 </sc-for>
 </section>
 
-<section aria-labelledby="case-h" style="flex: 3 1 560px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+<section aria-labelledby="case-h" style="flex: 3 1 560px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 18px">
 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px">
-<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; font-weight: 800; letter-spacing: 0.08em; color: #0B5D3B">{{c.no}} · FILED [DATE]</span><h2 id="case-h" style="margin: 0; font-size: 22px; font-weight: 700">{{c.who}} v. {{c.respondent}}</h2><span style="font-size: 14px; color: #4B5751">{{c.against}} · {{c.seat}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; font-weight: 800; letter-spacing: 0.08em; color: #0B5D3B">{{c.no}} · FILED [DATE]</span><h2 id="case-h" style="margin: 0; font-size: 22px; font-weight: 700">{{c.who}} v. {{c.respondent}}</h2><span style="font-size: 14px; color: #4E5552">{{c.against}} · {{c.seat}}</span></div>
 <span style="{{c.pill}}">{{c.status}}</span>
 </div>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px">
-<div style="background: #F3F4F2; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><strong style="font-size: 14px">Grounds</strong><span style="font-size: 14px; line-height: 1.55; color: #3D4A43">{{c.grounds}}</span></div>
-<div style="background: #F3F4F2; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><strong style="font-size: 14px">Evidence</strong>
+<div style="background: #F7F7F5; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><strong style="font-size: 14px">Grounds</strong><span style="font-size: 14px; line-height: 1.55; color: #3D4441">{{c.grounds}}</span></div>
+<div style="background: #F7F7F5; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><strong style="font-size: 14px">Evidence</strong>
 <sc-for list="{{c.evidence}}" as="e" hint-placeholder-count="3"><a href="#" style="font-size: 14px; font-weight: 600">{{e}}</a></sc-for>
-<span style="font-size: 13px; color: #4B5751">Respondent's reply: {{c.reply}}</span></div>
+<span style="font-size: 13px; color: #4E5552">Respondent's reply: {{c.reply}}</span></div>
 </div>
 
 <sc-if value="{{open}}" hint-placeholder-val="{{ true }}">
@@ -66,23 +70,23 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <div style="display: flex; flex-direction: column; gap: 8px">
 <strong style="font-size: 15px">Panel — each member must declare no conflict of interest</strong>
 <sc-for list="{{panel}}" as="p" hint-placeholder-count="3">
-<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: #F7F8F7; font-size: 14px; cursor: pointer">
+<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: #F7F7F5; font-size: 14px; cursor: pointer">
 <span><strong>{{p.name}}</strong> · {{p.role}}</span>
 <span style="display: flex; gap: 8px; align-items: center">{{p.label}}<input type="checkbox" checked="{{p.on}}" onChange="{{p.toggle}}" style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B"></span>
 </label>
 </sc-for>
 </div>
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; align-items: end">
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Hearing<input type="datetime-local" style="font: inherit; font-weight: 400; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Hearing<input type="datetime-local" style="font: inherit; font-weight: 400; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9CCCF; border-radius: 10px"></label>
 <label style="display: flex; gap: 10px; align-items: center; font-size: 14px; font-weight: 600"><input type="checkbox" checked style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B">Notify both parties by SMS &amp; email</label>
 </div>
 <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
 <legend style="font-size: 15px; font-weight: 700; margin-bottom: 8px">Decision</legend>
 <sc-for list="{{options}}" as="o" hint-placeholder-count="4">
-<label style="{{o.style}}"><input type="radio" name="dec" checked="{{o.on}}" onChange="{{o.pick}}" style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B"><span style="display: flex; flex-direction: column"><strong style="font-size: 15px">{{o.label}}</strong><span style="font-size: 13px; color: #4B5751">{{o.effect}}</span></span></label>
+<label style="{{o.style}}"><input type="radio" name="dec" checked="{{o.on}}" onChange="{{o.pick}}" style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B"><span style="display: flex; flex-direction: column"><strong style="font-size: 15px">{{o.label}}</strong><span style="font-size: 13px; color: #4E5552">{{o.effect}}</span></span></label>
 </sc-for>
 </fieldset>
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Written ruling<textarea rows="3" placeholder="Reasons for the decision, citing the nomination rules (shared with both parties)" style="font: inherit; font-weight: 400; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; resize: vertical"></textarea></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Written ruling<textarea rows="3" placeholder="Reasons for the decision, citing the nomination rules (shared with both parties)" style="font: inherit; font-weight: 400; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9CCCF; border-radius: 10px; resize: vertical"></textarea></label>
 <button type="button" onClick="{{issue}}" style="{{issueStyle}}">Issue ruling</button>
 </div>
 </sc-if>
@@ -90,12 +94,13 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <sc-if value="{{decided}}" hint-placeholder-val="{{ false }}">
 <div style="display: flex; flex-direction: column; gap: 10px; background: #E7F0EA; border-radius: 14px; padding: 18px">
 <strong style="font-size: 17px">Ruling issued: {{c.ruling}}</strong>
-<span style="font-size: 14px; color: #3D4A43">{{c.effectNote}}</span>
-<span style="font-size: 14px; color: #3D4A43">Both parties were notified. Either may take the matter to the Political Parties Disputes Tribunal.</span>
+<span style="font-size: 14px; color: #3D4441">{{c.effectNote}}</span>
+<span style="font-size: 14px; color: #3D4441">Both parties were notified. Either may take the matter to the Political Parties Disputes Tribunal.</span>
 <a href="Nominees.dc.html" style="font-weight: 700">Open the nominees board →</a>
 </div>
 </sc-if>
 </section>
+</div>
 </div>
 </main>
 </div>
@@ -113,11 +118,11 @@ class Component extends DCLogic {
     const tone = { 'New': ['#FCE4E2', '#9A1C12'], 'Hearing set': ['#FFF3CC', '#6B5100'], 'Decided': ['#E3F1E8', '#0B5D3B'] };
     const pill = (s) => 'flex: 0 0 auto; align-self: flex-start; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; background: ' + tone[s][0] + '; color: ' + tone[s][1];
     const cases = defs.map((d) => ({ ...d, status: S.status[d.id], pill: pill(S.status[d.id]), open: () => this.setState({ sel: d.id, dec: null }),
-      style: 'font: inherit; color: #13201A; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; border-radius: 12px; cursor: pointer; ' + (d.id === S.sel ? 'background: #E7F0EA; border: 1.5px solid #0B5D3B' : 'background: #FFFFFF; border: 1.5px solid #E1E4E2') }));
+      style: 'font: inherit; color: #13201A; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; border-radius: 12px; cursor: pointer; ' + (d.id === S.sel ? 'background: #E7F0EA; border: 1.5px solid #0B5D3B' : 'background: #FFFFFF; border: 1.5px solid #E9E9E5') }));
     const d = cases.find((x) => x.id === S.sel);
     const opts = [['Dismiss the appeal', 'The declared result stands; the winner can be certified'], ['Order a recount', 'Recount the disputed centres; tally re-opens for those forms'], ['Order a repeat primary', 'The seat returns to "Primary scheduled" on the nominees board'], ['Award the nomination to the appellant', 'The appellant becomes the nominee; reasons are required']];
     const options = opts.map((o, i) => ({ label: o[0], effect: o[1], on: S.dec === i, pick: () => this.setState({ dec: i }),
-      style: 'display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; cursor: pointer; ' + (S.dec === i ? 'background: #E7F0EA; border: 1.5px solid #0B5D3B' : 'background: #FFFFFF; border: 1.5px solid #E1E4E2') }));
+      style: 'display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; cursor: pointer; ' + (S.dec === i ? 'background: #E7F0EA; border: 1.5px solid #0B5D3B' : 'background: #FFFFFF; border: 1.5px solid #E9E9E5') }));
     const panel = [['[Name]', 'Chair'], ['[Name]', 'Member'], ['[Name]', 'Member']].map((p, i) => ({ name: p[0], role: p[1], on: S.decl[i], label: S.decl[i] ? 'No conflict ✓' : 'Not declared', toggle: () => { const n = S.decl.slice(); n[i] = !n[i]; this.setState({ decl: n }); } }));
     const ok = S.decl.every(Boolean) && S.dec !== null;
     const effects = ['Nominees board: seat moves to "Nominee certified" once the certificate is signed.', 'Nominees board: seat stays "Appeal pending" until the recount tally is declared.', 'Nominees board: seat moves to "Primary scheduled".', 'Nominees board: appellant set as nominee; certificate to be issued.'];
@@ -130,7 +135,7 @@ class Component extends DCLogic {
       nav, cases, c: d, panel, options,
       open: S.status[S.sel] !== 'Decided', decided: S.status[S.sel] === 'Decided',
       issue: () => { if (ok) this.setState({ status: { ...S.status, [S.sel]: 'Decided' }, ruled: { ...S.ruled, [S.sel]: S.dec === 0 ? 'Appeal dismissed' : opts[S.dec][0] } }); },
-      issueStyle: 'align-self: flex-start; font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; border: 0; height: 48px; padding: 0 22px; border-radius: 12px; ' + (ok ? 'background: #0B5D3B; cursor: pointer' : 'background: #9AA49F; cursor: not-allowed')
+      issueStyle: 'align-self: flex-start; font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; border: 0; height: 48px; padding: 0 22px; border-radius: 12px; ' + (ok ? 'background: #0B5D3B; cursor: pointer' : 'background: #9A9F9C; cursor: not-allowed')
     };
   }
 }

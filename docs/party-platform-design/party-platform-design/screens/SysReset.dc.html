@@ -10,12 +10,12 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F6F5F0}
+body{margin:0;background:#FAFAF8}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 48px 24px; box-sizing: border-box">
-<div style="width: 100%; max-width: 460px; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 24px; padding: 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #FAFAF8; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 48px 24px; box-sizing: border-box">
+<div style="width: 100%; max-width: 460px; background: #FFFFFF; border: 1px solid #E8E8E4; border-radius: 24px; padding: 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
 <div style="display: flex; align-items: center; gap: 10px">
 <span style="width: 40px; height: 40px; border-radius: 11px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">P</span>
 <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">Pamoja Party</span>
@@ -24,8 +24,8 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <sc-if value="{{s1}}" hint-placeholder-val="{{ true }}">
 <div style="display: flex; flex-direction: column; gap: 18px">
 <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px">Reset your password</h1>
-<p style="margin: 0; color: #3D4A43; line-height: 1.6">Enter your work email. If it matches a staff account, we'll send a reset link that works for 30 minutes.</p>
-<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Work email<input type="email" placeholder="name@pamoja.ke" style="font: inherit; font-weight: 400; font-size: 16px; padding: 14px; border: 1.5px solid #C9C5B8; border-radius: 12px"></label>
+<p style="margin: 0; color: #3D4441; line-height: 1.6">Enter your work email. If it matches a staff account, we'll send a reset link that works for 30 minutes.</p>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Work email<input type="email" placeholder="name@pamoja.ke" style="font: inherit; font-weight: 400; font-size: 16px; padding: 14px; border: 1.5px solid #C9CCCF; border-radius: 12px"></label>
 <button type="button" onClick="{{go2}}" style="font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 52px; border-radius: 999px; cursor: pointer">Send reset link</button>
 <a href="SignIn.dc.html" style="font-weight: 700; font-size: 15px; text-align: center">Back to sign in</a>
 </div>
@@ -34,7 +34,7 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <sc-if value="{{s2}}" hint-placeholder-val="{{ false }}">
 <div style="display: flex; flex-direction: column; gap: 18px">
 <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px">Check your email</h1>
-<p style="margin: 0; color: #3D4A43; line-height: 1.6">If the address has an account, a reset link is on its way. It can take a minute. Check spam too.</p>
+<p style="margin: 0; color: #3D4441; line-height: 1.6">If the address has an account, a reset link is on its way. It can take a minute. Check spam too.</p>
 <button type="button" onClick="{{go3}}" style="font: inherit; font-weight: 700; font-size: 16px; color: #13201A; background: #FFFFFF; border: 1.5px solid #13201A; height: 52px; border-radius: 999px; cursor: pointer">I've opened the link (demo)</button>
 <a href="#" style="font-weight: 700; font-size: 15px; text-align: center">Resend email</a>
 </div>
@@ -43,7 +43,7 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <sc-if value="{{s3}}" hint-placeholder-val="{{ false }}">
 <div style="display: flex; flex-direction: column; gap: 16px">
 <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px">Choose a new password</h1>
-<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">New password<input type="password" value="{{pw}}" onChange="{{setPw}}" style="font: inherit; font-weight: 400; font-size: 16px; padding: 14px; border: 1.5px solid #C9C5B8; border-radius: 12px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">New password<input type="password" value="{{pw}}" onChange="{{setPw}}" style="font: inherit; font-weight: 400; font-size: 16px; padding: 14px; border: 1.5px solid #C9CCCF; border-radius: 12px"></label>
 <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 14px">
 <sc-for list="{{rules}}" as="r" hint-placeholder-count="3"><li style="{{r.style}}">{{r.mark}} {{r.label}}</li></sc-for>
 </ul>
@@ -54,7 +54,7 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <sc-if value="{{s4}}" hint-placeholder-val="{{ false }}">
 <div style="display: flex; flex-direction: column; gap: 18px">
 <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px">Password updated</h1>
-<p style="margin: 0; color: #3D4A43; line-height: 1.6">You've been signed out of other devices. Sign in again with your new password and verification code.</p>
+<p style="margin: 0; color: #3D4441; line-height: 1.6">You've been signed out of other devices. Sign in again with your new password and verification code.</p>
 <a href="SignIn.dc.html" style="display: block; text-align: center; font-weight: 700; font-size: 16px; color: #FFFFFF; background: #0B5D3B; padding: 16px; border-radius: 999px; text-decoration: none">Go to sign in</a>
 </div>
 </sc-if>
@@ -73,8 +73,8 @@ class Component extends DCLogic {
       s1: S.s === 1, s2: S.s === 2, s3: S.s === 3, s4: S.s === 4,
       go2: () => this.setState({ s: 2 }), go3: () => this.setState({ s: 3 }), go4: () => { if (ok) this.setState({ s: 4 }); },
       pw, setPw: (e) => this.setState({ pw: e.target.value }),
-      rules: checks.map((c) => ({ label: c[1], mark: c[0] ? '✓' : '○', style: 'font-weight: 600; color: ' + (c[0] ? '#0B5D3B' : '#4B5751') })),
-      saveStyle: 'font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; border: 0; height: 52px; border-radius: 999px; ' + (ok ? 'background: #0B5D3B; cursor: pointer' : 'background: #9AA49F; cursor: not-allowed')
+      rules: checks.map((c) => ({ label: c[1], mark: c[0] ? '✓' : '○', style: 'font-weight: 600; color: ' + (c[0] ? '#0B5D3B' : '#4E5552') })),
+      saveStyle: 'font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; border: 0; height: 52px; border-radius: 999px; ' + (ok ? 'background: #0B5D3B; cursor: pointer' : 'background: #9A9F9C; cursor: not-allowed')
     };
   }
 }

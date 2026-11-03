@@ -10,24 +10,12 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F6F5F0}
+body{margin:0;background:#FAFAF8}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
-<header style="background: #FFFFFF; border-bottom: 1px solid #DEDBD0">
-<div style="max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
-<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #13201A">
-<span style="width: 40px; height: 40px; border-radius: 11px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">P</span>
-<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">Pamoja Party</span>
-</a>
-<div style="display: flex; align-items: center; gap: 16px; font-size: 15px">
-<a href="PartyHome.dc.html" style="font-weight: 600">Public site</a>
-<span style="font-weight: 600">[First name]</span>
-<a href="SignIn.dc.html" style="font-weight: 600; color: #4B5751">Sign out</a>
-</div>
-</div>
-</header>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #FAFAF8; min-height: 100%">
+<dc-import name="SiteHeader" active="None" signed-in="true" hint-size="100%,130px"></dc-import>
 
 <main style="max-width: 1240px; margin: 0 auto; padding: 40px 24px 80px; display: flex; flex-direction: column; gap: 28px">
 <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.02em">Habari, [first name]</h1>
@@ -36,7 +24,7 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <section aria-label="Digital member card" style="flex: 1 1 380px; min-width: 0; background: #0B5D3B; color: #FFFFFF; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 20px; position: relative; overflow: hidden">
 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px">
 <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: #F2B705">MEMBER CARD</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[Full name]</span></div>
-<div aria-label="QR code for verification at events" role="img" style="width: 88px; height: 88px; border-radius: 12px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #4B5751; font-size: 12px; font-weight: 700">[QR]</div>
+<div aria-label="QR code for verification at events" role="img" style="width: 88px; height: 88px; border-radius: 12px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #4E5552; font-size: 12px; font-weight: 700">[QR]</div>
 </div>
 <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; font-size: 14px">
 <div style="display: flex; flex-direction: column"><span style="color: #CFE0D5">Member no.</span><strong style="font-size: 17px">[PP-000000]</strong></div>
@@ -47,10 +35,10 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <span style="font-size: 13px; color: #CFE0D5">Show this card at branch meetings and party elections.</span>
 </section>
 
-<section aria-labelledby="ren-h" style="flex: 1 1 320px; min-width: 0; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+<section aria-labelledby="ren-h" style="flex: 1 1 320px; min-width: 0; background: #FFFFFF; border: 1px solid #E8E8E4; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
 <h2 id="ren-h" style="margin: 0; font-size: 22px; font-weight: 700">Membership status</h2>
 <span style="{{statusStyle}}">{{statusLabel}}</span>
-<p style="margin: 0; color: #3D4A43; line-height: 1.6">{{statusNote}}</p>
+<p style="margin: 0; color: #3D4441; line-height: 1.6">{{statusNote}}</p>
 <sc-if value="{{due}}" hint-placeholder-val="{{ true }}">
 <button type="button" onClick="{{renew}}" style="font: inherit; font-weight: 700; font-size: 16px; color: #13201A; background: #F2B705; border: 0; height: 50px; border-radius: 999px; cursor: pointer">Renew with M-Pesa · [KSh 000]</button>
 </sc-if>
@@ -58,47 +46,47 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 </section>
 </div>
 
-<div role="tablist" aria-label="Account sections" style="display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #DEDBD0">
+<div role="tablist" aria-label="Account sections" style="display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #E8E8E4">
 <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
 </div>
 
 <sc-if value="{{isBranch}}" hint-placeholder-val="{{ true }}">
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-<section aria-labelledby="m-h" style="flex: 3 1 460px; min-width: 0; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<section aria-labelledby="m-h" style="flex: 3 1 460px; min-width: 0; background: #FFFFFF; border: 1px solid #E8E8E4; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
 <h2 id="m-h" style="margin: 0; font-size: 20px; font-weight: 700">Branch meetings &amp; events</h2>
 <sc-for list="{{meetings}}" as="m" hint-placeholder-count="3">
-<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #EDEBE4">
-<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">{{m.title}}</span><span style="font-size: 14px; color: #4B5751">{{m.meta}}</span></div>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #F0F0EC">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">{{m.title}}</span><span style="font-size: 14px; color: #4E5552">{{m.meta}}</span></div>
 <button type="button" aria-pressed="{{m.pressed}}" onClick="{{m.toggle}}" style="{{m.btn}}">{{m.label}}</button>
 </div>
 </sc-for>
 </section>
-<section aria-labelledby="l-h" style="flex: 2 1 300px; min-width: 0; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<section aria-labelledby="l-h" style="flex: 2 1 300px; min-width: 0; background: #FFFFFF; border: 1px solid #E8E8E4; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
 <h2 id="l-h" style="margin: 0; font-size: 20px; font-weight: 700">My leagues</h2>
 <span style="font-weight: 600">Youth league · [County] chapter</span>
 <a href="#" style="font-weight: 700; font-size: 14px">Join another league</a>
 <h2 style="margin: 12px 0 0; font-size: 20px; font-weight: 700">Branch officials</h2>
-<span style="font-size: 15px; color: #3D4A43">Chair: [Name] · Secretary: [Name]</span>
+<span style="font-size: 15px; color: #3D4441">Chair: [Name] · Secretary: [Name]</span>
 <a href="#" style="font-weight: 700; font-size: 14px">Contact the branch office</a>
 </section>
 </div>
 </sc-if>
 
 <sc-if value="{{isTasks}}" hint-placeholder-val="{{ false }}">
-<section aria-labelledby="tk-h" style="max-width: 820px; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
-<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px"><h2 id="tk-h" style="margin: 0; font-size: 20px; font-weight: 700">My volunteer tasks</h2><span style="font-size: 14px; color: #4B5751">{{doneCount}} of {{taskCount}} done</span></div>
+<section aria-labelledby="tk-h" style="max-width: 820px; background: #FFFFFF; border: 1px solid #E8E8E4; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px"><h2 id="tk-h" style="margin: 0; font-size: 20px; font-weight: 700">My volunteer tasks</h2><span style="font-size: 14px; color: #4E5552">{{doneCount}} of {{taskCount}} done</span></div>
 <sc-for list="{{tasks}}" as="t" hint-placeholder-count="3">
-<div style="display: flex; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid #EDEBE4">
+<div style="display: flex; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid #F0F0EC">
 <button type="button" aria-label="Mark task done" aria-pressed="{{t.pressed}}" onClick="{{t.toggle}}" style="{{t.box}}">{{t.mark}}</button>
-<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="{{t.titleStyle}}">{{t.title}}</span><span style="font-size: 13px; color: #4B5751">{{t.meta}}</span></div>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="{{t.titleStyle}}">{{t.title}}</span><span style="font-size: 13px; color: #4E5552">{{t.meta}}</span></div>
 </div>
 </sc-for>
-<p style="margin: 0; font-size: 13px; color: #4B5751">Tasks come from your branch. Volunteering for a candidate's campaign happens on their profile page.</p>
+<p style="margin: 0; font-size: 13px; color: #4E5552">Tasks come from your branch. Volunteering for a candidate's campaign happens on their profile page.</p>
 </section>
 </sc-if>
 
 <sc-if value="{{isNom}}" hint-placeholder-val="{{ false }}">
-<section aria-labelledby="nm-h" style="max-width: 820px; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<section aria-labelledby="nm-h" style="max-width: 820px; background: #FFFFFF; border: 1px solid #E8E8E4; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">Application [APP-0000]</span><h2 id="nm-h" style="margin: 0; font-size: 22px; font-weight: 700">MP · [Constituency]</h2></div>
 <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column">
 <sc-for list="{{nomSteps}}" as="s" hint-placeholder-count="5"><li style="display: flex; gap: 14px; align-items: center; padding: 9px 0"><span style="{{s.dot}}">{{s.mark}}</span><span style="{{s.text}}">{{s.label}}</span></li></sc-for>
@@ -115,7 +103,7 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <a href="Plans.dc.html" style="font-weight: 700; font-size: 14px; color: #FFFFFF; background: #0B5D3B; padding: 12px 18px; border-radius: 999px; text-decoration: none">Choose a workspace plan</a>
 </div>
 </sc-if>
-<p style="margin: 0; font-size: 13px; color: #4B5751">Disagree with a decision? You can appeal within [00] days of it, from this page.</p>
+<p style="margin: 0; font-size: 13px; color: #4E5552">Disagree with a decision? You can appeal within [00] days of it, from this page.</p>
 </section>
 </sc-if>
 
@@ -125,16 +113,16 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; font-weight: 800; letter-spacing: 0.08em; color: #F2B705">OPEN NOW · CLOSES [TIME]</span><strong style="font-size: 20px">Party primaries — MCA, MP &amp; Governor</strong><span style="font-size: 14px; color: #CFE0D5">Vote online here, by USSD *[000]#, or at your polling centre — once.</span></span>
 <span style="font-weight: 700; background: #F2B705; color: #13201A; padding: 12px 18px; border-radius: 999px">Vote now</span>
 </a>
-<section aria-labelledby="v-h" style="max-width: 720px; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 16px">
+<section aria-labelledby="v-h" style="max-width: 720px; background: #FFFFFF; border: 1px solid #E8E8E4; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 4px">
 <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">Branch election · closes [date, time]</span>
 <h2 id="v-h" style="margin: 0; font-size: 24px; font-weight: 700">[Ward] branch chairperson</h2>
 </div>
 <sc-if value="{{notVoted}}" hint-placeholder-val="{{ true }}">
 <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
-<legend style="font-size: 15px; color: #3D4A43; margin-bottom: 10px">Choose one. Your ballot is secret — officials see totals only.</legend>
+<legend style="font-size: 15px; color: #3D4441; margin-bottom: 10px">Choose one. Your ballot is secret — officials see totals only.</legend>
 <sc-for list="{{ballot}}" as="b" hint-placeholder-count="3">
-<label style="{{b.style}}"><input type="radio" name="chair" checked="{{b.on}}" onChange="{{b.pick}}" style="width: 20px; height: 20px; margin: 0; accent-color: #0B5D3B"><span style="display: flex; flex-direction: column"><strong>{{b.name}}</strong><span style="font-size: 14px; color: #4B5751">[One-line statement]</span></span></label>
+<label style="{{b.style}}"><input type="radio" name="chair" checked="{{b.on}}" onChange="{{b.pick}}" style="width: 20px; height: 20px; margin: 0; accent-color: #0B5D3B"><span style="display: flex; flex-direction: column"><strong>{{b.name}}</strong><span style="font-size: 14px; color: #4E5552">[One-line statement]</span></span></label>
 </sc-for>
 </fieldset>
 <button type="button" onClick="{{cast}}" style="{{castStyle}}">Cast my vote</button>
@@ -142,7 +130,7 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <sc-if value="{{voted}}" hint-placeholder-val="{{ false }}">
 <div style="background: #E7F0EA; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
 <strong style="font-size: 18px">Your vote is recorded. Asante!</strong>
-<span style="color: #3D4A43">Receipt code [XXXX-XXXX] lets you confirm your ballot was counted, without showing your choice.</span>
+<span style="color: #3D4441">Receipt code [XXXX-XXXX] lets you confirm your ballot was counted, without showing your choice.</span>
 </div>
 </sc-if>
 </section>
@@ -151,26 +139,26 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 
 <sc-if value="{{isData}}" hint-placeholder-val="{{ false }}">
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-<section aria-labelledby="d-h" style="flex: 1 1 380px; min-width: 0; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<section aria-labelledby="d-h" style="flex: 1 1 380px; min-width: 0; background: #FFFFFF; border: 1px solid #E8E8E4; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
 <h2 id="d-h" style="margin: 0; font-size: 20px; font-weight: 700">My details</h2>
 <dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; font-size: 15px">
-<dt style="color: #4B5751">Name</dt><dd style="margin: 0; font-weight: 600">[Full name]</dd>
-<dt style="color: #4B5751">Phone</dt><dd style="margin: 0; font-weight: 600">07•• ••• [000]</dd>
-<dt style="color: #4B5751">Email</dt><dd style="margin: 0; font-weight: 600">[name@mail.com]</dd>
-<dt style="color: #4B5751">Branch</dt><dd style="margin: 0; font-weight: 600">[Ward], [County]</dd>
+<dt style="color: #4E5552">Name</dt><dd style="margin: 0; font-weight: 600">[Full name]</dd>
+<dt style="color: #4E5552">Phone</dt><dd style="margin: 0; font-weight: 600">07•• ••• [000]</dd>
+<dt style="color: #4E5552">Email</dt><dd style="margin: 0; font-weight: 600">[name@mail.com]</dd>
+<dt style="color: #4E5552">Branch</dt><dd style="margin: 0; font-weight: 600">[Ward], [County]</dd>
 </dl>
 <button type="button" style="align-self: flex-start; font: inherit; font-weight: 700; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1.5px solid #13201A; height: 42px; padding: 0 16px; border-radius: 999px; cursor: pointer">Correct my details</button>
 </section>
-<section aria-labelledby="c-h" style="flex: 1 1 380px; min-width: 0; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<section aria-labelledby="c-h" style="flex: 1 1 380px; min-width: 0; background: #FFFFFF; border: 1px solid #E8E8E4; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
 <h2 id="c-h" style="margin: 0; font-size: 20px; font-weight: 700">My consents</h2>
 <sc-for list="{{consents}}" as="c" hint-placeholder-count="3">
-<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EDEBE4">
-<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-weight: 600">{{c.label}}</span><span style="font-size: 13px; color: #4B5751">{{c.note}}</span></div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #F0F0EC">
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-weight: 600">{{c.label}}</span><span style="font-size: 13px; color: #4E5552">{{c.note}}</span></div>
 <button type="button" role="switch" aria-checked="{{c.checked}}" aria-label="{{c.label}}" onClick="{{c.toggle}}" style="{{c.track}}"><span style="width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.2)"></span></button>
 </div>
 </sc-for>
-<div style="display: flex; flex-wrap: wrap; gap: 10px; border-top: 1px solid #EDEBE4; padding-top: 14px">
-<button type="button" style="font: inherit; font-weight: 700; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #C9C5B8; height: 42px; padding: 0 14px; border-radius: 10px; cursor: pointer">Download my data</button>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; border-top: 1px solid #F0F0EC; padding-top: 14px">
+<button type="button" style="font: inherit; font-weight: 700; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #C9CCCF; height: 42px; padding: 0 14px; border-radius: 10px; cursor: pointer">Download my data</button>
 <button type="button" style="font: inherit; font-weight: 700; font-size: 14px; color: #9A1C12; background: #FFFFFF; border: 1px solid #E8C4C0; height: 42px; padding: 0 14px; border-radius: 10px; cursor: pointer">Cancel membership &amp; delete data</button>
 </div>
 <a href="#" style="font-size: 14px; font-weight: 700">Read the privacy notice</a>
@@ -186,24 +174,24 @@ class Component extends DCLogic {
   renderVals() {
     const S = this.state;
     const tabs = ['My branch', 'My tasks', 'Elections', 'My nomination', 'My data & privacy'].map((label) => ({ label, selected: S.tab === label ? 'true' : 'false', pick: () => this.setState({ tab: label }),
-      style: 'font: inherit; font-size: 16px; font-weight: 700; background: none; border: 0; padding: 14px 16px; min-height: 50px; cursor: pointer; margin-bottom: -1px; border-bottom: 3px solid ' + (S.tab === label ? '#0B5D3B; color: #0B5D3B' : 'transparent; color: #4B5751') }));
+      style: 'font: inherit; font-size: 16px; font-weight: 700; background: none; border: 0; padding: 14px 16px; min-height: 50px; cursor: pointer; margin-bottom: -1px; border-bottom: 3px solid ' + (S.tab === label ? '#0B5D3B; color: #0B5D3B' : 'transparent; color: #4E5552') }));
     const meet = [[1, 'Branch delegates meeting', '[Date] · [Venue] · [Time]'], [2, 'Youth league forum', '[Date] · [Venue] · [Time]'], [3, 'Party elections briefing', '[Date] · Online']];
     const meetings = meet.map((m) => { const on = !!S.rsvp[m[0]]; return { title: m[1], meta: m[2], pressed: on ? 'true' : 'false', label: on ? 'Going ✓' : 'RSVP', toggle: () => this.setState({ rsvp: { ...S.rsvp, [m[0]]: !on } }),
       btn: 'font: inherit; font-weight: 700; font-size: 14px; min-width: 100px; height: 42px; border-radius: 999px; cursor: pointer; ' + (on ? 'background: #0B5D3B; color: #FFFFFF; border: 1.5px solid #0B5D3B' : 'background: #FFFFFF; color: #13201A; border: 1.5px solid #13201A') }; });
     const ballot = ['[Candidate A]', '[Candidate B]', '[Candidate C]'].map((name, i) => ({ name, on: S.pick === i, pick: () => this.setState({ pick: i }),
-      style: 'display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 14px; cursor: pointer; ' + (S.pick === i ? 'background: #E7F0EA; border: 1.5px solid #0B5D3B' : 'background: #FFFFFF; border: 1.5px solid #DEDBD0') }));
-    const sw = (on) => 'flex: 0 0 50px; width: 50px; height: 28px; border-radius: 999px; border: 0; padding: 3px; display: flex; cursor: pointer; justify-content: ' + (on ? 'flex-end' : 'flex-start') + '; background: ' + (on ? '#0B5D3B' : '#9AA49F');
+      style: 'display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 14px; cursor: pointer; ' + (S.pick === i ? 'background: #E7F0EA; border: 1.5px solid #0B5D3B' : 'background: #FFFFFF; border: 1.5px solid #E8E8E4') }));
+    const sw = (on) => 'flex: 0 0 50px; width: 50px; height: 28px; border-radius: 999px; border: 0; padding: 3px; display: flex; cursor: pointer; justify-content: ' + (on ? 'flex-end' : 'flex-start') + '; background: ' + (on ? '#0B5D3B' : '#9A9F9C');
     const cdefs = [['sms', 'Party news by SMS', 'Given [date] when joining'], ['email', 'Party news by email', 'Not given'], ['events', 'Branch event reminders', 'Given [date]']];
     const consents = cdefs.map((c) => ({ label: c[1], note: S.c[c[0]] ? c[2] : 'Off — you won’t receive these', checked: S.c[c[0]] ? 'true' : 'false', track: sw(S.c[c[0]]), toggle: () => this.setState({ c: { ...S.c, [c[0]]: !S.c[c[0]] } }) }));
     const due = !S.renewed;
     const td = S.td || { 1: true };
     const tasks = [[0, 'Usher at the branch delegates meeting', '[Date] · [Venue]'], [1, 'Share the nominations notice in 2 WhatsApp groups', 'Done [date]'], [2, 'Help register new members at [market]', '[Date] · 2 hours']].map((t) => { const d = !!td[t[0]]; return { title: t[1], meta: t[2], done: d, pressed: d ? 'true' : 'false', mark: d ? '✓' : '',
       toggle: () => this.setState({ td: { ...td, [t[0]]: !d } }),
-      box: 'flex: 0 0 28px; width: 28px; height: 28px; padding: 0; border-radius: 8px; cursor: pointer; font-weight: 800; color: #FFFFFF; ' + (d ? 'background: #0B5D3B; border: 2px solid #0B5D3B' : 'background: #FFFFFF; border: 2px solid #9AA49F'),
-      titleStyle: 'font-weight: 600; ' + (d ? 'color: #6B7570; text-decoration: line-through' : 'color: #13201A') }; });
+      box: 'flex: 0 0 28px; width: 28px; height: 28px; padding: 0; border-radius: 8px; cursor: pointer; font-weight: 800; color: #FFFFFF; ' + (d ? 'background: #0B5D3B; border: 2px solid #0B5D3B' : 'background: #FFFFFF; border: 2px solid #9A9F9C'),
+      titleStyle: 'font-weight: 600; ' + (d ? 'color: #6D7370; text-decoration: line-through' : 'color: #13201A') }; });
     const at = S.docUp ? 3 : 1;
     const nomSteps = ['Applied & fee paid', 'Vetting — document requested', 'Cleared for nomination', 'Primary on [dd Mon]', 'Nominee certified'].map((label, i) => { const done = i < at; const now = i === at;
-      return { label: i === 1 && S.docUp ? 'Vetting complete' : label, mark: done ? '✓' : now ? '•' : '', dot: 'flex: 0 0 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; ' + (done ? 'background: #0B5D3B; color: #FFFFFF' : now ? 'background: #F2B705; color: #13201A' : 'background: #E1E4E2; color: #3D4A43'), text: 'font-size: 15px; font-weight: ' + (now ? '700' : '500') + '; color: ' + (done || now ? '#13201A' : '#6B7570') }; });
+      return { label: i === 1 && S.docUp ? 'Vetting complete' : label, mark: done ? '✓' : now ? '•' : '', dot: 'flex: 0 0 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; ' + (done ? 'background: #0B5D3B; color: #FFFFFF' : now ? 'background: #F2B705; color: #13201A' : 'background: #E9E9E5; color: #3D4441'), text: 'font-size: 15px; font-weight: ' + (now ? '700' : '500') + '; color: ' + (done || now ? '#13201A' : '#6D7370') }; });
     return {
       tabs, meetings, ballot, consents,
       isBranch: S.tab === 'My branch', isVote: S.tab === 'Elections', isData: S.tab === 'My data & privacy', isTasks: S.tab === 'My tasks', isNom: S.tab === 'My nomination',
@@ -216,7 +204,7 @@ class Component extends DCLogic {
       statusNote: S.renewed ? 'Thank you. Your receipt has been sent by SMS and your card is updated.' : 'Renew to keep your voting rights in branch elections and party nominations.',
       notVoted: !S.voted, voted: S.voted,
       cast: () => { if (S.pick !== null) this.setState({ voted: true }); },
-      castStyle: 'align-self: flex-start; font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; border: 0; height: 50px; padding: 0 28px; border-radius: 999px; ' + (S.pick !== null ? 'background: #0B5D3B; cursor: pointer' : 'background: #9AA49F; cursor: not-allowed')
+      castStyle: 'align-self: flex-start; font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; border: 0; height: 50px; padding: 0 28px; border-radius: 999px; ' + (S.pick !== null ? 'background: #0B5D3B; cursor: pointer' : 'background: #9A9F9C; cursor: not-allowed')
     };
   }
 }

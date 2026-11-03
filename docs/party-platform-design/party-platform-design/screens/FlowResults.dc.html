@@ -10,46 +10,49 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F3F4F2}
+body{margin:0;background:#F7F7F5}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh">
-<header style="background: #FFFFFF; border-bottom: 1px solid #E1E4E2">
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F7F7F5; min-height: 100vh">
+<div style="position: sticky; top: 0; z-index: 20">
+<dc-import name="CrmTopBar" page="Nominations / Results" role="Elections board" hint-size="100%,64px"></dc-import>
+<header style="background: rgba(250,250,248,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(19,32,26,0.06)">
 <div style="max-width: 1200px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
 <div style="display: flex; flex-direction: column; gap: 2px"><a href="CrmNominations.dc.html" style="font-size: 14px; font-weight: 600">← Nominations</a><h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">MP primary · [Constituency]</h1></div>
 <span style="{{badge}}">{{badgeLabel}}</span>
 </div>
 </header>
+</div>
 
 <main style="max-width: 1200px; margin: 0 auto; padding: 28px 24px 64px; display: flex; flex-direction: column; gap: 24px">
 <sc-if value="{{tally}}" hint-placeholder-val="{{ true }}">
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-<section aria-labelledby="t-h" style="flex: 3 1 600px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
-<div style="display: flex; flex-direction: column; gap: 4px"><h2 id="t-h" style="margin: 0; font-size: 20px; font-weight: 700">Tally by polling centre</h2><span style="font-size: 14px; color: #4B5751">Enter figures from each centre's signed results form. Totals update as you type.</span></div>
+<section aria-labelledby="t-h" style="flex: 3 1 600px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 id="t-h" style="margin: 0; font-size: 20px; font-weight: 700">Tally by polling centre</h2><span style="font-size: 14px; color: #4E5552">Enter figures from each centre's signed results form. Totals update as you type.</span></div>
 <div style="overflow-x: auto">
 <table style="width: 100%; min-width: 680px; border-collapse: collapse; font-size: 15px">
-<thead><tr style="text-align: left; color: #4B5751; font-size: 13px">
-<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Polling centre</th>
-<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">[Aspirant A]</th>
-<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">[Aspirant B]</th>
-<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">[Aspirant C]</th>
-<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Signed form</th>
+<thead><tr style="text-align: left; color: #4E5552; font-size: 13px">
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Polling centre</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">[Aspirant A]</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">[Aspirant B]</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">[Aspirant C]</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Signed form</th>
 </tr></thead>
 <tbody>
 <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
 <tr>
-<td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE; font-weight: 600">{{r.name}}</td>
-<td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE"><input type="text" inputmode="numeric" value="{{r.v0}}" onChange="{{r.s0}}" aria-label="{{r.name}}, Aspirant A votes" style="font: inherit; font-size: 15px; width: 90px; padding: 8px 10px; border: 1.5px solid #C9C5B8; border-radius: 8px; font-variant-numeric: tabular-nums"></td>
-<td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE"><input type="text" inputmode="numeric" value="{{r.v1}}" onChange="{{r.s1}}" aria-label="{{r.name}}, Aspirant B votes" style="font: inherit; font-size: 15px; width: 90px; padding: 8px 10px; border: 1.5px solid #C9C5B8; border-radius: 8px; font-variant-numeric: tabular-nums"></td>
-<td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE"><input type="text" inputmode="numeric" value="{{r.v2}}" onChange="{{r.s2}}" aria-label="{{r.name}}, Aspirant C votes" style="font: inherit; font-size: 15px; width: 90px; padding: 8px 10px; border: 1.5px solid #C9C5B8; border-radius: 8px; font-variant-numeric: tabular-nums"></td>
-<td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE"><button type="button" onClick="{{r.up}}" style="{{r.upStyle}}">{{r.upLabel}}</button></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #F0F0EC; font-weight: 600">{{r.name}}</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #F0F0EC"><input type="text" inputmode="numeric" value="{{r.v0}}" onChange="{{r.s0}}" aria-label="{{r.name}}, Aspirant A votes" style="font: inherit; font-size: 15px; width: 90px; padding: 8px 10px; border: 1.5px solid #C9CCCF; border-radius: 8px; font-variant-numeric: tabular-nums"></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #F0F0EC"><input type="text" inputmode="numeric" value="{{r.v1}}" onChange="{{r.s1}}" aria-label="{{r.name}}, Aspirant B votes" style="font: inherit; font-size: 15px; width: 90px; padding: 8px 10px; border: 1.5px solid #C9CCCF; border-radius: 8px; font-variant-numeric: tabular-nums"></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #F0F0EC"><input type="text" inputmode="numeric" value="{{r.v2}}" onChange="{{r.s2}}" aria-label="{{r.name}}, Aspirant C votes" style="font: inherit; font-size: 15px; width: 90px; padding: 8px 10px; border: 1.5px solid #C9CCCF; border-radius: 8px; font-variant-numeric: tabular-nums"></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #F0F0EC"><button type="button" onClick="{{r.up}}" style="{{r.upStyle}}">{{r.upLabel}}</button></td>
 </tr>
 </sc-for>
 <tr style="font-weight: 800">
 <td style="padding: 14px 8px">Total</td>
 <sc-for list="{{totals}}" as="t" hint-placeholder-count="3"><td style="{{t.style}}">{{t.v}}</td></sc-for>
-<td style="padding: 14px 8px; font-size: 13px; font-weight: 600; color: #4B5751">{{formsIn}} of 4 forms</td>
+<td style="padding: 14px 8px; font-size: 13px; font-weight: 600; color: #4E5552">{{formsIn}} of 4 forms</td>
 </tr>
 </tbody>
 </table>
@@ -57,10 +60,10 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 </section>
 
 <aside style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
-<section style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<section style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
 <h2 style="margin: 0; font-size: 17px; font-weight: 700">Leading</h2>
 <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">{{leader}}</span>
-<span style="font-size: 14px; color: #4B5751">{{margin}}</span>
+<span style="font-size: 14px; color: #4E5552">{{margin}}</span>
 </section>
 <section style="background: #FFF8E1; border: 1px solid #F1DE9A; border-radius: 16px; padding: 20px; font-size: 14px; line-height: 1.55; color: #4B4013">Agents for every aspirant sign each centre's form. Declare only when all forms are in; an appeal window of [00] hours opens automatically.</section>
 <button type="button" onClick="{{declare}}" style="{{declStyle}}">Declare result</button>
@@ -70,25 +73,25 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 
 <sc-if value="{{cert}}" hint-placeholder-val="{{ false }}">
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-<section aria-label="Nomination certificate preview" style="flex: 2 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 28px; display: flex; justify-content: center">
+<section aria-label="Nomination certificate preview" style="flex: 2 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 28px; display: flex; justify-content: center">
 <div style="width: 100%; max-width: 560px; border: 6px double #0B5D3B; border-radius: 6px; padding: 32px; display: flex; flex-direction: column; gap: 16px; text-align: center; background: #FFFEF8">
 <span style="font-size: 12px; font-weight: 800; letter-spacing: 0.16em; color: #0B5D3B">PAMOJA PARTY · ELECTIONS BOARD</span>
 <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px">Nomination Certificate</span>
 <span style="font-size: 15px; line-height: 1.6">This certifies that <strong>{{leader}}</strong>, member no. [PP-000000], is the party's nominee for <strong>Member of Parliament, [Constituency] Constituency</strong> in the [Year] General Election.</span>
-<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding-top: 18px; font-size: 13px; color: #4B5751">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding-top: 18px; font-size: 13px; color: #4E5552">
 <div style="display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #13201A; padding-top: 6px">Chair, Elections Board</div>
 <div style="display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #13201A; padding-top: 6px">Secretary General</div>
 </div>
-<div style="display: flex; justify-content: space-between; align-items: flex-end; font-size: 12px; color: #4B5751"><span>Serial [NC-0000-0000] · issued [date]</span><span role="img" aria-label="QR code to verify certificate" style="width: 56px; height: 56px; border: 1px solid #C9C5B8; display: flex; align-items: center; justify-content: center">[QR]</span></div>
+<div style="display: flex; justify-content: space-between; align-items: flex-end; font-size: 12px; color: #4E5552"><span>Serial [NC-0000-0000] · issued [date]</span><span role="img" aria-label="QR code to verify certificate" style="width: 56px; height: 56px; border: 1px solid #C9CCCF; display: flex; align-items: center; justify-content: center">[QR]</span></div>
 </div>
 </section>
-<aside style="flex: 1 1 300px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+<aside style="flex: 1 1 300px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
 <h2 style="margin: 0; font-size: 18px; font-weight: 700">{{certTitle}}</h2>
-<span style="font-size: 14px; color: #3D4A43; line-height: 1.55">{{certNote}}</span>
+<span style="font-size: 14px; color: #3D4441; line-height: 1.55">{{certNote}}</span>
 <label style="display: flex; gap: 10px; align-items: center; font-size: 14px"><input type="checkbox" checked style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B">SMS all three aspirants the result</label>
 <label style="display: flex; gap: 10px; align-items: center; font-size: 14px"><input type="checkbox" checked style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B">Mark as nominee on the public candidates page</label>
 <button type="button" onClick="{{issue}}" style="{{issueStyle}}">{{issueLabel}}</button>
-<button type="button" onClick="{{reopen}}" style="font: inherit; font-weight: 600; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; height: 42px; border-radius: 10px; cursor: pointer">Back to tally</button>
+<button type="button" onClick="{{reopen}}" style="font: inherit; font-weight: 600; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #D3D5D3; height: 42px; border-radius: 10px; cursor: pointer">Back to tally</button>
 </aside>
 </div>
 </sc-if>
@@ -120,7 +123,7 @@ class Component extends DCLogic {
       margin: li > -1 ? (sorted[0] === sorted[1] ? 'Tied — a tie is resolved under the party rules' : 'Ahead by ' + (sorted[0] - sorted[1]).toLocaleString('en-KE') + ' votes') : 'Enter figures to see the leader',
       tally: S.view === 'tally', cert: S.view === 'cert',
       declare: () => { if (ok) this.setState({ view: 'cert' }); },
-      declStyle: 'font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; border: 0; height: 52px; border-radius: 12px; ' + (ok ? 'background: #0B5D3B; cursor: pointer' : 'background: #9AA49F; cursor: not-allowed'),
+      declStyle: 'font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; border: 0; height: 52px; border-radius: 12px; ' + (ok ? 'background: #0B5D3B; cursor: pointer' : 'background: #9A9F9C; cursor: not-allowed'),
       reopen: () => this.setState({ view: 'tally', issued: false }),
       issue: () => this.setState({ issued: true }),
       issueLabel: S.issued ? 'Issued ✓' : 'Sign & issue certificate',
@@ -128,7 +131,7 @@ class Component extends DCLogic {
       certTitle: S.issued ? 'Certificate issued' : 'Result declared — appeal window open',
       certNote: S.issued ? 'Sent to the nominee as a PDF and recorded for submission to the IEBC.' : 'Issue the certificate once the [00]-hour appeal window closes with no appeal, or after appeals are decided. Both signatories approve from their own accounts.',
       badgeLabel: S.issued ? 'Certificate issued' : S.view === 'cert' ? 'Declared' : 'Counting',
-      badge: 'font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; ' + (S.issued ? 'background: #E3F1E8; color: #0B5D3B' : S.view === 'cert' ? 'background: #FFF3CC; color: #6B5100' : 'background: #ECEEF0; color: #3D4A43')
+      badge: 'font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; ' + (S.issued ? 'background: #E3F1E8; color: #0B5D3B' : S.view === 'cert' ? 'background: #FFF3CC; color: #6B5100' : 'background: #F1F1ED; color: #3D4441')
     };
   }
 }

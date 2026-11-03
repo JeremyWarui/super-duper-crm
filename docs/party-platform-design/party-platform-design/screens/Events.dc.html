@@ -10,30 +10,15 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F6F5F0}
+body{margin:0;background:#FAFAF8}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #FAFAF8; min-height: 100%">
 
-<header style="background: #F6F5F0; border-bottom: 1px solid #DEDBD0">
-<div style="max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
-<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #13201A">
-<span style="width: 44px; height: 44px; border-radius: 12px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">P</span>
-<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Pamoja Party</span>
-</a>
-<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px 22px; font-weight: 600; font-size: 15px">
-<a href="PartyHome.dc.html#about" style="color: #13201A; text-decoration: none; padding: 10px 0">About</a>
-<a href="PartyHome.dc.html#issues" style="color: #13201A; text-decoration: none; padding: 10px 0">Agenda &amp; issues</a>
-<a href="News.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">News</a>
-<a href="Events.dc.html" aria-current="page" style="color: #0B5D3B; text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; padding: 10px 0">Events</a>
-<a href="Candidates.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Candidates</a>
-</nav>
-<a href="Join.dc.html" style="font-weight: 700; font-size: 15px; color: #13201A; background: #F2B705; padding: 13px 20px; border-radius: 999px; text-decoration: none">Join the party</a>
-</div>
-</header>
+<div style="position: sticky; top: 0; z-index: 30"><dc-import name="SiteHeader" active="Events" hint-size="100%,130px"></dc-import></div>
 
-<section style="background: #13201A; color: #F6F5F0">
+<section style="background: #13201A; color: #FAFAF8">
 <div style="max-width: 1240px; margin: 0 auto; padding: 48px 24px; display: flex; flex-direction: column; gap: 24px">
 <p style="margin: 0; font-size: 14px; color: #B9C2BC"><a href="PartyHome.dc.html" style="color: #B9C2BC">Home</a> / Events</p>
 <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(40px, 5vw, 64px); letter-spacing: -0.03em">Events near you</h1>
@@ -52,9 +37,9 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 
 <main style="max-width: 1240px; margin: 0 auto; padding: 48px 24px 80px; display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
 <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
-<h2 style="margin: 0 0 4px; font-size: 14px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #4B5751">[Month Year]</h2>
+<h2 style="margin: 0 0 4px; font-size: 14px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #4E5552">[Month Year]</h2>
 <sc-for list="{{events}}" as="e" hint-placeholder-count="5">
-<article style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center">
+<article style="background: #FFFFFF; border: 1px solid rgba(19,32,26,0.05); border-radius: 20px; box-shadow: 0 1px 2px rgba(19,32,26,0.04), 0 10px 30px rgba(19,32,26,0.07); padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center">
 <div style="flex: 0 0 72px; height: 80px; border-radius: 14px; background: #E7F0EA; color: #0B5D3B; display: flex; flex-direction: column; align-items: center; justify-content: center">
 <span style="font-size: 12px; font-weight: 800; letter-spacing: 0.08em">{{e.dow}}</span>
 <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px; line-height: 1">{{e.day}}</span>
@@ -62,26 +47,26 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
 <span style="font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">{{e.type}} · {{e.county}}</span>
 <h3 style="margin: 0; font-size: 20px; font-weight: 700">{{e.title}}</h3>
-<span style="font-size: 15px; color: #4B5751">{{e.place}} · {{e.time}}</span>
+<span style="font-size: 15px; color: #4E5552">{{e.place}} · {{e.time}}</span>
 </div>
 <button type="button" aria-pressed="{{e.pressed}}" onClick="{{e.toggle}}" style="{{e.btn}}">{{e.label}}</button>
 </article>
 </sc-for>
 <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
-<p style="margin: 0; color: #4B5751">No events of this type scheduled yet.</p>
+<p style="margin: 0; color: #4E5552">No events of this type scheduled yet.</p>
 </sc-if>
 </div>
 
 <aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
-<section aria-labelledby="map-h" style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<section aria-labelledby="map-h" style="background: #FFFFFF; border: 1px solid rgba(19,32,26,0.05); border-radius: 20px; box-shadow: 0 1px 2px rgba(19,32,26,0.04), 0 10px 30px rgba(19,32,26,0.07); padding: 20px; display: flex; flex-direction: column; gap: 12px">
 <h2 id="map-h" style="margin: 0; font-size: 18px; font-weight: 700">On the map</h2>
-<div style="aspect-ratio: 1 / 1; border-radius: 14px; background: #E3E8E4; display: flex; align-items: center; justify-content: center; color: #4B5751; font-weight: 600">[Map of events]</div>
+<div style="aspect-ratio: 1 / 1; border-radius: 14px; background: #ECECE7; display: flex; align-items: center; justify-content: center; color: #4E5552; font-weight: 600">[Map of events]</div>
 </section>
 <section aria-labelledby="going-h" style="background: #E7F0EA; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 8px">
 <h2 id="going-h" style="margin: 0; font-size: 18px; font-weight: 700">You're going to {{goingCount}} event(s)</h2>
-<p style="margin: 0; color: #3D4A43; font-size: 15px">We'll send an SMS reminder the day before.</p>
+<p style="margin: 0; color: #3D4441; font-size: 15px">We'll send an SMS reminder the day before.</p>
 </section>
-<section aria-labelledby="host-h" style="background: #13201A; color: #F6F5F0; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+<section aria-labelledby="host-h" style="background: #13201A; color: #FAFAF8; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
 <h2 id="host-h" style="margin: 0; font-size: 18px; font-weight: 700">Branch official or volunteer?</h2>
 <p style="margin: 0; color: #B9C2BC; font-size: 15px">Add events and track attendance from the portal.</p>
 <a href="SignIn.dc.html" style="color: #F2B705; font-weight: 700">Sign in →</a>
@@ -89,12 +74,7 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 </aside>
 </main>
 
-<footer style="background: #13201A; color: #B9C2BC">
-<div style="max-width: 1240px; margin: 0 auto; padding: 28px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; font-size: 13px">
-<span>© [Year] Pamoja Party · Reg. No. [000]</span>
-<span>Powered by [Your product]</span>
-</div>
-</footer>
+<dc-import name="SiteFooter" hint-size="100%,520px"></dc-import>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1400}}'>
@@ -120,7 +100,7 @@ class Component extends DCLogic {
     });
     const types = ['All', 'Rally', 'Town hall', 'Branch', 'Training'].map((label) => ({
       label, pressed: sel === label ? 'true' : 'false', pick: () => this.setState({ type: label }),
-      style: 'font: inherit; font-size: 15px; font-weight: 600; min-height: 46px; padding: 0 18px; border-radius: 999px; cursor: pointer; ' + (sel === label ? 'background: #F2B705; color: #13201A; border: 1.5px solid #F2B705' : 'background: transparent; color: #F6F5F0; border: 1.5px solid #5B6B62')
+      style: 'font: inherit; font-size: 15px; font-weight: 600; min-height: 46px; padding: 0 18px; border-radius: 999px; cursor: pointer; ' + (sel === label ? 'background: #F2B705; color: #13201A; border: 1.5px solid #F2B705' : 'background: transparent; color: #FAFAF8; border: 1.5px solid #5B6B62')
     }));
     return { types, events, empty: events.length === 0, goingCount: Object.values(g).filter(Boolean).length };
   }

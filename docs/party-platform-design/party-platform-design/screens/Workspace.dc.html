@@ -10,24 +10,24 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F3F4F2}
+body{margin:0;background:#F7F7F5}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F7F7F5; min-height: 100vh; display: flex; flex-wrap: wrap">
 
-<nav aria-label="Workspace" style="flex: 1 1 240px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E1E4E2; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<nav aria-label="Workspace" style="flex: 1 1 240px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E9E9E5; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
 <div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
 <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #0B5D3B">Pamoja Party · Field plan</span>
 <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 19px">[Candidate] for MP</span>
-<span style="font-size: 13px; color: #4B5751">[Constituency], [County]</span>
+<span style="font-size: 13px; color: #4E5552">[Constituency], [County]</span>
 </div>
 <div style="display: flex; flex-direction: column; gap: 2px">
 <sc-for list="{{nav}}" as="n" hint-placeholder-count="9">
 <a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a>
 </sc-for>
 </div>
-<div style="margin-top: auto; padding: 0 8px; font-size: 13px; color: #4B5751; display: flex; flex-direction: column; gap: 4px">
+<div style="margin-top: auto; padding: 0 8px; font-size: 13px; color: #4E5552; display: flex; flex-direction: column; gap: 4px">
 <span>Signed in: [Campaign manager]</span>
 <span>Powered by [Your product]</span>
 </div>
@@ -37,12 +37,12 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
 <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Strategy</h1>
 <div style="display: flex; flex-wrap: wrap; gap: 10px">
-<button type="button" style="font: inherit; font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Schedule event</button>
+<button type="button" style="font: inherit; font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D3D5D3; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Schedule event</button>
 <button type="button" style="font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; border: 0; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Add mobilizer</button>
 </div>
 </header>
 
-<section aria-label="Win number" style="background: #13201A; color: #F6F5F0; border-radius: 20px; padding: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px">
+<section aria-label="Win number" style="background: #13201A; color: #FAFAF8; border-radius: 20px; padding: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px">
 <sc-for list="{{hero}}" as="h" hint-placeholder-count="4">
 <div style="display: flex; flex-direction: column; gap: 6px">
 <span style="font-size: 14px; font-weight: 600; color: #B9C2BC">{{h.label}}</span>
@@ -53,35 +53,35 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 </section>
 
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-<section aria-labelledby="w-h" style="flex: 3 1 460px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<section aria-labelledby="w-h" style="flex: 3 1 460px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
 <h2 id="w-h" style="margin: 0; font-size: 20px; font-weight: 700">Ward targets</h2>
 <div style="overflow-x: auto">
 <table style="width: 100%; min-width: 620px; border-collapse: collapse; font-size: 15px">
 <thead>
-<tr style="text-align: left; color: #4B5751; font-size: 13px">
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Ward</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Registered</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Win number</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Reached</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Party members</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Status</th>
+<tr style="text-align: left; color: #4E5552; font-size: 13px">
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Ward</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Registered</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Win number</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Reached</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Party members</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Status</th>
 </tr>
 </thead>
 <tbody>
 <sc-for list="{{wards}}" as="w" hint-placeholder-count="5">
 <tr>
-<td style="padding: 14px 12px; border-bottom: 1px solid #EDEFEE; font-weight: 600">{{w.name}}</td>
-<td style="padding: 14px 12px; border-bottom: 1px solid #EDEFEE">[00,000]</td>
-<td style="padding: 14px 12px; border-bottom: 1px solid #EDEFEE">[0,000]</td>
-<td style="padding: 14px 12px; border-bottom: 1px solid #EDEFEE">[0,000]</td>
-<td style="padding: 14px 12px; border-bottom: 1px solid #EDEFEE; color: #0B5D3B; font-weight: 600">[000]</td>
-<td style="padding: 14px 12px; border-bottom: 1px solid #EDEFEE"><span style="{{w.pill}}">{{w.status}}</span></td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0EC; font-weight: 600">{{w.name}}</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0EC">[00,000]</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0EC">[0,000]</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0EC">[0,000]</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0EC; color: #0B5D3B; font-weight: 600">[000]</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0EC"><span style="{{w.pill}}">{{w.status}}</span></td>
 </tr>
 </sc-for>
 </tbody>
 </table>
 </div>
-<p style="margin: 0; font-size: 13px; color: #4B5751">Green figures come from the party feed. Registered voters and turnout: IEBC 2022.</p>
+<p style="margin: 0; font-size: 13px; color: #4E5552">Green figures come from the party feed. Registered voters and turnout: IEBC 2022.</p>
 </section>
 
 <div style="flex: 2 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
@@ -90,21 +90,21 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <sc-for list="{{feed}}" as="f" hint-placeholder-count="3">
 <div style="display: flex; flex-direction: column; gap: 2px; padding: 10px 0; border-top: 1px solid #CFE0D5">
 <span style="font-weight: 600">{{f.title}}</span>
-<span style="font-size: 13px; color: #3D4A43">{{f.meta}}</span>
+<span style="font-size: 13px; color: #3D4441">{{f.meta}}</span>
 </div>
 </sc-for>
 </section>
 
-<section aria-labelledby="share-h" style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<section aria-labelledby="share-h" style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
 <div style="display: flex; flex-direction: column; gap: 4px">
 <h2 id="share-h" style="margin: 0; font-size: 20px; font-weight: 700">Share with the party</h2>
-<p style="margin: 0; font-size: 14px; color: #4B5751">You choose. Changes are logged and can be withdrawn.</p>
+<p style="margin: 0; font-size: 14px; color: #4E5552">You choose. Changes are logged and can be withdrawn.</p>
 </div>
 <sc-for list="{{shares}}" as="s" hint-placeholder-count="4">
-<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid #EDEFEE">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid #F0F0EC">
 <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
 <span style="font-weight: 600">{{s.label}}</span>
-<span style="font-size: 13px; color: #4B5751">{{s.hint}}</span>
+<span style="font-size: 13px; color: #4E5552">{{s.hint}}</span>
 </div>
 <button type="button" role="switch" aria-checked="{{s.checked}}" aria-label="{{s.label}}" onClick="{{s.toggle}}" style="{{s.track}}"><span style="{{s.knob}}"></span></button>
 </div>
@@ -121,14 +121,14 @@ class Component extends DCLogic {
   renderVals() {
     const hrefs = { Strategy: 'Workspace.dc.html', 'Targets & wards': 'WsTargets.dc.html', Events: 'WsEvents.dc.html', Mobilizers: 'WsMobilizers.dc.html', Supporters: 'WsSupporters.dc.html', Messages: 'WsMessages.dc.html', 'Party feed & sharing': 'WsParty.dc.html', 'Election-day agents': 'WsAgents.dc.html', Spending: 'WsSpending.dc.html' };
     const nav = ['Strategy', 'Targets & wards', 'Events', 'Mobilizers', 'Supporters', 'Messages', 'Party feed & sharing', 'Election-day agents', 'Spending'].map((label, i) => ({
-      label, href: hrefs[label] || '#', style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (i === 0 ? 'background: #E7F0EA; color: #0B5D3B' : 'color: #3D4A43')
+      label, href: hrefs[label] || '#', style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (i === 0 ? 'background: #E7F0EA; color: #0B5D3B' : 'color: #3D4441')
     }));
     const big = 'font-family: \'Bricolage Grotesque\', sans-serif; font-weight: 800; font-size: 36px; line-height: 1; ';
     const hero = [
       { label: 'Win number', value: '[00,000]', note: '50% + 1 of projected votes cast', valueStyle: big + 'color: #F2B705' },
-      { label: 'Supporters identified', value: '[00,000]', note: '[00]% of win number', valueStyle: big + 'color: #F6F5F0' },
-      { label: 'Gap to close', value: '[00,000]', note: 'across [0] wards', valueStyle: big + 'color: #F6F5F0' },
-      { label: 'Days to nominations', value: '[00]', note: '[Date]', valueStyle: big + 'color: #F6F5F0' }
+      { label: 'Supporters identified', value: '[00,000]', note: '[00]% of win number', valueStyle: big + 'color: #FAFAF8' },
+      { label: 'Gap to close', value: '[00,000]', note: 'across [0] wards', valueStyle: big + 'color: #FAFAF8' },
+      { label: 'Days to nominations', value: '[00]', note: '[Date]', valueStyle: big + 'color: #FAFAF8' }
     ];
     const tone = { 'On track': 'background: #E3F1E8; color: #0B5D3B', 'Behind': 'background: #FFF3CC; color: #6B5100', 'No mobilizer': 'background: #FCE4E2; color: #9A1C12' };
     const st = ['On track', 'Behind', 'On track', 'No mobilizer', 'Behind'];
@@ -139,7 +139,7 @@ class Component extends DCLogic {
       return {
         label, hint, checked: on ? 'true' : 'false',
         toggle: locked ? () => {} : () => this.setState({ share: { ...sh, [key]: !on } }),
-        track: 'flex: 0 0 52px; width: 52px; height: 30px; border-radius: 999px; border: 0; padding: 3px; display: flex; cursor: ' + (locked ? 'not-allowed' : 'pointer') + '; justify-content: ' + (on ? 'flex-end' : 'flex-start') + '; background: ' + (locked ? '#E1E4E2' : on ? '#0B5D3B' : '#9AA49F'),
+        track: 'flex: 0 0 52px; width: 52px; height: 30px; border-radius: 999px; border: 0; padding: 3px; display: flex; cursor: ' + (locked ? 'not-allowed' : 'pointer') + '; justify-content: ' + (on ? 'flex-end' : 'flex-start') + '; background: ' + (locked ? '#E9E9E5' : on ? '#0B5D3B' : '#9A9F9C'),
         knob: 'width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.2)'
       };
     };

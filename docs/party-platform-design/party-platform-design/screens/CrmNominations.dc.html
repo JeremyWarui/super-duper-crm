@@ -10,15 +10,15 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F3F4F2}
+body{margin:0;background:#F7F7F5}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F7F7F5; min-height: 100vh; display: flex; flex-wrap: wrap">
 <nav aria-label="Party CRM" style="flex: 1 1 240px; max-width: 100%; background: #13201A; color: #DDE3DF; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
 <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
 <span style="width: 34px; height: 34px; border-radius: 9px; background: #F2B705; display: flex; align-items: center; justify-content: center; color: #13201A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 17px">P</span>
-<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #F6F5F0">Pamoja Party</span><span style="font-size: 12px; color: #9FAAA4">Elections board</span></div>
+<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #FAFAF8">Pamoja Party</span><span style="font-size: 12px; color: #9FAAA4">Elections board</span></div>
 </div>
 <div style="display: flex; flex-direction: column; gap: 2px">
 <sc-for list="{{nav}}" as="n" hint-placeholder-count="8"><a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a></sc-for>
@@ -26,83 +26,88 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <p style="margin: auto 8px 0; font-size: 12px; color: #9FAAA4">Powered by [Your product]</p>
 </nav>
 
-<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
-<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column">
+<div style="position: sticky; top: 0; z-index: 20">
+<dc-import name="CrmTopBar" page="Nominations" role="Elections board" hint-size="100%,64px"></dc-import>
+<header style="background: rgba(250,250,248,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(19,32,26,0.06); padding: 18px 32px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 4px">
-<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4B5751">Party primaries [Year]</p>
-<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Nominations</h1>
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4E5552">Party primaries [Year]</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: -0.02em; line-height: 1.1">Nominations</h1>
 </div>
 <div style="display: flex; flex-wrap: wrap; gap: 10px">
-<a href="Nominees.dc.html" style="font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; padding: 0 18px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">Nominees board</a>
-<a href="CrmAppeals.dc.html" style="font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; padding: 0 18px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">Appeals</a>
-<a href="VoteControl.dc.html" style="font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; padding: 0 18px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">Primary day</a>
-<a href="FlowResults.dc.html" style="font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; padding: 0 18px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">Enter primary results</a>
+<a href="Nominees.dc.html" style="font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D3D5D3; padding: 0 18px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">Nominees board</a>
+<a href="CrmAppeals.dc.html" style="font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D3D5D3; padding: 0 18px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">Appeals</a>
+<a href="VoteControl.dc.html" style="font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D3D5D3; padding: 0 18px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">Primary day</a>
+<a href="FlowResults.dc.html" style="font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D3D5D3; padding: 0 18px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">Enter primary results</a>
 <a href="FlowTimetable.dc.html" style="font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; padding: 0 18px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">Publish timetable</a>
 </div>
 </header>
+</div>
+<div style="padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 24px">
 
-<ol aria-label="Nomination stages" style="margin: 0; padding: 20px; list-style: none; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px">
+<ol aria-label="Nomination stages" style="margin: 0; padding: 20px; list-style: none; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px">
 <sc-for list="{{stages}}" as="s" hint-placeholder-count="5">
 <li aria-current="{{s.current}}" style="display: flex; flex-direction: column; gap: 8px">
 <span style="{{s.bar}}"></span>
 <span style="{{s.labelStyle}}">{{s.label}}</span>
-<span style="font-size: 13px; color: #4B5751">{{s.date}}</span>
+<span style="font-size: 13px; color: #4E5552">{{s.date}}</span>
 </li>
 </sc-for>
 </ol>
 
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-<section aria-labelledby="ap-h" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<section aria-labelledby="ap-h" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
 <h2 id="ap-h" style="margin: 0; font-size: 20px; font-weight: 700">Applications to vet</h2>
-<label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600">Seat<select style="font: inherit; font-weight: 500; height: 40px; padding: 0 10px; border: 1px solid #D5D9D6; border-radius: 10px; background: #FFFFFF"><option>All seats</option><option>Governor</option><option>MP</option><option>MCA</option></select></label>
+<label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600">Seat<select style="font: inherit; font-weight: 500; height: 40px; padding: 0 10px; border: 1px solid #D3D5D3; border-radius: 10px; background: #FFFFFF"><option>All seats</option><option>Governor</option><option>MP</option><option>MCA</option></select></label>
 </div>
 <div style="overflow-x: auto">
 <table style="width: 100%; min-width: 620px; border-collapse: collapse; font-size: 15px">
-<thead><tr style="text-align: left; color: #4B5751; font-size: 13px">
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Aspirant</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Seat · area</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Documents</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Method</th>
-<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Decision</th>
+<thead><tr style="text-align: left; color: #4E5552; font-size: 13px">
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Aspirant</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Seat · area</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Documents</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Method</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Decision</th>
 </tr></thead>
 <tbody>
 <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
 <tr style="{{r.rowStyle}}">
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE"><button type="button" onClick="{{r.open}}" style="font: inherit; font-weight: 700; color: #13201A; background: none; border: 0; padding: 6px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #C9C5B8">{{r.name}}</button></td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{r.seat}} · {{r.area}}</td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{r.docs}} of 6</td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{r.method}}</td>
-<td style="padding: 12px; border-bottom: 1px solid #EDEFEE"><span style="{{r.pill}}">{{r.decision}}</span></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC"><button type="button" onClick="{{r.open}}" style="font: inherit; font-weight: 700; color: #13201A; background: none; border: 0; padding: 6px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #C9CCCF">{{r.name}}</button></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC">{{r.seat}} · {{r.area}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC">{{r.docs}} of 6</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC">{{r.method}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0EC"><span style="{{r.pill}}">{{r.decision}}</span></td>
 </tr>
 </sc-for>
 </tbody>
 </table>
 </div>
-<p style="margin: 0; font-size: 13px; color: #4B5751">Method per seat (primary, consensus or direct nomination) is set by the elections board under the party's nomination rules.</p>
+<p style="margin: 0; font-size: 13px; color: #4E5552">Method per seat (primary, consensus or direct nomination) is set by the elections board under the party's nomination rules.</p>
 </section>
 
-<aside aria-labelledby="v-h" style="flex: 2 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<aside aria-labelledby="v-h" style="flex: 2 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
 <div style="display: flex; flex-direction: column; gap: 4px">
 <h2 id="v-h" style="margin: 0; font-size: 20px; font-weight: 700">Vetting: {{sel.name}}</h2>
-<span style="font-size: 14px; color: #4B5751">{{sel.seat}} · {{sel.area}} · fee {{sel.fee}}</span>
+<span style="font-size: 14px; color: #4E5552">{{sel.seat}} · {{sel.area}} · fee {{sel.fee}}</span>
 </div>
 <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
 <legend style="font-size: 15px; font-weight: 700; margin-bottom: 8px">Requirements</legend>
 <sc-for list="{{sel.checks}}" as="c" hint-placeholder-count="6">
-<label style="display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; background: #F3F4F2; font-size: 14px; cursor: pointer">
+<label style="display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; background: #F7F7F5; font-size: 14px; cursor: pointer">
 <input type="checkbox" checked="{{c.on}}" onChange="{{c.toggle}}" style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B">{{c.label}}
 </label>
 </sc-for>
 </fieldset>
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Board notes<textarea rows="2" placeholder="Reason for decision (shared with the aspirant)" style="font: inherit; font-weight: 400; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; resize: vertical"></textarea></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Board notes<textarea rows="2" placeholder="Reason for decision (shared with the aspirant)" style="font: inherit; font-weight: 400; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9CCCF; border-radius: 10px; resize: vertical"></textarea></label>
 <div style="display: flex; flex-wrap: wrap; gap: 8px">
 <button type="button" onClick="{{sel.reject}}" style="font: inherit; font-weight: 600; font-size: 14px; color: #9A1C12; background: #FFFFFF; border: 1px solid #E8C4C0; height: 44px; padding: 0 16px; border-radius: 10px; cursor: pointer">Reject</button>
-<button type="button" onClick="{{sel.request}}" style="font: inherit; font-weight: 600; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; height: 44px; padding: 0 16px; border-radius: 10px; cursor: pointer">Request documents</button>
+<button type="button" onClick="{{sel.request}}" style="font: inherit; font-weight: 600; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #D3D5D3; height: 44px; padding: 0 16px; border-radius: 10px; cursor: pointer">Request documents</button>
 <button type="button" onClick="{{sel.clear}}" style="{{sel.clearStyle}}">Clear for nomination</button>
 </div>
-<p style="margin: 0; font-size: 12px; color: #4B5751">Cleared aspirants are notified by SMS and can subscribe to a campaign workspace. Decisions can be appealed within [00] days.</p>
+<p style="margin: 0; font-size: 12px; color: #4E5552">Cleared aspirants are notified by SMS and can subscribe to a campaign workspace. Decisions can be appealed within [00] days.</p>
 </aside>
+</div>
 </div>
 </main>
 </div>
@@ -122,7 +127,7 @@ class Component extends DCLogic {
       { id: 4, name: '[Aspirant D]', seat: 'Woman Rep', area: '[County]', method: 'Primary', fee: 'paid' },
       { id: 5, name: '[Aspirant E]', seat: 'MCA', area: '[Ward]', method: 'Direct', fee: 'unpaid' }
     ];
-    const tone = { 'Cleared': ['#E3F1E8', '#0B5D3B'], 'Pending': ['#ECEEF0', '#3D4A43'], 'Docs requested': ['#FFF3CC', '#6B5100'], 'Rejected': ['#FCE4E2', '#9A1C12'] };
+    const tone = { 'Cleared': ['#E3F1E8', '#0B5D3B'], 'Pending': ['#F1F1ED', '#3D4441'], 'Docs requested': ['#FFF3CC', '#6B5100'], 'Rejected': ['#FCE4E2', '#9A1C12'] };
     const pill = (d) => 'display: inline-block; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; background: ' + tone[d][0] + '; color: ' + tone[d][1];
     const rows = apps.map((a) => ({ ...a, docs: S.docs[a.id].filter(Boolean).length, decision: S.dec[a.id], pill: pill(S.dec[a.id]), rowStyle: a.id === S.sel ? 'background: #F4F8F5' : '', open: () => this.setState({ sel: a.id }) }));
     const labels = ['National ID & voter registration', 'Party membership confirmed', 'Nomination fee receipt', 'Tax compliance certificate', 'Police clearance (good conduct)', 'Self-declaration & academic papers'];
@@ -135,13 +140,13 @@ class Component extends DCLogic {
       checks: labels.map((label, i) => ({ label, on: d[i], toggle: () => { const nd = d.slice(); nd[i] = !nd[i]; this.setState({ docs: { ...S.docs, [a.id]: nd } }); } })),
       reject: () => setDec('Rejected'), request: () => setDec('Docs requested'),
       clear: () => { if (allIn) setDec('Cleared'); },
-      clearStyle: 'font: inherit; font-weight: 700; font-size: 14px; color: #FFFFFF; border: 0; height: 44px; padding: 0 16px; border-radius: 10px; ' + (allIn ? 'background: #0B5D3B; cursor: pointer' : 'background: #9AA49F; cursor: not-allowed')
+      clearStyle: 'font: inherit; font-weight: 700; font-size: 14px; color: #FFFFFF; border: 0; height: 44px; padding: 0 16px; border-radius: 10px; ' + (allIn ? 'background: #0B5D3B; cursor: pointer' : 'background: #9A9F9C; cursor: not-allowed')
     };
     const st = [['Applications', '[dd Mon] – [dd Mon]'], ['Vetting', 'until [dd Mon]'], ['Appeals', '[dd Mon] – [dd Mon]'], ['Primaries', '[dd Mon]'], ['Certificates', 'by [dd Mon]']];
     const cur = 1;
     const stages = st.map((s, i) => ({ label: s[0], date: s[1], current: i === cur ? 'step' : 'false',
-      bar: 'display: block; height: 6px; border-radius: 999px; background: ' + (i < cur ? '#0B5D3B' : i === cur ? '#F2B705' : '#E1E4E2'),
-      labelStyle: 'font-size: 15px; font-weight: 700; color: ' + (i <= cur ? '#13201A' : '#6B7570') }));
+      bar: 'display: block; height: 6px; border-radius: 999px; background: ' + (i < cur ? '#0B5D3B' : i === cur ? '#F2B705' : '#E9E9E5'),
+      labelStyle: 'font-size: 15px; font-weight: 700; color: ' + (i <= cur ? '#13201A' : '#6D7370') }));
     const items = [['Overview', 'PartyCRM.dc.html'], ['Members', 'Members.dc.html'], ['Branches', 'CrmBranches.dc.html'], ['Events', 'CrmEvents.dc.html'], ['Nominations', 'CrmNominations.dc.html'], ['Nominees board', 'Nominees.dc.html'], ['Communications', 'CrmComms.dc.html'], ['Finance', 'CrmFinance.dc.html'], ['Website content', 'Content.dc.html'], ['Users & data', 'CrmUsers.dc.html']];
     const nav = items.map((n) => ({ label: n[0], href: n[1], style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (n[0] === 'Nominations' ? 'background: #0B5D3B; color: #FFFFFF' : 'color: #DDE3DF') }));
     return { nav, stages, rows, sel };

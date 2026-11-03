@@ -10,37 +10,37 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F3F4F2}
+body{margin:0;background:#F7F7F5}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
-<nav aria-label="Workspace" style="flex: 1 1 240px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E1E4E2; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F7F7F5; min-height: 100vh; display: flex; flex-wrap: wrap">
+<nav aria-label="Workspace" style="flex: 1 1 240px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E9E9E5; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
 <div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
 <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #0B5D3B">Pamoja Party · Command plan</span>
 <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 19px">[Candidate] for MP</span>
-<span style="font-size: 13px; color: #4B5751">[Constituency], [County]</span>
+<span style="font-size: 13px; color: #4E5552">[Constituency], [County]</span>
 </div>
 <div style="display: flex; flex-direction: column; gap: 2px">
 <sc-for list="{{nav}}" as="n" hint-placeholder-count="9"><a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a></sc-for>
 </div>
-<div style="margin-top: auto; padding: 0 8px; font-size: 13px; color: #4B5751">Powered by [Your product]</div>
+<div style="margin-top: auto; padding: 0 8px; font-size: 13px; color: #4E5552">Powered by [Your product]</div>
 </nav>
 
 <main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
 <header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
-<div style="display: flex; flex-direction: column; gap: 4px"><h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Election-day agents</h1><span style="font-size: 14px; color: #4B5751">General election · [dd Mon YYYY] · one agent per polling station</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Election-day agents</h1><span style="font-size: 14px; color: #4E5552">General election · [dd Mon YYYY] · one agent per polling station</span></div>
 <button type="button" style="font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; border: 0; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Import agent list</button>
 </header>
 
 <section aria-label="Coverage" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px">
-<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Stations covered</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">{{covered}} / 6</span><span style="font-size: 13px; color: #4B5751">sample of [000] stations</span></div>
-<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Accreditation letters</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[000]</span><span style="font-size: 13px; color: #4B5751">received from the returning officer</span></div>
-<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Result forms in</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; color: #0B5D3B">{{forms}} / 6</span><span style="font-size: 13px; color: #4B5751">photos of signed station forms</span></div>
-<div style="background: #13201A; color: #F6F5F0; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #B9C2BC">Our parallel tally</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; color: #F2B705">[00,000]</span><span style="font-size: 13px; color: #B9C2BC">votes for us, from forms received</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4E5552">Stations covered</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">{{covered}} / 6</span><span style="font-size: 13px; color: #4E5552">sample of [000] stations</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4E5552">Accreditation letters</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[000]</span><span style="font-size: 13px; color: #4E5552">received from the returning officer</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4E5552">Result forms in</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; color: #0B5D3B">{{forms}} / 6</span><span style="font-size: 13px; color: #4E5552">photos of signed station forms</span></div>
+<div style="background: #13201A; color: #FAFAF8; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #B9C2BC">Our parallel tally</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; color: #F2B705">[00,000]</span><span style="font-size: 13px; color: #B9C2BC">votes for us, from forms received</span></div>
 </section>
 
-<section aria-labelledby="st-h" style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+<section aria-labelledby="st-h" style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
 <h2 id="st-h" style="margin: 0; font-size: 20px; font-weight: 700">Polling stations</h2>
 <div role="group" aria-label="Filter" style="display: flex; gap: 6px">
@@ -49,21 +49,21 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 </div>
 <div style="overflow-x: auto">
 <table style="width: 100%; min-width: 720px; border-collapse: collapse; font-size: 15px">
-<thead><tr style="text-align: left; color: #4B5751; font-size: 13px"><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Station</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Ward</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Agent</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Status</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Action</span></th></tr></thead>
+<thead><tr style="text-align: left; color: #4E5552; font-size: 13px"><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Station</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Ward</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Agent</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Status</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Action</span></th></tr></thead>
 <tbody>
 <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
 <tr>
-<td style="padding: 12px 8px; border-bottom: 1px solid #EDEFEE; font-weight: 600">{{r.name}}</td>
-<td style="padding: 12px 8px; border-bottom: 1px solid #EDEFEE">{{r.ward}}</td>
-<td style="padding: 12px 8px; border-bottom: 1px solid #EDEFEE">{{r.agent}}</td>
-<td style="padding: 12px 8px; border-bottom: 1px solid #EDEFEE"><span style="{{r.pill}}">{{r.status}}</span></td>
-<td style="padding: 12px 8px; border-bottom: 1px solid #EDEFEE; text-align: right"><sc-if value="{{r.hasAct}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{r.act}}" style="font: inherit; font-weight: 700; font-size: 13px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 36px; padding: 0 12px; border-radius: 8px; cursor: pointer">{{r.actLabel}}</button></sc-if></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #F0F0EC; font-weight: 600">{{r.name}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #F0F0EC">{{r.ward}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #F0F0EC">{{r.agent}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #F0F0EC"><span style="{{r.pill}}">{{r.status}}</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #F0F0EC; text-align: right"><sc-if value="{{r.hasAct}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{r.act}}" style="font: inherit; font-weight: 700; font-size: 13px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 36px; padding: 0 12px; border-radius: 8px; cursor: pointer">{{r.actLabel}}</button></sc-if></td>
 </tr>
 </sc-for>
 </tbody>
 </table>
 </div>
-<p style="margin: 0; font-size: 13px; color: #4B5751; line-height: 1.5">Agents sign in with their phone on voting day, check in at their station, report incidents and photograph the signed station results form. Your tally is for checking the official results, not announcing them.</p>
+<p style="margin: 0; font-size: 13px; color: #4E5552; line-height: 1.5">Agents sign in with their phone on voting day, check in at their station, report incidents and photograph the signed station results form. Your tally is for checking the official results, not announcing them.</p>
 </section>
 </main>
 </div>
@@ -74,15 +74,15 @@ class Component extends DCLogic {
   renderVals() {
     const S = this.state;
     const defs = [[1, '[Station 001]', '[Ward 1]'], [2, '[Station 002]', '[Ward 1]'], [3, '[Station 003]', '[Ward 2]'], [4, '[Station 004]', '[Ward 3]'], [5, '[Station 005]', '[Ward 4]'], [6, '[Station 006]', '[Ward 5]']];
-    const meta = { none: ['No agent', '#FCE4E2', '#9A1C12', 'Assign agent', 'accredited'], accredited: ['Accredited', '#ECEEF0', '#3D4A43', null, null], checked: ['Checked in at station', '#FFF3CC', '#6B5100', 'Mark form received', 'form'], form: ['Results form received', '#E3F1E8', '#0B5D3B', null, null] };
+    const meta = { none: ['No agent', '#FCE4E2', '#9A1C12', 'Assign agent', 'accredited'], accredited: ['Accredited', '#F1F1ED', '#3D4441', null, null], checked: ['Checked in at station', '#FFF3CC', '#6B5100', 'Mark form received', 'form'], form: ['Results form received', '#E3F1E8', '#0B5D3B', null, null] };
     const all = defs.map((d) => { const s = S.st[d[0]]; const m = meta[s]; return { name: d[1], ward: d[2], agent: s === 'none' ? '—' : '[Agent name] · 07•• ••• [000]', status: m[0], key: s,
       pill: 'font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; background: ' + m[1] + '; color: ' + m[2],
       hasAct: !!m[3], actLabel: m[3] || '', act: () => { if (m[4]) this.setState({ st: { ...S.st, [d[0]]: m[4] } }); } }; });
     const fl = { All: () => true, 'No agent': (r) => r.key === 'none', 'Form pending': (r) => r.key !== 'form' };
     const filters = Object.keys(fl).map((label) => ({ label, pressed: S.f === label ? 'true' : 'false', pick: () => this.setState({ f: label }),
-      style: 'font: inherit; font-size: 14px; font-weight: 600; min-height: 38px; padding: 0 14px; border-radius: 999px; cursor: pointer; ' + (S.f === label ? 'background: #13201A; color: #FFFFFF; border: 1px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1px solid #D5D9D6') }));
+      style: 'font: inherit; font-size: 14px; font-weight: 600; min-height: 38px; padding: 0 14px; border-radius: 999px; cursor: pointer; ' + (S.f === label ? 'background: #13201A; color: #FFFFFF; border: 1px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1px solid #D3D5D3') }));
     const items = [['Strategy', 'Workspace.dc.html'], ['Targets & wards', 'WsTargets.dc.html'], ['Events', 'WsEvents.dc.html'], ['Mobilizers', 'WsMobilizers.dc.html'], ['Supporters', 'WsSupporters.dc.html'], ['Messages', 'WsMessages.dc.html'], ['Party feed & sharing', 'WsParty.dc.html'], ['Election-day agents', 'WsAgents.dc.html'], ['Spending', 'WsSpending.dc.html']];
-    const nav = items.map((x) => ({ label: x[0], href: x[1], style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (x[0] === 'Election-day agents' ? 'background: #E7F0EA; color: #0B5D3B' : 'color: #3D4A43') }));
+    const nav = items.map((x) => ({ label: x[0], href: x[1], style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (x[0] === 'Election-day agents' ? 'background: #E7F0EA; color: #0B5D3B' : 'color: #3D4441') }));
     return { nav, filters, rows: all.filter(fl[S.f]), covered: all.filter((r) => r.key !== 'none').length, forms: all.filter((r) => r.key === 'form').length };
   }
 }

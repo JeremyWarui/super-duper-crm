@@ -10,15 +10,15 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F3F4F2}
+body{margin:0;background:#F7F7F5}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F7F7F5; min-height: 100vh; display: flex; flex-wrap: wrap">
 <nav aria-label="Party CRM" style="flex: 1 1 240px; max-width: 100%; background: #13201A; color: #DDE3DF; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
 <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
 <span style="width: 34px; height: 34px; border-radius: 9px; background: #F2B705; display: flex; align-items: center; justify-content: center; color: #13201A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 17px">P</span>
-<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #F6F5F0">Pamoja Party</span><span style="font-size: 12px; color: #9FAAA4">Elections board</span></div>
+<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #FAFAF8">Pamoja Party</span><span style="font-size: 12px; color: #9FAAA4">Elections board</span></div>
 </div>
 <div style="display: flex; flex-direction: column; gap: 2px">
 <sc-for list="{{nav}}" as="n" hint-placeholder-count="9"><a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a></sc-for>
@@ -26,33 +26,37 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <p style="margin: auto 8px 0; font-size: 12px; color: #9FAAA4">Powered by [Your product]</p>
 </nav>
 
-<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
-<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column">
+<div style="position: sticky; top: 0; z-index: 20">
+<dc-import name="CrmTopBar" page="Nominees board" role="Elections board" hint-size="100%,64px"></dc-import>
+<header style="background: rgba(250,250,248,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(19,32,26,0.06); padding: 18px 32px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 4px">
-<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4B5751">IEBC deadline for nominees: [dd Mon YYYY] · [00] days left</p>
-<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Nominees board</h1>
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4E5552">IEBC deadline for nominees: [dd Mon YYYY] · [00] days left</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: -0.02em; line-height: 1.1">Nominees board</h1>
 </div>
 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px">
 <button type="button" onClick="{{submit}}" style="{{submitStyle}}">{{submitLabel}}</button>
-<span style="font-size: 13px; color: #4B5751">{{submitNote}}</span>
+<span style="font-size: 13px; color: #4E5552">{{submitNote}}</span>
 </div>
 </header>
+</div>
+<div style="padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 24px">
 
-<section aria-labelledby="cov-h" style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+<section aria-labelledby="cov-h" style="background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
 <h2 id="cov-h" style="margin: 0; font-size: 20px; font-weight: 700">Coverage by seat</h2>
 <div style="overflow-x: auto">
 <table style="width: 100%; min-width: 640px; border-collapse: collapse; font-size: 15px">
-<thead><tr style="text-align: left; color: #4B5751; font-size: 13px">
-<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Seat</th>
-<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">Seats</th>
-<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">Nominee certified</th>
-<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">In progress</th>
-<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">Needs action</th>
-<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">Not contesting</th>
+<thead><tr style="text-align: left; color: #4E5552; font-size: 13px">
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5">Seat</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5; text-align: right">Seats</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5; text-align: right">Nominee certified</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5; text-align: right">In progress</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5; text-align: right">Needs action</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E9E9E5; text-align: right">Not contesting</th>
 </tr></thead>
 <tbody>
 <sc-for list="{{coverage}}" as="c" hint-placeholder-count="6">
-<tr><td style="padding: 11px 8px; border-bottom: 1px solid #EDEFEE; font-weight: 700">{{c.seat}}</td><td style="padding: 11px 8px; border-bottom: 1px solid #EDEFEE; text-align: right; font-variant-numeric: tabular-nums">{{c.n}}</td><td style="padding: 11px 8px; border-bottom: 1px solid #EDEFEE; text-align: right; color: #0B5D3B; font-weight: 600">[000]</td><td style="padding: 11px 8px; border-bottom: 1px solid #EDEFEE; text-align: right">[000]</td><td style="padding: 11px 8px; border-bottom: 1px solid #EDEFEE; text-align: right; color: #9A1C12; font-weight: 600">[00]</td><td style="padding: 11px 8px; border-bottom: 1px solid #EDEFEE; text-align: right; color: #4B5751">[00]</td></tr>
+<tr><td style="padding: 11px 8px; border-bottom: 1px solid #F0F0EC; font-weight: 700">{{c.seat}}</td><td style="padding: 11px 8px; border-bottom: 1px solid #F0F0EC; text-align: right; font-variant-numeric: tabular-nums">{{c.n}}</td><td style="padding: 11px 8px; border-bottom: 1px solid #F0F0EC; text-align: right; color: #0B5D3B; font-weight: 600">[000]</td><td style="padding: 11px 8px; border-bottom: 1px solid #F0F0EC; text-align: right">[000]</td><td style="padding: 11px 8px; border-bottom: 1px solid #F0F0EC; text-align: right; color: #9A1C12; font-weight: 600">[00]</td><td style="padding: 11px 8px; border-bottom: 1px solid #F0F0EC; text-align: right; color: #4E5552">[00]</td></tr>
 </sc-for>
 </tbody>
 </table>
@@ -60,7 +64,7 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 </section>
 
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-<section aria-labelledby="seats-h" style="flex: 3 1 540px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<section aria-labelledby="seats-h" style="flex: 3 1 540px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
 <h2 id="seats-h" style="margin: 0; font-size: 20px; font-weight: 700">Seats</h2>
 <div role="group" aria-label="Filter" style="display: flex; flex-wrap: wrap; gap: 6px">
@@ -70,32 +74,33 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <div style="display: flex; flex-direction: column">
 <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
 <button type="button" onClick="{{r.open}}" style="{{r.rowStyle}}">
-<span style="display: flex; flex-direction: column; gap: 2px; text-align: left; min-width: 0"><strong style="font-size: 15px">{{r.seat}} · {{r.area}}</strong><span style="font-size: 13px; color: #4B5751">{{r.who}}</span></span>
+<span style="display: flex; flex-direction: column; gap: 2px; text-align: left; min-width: 0"><strong style="font-size: 15px">{{r.seat}} · {{r.area}}</strong><span style="font-size: 13px; color: #4E5552">{{r.who}}</span></span>
 <span style="{{r.pill}}">{{r.label}}</span>
 </button>
 </sc-for>
 </div>
 </section>
 
-<aside aria-labelledby="d-h" style="flex: 2 1 360px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+<aside aria-labelledby="d-h" style="flex: 2 1 360px; min-width: 0; background: #FFFFFF; border: 1px solid #E9E9E5; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 4px"><h2 id="d-h" style="margin: 0; font-size: 20px; font-weight: 700">{{sel.seat}} · {{sel.area}}</h2><span style="{{sel.pill}}">{{sel.label}}</span></div>
 <ol aria-label="Path to a nominee" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column">
 <sc-for list="{{sel.path}}" as="p" hint-placeholder-count="6">
 <li style="display: flex; gap: 12px; align-items: center; padding: 7px 0"><span style="{{p.dot}}">{{p.mark}}</span><span style="{{p.text}}">{{p.label}}</span></li>
 </sc-for>
 </ol>
-<p style="margin: 0; font-size: 14px; line-height: 1.55; background: #F3F4F2; border-radius: 12px; padding: 12px 14px">{{sel.note}}</p>
+<p style="margin: 0; font-size: 14px; line-height: 1.55; background: #F7F7F5; border-radius: 12px; padding: 12px 14px">{{sel.note}}</p>
 <div style="display: flex; flex-direction: column; gap: 8px">
 <sc-for list="{{sel.actions}}" as="a" hint-placeholder-count="2"><button type="button" onClick="{{a.run}}" style="{{a.style}}">{{a.label}}</button></sc-for>
 </div>
-<p style="margin: 0; font-size: 12px; color: #4B5751">Every decision records who made it, under which party rule, with documents attached.</p>
+<p style="margin: 0; font-size: 12px; color: #4E5552">Every decision records who made it, under which party rule, with documents attached.</p>
 </aside>
 </div>
 
-<section style="background: #13201A; color: #F6F5F0; border-radius: 16px; padding: 22px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px">
+<section style="background: #13201A; color: #FAFAF8; border-radius: 16px; padding: 22px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px">
 <div style="display: flex; flex-direction: column; gap: 4px; max-width: 760px"><strong style="font-size: 18px">Party lists for nominated seats</strong><span style="font-size: 14px; color: #B9C2BC">A separate track: ranked lists for nominated seats, checked for gender and special-interest requirements before submission. [0] of [0] lists drafted.</span></div>
 <a href="CrmPartyLists.dc.html" style="font-weight: 700; color: #13201A; background: #F2B705; padding: 12px 18px; border-radius: 999px; text-decoration: none">Open party lists</a>
 </section>
+</div>
 </main>
 </div>
 </x-dc>
@@ -121,14 +126,14 @@ class Component extends DCLogic {
       open: ['Applications re-opened', 'n', 0, 'Applications open again until [dd Mon].'],
       vacant: ['Not contesting', 'n', 5, 'The party decided not to field a candidate. Recorded with the decision minutes.']
     };
-    const tone = { g: ['#E3F1E8', '#0B5D3B'], a: ['#FFF3CC', '#6B5100'], r: ['#FCE4E2', '#9A1C12'], n: ['#ECEEF0', '#3D4A43'] };
+    const tone = { g: ['#E3F1E8', '#0B5D3B'], a: ['#FFF3CC', '#6B5100'], r: ['#FCE4E2', '#9A1C12'], n: ['#F1F1ED', '#3D4441'] };
     const pill = (k) => 'flex: 0 0 auto; align-self: flex-start; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; background: ' + tone[k][0] + '; color: ' + tone[k][1];
     const group = (s) => ['none', 'tie', 'withdrew', 'appeal', 'unopposed'].indexOf(s) > -1 ? 'Needs action' : ['consensus', 'scheduled', 'open'].indexOf(s) > -1 ? 'In progress' : 'Done';
     const all = seats.map((x) => { const s = S.st[x[0]]; const m = meta[s]; return { id: x[0], seat: x[1], area: x[2], who: s === 'certified' && x[0] !== 2 ? 'Nominee certified' : x[3], label: m[0], pill: pill(m[1]), grp: group(s), open: () => this.setState({ sel: x[0] }),
-      rowStyle: 'font: inherit; color: #13201A; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 12px; border: 0; border-bottom: 1px solid #EDEFEE; cursor: pointer; text-align: left; background: ' + (x[0] === S.sel ? '#F4F8F5' : '#FFFFFF') }; });
+      rowStyle: 'font: inherit; color: #13201A; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 12px; border: 0; border-bottom: 1px solid #F0F0EC; cursor: pointer; text-align: left; background: ' + (x[0] === S.sel ? '#F4F8F5' : '#FFFFFF') }; });
     const fl = ['Needs action', 'In progress', 'Done', 'All'];
     const filters = fl.map((label) => ({ label, count: label === 'All' ? all.length : all.filter((r) => r.grp === label).length, pressed: S.f === label ? 'true' : 'false', pick: () => this.setState({ f: label }),
-      style: 'font: inherit; font-size: 14px; font-weight: 600; min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; ' + (S.f === label ? 'background: #13201A; color: #FFFFFF; border: 1px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1px solid #D5D9D6') }));
+      style: 'font: inherit; font-size: 14px; font-weight: 600; min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; ' + (S.f === label ? 'background: #13201A; color: #FFFFFF; border: 1px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1px solid #D3D5D3') }));
     const rows = S.f === 'All' ? all : all.filter((r) => r.grp === S.f);
     const set = (v) => this.setState({ st: { ...S.st, [S.sel]: v } });
     const cur = seats.find((x) => x[0] === S.sel);
@@ -137,9 +142,9 @@ class Component extends DCLogic {
     const steps = ['Applications', 'Vetting', 'Selection: primary, consensus or direct', 'Appeals', 'Nominee certified', 'Submitted to IEBC'];
     const at = s === 'certified' ? 4 : m[2];
     const path = steps.map((label, i) => { const done = i < at || (s === 'certified' && i === 4) || (S.submitted && s === 'certified'); const now = i === at && s !== 'certified';
-      return { label, mark: done ? '✓' : now ? '!' : '', dot: 'flex: 0 0 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; ' + (done ? 'background: #0B5D3B; color: #FFFFFF' : now ? 'background: #F2B705; color: #13201A' : 'background: #E1E4E2; color: #3D4A43'), text: 'font-size: 14px; font-weight: ' + (now ? '700' : '500') + '; color: ' + (done || now ? '#13201A' : '#6B7570') }; });
+      return { label, mark: done ? '✓' : now ? '!' : '', dot: 'flex: 0 0 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; ' + (done ? 'background: #0B5D3B; color: #FFFFFF' : now ? 'background: #F2B705; color: #13201A' : 'background: #E9E9E5; color: #3D4441'), text: 'font-size: 14px; font-weight: ' + (now ? '700' : '500') + '; color: ' + (done || now ? '#13201A' : '#6D7370') }; });
     const P = 'font: inherit; font-weight: 700; font-size: 14px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 44px; border-radius: 10px; cursor: pointer';
-    const Q = 'font: inherit; font-weight: 600; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; height: 44px; border-radius: 10px; cursor: pointer';
+    const Q = 'font: inherit; font-weight: 600; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #D3D5D3; height: 44px; border-radius: 10px; cursor: pointer';
     const acts = {
       appeal: [['Appeal dismissed — certify winner', P, () => set('certified')], ['Appeal upheld — repeat primary', Q, () => set('scheduled')]],
       unopposed: [['Confirm direct nomination', P, () => set('certified')]],
@@ -161,7 +166,7 @@ class Component extends DCLogic {
       submit: () => { if (blocking === 0) this.setState({ submitted: true }); },
       submitLabel: S.submitted ? 'Submitted to IEBC ✓' : 'Prepare IEBC submission',
       submitNote: S.submitted ? 'Nominee list and certificates exported [time]' : blocking === 0 ? 'All seats resolved — ready' : blocking + ' seat(s) in this sample still block submission',
-      submitStyle: 'font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; border: 0; height: 46px; padding: 0 20px; border-radius: 12px; ' + (blocking === 0 ? 'background: #0B5D3B; cursor: pointer' : 'background: #9AA49F; cursor: not-allowed')
+      submitStyle: 'font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; border: 0; height: 46px; padding: 0 20px; border-radius: 12px; ' + (blocking === 0 ? 'background: #0B5D3B; cursor: pointer' : 'background: #9A9F9C; cursor: not-allowed')
     };
   }
 }

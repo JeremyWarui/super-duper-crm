@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Website footer</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; width: 100%">
+<sc-if value="{{showNews}}" hint-placeholder-val="{{ true }}">
+<section aria-labelledby="ft-sub-h" style="background: #0B5D3B; color: #FFFFFF">
+<div style="max-width: 1240px; margin: 0 auto; padding: 44px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 6px; max-width: 520px">
+<h2 id="ft-sub-h" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">Get party news by SMS or email</h2>
+<p style="margin: 0; color: #CFE0D5; line-height: 1.5">Statements, events near you and nomination notices. Unsubscribe any time; reply STOP to SMS.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<form style="display: flex; flex-wrap: wrap; gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Phone or email<input type="text" placeholder="07XX… or name@mail.com" style="font: inherit; font-size: 16px; font-weight: 400; padding: 13px 14px; border: 0; border-radius: 12px; min-width: 260px; background: #FFFFFF; color: #13201A"></label>
+<button type="button" onClick="{{subscribe}}" style="align-self: flex-end; font: inherit; font-weight: 700; font-size: 16px; color: #13201A; background: #F2B705; border: 0; padding: 0 24px; height: 50px; border-radius: 12px; cursor: pointer">{{subLabel}}</button>
+</form>
+<span style="font-size: 12px; color: #CFE0D5">By subscribing you agree to receive party updates under our <a href="PubAbout.dc.html" style="color: #FFFFFF">privacy notice</a> v[0.0].</span>
+</div>
+</div>
+</section>
+</sc-if>
+<footer style="background: #13201A; color: #B9C2BC">
+<div style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 24px; display: flex; flex-direction: column; gap: 32px">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 28px; font-size: 15px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none"><span style="width: 40px; height: 40px; border-radius: 11px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">P</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px; color: #FAFAF8">Pamoja Party</span></a>
+<span>[Party headquarters address]</span>
+<span>[Phone] · [Email]</span>
+<span style="display: flex; flex-wrap: wrap; gap: 8px 14px; padding-top: 4px">
+<sc-for list="{{social}}" as="s" hint-placeholder-count="4"><a href="PartyHome.dc.html" style="color: #FAFAF8; font-weight: 600; font-size: 14px">{{s}}</a></sc-for>
+</span>
+</div>
+<sc-for list="{{cols}}" as="c" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-weight: 700; color: #FAFAF8">{{c.title}}</span>
+<sc-for list="{{c.links}}" as="l" hint-placeholder-count="4"><a href="{{l.href}}" style="color: #B9C2BC; padding: 2px 0">{{l.label}}</a></sc-for>
+</div>
+</sc-for>
+</div>
+<div style="border-top: 1px solid #34443B; padding-top: 18px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 24px; font-size: 13px">
+<span style="display: flex; flex-wrap: wrap; gap: 6px 16px">
+<span>© [Year] Pamoja Party · Reg. No. [000]</span>
+<a href="PubAbout.dc.html" style="color: #B9C2BC">Privacy notice</a>
+<a href="PubAbout.dc.html" style="color: #B9C2BC">Data protection · ODPC Reg. [000]</a>
+<a href="PubAbout.dc.html" style="color: #B9C2BC">Contributions disclosure</a>
+<a href="PubAbout.dc.html" style="color: #B9C2BC">Accessibility</a>
+</span>
+<span>Powered by [Your product]</span>
+</div>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"newsletter":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":520}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { done: false }; }
+  renderVals() {
+    const nl = this.props.newsletter;
+    const show = !(nl === false || nl === 'false');
+    const L = (label, href) => ({ label, href });
+    return {
+      showNews: show,
+      subscribe: () => this.setState({ done: true }), subLabel: this.state.done ? 'Subscribed ✓' : 'Subscribe',
+      social: ['Facebook', 'X', 'YouTube', 'TikTok'],
+      cols: [
+        { title: 'The party', links: [L('About & history', 'PubAbout.dc.html'), L('Leadership', 'PubAbout.dc.html'), L('Constitution & rules', 'PubAbout.dc.html'), L('Agenda & issues', 'PubIssue.dc.html')] },
+        { title: 'Take part', links: [L('Join the party', 'Join.dc.html'), L('Find your branch', 'PubBranch.dc.html'), L('Events', 'Events.dc.html'), L('Become an aspirant', 'FlowApply.dc.html')] },
+        { title: 'Media', links: [L('News & statements', 'News.dc.html'), L('Primary results', 'PubResults.dc.html'), L('Photos & video', 'News.dc.html'), L('Press kit', 'News.dc.html')] },
+        { title: 'Accounts', links: [L('Member sign in', 'SignIn.dc.html'), L('Staff & volunteer sign in', 'SignIn.dc.html'), L('Contribute', 'PartyHome.dc.html#contribute'), L('Contact us', 'PubAbout.dc.html')] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

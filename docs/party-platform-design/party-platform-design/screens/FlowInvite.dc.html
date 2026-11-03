@@ -10,11 +10,11 @@
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
 <style>
-body{margin:0;background:#F3F4F2}
+body{margin:0;background:#F7F7F5}
 a{color:#0B5D3B}a:hover{color:#08442B}
 </style>
 </helmet>
-<div style="position: relative; min-height: 1000px; font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; display: flex; flex-wrap: wrap">
+<div style="position: relative; min-height: 1000px; font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F7F7F5; display: flex; flex-wrap: wrap">
 <div aria-hidden="true" style="flex: 0 1 240px; background: #13201A; min-height: 1000px"></div>
 <div aria-hidden="true" style="flex: 999 1 560px; padding: 32px; display: flex; flex-direction: column; gap: 20px">
 <div style="height: 36px; width: 300px; border-radius: 8px; background: #DDE1DE"></div>
@@ -23,7 +23,7 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 
 <div style="position: absolute; inset: 0; background: rgba(19,32,26,0.55); display: flex; align-items: flex-start; justify-content: center; padding: 48px 16px; box-sizing: border-box; overflow: auto">
 <div role="dialog" aria-modal="true" aria-labelledby="inv-h" style="width: 100%; max-width: 680px; background: #FFFFFF; border-radius: 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column">
-<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 22px 28px; border-bottom: 1px solid #EDEFEE">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 22px 28px; border-bottom: 1px solid #F0F0EC">
 <h2 id="inv-h" style="margin: 0; font-size: 22px; font-weight: 700">{{title}}</h2>
 <a href="CrmUsers.dc.html" aria-label="Close" style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #13201A"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></a>
 </div>
@@ -31,30 +31,30 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <sc-if value="{{form}}" hint-placeholder-val="{{ true }}">
 <div style="padding: 24px 28px; display: flex; flex-direction: column; gap: 18px">
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px">
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Full name<input type="text" style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Work email<input type="email" placeholder="name@pamoja.ke" style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Phone (for sign-in codes)<input type="tel" placeholder="07XX XXX XXX" style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Full name<input type="text" style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9CCCF; border-radius: 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Work email<input type="email" placeholder="name@pamoja.ke" style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9CCCF; border-radius: 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Phone (for sign-in codes)<input type="tel" placeholder="07XX XXX XXX" style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9CCCF; border-radius: 10px"></label>
 </div>
 <div style="display: flex; flex-direction: column; gap: 8px">
 <span id="role-l" style="font-size: 14px; font-weight: 600">Role</span>
 <div role="radiogroup" aria-labelledby="role-l" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px">
-<sc-for list="{{roles}}" as="r" hint-placeholder-count="5"><button type="button" role="radio" aria-checked="{{r.checked}}" onClick="{{r.pick}}" style="{{r.style}}"><strong>{{r.label}}</strong><span style="font-size: 13px; font-weight: 400; color: #4B5751">{{r.hint}}</span></button></sc-for>
+<sc-for list="{{roles}}" as="r" hint-placeholder-count="5"><button type="button" role="radio" aria-checked="{{r.checked}}" onClick="{{r.pick}}" style="{{r.style}}"><strong>{{r.label}}</strong><span style="font-size: 13px; font-weight: 400; color: #4E5552">{{r.hint}}</span></button></sc-for>
 </div>
 </div>
 <sc-if value="{{needsCounty}}" hint-placeholder-val="{{ false }}">
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; max-width: 320px">County they can see<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>Select county</option><option>Nakuru</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; max-width: 320px">County they can see<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9CCCF; border-radius: 10px; background: #FFFFFF"><option>Select county</option><option>Nakuru</option></select></label>
 </sc-if>
-<div style="background: #F3F4F2; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="background: #F7F7F5; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
 <span style="font-size: 14px; font-weight: 700">This person will be able to</span>
 <sc-for list="{{can}}" as="c" hint-placeholder-count="4"><span style="{{c.style}}">{{c.mark}} {{c.text}}</span></sc-for>
 </div>
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px">
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Access ends<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>No end date</option><option>After the primaries</option><option>On a set date</option></select></label>
-<div style="display: flex; flex-direction: column; gap: 6px; font-size: 14px"><span style="font-weight: 600">Security</span><span style="color: #3D4A43">2-step sign-in is required for every staff account.</span></div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Access ends<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9CCCF; border-radius: 10px; background: #FFFFFF"><option>No end date</option><option>After the primaries</option><option>On a set date</option></select></label>
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 14px"><span style="font-weight: 600">Security</span><span style="color: #3D4441">2-step sign-in is required for every staff account.</span></div>
 </div>
 </div>
-<div style="display: flex; justify-content: flex-end; gap: 10px; padding: 18px 28px; border-top: 1px solid #EDEFEE">
-<a href="CrmUsers.dc.html" style="font-weight: 700; font-size: 15px; color: #13201A; padding: 0 18px; height: 46px; display: flex; align-items: center; border: 1px solid #D5D9D6; border-radius: 12px; text-decoration: none">Cancel</a>
+<div style="display: flex; justify-content: flex-end; gap: 10px; padding: 18px 28px; border-top: 1px solid #F0F0EC">
+<a href="CrmUsers.dc.html" style="font-weight: 700; font-size: 15px; color: #13201A; padding: 0 18px; height: 46px; display: flex; align-items: center; border: 1px solid #D3D5D3; border-radius: 12px; text-decoration: none">Cancel</a>
 <button type="button" onClick="{{send}}" style="font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 46px; padding: 0 20px; border-radius: 12px; cursor: pointer">Send invite</button>
 </div>
 </sc-if>
@@ -62,7 +62,7 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
 <div style="padding: 28px; display: flex; flex-direction: column; gap: 14px">
 <p style="margin: 0; font-size: 16px; line-height: 1.6">An invite was sent by email and SMS. It expires in 72 hours. Until they accept, they appear as <strong>Invited</strong> in Users.</p>
-<p style="margin: 0; font-size: 14px; color: #4B5751">Role: <strong style="color: #13201A">{{roleName}}</strong>. Logged with your name and the time.</p>
+<p style="margin: 0; font-size: 14px; color: #4E5552">Role: <strong style="color: #13201A">{{roleName}}</strong>. Logged with your name and the time.</p>
 <a href="CrmUsers.dc.html" style="font-weight: 700">Back to users</a>
 </div>
 </sc-if>
@@ -77,7 +77,7 @@ class Component extends DCLogic {
     const S = this.state;
     const defs = [['HQ admin', 'Everything, incl. users & data'], ['Elections board', 'Nominations & results'], ['Treasurer', 'Finance & fees'], ['Comms officer', 'Website & messages'], ['County official', 'One county only'], ['Polling clerk', 'Voting day, one centre'], ['Agent / observer', 'View-only on voting day']];
     const roles = defs.map((d) => ({ label: d[0], hint: d[1], checked: S.role === d[0] ? 'true' : 'false', pick: () => this.setState({ role: d[0] }),
-      style: 'font: inherit; text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; cursor: pointer; color: #13201A; ' + (S.role === d[0] ? 'background: #E7F0EA; border: 2px solid #0B5D3B' : 'background: #FFFFFF; border: 2px solid #E1E4E2') }));
+      style: 'font: inherit; text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; cursor: pointer; color: #13201A; ' + (S.role === d[0] ? 'background: #E7F0EA; border: 2px solid #0B5D3B' : 'background: #FFFFFF; border: 2px solid #E9E9E5') }));
     const caps = {
       'HQ admin': [[1, 'Manage members, branches, nominations, finance and website'], [1, 'Invite users and change roles'], [1, 'Handle data protection requests'], [0, 'Open any candidate’s private workspace']],
       'Elections board': [[1, 'Vet aspirants and set the timetable'], [1, 'Enter and declare primary results'], [0, 'See finance beyond nomination fees'], [0, 'Open any candidate’s private workspace']],
