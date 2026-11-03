@@ -1,4 +1,4 @@
-"""The party's public content: its leaders, and its news and events."""
+"""The party's public content: its leaders, its news and events, and its news sign-ups."""
 
 from datetime import UTC, date, datetime
 
@@ -64,3 +64,16 @@ class PartyPost(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     published_on: Mapped[date | None] = mapped_column(Date, default=None)
     published: Mapped[bool] = mapped_column(Boolean, default=False)
     updated_at: Mapped[datetime] = _updated_at()
+
+
+class Subscriber(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A phone or email that asked for party news, with the consent it gave."""
+
+    __tablename__ = "subscribers"
+    __table_args__ = (CheckConstraint("channel IN ('sms', 'email')", name="channel"),)
+
+    contact: Mapped[str] = mapped_column(String(254), unique=True)
+    channel: Mapped[str] = mapped_column(String(10))
+    consent_wording: Mapped[str] = mapped_column(Text)
+    notice_version: Mapped[str] = mapped_column(String(20))
+    unsubscribe_code: Mapped[str] = mapped_column(String(32), unique=True)

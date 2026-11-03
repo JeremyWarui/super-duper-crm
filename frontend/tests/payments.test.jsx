@@ -20,7 +20,7 @@ async function openPayments(role, routes = {}) {
   const calls = stubApi(dashboardRoutes({ "GET /payments/": [SCHEDULED], "GET /mobilizers/": MOBILIZERS, ...routes }));
   renderApp(<App />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "Payments" }));
+  await user.click(await screen.findByRole("link", { name: "Payments" }));
   await screen.findByText("Juma Otieno");
   return { calls, user };
 }

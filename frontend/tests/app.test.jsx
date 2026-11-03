@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
@@ -22,16 +22,25 @@ async function open(role = "manager", routes = {}) {
   const calls = stubApi(dashboardRoutes(routes));
   const rendered = renderApp(<App />);
   const landing = role === "mobilizer" ? "My events" : "Overview";
-  await screen.findByRole("button", { name: landing });
+  await screen.findByRole("link", { name: landing });
   await waitFor(() => expect(screen.queryByText("Loading…")).toBeNull());
   return { calls, ...rendered };
 }
+
+/** The labels in the campaign sidebar, in order. */
+const sidebar = () =>
+  within(screen.getByRole("navigation", { name: "Workspace" }))
+    .getAllByRole("link")
+    .map((link) => link.textContent);
 
 describe("what each role is shown", () => {
   it("gives a campaign manager the full war room", async () => {
     await open("manager");
 
-    expect(screen.getByText(/· Campaign Manager/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Campaign Manager$/ })).toBeInTheDocument();
+    expect(sidebar()).toEqual([
+      "Overview", "Targets", "Wards", "Events", "Mobilizers", "Team", "Supporters", "Payments", "Strategy",
+    ]);
     for (const page of [
       "Targets",
       "Wards",
@@ -40,34 +49,38 @@ describe("what each role is shown", () => {
       "Supporters",
       "Strategy",
     ]) {
-      expect(screen.getByRole("button", { name: page })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: page })).toBeInTheDocument();
     }
     // Consent is the person's own: the manager shares a link instead of registering people.
-    expect(screen.queryByRole("button", { name: "Register supporter" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Register supporter" })).toBeNull();
   });
 
   it("gives a candidate the cockpit and their mobilizers, not the manager's other pages", async () => {
     await open("candidate");
 
-    expect(screen.getByText(/· Candidate/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Candidate$/ })).toBeInTheDocument();
+    expect(sidebar()).toEqual([
+      "Overview", "Ward performance", "Events", "Mobilizers", "Team", "Payments", "Strategy",
+    ]);
     expect(
-      screen.getByRole("button", { name: "Ward performance" }),
+      screen.getByRole("link", { name: "Ward performance" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Mobilizers" }),
+      screen.getByRole("link", { name: "Mobilizers" }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Targets" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Supporters" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Targets" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Supporters" })).toBeNull();
   });
 
-  it("gives a mobilizer only their own three pages", async () => {
+  it("gives a mobilizer only their own four pages", async () => {
     await open("mobilizer");
 
-    expect(screen.getByText(/· Mobilizer/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Mobilizer$/ })).toBeInTheDocument();
+    expect(sidebar()).toEqual(["My events", "Register supporter", "My supporters", "My payments"]);
     for (const page of ["My events", "Register supporter", "My supporters"]) {
-      expect(screen.getByRole("button", { name: page })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: page })).toBeInTheDocument();
     }
-    expect(screen.queryByRole("button", { name: "Overview" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Overview" })).toBeNull();
   });
 });
 
@@ -76,9 +89,23 @@ describe("moving around", () => {
     const user = userEvent.setup();
     await open("manager");
 
+    await user.click(screen.getByRole("button", { name: /Campaign Manager$/ }));
     await user.click(screen.getByRole("button", { name: "Sign out" }));
 
     await waitFor(() => expect(useAuth.getState().token).toBeNull());
+  });
+});
+
+describe("the phone menu", () => {
+  it("opens the sidebar drawer and closes it with Escape", async () => {
+    const user = userEvent.setup();
+    await open("manager");
+
+    await user.click(screen.getByRole("button", { name: "Open menu" }));
+    expect(screen.getByRole("button", { name: "Close menu" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("button", { name: "Close menu" })).toBeNull();
   });
 });
 
@@ -87,7 +114,7 @@ describe("the forms", () => {
     const user = userEvent.setup();
     const { calls } = await open("manager", { "POST /events/": { id: "e2" } });
 
-    await user.click(screen.getByRole("button", { name: "Events" }));
+    await user.click(screen.getByRole("link", { name: "Events" }));
     await user.click(
       await screen.findByRole("button", { name: "Schedule event" }),
     );
@@ -124,7 +151,7 @@ describe("the forms", () => {
     });
 
     await user.click(
-      screen.getByRole("button", { name: "Register supporter" }),
+      screen.getByRole("link", { name: "Register supporter" }),
     );
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Wanjiku Njeri");
@@ -176,7 +203,7 @@ describe("an MCA race's supporters", () => {
       "PATCH /supporters/s1/": { id: "s1" },
     });
 
-    await user.click(screen.getByRole("button", { name: "Supporters" }));
+    await user.click(screen.getByRole("link", { name: "Supporters" }));
     const picker = await screen.findByRole("combobox", {
       name: "Centre for Wanjiku Njeri",
     });
@@ -219,7 +246,7 @@ describe("registering a supporter in an MCA race", () => {
 
   async function fill(user) {
     await user.click(
-      screen.getByRole("button", { name: "Register supporter" }),
+      screen.getByRole("link", { name: "Register supporter" }),
     );
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Wanjiku Njeri");
@@ -250,7 +277,7 @@ describe("registering a supporter in an MCA race", () => {
     const calls = stubApi(routes);
     const { queryClient } = renderApp(<App />);
     await user.click(
-      await screen.findByRole("button", { name: "Register supporter" }),
+      await screen.findByRole("link", { name: "Register supporter" }),
     );
     routes["GET /targets/"] = MCA_TARGETS;
     await queryClient.invalidateQueries({ queryKey: ["targets"] });
@@ -293,7 +320,7 @@ describe("registering a supporter in an MCA race", () => {
 
 describe("adding a mobilizer", () => {
   async function openForm(user) {
-    await user.click(screen.getByRole("button", { name: "Mobilizers" }));
+    await user.click(screen.getByRole("link", { name: "Mobilizers" }));
     await user.click(
       await screen.findByRole("button", { name: "Add mobilizer" }),
     );
@@ -332,7 +359,7 @@ describe("the routes", () => {
     renderApp(<App />, { path: "/campaign/mypayments" });
 
     expect(await screen.findByText("Your command view of the seat.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Overview" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
   });
 
   it("opens the sign-up page at /join/:code without a login", async () => {

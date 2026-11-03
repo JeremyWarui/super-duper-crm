@@ -19,7 +19,7 @@ async function openTeam(role, routes = {}) {
   const calls = stubApi(dashboardRoutes({ "GET /campaigns/c1/team/": TEAM, ...routes }));
   renderApp(<App />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "Team" }));
+  await user.click(await screen.findByRole("link", { name: "Team" }));
   await screen.findByText("Amina Kariuki");
   return { calls, user };
 }
@@ -69,7 +69,7 @@ describe("the team page", () => {
       .map((b) => within(b.closest("tr")).getAllByRole("cell")[1].textContent);
 
     expect(resettable).toEqual(["juma"]);
-    expect(screen.queryByRole("button", { name: /manager/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /(add|replace) manager/i })).toBeNull();
   });
 });
 

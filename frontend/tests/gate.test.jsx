@@ -37,7 +37,8 @@ describe("the gate", () => {
     renderApp(<AppRoutes />);
 
     expect(await screen.findByRole("heading", { name: "Umoja Party" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: signedIn ? "Portal" : "Sign in" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: signedIn ? /My account$/ : "Sign in" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: signedIn ? "Sign in" : /My account$/ })).toBeNull();
   });
 
   it.each([

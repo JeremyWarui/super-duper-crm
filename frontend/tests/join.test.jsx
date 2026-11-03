@@ -47,7 +47,7 @@ describe("signing up from an event's QR code", () => {
     renderApp(<App />);
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Events" }));
+    await user.click(await screen.findByRole("link", { name: "Events" }));
     await user.click(await screen.findByRole("button", { name: "Sign-up QR" }));
 
     await waitFor(() => expect(screen.getByText(/\/join\/zimmerman-hall$/)).toBeInTheDocument());
@@ -63,7 +63,7 @@ describe("signing up from an event's QR code", () => {
     // After setup, which installs a clipboard of its own.
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
 
-    await user.click(await screen.findByRole("button", { name: "Events" }));
+    await user.click(await screen.findByRole("link", { name: "Events" }));
     await user.click(await screen.findByRole("button", { name: "Sign-up QR" }));
     await user.click(await screen.findByRole("button", { name: "Copy link" }));
     await screen.findByRole("button", { name: "Copied" });
@@ -101,7 +101,7 @@ describe("signing up on the campaign's own link", () => {
     renderApp(<App />);
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Supporters" }));
+    await user.click(await screen.findByRole("link", { name: "Supporters" }));
     await user.click(await screen.findByRole("button", { name: "Sign-up link" }));
     await screen.findByText(/\/join\/camp42$/);
     const shareableWhileClosed = screen.queryByRole("link", { name: "Share on WhatsApp" });
@@ -123,6 +123,6 @@ describe("withdrawing", () => {
     await user.click(screen.getByRole("button", { name: "Remove my details" }));
 
     expect(await screen.findByText(/they are gone now/)).toBeInTheDocument();
-    expect(calls.map((c) => [c.method, c.path])).toEqual([["POST", "/join/withdraw/private-code/"]]);
+    expect(calls.filter((c) => c.method !== "GET").map((c) => [c.method, c.path])).toEqual([["POST", "/join/withdraw/private-code/"]]);
   });
 });

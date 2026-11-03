@@ -117,7 +117,6 @@
 .legacy .flex { display: flex; }
 .legacy .grid { display: grid; }
 .legacy .flex-wrap { flex-wrap: wrap; }
-.legacy .mx-auto { margin-left: auto; margin-right: auto; }
 .legacy .items-start { align-items: flex-start; }
 .legacy .items-center { align-items: center; }
 .legacy .items-end { align-items: flex-end; }
@@ -130,7 +129,6 @@
 .legacy .gap-4 { gap: 1rem; }
 .legacy .gap-5 { gap: 1.25rem; }
 .legacy .gap-6 { gap: 1.5rem; }
-.legacy .gap-x-8 { column-gap: 2rem; }
 .legacy .gap-x-10 { column-gap: 2.5rem; }
 .legacy .gap-y-2 { row-gap: 0.5rem; }
 .legacy .gap-y-4 { row-gap: 1rem; }
@@ -155,7 +153,6 @@
 .legacy .ui-button,
 .legacy .onboarding-button,
 .legacy .login-submit,
-.legacy .admin-header-signout,
 .legacy .gate-no-campaign-button {
   display: inline-flex;
   align-items: center;
@@ -178,7 +175,6 @@
 
 .legacy .ui-button-secondary:hover:not(:disabled),
 .legacy .onboarding-button-secondary:hover:not(:disabled),
-.legacy .admin-header-signout:hover,
 .legacy .gate-no-campaign-button:hover {
   background: var(--color-surface-muted);
 }
@@ -512,17 +508,6 @@
 
 .legacy .app-shell { min-height: 100vh; }
 
-.legacy .topbar {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  border-bottom: 1px solid var(--color-border);
-  background: rgb(255 255 255 / 0.92);
-  backdrop-filter: saturate(180%) blur(8px);
-}
-
-.legacy .topbar-inner { padding: 12px 24px; }
-
 .legacy .party-brand {
   display: inline-flex;
   align-items: center;
@@ -557,81 +542,6 @@
   font-family: var(--font-body);
   font-size: var(--text-xs);
   font-weight: 700;
-}
-
-.legacy .brand {
-  font-size: var(--text-md);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-
-.legacy .topbar-divider {
-  width: 1px;
-  height: 28px;
-  background: var(--color-border);
-}
-
-.legacy .topbar-identity { min-width: 0; }
-.legacy .topbar-campaign { font-size: var(--text-base); font-weight: 600; line-height: 1.3; }
-.legacy .topbar-meta { color: var(--color-text-muted); font-size: var(--text-xs); }
-.legacy .topbar-user { color: var(--color-text-muted); font-size: var(--text-sm); }
-
-.legacy .layout { display: flex; }
-
-.legacy .sidebar {
-  position: sticky;
-  top: 61px;
-  align-self: flex-start;
-  flex-shrink: 0;
-  width: 232px;
-  min-height: calc(100vh - 61px);
-  padding: 24px 12px;
-  border-right: 1px solid var(--color-border);
-  background: var(--color-surface);
-}
-
-.legacy .sidebar-label {
-  padding: 0 12px 8px;
-  color: var(--color-text-subtle);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-}
-
-.legacy .nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.legacy .nav-item {
-  padding: 8px 12px;
-  border: none;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--text-base);
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 0.12s, color 0.12s;
-}
-
-.legacy .nav-item:hover { background: var(--color-neutral-soft); color: var(--color-text); }
-
-.legacy .nav-item-active,
-.legacy .nav-item-active:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.legacy .main {
-  flex: 1;
-  min-width: 0;
-  padding: 28px 32px 64px;
 }
 
 .legacy .not-on-campaign { padding: 40px; }
@@ -1065,31 +975,7 @@
 .legacy .locked-actions { margin-top: 20px; }
 .legacy .locked-actions .gate-no-campaign-button { margin-top: 0; }
 
-/* ---- admin console ------------------------------------------------------ */
-
-.legacy .admin-shell { min-height: 100vh; }
-
 .legacy .admin-display { letter-spacing: -0.01em; }
-
-.legacy .admin-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--color-border);
-  background: rgb(255 255 255 / 0.92);
-  backdrop-filter: saturate(180%) blur(8px);
-}
-
-.legacy .admin-brand { font-size: var(--text-md); font-weight: 700; }
-
-.legacy .admin-header-description,
-.legacy .admin-header-user {
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
-.legacy .admin-header-description { margin-left: 12px; }
 
 .legacy .admin-content {
   padding: 28px 32px 64px;
@@ -1154,7 +1040,6 @@
 .legacy .admin-confirmation { font-size: var(--text-sm); }
 .legacy .admin-red { color: var(--color-danger); }
 .legacy .admin-subtle { color: var(--color-text-muted); }
-.legacy .admin-amber { color: var(--color-warning); }
 
 .legacy .admin-stat-value {
   font-size: var(--text-xl);
@@ -1717,35 +1602,6 @@
 }
 
 @media (max-width: 860px) {
-  .legacy .layout { display: block; }
-
-  .legacy .sidebar {
-    position: static;
-    width: auto;
-    min-height: 0;
-    padding: 8px 16px;
-    border-right: 0;
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-surface);
-  }
-
-  .legacy .sidebar-label { display: none; }
-
-  /* The fade at the right edge shows there are more tabs to scroll to. */
-  .legacy .nav {
-    flex-direction: row;
-    gap: 4px;
-    padding-right: 32px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
-  }
-
-  .legacy .nav-item { flex: 0 0 auto; padding: 6px 12px; }
-
-  .legacy .main { padding: 20px 16px 48px; }
-  .legacy .topbar-inner { padding: 10px 16px; }
-  .legacy .admin-header { padding: 10px 16px; }
   .legacy .admin-content { padding: 20px 16px 48px; }
 }
 
@@ -1754,10 +1610,6 @@
 }
 
 @media (max-width: 600px) {
-  .legacy .topbar-divider,
-  .legacy .topbar-meta,
-  .legacy .topbar-user,
-  .legacy .admin-header-description { display: none; }
 
   .legacy .page-title { font-size: var(--text-lg); }
   .legacy .hero-number { font-size: 40px; }
@@ -1783,50 +1635,6 @@
 
 .legacy .link-button:hover { text-decoration: underline; }
 
-/* ---- public website ---- */
-
-.legacy .site {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.legacy .site-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 24px;
-  padding: 14px 24px;
-  border-bottom: 3px solid var(--party-secondary, var(--color-border));
-  background: var(--color-surface);
-}
-
-.legacy .site-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--color-text);
-  font-size: var(--text-lg);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.legacy .site-logo { max-height: 40px; max-width: 80px; }
-
-.legacy .site-nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
-
-.legacy .site-nav-link {
-  color: var(--color-text-secondary);
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.legacy .site-nav-link:hover,
-.legacy .site-nav-link.active { color: var(--color-primary); }
-
-.legacy .site-signin { font-weight: 700; }
-
 .legacy .site-main {
   flex: 1;
   width: 100%;
@@ -1836,21 +1644,6 @@
 }
 
 .legacy .site-main .join-shell { min-height: 0; padding: 0; }
-
-.legacy .site-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 24px;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
-.legacy .site-footer-name { color: var(--color-text); font-weight: 700; }
-
-.legacy .site-socials { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
 
 .legacy .site-link { color: var(--color-primary); }
 

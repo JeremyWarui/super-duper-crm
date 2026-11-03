@@ -252,7 +252,12 @@
       "social_links",
       "updated_at",
       "consent_wording",
-      "volunteer_consent_wording"
+      "volunteer_consent_wording",
+      "slogan",
+      "registration_number",
+      "privacy_notice",
+      "privacy_notice_version",
+      "subscribe_consent_wording"
     ],
     "PUT /api/admin/party/": [
       "name",
@@ -267,7 +272,11 @@
       "manifesto_text",
       "manifesto_url",
       "social_links",
-      "updated_at"
+      "updated_at",
+      "slogan",
+      "registration_number",
+      "privacy_notice",
+      "privacy_notice_version"
     ],
     "POST /api/admin/users/{user_id}/party-roles/": [
       "id",
@@ -533,6 +542,17 @@
       "upcoming_events_by_seat",
       "campaigns_by_county_and_seat",
       "revenue"
+    ],
+    "POST /api/party/subscribe/": [
+      "message",
+      "unsubscribe_url"
+    ],
+    "POST /api/party/unsubscribe/{code}/": [
+      "message"
+    ],
+    "POST /api/party/contribute/": [
+      "demo",
+      "message"
     ]
   },
   "nested_reads": {
@@ -902,7 +922,11 @@
       "description",
       "manifesto_text",
       "manifesto_url",
-      "social_links"
+      "social_links",
+      "slogan",
+      "registration_number",
+      "privacy_notice",
+      "privacy_notice_version"
     ],
     "POST /api/admin/users/{user_id}/party-roles/": [
       "role"
@@ -1025,6 +1049,17 @@
       "event_date",
       "venue",
       "published"
+    ],
+    "POST /api/party/subscribe/": [
+      "contact",
+      "consent_given"
+    ],
+    "POST /api/party/unsubscribe/{code}/": [],
+    "POST /api/party/contribute/": [
+      "amount_kes",
+      "name",
+      "phone",
+      "consent_given"
     ]
   },
   "enums": {

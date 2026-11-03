@@ -1,5 +1,5 @@
 /** The admin console: what it shows, and who is shown it. */
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../src/store/auth";
@@ -58,7 +58,7 @@ describe("who reaches the console", () => {
     renderApp(<Root />);
 
     expect(
-      await screen.findByText(/every campaign on this deployment/),
+      within(await screen.findByRole("navigation", { name: "Breadcrumb" })).getByText("Console"),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Set up your campaign/)).toBeNull();
   });
@@ -71,7 +71,7 @@ describe("who reaches the console", () => {
     expect(
       await screen.findByText("VOTES TO WIN THE SEAT"),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/every campaign on this deployment/)).toBeNull();
+    expect(screen.queryByRole("link", { name: "Console" })).toBeNull();
   });
 });
 

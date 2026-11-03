@@ -76,6 +76,9 @@ class Settings(BaseSettings):
     at_sandbox: bool = False
     sms_provider: Literal["console", "africastalking"] = "console"
 
+    # "demo" takes contributions on the website but charges and stores nothing.
+    payments_provider: Literal["demo"] = "demo"
+
     @field_validator("sms_provider", mode="after")
     @classmethod
     def _gateway_needs_credentials(cls, value: str, info: ValidationInfo) -> str:

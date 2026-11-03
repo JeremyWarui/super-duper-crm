@@ -1,10 +1,13 @@
 // The signed-in campaign app: routes `/campaign/:page` and the shell around each page.
 import { useState } from "react";
-import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { AppPage } from "@/components/layout/AppPage";
+import { useBranding } from "@/theme/branding";
 import { useAuth } from "./store/auth";
 import { useCampaigns } from "./api/hooks";
 import AccessBanner from "./components/AccessBanner";
-import PortalLayout from "./components/PortalLayout";
+import Legacy from "./components/Legacy";
 import NoCampaign from "./components/NoCampaign";
 import { ErrorMsg, Loading } from "./pages/campaign/controls";
 import { NAV, ROLE_LABEL } from "./pages/campaign/helpers";
@@ -19,7 +22,6 @@ import Supporters from "./pages/campaign/Supporters";
 import Events from "./pages/campaign/Events";
 import Register from "./pages/campaign/Register";
 import Payments from "./pages/campaign/Payments";
-import PartyBrand from "./components/PartyBrand";
 
 // One page per NAV key.
 const PAGES = {
@@ -41,30 +43,33 @@ const PAGES = {
 function Shell({ campaign, role, nav }) {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
-  const navigate = useNavigate();
+  const { partyName } = useBranding();
   const [modal, setModal] = useState(null);
   const { page } = useParams();
-  if (!nav.some(([key]) => key === page)) return <Navigate to={`/campaign/${nav[0][0]}`} replace />;
+  const current = nav.find(([key]) => key === page);
+  if (!current) return <Navigate to={`/campaign/${nav[0][0]}`} replace />;
   const Page = PAGES[page];
 
   return (
-    <>
-      <PortalLayout
-        brand={<PartyBrand label="Campaign" />}
-        title={campaign.title}
-        meta={[campaign.candidate_name && `for ${campaign.candidate_name}`, campaign.seat, campaign.area_name].filter(Boolean).join(" · ")}
-        user={`${user?.full_name || user?.username} · ${ROLE_LABEL[role]}`}
-        navLabel={ROLE_LABEL[role].toUpperCase()}
-        nav={nav}
-        page={page}
-        onSelect={(key) => navigate(`/campaign/${key}`)}
-        onLogout={logout}
-      >
-        <AccessBanner role={role} />
-        <Page campaign={campaign} role={role} onModal={setModal} />
-      </PortalLayout>
-      <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />
-    </>
+    <AppLayout
+      tone="light"
+      nav={nav.map(([key, label]) => ({ label, to: `/campaign/${key}` }))}
+      rootLabel="Campaign"
+      rootPath="/campaign"
+      eyebrow={[partyName, "Campaign"].filter(Boolean).join(" · ")}
+      title={campaign.title}
+      subtitle={[campaign.candidate_name && `for ${campaign.candidate_name}`, campaign.seat, campaign.area_name].filter(Boolean).join(" · ")}
+      user={{ name: user?.full_name || user?.username || "", role: ROLE_LABEL[role] }}
+      onSignOut={logout}
+    >
+      <AppPage crumb={current[1]}>
+        <Legacy>
+          <AccessBanner role={role} />
+          <Page campaign={campaign} role={role} onModal={setModal} />
+          <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />
+        </Legacy>
+      </AppPage>
+    </AppLayout>
   );
 }
 
@@ -74,10 +79,10 @@ export default function App() {
   const campaigns = useCampaigns();
   const campaign = (campaigns.data || [])[0];
 
-  if (!nav) return <NoCampaign />;
-  if (campaigns.isLoading) return <Loading />;
-  if (campaigns.error) return <ErrorMsg error={campaigns.error} />;
-  if (!campaign) return <div className="not-on-campaign">You are not on a campaign yet.</div>;
+  if (!nav) return <Legacy><NoCampaign /></Legacy>;
+  if (campaigns.isLoading) return <Legacy><Loading /></Legacy>;
+  if (campaigns.error) return <Legacy><ErrorMsg error={campaigns.error} /></Legacy>;
+  if (!campaign) return <Legacy><div className="not-on-campaign">You are not on a campaign yet.</div></Legacy>;
 
   return (
     <Routes>

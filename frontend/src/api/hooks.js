@@ -578,6 +578,25 @@ export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = 
     staleTime: Infinity,
   });
 
+// The footer's news sign-up, its unsubscribe link, and the demo Contribute form.
+export const useSubscribe = () =>
+  useMutation({
+    mutationFn: (payload) =>
+      api("/party/subscribe/", { method: "POST", body: payload, anonymous: true }),
+  });
+
+export const useUnsubscribe = (code) =>
+  useMutation({
+    mutationFn: () =>
+      api(`/party/unsubscribe/${encodeURIComponent(code)}/`, { method: "POST", anonymous: true }),
+  });
+
+export const useContribute = () =>
+  useMutation({
+    mutationFn: (payload) =>
+      api("/party/contribute/", { method: "POST", body: payload, anonymous: true }),
+  });
+
 export const useJoinParty = () =>
   useMutation({
     mutationFn: (payload) =>

@@ -18,7 +18,7 @@ async function open(page, routes) {
   const calls = stubApi(dashboardRoutes({ "GET /mobilizers/": MOBILIZERS, ...routes }));
   renderApp(<App />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: page }));
+  await user.click(await screen.findByRole("link", { name: page }));
   return { calls, user };
 }
 

@@ -31,7 +31,8 @@ import {
   Panel,
 } from "./ui";
 import Onboarding from "./Onboarding";
-import PartyBrand from "./PartyBrand";
+import { PartyShell } from "../pages/party/Portal";
+import Legacy from "./Legacy";
 
 const Card = (props) => (
   <Panel
@@ -727,6 +728,7 @@ const PARTY_TEXT = [
   ["contact_phone", "Phone"],
   ["address", "Address"],
   ["manifesto_url", "Manifesto URL"],
+  ["privacy_notice_version", "Privacy notice version"],
 ];
 
 const partyForm = (party) => ({
@@ -737,6 +739,7 @@ const partyForm = (party) => ({
       "secondary_colour",
       "description",
       "manifesto_text",
+      "privacy_notice",
     ].map((key) => [key, party[key] ?? ""]),
   ),
   links: Object.entries(party.social_links || {}),
@@ -819,6 +822,14 @@ function PartyForm({ party }) {
         />
       </Field>
       <div className="admin-form-spacer" />
+      <Field label="Privacy notice">
+        <textarea
+          className="admin-field admin-field-wide admin-field-area"
+          value={form.privacy_notice}
+          onChange={(e) => set({ privacy_notice: e.target.value })}
+        />
+      </Field>
+      <div className="admin-form-spacer" />
       <div className="admin-form-heading">Social links</div>
       {form.links.map(([name, url], i) => (
         <div key={i} className="flex flex-wrap items-center gap-2 admin-link-row">
@@ -879,35 +890,18 @@ function PartySettings() {
   return <PartyForm key={party.data.updated_at} party={party.data} />;
 }
 
-// The header carries the only way out of the console, so every state renders
+// The shell's menu carries the only way out of the console, so every state renders
 // inside it: a signed-out operator can always sign out and back in.
-function Shell({ me, logout, children }) {
+function Shell({ children }) {
   return (
-    <div className="admin-shell">
-      <div className="flex flex-wrap items-center justify-between gap-3 admin-header">
-        <div>
-          <span className="admin-display admin-brand">
-            <PartyBrand label="Admin" />
-          </span>
-          <span className="admin-header-description">
-            every campaign on this deployment
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="admin-header-user">{me?.username}</span>
-          <button className="admin-header-signout" onClick={logout}>
-            Sign out
-          </button>
-        </div>
-      </div>
+    <PartyShell crumb="Console">
       <div className="admin-content">{children}</div>
-    </div>
+    </PartyShell>
   );
 }
 
 export default function Admin() {
   const me = useAuth((s) => s.user);
-  const logout = useAuth((s) => s.logout);
   const overview = useAdminOverview();
   const [roleFilter, setRoleFilter] = useState("");
   const users = useAdminUsers(roleFilter);
@@ -946,25 +940,27 @@ export default function Admin() {
   // wizard, and the passwords on its last screen, with it.
   if (creating)
     return (
-      <Onboarding
-        onLogin={handOut}
-        onCancel={() => setCreating(false)}
-        onDone={() => {
-          setTab("campaigns");
-          setCreating(false);
-        }}
-      />
+      <Legacy>
+        <Onboarding
+          onLogin={handOut}
+          onCancel={() => setCreating(false)}
+          onDone={() => {
+            setTab("campaigns");
+            setCreating(false);
+          }}
+        />
+      </Legacy>
     );
 
   if (overview.isLoading)
     return (
-      <Shell me={me} logout={logout}>
+      <Shell>
         <span className="admin-subtle">Loading the console…</span>
       </Shell>
     );
   if (overview.error)
     return (
-      <Shell me={me} logout={logout}>
+      <Shell>
         <Card>
           <div className="admin-red admin-overview-error">
             {overview.error.message}
@@ -982,7 +978,7 @@ export default function Admin() {
   const unstaffed = campaigns.filter((c) => c.members.length === 0).length;
 
   return (
-    <Shell me={me} logout={logout}>
+    <Shell>
       <>
         <Card pad={20}>
           <div className="flex flex-wrap gap-x-10 gap-y-4">

@@ -22,4 +22,3 @@ def contrast(a: str, b: str) -> float:
     """WCAG contrast ratio of two #rrggbb colours, from 1 to 21."""
     light, dark = sorted((_luminance(a), _luminance(b)), reverse=True)
     return (light + 0.05) / (dark + 0.05)
-

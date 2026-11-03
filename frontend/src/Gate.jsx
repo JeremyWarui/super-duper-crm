@@ -11,8 +11,8 @@ import App from "./App";
 import Portal from "./pages/party/Portal";
 import Join from "./components/Join";
 import Withdraw from "./components/Withdraw";
-import PublicLayout from "./components/PublicLayout";
-import Legacy from "./components/Legacy";
+import { PublicLayout } from "@/components/layout/PublicLayout";
+import Legacy, { LegacySite } from "./components/Legacy";
 import About from "./pages/public/About";
 import Events from "./pages/public/Events";
 import Home from "./pages/public/Home";
@@ -21,6 +21,9 @@ import Manifesto from "./pages/public/Manifesto";
 import News from "./pages/public/News";
 import Post from "./pages/public/Post";
 import JoinParty from "./pages/public/JoinParty";
+import Contribute from "./pages/public/Contribute";
+import Privacy from "./pages/public/Privacy";
+import Unsubscribe from "./pages/public/Unsubscribe";
 import WithdrawParty from "./pages/public/WithdrawParty";
 import WithdrawVolunteer from "./pages/public/WithdrawVolunteer";
 
@@ -40,13 +43,13 @@ function SignedIn() {
   // A staff login is never on a campaign, so it needs no campaign list to be routed.
   if (staff && partyRoles?.length) return <Portal />;
   if (campaigns.error?.code === "campaign_suspended") {
-    return <CampaignClosed message={campaigns.error.message} />;
+    return <Legacy><CampaignClosed message={campaigns.error.message} /></Legacy>;
   }
   if (campaigns.error?.code === "campaign_locked") {
-    return <CampaignLocked message={campaigns.error.message} />;
+    return <Legacy><CampaignLocked message={campaigns.error.message} /></Legacy>;
   }
   if (campaigns.isSuccess && campaigns.data.length === 0) {
-    return partyRoles?.length ? <Portal /> : <NoCampaign />;
+    return partyRoles?.length ? <Portal /> : <Legacy><NoCampaign /></Legacy>;
   }
   return <App />;
 }
@@ -68,7 +71,7 @@ function Inside() {
 export default function Root() {
   const token = useAuth((s) => s.token);
   const { pathname } = useLocation();
-  if (!token) return pathname === "/signin" ? <Login /> : <Navigate to="/signin" replace />;
+  if (!token) return pathname === "/signin" ? <Legacy><Login /></Legacy> : <Navigate to="/signin" replace />;
   // A new key per sign-in starts every screen fresh for the new user.
   return <Inside key={token} />;
 }
@@ -106,20 +109,23 @@ function WithdrawVolunteerPage() {
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Legacy><PublicLayout><Home /></PublicLayout></Legacy>} />
-      <Route path="/about" element={<Legacy><PublicLayout><About /></PublicLayout></Legacy>} />
-      <Route path="/leadership" element={<Legacy><PublicLayout><Leadership /></PublicLayout></Legacy>} />
-      <Route path="/manifesto" element={<Legacy><PublicLayout><Manifesto /></PublicLayout></Legacy>} />
-      <Route path="/news" element={<Legacy><PublicLayout><News /></PublicLayout></Legacy>} />
-      <Route path="/news/:id" element={<Legacy><PublicLayout><PostPage /></PublicLayout></Legacy>} />
-      <Route path="/events" element={<Legacy><PublicLayout><Events /></PublicLayout></Legacy>} />
+      <Route path="/" element={<PublicLayout><LegacySite><Home /></LegacySite></PublicLayout>} />
+      <Route path="/about" element={<PublicLayout><LegacySite><About /></LegacySite></PublicLayout>} />
+      <Route path="/leadership" element={<PublicLayout><LegacySite><Leadership /></LegacySite></PublicLayout>} />
+      <Route path="/manifesto" element={<PublicLayout><LegacySite><Manifesto /></LegacySite></PublicLayout>} />
+      <Route path="/news" element={<PublicLayout><LegacySite><News /></LegacySite></PublicLayout>} />
+      <Route path="/news/:id" element={<PublicLayout><LegacySite><PostPage /></LegacySite></PublicLayout>} />
+      <Route path="/events" element={<PublicLayout><LegacySite><Events /></LegacySite></PublicLayout>} />
       <Route path="/signin" element={<Legacy><SignInPage /></Legacy>} />
       <Route path="/join/:code" element={<Legacy><JoinPage /></Legacy>} />
       <Route path="/withdraw/:code" element={<Legacy><WithdrawPage /></Legacy>} />
-      <Route path="/join-party" element={<Legacy><PublicLayout><JoinParty /></PublicLayout></Legacy>} />
+      <Route path="/join-party" element={<PublicLayout><LegacySite><JoinParty /></LegacySite></PublicLayout>} />
+      <Route path="/contribute" element={<PublicLayout><Contribute /></PublicLayout>} />
+      <Route path="/privacy" element={<PublicLayout><Privacy /></PublicLayout>} />
+      <Route path="/unsubscribe/:code" element={<PublicLayout><Unsubscribe /></PublicLayout>} />
       <Route path="/party/withdraw/:code" element={<Legacy><WithdrawPartyPage /></Legacy>} />
       <Route path="/party/volunteer/withdraw/:code" element={<Legacy><WithdrawVolunteerPage /></Legacy>} />
-      <Route path="/*" element={<Legacy><Root /></Legacy>} />
+      <Route path="/*" element={<Root />} />
     </Routes>
   );
 }

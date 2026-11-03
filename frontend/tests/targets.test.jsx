@@ -12,8 +12,8 @@ async function openTargets(routes) {
   signIn("manager");
   const calls = stubApi(dashboardRoutes(routes));
   renderApp(<App />);
-  await screen.findByRole("button", { name: "Overview" });
-  await userEvent.setup().click(screen.getByRole("button", { name: "Targets" }));
+  await screen.findByRole("link", { name: "Overview" });
+  await userEvent.setup().click(screen.getByRole("link", { name: "Targets" }));
   await screen.findByText("Targets — the win number");
   return calls;
 }

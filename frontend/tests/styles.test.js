@@ -8,9 +8,11 @@ const src = (path) => readFileSync(resolve(process.cwd(), "src", path), "utf8");
 
 // Read off the tree rather than listed: a component added later is covered
 // without anybody remembering to add it here, which is how Admin.jsx shipped
-// using three class names the stylesheet had never heard of.
+// using three class names the stylesheet had never heard of. A page built on
+// the UI kit's components takes Tailwind classes, not index.css, and is skipped.
 const SOURCES = globSync("**/*.jsx", { cwd: resolve(process.cwd(), "src") })
   .map((path) => path.replaceAll("\\", "/"))
+  .filter((path) => !src(path).includes('from "@/components/ui/'))
   .sort();
 const STYLESHEET = globSync("**/*.css", {
   cwd: resolve(process.cwd(), "src"),

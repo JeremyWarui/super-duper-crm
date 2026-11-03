@@ -24,7 +24,7 @@ from backend.models import (
 )
 from backend.schemas.common import ORMModel, WriteModel, plain_text
 from backend.services.branding import INK, MIN_CONTRAST, WHITE, contrast
-from backend.services.consent import PARTY_WORDING, VOLUNTEER_WORDING
+from backend.services.consent import PARTY_WORDING, SUBSCRIBE_WORDING, VOLUNTEER_WORDING
 
 COLOUR = re.compile(r"^#[0-9a-fA-F]{6}$")
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -70,10 +70,13 @@ class PartySettingsRead(ORMModel):
     manifesto_text: str
     manifesto_url: str
     social_links: dict[str, str]
+    privacy_notice: str
+    privacy_notice_version: str
     updated_at: datetime
-    # The application form's consent label; the server records this same text.
+    # The forms' consent labels; the server records these same texts.
     consent_wording: str = PARTY_WORDING[PartyConsentChannel.WEB_FORM]
     volunteer_consent_wording: str = VOLUNTEER_WORDING
+    subscribe_consent_wording: str = SUBSCRIBE_WORDING
 
 
 class PartySettingsUpdate(WriteModel):
@@ -93,6 +96,8 @@ class PartySettingsUpdate(WriteModel):
     manifesto_text: str = ""
     manifesto_url: Link = ""
     social_links: dict[Annotated[str, Field(max_length=40)], Link] = Field(default_factory=dict)
+    privacy_notice: str = Field(default="", max_length=20000)
+    privacy_notice_version: str = Field(default="1", min_length=1, max_length=20)
 
     @model_validator(mode="after")
     def _plain(self) -> "PartySettingsUpdate":
@@ -104,6 +109,7 @@ class PartySettingsUpdate(WriteModel):
             "logo_url",
             "contact_email",
             "contact_phone",
+            "privacy_notice_version",
         ):
             plain_text(getattr(self, name))
         # Buttons put white text on the primary colour and ink text on the secondary.
@@ -111,7 +117,7 @@ class PartySettingsUpdate(WriteModel):
             raise ValueError("The primary colour is too light for white text; pick a darker one.")
         if contrast(self.secondary_colour, INK) < MIN_CONTRAST:
             raise ValueError("The secondary colour is too dark for ink text; pick a lighter one.")
-        for name in ("address", "description", "manifesto_text", "manifesto_url"):
+        for name in ("address", "description", "manifesto_text", "manifesto_url", "privacy_notice"):
             plain_text(getattr(self, name), lines=True)
         for key, link in self.social_links.items():
             plain_text(key)
@@ -259,3 +265,53 @@ class MemberMove(WriteModel):
     @classmethod
     def _plain(cls, value: str | None) -> str | None:
         return plain_text(value, lines=True)
+
+
+class PartySubscribe(WriteModel):
+    """A footer sign-up: a Kenyan mobile number or an email address."""
+
+    contact: str = Field(min_length=1, max_length=254)
+    consent_given: StrictBool
+
+    @field_validator("contact")
+    @classmethod
+    def _plain(cls, value: str) -> str:
+        return plain_text(value.strip())
+
+    @field_validator("consent_given")
+    @classmethod
+    def _consent_is_required(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("Tick the box to agree to receive party news.")
+        return value
+
+
+class PartySubscribed(BaseModel):
+    message: str
+    unsubscribe_url: str
+
+
+class PartyContribute(WriteModel):
+    """A contribution as the Contribute page takes it."""
+
+    amount_kes: int = Field(ge=10, le=1_000_000)
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)]
+    phone: str = Field(min_length=1, max_length=20)
+    consent_given: StrictBool
+
+    @field_validator("name", "phone")
+    @classmethod
+    def _plain(cls, value: str) -> str:
+        return plain_text(value)
+
+    @field_validator("consent_given")
+    @classmethod
+    def _consent_is_required(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("Tick the box to confirm the contribution is your own.")
+        return value
+
+
+class PartyContributed(BaseModel):
+    demo: bool
+    message: str

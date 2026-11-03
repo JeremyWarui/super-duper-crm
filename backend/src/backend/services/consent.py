@@ -23,3 +23,8 @@ PARTY_WORDING: dict[PartyConsentChannel, str] = {
 VOLUNTEER_WORDING = (
     "I agree that the party may contact me about volunteering, by the method I chose."
 )
+
+SUBSCRIBE_WORDING = (
+    "I agree that the party may send me news, events and nomination notices by SMS or email "
+    "under its privacy notice. I can unsubscribe at any time."
+)

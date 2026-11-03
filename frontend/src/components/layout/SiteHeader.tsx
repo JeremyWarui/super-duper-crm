@@ -4,53 +4,46 @@ import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useBranding } from '@/theme/branding'
+import { homeOf } from '@/lib/home'
+import { useAuth } from '@/store/auth'
 import { Logo } from './Logo'
 
 export const siteNav = [
   { label: 'About', to: '/about' },
-  { label: 'Agenda & issues', to: '/issues' },
+  { label: 'Leadership', to: '/leadership' },
+  { label: 'Manifesto', to: '/manifesto' },
   { label: 'News', to: '/news' },
   { label: 'Events', to: '/events' },
-  { label: 'Candidates', to: '/candidates' },
-  { label: 'Results', to: '/results' },
-  { label: 'Counties', to: '/counties' },
 ] as const
 
-type Lang = 'en' | 'sw'
-
-/** Dark 13px utility bar above the header. Scrolls away; only the white header stays pinned. */
-export function SiteUtilityBar({ lang, onLang, signedInName }: { lang: Lang; onLang: (l: Lang) => void; signedInName?: string | null }) {
+/** Dark 13px utility bar above the header: registration, hotline, and sign-in or the signed-in login. */
+export function SiteUtilityBar() {
   const b = useBranding()
-  const langBtn = (l: Lang) => cn('min-w-9 cursor-pointer rounded-sm px-2.5 py-1.5 text-meta font-bold', lang === l ? 'bg-accent text-ink' : 'bg-transparent text-[#E2E5E3]')
+  const token = useAuth((s: any) => s.token)
+  const user = useAuth((s: any) => s.user)
+  const logout = useAuth((s: any) => s.logout)
+  const facts = [b.registrationNo && `Reg. No. ${b.registrationNo}`, b.hotline && `Hotline ${b.hotline}`].filter(Boolean)
   return (
     <div className="bg-ink text-small text-[#C9CDCB]">
       <div className="site-container flex flex-wrap items-center justify-between gap-2 py-2">
-        <span className="hidden sm:inline">Registered political party · Reg. No. {b.registrationNo} · Hotline {b.hotline}</span>
-        <span className="sm:hidden">Hotline {b.hotline}</span>
-        <div className="flex flex-wrap items-center gap-4">
-          <div role="group" aria-label="Language" className="flex gap-0.5">
-            <button type="button" aria-pressed={lang === 'en'} onClick={() => onLang('en')} className={langBtn('en')}>EN</button>
-            <button type="button" aria-pressed={lang === 'sw'} onClick={() => onLang('sw')} className={langBtn('sw')}>SW</button>
-          </div>
-          {signedInName ? (
-            <span className="flex items-center gap-3.5">
-              <Link to="/account" className="py-2 font-semibold text-white hover:text-white">{signedInName} · My account</Link>
-              <Link to="/sign-out" className="py-2 text-[#C9CDCB] hover:text-white">Sign out</Link>
-            </span>
-          ) : (
-            <Link to="/sign-in" className="py-2 font-semibold text-white hover:text-white">Sign in</Link>
-          )}
-        </div>
+        <span className="hidden sm:inline">{['Registered political party', ...facts].join(' · ')}</span>
+        <span className="sm:hidden">{b.hotline ? `Hotline ${b.hotline}` : null}</span>
+        {token ? (
+          <span className="flex items-center gap-3.5">
+            <Link to={homeOf(user)} className="py-2 font-semibold text-white hover:text-white">{[(user?.full_name || user?.username || '').split(' ')[0], 'My account'].filter(Boolean).join(' · ')}</Link>
+            <button type="button" onClick={logout} className="cursor-pointer py-2 text-[#C9CDCB] hover:text-white">Sign out</button>
+          </span>
+        ) : (
+          <Link to="/signin" className="py-2 font-semibold text-white hover:text-white">Sign in</Link>
+        )}
       </div>
     </div>
   )
 }
 
 /**
- * Shared website header (mockup: SiteHeader): frosted white, pinned by the layout
- * (`sticky top-0 z-30`). Current page = soft green pill.
- * Below 1280px the menu folds into a "Menu" button; Join/Contribute move to the
- * phone action bar at the bottom of the screen.
+ * Shared website header: frosted white, pinned by the layout. Current page = soft green pill.
+ * Below 1280px the menu folds into a "Menu" button; Join and Contribute move to the phone action bar.
  */
 export function SiteHeader() {
   const [open, setOpen] = React.useState(false)
@@ -65,8 +58,8 @@ export function SiteHeader() {
           {siteNav.map((n) => <NavLink key={n.to} to={n.to} className={link}>{n.label}</NavLink>)}
         </nav>
         <div className="hidden gap-2.5 md:flex">
-          <Button asChild variant="outline"><Link to="/#contribute">Contribute</Link></Button>
-          <Button asChild variant="accent"><Link to="/join">Join the party</Link></Button>
+          <Button asChild variant="outline"><Link to="/contribute">Contribute</Link></Button>
+          <Button asChild variant="accent"><Link to="/join-party">Join the party</Link></Button>
         </div>
         <Button variant="quiet" className="xl:hidden" aria-expanded={open} aria-controls="site-menu" onClick={() => setOpen(!open)}>
           {open ? <X className="size-4" /> : <Menu className="size-4" />}Menu

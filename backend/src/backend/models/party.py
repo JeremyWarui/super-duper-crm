@@ -76,6 +76,11 @@ class PartySettings(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     manifesto_text: Mapped[str] = mapped_column(Text, default="")
     manifesto_url: Mapped[str] = mapped_column(String(500), default="")
+    privacy_notice: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
+    # Recorded with every news sign-up; the party raises it when the notice changes.
+    privacy_notice_version: Mapped[str] = mapped_column(
+        String(20), default="1", server_default=text("'1'")
+    )
     social_links: Mapped[dict] = mapped_column(JSON, default=dict)
     # Days of full access, then of read-only access, after a campaign's paid period ends.
     grace_days: Mapped[int] = mapped_column(Integer, default=7, server_default=text("7"))

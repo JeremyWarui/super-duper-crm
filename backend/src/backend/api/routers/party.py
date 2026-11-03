@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from backend.api.deps import AdminUser, SessionDep, Today
 from backend.api.routers.join import _client
+from backend.config import get_settings
 from backend.models import (
     Constituency,
     County,
@@ -20,15 +21,21 @@ from backend.models import (
 from backend.schemas.content import LeaderRead, PostRead
 from backend.schemas.dashboard import Dashboard
 from backend.schemas.party import (
+    EMAIL,
+    PartyContribute,
+    PartyContributed,
     PartyJoinCreate,
     PartyJoinDone,
     PartyPlace,
     PartySettingsRead,
+    PartySubscribe,
+    PartySubscribed,
     PartyWithdrawn,
 )
 from backend.security import hash_password
-from backend.services import content, dashboard, membership
+from backend.services import content, dashboard, membership, subscribers
 from backend.services import party as service
+from backend.services.accounts import clean_email
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import normalise_phone
 
@@ -38,6 +45,10 @@ router = APIRouter(prefix="/party", tags=["party"])
 JOINS = RateLimit(limit=20, window=3600)
 WITHDRAWALS = RateLimit(limit=20, window=3600)
 VOLUNTEER_WITHDRAWALS = RateLimit(limit=20, window=3600)
+SUBSCRIBES = RateLimit(limit=20, window=3600)
+UNSUBSCRIBES = RateLimit(limit=20, window=3600)
+CONTRIBUTIONS = RateLimit(limit=20, window=3600)
+UNSUBSCRIBE_PATH = "/unsubscribe/"
 WITHDRAW_PATH = "/party/withdraw/"
 VOLUNTEER_WITHDRAW_PATH = "/party/volunteer/withdraw/"
 # The same answer for every code, so a code cannot be tested for whether it was real.
@@ -50,6 +61,15 @@ WITHDRAWN = (
 VOLUNTEER_WITHDRAWN = (
     "Received. If this link came with your volunteer sign-up, the party will stop contacting you "
     "about volunteering within a few minutes. Your membership is unchanged."
+)
+
+SUBSCRIBED = "Thank you. You will get party news there; the link below unsubscribes you."
+UNSUBSCRIBED = (
+    "Received. If this link came with a news sign-up, that contact gets no more party news."
+)
+CONTRIBUTED_DEMO = (
+    "This is a demonstration site: no money moved and nothing was charged or stored. "
+    "A party using this platform takes contributions through its payment provider."
 )
 
 
@@ -193,3 +213,54 @@ async def withdraw_volunteer(code: str, request: Request, session: SessionDep) -
         membership.request_volunteer_withdraw(session, code)
         await session.commit()
     return PartyWithdrawn(message=VOLUNTEER_WITHDRAWN)
+
+
+@router.post("/subscribe/", response_model=PartySubscribed, status_code=status.HTTP_201_CREATED)
+async def subscribe(
+    payload: PartySubscribe, request: Request, session: SessionDep
+) -> PartySubscribed:
+    """Sign a phone or email up for party news; a known contact gets the same answer."""
+    if not SUBSCRIBES.allow(_client(request)):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many sign-ups; try later.")
+    if "@" in payload.contact:
+        contact = clean_email(payload.contact)
+        if not EMAIL.match(contact):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "Use an email address like name@example.com."
+            )
+        channel = "email"
+    else:
+        contact = normalise_phone(payload.contact)
+        if contact is None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "Enter a Kenyan mobile number, like 0712 345678."
+            )
+        channel = "sms"
+    code = await subscribers.subscribe(session, contact, channel)
+    await session.commit()
+    return PartySubscribed(message=SUBSCRIBED, unsubscribe_url=f"{UNSUBSCRIBE_PATH}{code}")
+
+
+@router.post("/unsubscribe/{code}/", response_model=PartyWithdrawn)
+async def unsubscribe(code: str, request: Request, session: SessionDep) -> PartyWithdrawn:
+    """Remove a news sign-up by its code; the answer is the same for any code."""
+    if not UNSUBSCRIBES.allow(_client(request)):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    if _well_formed(code):
+        await subscribers.unsubscribe(session, code)
+        await session.commit()
+    return PartyWithdrawn(message=UNSUBSCRIBED)
+
+
+@router.post("/contribute/", response_model=PartyContributed)
+async def contribute(payload: PartyContribute, request: Request) -> PartyContributed:
+    """Take a contribution. In demo mode nothing is charged or stored."""
+    if not CONTRIBUTIONS.allow(_client(request)):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    if normalise_phone(payload.phone) is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "Enter a Kenyan mobile number, like 0712 345678."
+        )
+    return PartyContributed(
+        demo=get_settings().payments_provider == "demo", message=CONTRIBUTED_DEMO
+    )

@@ -4,38 +4,13 @@ import { Logo } from './Logo'
 
 export type NavItem = { label: string; to: string }
 
-export const crmNav: NavItem[] = [
-  { label: 'Overview', to: '/crm' },
-  { label: 'Members', to: '/crm/members' },
-  { label: 'Branches', to: '/crm/branches' },
-  { label: 'Events', to: '/crm/events' },
-  { label: 'Nominations', to: '/crm/nominations' },
-  { label: 'Nominees board', to: '/crm/nominees' },
-  { label: 'Communications', to: '/crm/comms' },
-  { label: 'Finance', to: '/crm/finance' },
-  { label: 'Website content', to: '/crm/content' },
-  { label: 'Users & data', to: '/crm/users' },
-]
-
-export const workspaceNav: NavItem[] = [
-  { label: 'Strategy', to: '/ws' },
-  { label: 'Targets & wards', to: '/ws/targets' },
-  { label: 'Events', to: '/ws/events' },
-  { label: 'Mobilizers', to: '/ws/mobilizers' },
-  { label: 'Supporters', to: '/ws/supporters' },
-  { label: 'Messages', to: '/ws/messages' },
-  { label: 'Party feed & sharing', to: '/ws/party' },
-  { label: 'Election-day agents', to: '/ws/agents' },
-  { label: 'Spending', to: '/ws/spending' },
-]
-
 /**
  * 240px sidebar.
  * tone="dark"  — Party CRM: ink background, active item = solid party green, white text
- * tone="light" — Candidate workspace: white background, active item = green tint, green text
+ * tone="light" — Campaign workspace: white background, active item = green tint, green text
  * Items: 11px/12px padding, 10px corners, 15px semibold.
  */
-export function AppSidebar({ items, tone = 'dark', title, subtitle, eyebrow, open }: { items: NavItem[]; tone?: 'dark' | 'light'; title?: string; subtitle?: string; eyebrow?: string; open?: boolean }) {
+export function AppSidebar({ items, tone = 'dark', title, subtitle, eyebrow, home, open }: { items: NavItem[]; tone?: 'dark' | 'light'; title?: string; subtitle?: string; eyebrow?: string; home: string; open?: boolean }) {
   const dark = tone === 'dark'
   return (
     <nav
@@ -49,7 +24,7 @@ export function AppSidebar({ items, tone = 'dark', title, subtitle, eyebrow, ope
       <div className="px-2">
         {dark ? (
           <div className="flex flex-col gap-0.5">
-            <Logo size="sm" onDark to="/crm" />
+            <Logo size="sm" onDark to={home} />
             {subtitle ? <span className="pl-[44px] text-meta text-[#9FAAA4]">{subtitle}</span> : null}
           </div>
         ) : (
@@ -65,7 +40,6 @@ export function AppSidebar({ items, tone = 'dark', title, subtitle, eyebrow, ope
           <NavLink
             key={n.to}
             to={n.to}
-            end
             className={({ isActive }) =>
               cn(
                 'block rounded-md px-3 py-[11px] text-body font-semibold no-underline',
@@ -79,7 +53,6 @@ export function AppSidebar({ items, tone = 'dark', title, subtitle, eyebrow, ope
           </NavLink>
         ))}
       </div>
-      <p className={cn('mx-2 mt-auto text-meta', dark ? 'text-[#9FAAA4]' : 'text-muted-foreground')}>Powered by [Your product]</p>
     </nav>
   )
 }

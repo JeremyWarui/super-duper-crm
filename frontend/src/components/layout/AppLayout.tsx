@@ -1,51 +1,58 @@
 import * as React from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
-import { AppSidebar, crmNav, workspaceNav } from './AppSidebar'
-import type { Notice } from './CrmTopBar'
+import { useLocation } from 'react-router-dom'
+import { AppSidebar, type NavItem } from './AppSidebar'
 
 export type AppContext = {
   rootLabel: string
   rootPath: string
-  scopes: string[]
-  scope: string
-  setScope: (s: string) => void
-  notices: Notice[]
   user: { initials: string; name: string; role: string }
+  onSignOut: () => void
   openMenu: () => void
 }
 
+const Ctx = React.createContext<AppContext | null>(null)
+export const useAppShell = () => React.useContext(Ctx) as AppContext
+
+const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+
 /**
- * Shell for signed-in apps. `.app-shell` switches the ground to #F7F7F5 and
- * cards to bordered style. Sidebar is 240px on desktop and a slide-in drawer on phones.
- * Data (user, scopes, notices) comes from FastAPI: GET /api/me, /api/notifications.
+ * Shell for signed-in apps. `.app-shell` switches the ground to #F7F7F5 and cards to bordered style.
+ * tone="dark" is the party CRM, tone="light" a campaign workspace. The sidebar is 240px on
+ * desktop and a slide-in drawer on phones.
  */
-export function AppLayout({ kind }: { kind: 'crm' | 'workspace' }) {
-  const [scope, setScope] = React.useState('National HQ')
+export function AppLayout({ tone, nav, rootLabel, rootPath, eyebrow, title, subtitle, user, onSignOut, children }: {
+  tone: 'dark' | 'light'
+  nav: NavItem[]
+  rootLabel: string
+  rootPath: string
+  eyebrow?: string
+  title?: string
+  subtitle?: string
+  user: { name: string; role: string }
+  onSignOut: () => void
+  children: React.ReactNode
+}) {
   const [menu, setMenu] = React.useState(false)
   const { pathname } = useLocation()
   React.useEffect(() => setMenu(false), [pathname])
+  React.useEffect(() => {
+    if (!menu) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [menu])
   const ctx: AppContext = {
-    rootLabel: kind === 'crm' ? 'Party CRM' : 'Workspace',
-    rootPath: kind === 'crm' ? '/crm' : '/ws',
-    scopes: ['National HQ', '[County] branch'],
-    scope, setScope,
-    notices: [
-      { title: '[00] membership applications to verify', when: '[0] min ago', to: '/crm/members' },
-      { title: 'Timetable change waiting for your sign-off', when: '[0] hours ago', to: '/crm/nominations/timetable' },
-      { title: 'New appeal filed: [Seat]', when: 'Yesterday', to: '/crm/appeals' },
-    ],
-    user: { initials: '[AB]', name: '[Staff name]', role: kind === 'crm' ? 'HQ admin' : 'Campaign manager' },
+    rootLabel, rootPath, onSignOut,
+    user: { ...user, initials: initialsOf(user.name) },
     openMenu: () => setMenu(true),
   }
   return (
-    <div className="app-shell flex min-h-dvh flex-col md:flex-row">
-      {menu ? <button aria-label="Close menu" onClick={() => setMenu(false)} className="fixed inset-0 z-40 bg-ink/40 md:hidden" /> : null}
-      {kind === 'crm' ? (
-        <AppSidebar items={crmNav} tone="dark" subtitle="Secretariat · HQ" open={menu} />
-      ) : (
-        <AppSidebar items={workspaceNav} tone="light" eyebrow="Pamoja Party · Field plan" title="[Candidate] for MP" subtitle="[Constituency], [County]" open={menu} />
-      )}
-      <Outlet context={ctx} />
-    </div>
+    <Ctx.Provider value={ctx}>
+      <div className="app-shell flex min-h-dvh flex-col md:flex-row">
+        {menu ? <button aria-label="Close menu" onClick={() => setMenu(false)} className="fixed inset-0 z-40 bg-ink/40 md:hidden" /> : null}
+        <AppSidebar items={nav} tone={tone} eyebrow={eyebrow} title={title} subtitle={subtitle} home={rootPath} open={menu} />
+        {children}
+      </div>
+    </Ctx.Provider>
   )
 }

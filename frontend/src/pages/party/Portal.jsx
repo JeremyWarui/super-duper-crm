@@ -1,8 +1,10 @@
 // The signed-in party portal: routes `/party/*` and the shell around each page.
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { AppPage } from "@/components/layout/AppPage";
 import { useAuth } from "../../store/auth";
-import { useParty } from "../../api/hooks";
-import PortalLayout from "../../components/PortalLayout";
+import { homeOf } from "../../lib/home";
+import Legacy from "../../components/Legacy";
 import Aspirants from "./Aspirants";
 import Dashboard from "./Dashboard";
 import Finance from "./Finance";
@@ -22,35 +24,51 @@ const PAGES = [
   ["website", "Website", "superuser", <Website key="website" />],
 ];
 
-export default function Portal() {
+/** The party CRM's sidebar for a login: the pages its offices open, and the console for the superuser. */
+export function partyNav(user) {
+  const roles = user?.party_roles || [];
+  return [
+    ...PAGES.filter(([, , office]) => user?.is_superuser || roles.includes(office)).map(([key, label]) => ({ label, to: `/party/${key}` })),
+    ...(user?.is_superuser ? [{ label: "Console", to: "/console" }] : []),
+  ];
+}
+
+export function officeOf(user) {
+  return user?.is_superuser
+    ? "Party super admin"
+    : (user?.party_roles || []).map((r) => PARTY_ROLE_LABEL[r] || r).join(", ");
+}
+
+/** The party CRM's frame around one page still drawn by index.css. */
+export function PartyShell({ crumb, children }) {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
-  const navigate = useNavigate();
+  return (
+    <AppLayout
+      tone="dark"
+      nav={partyNav(user)}
+      rootLabel="Party CRM"
+      rootPath={homeOf(user)}
+      subtitle={officeOf(user)}
+      user={{ name: user?.full_name || user?.username || "", role: officeOf(user) }}
+      onSignOut={logout}
+    >
+      <AppPage crumb={crumb}>
+        <Legacy>{children}</Legacy>
+      </AppPage>
+    </AppLayout>
+  );
+}
+
+export default function Portal() {
+  const user = useAuth((s) => s.user);
   const { pathname } = useLocation();
-  const party = useParty().data;
   const roles = user?.party_roles || [];
   const pages = PAGES.filter(([, , office]) => user?.is_superuser || roles.includes(office));
-  const nav = [
-    ...pages.map(([key, label]) => [key, label]),
-    ...(user?.is_superuser ? [["console", "Console"]] : []),
-  ];
-  const office = user?.is_superuser
-    ? "Party super admin"
-    : roles.map((r) => PARTY_ROLE_LABEL[r] || r).join(", ");
-  const current = pages.find(([key]) => pathname.startsWith(`/party/${key}`))?.[0] ?? pages[0]?.[0];
+  const current = pages.find(([key]) => pathname.startsWith(`/party/${key}`)) ?? pages[0];
 
   return (
-    <PortalLayout
-      brand={party?.short_name || party?.name || "Party"}
-      title={party?.name || ""}
-      meta="Party portal"
-      user={`${user?.full_name || user?.username} · ${office}`}
-      navLabel="PARTY"
-      nav={nav}
-      page={pages.length ? current : null}
-      onSelect={(key) => navigate(key === "console" ? "/console" : `/party/${key}`)}
-      onLogout={logout}
-    >
+    <PartyShell crumb={current?.[1] || "Party CRM"}>
       {pages.length ? (
         <Routes>
           {pages.map(([key, , , element]) => (
@@ -61,6 +79,6 @@ export default function Portal() {
       ) : (
         <div className="empty-row">There is nothing for your office here yet.</div>
       )}
-    </PortalLayout>
+    </PartyShell>
   );
 }

@@ -75,22 +75,24 @@ describe("the public site", () => {
     stubApi(ROUTES);
     renderApp(<AppRoutes />);
     const user = userEvent.setup();
-    const menu = () => within(screen.getByRole("navigation", { name: "Site" }));
+    const menu = () => within(screen.getByRole("navigation", { name: "Main" }));
     const pages = [
       ["About", "About Umoja"],
       ["Leadership", "Leadership"],
       ["Manifesto", "Manifesto"],
       ["News", "News"],
       ["Events", "Events"],
-      ["Home", "Umoja Party"],
     ];
 
     for (const [link, heading] of pages) {
       await user.click(menu().getByRole("link", { name: link }));
       expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
+      expect(menu().getByRole("link", { name: link })).toHaveAttribute("aria-current", "page");
     }
-    await user.click(menu().getByRole("link", { name: "Join" }));
+    await user.click(screen.getAllByRole("link", { name: /Umoja Party/ })[0]);
+    expect(await screen.findByRole("heading", { level: 1, name: "Umoja Party" })).toBeInTheDocument();
+    await user.click(screen.getAllByRole("link", { name: "Join the party" })[0]);
     expect(await screen.findByRole("textbox", { name: "First name" })).toBeInTheDocument();
-    expect(menu().getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/signin");
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/signin");
   });
 });

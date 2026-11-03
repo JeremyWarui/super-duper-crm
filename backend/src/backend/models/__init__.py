@@ -5,7 +5,7 @@ from backend.models.audit import AuditEvent
 from backend.models.auth_token import AuthToken
 from backend.models.billing import CampaignSubscription, CrmPlan, SubscriptionEntry
 from backend.models.campaign import Campaign
-from backend.models.content import PartyLeader, PartyPost
+from backend.models.content import PartyLeader, PartyPost, Subscriber
 from backend.models.enums import (
     AccessState,
     AspirantStatus,
@@ -96,6 +96,7 @@ __all__ = [
     "Seat",
     "RegistrationCentre",
     "SupportLevel",
+    "Subscriber",
     "Supporter",
     "Target",
     "User",

@@ -19,8 +19,8 @@ describe("the finance page", () => {
     renderApp(<Root />, { path: "/party" });
 
     expect((await screen.findAllByRole("button", { name: "Jane for Roysambu" })).length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Finance" })).toHaveAttribute("aria-current", "page");
-    expect(screen.queryByRole("button", { name: "Members" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Finance" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("link", { name: "Members" })).toBeNull();
   });
 
   it("records a payment whose amount defaults to the plan's price", async () => {

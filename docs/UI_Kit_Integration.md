@@ -34,12 +34,13 @@ cold critic judged on its own text.
 - Tests: every existing test passes; the stylesheet test still finds every class the components use.
 - Acceptance: legacy pages look as before at 1440px and 390px; a kit component outside `.legacy` takes no style from `index.css`.
 
-**UI-3 Layouts**
+**UI-3 Layouts** (done)
 - Files: `components/PublicLayout.jsx` replaced by the kit's `PublicLayout` (`SiteHeader`, `SiteFooter`) for public routes; party console and campaign shells (`pages/party/Portal.jsx`, `App.jsx` `PortalLayout`) on the kit's `AppLayout` and `AppPage` with `CrmTopBar` and the sidebar. Sidebar items follow the pages that exist (party console by role; campaign pages by role), not the mockup's full list. Pages inside stay in `.legacy` until their own ticket.
 - Permissions: navigation shows only what each role may open today; no route guard changes.
 - Migration: none.
 - Tests: each role sees exactly its sidebar items; the public header marks the current page; sign-in and sign-out still work.
 - Acceptance: headers, sidebars and footers match `SiteHeader`, `SiteFooter`, `CrmTopBar` and the CRM shell at 1440px and 390px.
+- The user chip opens a plain disclosure panel with Sign out, not the kit's Radix `DropdownMenu`: Radix menus hang the jsdom test worker. The phone drawer and the panel close on Escape.
 
 **UI-4 Branding from PartySettings** (done)
 - No branding endpoint: `theme/branding.tsx` reads `GET /api/party/` (name, short name up to 3 letters, slogan, registration number, hotline from the contact phone, logo, primary and secondary colours) and derives the primary's hover and tint. `PartySettings` gains `slogan` and `registration_number` (revision `party_branding`, after `member_logins`); the console's party form edits them. A save refuses a primary below 4.5:1 against white text and a secondary below 4.5:1 against ink #13201A.

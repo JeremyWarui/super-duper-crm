@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { BrandingProvider } from "@/theme/branding";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -95,7 +96,9 @@ export function renderApp(ui, { path = "/", appCache = false } = {}) {
     queryClient,
     ...render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>
+        <BrandingProvider>
+          <MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>
+        </BrandingProvider>
       </QueryClientProvider>,
     ),
   };
