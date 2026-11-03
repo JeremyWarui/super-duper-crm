@@ -578,6 +578,27 @@ export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = 
     staleTime: Infinity,
   });
 
+// The signed-in member's own account.
+export const useAccount = () => useQuery({ queryKey: ["account"], queryFn: () => api("/account/") });
+
+export function useChangeVolunteering() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload) => api("/account/volunteer/", { method: "PUT", body: payload }),
+    onSuccess: (account) => qc.setQueryData(["account"], account),
+  });
+}
+
+export function useStopVolunteering() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api("/account/volunteer/stop/", { method: "POST" }),
+    onSuccess: (account) => qc.setQueryData(["account"], account),
+  });
+}
+export const useLeaveParty = () =>
+  useMutation({ mutationFn: () => api("/account/leave/", { method: "POST" }) });
+
 // The footer's news sign-up, its unsubscribe link, and the demo Contribute form.
 export const useSubscribe = () =>
   useMutation({

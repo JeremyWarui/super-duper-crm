@@ -57,12 +57,13 @@ describe("the aspirants page", () => {
 
     await user.click(await screen.findByRole("button", { name: "Achieng Otieno" }));
     await user.type(await screen.findByLabelText("Aspirant's username"), "achieng");
+    await user.type(screen.getByLabelText("Aspirant's email"), "achieng@example.com");
     await user.click(screen.getByRole("button", { name: "Create workspace" }));
 
     expect(await screen.findByText(WORKSPACE_SECRET)).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST")).toMatchObject({
       path: "/party/aspirants/as1/workspace/",
-      body: { candidate: { username: "achieng" } },
+      body: { candidate: { username: "achieng", email: "achieng@example.com" } },
     });
   });
 });

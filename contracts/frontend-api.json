@@ -301,7 +301,9 @@
       "full_name",
       "role",
       "is_superuser",
-      "party_roles"
+      "party_roles",
+      "kind",
+      "member_account"
     ],
     "GET /api/party/members/": [
       "total",
@@ -553,6 +555,48 @@
     "POST /api/party/contribute/": [
       "demo",
       "message"
+    ],
+    "GET /api/account/": [
+      "first_name",
+      "full_name",
+      "phone",
+      "email",
+      "status",
+      "ward",
+      "county",
+      "registration_centre",
+      "member_since",
+      "consent_wording",
+      "consent_at",
+      "volunteer"
+    ],
+    "PUT /api/account/volunteer/": [
+      "first_name",
+      "full_name",
+      "phone",
+      "email",
+      "status",
+      "ward",
+      "county",
+      "registration_centre",
+      "member_since",
+      "consent_wording",
+      "consent_at",
+      "volunteer"
+    ],
+    "POST /api/account/volunteer/stop/": [
+      "first_name",
+      "full_name",
+      "phone",
+      "email",
+      "status",
+      "ward",
+      "county",
+      "registration_centre",
+      "member_since",
+      "consent_wording",
+      "consent_at",
+      "volunteer"
     ]
   },
   "nested_reads": {
@@ -562,7 +606,9 @@
       "full_name",
       "role",
       "is_superuser",
-      "party_roles"
+      "party_roles",
+      "kind",
+      "member_account"
     ],
     "GET /api/strategy/.units": [
       "unit",
@@ -759,6 +805,16 @@
       "end",
       "total_kes",
       "count"
+    ],
+    "GET /api/account/.volunteer": [
+      "status",
+      "profession",
+      "profession_other",
+      "areas",
+      "area_other",
+      "preferred_contact",
+      "consent_wording",
+      "consent_at"
     ]
   },
   "writes": {
@@ -1060,7 +1116,17 @@
       "name",
       "phone",
       "consent_given"
-    ]
+    ],
+    "PUT /api/account/volunteer/": [
+      "profession",
+      "profession_other",
+      "areas",
+      "area_other",
+      "preferred_contact",
+      "consent_given"
+    ],
+    "POST /api/account/volunteer/stop/": [],
+    "POST /api/account/leave/": []
   },
   "enums": {
     "user.role": [
@@ -1127,7 +1193,8 @@
       "DELETE /api/admin/campaigns/{campaign_id}/members/{user_id}/",
       "DELETE /api/admin/users/{user_id}/party-roles/{role}/",
       "DELETE /api/admin/party/leaders/{leader_id}/",
-      "DELETE /api/admin/party/posts/{post_id}/"
+      "DELETE /api/admin/party/posts/{post_id}/",
+      "POST /api/account/leave/"
     ]
   }
 }

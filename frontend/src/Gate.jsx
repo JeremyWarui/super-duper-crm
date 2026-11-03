@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "./store/auth";
 import { useCampaigns, useMe } from "./api/hooks";
-import { homeOf } from "./lib/home";
+import { landingOf } from "./lib/home";
 import Login from "./components/Login";
 import Admin from "./components/Admin";
 import NoCampaign from "./components/NoCampaign";
@@ -24,6 +24,8 @@ import JoinParty from "./pages/public/JoinParty";
 import Contribute from "./pages/public/Contribute";
 import Privacy from "./pages/public/Privacy";
 import Unsubscribe from "./pages/public/Unsubscribe";
+import Chooser from "./pages/public/Chooser";
+import Account from "./pages/member/Account";
 import WithdrawParty from "./pages/public/WithdrawParty";
 import WithdrawVolunteer from "./pages/public/WithdrawVolunteer";
 
@@ -59,7 +61,10 @@ function SignedIn() {
 function Inside() {
   useMe();
   const isSuperuser = useAuth((s) => s.user?.is_superuser);
+  const isMember = useAuth((s) => s.user?.kind === "member");
   const { pathname } = useLocation();
+  // A member login opens only its own account.
+  if (isMember) return <Navigate to="/account" replace />;
   if (isSuperuser) {
     if (pathname.startsWith("/party")) return <Portal />;
     if (pathname.startsWith("/console")) return <Admin />;
@@ -71,7 +76,7 @@ function Inside() {
 export default function Root() {
   const token = useAuth((s) => s.token);
   const { pathname } = useLocation();
-  if (!token) return pathname === "/signin" ? <Legacy><Login /></Legacy> : <Navigate to="/signin" replace />;
+  if (!token) return pathname === "/signin" ? <Login /> : <Navigate to="/signin" replace />;
   // A new key per sign-in starts every screen fresh for the new user.
   return <Inside key={token} />;
 }
@@ -79,7 +84,20 @@ export default function Root() {
 function SignInPage() {
   const token = useAuth((s) => s.token);
   const user = useAuth((s) => s.user);
-  return token ? <Navigate to={homeOf(user)} replace /> : <Login />;
+  return token ? <Navigate to={landingOf(user)} replace /> : <Login />;
+}
+
+/** Pages for a signed-in login only; without one, sign-in. */
+function SignedInOnly({ children }) {
+  const token = useAuth((s) => s.token);
+  return token ? children : <Navigate to="/signin" replace />;
+}
+
+function AccountPage() {
+  useMe();
+  const user = useAuth((s) => s.user);
+  if (!user?.member_account) return <Navigate to={landingOf(user)} replace />;
+  return <PublicLayout><Account /></PublicLayout>;
 }
 
 function PostPage() {
@@ -116,7 +134,9 @@ export function AppRoutes() {
       <Route path="/news" element={<PublicLayout><LegacySite><News /></LegacySite></PublicLayout>} />
       <Route path="/news/:id" element={<PublicLayout><LegacySite><PostPage /></LegacySite></PublicLayout>} />
       <Route path="/events" element={<PublicLayout><LegacySite><Events /></LegacySite></PublicLayout>} />
-      <Route path="/signin" element={<Legacy><SignInPage /></Legacy>} />
+      <Route path="/signin" element={<SignInPage />} />
+      <Route path="/signin/where" element={<SignedInOnly><Chooser /></SignedInOnly>} />
+      <Route path="/account" element={<SignedInOnly><AccountPage /></SignedInOnly>} />
       <Route path="/join/:code" element={<Legacy><JoinPage /></Legacy>} />
       <Route path="/withdraw/:code" element={<Legacy><WithdrawPage /></Legacy>} />
       <Route path="/join-party" element={<PublicLayout><LegacySite><JoinParty /></LegacySite></PublicLayout>} />

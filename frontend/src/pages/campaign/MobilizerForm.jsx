@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isEmail } from "../../lib/email";
 import { Modal, PasswordModal } from "../../components/ui";
 import { useAddMobilizer, useCreateUser, useUpdateMobilizer } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
@@ -18,10 +19,11 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
   const unitKey = picked ?? (units.find((u) => mobilizer && holderOf([mobilizer], u))?.key || "");
   const [withLogin, setWithLogin] = useState(false);
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [made, setMade] = useState(null);
   const busy = add.isPending || update.isPending || createUser.isPending;
   const error = add.error || update.error || createUser.error;
-  const ok = name.trim() && (!withLogin || username.trim().length >= 3);
+  const ok = name.trim() && (!withLogin || (username.trim().length >= 3 && isEmail(email)));
   const choices = freeUnits(units, mobilizers, mobilizer);
   const unitWord = byCentre ? "centre" : "ward";
 
@@ -34,7 +36,7 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
       update.mutate({ id: mobilizer.id, full_name: name.trim(), phone: phone.trim(), ...(moved && place) }, { onSuccess: onClose });
     } else if (withLogin) {
       createUser.mutate(
-        { username: username.trim().toLowerCase(), role: "mobilizer", first_name: first, last_name: rest.join(" "), phone: phone.trim(), campaign: campaignId, ...place },
+        { username: username.trim().toLowerCase(), email: email.trim(), role: "mobilizer", first_name: first, last_name: rest.join(" "), phone: phone.trim(), campaign: campaignId, ...place },
         { onSuccess: (created) => setMade({ ...created, place: unit?.name }) },
       );
     } else {
@@ -69,6 +71,8 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
         <>
           <div className="field-gap" /><Label>Username</Label>
           <input className="app-field" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="juma" />
+          <div className="field-gap" /><Label>Email</Label>
+          <input aria-label="Email" type="email" className="app-field" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="juma@example.com" />
         </>
       )}
       {error && <div className="form-error">{error.message}</div>}

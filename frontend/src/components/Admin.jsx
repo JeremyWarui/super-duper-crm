@@ -3,6 +3,7 @@
 // login, and the few repairs that cannot be done from inside a campaign.
 // Shown only to a superuser; every route it calls checks the flag again.
 import React, { useState } from "react";
+import { isEmail } from "../lib/email";
 import { useNavigate } from "react-router-dom";
 import { PARTY_ROLES, PARTY_ROLE_LABEL } from "../pages/party/helpers";
 import {
@@ -350,6 +351,7 @@ function NewLogin({ campaigns, create }) {
     name.length >= 3 &&
     name.length <= 150 &&
     USERNAME.test(name) &&
+    isEmail(form.email) &&
     (!isMobilizer || (form.campaign && form.ward));
 
   if (!open)

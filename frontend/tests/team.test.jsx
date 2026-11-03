@@ -34,12 +34,13 @@ describe("the team page", () => {
     await user.click(screen.getByRole("button", { name: "Replace manager" }));
     await user.type(screen.getByRole("textbox", { name: "Full name" }), "Wanjiru Kamau");
     await user.type(screen.getByRole("textbox", { name: "Username" }), "Wanjiru");
+    await user.type(screen.getByRole("textbox", { name: "Email" }), "wanjiru@example.com");
     await user.click(screen.getAllByRole("button", { name: "Replace manager" }).at(-1));
 
     expect(await screen.findByText(password)).toBeTruthy();
     expect(screen.getByText(/amina is off the campaign/)).toBeTruthy();
     expect(calls.find((c) => c.method === "POST").body).toEqual({
-      username: "wanjiru", first_name: "Wanjiru", last_name: "Kamau", phone: "", replace: true,
+      username: "wanjiru", first_name: "Wanjiru", last_name: "Kamau", phone: "", email: "wanjiru@example.com", replace: true,
     });
   });
 
@@ -52,6 +53,7 @@ describe("the team page", () => {
     await user.click(screen.getByRole("button", { name: "Add manager" }));
     await user.type(screen.getByRole("textbox", { name: "Full name" }), "Wanjiru");
     await user.type(screen.getByRole("textbox", { name: "Username" }), "wanjiru");
+    await user.type(screen.getByRole("textbox", { name: "Email" }), "wanjiru@example.com");
     await user.click(screen.getAllByRole("button", { name: "Add manager" }).at(-1));
 
     await screen.findByText("Manager added");

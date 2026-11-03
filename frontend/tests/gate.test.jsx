@@ -13,7 +13,7 @@ import {
   stubApi,
 } from "./helpers";
 
-const SIGN_IN_LINE = "Members, candidate teams, mobilizers and party staff sign in here.";
+const SIGN_IN_LINE = "Use the email and password of your party account.";
 
 function Where() {
   return <div data-testid="where">{useLocation().pathname}</div>;

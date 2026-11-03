@@ -68,5 +68,6 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const party = useParty().data
   const b = React.useMemo(() => (party ? fromSettings(party) : defaultBranding), [party])
   React.useEffect(() => applyBranding(b), [b])
+  React.useEffect(() => { if (party?.name) document.title = party.name }, [party?.name])
   return <Ctx.Provider value={b}>{children}</Ctx.Provider>
 }

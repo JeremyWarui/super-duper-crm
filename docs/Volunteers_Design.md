@@ -283,7 +283,7 @@ it. Each ticket gets one cold critic judged on its text and section 4 only.
 - Files: `pages/public/JoinParty.jsx`, `pages/party/Volunteers.jsx`, `Dashboard.jsx`, `Members.jsx` ("No sign-in: email in use"), `helpers.js`, `api/hooks`, contract, tests.
 - Tests: the polling station is required and loads for the chosen ward; the tick shows and requires the volunteer fields; the request carries what the route takes; the officer register filters by the new areas.
 
-**R5-5 Sign-in and account pages** (frontend; depends R5-3)
+**R5-5 Sign-in and account pages** (frontend; depends R5-3; done)
 - Files: `components/Login.jsx`, `Chooser.jsx`, `pages/member/Account.jsx`, `Gate.jsx`, `App.jsx`, `api/hooks`, `store`, contract, tests; `screens/SignIn.dc.html` (one email and password form, no tabs).
 - Also: the login forms that create logins (new campaign, manager, mobilizer) require an email, since a login without one cannot sign in.
 - Tests: the form sends email and password; a member login opens the account, a linked login the chooser, others the console; the account shows the card, the volunteer details or the volunteer form, and the empty tasks state; a 401 returns to `/signin`.

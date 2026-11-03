@@ -336,12 +336,14 @@ describe("adding a mobilizer", () => {
       await user.type(boxes[0], "Wanjiku Njeri");
       await user.click(screen.getByRole("checkbox"));
       await user.type(await screen.findByPlaceholderText("juma"), "Wanjiku");
+      await user.type(screen.getByRole("textbox", { name: "Email" }), "wanjiku@example.com");
       await user.click(screen.getByRole("button", { name: "Save mobilizer" }));
 
       await waitFor(() => {
         const posted = calls.find((c) => c.path === "/users/");
         expect(posted.body).toMatchObject({
           username: "wanjiku",
+          email: "wanjiku@example.com",
           role: "mobilizer",
           first_name: "Wanjiku",
           last_name: "Njeri",

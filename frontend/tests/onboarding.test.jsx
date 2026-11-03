@@ -41,6 +41,7 @@ function start(routes = {}) {
 /** Name the aspirant, skip the manager, and stop on the review screen. */
 async function walkToReview(user, { office = "MP", ward = false } = {}) {
   await user.type(screen.getByPlaceholderText("jane"), "jane");
+  await user.type(screen.getByPlaceholderText("name@example.com"), "jane@example.com");
   await user.click(screen.getByRole("button", { name: "Next" }));
   await user.click(screen.getByRole("button", { name: "Skip" }));
 
@@ -70,7 +71,7 @@ const ASPIRANT = {
   first_name: "",
   last_name: "",
   phone: "",
-  email: "",
+  email: "jane@example.com",
 };
 
 describe("setting a campaign up from the console", () => {

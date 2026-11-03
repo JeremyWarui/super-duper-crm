@@ -1,5 +1,6 @@
 // The nominations officer's page: nominate approved members, move nominations, create workspaces.
 import { useState } from "react";
+import { isEmail } from "../../lib/email";
 import {
   useAspirant,
   useAspirants,
@@ -154,15 +155,15 @@ function Nominate({ onClose }) {
 
 function Workspace({ aspirant, onDone }) {
   const create = useCreateWorkspace();
-  const [form, setForm] = useState({ title: "", election_date: "", candidate: "", manager: "" });
+  const [form, setForm] = useState({ title: "", election_date: "", candidate: "", candidate_email: "", manager: "", manager_email: "" });
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
   const submit = () =>
     create.mutate(
       {
         id: aspirant.id,
-        candidate: { username: form.candidate.trim() },
-        ...(form.manager.trim() ? { manager: { username: form.manager.trim() } } : {}),
+        candidate: { username: form.candidate.trim(), email: form.candidate_email.trim() },
+        ...(form.manager.trim() ? { manager: { username: form.manager.trim(), email: form.manager_email.trim() } } : {}),
         ...(form.title.trim() ? { title: form.title.trim() } : {}),
         ...(form.election_date ? { election_date: form.election_date } : {}),
       },
@@ -182,11 +183,17 @@ function Workspace({ aspirant, onDone }) {
         value={form.election_date} onChange={set("election_date")} />
       <input aria-label="Aspirant's username" className="app-field" maxLength={150}
         placeholder="The aspirant's new username" value={form.candidate} onChange={set("candidate")} />
+      <input aria-label="Aspirant's email" type="email" className="app-field" maxLength={254}
+        placeholder="The aspirant's email, to sign in with" value={form.candidate_email} onChange={set("candidate_email")} />
       <input aria-label="Manager's username" className="app-field" maxLength={150}
         placeholder="A manager's new username (optional)" value={form.manager} onChange={set("manager")} />
+      {form.manager.trim() ? (
+        <input aria-label="Manager's email" type="email" className="app-field" maxLength={254}
+          placeholder="The manager's email, to sign in with" value={form.manager_email} onChange={set("manager_email")} />
+      ) : null}
       {create.isError && <div className="form-error">{create.error.message}</div>}
       <div className="flex justify-end gap-2 form-actions">
-        <Button primary disabled={form.candidate.trim().length < 3 || create.isPending} onClick={submit}>
+        <Button primary disabled={form.candidate.trim().length < 3 || !isEmail(form.candidate_email) || (form.manager.trim() && !isEmail(form.manager_email)) || create.isPending} onClick={submit}>
           {create.isPending ? "Creating…" : "Create workspace"}
         </Button>
       </div>

@@ -165,6 +165,7 @@ describe("creating a login from the console", () => {
 
     await openForm(user);
     await user.type(screen.getByPlaceholderText("jane.wanjiku"), "newmgr");
+    await user.type(screen.getByRole("textbox", { name: "Email" }), "newmgr@example.com");
     await user.selectOptions(screen.getByLabelText(/Campaign/), "c1");
     await user.click(screen.getByRole("button", { name: "Create the login" }));
 
@@ -222,8 +223,10 @@ describe("creating a campaign from the console", () => {
       await screen.findByRole("button", { name: "New campaign" }),
     );
     await user.type(screen.getByPlaceholderText("jane"), "wanjiku");
+    await user.type(screen.getByPlaceholderText("name@example.com"), "wanjiku@example.com");
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.type(screen.getByPlaceholderText("otieno"), "otieno");
+    await user.type(screen.getByPlaceholderText("name@example.com"), "otieno@example.com");
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.type(
       screen.getByPlaceholderText(/Jane for Roysambu/),

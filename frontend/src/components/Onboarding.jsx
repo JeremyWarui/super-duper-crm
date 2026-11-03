@@ -1,6 +1,7 @@
 // The console's new-campaign wizard: the aspirant, an optional manager, the
 // seat and its area, then a review that builds every target and both logins.
 import React, { useState } from "react";
+import { isEmail } from "../lib/email";
 import {
   useCounties,
   useConstituencies,
@@ -272,7 +273,7 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
     .filter(Boolean)
     .join(" ");
 
-  const aspirantReady = usableUsername(form.aspirant_username);
+  const aspirantReady = usableUsername(form.aspirant_username) && isEmail(form.aspirant_email);
   const hasManager = form.manager_username.trim() !== "";
   const managerTyped = ["first", "last", "email", "phone"].some(
     (field) => form[`manager_${field}`].trim() !== "",
@@ -282,7 +283,7 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
     form.manager_username.trim().toLowerCase() ===
       form.aspirant_username.trim().toLowerCase();
   const managerReady = hasManager
-    ? usableUsername(form.manager_username) && !sameUsername
+    ? usableUsername(form.manager_username) && isEmail(form.manager_email) && !sameUsername
     : !managerTyped;
   const person = (who) => ({
     username: form[`${who}_username`].trim().toLowerCase(),
