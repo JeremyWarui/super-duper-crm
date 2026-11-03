@@ -24,7 +24,7 @@ from backend.seed.reference import (
 )
 from backend.seed.site import seed_site
 from backend.services import admin
-from backend.services.accounts import new_login
+from backend.services.accounts import clean_email, new_login, user_with_email
 from backend.services.audit import record
 from backend.services.billing import today
 from backend.services.errors import Refused
@@ -70,9 +70,9 @@ async def _demo(args: argparse.Namespace, session: AsyncSession) -> int:
     print(f"  {summary.units} units, win number {summary.win_number:,}")
     print(f"  Paid until {summary.paid_until:%d %b %Y}")
     print("\nSign in at http://localhost:5173 as (shown once, re-run to reset):")
-    width = max(len(username) for username, _, _ in summary.sign_ins)
-    for username, password, description in summary.sign_ins:
-        print(f"  {username:<{width}}  {password:<20}  {description}")
+    width = max(len(email) for email, _, _ in summary.sign_ins)
+    for email, password, description in summary.sign_ins:
+        print(f"  {email:<{width}}  {password:<20}  {description}")
     return 0
 
 
@@ -164,6 +164,19 @@ async def _reset_password(args: argparse.Namespace, session: AsyncSession) -> in
     password = await admin.reset_password(session, user.id, args.password, actor=None)
     print(f"{args.username} signs in with: {password}")
     print("Shown once, and every other session is signed out.")
+    return 0
+
+
+async def _set_email(args: argparse.Namespace, session: AsyncSession) -> int:
+    user = await admin.user_by_name(session, args.username)
+    email = clean_email(args.email)
+    holder = await user_with_email(session, email)
+    if holder is not None and holder.id != user.id:
+        raise Refused(f"The email {email} already belongs to {holder.username}.")
+    user.email = email
+    record(session, actor=None, action="user.email", subject_type="user", subject_id=user.id)
+    await session.commit()
+    print(f"{args.username} signs in with the email {email}.")
     return 0
 
 
@@ -288,6 +301,10 @@ def build_parser() -> argparse.ArgumentParser:
     users = command("users", _users, "every login and the campaign it is on")
     users.add_argument("-r", "--role", choices=[r.value for r in UserRole])
     needs_campaign(users, required=False)
+
+    set_email = command("set-email", _set_email, "give a login the email it signs in with")
+    needs_user(set_email)
+    set_email.add_argument("--email", required=True)
 
     reset = command("reset-password", _reset_password, "give a login a new password")
     needs_user(reset)

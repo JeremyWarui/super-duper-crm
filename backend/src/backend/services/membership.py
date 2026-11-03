@@ -6,9 +6,9 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import Select, delete, func, select, update
+from sqlalchemy import Boolean, Select, delete, func, literal, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import contains_eager
+from sqlalchemy.orm import aliased, contains_eager
 from sqlalchemy.orm.attributes import set_committed_value
 
 from backend.db.session import upsert
@@ -23,10 +23,12 @@ from backend.models import (
     PartySettings,
     Profession,
     User,
+    UserKind,
     VolunteerArea,
     Ward,
 )
 from backend.services import aspirants, volunteers
+from backend.services.accounts import clean_email
 from backend.services.audit import record, record_if
 from backend.services.consent import PARTY_WORDING
 from backend.services.errors import NotFound, Refused, refuse_own_record
@@ -221,6 +223,68 @@ async def _apply_join(session: AsyncSession, code: str, p: dict) -> None:
     )
     if "volunteer" in p:
         await volunteers.apply_part(session, member.id, p, changed is not None)
+    await _write_login(session, member.id, p, changed is not None and "password_hash" in p)
+
+
+async def _write_login(session: AsyncSession, member_id: uuid.UUID, p: dict, applies: bool) -> None:
+    """Create or refresh the member's own login from a queued join, when `applies`.
+
+    Skipped when another login holds the email; a login already linked to this member then
+    reaches the account itself. Runs the same statement whatever the register holds.
+    """
+    email = clean_email(p.get("email") or "")
+    first_name, _, last_name = p["full_name"].partition(" ")
+    values = {
+        "email": email,
+        "first_name": (p.get("first_name") or first_name)[:150],
+        "last_name": (p.get("surname") or last_name)[:150],
+        "phone": p["phone"],
+        "password_hash": p.get("password_hash", ""),
+    }
+    columns = User.__table__.c
+    row = {
+        "id": uuid.uuid4(),
+        "username": f"member-{member_id.hex}",
+        "kind": UserKind.MEMBER,
+        "party_member_id": member_id,
+        "is_active": True,
+        "is_superuser": False,
+        "created_at": datetime.now(UTC),
+        **values,
+    }
+    other = aliased(User)
+    taken = (
+        select(other.id)
+        .where(
+            other.email == literal(email, columns.email.type),
+            ~((other.kind == UserKind.MEMBER) & (other.party_member_id == member_id)),
+        )
+        .exists()
+    )
+    await session.execute(
+        upsert(session, User)
+        .from_select(
+            list(row),
+            select(*(literal(v, columns[k].type).label(k) for k, v in row.items())).where(
+                literal(applies, Boolean), ~taken
+            ),
+        )
+        .on_conflict_do_update(
+            index_elements=["party_member_id"],
+            index_where=text("kind = 'member'"),
+            set_=values,
+        )
+    )
+
+
+async def with_logins(session: AsyncSession, member_ids: list[uuid.UUID]) -> set[uuid.UUID]:
+    """Which of these members some login reaches."""
+    if not member_ids:
+        return set()
+    found = await session.scalars(
+        select(User.party_member_id).where(User.party_member_id.in_(member_ids)).distinct()
+    )
+    return set(found)
 
 
 async def _apply_withdraw(session: AsyncSession, code: str, p: dict) -> None:

@@ -1,4 +1,4 @@
-"""Anyone who signs in: candidate, campaign manager, or mobilizer."""
+"""Anyone who signs in: campaign logins, party staff, and party members."""
 
 import uuid
 from datetime import datetime
@@ -9,9 +9,11 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     String,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -39,7 +41,22 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         UniqueConstraint("id", "role"),
         UniqueConstraint("id", "kind"),
-        CheckConstraint("(kind = 'staff') = (role IS NULL)", name="kind_matches_role"),
+        CheckConstraint("(kind = 'campaign') = (role IS NOT NULL)", name="kind_matches_role"),
+        # The sign-in name; stored lower-cased.
+        Index(
+            "uq_users_email",
+            "email",
+            unique=True,
+            postgresql_where=text("email <> ''"),
+            sqlite_where=text("email <> ''"),
+        ),
+        Index(
+            "uq_users_member_login",
+            "party_member_id",
+            unique=True,
+            postgresql_where=text("kind = 'member'"),
+            sqlite_where=text("kind = 'member'"),
+        ),
     )
 
     username: Mapped[str] = mapped_column(String(150), unique=True, index=True)
@@ -76,6 +93,14 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         back_populates="user", cascade="all, delete-orphan", passive_deletes=True
     )
     party_member: Mapped["PartyMember | None"] = relationship(foreign_keys=[party_member_id])
+
+    @property
+    def member_account(self) -> bool:
+        """Whether this login opens an approved party member's account; needs `party_member`."""
+        from backend.models.enums import PartyMemberStatus
+
+        member = self.party_member
+        return member is not None and member.status is PartyMemberStatus.APPROVED
 
     @property
     def full_name(self) -> str:

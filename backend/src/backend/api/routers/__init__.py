@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from backend.api.routers import (
+    account,
     admin,
     auth,
     campaigns,
@@ -27,6 +28,7 @@ from backend.api.routers import (
 api_router = APIRouter(prefix="/api")
 for module in (
     auth,
+    account,
     admin,
     join,
     geography,

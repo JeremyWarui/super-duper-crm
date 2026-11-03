@@ -15,6 +15,7 @@ from tests.factories import auth, make_user, sign_in
 def _mobilizer(world: World, **overrides) -> dict:
     body = {
         "username": "wanjiku",
+        "email": "wanjiku@example.test",
         "role": "mobilizer",
         "first_name": "Wanjiku",
         "last_name": "Njeri",

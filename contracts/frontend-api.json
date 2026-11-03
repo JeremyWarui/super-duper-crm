@@ -743,7 +743,7 @@
   },
   "writes": {
     "POST /api/auth/login/": [
-      "username",
+      "email",
       "password"
     ],
     "POST /api/mobilizers/": [

@@ -22,10 +22,11 @@ class UserRole(LabelledStrEnum):
 
 
 class UserKind(LabelledStrEnum):
-    """A login either works on a campaign or holds party offices, never both."""
+    """A login works on a campaign, holds party offices, or is a party member's own account."""
 
     CAMPAIGN = ("campaign", "Campaign login")
     STAFF = ("staff", "Party staff login")
+    MEMBER = ("member", "Member login")
 
 
 class PartyRoleName(LabelledStrEnum):

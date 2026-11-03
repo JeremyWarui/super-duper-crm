@@ -15,6 +15,7 @@ from backend.models import (
     Mobilizer,
     Target,
     User,
+    UserKind,
     Ward,
 )
 from backend.security import verify_password
@@ -69,18 +70,22 @@ async def test_the_demo_builds_its_campaign_and_team(
 ) -> None:
     summary = await _demo(session)
 
-    assert [username for username, _, _ in summary.sign_ins] == [
-        "aspirant",
-        "manager",
-        "mobilizer",
+    assert [email for email, _, _ in summary.sign_ins] == [
+        "aspirant@demo.mzigo.test",
+        "manager@demo.mzigo.test",
+        "mobilizer@demo.mzigo.test",
+        "volunteer@demo.mzigo.test",
     ]
     # The demo clears only its own logins; a real login with another name is never touched.
-    assert DEMO_USERNAMES == ("aspirant", "manager", "mobilizer")
+    assert DEMO_USERNAMES == ("aspirant", "manager", "mobilizer", "volunteer")
     printed = [password for _, password, _ in summary.sign_ins]
     assert len(set(printed)) == len(printed)
-    for username, password, _ in summary.sign_ins:
+    for email, password, _ in summary.sign_ins:
         assert len(password) >= 12
-        assert verify_password(password, (await _user(session, username)).password_hash)
+        user = await _user(session, email.split("@")[0])
+        assert (user.email, verify_password(password, user.password_hash)) == (email, True)
+    volunteer = await _user(session, "volunteer")
+    assert (volunteer.kind, volunteer.party_member_id is not None) == (UserKind.MEMBER, True)
 
     roysambu = await session.scalar(
         select(Constituency)

@@ -47,8 +47,12 @@ async def test_the_superuser_sets_a_campaign_up_that_its_aspirant_and_manager_wo
             "seat": "mp",
             "constituency": str(constituency.id),
             "election_date": "2027-08-10",
-            "aspirant": {"username": "wanjiku", "first_name": "Mary"},
-            "manager": {"username": "otieno"},
+            "aspirant": {
+                "username": "wanjiku",
+                "first_name": "Mary",
+                "email": "wanjiku@example.test",
+            },
+            "manager": {"username": "otieno", "email": "otieno@example.test"},
         },
     )
 

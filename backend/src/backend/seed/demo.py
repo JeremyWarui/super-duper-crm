@@ -12,29 +12,40 @@ from backend.models import (
     Campaign,
     CampaignMember,
     Constituency,
+    ContactMethod,
     County,
     CrmPlan,
     EntryKind,
     Event,
     EventStatus,
     OfficeLevel,
+    PartyConsentChannel,
+    PartyMember,
+    PartyMemberStatus,
+    Profession,
     ReceiptMethod,
+    RegistrationCentre,
     Seat,
     SubscriptionEntry,
     Supporter,
     SupportLevel,
     Target,
     User,
+    UserKind,
     UserRole,
+    VolunteerProfile,
     Ward,
 )
 from backend.security import hash_password, new_password
 from backend.services.accounts import add_member, add_mobilizer
 from backend.services.admin import remove_campaign
 from backend.services.billing import extended, today
+from backend.services.consent import PARTY_WORDING, VOLUNTEER_WORDING
 from backend.services.targets import generate_targets
 
-DEMO_USERNAMES = ("aspirant", "manager", "mobilizer")
+DEMO_USERNAMES = ("aspirant", "manager", "mobilizer", "volunteer")
+DEMO_EMAIL_DOMAIN = "demo.mzigo.test"
+DEMO_MEMBER_PHONE = "+254700000009"
 
 DEMO_COUNTY = "Nairobi City"
 DEMO_CONSTITUENCY = "Roysambu"
@@ -50,7 +61,7 @@ class DemoSummary:
     win_number: int
     paid_until: date
     sign_ins: list[tuple[str, str, str]]
-    """username, password, what that role sees."""
+    """email, password, what that login sees."""
 
 
 def demo_passwords(password: str | None = None) -> dict[str, str]:
@@ -73,11 +84,16 @@ def _user(
         role=role,
         first_name=first_name,
         last_name=last_name,
+        email=demo_email(username),
         phone=phone,
         password_hash=hash_password(passwords[username]),
     )
     session.add(user)
     return user
+
+
+def demo_email(username: str) -> str:
+    return f"{username}@{DEMO_EMAIL_DOMAIN}"
 
 
 async def _clear(session: AsyncSession) -> None:
@@ -91,6 +107,7 @@ async def _clear(session: AsyncSession) -> None:
     for campaign_id in list(standing):
         await remove_campaign(session, campaign_id)
     await session.execute(delete(User).where(User.username.in_(DEMO_USERNAMES)))
+    await session.execute(delete(PartyMember).where(PartyMember.phone == DEMO_MEMBER_PHONE))
 
 
 async def seed_demo(session: AsyncSession, *, password: str | None = None) -> DemoSummary:
@@ -141,6 +158,7 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     wards = sorted(constituency.wards, key=lambda w: w.name)
 
     await _seed_ground_game(session, campaign, wards, mobilizer_user)
+    await _volunteer(session, wards[0], passwords)
     paid_until = await _pay(session, campaign)
     await session.commit()
 
@@ -151,11 +169,68 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
         win_number=summary.win_number,
         paid_until=paid_until,
         sign_ins=[
-            ("aspirant", passwords["aspirant"], "Candidate: the cockpit, adds mobilizers"),
-            ("manager", passwords["manager"], "Campaign manager: the full war room"),
-            ("mobilizer", passwords["mobilizer"], f"Mobilizer: {wards[0].name} only"),
+            (demo_email(name), passwords[name], sees)
+            for name, sees in (
+                ("aspirant", "Candidate: the cockpit, adds mobilizers"),
+                ("manager", "Campaign manager: the full war room"),
+                ("mobilizer", f"Mobilizer: {wards[0].name} only"),
+                ("volunteer", "Party member who volunteers: their member account"),
+            )
         ],
     )
+
+
+async def _volunteer(session: AsyncSession, ward: Ward, passwords: dict[str, str]) -> None:
+    """An approved party member who volunteers, with their own member login."""
+    centre = await session.scalar(
+        select(RegistrationCentre)
+        .where(RegistrationCentre.ward_id == ward.id)
+        .order_by(RegistrationCentre.name)
+    )
+    now = datetime.now(UTC)
+    member = PartyMember(
+        full_name="Wanjiku Muthoni",
+        first_name="Wanjiku",
+        phone=DEMO_MEMBER_PHONE,
+        email=demo_email("volunteer"),
+        ward_id=ward.id,
+        registration_centre_id=centre.id if centre else None,
+        status=PartyMemberStatus.APPROVED,
+        consent_wording=PARTY_WORDING[PartyConsentChannel.WEB_FORM],
+        consent_channel=PartyConsentChannel.WEB_FORM,
+        consent_at=now,
+    )
+    session.add(member)
+    await session.flush()
+    session.add_all(
+        [
+            VolunteerProfile(
+                member_id=member.id,
+                first_name="Wanjiku",
+                last_name="Muthoni",
+                phone=member.phone,
+                email=member.email,
+                ward_id=ward.id,
+                registration_centre_id=member.registration_centre_id,
+                profession=Profession.TEACHER,
+                interests=["door_to_door", "barazas"],
+                preferred_contact=ContactMethod.SMS,
+                consent_wording=VOLUNTEER_WORDING,
+                consent_at=now,
+            ),
+            User(
+                username="volunteer",
+                kind=UserKind.MEMBER,
+                party_member_id=member.id,
+                first_name="Wanjiku",
+                last_name="Muthoni",
+                email=member.email,
+                phone=member.phone,
+                password_hash=hash_password(passwords["volunteer"]),
+            ),
+        ]
+    )
+    await session.flush()
 
 
 async def _pay(session: AsyncSession, campaign: Campaign) -> date:

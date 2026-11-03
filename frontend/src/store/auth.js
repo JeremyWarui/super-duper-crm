@@ -12,17 +12,17 @@ export const useAuth = create(
   persist(
     (set) => ({
       token: null,
-      user: null, // { id, username, full_name, role }
+      user: null, // { id, username, full_name, role, kind, member_account }
 
-      async login(username, password) {
+      async login(email, password) {
         const res = await fetch(`${BASE}/auth/login/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ email, password }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          throw new Error(data?.non_field_errors?.[0] || "Wrong username or password.");
+          throw new Error(data?.non_field_errors?.[0] || "Wrong email or password.");
         }
         set({ token: data.token, user: data.user });
         return data.user;

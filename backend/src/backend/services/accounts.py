@@ -20,6 +20,24 @@ from backend.security import hash_password, new_password
 from backend.services.errors import Refused
 
 
+def clean_email(email: str) -> str:
+    """An email as logins store and sign in with it."""
+    return email.strip().lower()
+
+
+async def user_with_email(
+    session: AsyncSession, email: str, *, with_party_roles: bool = False
+) -> User | None:
+    """The login signing in with this email, or None."""
+    email = clean_email(email)
+    if not email:
+        return None
+    query = select(User).where(User.email == email).options(selectinload(User.party_member))
+    if with_party_roles:
+        query = query.options(selectinload(User.party_roles))
+    return await session.scalar(query)
+
+
 async def user_named(
     session: AsyncSession, username: str, *, with_party_roles: bool = False
 ) -> User | None:
@@ -45,6 +63,9 @@ async def new_login(
     taken = f"The username {username} is already taken."
     if await user_named(session, username) is not None:
         raise Refused(taken)
+    email = clean_email(email)
+    if email and await user_with_email(session, email) is not None:
+        raise Refused(f"The email {email} already belongs to another login.")
     chosen = password or new_password()
     user = User(
         username=username,

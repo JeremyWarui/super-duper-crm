@@ -25,11 +25,15 @@ PUBLIC_ROUTES = {
 
 
 # Signed-in routes that skip the closed-campaign check, so a closed campaign's login can still
-# see who it is, see how to pay, and sign out.
+# see who it is, see how to pay, and sign out; and the member account, which a member login opens.
 SIGNED_IN_ONLY = {
     ("GET", "/api/auth/me/"),
     ("POST", "/api/auth/logout/"),
     ("GET", "/api/subscription/"),
+    ("GET", "/api/account/"),
+    ("PUT", "/api/account/volunteer/"),
+    ("POST", "/api/account/volunteer/stop/"),
+    ("POST", "/api/account/leave/"),
 }
 
 

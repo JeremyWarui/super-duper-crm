@@ -51,20 +51,20 @@ function Field({ label, value, onChange, onEnter, ...rest }) {
 export default function Login() {
   const login = useAuth((s) => s.login);
 
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const ready = username.trim().length > 0 && password.length > 0;
+  const ready = email.trim().length > 0 && password.length > 0;
 
   const submit = async () => {
     if (!ready) return;
     setError("");
     setBusy(true);
     try {
-      await login(username.trim(), password);
+      await login(email.trim(), password);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -83,10 +83,13 @@ export default function Login() {
         </div>
         <div className="login-card">
           <Field
-            label="Username"
-            value={username}
-            onChange={setUsername}
+            label="Email"
+            value={email}
+            onChange={setEmail}
             onEnter={submit}
+            type="email"
+            autoComplete="email"
+            aria-label="Email"
             autoFocus
           />
           <div className="login-field-spacer" />

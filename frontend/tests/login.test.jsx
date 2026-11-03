@@ -29,16 +29,17 @@ const OK = {
 };
 
 describe("the sign-in screen", () => {
-  it("signs in and leaves the token in the store", async () => {
+  it("signs in with the email and leaves the token in the store", async () => {
     const user = userEvent.setup();
     stubLogin(200, OK);
     const { container } = renderApp(<Login />);
 
-    await user.type(container.querySelectorAll("input")[0], "amina");
+    await user.type(screen.getByRole("textbox", { name: "Email" }), "amina@example.com");
     await user.type(container.querySelectorAll("input")[1], PASSWORD);
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() => expect(useAuth.getState().token).toBe(OK.token));
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ email: "amina@example.com", password: PASSWORD });
   });
 
   it("shows the server's rejection instead of failing silently", async () => {

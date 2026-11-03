@@ -126,7 +126,7 @@ labels as on the sample ("Holding Barazas & Household Meetings").
 
 | Change | Rule |
 |---|---|
-| `UserKind.MEMBER` | A member's own login: no campaign role, no party office, `party_member_id` set. The kind CHECK becomes: `staff` and `member` have no role, `campaign` has one; `member` requires `party_member_id` |
+| `UserKind.MEMBER` | A member's own login: no campaign role, no party office, `party_member_id` set. The kind CHECK becomes: `staff` and `member` have no role, `campaign` has one. Deleting a member sets every linked login's `party_member_id` to NULL; a member login left so can no longer sign in |
 | `users.email` | Unique (case-folded) where not empty; the sign-in name. `username` stays for the CLI |
 
 #### `candidate_profiles` and event links (R5-6, `candidate_profiles`)
@@ -210,7 +210,7 @@ an approved member, and always act on that one member.
 | Tab: My data & privacy | Name, masked phone, email, ward, polling station; the membership and volunteer consents with wording and dates; "Stop volunteering" (withdraws the volunteer profile, keeps membership); "Leave the party" (queues the same withdrawal as the member's link and ends the session); to correct name, phone, ward or polling station, the party office's contact | `POST /api/account/volunteer/stop/`, `POST /api/account/leave/` |
 
 A member's own changes are audited as `volunteer.self_update` (field names
-only) and `volunteer.status` with actor "member". Becoming a volunteer from
+only) and `volunteer.status`, with the member's login as the actor. Becoming a volunteer from
 the account copies the member's details onto the profile as `apply_part`
 does. "Leave the party" uses `request_withdraw` with the member's withdraw
 code, so `follow_withdrawal` and the officer flow are unchanged.
@@ -275,7 +275,7 @@ it. Each ticket gets one cold critic judged on its text and section 4 only.
 - Files: revision `volunteer_areas`; `models/enums.py` (`VolunteerArea`), `models/party.py`; `schemas/party.py`, `schemas/dashboard.py`; `services/membership.py`, `services/volunteers.py`, `services/dashboard.py`; `api/routers/party.py` (join, centres of a ward), `api/routers/party_volunteers.py`; `docs/party-platform-design/party-platform-design/screens/Join.dc.html` (polling centre required, email required, password field); tests; `backend/evals/test_inbox_constant_work.py`, whose join payload and `VOLUNTEER_PART` change.
 - Tests: a join stores first name and surname, email and polling station on the member; with the tick, the volunteer's profession and areas; a centre outside the ward, a missing email or password, and `other` without text are refused; the queued payload holds no clear password; a party row without a member and a campaign row with one fail at the database; the register, CSV and dashboard leave campaign rows out.
 
-**R5-3 Email sign-in for everyone and the account API** (backend; depends R5-2)
+**R5-3 Email sign-in for everyone and the account API** (backend, with the sign-in form's email field; done, migration head `member_logins`)
 - Files: revision `member_logins`; `models/user.py`, `models/enums.py` (`UserKind.MEMBER`); `schemas/auth.py`; `services/accounts.py`, `services/membership.py` (member login on apply); `api/deps.py`; `api/routers/auth.py`, `api/routers/account.py`, `api/routers/party_members.py` and `schemas/party.py` `MemberRead` (`has_login`); `cli.py` (`set-email`); `seed/demo.py`; tests.
 - Tests: a login signs in with email and password and no longer with a username; a pending member's right password gets the wrong-password answer; a member login gets 403 from every staff and campaign route, and suspending the member makes its next account request 401; a linked campaign login reads its member's account; applying a join makes a member login, and an email already in use leaves the member without one.
 
@@ -285,6 +285,7 @@ it. Each ticket gets one cold critic judged on its text and section 4 only.
 
 **R5-5 Sign-in and account pages** (frontend; depends R5-3)
 - Files: `components/Login.jsx`, `Chooser.jsx`, `pages/member/Account.jsx`, `Gate.jsx`, `App.jsx`, `api/hooks`, `store`, contract, tests; `screens/SignIn.dc.html` (one email and password form, no tabs).
+- Also: the login forms that create logins (new campaign, manager, mobilizer) require an email, since a login without one cannot sign in.
 - Tests: the form sends email and password; a member login opens the account, a linked login the chooser, others the console; the account shows the card, the volunteer details or the volunteer form, and the empty tasks state; a 401 returns to `/signin`.
 
 **R5-6 Candidate profiles and campaign volunteers API** (backend; depends R5-3)
@@ -362,3 +363,72 @@ Taken by Jeremy on 3 November 2026, all as recommended.
 | 3 | Logins made before R5 have no email | They cannot sign in | `set-email` and the demo seed fill them; `reset-password` works from the CLI; rubric 3 |
 | 4 | A campaign volunteer reaches the party register or dashboard | Campaign data leaves the campaign | Every party read filters `campaign_id IS NULL`; rubric 11 |
 | 5 | The rate limits are per API process (`services/ratelimit.py`) | Limits multiply with processes | One process today; recorded under Known gaps |
+
+---
+
+## 8. The updated designs (3 November 2026, afternoon)
+
+Jeremy updated the designs (`9778aac`): a shared `SiteHeader` and `SiteFooter`,
+website patterns (`WebPatterns`), a homepage with a photo carousel and colour
+bands, a news layout, and a CRM top bar (`CrmTopBar`) with page headers.
+
+Status: draft for approval; P1 to P8 and the new tickets wait for Jeremy.
+
+Decisions taken by Jeremy:
+
+1. **Party branding, not "Mzigo".** The demo party is "Pamoja Party". Sign-in,
+   console, admin, onboarding and the campaign shell show the party's name and
+   logo from the website settings instead of the hard-coded MZIGO·CRM. "Powered
+   by" stays off until the product has a name. Fly app, Neon project and package
+   names stay (a deploy change).
+2. **All of the new patterns are Release 5**: the shared header and footer, the
+   homepage, the news, events and about pages, and the party CRM's top bar and
+   page headers.
+
+### Open points
+
+Each has a recommendation; the tickets below are written with it.
+
+| # | Question | Options | Recommended |
+|---|---|---|---|
+| P1 | County branches: the header's Counties link, "Find your branch" on the homepage, `PubBranch`, `CrmBranches`. No branch exists in our data | (a) leave branches out of R5 and hide those entry points; (b) a county branch as website content (officials' names, office, next meeting) per county | (a): branches are Journey 4 work with officials, minutes and sub-branches; a text stand-in would look official without being so |
+| P2 | Contribute (header button, "Three ways to take part", phone bar). M-Pesa is out of scope | (a) shown only when the party enters contribution instructions (paybill and account) in website settings, opening a page with them; (b) hidden | (a): no payments handled, the party still says how to give |
+| P3 | EN / SW switch | (a) hidden until Kiswahili copy exists; (b) shown, English only | (a) |
+| P4 | Results (header) and "Vie with us" (homepage). Primaries and online applications are out of scope | (a) Results hidden; "Vie with us" opens the party office's contacts; (b) both hidden | (a) |
+| P5 | News extras: Most read (needs view counts), Watch (videos), trending tags | (a) left out; (b) built | (a): each needs data the party does not record yet |
+| P6 | Events extras: map, RSVP ("You're going") | (a) left out; events by month with a county filter; (b) built | (a) |
+| P7 | CRM top bar scope switcher (one county) | (a) left out: no role is scoped to a county; (b) built | (a) |
+| P8 | Campaign workspace screens (`Ws*`) | (a) keep today's layout with the new tokens and party branding; (b) rebuild on the `Ws` designs | (a): the handoff's CRM header section covers the party CRM; the workspace is Journey 3 |
+
+### New tickets
+
+**R5-10 Branding and design tokens** (frontend and seed)
+- Party name and logo replace MZIGO in `components/Login.jsx`, `App.jsx`, `components/Admin.jsx`, `components/Onboarding.jsx`, `index.html`; the demo party in `seed/site.py` is "Pamoja Party"; demo emails become `<username>@demo.pamoja.test` (seed, tests, and local logins through `set-email`); `index.css` takes the handoff's tokens (grounds, ink, muted, borders, pills, Bricolage Grotesque and Public Sans, two-layer card shadow, radii).
+- Tests: the sign-in page and console show the party's name from `GET /api/party/` and no "MZIGO"; the seed names Pamoja Party.
+
+**R5-11 Site header, footer and newsletter** (backend and frontend; depends R5-10)
+- Party settings gain `registration_number`, `slogan`, `contribution_instructions`, `privacy_notice` (text) and `privacy_notice_version`. New `subscribers` (phone or email, consent wording, notice version, date, unsubscribe code) with `POST /api/party/subscribe/` (the same answer for a known or new contact, rate limited) and an unsubscribe link. `components/SiteHeader.jsx` (sticky frosted bar, utility line with registration number and hotline, logo and slogan, nav with the current page as a pill, Join, Contribute per P2, Sign in or "My account / Sign out"), `components/SiteFooter.jsx` (sign-up with consent wording, link columns, social, legal: privacy notice page, data protection line), breadcrumbs, the phone action bar; `PublicLayout.jsx` uses them; `/privacy` page.
+- Tests: a sign-up stores its consent and notice version and answers the same twice; unsubscribe removes it; the header marks the current page and swaps Sign in for My account when signed in; Contribute shows only with instructions.
+
+**R5-12 Homepage** (backend and frontend; depends R5-11)
+- Website content gains hero slides (up to 5: image URL, kicker, headline, line, button) and agenda issues (title, summary, what we will do, why it matters, order); `pages/public/Home.jsx` rebuilt on `PartyHome.dc.html`: carousel (6-second rotation, previous, next, dots, Pause, stops for reduced motion), agenda, news (lead and three), upcoming events, candidates (after R5-6, else hidden), leadership, "Three ways to take part" (P2, P4), sign-up band; `pages/public/Issue.jsx` (`/issues/:id`) on `PubIssue.dc.html`; the website editor manages slides and issues.
+- Tests: the carousel moves, pauses and offers each slide; an unpublished slide or issue is not public; the editor saves slides in order.
+
+**R5-13 News, article, events and about pages** (backend and frontend; depends R5-11)
+- Posts gain `label` (Statement, News, Opinion), `place`, `author`, `author_photo_url`, and for statements `reference` and `pdf_url`; read time is computed. `News.jsx` on `News.dc.html` (lead with three beside it, Latest rail, Opinion, Official statements); `Post.jsx` on `PubArticle.dc.html` (official record box for statements, read next); `Events.jsx` on `Events.dc.html` (by month, county filter; P6); `About.jsx` on `PubAbout.dc.html` (what we believe, leadership, how the party is run, documents as website content: title and https link).
+- Tests: a statement shows its reference and PDF; the county filter narrows events; documents list only published ones.
+
+**R5-14 Party CRM top bar and page headers** (backend and frontend; depends R5-10)
+- `components/CrmTopBar.jsx` on every party console page: breadcrumb, search (Ctrl K) over members and aspirants (`GET /api/party/search/?q=`, officers see only what their roles allow), notifications with counts (pending applications, submitted aspirants, held payments) linking to their pages, help, the signed-in person and role; each console page gets the frosted page header with its actions on the right.
+- Tests: search returns only what the caller's role may see; a membership officer gets no aspirant results; the notification count matches pending applications.
+
+**Order**: R5-3, R5-10, R5-11, R5-5 (sign-in and account on the new shell), R5-12, R5-13, R5-6, R5-7, R5-14, R5-8; R5-9 last.
+
+### New rubric points (frozen once approved)
+
+13. No page says "Mzigo"; every header shows the party's name and logo from the website settings, and the demo party is Pamoja Party.
+14. Every public page uses the one `SiteHeader` and `SiteFooter`, with the current page marked; the footer's sign-up stores consent wording, notice version and date, answers the same for a known contact, and can be undone by its link.
+15. The homepage carousel rotates every 6 seconds, has previous, next, dots and Pause, and stops for reduced motion; slides and issues are website content only the editor changes.
+16. News, article, events and about pages follow their screens with the data this design adds; nothing from P5 or P6 is shown.
+17. Every party console page has the top bar; search and notifications show only what the caller's roles may see.
+18. Every page works at phone width with touch targets of 44px or more.

@@ -89,6 +89,7 @@ async def make_user(
         password_hash=hash_password(password),
         first_name=fields.pop("first_name", "Amina"),
         last_name=fields.pop("last_name", "Kariuki"),
+        email=fields.pop("email", email_of(username)),
         **fields,
     )
     session.add(user)
@@ -189,11 +190,15 @@ async def members_of(session, campaign_id: uuid.UUID) -> dict[str, str]:
     return {username: role.value for username, role in rows}
 
 
+def email_of(username: str) -> str:
+    """The email a test login signs in with."""
+    return f"{username.lower()}@example.test"
+
+
 async def sign_in(client, username: str, password: str = TEST_PASSWORD) -> str:
-    """A token for the login."""
-    response = await client.post(
-        "/api/auth/login/", json={"username": username, "password": password}
-    )
+    """A token for the login, signing in with `username`'s test email or an email given."""
+    email = username if "@" in username else email_of(username)
+    response = await client.post("/api/auth/login/", json={"email": email, "password": password})
     assert response.status_code == 200, response.text
     return response.json()["token"]
 

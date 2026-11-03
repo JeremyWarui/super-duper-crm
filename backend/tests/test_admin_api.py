@@ -89,7 +89,7 @@ async def test_disabling_a_login_stops_it_at_once_until_it_is_enabled(
     assert (await client.get("/api/campaigns/", headers=world.headers(who))).status_code == 401
     assert await session.scalar(select(AuthToken).where(AuthToken.user_id == target.id)) is None
     refused = await client.post(
-        "/api/auth/login/", json={"username": target.username, "password": TEST_PASSWORD}
+        "/api/auth/login/", json={"email": target.email, "password": TEST_PASSWORD}
     )
     assert refused.status_code == 400
 
@@ -178,8 +178,12 @@ async def test_the_console_creates_a_campaign_whose_aspirant_and_manager_see_onl
             "title": "Wanjiku for Roysambu",
             "seat": "mp",
             "constituency": str(world.constituency.id),
-            "aspirant": {"username": "wanjiku", "first_name": "Wanjiku"},
-            "manager": {"username": "otieno"},
+            "aspirant": {
+                "username": "wanjiku",
+                "first_name": "Wanjiku",
+                "email": "wanjiku@example.test",
+            },
+            "manager": {"username": "otieno", "email": "otieno@example.test"},
         },
     )
 

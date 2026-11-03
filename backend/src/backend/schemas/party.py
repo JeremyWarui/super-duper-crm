@@ -216,6 +216,8 @@ class MemberRead(ORMModel):
     constituency: MemberPlace
     county: MemberPlace
     created_at: datetime
+    # Whether any login reaches this member's account; false when the join's email was taken.
+    has_login: bool = False
 
 
 class MemberDetail(MemberRead):

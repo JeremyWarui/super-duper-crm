@@ -12,7 +12,7 @@ async def test_signing_in_returns_a_token_and_the_caller(
     await make_user(session, username="amina", role=UserRole.MANAGER)
 
     response = await client.post(
-        "/api/auth/login/", json={"username": "amina", "password": TEST_PASSWORD}
+        "/api/auth/login/", json={"email": "amina@example.test", "password": TEST_PASSWORD}
     )
 
     assert response.status_code == 200
@@ -28,7 +28,7 @@ async def test_a_wrong_password_is_rejected_in_the_shape_the_form_reads(
 ) -> None:
     await make_user(session, username="amina")
     response = await client.post(
-        "/api/auth/login/", json={"username": "amina", "password": fresh_password()}
+        "/api/auth/login/", json={"email": "amina@example.test", "password": fresh_password()}
     )
     assert response.status_code == 400
     body = response.json()
@@ -36,13 +36,17 @@ async def test_a_wrong_password_is_rejected_in_the_shape_the_form_reads(
     assert "credentials" in body["detail"]
 
 
-async def test_an_unknown_username_gets_the_same_message_as_a_wrong_password(
+async def test_an_unknown_email_gets_the_same_message_as_a_wrong_password(
     client: httpx.AsyncClient, session
 ) -> None:
     await make_user(session, username="amina")
     guess = fresh_password()
-    unknown = await client.post("/api/auth/login/", json={"username": "ghost", "password": guess})
-    wrong = await client.post("/api/auth/login/", json={"username": "amina", "password": guess})
+    unknown = await client.post(
+        "/api/auth/login/", json={"email": "ghost@example.test", "password": guess}
+    )
+    wrong = await client.post(
+        "/api/auth/login/", json={"email": "amina@example.test", "password": guess}
+    )
     assert unknown.status_code == wrong.status_code == 400
     assert unknown.json() == wrong.json()
 
@@ -50,7 +54,7 @@ async def test_an_unknown_username_gets_the_same_message_as_a_wrong_password(
 async def test_a_deactivated_user_cannot_sign_in(client: httpx.AsyncClient, session) -> None:
     await make_user(session, username="amina", is_active=False)
     response = await client.post(
-        "/api/auth/login/", json={"username": "amina", "password": TEST_PASSWORD}
+        "/api/auth/login/", json={"email": "amina@example.test", "password": TEST_PASSWORD}
     )
     assert response.status_code == 400
 
@@ -79,7 +83,7 @@ async def test_a_login_without_a_campaign_role_is_refused_writes_and_sees_no_cam
     campaign_id = world.campaign.id
 
     signed_in = await client.post(
-        "/api/auth/login/", json={"username": "roleless", "password": TEST_PASSWORD}
+        "/api/auth/login/", json={"email": "roleless@example.test", "password": TEST_PASSWORD}
     )
     write = await client.post(
         f"/api/campaigns/{campaign_id}/signups/", json={"open": True}, headers=auth(token)

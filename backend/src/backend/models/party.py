@@ -144,6 +144,7 @@ class PartyMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
 
     ward: Mapped["Ward"] = relationship()
+    registration_centre: Mapped["RegistrationCentre | None"] = relationship()
     volunteer: Mapped["VolunteerProfile | None"] = relationship(
         back_populates="member", uselist=False, passive_deletes=True
     )

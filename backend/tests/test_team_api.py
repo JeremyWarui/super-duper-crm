@@ -56,7 +56,12 @@ async def test_replacing_the_manager_signs_the_old_one_out_and_off_the_campaign(
     response = await client.post(
         _team(world, "manager"),
         headers=world.headers("candidate"),
-        json={"username": "wanjiru", "first_name": "Wanjiru", "replace": True},
+        json={
+            "username": "wanjiru",
+            "first_name": "Wanjiru",
+            "email": "wanjiru@example.test",
+            "replace": True,
+        },
     )
 
     made = response.json()
@@ -170,7 +175,7 @@ async def test_the_aspirant_resets_the_manager_and_the_manager_only_mobilizers(
         await client.get("/api/campaigns/", headers=world.headers("mobilizer"))
     ).status_code == 401
     old = await client.post(
-        "/api/auth/login/", json={"username": "juma", "password": TEST_PASSWORD}
+        "/api/auth/login/", json={"email": "juma@example.test", "password": TEST_PASSWORD}
     )
     assert old.status_code == 400
     await sign_in(client, "juma", mobilizer_by_manager.json()["password"])

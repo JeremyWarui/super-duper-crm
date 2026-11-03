@@ -22,6 +22,7 @@ from backend.models import (
     PartyRoleName,
     PartySettings,
     User,
+    UserKind,
     UserRole,
 )
 from backend.services import billing, membership
@@ -54,6 +55,7 @@ async def get_signed_in_user(
         .options(
             selectinload(AuthToken.user).selectinload(User.mobilizer_profile),
             selectinload(AuthToken.user).selectinload(User.party_roles),
+            selectinload(AuthToken.user).selectinload(User.party_member),
         )
     )
     if token is None or not token.user.is_active:
@@ -83,8 +85,11 @@ async def get_current_user(
     """The signed-in caller, refused while their campaign's aspirant is not approved or its
     subscription does not allow this request.
 
-    A campaign with no subscription row counts as locked.
+    A campaign with no subscription row counts as locked. A member login is refused: it opens
+    only the member account.
     """
+    if user.kind is UserKind.MEMBER:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "A member login opens only its account.")
     if user.role is None or user.is_superuser:
         return user
     row = (

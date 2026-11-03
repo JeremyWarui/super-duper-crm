@@ -1,5 +1,6 @@
 """Volunteer profiles: the move table, officer moves, and the public volunteer requests."""
 
+import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -402,3 +403,69 @@ async def get_volunteer(session: AsyncSession, volunteer_id: uuid.UUID) -> Volun
     if profile is None:
         raise NotFound("No such volunteer.")
     return profile
+
+
+OWN_FIELDS = ("profession", "profession_other", "interests", "interest_other", "preferred_contact")
+
+
+async def own_update(
+    session: AsyncSession, member: PartyMember, part: dict, *, actor: User
+) -> None:
+    """A member's own volunteer details: changed, or a new or withdrawn profile made interested.
+
+    `part` is a `VolunteerPart` dump. The caller commits.
+    """
+    values = {
+        "profession": Profession(part["profession"]),
+        "profession_other": part["profession_other"],
+        "interests": [VolunteerArea(a).value for a in part["areas"]],
+        "interest_other": part["area_other"],
+        "preferred_contact": ContactMethod(part["preferred_contact"]),
+    }
+    profile = await _fresh(session, VolunteerProfile.member_id == member.id)
+    if profile is not None and profile.status is not V.WITHDRAWN:
+        changed = [name for name in OWN_FIELDS if getattr(profile, name) != values[name]]
+        for name, value in values.items():
+            setattr(profile, name, value)
+        _audit(session, profile, "volunteer.self_update", {"fields": changed}, actor=actor)
+        return
+    first_name, last_name = split_name(member.full_name)
+    renewed = {
+        **values,
+        "first_name": member.first_name or first_name,
+        "last_name": last_name,
+        "phone": member.phone,
+        "email": member.email,
+        "ward_id": member.ward_id,
+        "registration_centre_id": member.registration_centre_id,
+        "consent_wording": VOLUNTEER_WORDING,
+        "consent_at": datetime.now(UTC),
+        "withdraw_code": secrets.token_urlsafe(18),
+    }
+    if profile is None:
+        profile = VolunteerProfile(member_id=member.id, status=V.INTERESTED, **renewed)
+        session.add(profile)
+        await session.flush()
+        old = None
+    else:
+        await _set_status(session, profile, V.WITHDRAWN, status=V.INTERESTED, **renewed)
+        old = V.WITHDRAWN.value
+    _audit(
+        session, profile, "volunteer.status", {"from": old, "to": V.INTERESTED.value}, actor=actor
+    )
+
+
+async def own_stop(session: AsyncSession, member: PartyMember, *, actor: User) -> None:
+    """A member stops volunteering and keeps their membership; the caller commits."""
+    profile = await _fresh(session, VolunteerProfile.member_id == member.id)
+    if profile is None or profile.status is V.WITHDRAWN:
+        return
+    old = profile.status
+    await _set_status(session, profile, old, status=V.WITHDRAWN, withdraw_code=None)
+    _audit(
+        session,
+        profile,
+        "volunteer.status",
+        {"from": old.value, "to": V.WITHDRAWN.value},
+        actor=actor,
+    )

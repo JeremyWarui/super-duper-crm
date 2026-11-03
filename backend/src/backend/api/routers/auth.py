@@ -8,10 +8,10 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import SessionDep, SignedInUser
-from backend.models import AuthToken, User
+from backend.models import AuthToken, User, UserKind
 from backend.schemas.auth import LoginRequest, LoginResponse, LoginUser
 from backend.security import hash_password, needs_rehash, new_token_key, verify_password
-from backend.services.accounts import user_named
+from backend.services.accounts import user_with_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -31,12 +31,17 @@ async def _signed_in(session: AsyncSession, user: User) -> dict:
 
 @router.post("/login/", response_model=LoginResponse, responses={400: {"description": "Rejected"}})
 async def login(payload: LoginRequest, session: SessionDep) -> object:
-    """Exchange a username and password for a token."""
-    user = await user_named(session, payload.username, with_party_roles=True)
+    """Exchange an email and password for a token.
+
+    A member login signs in only while its member is approved, and is refused otherwise with
+    the answer a wrong password gets.
+    """
+    user = await user_with_email(session, payload.email, with_party_roles=True)
     if (
         user is None
         or not user.is_active
         or not verify_password(payload.password, user.password_hash)
+        or (user.kind is UserKind.MEMBER and not user.member_account)
     ):
         # `non_field_errors` is what the sign-in form reads.
         return JSONResponse(

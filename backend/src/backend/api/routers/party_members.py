@@ -64,12 +64,12 @@ def _place(row: PartyMember) -> dict:
     }
 
 
-def _read(row: PartyMember, model: type[MemberRead]) -> MemberRead:
-    values = {name: getattr(row, name) for name in model.model_fields if name not in _PLACES}
-    return model(**values, **_place(row))
+def _read(row: PartyMember, model: type[MemberRead], logins: set[uuid.UUID]) -> MemberRead:
+    values = {name: getattr(row, name) for name in model.model_fields if name not in _COMPUTED}
+    return model(**values, **_place(row), has_login=row.id in logins)
 
 
-_PLACES = ("ward", "constituency", "county")
+_COMPUTED = ("ward", "constituency", "county", "has_login")
 
 
 @router.get("/", response_model=MemberPage)
@@ -83,7 +83,8 @@ async def list_members(
     """A page of the register, newest first."""
     await membership.process_requests(session)
     total, rows = await membership.members(session, filters, limit, offset)
-    return MemberPage(total=total, items=[_read(row, MemberRead) for row in rows])
+    logins = await membership.with_logins(session, [row.id for row in rows])
+    return MemberPage(total=total, items=[_read(row, MemberRead, logins) for row in rows])
 
 
 @router.get("/export.csv")
@@ -129,7 +130,7 @@ async def export_members(
 async def get_member(member_id: uuid.UUID, user: MembershipOfficer, session: SessionDep):
     await membership.process_requests(session)
     member = await membership.get_member(session, member_id)
-    return _read(member, MemberDetail)
+    return _read(member, MemberDetail, await membership.with_logins(session, [member.id]))
 
 
 @router.post("/{member_id}/status/", response_model=MemberDetail)
@@ -141,4 +142,5 @@ async def move_member(
     member = await membership.get_member(session, member_id)
     await membership.move(session, member, payload.status, actor=user, reason=payload.reason)
     await session.commit()
-    return _read(await membership.get_member(session, member_id), MemberDetail)
+    member = await membership.get_member(session, member_id)
+    return _read(member, MemberDetail, await membership.with_logins(session, [member.id]))

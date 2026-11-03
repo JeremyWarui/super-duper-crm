@@ -4,12 +4,12 @@ import uuid
 
 from pydantic import Field, field_validator
 
-from backend.models.enums import PartyRoleName, UserRole
+from backend.models.enums import PartyRoleName, UserKind, UserRole
 from backend.schemas.common import ORMModel, WriteModel
 
 
 class LoginRequest(WriteModel):
-    username: str = Field(min_length=1, max_length=150)
+    email: str = Field(min_length=1, max_length=254)
     password: str = Field(min_length=1)
 
 
@@ -20,8 +20,11 @@ class LoginUser(ORMModel):
     username: str
     full_name: str
     role: UserRole | None
+    kind: UserKind
     is_superuser: bool
     party_roles: list[PartyRoleName]
+    # Whether this login opens an approved party member's account.
+    member_account: bool
 
     @field_validator("party_roles", mode="before")
     @classmethod
