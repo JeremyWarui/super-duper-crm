@@ -1,8 +1,8 @@
 import * as React from 'react'
+import { useParty } from '@/api/hooks'
 
 /**
- * Party branding. FastAPI returns this from GET /api/branding, read from the
- * singleton PartySettings record (one installation = one party).
+ * Party branding, from the singleton PartySettings record (GET /api/party/).
  * Only colours, names and images change per party. Spacing, type, radii and
  * neutrals are fixed by the platform so every party copy stays on-design.
  */
@@ -22,13 +22,35 @@ export type Branding = {
 }
 
 export const defaultBranding: Branding = {
-  partyName: 'Pamoja Party',
-  shortName: 'P',
-  slogan: '[Party slogan]',
-  registrationNo: '[000]',
-  hotline: '[0700 000 000]',
+  partyName: '',
+  shortName: '',
+  slogan: '',
+  registrationNo: '',
+  hotline: '',
   logoUrl: null,
   colors: { primary: '#0B5D3B', primaryHover: '#08442B', primaryTint: '#E7F0EA', accent: '#F2B705' },
+}
+
+const shade = (hex: string, f: (c: number) => number) =>
+  '#' + [1, 3, 5].map((i) => Math.round(f(parseInt(hex.slice(i, i + 2), 16))).toString(16).padStart(2, '0')).join('').toUpperCase()
+
+/** Maps GET /api/party/ onto the kit's branding; hover is the primary darkened, tint the primary over white. */
+export function fromSettings(p: Record<string, any>): Branding {
+  const primary = (p.primary_colour || defaultBranding.colors.primary).toUpperCase()
+  return {
+    partyName: p.name || defaultBranding.partyName,
+    shortName: (p.short_name || p.name?.[0] || '').slice(0, 3),
+    slogan: p.slogan ?? '',
+    registrationNo: p.registration_number ?? '',
+    hotline: p.contact_phone ?? '',
+    logoUrl: p.logo_url || null,
+    colors: {
+      primary,
+      primaryHover: shade(primary, (c) => c * 0.73),
+      primaryTint: shade(primary, (c) => c * 0.1 + 255 * 0.9),
+      accent: (p.secondary_colour || defaultBranding.colors.accent).toUpperCase(),
+    },
+  }
 }
 
 export function applyBranding(b: Branding) {
@@ -37,21 +59,14 @@ export function applyBranding(b: Branding) {
   r.setProperty('--party-primary-hover', b.colors.primaryHover)
   r.setProperty('--party-primary-tint', b.colors.primaryTint)
   r.setProperty('--party-accent', b.colors.accent)
-  document.title = b.partyName
 }
 
 const Ctx = React.createContext<Branding>(defaultBranding)
 export const useBranding = () => React.useContext(Ctx)
 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
-  const [b, setB] = React.useState<Branding>(defaultBranding)
-  React.useEffect(() => {
-    let alive = true
-    fetch('/api/branding')
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((data: Branding) => { if (alive) { setB(data); applyBranding(data) } })
-      .catch(() => applyBranding(defaultBranding)) // offline / dev without API: keep defaults
-    return () => { alive = false }
-  }, [])
+  const party = useParty().data
+  const b = React.useMemo(() => (party ? fromSettings(party) : defaultBranding), [party])
+  React.useEffect(() => applyBranding(b), [b])
   return <Ctx.Provider value={b}>{children}</Ctx.Provider>
 }

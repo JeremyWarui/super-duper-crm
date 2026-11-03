@@ -52,3 +52,16 @@ async def test_only_a_superuser_changes_them_and_the_change_is_audited(
     assert event.detail == {
         "fields": ["name", "primary_colour", "secondary_colour", "social_links"]
     }
+
+
+@pytest.mark.parametrize(
+    "colours", [{"primary_colour": "#ffd700"}, {"secondary_colour": "#0b5d3b"}]
+)
+async def test_a_colour_that_makes_its_buttons_unreadable_is_refused(
+    client: httpx.AsyncClient, admin_headers: dict, colours: dict
+) -> None:
+    response = await client.put(
+        "/api/admin/party/", headers=admin_headers, json={**CHANGE, **colours}
+    )
+
+    assert response.status_code == 400

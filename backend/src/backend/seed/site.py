@@ -13,6 +13,8 @@ PICTURE = "https://picsum.photos/seed/pamoja-{}/1200/675"
 SETTINGS = {
     "name": "Pamoja Party",
     "short_name": "PP",
+    "slogan": "Pamoja tunaweza",
+    "registration_number": "DEMO-001",
     "logo_url": "https://placehold.co/200x200/0b5d3b/ffffff/png?text=P",
     "primary_colour": "#0b5d3b",
     "secondary_colour": "#f2b705",

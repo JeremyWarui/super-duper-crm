@@ -41,11 +41,9 @@ cold critic judged on its own text.
 - Tests: each role sees exactly its sidebar items; the public header marks the current page; sign-in and sign-out still work.
 - Acceptance: headers, sidebars and footers match `SiteHeader`, `SiteFooter`, `CrmTopBar` and the CRM shell at 1440px and 390px.
 
-**UI-4 Branding from PartySettings**
-- Files: `backend/src/backend/api/routers/branding.py` (`GET /api/branding` from `PartySettings`: name, short name (up to 3 letters), slogan, registration number, hotline from the contact phone, logo, primary, primary hover and tint derived from primary, accent from the secondary colour), `models/party.py` and a revision `party_branding` (`slogan`, `registration_number`), `schemas/party.py` (settings update refuses a primary below 4.5:1 against white text and an accent below 4.5:1 against ink #13201A), the website editor's branding fields, `PartyBrand.jsx` removed in favour of the kit's `Logo`, tests.
-- Permissions: `GET /api/branding` is public; settings stay superuser-only.
-- Migration: one revision, after `member_logins`.
-- Tests: the endpoint answers from the settings; a low-contrast colour is refused; the frontend applies `--party-primary` from the answer.
-- Acceptance: changing the party's colours and logo in the editor re-brands the site, console and CRM.
+**UI-4 Branding from PartySettings** (done)
+- No branding endpoint: `theme/branding.tsx` reads `GET /api/party/` (name, short name up to 3 letters, slogan, registration number, hotline from the contact phone, logo, primary and secondary colours) and derives the primary's hover and tint. `PartySettings` gains `slogan` and `registration_number` (revision `party_branding`, after `member_logins`); the console's party form edits them. A save refuses a primary below 4.5:1 against white text and a secondary below 4.5:1 against ink #13201A.
+- `PartyBrand.jsx` stays on the screens still inside `.legacy` (a kit component there loses its styles to the reset) and goes when the last of them moves.
+- Tests: a low-contrast colour is refused; the frontend sets `--party-primary` from the settings.
 
 Then the screens move in the plan's order, inside the Release 5 tickets that touch them (`docs/Volunteers_Design.md` section 3 and section 8), using the mapping in `ui-kit/INTEGRATION.md`: party settings (`Content`), join (`Join`), members and volunteers (`Members`, `CrmUsers`), withdrawal (`MemberAccount`), aspirants (`CrmNominations`), plans and payments (`Plans`, `CrmFinance`), public pages (`PartyHome`, `PubAbout`, `News`, `PubArticle`, `Events`, `PubIssue`), sign-in (`SignIn`, `SysCode`, `SysChooser`), the party dashboard (`PartyCRM`), the campaign CRM (`Workspace`, `Ws*`, `Mobilizer`), and error and empty states (`SysStates`). When no route uses `.legacy`, `index.css` is deleted and the full suites and the route-guard inventory run.

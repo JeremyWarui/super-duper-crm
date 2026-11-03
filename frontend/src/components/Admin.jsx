@@ -720,6 +720,8 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
 const PARTY_TEXT = [
   ["name", "Name"],
   ["short_name", "Short name"],
+  ["slogan", "Slogan"],
+  ["registration_number", "Registration number"],
   ["logo_url", "Logo URL"],
   ["contact_email", "Contact email"],
   ["contact_phone", "Phone"],

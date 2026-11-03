@@ -63,6 +63,10 @@ class PartySettings(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False, default=1)
     name: Mapped[str] = mapped_column(String(150))
     short_name: Mapped[str] = mapped_column(String(30), default="")
+    slogan: Mapped[str] = mapped_column(String(150), default="", server_default=text("''"))
+    registration_number: Mapped[str] = mapped_column(
+        String(40), default="", server_default=text("''")
+    )
     logo_url: Mapped[str] = mapped_column(String(500), default="")
     primary_colour: Mapped[str] = mapped_column(String(7), default="#1f2937")
     secondary_colour: Mapped[str] = mapped_column(String(7), default="#f59e0b")

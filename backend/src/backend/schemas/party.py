@@ -23,6 +23,7 @@ from backend.models import (
     VolunteerArea,
 )
 from backend.schemas.common import ORMModel, WriteModel, plain_text
+from backend.services.branding import INK, MIN_CONTRAST, WHITE, contrast
 from backend.services.consent import PARTY_WORDING, VOLUNTEER_WORDING
 
 COLOUR = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -57,6 +58,8 @@ Email = Annotated[str, Field(max_length=254), AfterValidator(_email)]
 class PartySettingsRead(ORMModel):
     name: str
     short_name: str
+    slogan: str
+    registration_number: str
     logo_url: str
     primary_colour: str
     secondary_colour: str
@@ -78,6 +81,8 @@ class PartySettingsUpdate(WriteModel):
 
     name: str = Field(min_length=1, max_length=150)
     short_name: str = Field(default="", max_length=30)
+    slogan: str = Field(default="", max_length=150)
+    registration_number: str = Field(default="", max_length=40)
     logo_url: Link = ""
     primary_colour: Colour
     secondary_colour: Colour
@@ -91,8 +96,21 @@ class PartySettingsUpdate(WriteModel):
 
     @model_validator(mode="after")
     def _plain(self) -> "PartySettingsUpdate":
-        for name in ("name", "short_name", "logo_url", "contact_email", "contact_phone"):
+        for name in (
+            "name",
+            "short_name",
+            "slogan",
+            "registration_number",
+            "logo_url",
+            "contact_email",
+            "contact_phone",
+        ):
             plain_text(getattr(self, name))
+        # Buttons put white text on the primary colour and ink text on the secondary.
+        if contrast(self.primary_colour, WHITE) < MIN_CONTRAST:
+            raise ValueError("The primary colour is too light for white text; pick a darker one.")
+        if contrast(self.secondary_colour, INK) < MIN_CONTRAST:
+            raise ValueError("The secondary colour is too dark for ink text; pick a lighter one.")
         for name in ("address", "description", "manifesto_text", "manifesto_url"):
             plain_text(getattr(self, name), lines=True)
         for key, link in self.social_links.items():
