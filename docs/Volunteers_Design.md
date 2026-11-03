@@ -372,7 +372,7 @@ Jeremy updated the designs (`9778aac`): a shared `SiteHeader` and `SiteFooter`,
 website patterns (`WebPatterns`), a homepage with a photo carousel and colour
 bands, a news layout, and a CRM top bar (`CrmTopBar`) with page headers.
 
-Status: draft for approval; P1 to P8 and the new tickets wait for Jeremy.
+Status: approved 3 November 2026 with Jeremy's answers to P1 to P8 below.
 
 Decisions taken by Jeremy:
 
@@ -385,20 +385,18 @@ Decisions taken by Jeremy:
    homepage, the news, events and about pages, and the party CRM's top bar and
    page headers.
 
-### Open points
+### Answers to the open points
 
-Each has a recommendation; the tickets below are written with it.
-
-| # | Question | Options | Recommended |
-|---|---|---|---|
-| P1 | County branches: the header's Counties link, "Find your branch" on the homepage, `PubBranch`, `CrmBranches`. No branch exists in our data | (a) leave branches out of R5 and hide those entry points; (b) a county branch as website content (officials' names, office, next meeting) per county | (a): branches are Journey 4 work with officials, minutes and sub-branches; a text stand-in would look official without being so |
-| P2 | Contribute (header button, "Three ways to take part", phone bar). M-Pesa is out of scope | (a) shown only when the party enters contribution instructions (paybill and account) in website settings, opening a page with them; (b) hidden | (a): no payments handled, the party still says how to give |
-| P3 | EN / SW switch | (a) hidden until Kiswahili copy exists; (b) shown, English only | (a) |
-| P4 | Results (header) and "Vie with us" (homepage). Primaries and online applications are out of scope | (a) Results hidden; "Vie with us" opens the party office's contacts; (b) both hidden | (a) |
-| P5 | News extras: Most read (needs view counts), Watch (videos), trending tags | (a) left out; (b) built | (a): each needs data the party does not record yet |
-| P6 | Events extras: map, RSVP ("You're going") | (a) left out; events by month with a county filter; (b) built | (a) |
-| P7 | CRM top bar scope switcher (one county) | (a) left out: no role is scoped to a county; (b) built | (a) |
-| P8 | Campaign workspace screens (`Ws*`) | (a) keep today's layout with the new tokens and party branding; (b) rebuild on the `Ws` designs | (a): the handoff's CRM header section covers the party CRM; the workspace is Journey 3 |
+| # | Point | Decision |
+|---|---|---|
+| P1 | County branches | Built. The party that buys the system enters its branches; the demo seed fills dummy branches for every county. Counties link, "Find your branch" and the branch page are shown |
+| P2 | Contribute | Built for the demo. Payments will go through Paystack once a party buys the system; until then the Contribute page takes an amount and details and answers that this is a demo and no money moved. Nothing is charged or stored as a payment |
+| P3 | EN / SW | Hidden until Kiswahili copy exists |
+| P4 | Results and "Vie with us" | Built for the demo: a Results page reading results the website editor enters (the seed adds demo results, marked as such), and a "Vie with us" page with the steps and the party office's contacts |
+| P5 | News extras (Most read, Watch, trending tags) | Left out |
+| P6 | Events map and RSVP | Left out; events by month with a county filter |
+| P7 | CRM scope switcher | Left out |
+| P8 | Campaign CRM | Restyled, interface included, as a later step: Jeremy will add how its pages should look. Until then it takes the new tokens and party branding only |
 
 ### New tickets
 
@@ -407,28 +405,40 @@ Each has a recommendation; the tickets below are written with it.
 - Tests: the sign-in page and console show the party's name from `GET /api/party/` and no "MZIGO"; the seed names Pamoja Party.
 
 **R5-11 Site header, footer and newsletter** (backend and frontend; depends R5-10)
-- Party settings gain `registration_number`, `slogan`, `contribution_instructions`, `privacy_notice` (text) and `privacy_notice_version`. New `subscribers` (phone or email, consent wording, notice version, date, unsubscribe code) with `POST /api/party/subscribe/` (the same answer for a known or new contact, rate limited) and an unsubscribe link. `components/SiteHeader.jsx` (sticky frosted bar, utility line with registration number and hotline, logo and slogan, nav with the current page as a pill, Join, Contribute per P2, Sign in or "My account / Sign out"), `components/SiteFooter.jsx` (sign-up with consent wording, link columns, social, legal: privacy notice page, data protection line), breadcrumbs, the phone action bar; `PublicLayout.jsx` uses them; `/privacy` page.
-- Tests: a sign-up stores its consent and notice version and answers the same twice; unsubscribe removes it; the header marks the current page and swaps Sign in for My account when signed in; Contribute shows only with instructions.
+- Party settings gain `registration_number`, `slogan`, `privacy_notice` (text) and `privacy_notice_version`. New `subscribers` (phone or email, consent wording, notice version, date, unsubscribe code) with `POST /api/party/subscribe/` (the same answer for a known or new contact, rate limited) and an unsubscribe link. `components/SiteHeader.jsx` (sticky frosted bar, utility line with registration number and hotline, logo and slogan, nav with the current page as a pill, Join, Contribute, Sign in or "My account / Sign out"; no EN/SW), `components/SiteFooter.jsx` (sign-up with consent wording, link columns, social, legal: privacy notice page, data protection line), breadcrumbs, the phone action bar; `PublicLayout.jsx` uses them; `/privacy` page.
+- Contribute (P2): `/contribute` page (amount, name, phone, consent) and `POST /api/party/contribute/`, which answers that this is a demo and no money moved, and stores nothing; `PAYMENTS_PROVIDER=demo` names the mode so Paystack can take its place.
+- Tests: a sign-up stores its consent and notice version and answers the same twice; unsubscribe removes it; the header marks the current page and swaps Sign in for My account when signed in; the contribute route stores nothing and says it is a demo.
 
 **R5-12 Homepage** (backend and frontend; depends R5-11)
 - Website content gains hero slides (up to 5: image URL, kicker, headline, line, button) and agenda issues (title, summary, what we will do, why it matters, order); `pages/public/Home.jsx` rebuilt on `PartyHome.dc.html`: carousel (6-second rotation, previous, next, dots, Pause, stops for reduced motion), agenda, news (lead and three), upcoming events, candidates (after R5-6, else hidden), leadership, "Three ways to take part" (P2, P4), sign-up band; `pages/public/Issue.jsx` (`/issues/:id`) on `PubIssue.dc.html`; the website editor manages slides and issues.
 - Tests: the carousel moves, pauses and offers each slide; an unpublished slide or issue is not public; the editor saves slides in order.
 
 **R5-13 News, article, events and about pages** (backend and frontend; depends R5-11)
-- Posts gain `label` (Statement, News, Opinion), `place`, `author`, `author_photo_url`, and for statements `reference` and `pdf_url`; read time is computed. `News.jsx` on `News.dc.html` (lead with three beside it, Latest rail, Opinion, Official statements); `Post.jsx` on `PubArticle.dc.html` (official record box for statements, read next); `Events.jsx` on `Events.dc.html` (by month, county filter; P6); `About.jsx` on `PubAbout.dc.html` (what we believe, leadership, how the party is run, documents as website content: title and https link).
+- Posts gain `label` (Statement, News, Opinion), `place`, `author`, `author_photo_url`, and for statements `reference` and `pdf_url`; event posts gain an optional `county_id` (the county filter and branch pages use it); read time is computed. `News.jsx` on `News.dc.html` (lead with three beside it, Latest rail, Opinion, Official statements); `Post.jsx` on `PubArticle.dc.html` (official record box for statements, read next); `Events.jsx` on `Events.dc.html` (by month, county filter; P6); `About.jsx` on `PubAbout.dc.html` (what we believe, leadership, how the party is run, documents as website content: title and https link).
 - Tests: a statement shows its reference and PDF; the county filter narrows events; documents list only published ones.
 
 **R5-14 Party CRM top bar and page headers** (backend and frontend; depends R5-10)
 - `components/CrmTopBar.jsx` on every party console page: breadcrumb, search (Ctrl K) over members and aspirants (`GET /api/party/search/?q=`, officers see only what their roles allow), notifications with counts (pending applications, submitted aspirants, held payments) linking to their pages, help, the signed-in person and role; each console page gets the frosted page header with its actions on the right.
 - Tests: search returns only what the caller's role may see; a membership officer gets no aspirant results; the notification count matches pending applications.
 
-**Order**: R5-3, R5-10, R5-11, R5-5 (sign-in and account on the new shell), R5-12, R5-13, R5-6, R5-7, R5-14, R5-8; R5-9 last.
+**R5-15 County branches** (backend and frontend; depends R5-11)
+- `branches`: one per county (`county_id` unique), chairperson, secretary, office address, phone, email, next meeting (date, venue), published. Superuser edits them in the console (`pages/party/Branches.jsx` on `CrmBranches.dc.html`, officials and office only). Public `GET /api/party/branches/` and `/branches/{county_id}/`; `pages/public/Branches.jsx` (`/counties`) and `Branch.jsx` (`/counties/:id`) on `PubBranch.dc.html`: officials, office, next meeting, sub-branches as the county's constituencies and wards, upcoming party events in the county (after R5-13). The homepage's "Find your branch" card and band (R5-12) read them. The demo seed fills a dummy branch for every county.
+- Tests: an unpublished branch is not public; only the superuser edits; the seed gives each county one branch.
+
+**R5-16 Demo results and "Vie with us"** (backend and frontend; depends R5-11)
+- `primary_results` as website content: seat, area name, candidate name, votes, declared date, published. `GET /api/party/results/`; `pages/public/Results.jsx` (`/results`) on `PubResults.dc.html` without the receipt checker; the editor enters results; the seed adds demo results marked "Demo results". `pages/public/Vie.jsx` (`/vie`): the steps to become an aspirant from a website setting, and the party office's contacts.
+- Tests: only published results show, grouped by seat; the page says "Demo results" when the seed made them.
+
+**Order**: R5-3 (done), R5-10, R5-11, R5-5 (sign-in and account on the new shell), R5-15, R5-12, R5-13, R5-16, R5-6, R5-7, R5-14, R5-8; R5-9 last. The campaign CRM restyle (P8) follows when Jeremy adds its page designs.
 
 ### New rubric points (frozen once approved)
 
 13. No page says "Mzigo"; every header shows the party's name and logo from the website settings, and the demo party is Pamoja Party.
 14. Every public page uses the one `SiteHeader` and `SiteFooter`, with the current page marked; the footer's sign-up stores consent wording, notice version and date, answers the same for a known contact, and can be undone by its link.
 15. The homepage carousel rotates every 6 seconds, has previous, next, dots and Pause, and stops for reduced motion; slides and issues are website content only the editor changes.
-16. News, article, events and about pages follow their screens with the data this design adds; nothing from P5 or P6 is shown.
+16. News, article, events and about pages follow their screens with the data this design adds; nothing from P5, and no map or RSVP, is shown.
 17. Every party console page has the top bar; search and notifications show only what the caller's roles may see.
 18. Every page works at phone width with touch targets of 44px or more.
+19. Each county has at most one branch; published branches show their officials, office, next meeting and the county's wards; only the superuser edits them.
+20. The Contribute page charges nothing and stores nothing, and says so.
+21. Results show only published entries, and demo results say they are demo.
