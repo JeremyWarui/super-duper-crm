@@ -21,7 +21,7 @@ function UserMenu({ user, onSignOut }: { user: { initials: string; name: string;
         <span className="hidden flex-col text-left leading-[1.15] sm:flex"><span className="text-ui font-bold">{user.name}</span><span className="text-meta text-muted-foreground">{user.role}</span></span>
       </button>
       {open ? (
-        <div id="user-menu" className="absolute right-0 z-50 mt-2 flex w-60 flex-col gap-1 rounded-[18px] border border-line bg-white p-2 shadow-pop">
+        <div id="user-menu" className="absolute right-0 z-50 mt-2 flex w-60 flex-col gap-1 rounded-photo border border-line bg-white p-2 shadow-pop">
           <span className="px-3 py-2 text-meta font-bold text-muted-foreground">Signed in as {user.role}</span>
           <button type="button" onClick={onSignOut} className="min-h-11 cursor-pointer rounded-lg px-3 text-left text-ui font-bold hover:bg-stone">Sign out</button>
         </div>

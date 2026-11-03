@@ -157,3 +157,27 @@ class PartyDocument(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     updated_at: Mapped[datetime] = _updated_at()
+
+
+class PartyValue(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """One of the party's values, under What we believe on the About page once published."""
+
+    __tablename__ = "party_values"
+
+    title: Mapped[str] = mapped_column(String(150))
+    text: Mapped[str] = mapped_column(String(300), default="", server_default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    updated_at: Mapped[datetime] = _updated_at()
+
+
+class PartyOrgan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A party organ, under How the party is run on the About page once published."""
+
+    __tablename__ = "party_organs"
+
+    title: Mapped[str] = mapped_column(String(150))
+    text: Mapped[str] = mapped_column(String(300), default="", server_default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    updated_at: Mapped[datetime] = _updated_at()

@@ -363,3 +363,33 @@ class DocumentUpdate(WriteModel):
     url: Annotated[str, Field(min_length=1, max_length=500), AfterValidator(_https)] | None = None
     sort_order: Order | None = None
     published: bool | None = None
+
+
+class AboutItemRead(ORMModel):
+    """A value or a party organ on the About page."""
+
+    id: uuid.UUID
+    title: str
+    text: str
+
+
+class AboutItemAdminRead(AboutItemRead):
+    sort_order: int
+    published: bool
+    updated_at: datetime
+
+
+class AboutItemCreate(WriteModel):
+    title: Line
+    text: _short(300) = ""
+    sort_order: Order = 0
+    published: bool = False
+
+
+class AboutItemUpdate(WriteModel):
+    """Only the fields sent change."""
+
+    title: Line | None = None
+    text: _short(300) | None = None
+    sort_order: Order | None = None
+    published: bool | None = None

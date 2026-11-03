@@ -12,8 +12,10 @@ from backend.models import (
     HeroSlide,
     PartyDocument,
     PartyLeader,
+    PartyOrgan,
     PartyPost,
     PartySettings,
+    PartyValue,
     PostKind,
     PostLabel,
 )
@@ -26,6 +28,8 @@ SETTINGS = {
     "short_name": "PP",
     "slogan": "Pamoja tunaweza",
     "registration_number": "DEMO-001",
+    "about_headline": "A party built in every ward, for every Kenyan",
+    "founded_year": "2024",
     "logo_url": "https://placehold.co/200x200/0b5d3b/ffffff/png?text=P",
     "primary_colour": "#0b5d3b",
     "secondary_colour": "#f2b705",
@@ -75,6 +79,23 @@ STATEMENTS = [
 OPINIONS = [
     ("Why this election is about young people", "Amina Wanjiru", "women/44", 3),
     ("Devolution works when counties publish their budgets", "Joseph Mwangi", "men/75", 8),
+]
+
+VALUES = [
+    ("Work for every young person", "An apprenticeship or a first job within reach of every ward."),
+    ("Fair prices", "Farmers paid on time and families paying less for food and fuel."),
+    ("Services close to home", "A staffed clinic and a school within walking distance."),
+    ("Open counties", "Every budget line published, every tender explained."),
+]
+
+ORGANS = [
+    (
+        "National Delegates Convention",
+        "Supreme organ; elects national officials and amends the constitution.",
+    ),
+    ("National Executive Committee", "Runs the party between conventions; approves party lists."),
+    ("National Elections Board", "Runs nominations and internal elections."),
+    ("Appeals & Disputes Committee", "Hears appeals on nominations and party elections."),
 ]
 
 DOCUMENTS = [
@@ -261,7 +282,7 @@ async def seed_site(session: AsyncSession, today: date) -> bool:
 
 
 async def seed_news(session: AsyncSession, today: date) -> int:
-    """Demo statements, opinion pieces, event counties and documents where none exist yet;
+    """Demo statements, opinion pieces, event counties and About-page content where none exist yet;
     returns how many rows were added or changed."""
     changed = 0
     if not await session.scalar(
@@ -305,6 +326,17 @@ async def seed_news(session: AsyncSession, today: date) -> int:
         if town in counties:
             event.county_id = counties[town]
             changed += 1
+    settings = await session.get(PartySettings, 1)
+    if settings is not None:
+        for field in ("slogan", "registration_number", "about_headline", "founded_year"):
+            if not getattr(settings, field):
+                setattr(settings, field, SETTINGS[field])
+                changed += 1
+    for model, rows in ((PartyValue, VALUES), (PartyOrgan, ORGANS)):
+        if not await session.scalar(select(func.count()).select_from(model)):
+            for n, (title, text) in enumerate(rows):
+                session.add(model(title=title, text=text, sort_order=n, published=True))
+            changed += len(rows)
     if not await session.scalar(select(func.count()).select_from(PartyDocument)):
         for n, (title, url) in enumerate(DOCUMENTS):
             session.add(PartyDocument(title=title, url=url, sort_order=n, published=True))

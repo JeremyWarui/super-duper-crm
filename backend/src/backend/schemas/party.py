@@ -60,6 +60,8 @@ class PartySettingsRead(ORMModel):
     short_name: str
     slogan: str
     registration_number: str
+    about_headline: str
+    founded_year: str
     logo_url: str
     primary_colour: str
     secondary_colour: str
@@ -86,6 +88,8 @@ class PartySettingsUpdate(WriteModel):
     short_name: str = Field(default="", max_length=30)
     slogan: str = Field(default="", max_length=150)
     registration_number: str = Field(default="", max_length=40)
+    about_headline: str = Field(default="", max_length=150)
+    founded_year: str = Field(default="", pattern=r"^(\d{4})?$")
     logo_url: Link = ""
     primary_colour: Colour
     secondary_colour: Colour
@@ -106,6 +110,7 @@ class PartySettingsUpdate(WriteModel):
             "short_name",
             "slogan",
             "registration_number",
+            "about_headline",
             "logo_url",
             "contact_email",
             "contact_phone",
@@ -315,3 +320,10 @@ class PartyContribute(WriteModel):
 class PartyContributed(BaseModel):
     demo: bool
     message: str
+
+
+class PartyStats(BaseModel):
+    """Counts the About page shows."""
+
+    members: int
+    branches: int

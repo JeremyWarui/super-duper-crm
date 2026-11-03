@@ -20,7 +20,7 @@ function EventCard({ e }) {
   return (
     <Card asChild interactive className="flex-row flex-wrap items-center gap-5 p-5">
       <Link to={`/news/${e.id}`}>
-        <span className="flex h-20 w-[72px] flex-none flex-col items-center justify-center rounded-[14px] bg-primary-tint text-primary">
+        <span className="flex h-20 w-[72px] flex-none flex-col items-center justify-center rounded-[8px] bg-primary-tint text-primary">
           <span className="text-meta font-extrabold uppercase tracking-[0.08em]">{day(e.event_date, { weekday: "short" })}</span>
           <span className="font-display text-[30px] leading-none font-extrabold">{day(e.event_date, { day: "numeric" })}</span>
         </span>

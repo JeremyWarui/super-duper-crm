@@ -4,19 +4,25 @@ import {
   useDeleteDocument,
   useDeleteIssue,
   useDeleteLeader,
+  useDeleteOrgan,
   useDeletePost,
   useDeleteSlide,
+  useDeleteValue,
   useSaveDocument,
   useSaveIssue,
   useSaveLeader,
+  useSaveOrgan,
   useSavePost,
   useSaveSlide,
+  useSaveValue,
   usePartyPlaces,
   useSiteDocuments,
   useSiteIssues,
   useSiteLeaders,
+  useSiteOrgans,
   useSitePosts,
   useSiteSlides,
+  useSiteValues,
 } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,6 +86,12 @@ const POST_FIELDS = [
   { key: "image_url", label: "Image address (optional)", max: 500, kind: "image" },
 ];
 
+const ABOUT_FIELDS = [
+  { key: "title", label: "Title", max: 150, required: true },
+  { key: "text", label: "Text (optional)", max: 300, kind: "area" },
+  ORDER,
+];
+
 const DOCUMENT_FIELDS = [
   { key: "title", label: "Title", max: 150, required: true, hint: "Such as Party constitution (PDF)." },
   { key: "url", label: "Address", max: 500, kind: "https", required: true },
@@ -97,7 +109,9 @@ const SECTIONS = {
   Leaders: [
     { noun: "leader", title: "Party leaders", fields: LEADER_FIELDS, query: useSiteLeaders, save: useSaveLeader, del: useDeleteLeader, name: (r) => r.name, meta: (r) => `${r.position} · order ${r.sort_order}` },
   ],
-  Documents: [
+  About: [
+    { noun: "value", title: "What we believe", hint: "The party's values on the About page.", fields: ABOUT_FIELDS, query: useSiteValues, save: useSaveValue, del: useDeleteValue, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
+    { noun: "organ", title: "How the party is run", hint: "The party's organs and what each does.", fields: ABOUT_FIELDS, query: useSiteOrgans, save: useSaveOrgan, del: useDeleteOrgan, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
     { noun: "document", title: "Party documents", hint: "Linked from the About page.", fields: DOCUMENT_FIELDS, query: useSiteDocuments, save: useSaveDocument, del: useDeleteDocument, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
   ],
 };

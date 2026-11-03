@@ -39,8 +39,8 @@ export default function Chooser() {
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-3.5">
           {placesOf(user).map((p) => (
-            <Link key={p.to} to={p.to} className="flex items-start gap-4 rounded-[18px] border-[1.5px] border-line-2 bg-white p-5 text-ink no-underline hover:border-primary hover:text-ink">
-              <span aria-hidden className={`flex size-12 flex-none items-center justify-center rounded-[14px] font-display text-[20px] font-extrabold ${p.box}`}>{p.initial}</span>
+            <Link key={p.to} to={p.to} className="flex items-start gap-4 rounded-photo border-[1.5px] border-line-2 bg-white p-5 text-ink no-underline hover:border-primary hover:text-ink">
+              <span aria-hidden className={`flex size-12 flex-none items-center justify-center rounded-[8px] font-display text-[20px] font-extrabold ${p.box}`}>{p.initial}</span>
               <span className="flex min-w-0 flex-col gap-1">
                 <strong className="text-[18px]">{p.title}</strong>
                 <span className="text-ui text-muted-foreground">{p.desc}</span>

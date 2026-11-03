@@ -1,4 +1,4 @@
-"""Event counties and party documents on the public news, events and About pages."""
+"""Event counties, and the About page's documents, values, organs and counts."""
 
 import httpx
 
@@ -26,7 +26,7 @@ async def test_the_county_filter_narrows_events(
     ]
 
 
-async def test_the_about_page_lists_only_published_documents(
+async def test_the_about_page_lists_only_published_content(
     client: httpx.AsyncClient, admin_headers: dict
 ) -> None:
     for title, published in (("Constitution", True), ("Draft rules", False)):
@@ -34,7 +34,17 @@ async def test_the_about_page_lists_only_published_documents(
         assert (
             await client.post("/api/admin/party/documents/", headers=admin_headers, json=body)
         ).status_code == 201
+    for path in ("values", "organs"):
+        for title, published in (("Shown", True), ("Hidden", False)):
+            body = {"title": title, "text": "Why.", "published": published}
+            assert (
+                await client.post(f"/api/admin/party/{path}/", headers=admin_headers, json=body)
+            ).status_code == 201
 
     documents = (await client.get("/api/party/documents/")).json()
+    values = (await client.get("/api/party/values/")).json()
+    organs = (await client.get("/api/party/organs/")).json()
 
     assert [d["title"] for d in documents] == ["Constitution"]
+    assert [(v["title"], v["text"]) for v in values] == [("Shown", "Why.")]
+    assert [o["title"] for o in organs] == ["Shown"]

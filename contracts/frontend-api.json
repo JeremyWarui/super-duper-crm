@@ -257,7 +257,9 @@
       "registration_number",
       "privacy_notice",
       "privacy_notice_version",
-      "subscribe_consent_wording"
+      "subscribe_consent_wording",
+      "about_headline",
+      "founded_year"
     ],
     "PUT /api/admin/party/": [
       "name",
@@ -276,7 +278,9 @@
       "slogan",
       "registration_number",
       "privacy_notice",
-      "privacy_notice_version"
+      "privacy_notice_version",
+      "about_headline",
+      "founded_year"
     ],
     "POST /api/admin/users/{user_id}/party-roles/": [
       "id",
@@ -698,6 +702,34 @@
       "url",
       "sort_order",
       "published"
+    ],
+    "GET /api/party/values/": [
+      "id",
+      "title",
+      "text"
+    ],
+    "GET /api/admin/party/values/": [
+      "id",
+      "title",
+      "text",
+      "sort_order",
+      "published"
+    ],
+    "GET /api/party/organs/": [
+      "id",
+      "title",
+      "text"
+    ],
+    "GET /api/admin/party/organs/": [
+      "id",
+      "title",
+      "text",
+      "sort_order",
+      "published"
+    ],
+    "GET /api/party/stats/": [
+      "members",
+      "branches"
     ]
   },
   "nested_reads": {
@@ -1102,7 +1134,9 @@
       "slogan",
       "registration_number",
       "privacy_notice",
-      "privacy_notice_version"
+      "privacy_notice_version",
+      "about_headline",
+      "founded_year"
     ],
     "POST /api/admin/users/{user_id}/party-roles/": [
       "role"
@@ -1315,6 +1349,28 @@
       "url",
       "sort_order",
       "published"
+    ],
+    "POST /api/admin/party/values/": [
+      "title",
+      "text",
+      "sort_order"
+    ],
+    "PATCH /api/admin/party/values/{value_id}/": [
+      "title",
+      "text",
+      "sort_order",
+      "published"
+    ],
+    "POST /api/admin/party/organs/": [
+      "title",
+      "text",
+      "sort_order"
+    ],
+    "PATCH /api/admin/party/organs/{organ_id}/": [
+      "title",
+      "text",
+      "sort_order",
+      "published"
     ]
   },
   "enums": {
@@ -1386,7 +1442,9 @@
       "POST /api/account/leave/",
       "DELETE /api/admin/party/slides/{slide_id}/",
       "DELETE /api/admin/party/issues/{issue_id}/",
-      "DELETE /api/admin/party/documents/{document_id}/"
+      "DELETE /api/admin/party/documents/{document_id}/",
+      "DELETE /api/admin/party/values/{value_id}/",
+      "DELETE /api/admin/party/organs/{organ_id}/"
     ]
   }
 }

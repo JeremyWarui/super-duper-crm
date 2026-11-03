@@ -545,6 +545,8 @@ function useSiteWrite(mutationFn) {
       qc.invalidateQueries({ queryKey: ["public-slides"] });
       qc.invalidateQueries({ queryKey: ["public-issues"] });
       qc.invalidateQueries({ queryKey: ["public-documents"] });
+      qc.invalidateQueries({ queryKey: ["public-values"] });
+      qc.invalidateQueries({ queryKey: ["public-organs"] });
     },
   });
 }
@@ -615,6 +617,37 @@ export const useSaveDocument = () =>
       : api("/admin/party/documents/", { method: "POST", body }),
   );
 export const useDeleteDocument = () => useSiteWrite((id) => api(`/admin/party/documents/${id}/`, { method: "DELETE" }));
+
+// The About page's values and party organs, and its member and branch counts.
+export const usePublicValues = () =>
+  useQuery({ queryKey: ["public-values"], queryFn: () => api("/party/values/", { anonymous: true }) });
+
+export const usePublicOrgans = () =>
+  useQuery({ queryKey: ["public-organs"], queryFn: () => api("/party/organs/", { anonymous: true }) });
+
+export const usePartyStats = () =>
+  useQuery({ queryKey: ["party-stats"], queryFn: () => api("/party/stats/", { anonymous: true }) });
+
+export const useSiteValues = () =>
+  useQuery({ queryKey: ["site", "values"], queryFn: () => api("/admin/party/values/") });
+
+export const useSiteOrgans = () =>
+  useQuery({ queryKey: ["site", "organs"], queryFn: () => api("/admin/party/organs/") });
+
+export const useSaveValue = () =>
+  useSiteWrite(({ id, ...body }) =>
+    id
+      ? api(`/admin/party/values/${id}/`, { method: "PATCH", body })
+      : api("/admin/party/values/", { method: "POST", body }),
+  );
+export const useSaveOrgan = () =>
+  useSiteWrite(({ id, ...body }) =>
+    id
+      ? api(`/admin/party/organs/${id}/`, { method: "PATCH", body })
+      : api("/admin/party/organs/", { method: "POST", body }),
+  );
+export const useDeleteValue = () => useSiteWrite((id) => api(`/admin/party/values/${id}/`, { method: "DELETE" }));
+export const useDeleteOrgan = () => useSiteWrite((id) => api(`/admin/party/organs/${id}/`, { method: "DELETE" }));
 
 // Counties, or one county's constituencies, or one constituency's wards.
 export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = {}) =>

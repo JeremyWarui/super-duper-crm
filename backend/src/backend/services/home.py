@@ -1,4 +1,4 @@
-"""Homepage slides, agenda issues and party documents; the public sees published ones."""
+"""Homepage slides, agenda issues and About-page content; the public sees published ones."""
 
 import uuid
 
@@ -6,13 +6,19 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AgendaIssue, HeroSlide, PartyDocument, User
+from backend.models import AgendaIssue, HeroSlide, PartyDocument, PartyOrgan, PartyValue, User
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
 
 MAX_SLIDES = 5
-Row = HeroSlide | AgendaIssue | PartyDocument
-NAMES = {HeroSlide: "hero_slide", AgendaIssue: "agenda_issue", PartyDocument: "document"}
+Row = HeroSlide | AgendaIssue | PartyDocument | PartyValue | PartyOrgan
+NAMES = {
+    HeroSlide: "hero_slide",
+    AgendaIssue: "agenda_issue",
+    PartyDocument: "document",
+    PartyValue: "value",
+    PartyOrgan: "organ",
+}
 
 
 def _ordered(model: type[Row]):

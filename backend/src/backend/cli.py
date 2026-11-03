@@ -84,7 +84,7 @@ async def _demo_site(args: argparse.Namespace, session: AsyncSession) -> int:
         print("Published the demo homepage slides and agenda issues.")
     seeded = await seed_site(session, today())
     if await seed_news(session, today()):
-        print("Published the demo statements, opinion pieces, event counties and documents.")
+        print("Published the demo statements, opinion pieces, event counties and About page.")
     if not seeded:
         print("The website already has leaders or posts; nothing else was added.")
         return 0

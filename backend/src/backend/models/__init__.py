@@ -11,7 +11,9 @@ from backend.models.content import (
     HeroSlide,
     PartyDocument,
     PartyLeader,
+    PartyOrgan,
     PartyPost,
+    PartyValue,
     Subscriber,
 )
 from backend.models.enums import (
@@ -107,6 +109,8 @@ __all__ = [
     "PostKind",
     "PostLabel",
     "PartyDocument",
+    "PartyOrgan",
+    "PartyValue",
     "Seat",
     "RegistrationCentre",
     "SupportLevel",

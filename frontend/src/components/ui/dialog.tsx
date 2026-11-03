@@ -28,7 +28,7 @@ export function Dialog({ title, description, onClose, className, children }: {
       aria-labelledby={`${id}-t`}
       onCancel={(e) => { e.preventDefault(); onClose() }}
       onClick={(e) => { if (e.target === ref.current) onClose() }}
-      className={cn('m-auto w-[min(560px,calc(100vw-32px))] max-h-[calc(100dvh-32px)] overflow-y-auto rounded-[18px] border border-black/5 bg-popover p-0 text-ink shadow-pop backdrop:bg-ink/40', className)}
+      className={cn('m-auto w-[min(560px,calc(100vw-32px))] max-h-[calc(100dvh-32px)] overflow-y-auto rounded-photo border border-black/5 bg-popover p-0 text-ink shadow-pop backdrop:bg-ink/40', className)}
     >
       <div className="flex flex-col gap-4 p-6">
         <div className="flex items-start justify-between gap-4">

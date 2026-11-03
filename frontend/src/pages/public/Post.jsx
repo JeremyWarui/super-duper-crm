@@ -9,7 +9,7 @@ const paragraphs = (text) => text.split(/\n+/).map((p) => p.trim()).filter(Boole
 
 function Record({ post }) {
   return (
-    <section aria-labelledby="rec-h" className="flex flex-col gap-3 rounded-2xl border border-line border-l-4 border-l-primary bg-white p-5">
+    <section aria-labelledby="rec-h" className="flex flex-col gap-3 rounded-xl border border-line border-l-4 border-l-primary bg-white p-5">
       <h2 id="rec-h" className="text-ui font-extrabold uppercase tracking-[0.12em]">Official record</h2>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[15px]">
         {post.reference ? <><dt className="text-muted-foreground">Reference</dt><dd className="font-semibold">{post.reference}</dd></> : null}
@@ -89,7 +89,7 @@ export default function Post({ id }) {
               </>
             )}
           </div>
-          {p.image_url ? <img src={p.image_url} alt="" className="aspect-video w-full rounded-[18px] object-cover" /> : null}
+          {p.image_url ? <img src={p.image_url} alt="" className="aspect-video w-full rounded-photo object-cover" /> : null}
           {paragraphs(p.body).map((text, n) => <p key={n} className="text-[18px] leading-[1.75]">{text}</p>)}
           {p.label === "statement" && !event ? <Record post={p} /> : null}
         </article>

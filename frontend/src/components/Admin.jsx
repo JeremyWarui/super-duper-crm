@@ -725,6 +725,8 @@ const PARTY_TEXT = [
   ["short_name", "Short name"],
   ["slogan", "Slogan"],
   ["registration_number", "Registration number"],
+  ["about_headline", "About page headline"],
+  ["founded_year", "Year founded"],
   ["logo_url", "Logo URL"],
   ["contact_email", "Contact email"],
   ["contact_phone", "Phone"],

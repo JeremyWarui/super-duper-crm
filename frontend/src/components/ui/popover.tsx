@@ -8,7 +8,7 @@ export const PopoverTrigger = PopoverPrimitive.Trigger
 export function PopoverContent({ className, align = 'end', sideOffset = 8, ...props }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
     <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Content align={align} sideOffset={sideOffset} className={cn('z-50 w-[380px] max-w-[calc(100vw-32px)] rounded-[18px] border border-black/5 bg-popover p-2 shadow-pop outline-none', className)} {...props} />
+      <PopoverPrimitive.Content align={align} sideOffset={sideOffset} className={cn('z-50 w-[380px] max-w-[calc(100vw-32px)] rounded-photo border border-black/5 bg-popover p-2 shadow-pop outline-none', className)} {...props} />
     </PopoverPrimitive.Portal>
   )
 }
@@ -18,7 +18,7 @@ export const DropdownMenuTrigger = Menu.Trigger
 export function DropdownMenuContent({ className, align = 'end', sideOffset = 8, ...props }: React.ComponentProps<typeof Menu.Content>) {
   return (
     <Menu.Portal>
-      <Menu.Content align={align} sideOffset={sideOffset} className={cn('z-50 min-w-56 rounded-[18px] border border-black/5 bg-popover p-2 shadow-pop', className)} {...props} />
+      <Menu.Content align={align} sideOffset={sideOffset} className={cn('z-50 min-w-56 rounded-photo border border-black/5 bg-popover p-2 shadow-pop', className)} {...props} />
     </Menu.Portal>
   )
 }

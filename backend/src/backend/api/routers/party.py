@@ -5,7 +5,7 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from backend.api.deps import AdminUser, SessionDep, Today
 from backend.api.routers.join import _client
@@ -16,6 +16,10 @@ from backend.models import (
     County,
     HeroSlide,
     PartyDocument,
+    PartyMember,
+    PartyMemberStatus,
+    PartyOrgan,
+    PartyValue,
     PostKind,
     PostLabel,
     RegistrationCentre,
@@ -23,6 +27,7 @@ from backend.models import (
     Ward,
 )
 from backend.schemas.content import (
+    AboutItemRead,
     BranchDetail,
     BranchRead,
     DocumentRead,
@@ -40,6 +45,7 @@ from backend.schemas.party import (
     PartyJoinDone,
     PartyPlace,
     PartySettingsRead,
+    PartyStats,
     PartySubscribe,
     PartySubscribed,
     PartyWithdrawn,
@@ -317,3 +323,28 @@ async def issue(issue_id: uuid.UUID, session: SessionDep):
 async def documents(session: SessionDep):
     """The published party documents, in order."""
     return await home.published(session, PartyDocument)
+
+
+@router.get("/values/", response_model=list[AboutItemRead])
+async def values(session: SessionDep):
+    """The party's published values, in order."""
+    return await home.published(session, PartyValue)
+
+
+@router.get("/organs/", response_model=list[AboutItemRead])
+async def organs(session: SessionDep):
+    """The party's published organs, in order."""
+    return await home.published(session, PartyOrgan)
+
+
+@router.get("/stats/", response_model=PartyStats)
+async def stats(session: SessionDep) -> PartyStats:
+    """How many approved members the party has and how many county branches are published."""
+    return PartyStats(
+        members=await session.scalar(
+            select(func.count())
+            .select_from(PartyMember)
+            .where(PartyMember.status == PartyMemberStatus.APPROVED)
+        ),
+        branches=len(await branches.published(session)),
+    )

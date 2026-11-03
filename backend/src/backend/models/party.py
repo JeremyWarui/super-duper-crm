@@ -67,6 +67,8 @@ class PartySettings(Base):
     registration_number: Mapped[str] = mapped_column(
         String(40), default="", server_default=text("''")
     )
+    about_headline: Mapped[str] = mapped_column(String(150), default="", server_default=text("''"))
+    founded_year: Mapped[str] = mapped_column(String(4), default="", server_default=text("''"))
     logo_url: Mapped[str] = mapped_column(String(500), default="")
     primary_colour: Mapped[str] = mapped_column(String(7), default="#1f2937")
     secondary_colour: Mapped[str] = mapped_column(String(7), default="#f59e0b")

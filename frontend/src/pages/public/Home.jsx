@@ -34,7 +34,7 @@ function BranchFinder() {
   const branches = usePublicBranches().data || [];
   const [county, setCounty] = useState("");
   return (
-    <aside aria-labelledby="quick-h" className="flex flex-[0_1_360px] flex-col gap-3.5 rounded-[22px] bg-white p-6 text-ink shadow-hero-card">
+    <aside aria-labelledby="quick-h" className="flex flex-[0_1_360px] flex-col gap-3.5 rounded-[13px] bg-white p-6 text-ink shadow-hero-card">
       <h2 id="quick-h" className="font-display text-[22px] font-extrabold">Find your branch</h2>
       <label className="flex flex-col gap-1.5 text-ui font-semibold">
         Your county
@@ -75,7 +75,7 @@ export function Carousel() {
   const go = (i) => setIndex(((i % count) + count) % count);
   const round = "flex size-11 cursor-pointer items-center justify-center rounded-full border-[1.5px] border-white/70 bg-black/20 text-lg text-white";
   return (
-    <section aria-roledescription="carousel" aria-label="Highlights" className="relative flex min-h-[560px] items-center overflow-hidden bg-ink text-white">
+    <section aria-roledescription="carousel" aria-label="Highlights" className="relative flex min-h-[640px] items-center overflow-hidden bg-ink text-white">
       {current.image_url ? <img src={current.image_url} alt="" className="absolute inset-0 size-full object-cover" /> : null}
       <div aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,18,13,0.82)_0%,rgba(8,18,13,0.55)_50%,rgba(8,18,13,0.2)_100%)]" />
       <div className="site-container relative flex flex-wrap items-center justify-between gap-10 pt-16 pb-28">
