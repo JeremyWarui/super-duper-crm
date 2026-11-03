@@ -167,16 +167,30 @@ async def follow_member(
         return
 
 
+def split_name(full_name: str) -> tuple[str, str]:
+    """The first word, and the rest."""
+    first, _, rest = full_name.strip().partition(" ")
+    return first[:75], rest.strip()[:75]
+
+
 async def apply_part(
-    session: AsyncSession, member_id: uuid.UUID, part: dict, applies: bool
+    session: AsyncSession, member_id: uuid.UUID, join: dict, applies: bool
 ) -> None:
     """Create or refresh the member's profile from a queued join's volunteer part, when `applies`.
 
-    `applies` holds only when the join added or re-pended the member, so a join with someone
-    else's phone never touches their profile. Runs the same statements whatever the register holds.
+    `join` is the queued join's payload. `applies` holds only when the join added or re-pended
+    the member, so a join with someone else's phone never touches their profile. Runs the same
+    statements whatever the register holds.
     """
+    part = join["volunteer"]
+    first_name, last_name = split_name(join["full_name"])
     now = datetime.now(UTC)
     values = {
+        "first_name": first_name,
+        "last_name": last_name,
+        "phone": join["phone"],
+        "email": join["email"],
+        "ward_id": uuid.UUID(join["ward_id"]),
         "interests": [VolunteerInterest(i).value for i in part["interests"]],
         "preferred_contact": ContactMethod(part["preferred_contact"]),
         "consent_wording": VOLUNTEER_WORDING,

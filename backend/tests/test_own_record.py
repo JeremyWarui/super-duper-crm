@@ -25,8 +25,13 @@ async def test_an_officer_cannot_move_their_own_membership_volunteering_or_nomin
 ) -> None:
     officer = await make_officer(session, world.ward, *BOTH)
     own = officer.party_member_id
+    member = await session.get(PartyMember, own)
     profile = VolunteerProfile(
         member_id=own,
+        first_name="Ofisa",
+        last_name="",
+        phone=member.phone,
+        ward_id=member.ward_id,
         interests=["events"],
         preferred_contact=ContactMethod.CALL,
         consent_wording=VOLUNTEER_WORDING,

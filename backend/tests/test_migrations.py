@@ -237,3 +237,44 @@ def test_the_subscriptions_migration_gives_each_existing_campaign_an_unpaid_subs
         ).all()
     engine.dispose()
     assert [tuple(row) for row in rows] == [("c1", None, "none")]
+
+
+def test_the_volunteer_register_migration_gives_each_profile_its_members_details() -> None:
+    revisions = revision_modules()
+    last = next(i for i, m in enumerate(revisions) if m.revision == "volunteer_register")
+    engine = sa.create_engine("sqlite://")
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            for module in revisions[:last]:
+                module.upgrade()
+        for statement in (
+            "INSERT INTO counties (id, name, code) VALUES ('k1', 'Nairobi', '047')",
+            "INSERT INTO constituencies (id, county_id, name, code) "
+            "VALUES ('c1', 'k1', 'W', '274')",
+            "INSERT INTO wards (id, constituency_id, name, code) VALUES ('w1', 'c1', 'P', '1370')",
+            "INSERT INTO party_members (id, full_name, phone, email, ward_id, status, "
+            "consent_wording, consent_channel, consent_at) VALUES ('m1', 'Wanjiru Njeri Kamau', "
+            "'+254712345678', 'w@example.com', 'w1', 'approved', 'I agree.', 'web_form', "
+            "'2026-11-01')",
+            "INSERT INTO volunteer_profiles (id, member_id, status, interests, preferred_contact, "
+            "consent_wording, consent_at) VALUES ('v1', 'm1', 'active', '[]', 'call', 'I agree.', "
+            "'2026-11-01')",
+        ):
+            connection.execute(sa.text(statement))
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].upgrade()
+        row = connection.execute(
+            sa.text(
+                "SELECT first_name, last_name, phone, email, ward_id, campaign_id "
+                "FROM volunteer_profiles"
+            )
+        ).one()
+    engine.dispose()
+    assert tuple(row) == (
+        "Wanjiru",
+        "Njeri Kamau",
+        "+254712345678",
+        "w@example.com",
+        "w1",
+        None,
+    )

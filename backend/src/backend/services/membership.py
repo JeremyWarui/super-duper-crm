@@ -203,7 +203,7 @@ async def _apply_join(session: AsyncSession, code: str, p: dict) -> None:
         detail={"from": old.status.value if old else None, "to": S.PENDING.value},
     )
     if "volunteer" in p:
-        await volunteers.apply_part(session, member.id, p["volunteer"], changed is not None)
+        await volunteers.apply_part(session, member.id, p, changed is not None)
 
 
 async def _apply_withdraw(session: AsyncSession, code: str, p: dict) -> None:

@@ -53,6 +53,10 @@ async def test_an_officer_activates_an_approved_members_volunteer_and_it_is_audi
     await session.flush()
     profile = VolunteerProfile(
         member_id=member.id,
+        first_name="Wanjiru",
+        last_name="Kamau",
+        phone=member.phone,
+        ward_id=member.ward_id,
         interests=["events"],
         preferred_contact=ContactMethod.CALL,
         consent_wording=VOLUNTEER_WORDING,

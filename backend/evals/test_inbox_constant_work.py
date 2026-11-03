@@ -58,6 +58,10 @@ async def _register(
         session.add(
             VolunteerProfile(
                 member_id=member.id,
+                first_name="Wanjiru",
+                last_name="Kamau",
+                phone=PHONE,
+                ward_id=world.ward.id,
                 status=volunteer_status,
                 interests=["events"],
                 preferred_contact=ContactMethod.CALL,

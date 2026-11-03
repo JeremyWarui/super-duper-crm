@@ -60,7 +60,7 @@ nor an account.
 
 ### Data model
 
-One revision, `volunteer_register`, on top of `public_content`.
+Two revisions: `volunteer_register` (R5-1) on top of `public_content`, then `volunteer_areas` (R5-2).
 
 #### `volunteer_profiles` (changed)
 
@@ -145,12 +145,13 @@ The migration runs first and alone (R5-1). A route enters
 `contracts/frontend-api.json` in the frontend ticket that first calls it.
 
 **R5-1 Volunteer register schema** (schema)
-- Files: `models/party.py`, `models/enums.py` (`VolunteerArea`, `Profession`), new revision `volunteer_register`, `tests/test_models.py`, `tests/test_migrations.py` if it lists revisions.
-- Tests: two party volunteers with one phone fail at the database; the same phone on two campaigns and the party succeeds; a moved Release 1 profile carries its member's name, phone and ward.
+- Files: `models/party.py`, `models/enums.py` (`Profession`), new revision `volunteer_register`, `services/volunteers.py` `apply_part` (fills the new columns from the join), `tests/test_models.py`, `tests/test_migrations.py`, the volunteer fixtures in existing tests.
+- Adds the new columns, copies each member's details, makes `member_id` optional, adds the phone and campaign indexes. `member_id` and the old interests stay until R5-2, so every commit keeps the running app working.
+- Tests: two party volunteers with one phone fail at the database; the same phone on two campaigns and the party succeeds; a moved Release 1 profile carries its member's name, phone, email and ward.
 
 **R5-2 Party volunteer API** (backend)
-- Files: `schemas/party.py`, `schemas/volunteers.py`, `services/volunteers.py`, `services/membership.py` (new request kind, join without a volunteer part), `services/dashboard.py`, `api/routers/party.py`, `api/routers/party_volunteers.py`, tests.
-- Tests: a registration is one queued insert and applies as a new, untouched or revived volunteer; a centre outside the ward is refused; `other` without its text is refused; the officer list and CSV show party volunteers only; the dashboard counts by the volunteer's own ward.
+- Files: second revision `volunteer_areas` (drops `member_id` and its index, maps old interests to `VolunteerArea`, adds the `volunteer_join` request kind), `models/enums.py` (`VolunteerArea` replaces `VolunteerInterest`), `schemas/party.py`, `schemas/volunteers.py`, `services/volunteers.py`, `services/membership.py` (new request kind, join without a volunteer part), `services/dashboard.py`, `api/routers/party.py`, `api/routers/party_volunteers.py`, tests.
+- Tests: a registration is one queued insert and applies as a new, untouched or revived volunteer; a centre outside the ward is refused; `other` without its text is refused; the officer list and CSV show party volunteers only; the dashboard counts by the volunteer's own ward and the new areas.
 
 **R5-3 Campaign volunteer API** (backend)
 - Files: `api/routers/join.py`, new `api/routers/volunteers.py` or `campaigns.py`, `services/volunteers.py`, `tests/test_route_guards.py`, tests.

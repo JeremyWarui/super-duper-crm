@@ -34,6 +34,10 @@ async def make_volunteer(
     await session.flush()
     profile = VolunteerProfile(
         member_id=member.id,
+        first_name="Wanjiru",
+        last_name="Kamau",
+        phone=member.phone,
+        ward_id=member.ward_id,
         interests=["events"],
         preferred_contact=ContactMethod.CALL,
         consent_wording=VOLUNTEER_WORDING,

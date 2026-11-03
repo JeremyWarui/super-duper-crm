@@ -53,6 +53,10 @@ def _volunteer(
 ) -> VolunteerProfile:
     return VolunteerProfile(
         member=member,
+        first_name="Member",
+        last_name="",
+        phone=member.phone,
+        ward_id=member.ward_id,
         status=status,
         interests=interests,
         preferred_contact=ContactMethod.CALL,

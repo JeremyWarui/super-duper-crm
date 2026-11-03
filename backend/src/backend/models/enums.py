@@ -145,6 +145,14 @@ class VolunteerInterest(LabelledStrEnum):
     POLLING_DAY = ("polling_day", "Polling day")
 
 
+class Profession(LabelledStrEnum):
+    FARMER = ("farmer", "Farmer")
+    TEACHER = ("teacher", "Teacher")
+    BUSINESS = ("business", "Business")
+    STUDENT = ("student", "Student")
+    OTHER = ("other", "Other")
+
+
 class ContactMethod(LabelledStrEnum):
     CALL = ("call", "Call")
     SMS = ("sms", "SMS")

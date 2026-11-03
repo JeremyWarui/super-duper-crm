@@ -26,8 +26,9 @@ from backend.models import (
     SubscriptionEntry,
     User,
     UserRole,
+    VolunteerProfile,
 )
-from tests.factories import make_campaign, make_geography, make_officer
+from tests.factories import make_campaign, make_geography, make_officer, make_rival_campaign
 
 
 async def test_ward_campaign_operates_at_centre_grain(session: AsyncSession) -> None:
@@ -202,6 +203,32 @@ async def test_only_an_event_has_a_date(
     session: AsyncSession, kind: PostKind, event_date: date | None
 ) -> None:
     session.add(PartyPost(kind=kind, title="Rally in Nakuru", event_date=event_date))
+
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
+async def test_a_phone_volunteers_once_for_the_party_and_once_per_campaign(
+    session: AsyncSession,
+) -> None:
+    _, _, ward, _ = await make_geography(session)
+    campaigns = [await make_campaign(session, ward), await make_rival_campaign(session, ward)]
+
+    def volunteer(campaign: Campaign | None) -> VolunteerProfile:
+        return VolunteerProfile(
+            campaign_id=campaign.id if campaign else None,
+            first_name="Wanjiru",
+            last_name="Kamau",
+            phone="+254712345678",
+            ward_id=ward.id,
+            preferred_contact="call",
+            consent_wording="I agree.",
+            consent_at=datetime.now(UTC),
+        )
+
+    session.add_all([volunteer(None), *(volunteer(c) for c in campaigns)])
+    await session.commit()
+    session.add(volunteer(None))
 
     with pytest.raises(IntegrityError):
         await session.commit()
