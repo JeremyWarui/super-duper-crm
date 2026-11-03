@@ -7,7 +7,7 @@ Technical design for volunteer registration modelled on the sample at
 never mix, public forms answer the same whatever the register holds, and
 consent is the person's own.
 
-Status: draft for approval, 3 November 2026.
+Status: approved 3 November 2026, with the five choices in the reply to the draft (no member link, the sign-up link opens the volunteer page, manager only, campaign withdrawal deletes, polling station and email required).
 
 Decisions taken by Jeremy on 3 November 2026:
 

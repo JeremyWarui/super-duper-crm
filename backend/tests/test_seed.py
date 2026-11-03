@@ -1,5 +1,8 @@
 """The bundled CSVs load, and the demo builds over them; both run against `backend/data`."""
 
+from datetime import date
+
+import httpx
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -21,6 +24,7 @@ from backend.seed.reference import (
     import_centres,
     import_geography,
 )
+from backend.seed.site import seed_site
 from backend.services.billing import access, today
 from tests.factories import members_of
 
@@ -120,3 +124,16 @@ async def test_the_demo_campaign_is_paid_and_builds_again_on_a_rerun(
     (payment,) = sub.entries
     assert access(sub.paid_until, sub.hold, today()).state is AccessState.ACTIVE
     assert (payment.received_on, payment.paid_until_after) == (today(), summary.paid_until)
+
+
+async def test_the_demo_site_publishes_once(
+    client: httpx.AsyncClient, session: AsyncSession
+) -> None:
+    first = await seed_site(session, date(2026, 11, 1))
+    again = await seed_site(session, date(2026, 11, 1))
+
+    leaders = (await client.get("/api/party/leaders/")).json()
+    events = (await client.get("/api/party/posts/", params={"kind": "event"})).json()
+    assert (first, again) == (True, False)
+    assert (len(leaders), len(events)) == (6, 3)
+    assert (await client.get("/api/party/")).json()["name"] == "Mzigo Demo Party"

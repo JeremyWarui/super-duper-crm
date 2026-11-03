@@ -22,9 +22,11 @@ from backend.seed.reference import (
     import_centres,
     import_geography,
 )
+from backend.seed.site import seed_site
 from backend.services import admin
 from backend.services.accounts import new_login
 from backend.services.audit import record
+from backend.services.billing import today
 from backend.services.errors import Refused
 
 
@@ -71,6 +73,15 @@ async def _demo(args: argparse.Namespace, session: AsyncSession) -> int:
     width = max(len(username) for username, _, _ in summary.sign_ins)
     for username, password, description in summary.sign_ins:
         print(f"  {username:<{width}}  {password:<20}  {description}")
+    return 0
+
+
+async def _demo_site(args: argparse.Namespace, session: AsyncSession) -> int:
+    if not await seed_site(session, today()):
+        print("The website already has leaders or posts; nothing was added.")
+        return 0
+    print("Published 6 leaders, 4 news posts and 3 events for Mzigo Demo Party.")
+    print("Open http://localhost:5173/ to see the site.")
     return 0
 
 
@@ -255,6 +266,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     demo = command("demo", _demo, "build the demo campaign and its sign-ins")
     demo.add_argument("-p", "--password", help="one password for every demo account")
+
+    command("demo-site", _demo_site, "brand the party and publish demo leaders, news and events")
 
     createuser = command("createuser", _createuser, "add a login")
     needs_user(createuser)
