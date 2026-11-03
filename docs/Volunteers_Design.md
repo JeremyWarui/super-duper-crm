@@ -410,7 +410,7 @@ Decisions taken by Jeremy:
 - Tests: a sign-up stores its consent and notice version and answers the same twice; unsubscribe removes it; the header marks the current page and swaps Sign in for My account when signed in; the contribute route stores nothing and says it is a demo.
 - Known gap: a contact already signed up keeps its first row and code, so the unsubscribe link a repeat sign-up hands back changes nothing; the first link still works. The answer stays the same for a known or new contact. Nothing sends the link by SMS or email yet.
 
-**R5-12 Homepage** (backend and frontend; depends R5-11)
+**R5-12 Homepage** (backend and frontend; depends R5-11; done, migration head `home_content`; each slide keeps Join the party and adds its own button; the Watch row is left out with P5; candidates wait for R5-6; the website editor moved onto the kit with Homepage, Posts and Leaders tabs)
 - Website content gains hero slides (up to 5: image URL, kicker, headline, line, button) and agenda issues (title, summary, what we will do, why it matters, order); `pages/public/Home.jsx` rebuilt on `PartyHome.dc.html`: carousel (6-second rotation, previous, next, dots, Pause, stops for reduced motion), agenda, news (lead and three), upcoming events, candidates (after R5-6, else hidden), leadership, "Three ways to take part" (P2, P4), sign-up band; `pages/public/Issue.jsx` (`/issues/:id`) on `PubIssue.dc.html`; the website editor manages slides and issues.
 - Tests: the carousel moves, pauses and offers each slide; an unpublished slide or issue is not public; the editor saves slides in order.
 

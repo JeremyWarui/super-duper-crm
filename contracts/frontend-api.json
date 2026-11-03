@@ -620,6 +620,49 @@
     "PUT /api/admin/party/branches/{county_id}/": [
       "chairperson",
       "published"
+    ],
+    "GET /api/party/slides/": [
+      "id",
+      "image_url",
+      "kicker",
+      "headline",
+      "line",
+      "button_label",
+      "button_url"
+    ],
+    "GET /api/party/issues/": [
+      "id",
+      "title",
+      "summary",
+      "what_we_will_do",
+      "why_it_matters"
+    ],
+    "GET /api/party/issues/{issue_id}/": [
+      "id",
+      "title",
+      "summary",
+      "what_we_will_do",
+      "why_it_matters"
+    ],
+    "GET /api/admin/party/slides/": [
+      "id",
+      "image_url",
+      "kicker",
+      "headline",
+      "line",
+      "button_label",
+      "button_url",
+      "sort_order",
+      "published"
+    ],
+    "GET /api/admin/party/issues/": [
+      "id",
+      "title",
+      "summary",
+      "what_we_will_do",
+      "why_it_matters",
+      "sort_order",
+      "published"
     ]
   },
   "nested_reads": {
@@ -1174,6 +1217,40 @@
       "next_meeting_on",
       "next_meeting_venue",
       "published"
+    ],
+    "POST /api/admin/party/slides/": [
+      "headline",
+      "kicker",
+      "line",
+      "button_label",
+      "button_url",
+      "image_url",
+      "sort_order"
+    ],
+    "PATCH /api/admin/party/slides/{slide_id}/": [
+      "headline",
+      "kicker",
+      "line",
+      "button_label",
+      "button_url",
+      "image_url",
+      "sort_order",
+      "published"
+    ],
+    "POST /api/admin/party/issues/": [
+      "title",
+      "summary",
+      "what_we_will_do",
+      "why_it_matters",
+      "sort_order"
+    ],
+    "PATCH /api/admin/party/issues/{issue_id}/": [
+      "title",
+      "summary",
+      "what_we_will_do",
+      "why_it_matters",
+      "sort_order",
+      "published"
     ]
   },
   "enums": {
@@ -1242,7 +1319,9 @@
       "DELETE /api/admin/users/{user_id}/party-roles/{role}/",
       "DELETE /api/admin/party/leaders/{leader_id}/",
       "DELETE /api/admin/party/posts/{post_id}/",
-      "POST /api/account/leave/"
+      "POST /api/account/leave/",
+      "DELETE /api/admin/party/slides/{slide_id}/",
+      "DELETE /api/admin/party/issues/{issue_id}/"
     ]
   }
 }

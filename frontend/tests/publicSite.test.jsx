@@ -1,11 +1,13 @@
 /** The party's public site: what the pages show and how they link. */
-import { screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../src/Gate";
+import { Carousel } from "../src/pages/public/Home";
 import { renderApp, stubApi } from "./helpers";
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -45,6 +47,9 @@ const ROUTES = {
   "GET /party/posts/?kind=event&offset=0": [
     post("e1", "event", "Nakuru rally", { event_date: "2026-11-20", venue: "Afraha" }),
   ],
+  "GET /party/slides/": ["Jobs for all", "Fair prices"].map((headline, i) => ({
+    id: `s${i}`, headline, kicker: "", line: "", image_url: "", button_label: "", button_url: "",
+  })),
   "GET /party/leaders/": [
     { id: "l2", name: "Juma Otieno", position: "Party Leader", bio: "", photo_url: "" },
     { id: "l1", name: "Amina Kariuki", position: "Secretary General", bio: "", photo_url: "" },
@@ -56,9 +61,26 @@ describe("the public site", () => {
     stubApi(ROUTES);
     renderApp(<AppRoutes />);
 
-    expect(await screen.findByRole("link", { name: "Party congress opens" })).toBeInTheDocument();
-    expect(await screen.findByRole("link", { name: "Nakuru rally" })).toBeInTheDocument();
-    expect(screen.getByText("20 Nov 2026 · Afraha")).toBeInTheDocument();
+    expect((await screen.findAllByText("Party congress opens")).length).toBeGreaterThan(0);
+    expect(await screen.findByText("Nakuru rally")).toBeInTheDocument();
+    expect(screen.getByText("Afraha")).toBeInTheDocument();
+  });
+
+  it("turns the carousel every six seconds until paused, and opens any slide", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    stubApi(ROUTES);
+    renderApp(<Carousel />);
+    const headline = () => screen.getByRole("heading", { level: 1 }).textContent;
+    await screen.findByRole("button", { name: "Slide 2" });
+
+    expect(headline()).toBe("Jobs for all");
+    act(() => vi.advanceTimersByTime(6000));
+    expect(headline()).toBe("Fair prices");
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    act(() => vi.advanceTimersByTime(12000));
+    expect(headline()).toBe("Fair prices");
+    fireEvent.click(screen.getByRole("button", { name: "Slide 1" }));
+    expect(headline()).toBe("Jobs for all");
   });
 
   it("lists the leaders in the order the server gives", async () => {
@@ -90,7 +112,7 @@ describe("the public site", () => {
       expect(menu().getByRole("link", { name: link })).toHaveAttribute("aria-current", "page");
     }
     await user.click(screen.getAllByRole("link", { name: /Umoja Party/ })[0]);
-    expect(await screen.findByRole("heading", { level: 1, name: "Umoja Party" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Jobs for all" })).toBeInTheDocument();
     await user.click(screen.getAllByRole("link", { name: "Join the party" })[0]);
     expect(await screen.findByRole("textbox", { name: "First name" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/signin");

@@ -11,14 +11,23 @@ from backend.api.deps import AdminUser, SessionDep, Today
 from backend.api.routers.join import _client
 from backend.config import get_settings
 from backend.models import (
+    AgendaIssue,
     Constituency,
     County,
+    HeroSlide,
     PostKind,
     RegistrationCentre,
     Seat,
     Ward,
 )
-from backend.schemas.content import BranchDetail, BranchRead, LeaderRead, PostRead
+from backend.schemas.content import (
+    BranchDetail,
+    BranchRead,
+    IssueRead,
+    LeaderRead,
+    PostRead,
+    SlideRead,
+)
 from backend.schemas.dashboard import Dashboard
 from backend.schemas.party import (
     EMAIL,
@@ -33,7 +42,7 @@ from backend.schemas.party import (
     PartyWithdrawn,
 )
 from backend.security import hash_password
-from backend.services import branches, content, dashboard, membership, subscribers
+from backend.services import branches, content, dashboard, home, membership, subscribers
 from backend.services import party as service
 from backend.services.accounts import clean_email
 from backend.services.ratelimit import RateLimit
@@ -276,3 +285,20 @@ async def contribute(payload: PartyContribute, request: Request) -> PartyContrib
     return PartyContributed(
         demo=get_settings().payments_provider == "demo", message=CONTRIBUTED_DEMO
     )
+
+
+@router.get("/slides/", response_model=list[SlideRead])
+async def slides(session: SessionDep):
+    """The published carousel slides, in order."""
+    return await home.published(session, HeroSlide)
+
+
+@router.get("/issues/", response_model=list[IssueRead])
+async def issues(session: SessionDep):
+    """The published agenda issues, in order."""
+    return await home.published(session, AgendaIssue)
+
+
+@router.get("/issues/{issue_id}/", response_model=IssueRead)
+async def issue(issue_id: uuid.UUID, session: SessionDep):
+    return await home.published_issue(session, issue_id)

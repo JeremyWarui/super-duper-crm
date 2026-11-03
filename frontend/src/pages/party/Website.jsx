@@ -1,278 +1,226 @@
-// The superuser's editor for the public site's posts and leaders.
+// The superuser's editor for the public site: carousel slides, agenda issues, posts and leaders.
 import { useState } from "react";
 import {
+  useDeleteIssue,
   useDeleteLeader,
   useDeletePost,
+  useDeleteSlide,
+  useSaveIssue,
   useSaveLeader,
   useSavePost,
+  useSaveSlide,
+  useSiteIssues,
   useSiteLeaders,
   useSitePosts,
-} from "../../api/hooks";
-import {
-  Badge,
-  Button,
-  ErrorState,
-  Field,
-  LoadingState,
-  Modal,
-  PageTitle,
-  Panel,
-} from "../../components/ui";
-import { formatDate } from "../../lib/format";
+  useSiteSlides,
+} from "@/api/hooks";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
+import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
+import { FilterPills } from "@/components/ui/tabs";
+import { formatDate } from "@/lib/format";
 
 const HTTPS = /^https:\/\/\S+$/;
-const imageOk = (url) => !url.trim() || HTTPS.test(url.trim());
+const CHECKS = {
+  image: (v) => !v || HTTPS.test(v) || "Use an address starting with https://.",
+  link: (v) => !v || HTTPS.test(v) || (/^\/(?!\/)\S*$/.test(v)) || "Use a page on this site such as /join-party, or an https:// address.",
+  order: (v) => (/^\d{1,5}$/.test(v) && Number(v) <= 10000) || "Use a whole number from 0 to 10000.",
+};
+const ORDER = { key: "sort_order", label: "Order", kind: "order", hint: "Lower numbers come first." };
 
-function PublishedBadge({ published }) {
-  return <Badge text={published ? "Published" : "Draft"} tone={published ? "good" : "neutral"} />;
+const SLIDE_FIELDS = [
+  { key: "headline", label: "Headline", max: 120, required: true },
+  { key: "kicker", label: "Kicker (optional)", max: 80, hint: "The small line above the headline." },
+  { key: "line", label: "Supporting text (optional)", max: 300, kind: "area" },
+  { key: "button_label", label: "Button label (optional)", max: 40 },
+  { key: "button_url", label: "Button link (optional)", max: 500, kind: "link", hint: "A page on this site such as /counties, or an https:// address." },
+  { key: "image_url", label: "Photo address (optional)", max: 500, kind: "image" },
+  ORDER,
+];
+
+const ISSUE_FIELDS = [
+  { key: "title", label: "Title", max: 150, required: true },
+  { key: "summary", label: "Summary (optional)", max: 300, kind: "area" },
+  { key: "what_we_will_do", label: "What we will do (optional)", max: 20000, kind: "area", hint: "One step per line; each becomes a numbered card." },
+  { key: "why_it_matters", label: "Why it matters (optional)", max: 20000, kind: "area" },
+  ORDER,
+];
+
+const LEADER_FIELDS = [
+  { key: "name", label: "Name", max: 150, required: true },
+  { key: "position", label: "Position", max: 150, required: true },
+  { key: "bio", label: "Bio (optional)", max: 20000, kind: "area" },
+  { key: "photo_url", label: "Photo address (optional)", max: 500, kind: "image" },
+  ORDER,
+];
+
+const isEvent = (form) => form.kind === "event";
+const POST_FIELDS = [
+  { key: "kind", label: "Kind", kind: "select", options: [["news", "News"], ["event", "Event"]], newOnly: true },
+  { key: "title", label: "Title", max: 150, required: true },
+  { key: "event_date", label: "Date", kind: "date", required: true, show: isEvent },
+  { key: "venue", label: "Venue (optional)", max: 150, show: isEvent },
+  { key: "body", label: "Text", max: 20000, kind: "area" },
+  { key: "image_url", label: "Image address (optional)", max: 500, kind: "image" },
+];
+
+const SECTIONS = {
+  Homepage: [
+    { noun: "slide", title: "Carousel slides", hint: "Up to 5, rotating every 6 seconds.", fields: SLIDE_FIELDS, query: useSiteSlides, save: useSaveSlide, del: useDeleteSlide, name: (r) => r.headline, meta: (r) => `Order ${r.sort_order}`, max: 5 },
+    { noun: "issue", title: "Agenda issues", hint: "Each opens its own page from the homepage.", fields: ISSUE_FIELDS, query: useSiteIssues, save: useSaveIssue, del: useDeleteIssue, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
+  ],
+  Posts: [
+    { noun: "post", title: "News and events", fields: POST_FIELDS, query: useSitePosts, save: useSavePost, del: useDeletePost, name: (r) => r.title, meta: (r) => `${r.kind === "event" ? "Event" : "News"} · ${formatDate(r.kind === "event" ? r.event_date : r.published_on) || "not yet published"}` },
+  ],
+  Leaders: [
+    { noun: "leader", title: "Party leaders", fields: LEADER_FIELDS, query: useSiteLeaders, save: useSaveLeader, del: useDeleteLeader, name: (r) => r.name, meta: (r) => `${r.position} · order ${r.sort_order}` },
+  ],
+};
+
+const blank = (fields) => Object.fromEntries(fields.map((f) => [f.key, f.kind === "order" ? "0" : f.kind === "select" ? f.options[0][0] : ""]));
+const formOf = (fields, row) => (row ? Object.fromEntries(fields.map((f) => [f.key, row[f.key] == null ? "" : String(row[f.key])])) : blank(fields));
+
+function problems(fields, form) {
+  const out = {};
+  for (const f of fields) {
+    if (f.show && !f.show(form)) continue;
+    const v = form[f.key].trim();
+    if (f.required && !v) out[f.key] = `${f.label} is needed.`;
+    else if (CHECKS[f.kind]) {
+      const ok = CHECKS[f.kind](v);
+      if (ok !== true) out[f.key] = ok;
+    }
+  }
+  return out;
 }
 
-function ImageField({ label, value, onChange }) {
-  return (
-    <>
-      <Field label={`${label} (optional)`}>
-        <input aria-label={label} className="app-field" maxLength={500} placeholder="https://" value={value} onChange={onChange} />
-      </Field>
-      {!imageOk(value) && <div className="field-hint text-bad">Use an address starting with https://.</div>}
-    </>
-  );
+function payload(fields, form, row) {
+  const body = {};
+  for (const f of fields) {
+    if ((f.show && !f.show(form)) || (f.newOnly && row)) continue;
+    const v = f.kind === "area" ? form[f.key] : form[f.key].trim();
+    body[f.key] = f.kind === "order" ? Number(v) : v;
+  }
+  if (!row) return body;
+  return Object.fromEntries(Object.entries(body).filter(([k, v]) => v !== (row[k] ?? "")));
 }
 
-function Saving({ write, ready, label, onClose, onSave }) {
-  return (
-    <>
-      {write.isError && <div className="form-error">{write.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
-        <Button onClick={onClose}>Cancel</Button>
-        <Button primary disabled={!ready || write.isPending} onClick={onSave}>
-          {write.isPending ? "Saving…" : label}
-        </Button>
-      </div>
-    </>
-  );
-}
-
-// Only the fields that differ from `row` are sent when editing.
-function changedFrom(row, body) {
-  return row ? Object.fromEntries(Object.entries(body).filter(([k, v]) => v !== row[k])) : body;
-}
-
-function PostForm({ post, onClose }) {
-  const save = useSavePost();
-  const [form, setForm] = useState({
-    kind: post?.kind || "news",
-    title: post?.title || "",
-    body: post?.body || "",
-    image_url: post?.image_url || "",
-    event_date: post?.event_date || "",
-    venue: post?.venue || "",
-  });
+function ItemForm({ section, row, onDone }) {
+  const save = section.save();
+  const [form, setForm] = useState(() => formOf(section.fields, row));
+  const [tried, setTried] = useState(false);
+  const errors = problems(section.fields, form);
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
-  const event = form.kind === "event";
-  const ready = form.title.trim() && imageOk(form.image_url) && (!event || form.event_date);
-
-  const submit = () => {
-    const body = {
-      title: form.title.trim(),
-      body: form.body,
-      image_url: form.image_url.trim(),
-      ...(event ? { event_date: form.event_date, venue: form.venue.trim() } : {}),
-    };
-    const sent = post ? changedFrom(post, body) : { kind: form.kind, ...body };
-    if (post && Object.keys(sent).length === 0) return onClose();
-    save.mutate(post ? { id: post.id, ...sent } : sent, { onSuccess: onClose });
+  const submit = (e) => {
+    e.preventDefault();
+    setTried(true);
+    if (Object.keys(errors).length) return;
+    const body = payload(section.fields, form, row);
+    if (row && !Object.keys(body).length) return onDone();
+    save.mutate(row ? { id: row.id, ...body } : body, { onSuccess: onDone });
   };
-
+  const shown = section.fields.filter((f) => (!f.show || f.show(form)) && !(f.newOnly && row));
   return (
-    <Modal title={post ? `Edit ${post.title}` : "New post"} sub="Saved as a draft until you publish it." onClose={onClose}>
-      {!post && (
-        <Field label="Kind">
-          <select aria-label="Kind" className="app-field" value={form.kind} onChange={set("kind")}>
-            <option value="news">News</option>
-            <option value="event">Event</option>
-          </select>
-        </Field>
-      )}
-      <div className="field-gap" />
-      <Field label="Title">
-        <input aria-label="Title" className="app-field" maxLength={150} value={form.title} onChange={set("title")} />
-      </Field>
-      {event && (
-        <>
-          <div className="field-gap" />
-          <div className="field-pair">
-            <Field label="Date">
-              <input aria-label="Date" type="date" className="app-field" value={form.event_date} onChange={set("event_date")} />
+    <Card variant="outline" asChild>
+      <form onSubmit={submit} noValidate>
+        <div className="flex flex-col gap-1">
+          <h2 className="text-card-title font-bold">{row ? `Edit ${section.name(row)}` : `New ${section.noun}`}</h2>
+          <p className="text-small text-muted-foreground">Saved as a draft until you publish it.</p>
+        </div>
+        {shown.map((f) => {
+          const common = { value: form[f.key], onChange: set(f.key), "aria-invalid": tried && errors[f.key] ? true : undefined };
+          const hint = (tried && errors[f.key]) || f.hint;
+          return (
+            <Field key={f.key} label={f.label} hint={hint}>
+              {f.kind === "area" ? <Textarea rows={4} maxLength={f.max} {...common} />
+                : f.kind === "select" ? <NativeSelect {...common}>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</NativeSelect>
+                : <Input type={f.kind === "date" ? "date" : "text"} inputMode={f.kind === "order" ? "numeric" : undefined} maxLength={f.max} {...common} />}
             </Field>
-            <Field label="Venue (optional)">
-              <input aria-label="Venue" className="app-field" maxLength={150} value={form.venue} onChange={set("venue")} />
-            </Field>
+          );
+        })}
+        {save.error ? <p role="alert" className="text-small font-semibold text-destructive">{save.error.message}</p> : null}
+        <div className="flex flex-wrap gap-2.5">
+          <Button type="submit" shape="rounded" disabled={save.isPending || (!row && Object.keys(errors).length > 0)}>
+            {save.isPending ? "Saving…" : row ? `Save ${section.noun}` : `Add ${section.noun}`}
+          </Button>
+          <Button type="button" shape="rounded" variant="quiet" onClick={onDone}>Cancel</Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+function ConfirmDelete({ section, row, onClose }) {
+  const del = section.del();
+  return (
+    <Dialog title={`Delete ${section.name(row)}?`} description="It leaves the public site at once and cannot be brought back." onClose={onClose}>
+      {del.error ? <p role="alert" className="text-small font-semibold text-destructive">{del.error.message}</p> : null}
+      <div className="flex justify-end gap-2.5">
+        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button shape="rounded" variant="danger" disabled={del.isPending} onClick={() => del.mutate(row.id, { onSuccess: onClose })}>Delete</Button>
+      </div>
+    </Dialog>
+  );
+}
+
+function SectionList({ section }) {
+  const rows = section.query();
+  const save = section.save();
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const list = rows.data || [];
+  const full = section.max && list.length >= section.max;
+  return (
+    <div className="flex flex-wrap items-start gap-6">
+      <Card variant="outline" className="min-w-0 flex-[1_1_420px] gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-card-title font-bold">{section.title}</h2>
+            {section.hint ? <p className="text-small text-muted-foreground">{section.hint}</p> : null}
           </div>
-          {!form.event_date && <div className="field-hint">An event needs a date.</div>}
-        </>
-      )}
-      <div className="field-gap" />
-      <Field label="Text">
-        <textarea aria-label="Text" className="app-field textarea" maxLength={20000} value={form.body} onChange={set("body")} />
-      </Field>
-      <div className="field-gap" />
-      <ImageField label="Image address" value={form.image_url} onChange={set("image_url")} />
-      <Saving write={save} ready={ready} label={post ? "Save post" : "Add post"} onClose={onClose} onSave={submit} />
-    </Modal>
-  );
-}
-
-function LeaderForm({ leader, onClose }) {
-  const save = useSaveLeader();
-  const [form, setForm] = useState({
-    name: leader?.name || "",
-    position: leader?.position || "",
-    bio: leader?.bio || "",
-    photo_url: leader?.photo_url || "",
-    sort_order: leader ? String(leader.sort_order) : "0",
-  });
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
-  const orderOk = /^\d{1,5}$/.test(form.sort_order) && Number(form.sort_order) <= 10000;
-  const ready = form.name.trim() && form.position.trim() && imageOk(form.photo_url) && orderOk;
-
-  const submit = () => {
-    const body = {
-      name: form.name.trim(),
-      position: form.position.trim(),
-      bio: form.bio,
-      photo_url: form.photo_url.trim(),
-      sort_order: Number(form.sort_order),
-    };
-    const sent = changedFrom(leader, body);
-    if (leader && Object.keys(sent).length === 0) return onClose();
-    save.mutate(leader ? { id: leader.id, ...sent } : sent, { onSuccess: onClose });
-  };
-
-  return (
-    <Modal title={leader ? `Edit ${leader.name}` : "New leader"} sub="Saved as a draft until you publish it." onClose={onClose}>
-      <div className="field-pair">
-        <Field label="Name">
-          <input aria-label="Name" className="app-field" maxLength={150} value={form.name} onChange={set("name")} />
-        </Field>
-        <Field label="Position">
-          <input aria-label="Position" className="app-field" maxLength={150} placeholder="Secretary General" value={form.position} onChange={set("position")} />
-        </Field>
-      </div>
-      <div className="field-gap" />
-      <Field label="Order on the page">
-        <input aria-label="Order" className="app-field" inputMode="numeric" value={form.sort_order} onChange={set("sort_order")} />
-      </Field>
-      <div className="field-hint">Lower numbers come first; equal numbers go by name.</div>
-      <div className="field-gap" />
-      <Field label="Bio (optional)">
-        <textarea aria-label="Bio" className="app-field textarea" maxLength={20000} value={form.bio} onChange={set("bio")} />
-      </Field>
-      <div className="field-gap" />
-      <ImageField label="Photo address" value={form.photo_url} onChange={set("photo_url")} />
-      <Saving write={save} ready={ready} label={leader ? "Save leader" : "Add leader"} onClose={onClose} onSave={submit} />
-    </Modal>
-  );
-}
-
-function ConfirmDelete({ what, write, id, onClose }) {
-  return (
-    <Modal title={`Delete ${what}?`} sub="It leaves the public site at once and cannot be brought back." onClose={onClose}>
-      {write.isError && <div className="form-error">{write.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
-        <Button onClick={onClose}>Cancel</Button>
-        <Button tone="danger" disabled={write.isPending} onClick={() => write.mutate(id, { onSuccess: onClose })}>
-          Delete
-        </Button>
-      </div>
-    </Modal>
-  );
-}
-
-function Rows({ query, empty, columns, render }) {
-  if (query.isLoading) return <LoadingState />;
-  if (query.error) return <ErrorState error={query.error} />;
-  return (
-    <Panel pad={0}>
-      <div className="table-scroll">
-        <table className="table">
-          <thead>
-            <tr>{columns.map((c) => <th key={c}>{c}</th>)}<th /></tr>
-          </thead>
-          <tbody>
-            {query.data.map(render)}
-            {query.data.length === 0 && <tr><td colSpan={columns.length + 1} className="empty-row">{empty}</td></tr>}
-          </tbody>
-        </table>
-      </div>
-    </Panel>
+          <Button shape="rounded" disabled={full} onClick={() => setEditing({ row: null })}>New {section.noun}</Button>
+        </div>
+        {rows.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
+        {rows.error ? <p role="alert" className="text-destructive">{rows.error.message}</p> : null}
+        {rows.isSuccess && !list.length ? <p className="text-muted-foreground">Nothing here yet.</p> : null}
+        <ul className="flex flex-col">
+          {list.map((r) => (
+            <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft py-3">
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="font-bold">{section.name(r)}</span>
+                <span className="text-small text-muted-foreground">{section.meta(r)}</span>
+              </span>
+              <span className="flex flex-wrap items-center gap-2">
+                <Badge tone={r.published ? "ok" : "info"}>{r.published ? "Published" : "Draft"}</Badge>
+                <Button size="sm" shape="rounded" variant="quiet" onClick={() => setEditing({ row: r })}>Edit</Button>
+                <Button size="sm" shape="rounded" variant="quiet" disabled={save.isPending} onClick={() => save.mutate({ id: r.id, published: !r.published })}>
+                  {r.published ? "Unpublish" : "Publish"}
+                </Button>
+                <Button size="sm" shape="rounded" variant="danger" onClick={() => setDeleting(r)}>Delete</Button>
+              </span>
+            </li>
+          ))}
+        </ul>
+        {full ? <p className="text-small text-muted-foreground">The carousel is full; delete a slide to add another.</p> : null}
+      </Card>
+      {editing ? (
+        <div className="min-w-0 flex-[1_1_420px]">
+          <ItemForm key={editing.row?.id || "new"} section={section} row={editing.row} onDone={() => setEditing(null)} />
+        </div>
+      ) : null}
+      {deleting ? <ConfirmDelete section={section} row={deleting} onClose={() => setDeleting(null)} /> : null}
+    </div>
   );
 }
 
 export default function Website() {
-  const posts = useSitePosts();
-  const leaders = useSiteLeaders();
-  const savePost = useSavePost();
-  const saveLeader = useSaveLeader();
-  const deletePost = useDeletePost();
-  const deleteLeader = useDeleteLeader();
-  const [modal, setModal] = useState(null);
-  const close = () => setModal(null);
-
-  const actions = (row, save, kind, label) => (
-    <td className="actions-cell">
-      <div className="flex justify-end gap-2">
-        <Button onClick={() => setModal({ type: kind, row })}>Edit</Button>
-        <Button disabled={save.isPending} onClick={() => save.mutate({ id: row.id, published: !row.published })}>
-          {row.published ? "Unpublish" : "Publish"}
-        </Button>
-        <Button tone="danger" onClick={() => setModal({ type: `delete-${kind}`, row, label })}>Delete</Button>
-      </div>
-    </td>
-  );
-
+  const [tab, setTab] = useState("Posts");
   return (
-    <>
-      <PageTitle title="Website" sub="News, events and leaders on the public site. Drafts stay hidden until published." />
-      <div className="flex items-center justify-between gap-2 chip-row">
-        <span className="card-title">Posts</span>
-        <Button primary onClick={() => setModal({ type: "post" })}>New post</Button>
-      </div>
-      <Rows
-        query={posts}
-        empty="No posts yet."
-        columns={["Title", "Kind", "Date", "Status"]}
-        render={(p) => (
-          <tr key={p.id}>
-            <td className="strong">{p.title}</td>
-            <td>{p.kind === "event" ? "Event" : "News"}</td>
-            <td>{formatDate(p.kind === "event" ? p.event_date : p.published_on)}</td>
-            <td><PublishedBadge published={p.published} /></td>
-            {actions(p, savePost, "post", p.title)}
-          </tr>
-        )}
-      />
-      <div className="flex items-center justify-between gap-2 chip-row">
-        <span className="card-title">Leaders</span>
-        <Button primary onClick={() => setModal({ type: "leader" })}>New leader</Button>
-      </div>
-      <Rows
-        query={leaders}
-        empty="No leaders yet."
-        columns={["Name", "Position", "Order", "Status"]}
-        render={(l) => (
-          <tr key={l.id}>
-            <td className="strong">{l.name}</td>
-            <td>{l.position}</td>
-            <td>{l.sort_order}</td>
-            <td><PublishedBadge published={l.published} /></td>
-            {actions(l, saveLeader, "leader", l.name)}
-          </tr>
-        )}
-      />
-      {modal?.type === "post" && <PostForm post={modal.row} onClose={close} />}
-      {modal?.type === "leader" && <LeaderForm leader={modal.row} onClose={close} />}
-      {modal?.type === "delete-post" && <ConfirmDelete what={modal.label} write={deletePost} id={modal.row.id} onClose={close} />}
-      {modal?.type === "delete-leader" && <ConfirmDelete what={modal.label} write={deleteLeader} id={modal.row.id} onClose={close} />}
-    </>
+    <div className="flex flex-col gap-6">
+      <FilterPills label="Website content" options={Object.keys(SECTIONS)} value={tab} onChange={setTab} />
+      {SECTIONS[tab].map((section) => <SectionList key={section.noun} section={section} />)}
+    </div>
   );
 }

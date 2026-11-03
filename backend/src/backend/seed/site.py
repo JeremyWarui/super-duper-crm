@@ -5,7 +5,16 @@ from datetime import date, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Branch, County, PartyLeader, PartyPost, PartySettings, PostKind
+from backend.models import (
+    AgendaIssue,
+    Branch,
+    County,
+    HeroSlide,
+    PartyLeader,
+    PartyPost,
+    PartySettings,
+    PostKind,
+)
 
 PHOTO = "https://randomuser.me/api/portraits/{}.jpg"
 PICTURE = "https://picsum.photos/seed/pamoja-{}/1200/675"
@@ -84,6 +93,100 @@ async def seed_branches(session: AsyncSession, today: date) -> int:
             )
         )
         added += 1
+    await session.commit()
+    return added
+
+
+SLIDES = [
+    (
+        "Pamoja Party",
+        "Together, we build a fairer Kenya",
+        "Jobs, fair prices and services that reach every ward.",
+        "Read our agenda",
+        "/#issues",
+    ),
+    (
+        "Branch meetings",
+        "Your county branch meets this month",
+        "Find your branch, meet its officials and have your say.",
+        "Find your branch",
+        "/counties",
+    ),
+    (
+        "Youth league",
+        "Young members lead our ward work",
+        "Volunteer for events and mobilisation where you live.",
+        "Join the party",
+        "/join-party",
+    ),
+    (
+        "Party news",
+        "Statements and news from the party",
+        "Read what the party said this week and why.",
+        "Read the news",
+        "/news",
+    ),
+]
+
+ISSUES = [
+    (
+        "Jobs and young people",
+        "Work for the young people of every county.",
+        "Back county apprenticeships and small-business loans for young people.",
+        "Most young Kenyans are looking for steady work.",
+    ),
+    (
+        "Cost of living",
+        "Fair prices for food, fuel and power.",
+        "Review taxes on basic goods and support farmers to sell directly.",
+        "Families spend most of what they earn on basics.",
+    ),
+    (
+        "Health care",
+        "A clinic within reach of every family.",
+        "Staff and stock ward dispensaries, and pay health workers on time.",
+        "Too many families travel far for basic care.",
+    ),
+    (
+        "Clean governance",
+        "Public money spent in the open.",
+        "Publish county budgets and contracts, and audit them every year.",
+        "Trust in leaders depends on how they use public money.",
+    ),
+]
+
+
+async def seed_home(session: AsyncSession) -> int:
+    """Published demo slides and agenda issues when there are none; returns how many were added."""
+    added = 0
+    if not await session.scalar(select(func.count()).select_from(HeroSlide)):
+        for n, (kicker, headline, line, label, url) in enumerate(SLIDES):
+            session.add(
+                HeroSlide(
+                    kicker=kicker,
+                    headline=headline,
+                    line=line,
+                    button_label=label,
+                    button_url=url,
+                    image_url=PICTURE.format(f"slide-{n + 1}"),
+                    sort_order=n,
+                    published=True,
+                )
+            )
+            added += 1
+    if not await session.scalar(select(func.count()).select_from(AgendaIssue)):
+        for n, (title, summary, what, why) in enumerate(ISSUES):
+            session.add(
+                AgendaIssue(
+                    title=title,
+                    summary=summary,
+                    what_we_will_do=what,
+                    why_it_matters=why,
+                    sort_order=n,
+                    published=True,
+                )
+            )
+            added += 1
     await session.commit()
     return added
 

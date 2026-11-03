@@ -5,7 +5,14 @@ from backend.models.audit import AuditEvent
 from backend.models.auth_token import AuthToken
 from backend.models.billing import CampaignSubscription, CrmPlan, SubscriptionEntry
 from backend.models.campaign import Campaign
-from backend.models.content import Branch, PartyLeader, PartyPost, Subscriber
+from backend.models.content import (
+    AgendaIssue,
+    Branch,
+    HeroSlide,
+    PartyLeader,
+    PartyPost,
+    Subscriber,
+)
 from backend.models.enums import (
     AccessState,
     AspirantStatus,
@@ -59,7 +66,9 @@ __all__ = [
     "Aspirant",
     "AspirantStatus",
     "AuditEvent",
+    "AgendaIssue",
     "Branch",
+    "HeroSlide",
     "AuthToken",
     "Base",
     "Campaign",

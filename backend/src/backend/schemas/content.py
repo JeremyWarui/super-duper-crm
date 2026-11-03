@@ -191,3 +191,98 @@ class BranchUpdate(WriteModel):
         if value and ("@" not in value or any(c.isspace() for c in value)):
             raise ValueError("Use an email address like name@example.com.")
         return value
+
+
+def _target(value: str) -> str:
+    value = plain_text(value).strip()
+    if value and not (
+        (value.startswith("/") and not value.startswith("//")) or value.startswith("https://")
+    ):
+        raise ValueError("Use a page on this site such as /join-party, or an https:// address.")
+    if any(c.isspace() for c in value):
+        raise ValueError("A link has no spaces.")
+    return value
+
+
+def _short(limit: int):
+    return Annotated[str, Field(max_length=limit), AfterValidator(lambda v: plain_text(v).strip())]
+
+
+Target = Annotated[str, Field(max_length=500), AfterValidator(_target)]
+Order = Annotated[int, Field(ge=0, le=10_000)]
+
+
+class SlideRead(ORMModel):
+    id: uuid.UUID
+    image_url: str
+    kicker: str
+    headline: str
+    line: str
+    button_label: str
+    button_url: str
+
+
+class SlideAdminRead(SlideRead):
+    sort_order: int
+    published: bool
+    updated_at: datetime
+
+
+class SlideCreate(WriteModel):
+    image_url: Image = ""
+    kicker: _short(80) = ""
+    headline: Annotated[str, Field(min_length=1, max_length=120), AfterValidator(_line)]
+    line: _short(300) = ""
+    button_label: _short(40) = ""
+    button_url: Target = ""
+    sort_order: Order = 0
+    published: bool = False
+
+
+class SlideUpdate(WriteModel):
+    """Only the fields sent change."""
+
+    image_url: Image | None = None
+    kicker: _short(80) | None = None
+    headline: Annotated[str, Field(min_length=1, max_length=120), AfterValidator(_line)] | None = (
+        None
+    )
+    line: _short(300) | None = None
+    button_label: _short(40) | None = None
+    button_url: Target | None = None
+    sort_order: Order | None = None
+    published: bool | None = None
+
+
+class IssueRead(ORMModel):
+    id: uuid.UUID
+    title: str
+    summary: str
+    what_we_will_do: str
+    why_it_matters: str
+
+
+class IssueAdminRead(IssueRead):
+    sort_order: int
+    published: bool
+    updated_at: datetime
+
+
+class IssueCreate(WriteModel):
+    title: Line
+    summary: _short(300) = ""
+    what_we_will_do: Body = ""
+    why_it_matters: Body = ""
+    sort_order: Order = 0
+    published: bool = False
+
+
+class IssueUpdate(WriteModel):
+    """Only the fields sent change."""
+
+    title: Line | None = None
+    summary: _short(300) | None = None
+    what_we_will_do: Body | None = None
+    why_it_matters: Body | None = None
+    sort_order: Order | None = None
+    published: bool | None = None

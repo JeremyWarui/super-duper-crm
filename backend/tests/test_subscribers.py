@@ -59,7 +59,12 @@ async def test_contribute_says_it_is_a_demo_and_stores_nothing(
     before = await rows()
     response = await client.post(
         "/api/party/contribute/",
-        json={"amount_kes": 500, "name": "Ama Otieno", "phone": "0712345678", "consent_given": True},
+        json={
+            "amount_kes": 500,
+            "name": "Ama Otieno",
+            "phone": "0712345678",
+            "consent_given": True,
+        },
     )
 
     assert response.status_code == 200

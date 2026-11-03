@@ -152,7 +152,6 @@
 
 .legacy .ui-button,
 .legacy .onboarding-button,
-.legacy .login-submit,
 .legacy .gate-no-campaign-button {
   display: inline-flex;
   align-items: center;
@@ -180,16 +179,14 @@
 }
 
 .legacy .ui-button-primary,
-.legacy .onboarding-button-primary,
-.legacy .login-submit {
+.legacy .onboarding-button-primary {
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-text-on-primary);
 }
 
 .legacy .ui-button-primary:hover:not(:disabled),
-.legacy .onboarding-button-primary:hover:not(:disabled),
-.legacy .login-submit-ready:hover {
+.legacy .onboarding-button-primary:hover:not(:disabled) {
   border-color: var(--color-primary-hover);
   background: var(--color-primary-hover);
 }
@@ -213,8 +210,7 @@
 }
 
 .legacy .ui-button:disabled,
-.legacy .onboarding-button:disabled,
-.legacy .login-submit-disabled {
+.legacy .onboarding-button:disabled {
   border-color: var(--color-border);
   background: var(--color-neutral-soft);
   color: var(--color-text-subtle);
@@ -224,7 +220,6 @@
 
 .legacy .app-field,
 .legacy .ui-select,
-.legacy .login-field,
 .legacy .onboarding-field,
 .legacy .admin-field,
 .legacy .join-field {
@@ -243,7 +238,6 @@
 
 .legacy .app-field:focus,
 .legacy .ui-select:focus,
-.legacy .login-field:focus,
 .legacy .onboarding-field:focus,
 .legacy .admin-field:focus,
 .legacy .join-field:focus {
@@ -1164,88 +1158,6 @@
 
 /* ---- sign in ------------------------------------------------------------ */
 
-.legacy .login-shell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 16px;
-}
-
-.legacy .login-content { width: 100%; max-width: 380px; }
-
-.legacy .login-brand {
-  font-size: var(--text-xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  text-align: center;
-}
-
-
-.legacy .login-subtitle {
-  margin: 4px 0 24px;
-  color: var(--color-text-muted);
-  text-align: center;
-}
-
-.legacy .login-card {
-  padding: 28px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-raised);
-}
-
-.legacy .login-label {
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 500;
-}
-
-.legacy .login-field-spacer { height: 16px; }
-.legacy .login-password-wrapper { position: relative; }
-.legacy .login-password-field { padding-right: 42px; }
-
-.legacy .login-password-toggle {
-  position: absolute;
-  top: 7px;
-  right: 1px;
-  bottom: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  padding: 0;
-  border: none;
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-}
-
-.legacy .login-toggle-on { color: var(--color-primary); }
-
-.legacy .login-error {
-  margin-top: 12px;
-  color: var(--color-danger);
-  font-size: var(--text-sm);
-}
-
-.legacy .login-submit {
-  width: 100%;
-  margin-top: 20px;
-  padding: 10px 14px;
-}
-
-.legacy .login-submit-ready { cursor: pointer; }
-
-.legacy .login-help {
-  margin-top: 20px;
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  text-align: center;
-}
-
 /* ---- new campaign wizard ------------------------------------------------ */
 
 .legacy .onboarding-shell {
@@ -1571,13 +1483,6 @@
 
 .legacy .join-step { display: flex; flex-direction: column; gap: 6px; }
 
-.legacy .join-step-bar {
-  display: block;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--color-border);
-}
-
 .legacy .join-step-done { background: var(--color-primary); }
 
 .legacy .join-step-label { font-size: var(--text-sm); font-weight: 700; color: var(--color-text-muted); }
@@ -1616,7 +1521,6 @@
   .legacy .kpi-grid { gap: 10px; }
   .legacy .modal-backdrop { padding: 16px 12px; }
   .legacy .field-pair { grid-template-columns: minmax(0, 1fr); }
-  .legacy .login-card,
   .legacy .join-card,
   .legacy .onboarding-card { padding: 22px; }
 }
@@ -1647,21 +1551,11 @@
 
 .legacy .site-link { color: var(--color-primary); }
 
-.legacy .site-hero { padding: 24px 0 8px; }
-
 .legacy .site-title {
   margin: 8px 0 12px;
   font-size: var(--text-xl);
   font-weight: 700;
   letter-spacing: -0.02em;
-}
-
-.legacy .site-lead {
-  max-width: 640px;
-  color: var(--color-text-secondary);
-  font-size: var(--text-md);
-  line-height: 1.6;
-  white-space: pre-line;
 }
 
 .legacy .site-text { line-height: 1.7; white-space: pre-line; }

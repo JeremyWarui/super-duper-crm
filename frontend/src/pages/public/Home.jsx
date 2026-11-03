@@ -1,33 +1,336 @@
-// The party's public home page: who it is, its latest news and next events.
+// The party's public homepage: carousel, agenda, news, events, branches, leadership and ways to take part.
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useParty, usePublicPosts } from "../../api/hooks";
-import PostCard from "./PostCard";
+import {
+  useParty,
+  usePublicBranches,
+  usePublicIssues,
+  usePublicLeaders,
+  usePublicPosts,
+  usePublicSlides,
+} from "@/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { NativeSelect } from "@/components/ui/input";
+import { SectionHead } from "@/components/ui/typography";
+import { useBranding } from "@/theme/branding";
 
-function Latest({ title, kind, to }) {
-  const posts = usePublicPosts(kind).data || [];
-  if (!posts.length) return null;
+const ROTATE_MS = 6000;
+const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+const ago = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long" }) : "");
+const isInternal = (url) => url.startsWith("/");
+
+function SlideButton({ slide }) {
+  if (!slide.button_label || !slide.button_url) return null;
+  const props = { variant: "onDark", size: "lg" };
+  return isInternal(slide.button_url) ? (
+    <Button asChild {...props}><Link to={slide.button_url}>{slide.button_label}</Link></Button>
+  ) : (
+    <Button asChild {...props}><a href={slide.button_url}>{slide.button_label}</a></Button>
+  );
+}
+
+function BranchFinder() {
+  const branches = usePublicBranches().data || [];
+  const [county, setCounty] = useState("");
   return (
-    <section className="site-section">
-      <h2 className="site-section-title">{title}</h2>
-      <div className="site-cards">
-        {posts.slice(0, 3).map((post) => <PostCard key={post.id} post={post} />)}
+    <aside aria-labelledby="quick-h" className="flex flex-[0_1_360px] flex-col gap-3.5 rounded-[22px] bg-white p-6 text-ink shadow-hero-card">
+      <h2 id="quick-h" className="font-display text-[22px] font-extrabold">Find your branch</h2>
+      <label className="flex flex-col gap-1.5 text-ui font-semibold">
+        Your county
+        <NativeSelect value={county} onChange={(e) => setCounty(e.target.value)}>
+          <option value="">Choose a county</option>
+          {branches.map((b) => <option key={b.county.id} value={b.county.id}>{b.county.name}</option>)}
+        </NativeSelect>
+      </label>
+      <Button asChild shape="rounded" size="lg"><Link to={county ? `/counties/${county}` : "/counties"}>{county ? "Go to your branch" : "See all counties"}</Link></Button>
+      <div className="flex flex-col border-t border-line-2">
+        {[["Events near me", "/events"], ["Check my membership", "/signin"], ["Primary results", "/results"]].map(([label, to]) => (
+          <Link key={to} to={to} className="flex justify-between border-b border-line-soft py-3 font-semibold text-ink no-underline last:border-0 hover:text-primary">
+            <span>{label}</span><span aria-hidden>→</span>
+          </Link>
+        ))}
       </div>
-      <Link className="site-link" to={to}>See all</Link>
+    </aside>
+  );
+}
+
+/** Rotates every 6 seconds; Pause stops it, and it never moves on its own for reduced motion. */
+export function Carousel() {
+  const { partyName, slogan } = useBranding();
+  const party = useParty().data;
+  const published = usePublicSlides().data || [];
+  const slides = published.length ? published : [{ id: "party", kicker: partyName, headline: slogan || partyName, line: party?.description || "", image_url: "" }];
+  const [index, setIndex] = useState(0);
+  const [playing, setPlaying] = useState(() => !reducedMotion());
+  const count = slides.length;
+  const current = slides[index % count];
+
+  useEffect(() => {
+    if (!playing || count < 2) return undefined;
+    const timer = setInterval(() => setIndex((i) => (i + 1) % count), ROTATE_MS);
+    return () => clearInterval(timer);
+  }, [playing, count]);
+
+  const go = (i) => setIndex(((i % count) + count) % count);
+  const round = "flex size-11 cursor-pointer items-center justify-center rounded-full border-[1.5px] border-white/70 bg-black/20 text-lg text-white";
+  return (
+    <section aria-roledescription="carousel" aria-label="Highlights" className="relative flex min-h-[560px] items-center overflow-hidden bg-ink text-white">
+      {current.image_url ? <img src={current.image_url} alt="" className="absolute inset-0 size-full object-cover" /> : null}
+      <div aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,18,13,0.82)_0%,rgba(8,18,13,0.55)_50%,rgba(8,18,13,0.2)_100%)]" />
+      <div className="site-container relative flex flex-wrap items-center justify-between gap-10 pt-16 pb-28">
+        <div aria-live={playing ? "off" : "polite"} aria-roledescription="slide" aria-label={`${(index % count) + 1} of ${count}`} className="flex min-w-0 flex-[0_1_680px] flex-col gap-[22px]">
+          {current.kicker ? <p className="text-ui font-bold uppercase tracking-[0.12em] text-accent">{current.kicker}</p> : null}
+          <h1 className="font-display text-hero font-extrabold tracking-[-0.03em]">{current.headline}</h1>
+          {current.line ? <p className="max-w-[40ch] text-[19px] leading-[1.6] text-[#ECECE7]">{current.line}</p> : null}
+          <div className="flex flex-wrap gap-3 pt-1.5">
+            <Button asChild variant="accent" size="lg"><Link to="/join-party">Join the party</Link></Button>
+            <SlideButton slide={current} />
+          </div>
+        </div>
+        <BranchFinder />
+      </div>
+      {count > 1 ? (
+        <div className="absolute inset-x-0 bottom-7">
+          <div className="site-container flex flex-wrap items-center gap-3">
+            <button type="button" aria-label="Previous slide" onClick={() => go(index - 1)} className={round}>‹</button>
+            <div role="group" aria-label="Choose slide" className="flex gap-1.5">
+              {slides.map((s, i) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  aria-label={`Slide ${i + 1}`}
+                  aria-current={i === index % count ? "true" : undefined}
+                  onClick={() => go(i)}
+                  className="flex h-11 min-w-11 cursor-pointer items-center justify-center bg-transparent"
+                >
+                  <span className={i === index % count ? "h-2.5 w-7 rounded-full bg-accent" : "size-2.5 rounded-full bg-white/60"} />
+                </button>
+              ))}
+            </div>
+            <button type="button" aria-label="Next slide" onClick={() => go(index + 1)} className={round}>›</button>
+            <button type="button" onClick={() => setPlaying(!playing)} className="h-11 cursor-pointer rounded-full border-[1.5px] border-white/70 bg-black/20 px-3.5 text-small font-bold text-white">
+              {playing ? "Pause" : "Play"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function Ticker({ news }) {
+  if (!news.length) return null;
+  return (
+    <div className="border-b border-line-2 bg-white">
+      <div className="site-container flex flex-wrap items-center gap-x-7 gap-y-3 py-3.5">
+        <span className="rounded-sm bg-ink px-2.5 py-1.5 text-meta font-extrabold uppercase tracking-[0.12em] text-accent">Latest</span>
+        {news.slice(0, 3).map((n) => <Link key={n.id} to={`/news/${n.id}`} className="text-body font-semibold text-ink no-underline hover:text-primary">{n.title}</Link>)}
+      </div>
+    </div>
+  );
+}
+
+function Agenda() {
+  const issues = usePublicIssues().data || [];
+  if (!issues.length) return null;
+  return (
+    <section id="issues" className="scroll-mt-24 bg-white">
+      <div className="site-container flex flex-col gap-8 py-20">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex max-w-[640px] flex-col gap-2.5">
+            <p className="kicker">Our agenda</p>
+            <h2 className="font-display text-section font-extrabold tracking-[-0.02em]">Where we stand</h2>
+          </div>
+          <Link to="/manifesto" className="font-bold">Read the manifesto</Link>
+        </div>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
+          {issues.map((issue, i) => (
+            <Card key={issue.id} asChild interactive>
+              <Link to={`/issues/${issue.id}`} className="text-ink no-underline hover:text-ink">
+                <span className="flex size-11 items-center justify-center rounded-lg bg-primary-tint font-display font-extrabold text-primary">{i + 1}</span>
+                <span className="text-card-title font-bold">{issue.title}</span>
+                <span className="text-body text-muted-foreground">{issue.summary}</span>
+                <span className="mt-auto text-ui font-bold text-primary">Our position →</span>
+              </Link>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Photo({ url, className }) {
+  return url ? <img src={url} alt="" className={`object-cover ${className}`} /> : <div className={`ph ${className}`} />;
+}
+
+function News({ news }) {
+  if (!news.length) return null;
+  const [lead, ...rest] = news;
+  return (
+    <section id="news" className="bg-stone">
+      <div className="site-container flex flex-col gap-7 py-20">
+        <SectionHead kicker="From the party" title="News & statements" action={{ label: "All news", to: "/news" }} />
+        <div className="flex flex-wrap gap-7">
+          <Link to={`/news/${lead.id}`} className="flex min-w-0 flex-[3_1_460px] flex-col gap-3.5 text-ink no-underline hover:text-ink">
+            <Photo url={lead.image_url} className="aspect-video w-full rounded-card" />
+            <span className="text-meta font-extrabold uppercase tracking-[0.1em] text-muted-foreground">{ago(lead.published_on)}</span>
+            <span className="font-display text-[30px] leading-[1.15] font-extrabold tracking-[-0.01em]">{lead.title}</span>
+            {lead.body ? <span className="line-clamp-2 text-muted-foreground">{lead.body}</span> : null}
+          </Link>
+          <div className="flex min-w-0 flex-[2_1_320px] flex-col">
+            {rest.slice(0, 3).map((n) => (
+              <Link key={n.id} to={`/news/${n.id}`} className="flex gap-4 border-b border-line-2 py-4 text-ink no-underline hover:text-primary">
+                <Photo url={n.image_url} className="h-[76px] w-[104px] flex-none rounded-photo" />
+                <span className="flex min-w-0 flex-col gap-1.5">
+                  <span className="line-clamp-2 font-bold leading-[1.35]">{n.title}</span>
+                  <span className="text-small text-muted-foreground">{ago(n.published_on)}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Events() {
+  const events = usePublicPosts("event").data || [];
+  if (!events.length) return null;
+  return (
+    <section id="events" className="bg-ink text-on-dark">
+      <div className="site-container flex flex-col gap-7 py-[72px]">
+        <SectionHead kicker="Coming up" title="Upcoming events" action={{ label: "Full calendar", to: "/events" }} onDark />
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
+          {events.slice(0, 3).map((e) => {
+            const d = new Date(`${e.event_date}T00:00:00`);
+            return (
+              <Link key={e.id} to={`/news/${e.id}`} className="flex flex-col gap-3.5 rounded-photo border border-ink-2 p-[22px] text-on-dark no-underline hover:text-white">
+                <span className="flex h-16 w-[58px] flex-col items-center justify-center rounded-lg bg-accent text-ink">
+                  <span className="text-[11px] font-extrabold tracking-[0.08em] uppercase">{d.toLocaleDateString("en-GB", { month: "short" })}</span>
+                  <span className="font-display text-2xl leading-none font-extrabold">{d.getDate()}</span>
+                </span>
+                <span className="text-[19px] leading-[1.3] font-bold">{e.title}</span>
+                {e.venue ? <span className="text-ui text-on-dark-muted">{e.venue}</span> : null}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Branches() {
+  const branches = usePublicBranches().data || [];
+  const [county, setCounty] = useState("");
+  if (!branches.length) return null;
+  const b = branches.find((x) => x.county.id === county);
+  return (
+    <section id="branches" className="bg-mint">
+      <div className="site-container flex flex-wrap items-center gap-10 py-20">
+        <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-4">
+          <p className="kicker">In all {branches.length} counties</p>
+          <h2 className="font-display text-section font-extrabold tracking-[-0.02em]">Find your branch</h2>
+          <p className="text-lead text-text-2">Meet your county officials, attend local meetings and get involved where you live.</p>
+          <label className="flex max-w-[360px] flex-col gap-1.5 text-ui font-semibold">
+            County
+            <NativeSelect value={county} onChange={(e) => setCounty(e.target.value)}>
+              <option value="">Choose a county</option>
+              {branches.map((x) => <option key={x.county.id} value={x.county.id}>{x.county.name}</option>)}
+            </NativeSelect>
+          </label>
+        </div>
+        <Card variant="elevated" className="min-w-0 flex-[1_1_420px] rounded-panel p-7">
+          {b ? (
+            <>
+              <h3 className="text-h3 font-bold">{b.county.name} branch</h3>
+              <div className="flex flex-col gap-2 text-body">
+                {b.chairperson ? <span><strong>Chairperson:</strong> {b.chairperson}</span> : null}
+                {b.secretary ? <span><strong>Secretary:</strong> {b.secretary}</span> : null}
+                {b.office_address ? <span><strong>Office:</strong> {[b.office_address, b.phone].filter(Boolean).join(" · ")}</span> : null}
+                {b.next_meeting_on ? <span><strong>Next branch meeting:</strong> {ago(b.next_meeting_on)}{b.next_meeting_venue ? `, ${b.next_meeting_venue}` : ""}</span> : null}
+              </div>
+              <Link to={`/counties/${b.county.id}`} className="font-bold">Visit the {b.county.name} branch page →</Link>
+            </>
+          ) : (
+            <>
+              <span className="text-lead font-bold">Choose a county to see its branch</span>
+              <span className="text-muted-foreground">Officials, office address and the next branch meeting appear here.</span>
+            </>
+          )}
+        </Card>
+      </div>
+    </section>
+  );
+}
+
+function Leadership() {
+  const leaders = usePublicLeaders().data || [];
+  if (!leaders.length) return null;
+  return (
+    <section id="about" className="bg-primary text-white">
+      <div className="site-container flex flex-col gap-7 py-[72px]">
+        <SectionHead kicker="Who leads us" title="Party leadership" action={{ label: "Meet the leadership", to: "/leadership" }} onDark />
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-5">
+          {leaders.slice(0, 4).map((l) => (
+            <div key={l.id} className="flex items-center gap-3.5">
+              {l.photo_url ? <img src={l.photo_url} alt="" className="size-[72px] flex-none rounded-full border-2 border-accent object-cover" /> : <span className="size-[72px] flex-none rounded-full border-2 border-accent bg-white/20" />}
+              <span className="flex flex-col gap-0.5">
+                <span className="font-bold">{l.name}</span>
+                <span className="text-ui text-[#CFE0D5]">{l.position}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TakePart() {
+  const panel = "flex flex-col gap-3.5 rounded-panel p-8";
+  const title = "font-display text-[28px] font-extrabold";
+  return (
+    <section id="take-part" className="bg-white">
+      <div className="site-container flex flex-col gap-7 py-20">
+        <SectionHead kicker="Get involved" title="Three ways to take part" />
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
+          <div className={`${panel} bg-accent text-ink`}>
+            <h3 className={title}>Join the party</h3>
+            <p className="text-[#3B3415]">Become a registered member and have a say in your branch.</p>
+            <Button asChild variant="ink" className="mt-auto self-start"><Link to="/join-party">Register as a member</Link></Button>
+          </div>
+          <div className={`${panel} bg-primary text-white`}>
+            <h3 className={title}>Vie with us</h3>
+            <p className="text-[#CFE0D5]">Seeking a seat? Learn how to become an aspirant and get the party's campaign tools.</p>
+            <Button asChild variant="accent" className="mt-auto self-start"><Link to="/vie">Become an aspirant</Link></Button>
+          </div>
+          <Card variant="elevated" className={`${panel} p-8`}>
+            <h3 className={title}>Contribute</h3>
+            <p className="text-text-2">Support the party's work in every county.</p>
+            <Button asChild variant="ink" className="mt-auto self-start"><Link to="/contribute">Give now</Link></Button>
+          </Card>
+        </div>
+      </div>
     </section>
   );
 }
 
 export default function Home() {
-  const party = useParty().data;
+  const news = usePublicPosts("news").data || [];
   return (
     <>
-      <section className="site-hero">
-        <h1 className="site-title">{party?.name || "Welcome"}</h1>
-        {party?.description && <p className="site-lead">{party.description}</p>}
-        <Link className="site-button" to="/join-party">Join the party</Link>
-      </section>
-      <Latest title="Latest news" kind="news" to="/news" />
-      <Latest title="Coming events" kind="event" to="/events" />
+      <Carousel />
+      <Ticker news={news} />
+      <Agenda />
+      <News news={news} />
+      <Events />
+      <Branches />
+      <Leadership />
+      <TakePart />
     </>
   );
 }

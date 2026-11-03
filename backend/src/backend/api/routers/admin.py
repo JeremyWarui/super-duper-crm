@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Response, status
 
 from backend.api.deps import AdminUser, SessionDep, Today
-from backend.models import PartyRoleName, PostKind, UserRole
+from backend.models import AgendaIssue, HeroSlide, PartyRoleName, PostKind, UserRole
 from backend.schemas.admin import (
     ActiveSet,
     AdminCampaignCreate,
@@ -28,16 +28,22 @@ from backend.schemas.content import (
     BranchAdminRead,
     BranchUpdate,
     CountyBranch,
+    IssueAdminRead,
+    IssueCreate,
+    IssueUpdate,
     LeaderAdminRead,
     LeaderCreate,
     LeaderUpdate,
     PostAdminRead,
     PostCreate,
     PostUpdate,
+    SlideAdminRead,
+    SlideCreate,
+    SlideUpdate,
 )
 from backend.schemas.party import PartySettingsRead, PartySettingsUpdate
 from backend.services import admin as service
-from backend.services import audit, branches, content
+from backend.services import audit, branches, content, home
 from backend.services import party as party_service
 from backend.services.errors import Refused
 
@@ -299,3 +305,47 @@ async def audit_events(
     return await audit.events(
         session, subject_type=subject_type, subject_id=subject_id, limit=limit
     )
+
+
+@router.get("/party/slides/", response_model=list[SlideAdminRead])
+async def party_slides(session: SessionDep, _: AdminUser):
+    return await home.every(session, HeroSlide)
+
+
+@router.post("/party/slides/", response_model=SlideAdminRead, status_code=status.HTTP_201_CREATED)
+async def create_party_slide(payload: SlideCreate, session: SessionDep, admin: AdminUser):
+    return await home.create(session, HeroSlide, payload, actor=admin)
+
+
+@router.patch("/party/slides/{slide_id}/", response_model=SlideAdminRead)
+async def update_party_slide(
+    slide_id: uuid.UUID, payload: SlideUpdate, session: SessionDep, admin: AdminUser
+):
+    return await home.update(session, HeroSlide, slide_id, payload, actor=admin)
+
+
+@router.delete("/party/slides/{slide_id}/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_party_slide(slide_id: uuid.UUID, session: SessionDep, admin: AdminUser):
+    await home.delete(session, HeroSlide, slide_id, actor=admin)
+
+
+@router.get("/party/issues/", response_model=list[IssueAdminRead])
+async def party_issues(session: SessionDep, _: AdminUser):
+    return await home.every(session, AgendaIssue)
+
+
+@router.post("/party/issues/", response_model=IssueAdminRead, status_code=status.HTTP_201_CREATED)
+async def create_party_issue(payload: IssueCreate, session: SessionDep, admin: AdminUser):
+    return await home.create(session, AgendaIssue, payload, actor=admin)
+
+
+@router.patch("/party/issues/{issue_id}/", response_model=IssueAdminRead)
+async def update_party_issue(
+    issue_id: uuid.UUID, payload: IssueUpdate, session: SessionDep, admin: AdminUser
+):
+    return await home.update(session, AgendaIssue, issue_id, payload, actor=admin)
+
+
+@router.delete("/party/issues/{issue_id}/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_party_issue(issue_id: uuid.UUID, session: SessionDep, admin: AdminUser):
+    await home.delete(session, AgendaIssue, issue_id, actor=admin)

@@ -23,7 +23,7 @@ const PAGES = [
   ["aspirants", "Aspirants", "nominations_officer", <Aspirants key="aspirants" />],
   ["finance", "Finance", "finance_officer", <Finance key="finance" />],
   ["branches", "Branches", "superuser", <Branches key="branches" />, { kit: true, context: "Party structure", title: "Branches" }],
-  ["website", "Website", "superuser", <Website key="website" />],
+  ["website", "Website", "superuser", <Website key="website" />, { kit: true, context: "Website content", title: "Edit the party website" }],
 ];
 
 /** The party CRM's sidebar for a login: the pages its offices open, and the console for the superuser. */

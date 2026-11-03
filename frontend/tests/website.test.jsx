@@ -75,6 +75,37 @@ describe("the website editor", () => {
     await waitFor(() => expect(sent(calls, "DELETE", "/admin/party/posts/p1/")).toBeDefined());
   });
 
+  it("saves slides with the order the editor gives them", async () => {
+    const user = userEvent.setup();
+    const calls = stubApi({
+      ...ROUTES,
+      "GET /admin/party/slides/": [{ id: "s1", headline: "Jobs for all", kicker: "", line: "", button_label: "", button_url: "", image_url: "", sort_order: 1, published: true }],
+      "GET /admin/party/issues/": [],
+      "POST /admin/party/slides/": { id: "s2" },
+      "PATCH /admin/party/slides/s1/": { id: "s1" },
+    });
+    signInAsSuperuser();
+    renderApp(<Root />, { path: "/party/website" });
+    await user.click(await screen.findByRole("button", { name: "Homepage" }));
+
+    await user.click(await screen.findByRole("button", { name: "New slide" }));
+    await user.type(screen.getByLabelText("Headline"), "Fair prices");
+    await user.clear(screen.getByLabelText(/^Order/));
+    await user.type(screen.getByLabelText(/^Order/), "2");
+    await user.click(screen.getByRole("button", { name: "Add slide" }));
+    await waitFor(() =>
+      expect(sent(calls, "POST", "/admin/party/slides/")?.body).toMatchObject({ headline: "Fair prices", sort_order: 2 }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.clear(screen.getByLabelText(/^Order/));
+    await user.type(screen.getByLabelText(/^Order/), "3");
+    await user.click(screen.getByRole("button", { name: "Save slide" }));
+    await waitFor(() =>
+      expect(sent(calls, "PATCH", "/admin/party/slides/s1/")?.body).toEqual({ sort_order: 3 }),
+    );
+  });
+
   it("saves an event only once it has a date", async () => {
     const user = userEvent.setup();
     const calls = await openWebsite();

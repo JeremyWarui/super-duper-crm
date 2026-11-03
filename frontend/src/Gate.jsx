@@ -26,6 +26,7 @@ import Privacy from "./pages/public/Privacy";
 import Unsubscribe from "./pages/public/Unsubscribe";
 import Chooser from "./pages/public/Chooser";
 import Branch from "./pages/public/Branch";
+import Issue from "./pages/public/Issue";
 import Branches from "./pages/public/Branches";
 import Account from "./pages/member/Account";
 import WithdrawParty from "./pages/public/WithdrawParty";
@@ -129,7 +130,8 @@ function WithdrawVolunteerPage() {
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<PublicLayout><LegacySite><Home /></LegacySite></PublicLayout>} />
+      <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
+      <Route path="/issues/:id" element={<PublicLayout><Issue /></PublicLayout>} />
       <Route path="/about" element={<PublicLayout><LegacySite><About /></LegacySite></PublicLayout>} />
       <Route path="/leadership" element={<PublicLayout><LegacySite><Leadership /></LegacySite></PublicLayout>} />
       <Route path="/manifesto" element={<PublicLayout><LegacySite><Manifesto /></LegacySite></PublicLayout>} />

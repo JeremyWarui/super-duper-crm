@@ -103,3 +103,33 @@ class Branch(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     updated_at: Mapped[datetime] = _updated_at()
 
     county: Mapped["County"] = relationship(lazy="raise")
+
+
+class HeroSlide(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """One slide of the homepage carousel, shown once published; at most five exist."""
+
+    __tablename__ = "hero_slides"
+
+    image_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    kicker: Mapped[str] = mapped_column(String(80), default="", server_default="")
+    headline: Mapped[str] = mapped_column(String(120))
+    line: Mapped[str] = mapped_column(String(300), default="", server_default="")
+    button_label: Mapped[str] = mapped_column(String(40), default="", server_default="")
+    button_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    updated_at: Mapped[datetime] = _updated_at()
+
+
+class AgendaIssue(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """One issue of the party's agenda, on the homepage and its own page once published."""
+
+    __tablename__ = "agenda_issues"
+
+    title: Mapped[str] = mapped_column(String(150))
+    summary: Mapped[str] = mapped_column(String(300), default="", server_default="")
+    what_we_will_do: Mapped[str] = mapped_column(Text, default="", server_default="")
+    why_it_matters: Mapped[str] = mapped_column(Text, default="", server_default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    updated_at: Mapped[datetime] = _updated_at()

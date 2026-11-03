@@ -538,6 +538,8 @@ function useSiteWrite(mutationFn) {
       qc.invalidateQueries({ queryKey: ["site"] });
       qc.invalidateQueries({ queryKey: ["public-leaders"] });
       qc.invalidateQueries({ queryKey: ["public-posts"] });
+      qc.invalidateQueries({ queryKey: ["public-slides"] });
+      qc.invalidateQueries({ queryKey: ["public-issues"] });
     },
   });
 }
@@ -562,6 +564,37 @@ export const useSavePost = () =>
 
 export const useDeletePost = () =>
   useSiteWrite((id) => api(`/admin/party/posts/${id}/`, { method: "DELETE" }));
+
+// The homepage's carousel slides and agenda issues: published ones, or all of them for the editor.
+export const usePublicSlides = () =>
+  useQuery({ queryKey: ["public-slides"], queryFn: () => api("/party/slides/", { anonymous: true }) });
+
+export const usePublicIssues = () =>
+  useQuery({ queryKey: ["public-issues"], queryFn: () => api("/party/issues/", { anonymous: true }) });
+
+export const usePublicIssue = (id) =>
+  useQuery({ queryKey: ["public-issues", id], queryFn: () => api(`/party/issues/${id}/`, { anonymous: true }) });
+
+export const useSiteSlides = () =>
+  useQuery({ queryKey: ["site", "slides"], queryFn: () => api("/admin/party/slides/") });
+
+export const useSiteIssues = () =>
+  useQuery({ queryKey: ["site", "issues"], queryFn: () => api("/admin/party/issues/") });
+
+export const useSaveSlide = () =>
+  useSiteWrite(({ id, ...body }) =>
+    id
+      ? api(`/admin/party/slides/${id}/`, { method: "PATCH", body })
+      : api("/admin/party/slides/", { method: "POST", body }),
+  );
+export const useSaveIssue = () =>
+  useSiteWrite(({ id, ...body }) =>
+    id
+      ? api(`/admin/party/issues/${id}/`, { method: "PATCH", body })
+      : api("/admin/party/issues/", { method: "POST", body }),
+  );
+export const useDeleteSlide = () => useSiteWrite((id) => api(`/admin/party/slides/${id}/`, { method: "DELETE" }));
+export const useDeleteIssue = () => useSiteWrite((id) => api(`/admin/party/issues/${id}/`, { method: "DELETE" }));
 
 // Counties, or one county's constituencies, or one constituency's wards.
 export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = {}) =>
