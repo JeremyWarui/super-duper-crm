@@ -133,8 +133,8 @@ export function AppRoutes() {
       <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
       <Route path="/issues/:id" element={<PublicLayout><Issue /></PublicLayout>} />
       <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
-      <Route path="/leadership" element={<PublicLayout><LegacySite><Leadership /></LegacySite></PublicLayout>} />
-      <Route path="/manifesto" element={<PublicLayout><LegacySite><Manifesto /></LegacySite></PublicLayout>} />
+      <Route path="/leadership" element={<PublicLayout><Leadership /></PublicLayout>} />
+      <Route path="/manifesto" element={<PublicLayout><Manifesto /></PublicLayout>} />
       <Route path="/news" element={<PublicLayout><News /></PublicLayout>} />
       <Route path="/news/:id" element={<PublicLayout><PostPage /></PublicLayout>} />
       <Route path="/events" element={<PublicLayout><Events /></PublicLayout>} />
