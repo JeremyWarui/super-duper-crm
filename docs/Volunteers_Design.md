@@ -11,8 +11,9 @@ It builds on `docs/Identity_Access_Design.md` (members, volunteers, the
 `party_requests` queue) and `docs/Website_Design.md` (public site, website
 editor, `/signin`).
 
-Status: draft for approval, 3 November 2026, with Jeremy's answers to the
-first draft's eight questions folded in.
+Status: approved 3 November 2026, with the recommended answers to open points
+A to C (section 6). The SMS code at sign-in is held back until an SMS provider
+is set up (section 5).
 
 Decisions taken by Jeremy on 3 November 2026:
 
@@ -22,10 +23,10 @@ Decisions taken by Jeremy on 3 November 2026:
 2. **Every approved member can sign in** to their member account, volunteer
    or not. Members vote in primaries and nominations, so they need accounts.
    A volunteer reaches their member account only, never the party console.
-3. **One sign-in for everyone:** email and password, then a 6-digit code by
-   SMS to the phone on file. This replaces username and password for staff
-   and campaign logins too. `SMS_PROVIDER=console` prints the code in the
-   API's terminal; live use needs an SMS provider.
+3. **One sign-in for everyone: email and password.** This replaces username
+   and password for staff and campaign logins too. A 6-digit SMS code after
+   the password comes last, once an SMS provider is chosen and set up; its
+   design is kept in section 5.
 4. **The Join form asks for email and a password**, both required, like the
    sample. Sign-in works once an officer approves the member.
 5. **Polling station is required of every applicant** on the Join form. It is
@@ -42,7 +43,7 @@ Decisions taken by Jeremy on 3 November 2026:
    campaign's manager sees them.
 
 This replaces the design approved on the morning of 3 November: volunteers are
-members again, everyone signs in with an SMS code, and the party `/volunteer`
+members again, everyone signs in with email and password, and the party `/volunteer`
 page and the campaign `/volunteer/<code>` page are not built. It reverses
 `Implementation_Plan.md` "Volunteers have no login".
 
@@ -63,8 +64,7 @@ mix.
 | Profile follows the member | `follow_member`, `follow_withdrawal` | Kept unchanged |
 | Officer register | `/party/volunteers`, `api/routers/party_volunteers.py`, CSV | New areas, profession and polling station; party rows only |
 | Volunteer withdraw link | `/party/volunteer/withdraw/<code>`, queued | Kept |
-| Sign-in | `POST /api/auth/login/` username and password; `auth_tokens`, one per `users` row; `users.kind` is `staff` or `campaign`; `api/deps.py` `get_current_user` lets a login with no campaign role straight through | Email, password, then SMS code, for every login. A new login kind, `member` |
-| SMS | `services/sms.py`; `ConsoleSMSProvider` logs only counts | The console provider also logs the message text |
+| Sign-in | `POST /api/auth/login/` username and password; `auth_tokens`, one per `users` row; `users.kind` is `staff` or `campaign`; `api/deps.py` `get_current_user` lets a login with no campaign role straight through | Email and password for every login. A new login kind, `member` |
 | Aspirants and campaigns | `aspirants` (member, seat, area, status, `campaign_id`); `api/routers/join.py` `_access` | The directory lists approved aspirants; the volunteer form needs a campaign with access |
 | Party events | `party_posts` of kind event, `GET /api/party/posts/?kind=event`, edited in `pages/party/Website.jsx` (superuser) | An event can name aspirants; listed on the member account and on the aspirant's profile |
 
@@ -104,7 +104,7 @@ R5-1 (`a8344f6`, migration `volunteer_register`) is not rolled back.
 
 ### Data model
 
-Three revisions, in this order: `volunteer_areas` (R5-2), `sign_in_codes`
+Three revisions, in this order: `volunteer_areas` (R5-2), `member_logins`
 (R5-3), `candidate_profiles` (R5-6).
 
 #### `party_members` and `volunteer_profiles` (R5-2, `volunteer_areas`)
@@ -122,24 +122,12 @@ Three revisions, in this order: `volunteer_areas` (R5-2), `sign_in_codes`
 `materials`, `data_collection`, `community_listening`, `barazas`, `other`;
 labels as on the sample ("Holding Barazas & Household Meetings").
 
-#### `users` and `sign_in_codes` (R5-3, `sign_in_codes`)
+#### `users` (R5-3, `member_logins`)
 
 | Change | Rule |
 |---|---|
 | `UserKind.MEMBER` | A member's own login: no campaign role, no party office, `party_member_id` set. The kind CHECK becomes: `staff` and `member` have no role, `campaign` has one; `member` requires `party_member_id` |
 | `users.email` | Unique (case-folded) where not empty; the sign-in name. `username` stays for the CLI |
-| `users.phone` | The code goes here; a login without one cannot finish signing in |
-
-`sign_in_codes` (new):
-
-| Column | Rule |
-|---|---|
-| `id` | UUID; the challenge id the browser holds between the two steps |
-| `user_id` | FK `users` ON DELETE CASCADE, unique (one live code per login) |
-| `code_hash` | HMAC-SHA256 of the code with `SECRET_KEY`; the code is never stored |
-| `expires_at` | 10 minutes after sending |
-| `tries_left` | 3 |
-| `created_at` | for the 45-second resend wait |
 
 #### `candidate_profiles` and event links (R5-6, `candidate_profiles`)
 
@@ -179,32 +167,26 @@ name and password hash, created or refreshed. When the email already belongs
 to a login linked to the same member, no second login is made and that login's
 chooser gives My membership. When it belongs to an unrelated login, the member
 is still added but gets no member login, and the officer's member list shows
-"No sign-in: email in use"; the public answer is unchanged (open point B).
+"No sign-in: email in use"; the public answer is unchanged (decision B).
 
 ### Sign-in for everyone (R5-3, R5-5)
 
 | Route | Does |
 |---|---|
-| `POST /api/auth/login/` `{email, password}` | Wrong email or password: today's 400 "Unable to log in with the provided credentials.". Right: writes a code, sends it by SMS to the login's phone, answers `{challenge, phone_hint}` (`07•• ••• 678`) and no token. A login with no phone gets 400 "This login has no phone number. Ask the party office." 10 tries an hour per device |
-| `POST /api/auth/verify/` `{challenge, code}` | Right code, unexpired, tries left: deletes the code and answers `{token, user}` as `login` does today. Otherwise 400 "That code didn't match." with `tries_left`; the third miss deletes the code |
-| `POST /api/auth/resend/` `{challenge}` | A new code, refused for 45 seconds after the last one |
+| `POST /api/auth/login/` `{email, password}` | Replaces `{username, password}`. Wrong email or password: today's 400 "Unable to log in with the provided credentials.". Right: `{token, user}` as today. 10 tries an hour per device |
 | `POST /api/auth/logout/` | Unchanged |
 
 **A member login can sign in** only while its member is `approved`;
-otherwise the password step answers the same 400 as a wrong password. Every
-`/api/account/` request rechecks this, so suspension or withdrawal ends the
-session at the next request.
-
-`services/sms.py` `ConsoleSMSProvider` logs each message's text at INFO, so
-the code shows in the API's terminal. The SMS reads: "<Party short name> code:
-123456. It expires in 10 minutes. Do not share it."
+otherwise it gets the same 400 as a wrong password. Every `/api/account/`
+request rechecks this, so suspension or withdrawal ends the session at the
+next request.
 
 **The demo and existing logins:**
-- `campaign-crm demo` gives every login it makes an email (`<username>@demo.mzigo.test`) and a phone, and adds one approved member with a volunteer profile and a member login.
-- A new command, `campaign-crm set-contact -u <username> --email <e> --phone <p>`, fills them for logins made before R5 (`r2check`, `teuzi`, `pesa`, the Achieng logins).
-- Signing in locally: email, the login's password (`Mzigo-Demo-2026` for the local logins today; `campaign-crm demo` uses `DEFAULT_USER_PASSWORD`), then the code from the terminal running `uvicorn`.
+- `campaign-crm demo` gives every login it makes an email (`<username>@demo.mzigo.test`), and adds one approved member with a volunteer profile and a member login.
+- A new command, `campaign-crm set-email -u <username> --email <e>`, fills the email of logins made before R5 (`r2check`, `teuzi`, `pesa`, the Achieng logins).
+- Signing in locally: email and the login's password (`Mzigo-Demo-2026` for the local logins today; `campaign-crm demo` uses `DEFAULT_USER_PASSWORD`).
 
-### Where a login goes after the code (R5-5)
+### Where a login goes after sign-in (R5-5)
 
 | Login | Goes to |
 |---|---|
@@ -237,7 +219,7 @@ code, so `follow_withdrawal` and the officer flow are unchanged.
 
 The website editor creates each profile from what the candidate sends. The
 website editor is the superuser today, as for the rest of the website in R4
-(open point A). Nothing on a profile is read from a campaign's CRM.
+(decision A). Nothing on a profile is read from a campaign's CRM.
 
 | Route | Does |
 |---|---|
@@ -253,7 +235,7 @@ website editor is the superuser today, as for the rest of the website in R4
 **Volunteering open** when listed and the aspirant has a campaign whose access
 is active or grace period. Otherwise the profile shows no form. This is the one
 thing the website checks about a campaign: a yes or no, no CRM content
-(open point C).
+(decision C).
 
 The directory shows one list ("Aspirants") with filters for seat, county and a
 name or area search; the design's Nominees tab waits for primaries. The
@@ -270,7 +252,6 @@ The campaign volunteer routes join `CAMPAIGN_READS` / writes in
 |---|---|
 | `pages/public/JoinParty.jsx` | Rebuilt on `Join.dc.html`: three steps (Your details with email and password; Your branch with a required polling station and the "Volunteer for events" tick opening the sample's fields; Consent) and the done screen with withdrawal links. No national ID, date of birth, sex, leagues, declaration or fee |
 | `components/Login.jsx` (shown by `SignInPage` in `src/Gate.jsx`, `/signin`) | Rebuilt on `SignIn.dc.html` as one form: email, password, Sign in. No tabs |
-| `pages/public/SignInCode.jsx` (`/signin/code`) | `SysCode.dc.html`: six-digit box, tries left, resend after 45 s, use a different login. No voice call |
 | `pages/public/Chooser.jsx` (`/signin/where`) | `SysChooser.dc.html`, for linked logins only |
 | `pages/member/Account.jsx` (`/account`) | `MemberAccount.dc.html` with the parts above |
 | `pages/public/Candidates.jsx` (`/candidates`), `Candidate.jsx` (`/candidates/:slug`) | `Candidates.dc.html`, `Candidate.dc.html` as above |
@@ -294,17 +275,17 @@ it. Each ticket gets one cold critic judged on its text and section 4 only.
 - Files: revision `volunteer_areas`; `models/enums.py` (`VolunteerArea`), `models/party.py`; `schemas/party.py`, `schemas/dashboard.py`; `services/membership.py`, `services/volunteers.py`, `services/dashboard.py`; `api/routers/party.py` (join, centres of a ward), `api/routers/party_volunteers.py`; `docs/party-platform-design/party-platform-design/screens/Join.dc.html` (polling centre required, email required, password field); tests; `backend/evals/test_inbox_constant_work.py`, whose join payload and `VOLUNTEER_PART` change.
 - Tests: a join stores first name and surname, email and polling station on the member; with the tick, the volunteer's profession and areas; a centre outside the ward, a missing email or password, and `other` without text are refused; the queued payload holds no clear password; a party row without a member and a campaign row with one fail at the database; the register, CSV and dashboard leave campaign rows out.
 
-**R5-3 Sign-in for everyone and the account API** (backend; depends R5-2)
-- Files: revision `sign_in_codes`; `models/user.py`, `models/enums.py` (`UserKind.MEMBER`); `services/sign_in.py`, `services/sms.py`, `services/membership.py` (member login on apply); `api/deps.py`; `api/routers/auth.py`, `api/routers/account.py`, `api/routers/party_members.py` and `schemas/party.py` `MemberRead` (`has_login`); `cli.py` (`set-contact`); `seed/demo.py`; tests.
-- Tests: a right password sends one code and gives no token; a right code gives the token once; three misses spend the code; an expired code fails; a resend inside 45 s is refused; a pending member's right password gets the wrong-password answer; a member login gets 403 from every staff and campaign route, and suspending the member makes its next account request 401; a linked campaign login reads its member's account; the console provider logs the code; applying a join makes a member login, and an email already in use leaves the member without one.
+**R5-3 Email sign-in for everyone and the account API** (backend; depends R5-2)
+- Files: revision `member_logins`; `models/user.py`, `models/enums.py` (`UserKind.MEMBER`); `schemas/auth.py`; `services/accounts.py`, `services/membership.py` (member login on apply); `api/deps.py`; `api/routers/auth.py`, `api/routers/account.py`, `api/routers/party_members.py` and `schemas/party.py` `MemberRead` (`has_login`); `cli.py` (`set-email`); `seed/demo.py`; tests.
+- Tests: a login signs in with email and password and no longer with a username; a pending member's right password gets the wrong-password answer; a member login gets 403 from every staff and campaign route, and suspending the member makes its next account request 401; a linked campaign login reads its member's account; applying a join makes a member login, and an email already in use leaves the member without one.
 
 **R5-4 Join page and party volunteer pages** (frontend; depends R5-2)
 - Files: `pages/public/JoinParty.jsx`, `pages/party/Volunteers.jsx`, `Dashboard.jsx`, `Members.jsx` ("No sign-in: email in use"), `helpers.js`, `api/hooks`, contract, tests.
 - Tests: the polling station is required and loads for the chosen ward; the tick shows and requires the volunteer fields; the request carries what the route takes; the officer register filters by the new areas.
 
 **R5-5 Sign-in and account pages** (frontend; depends R5-3)
-- Files: `components/Login.jsx`, `SignInCode.jsx`, `Chooser.jsx`, `pages/member/Account.jsx`, `Gate.jsx`, `App.jsx`, `api/hooks`, `store`, contract, tests; `screens/SignIn.dc.html` (one email and password form, no tabs).
-- Tests: the password step moves to the code page; a wrong code shows tries left; a right code opens the account, the chooser for a linked login, or the console; the account shows the card, the volunteer details or the volunteer form, and the empty tasks state; a 401 returns to `/signin`.
+- Files: `components/Login.jsx`, `Chooser.jsx`, `pages/member/Account.jsx`, `Gate.jsx`, `App.jsx`, `api/hooks`, `store`, contract, tests; `screens/SignIn.dc.html` (one email and password form, no tabs).
+- Tests: the form sends email and password; a member login opens the account, a linked login the chooser, others the console; the account shows the card, the volunteer details or the volunteer form, and the empty tasks state; a 401 returns to `/signin`.
 
 **R5-6 Candidate profiles and campaign volunteers API** (backend; depends R5-3)
 - Files: revision `candidate_profiles`; `models/content.py`; `schemas/candidates.py`; `services/candidates.py`, `services/content.py`, `services/volunteers.py`; `api/routers/candidates.py`, `api/routers/admin.py` (profiles, event aspirants), `api/routers/campaigns.py`; `tests/test_route_guards.py`; tests.
@@ -326,10 +307,10 @@ listed as non-blocking under Known gaps.
 
 1. The Join form requires first name, surname, phone, email, password, ward and a polling station within that ward. The tick adds and requires profession (Other with text), one or more of the ten areas (Other with text), preferred contact and volunteer consent. The result is a pending member with those details, a volunteer profile when ticked, and a member login with the password, which no queued row holds in clear.
 2. A party volunteer row always has a member and a campaign volunteer row never does, enforced by the database.
-3. Every login signs in with email and password, then a 6-digit SMS code to its phone; the password alone gives no token. With `SMS_PROVIDER=console` the code appears in the API's terminal, and the demo logins can sign in this way.
-4. A code works once, within 10 minutes, and is spent after three misses; a resend waits 45 seconds.
+3. Every login signs in with email and password, and a username no longer signs in; the demo logins and `set-email` give every local login an email.
+4. A wrong email and a wrong password get the same answer, and so does a member who is not approved.
 5. A member login signs in only while its member is approved, opens only `/api/account/` routes, and is refused at its next request once the member stops being approved.
-6. After the code, a member login opens its account; a linked staff or campaign login gets the chooser; others go where they go today.
+6. After sign-in, a member login opens its account; a linked staff or campaign login gets the chooser; others go where they go today.
 7. The account shows the member card, the volunteer part (details with a working change form, or the volunteer form for a non-volunteer), the empty tasks state, upcoming party events, and the data and privacy part; "Stop volunteering" keeps membership and "Leave the party" queues the withdrawal and ends the session.
 8. The directory lists only approved aspirants with a published profile; a profile shows party events naming it and never a campaign event; its volunteer form appears only for a campaign in active or grace period and accepts only places inside the seat's area.
 9. A candidate profile is written and published only by the website editor, and no field on it comes from a campaign's CRM. The "I'll volunteer" form asks for and requires first name, last name, email, phone, ward, polling station, profession (Other with text), one or more of the ten areas (Other with text), preferred contact and consent.
@@ -345,21 +326,30 @@ Left out on purpose: membership fee and M-Pesa, national ID, date of birth,
 sex, leagues, party declaration, member numbers, QR card, renewal, RSVP,
 branch officials, elections and online primaries, nominations in the account,
 appeals, consent switches, download my data, voice-call codes, password reset
-(`SysReset`; an SMS-code reset is now possible and is the obvious next
-ticket), Nominees on the directory, News on the profile, volunteer tasks.
+(`SysReset`), Nominees on the directory, News on the profile, volunteer tasks.
+
+### Later: SMS code at sign-in (R5-9, after everything else)
+
+Held back by Jeremy on 3 November 2026 until an SMS provider is chosen and set
+up. Kept here so the work is ready:
+
+- After a right email and password, `POST /api/auth/login/` writes a code, sends it by SMS to `users.phone` and answers `{challenge, phone_hint}` with no token; `POST /api/auth/verify/` `{challenge, code}` gives the token; `POST /api/auth/resend/` waits 45 seconds.
+- `sign_in_codes`: `id` (the challenge), `user_id` unique, `code_hash` (HMAC-SHA256 with `SECRET_KEY`), `expires_at` (10 minutes), `tries_left` (3), `created_at`.
+- `ConsoleSMSProvider` logs the message text, so the code shows in the API's terminal locally.
+- Screens: `SysCode.dc.html` as `pages/public/SignInCode.jsx`; a login without a phone is told to ask the party office.
+- A password reset by SMS code (`SysReset.dc.html`) fits on the same table.
 
 ---
 
-## 6. Open points
+## 6. Decisions on the open points
 
-Each has a recommendation; the design above is written with it. Section 4
-freezes when Jeremy approves.
+Taken by Jeremy on 3 November 2026, all as recommended.
 
-| # | Question | Options | Recommended |
-|---|---|---|---|
-| A | Who is "the website manager" who creates candidate profiles? No such office exists (`PartyRoleName` has membership, nominations and finance officers) | (a) the superuser, who edits the whole website today; (b) the nominations officer too, for profiles only; (c) a new "website editor" office | (a): no new office; (c) is one enum value and a guard when you want it |
-| B | A member's email is already used by another login (a candidate or officer who is also a member) | (a) no member login; the officer's list shows "No sign-in: email in use", and the person uses a different email; (b) if that login is already linked to the same member (`users.party_member_id`), its chooser gives My membership, and only an unrelated clash leaves the member without a login | (b): the candidate who is also a member signs in once and sees both places |
-| C | The profile's volunteer form needs to know whether the aspirant's campaign can take volunteers | (a) the website reads only the campaign's access state (yes or no) and shows the form while it is active or in grace; (b) the form always shows, and volunteers wait in the CRM even while it is locked | (a): volunteers never go to a CRM nobody can open |
+| # | Question | Decision |
+|---|---|---|
+| A | Who is "the website manager" who creates candidate profiles? | The superuser, who edits the whole website today. A "website editor" office can come later as one enum value and a guard |
+| B | A member's email is already used by another login | If that login is linked to the same member (`users.party_member_id`), its chooser gives My membership; an unrelated clash leaves the member without a login, shown to the officer as "No sign-in: email in use" |
+| C | How the profile's volunteer form knows the campaign can take volunteers | The website reads only the campaign's access state, and shows the form while it is active or in grace period |
 
 ---
 
@@ -368,8 +358,7 @@ freezes when Jeremy approves.
 | # | Risk | Effect if missed | Mitigation |
 |---|---|---|---|
 | 1 | A member login reaches staff or campaign routes | A member reaches party or campaign data | `get_current_user` refuses kind `member`; the route-guard test walks every route; rubric 5 |
-| 2 | The SMS provider is down or unset in live use | Nobody, the superuser included, can sign in | The CLI needs no sign-in (`reset-password`, `set-contact`); Africa's Talking is wired and needs an account and sender ID before live use |
-| 3 | Six-digit codes guessed | A login taken | A code needs the right password first; three tries per code; 10 password tries an hour per device |
-| 4 | Logins made before R5 have no email or phone | They cannot sign in | `set-contact` and the demo seeds fill them; rubric 3 |
-| 5 | A campaign volunteer reaches the party register or dashboard | Campaign data leaves the campaign | Every party read filters `campaign_id IS NULL`; rubric 11 |
-| 6 | The rate limits are per API process (`services/ratelimit.py`) | Limits multiply with processes | One process today; recorded under Known gaps |
+| 2 | Passwords alone until the SMS code step lands | A guessed or reused password opens a login | 10 tries an hour per device; R5-9 adds the code |
+| 3 | Logins made before R5 have no email | They cannot sign in | `set-email` and the demo seed fill them; `reset-password` works from the CLI; rubric 3 |
+| 4 | A campaign volunteer reaches the party register or dashboard | Campaign data leaves the campaign | Every party read filters `campaign_id IS NULL`; rubric 11 |
+| 5 | The rate limits are per API process (`services/ratelimit.py`) | Limits multiply with processes | One process today; recorded under Known gaps |
