@@ -47,11 +47,3 @@ describe("the stylesheet", () => {
   });
 
 });
-
-/* The minifier must not rewrite the media queries into range syntax.
- *
- * esbuild turns `max-width: 860px` into `width<=860px` when the build target
- * allows it. Safari parses that from 16.4; an iPhone 7 stops at iOS 15, drops
- * the whole query as invalid, and renders the desktop layout on a phone.
- * `build.cssTarget` in vite.config.js is what holds this.
- */

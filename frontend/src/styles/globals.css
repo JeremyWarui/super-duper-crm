@@ -1,0 +1,264 @@
+/* =====================================================================
+   Party Platform — design tokens and base styles
+   Source of truth: the Design canvas mockups ("Campaign Site & Portal Mockups").
+   Light theme only. shadcn's dark theme has been removed on purpose:
+   there is no `.dark` block and no `dark:` variant. Do not add one
+   unless a dark design is drawn first.
+   ===================================================================== */
+
+@import "tailwindcss";
+
+/* Fonts: Bricolage Grotesque 800 (display) and Public Sans 400–700 (body).
+   Bundled via @fontsource-variable packages, imported in src/main.tsx. */
+
+/* ---------------------------------------------------------------------
+   1. Raw tokens (CSS variables). shadcn components read these names.
+   --party-primary / --party-accent are overridden per party at runtime
+   from GET /api/branding (see src/theme/branding.ts).
+   --------------------------------------------------------------------- */
+:root {
+  /* Brand (per party) */
+  --party-primary: #0B5D3B;
+  --party-primary-hover: #08442B;
+  --party-primary-tint: #E7F0EA;   /* active nav pill, icon tiles */
+  --party-accent: #F2B705;
+
+  /* Neutrals (faint warm, not cream) */
+  --ink: #13201A;
+  --ink-2: #34443B;                /* borders on dark panels */
+  --ground: #FAFAF8;               /* public website page */
+  --ground-app: #F7F7F5;           /* CRM + workspace page */
+  --stone: #F4F3EF;                /* news / newsletter bands, chips */
+  --mint: #EEF4F0;                 /* counties band */
+  --placeholder-a: #EEEDE8;
+  --placeholder-b: #E1E0DA;
+
+  --text: #13201A;
+  --text-2: #3D4441;               /* body on tinted panels */
+  --text-muted: #4E5552;           /* secondary text, passes 4.5:1 */
+  --text-faint: #9A9F9C;           /* only for non-essential meta */
+  --text-on-dark: #FAFAF8;
+  --text-on-dark-muted: #B9C2BC;
+
+  --line: #E9E9E5;                 /* card borders in the apps */
+  --line-2: #E8E8E4;               /* card borders on the website */
+  --line-soft: #F0F0EC;            /* table rows, list dividers */
+  --line-input: #C9CCCF;           /* website inputs */
+  --line-control: #D3D5D3;         /* app selects, outline buttons */
+
+  /* Status pills */
+  --ok-bg: #E3F1E8;   --ok-fg: #0B5D3B;
+  --warn-bg: #FFF3CC; --warn-fg: #6B5100;
+  --bad-bg: #FCE4E2;  --bad-fg: #9A1C12;
+  --info-bg: #F1F1ED; --info-fg: #3D4441;
+  --danger: #B42318;
+
+  /* shadcn semantic names → mockup tokens */
+  --background: var(--ground);
+  --foreground: var(--text);
+  --card: #FFFFFF;
+  --card-foreground: var(--text);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--text);
+  --primary: var(--party-primary);
+  --primary-foreground: #FFFFFF;
+  --secondary: #FFFFFF;
+  --secondary-foreground: var(--text);
+  --muted: var(--stone);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--party-accent);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --border: var(--line-2);
+  --input: var(--line-input);
+  --ring: var(--party-primary);
+  --radius: 12px;                  /* inputs, selects, app buttons */
+
+  /* shadcn Sidebar set → dark ink CRM sidebar */
+  --sidebar: var(--ink);
+  --sidebar-foreground: #DDE3DF;
+  --sidebar-primary: var(--party-primary);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: var(--ink-2);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: var(--ink-2);
+  --sidebar-ring: var(--party-accent);
+
+  color-scheme: light;             /* stop browsers darkening form controls */
+}
+
+/* The CRM and candidate workspace use a slightly deeper ground and
+   bordered (not shadowed) cards. Put .app-shell on their layout root. */
+.app-shell {
+  --background: var(--ground-app);
+  --border: var(--line);
+  --input: var(--line-control);
+}
+
+/* ---------------------------------------------------------------------
+   2. Tailwind theme: makes the tokens available as utility classes,
+   e.g. bg-primary, text-muted-foreground, rounded-card, shadow-card.
+   --------------------------------------------------------------------- */
+@theme inline {
+  --font-sans: "Public Sans Variable", "Public Sans", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", "Public Sans Variable", sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--party-primary-hover);
+  --color-primary-tint: var(--party-primary-tint);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ground: var(--ground);
+  --color-ground-app: var(--ground-app);
+  --color-stone: var(--stone);
+  --color-mint: var(--mint);
+  --color-text-2: var(--text-2);
+  --color-faint: var(--text-faint);
+  --color-on-dark: var(--text-on-dark);
+  --color-on-dark-muted: var(--text-on-dark-muted);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-line-soft: var(--line-soft);
+  --color-line-control: var(--line-control);
+  --color-ok: var(--ok-bg);       --color-ok-foreground: var(--ok-fg);
+  --color-warn: var(--warn-bg);   --color-warn-foreground: var(--warn-fg);
+  --color-bad: var(--bad-bg);     --color-bad-foreground: var(--bad-fg);
+  --color-info: var(--info-bg);   --color-info-foreground: var(--info-fg);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Corner rounding — exact values from the mockups */
+  --radius-sm: 6px;       /* kbd, tiny tags */
+  --radius-md: 10px;      /* sidebar items, list rows, small tiles */
+  --radius-lg: 12px;      /* inputs, selects, app buttons, logo tile */
+  --radius-xl: 16px;      /* app cards, KPI tiles */
+  --radius-photo: 18px;   /* photos and media */
+  --radius-card: 20px;    /* website cards */
+  --radius-panel: 24px;   /* large website panels, join cards */
+  --radius-band: 28px;    /* dark feature panels */
+
+  /* Shadows */
+  --shadow-card: 0 1px 2px rgb(19 32 26 / 0.04), 0 10px 30px rgb(19 32 26 / 0.07);
+  --shadow-pop: 0 10px 30px rgb(19 32 26 / 0.12);
+  --shadow-hero-card: 0 18px 40px rgb(0 0 0 / 0.25);
+
+  /* Type scale (size / line-height) */
+  --text-meta: 12px;      --text-meta--line-height: 1.4;   /* kickers, pills */
+  --text-small: 13px;     --text-small--line-height: 1.45;
+  --text-ui: 14px;        --text-ui--line-height: 1.5;
+  --text-body: 15px;      --text-body--line-height: 1.55;
+  --text-base: 16px;      --text-base--line-height: 1.6;
+  --text-lead: 18px;      --text-lead--line-height: 1.6;
+  --text-card-title: 20px; --text-card-title--line-height: 1.25;
+  --text-h3: 24px;        --text-h3--line-height: 1.2;
+  --text-h2-app: 28px;    --text-h2-app--line-height: 1.1;  /* CRM page titles */
+  --text-section: clamp(32px, 4vw, 48px); --text-section--line-height: 1.05;
+  --text-page: clamp(40px, 5vw, 64px);    --text-page--line-height: 1;
+  --text-hero: clamp(44px, 6vw, 84px);    --text-hero--line-height: 0.95;
+
+  /* Layout */
+  --container-site: 1240px;  /* website content width */
+  --container-form: 1100px;  /* single-task flows */
+  --spacing-gutter: 24px;    /* website side padding */
+  --spacing-app: 32px;       /* CRM content padding */
+  --spacing-sidebar: 240px;  /* CRM / workspace sidebar width */
+  --spacing-touch: 44px;     /* minimum control height */
+}
+
+/* ---------------------------------------------------------------------
+   3. Base
+   --------------------------------------------------------------------- */
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-optical-sizing: auto;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app-shell { background: var(--background); }
+  *, ::before, ::after { border-color: var(--border); }
+
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+  p { margin: 0; }
+
+  a { color: var(--party-primary); }
+  a:hover { color: var(--party-primary-hover); }
+
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection { background: var(--party-primary-tint); }
+}
+
+/* ---------------------------------------------------------------------
+   4. Small shared patterns that are not worth a React component
+   --------------------------------------------------------------------- */
+@layer components {
+  /* Gradient photo placeholder until a real image is uploaded */
+  .ph {
+    background: linear-gradient(135deg, var(--placeholder-a) 0%, var(--placeholder-b) 100%);
+    color: #5D6360;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 14px;
+  }
+  /* Website content container */
+  .site-container {
+    width: 100%; max-width: var(--container-site);
+    margin-inline: auto; padding-inline: var(--spacing-gutter);
+    box-sizing: border-box;
+  }
+  /* Newspaper section head rule */
+  .rule-top { border-top: 3px solid var(--ink); padding-top: 14px; }
+  /* Kicker label */
+  .kicker {
+    font-size: 14px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--party-primary);
+  }
+  /* Card hover lift (website only) */
+  .lift { transition: transform 160ms ease, box-shadow 160ms ease; }
+  .lift:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgb(19 32 26 / 0.05), 0 16px 40px rgb(19 32 26 / 0.10); }
+}
+
+/* Respect people who ask for less motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .lift:hover { transform: none; }
+}

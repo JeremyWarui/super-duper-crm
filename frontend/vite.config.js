@@ -1,15 +1,16 @@
+import path from "node:path";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
+  server: { proxy: { "/api": "http://localhost:8000" } },
   build: {
     outDir: "dist",
-    // esbuild rewrites `max-width: 860px` to the range syntax `width<=860px`
-    // when the target allows it. Safari understands that from 16.4; an
-    // iPhone 7 stops at iOS 15, drops the whole query, and renders the
-    // desktop layout. Naming the oldest browser we serve keeps the old syntax.
-    cssTarget: ["safari15", "chrome90", "firefox90", "edge90"],
+    // Tailwind CSS v4 needs Safari 16.4 or later; iOS 15 is not supported.
+    cssTarget: ["safari16.4", "chrome111", "firefox128", "edge111"],
   },
   // Dev and build transform JSX through oxc, which needs no setting. Vitest
   // runs the test files through esbuild, which defaults to the classic runtime

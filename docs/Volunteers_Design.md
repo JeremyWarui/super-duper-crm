@@ -182,7 +182,7 @@ request rechecks this, so suspension or withdrawal ends the session at the
 next request.
 
 **The demo and existing logins:**
-- `campaign-crm demo` gives every login it makes an email (`<username>@demo.mzigo.test`), and adds one approved member with a volunteer profile and a member login.
+- `campaign-crm demo` gives every login it makes an email (`<username>@demo.pamoja.test`), and adds one approved member with a volunteer profile and a member login.
 - A new command, `campaign-crm set-email -u <username> --email <e>`, fills the email of logins made before R5 (`r2check`, `teuzi`, `pesa`, the Achieng logins).
 - Signing in locally: email and the login's password (`Mzigo-Demo-2026` for the local logins today; `campaign-crm demo` uses `DEFAULT_USER_PASSWORD`).
 

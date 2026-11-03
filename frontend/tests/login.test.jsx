@@ -39,7 +39,7 @@ describe("the sign-in screen", () => {
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() => expect(useAuth.getState().token).toBe(OK.token));
-    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ email: "amina@example.com", password: PASSWORD });
+    expect(JSON.parse(fetch.mock.calls.find(([, options]) => options?.method === "POST")[1].body)).toEqual({ email: "amina@example.com", password: PASSWORD });
   });
 
   it("shows the server's rejection instead of failing silently", async () => {

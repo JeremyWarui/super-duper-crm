@@ -13,6 +13,8 @@ import {
   stubApi,
 } from "./helpers";
 
+const SIGN_IN_LINE = "Members, candidate teams, mobilizers and party staff sign in here.";
+
 function Where() {
   return <div data-testid="where">{useLocation().pathname}</div>;
 }
@@ -26,7 +28,7 @@ describe("the gate", () => {
     stubApi({});
     renderApp(<Root />);
 
-    expect(screen.getByText("Sign in to the war room")).toBeInTheDocument();
+    expect(screen.getByText(SIGN_IN_LINE)).toBeInTheDocument();
   });
 
   it.each([false, true])("shows the public home at /, signed in: %s", async (signedIn) => {
@@ -55,7 +57,7 @@ describe("the gate", () => {
     stubApi({});
     renderApp(<><AppRoutes /><Where /></>, { path: "/console" });
 
-    expect(screen.getByText("Sign in to the war room")).toBeInTheDocument();
+    expect(screen.getByText(SIGN_IN_LINE)).toBeInTheDocument();
     expect(screen.getByTestId("where")).toHaveTextContent("/signin");
   });
 

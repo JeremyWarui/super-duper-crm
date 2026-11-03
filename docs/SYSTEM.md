@@ -662,7 +662,20 @@ in full without either:
 
 ---
 
-## 9. Work in progress: moving styles out of the components
+## 9. Work in progress: moving the screens onto the UI kit
+
+The frontend is moving onto the UI kit in `ui-kit/` (Tailwind CSS v4 and
+shadcn-style components in `frontend/src/components/ui/*.tsx` and
+`components/layout/`, tokens in `src/styles/globals.css`, party colours from
+`GET /api/branding` through `src/theme/branding.tsx`). The tickets are in
+`docs/UI_Kit_Integration.md`; screens move one ticket at a time, and the old
+`index.css` shrinks until it is deleted.
+
+**Browsers:** Tailwind CSS v4 needs Safari 16.4 or later, so iOS 15 (an
+iPhone 7) is not supported. `build.cssTarget` in `vite.config.js` names
+Safari 16.4, Chrome 111, Firefox 128 and Edge 111.
+
+### Before the kit: moving styles out of the components
 
 The frontend is being reorganised. Its screens were built with styling written
 inline on each element (`style={{ ... }}`), which makes the components long and

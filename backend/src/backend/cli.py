@@ -80,7 +80,7 @@ async def _demo_site(args: argparse.Namespace, session: AsyncSession) -> int:
     if not await seed_site(session, today()):
         print("The website already has leaders or posts; nothing was added.")
         return 0
-    print("Published 6 leaders, 4 news posts and 3 events for Mzigo Demo Party.")
+    print("Published 6 leaders, 4 news posts and 3 events for Pamoja Party.")
     print("Open http://localhost:5173/ to see the site.")
     return 0
 

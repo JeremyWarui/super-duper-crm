@@ -31,6 +31,7 @@ import {
   Panel,
 } from "./ui";
 import Onboarding from "./Onboarding";
+import PartyBrand from "./PartyBrand";
 
 const Card = (props) => (
   <Panel
@@ -884,7 +885,7 @@ function Shell({ me, logout, children }) {
       <div className="flex flex-wrap items-center justify-between gap-3 admin-header">
         <div>
           <span className="admin-display admin-brand">
-            MZIGO<span className="admin-brand-mark">·</span>ADMIN
+            <PartyBrand label="Admin" />
           </span>
           <span className="admin-header-description">
             every campaign on this deployment

@@ -376,7 +376,7 @@ export const ADMIN_USERS = [
 ];
 
 // ---- party member register -----------------------------------------------
-export const PARTY = { name: "Mzigo Party", short_name: "MZP" };
+export const PARTY = { name: "Pamoja Party", short_name: "PP" };
 
 const PLACE = {
   ward: { id: "w1", name: "Zimmerman" },

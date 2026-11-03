@@ -44,7 +44,7 @@ from backend.services.consent import PARTY_WORDING, VOLUNTEER_WORDING
 from backend.services.targets import generate_targets
 
 DEMO_USERNAMES = ("aspirant", "manager", "mobilizer", "volunteer")
-DEMO_EMAIL_DOMAIN = "demo.mzigo.test"
+DEMO_EMAIL_DOMAIN = "demo.pamoja.test"
 DEMO_MEMBER_PHONE = "+254700000009"
 
 DEMO_COUNTY = "Nairobi City"

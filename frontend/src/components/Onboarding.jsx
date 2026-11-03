@@ -14,6 +14,7 @@ import {
   FieldLabel,
   SelectField,
 } from "./ui";
+import PartyBrand from "./PartyBrand";
 
 // Each seat and the area it is fought over; the county seats share one area.
 const OFFICES = [
@@ -368,7 +369,7 @@ export default function Onboarding({ onDone, onCancel, onLogin }) {
       <div className="onboarding-card">
         <div className="flex items-center justify-between">
           <div className="onboarding-display onboarding-brand">
-            MZIGO<span className="onboarding-brand-mark">·</span>CRM
+            <PartyBrand label="Campaign" />
           </div>
           <button
             onClick={onCancel}

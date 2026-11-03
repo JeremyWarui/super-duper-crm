@@ -71,10 +71,10 @@ async def test_the_demo_builds_its_campaign_and_team(
     summary = await _demo(session)
 
     assert [email for email, _, _ in summary.sign_ins] == [
-        "aspirant@demo.mzigo.test",
-        "manager@demo.mzigo.test",
-        "mobilizer@demo.mzigo.test",
-        "volunteer@demo.mzigo.test",
+        "aspirant@demo.pamoja.test",
+        "manager@demo.pamoja.test",
+        "mobilizer@demo.pamoja.test",
+        "volunteer@demo.pamoja.test",
     ]
     # The demo clears only its own logins; a real login with another name is never touched.
     assert DEMO_USERNAMES == ("aspirant", "manager", "mobilizer", "volunteer")
@@ -141,4 +141,4 @@ async def test_the_demo_site_publishes_once(
     events = (await client.get("/api/party/posts/", params={"kind": "event"})).json()
     assert (first, again) == (True, False)
     assert (len(leaders), len(events)) == (6, 3)
-    assert (await client.get("/api/party/")).json()["name"] == "Mzigo Demo Party"
+    assert (await client.get("/api/party/")).json()["name"] == "Pamoja Party"

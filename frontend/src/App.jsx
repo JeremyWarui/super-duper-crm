@@ -19,6 +19,7 @@ import Supporters from "./pages/campaign/Supporters";
 import Events from "./pages/campaign/Events";
 import Register from "./pages/campaign/Register";
 import Payments from "./pages/campaign/Payments";
+import PartyBrand from "./components/PartyBrand";
 
 // One page per NAV key.
 const PAGES = {
@@ -49,7 +50,7 @@ function Shell({ campaign, role, nav }) {
   return (
     <>
       <PortalLayout
-        brand={<>MZIGO<span className="brand-mark">·</span>CRM</>}
+        brand={<PartyBrand label="Campaign" />}
         title={campaign.title}
         meta={[campaign.candidate_name && `for ${campaign.candidate_name}`, campaign.seat, campaign.area_name].filter(Boolean).join(" · ")}
         user={`${user?.full_name || user?.username} · ${ROLE_LABEL[role]}`}

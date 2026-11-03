@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../store/auth";
+import PartyBrand from "./PartyBrand";
 
 // Feather's eye and eye-off, drawn at the size of the field's text.
 function EyeIcon({ open }) {
@@ -76,10 +77,10 @@ export default function Login() {
     <div className="login-shell">
       <div className="login-content">
         <div className="login-brand">
-          MZIGO<span className="login-brand-mark">·</span>CRM
+          <PartyBrand />
         </div>
         <div className="login-subtitle">
-          Sign in to the war room
+          Members, candidate teams, mobilizers and party staff sign in here.
         </div>
         <div className="login-card">
           <Field

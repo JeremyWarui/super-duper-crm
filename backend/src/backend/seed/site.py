@@ -8,14 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models import PartyLeader, PartyPost, PartySettings, PostKind
 
 PHOTO = "https://randomuser.me/api/portraits/{}.jpg"
-PICTURE = "https://picsum.photos/seed/mzigo-{}/1200/675"
+PICTURE = "https://picsum.photos/seed/pamoja-{}/1200/675"
 
 SETTINGS = {
-    "name": "Mzigo Demo Party",
-    "short_name": "MDP",
-    "logo_url": "https://placehold.co/200x200/0f5132/ffffff/png?text=MDP",
-    "primary_colour": "#0f5132",
-    "secondary_colour": "#f59e0b",
+    "name": "Pamoja Party",
+    "short_name": "PP",
+    "logo_url": "https://placehold.co/200x200/0b5d3b/ffffff/png?text=P",
+    "primary_colour": "#0b5d3b",
+    "secondary_colour": "#f2b705",
     "contact_email": "info@example.com",
     "contact_phone": "0700 000000",
     "address": "Demo House, Moi Avenue, Nairobi",
