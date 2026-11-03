@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pamoja Party — Events</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F0}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
+
+<header style="background: #F6F5F0; border-bottom: 1px solid #DEDBD0">
+<div style="max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #13201A">
+<span style="width: 44px; height: 44px; border-radius: 12px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">P</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Pamoja Party</span>
+</a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px 22px; font-weight: 600; font-size: 15px">
+<a href="PartyHome.dc.html#about" style="color: #13201A; text-decoration: none; padding: 10px 0">About</a>
+<a href="PartyHome.dc.html#issues" style="color: #13201A; text-decoration: none; padding: 10px 0">Agenda &amp; issues</a>
+<a href="News.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">News</a>
+<a href="Events.dc.html" aria-current="page" style="color: #0B5D3B; text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; padding: 10px 0">Events</a>
+<a href="Candidates.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Candidates</a>
+</nav>
+<a href="Join.dc.html" style="font-weight: 700; font-size: 15px; color: #13201A; background: #F2B705; padding: 13px 20px; border-radius: 999px; text-decoration: none">Join the party</a>
+</div>
+</header>
+
+<section style="background: #13201A; color: #F6F5F0">
+<div style="max-width: 1240px; margin: 0 auto; padding: 48px 24px; display: flex; flex-direction: column; gap: 24px">
+<p style="margin: 0; font-size: 14px; color: #B9C2BC"><a href="PartyHome.dc.html" style="color: #B9C2BC">Home</a> / Events</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(40px, 5vw, 64px); letter-spacing: -0.03em">Events near you</h1>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #DDE3DF">County
+<select style="font: inherit; font-size: 16px; font-weight: 500; padding: 13px 14px; border: 0; border-radius: 12px; min-width: 220px; background: #FFFFFF; color: #13201A"><option>All counties</option><option>[County]</option></select>
+</label>
+<div role="group" aria-label="Event type" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{types}}" as="t" hint-placeholder-count="5">
+<button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+</sc-for>
+</div>
+</div>
+</div>
+</section>
+
+<main style="max-width: 1240px; margin: 0 auto; padding: 48px 24px 80px; display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0 0 4px; font-size: 14px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #4B5751">[Month Year]</h2>
+<sc-for list="{{events}}" as="e" hint-placeholder-count="5">
+<article style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center">
+<div style="flex: 0 0 72px; height: 80px; border-radius: 14px; background: #E7F0EA; color: #0B5D3B; display: flex; flex-direction: column; align-items: center; justify-content: center">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.08em">{{e.dow}}</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px; line-height: 1">{{e.day}}</span>
+</div>
+<div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">{{e.type}} · {{e.county}}</span>
+<h3 style="margin: 0; font-size: 20px; font-weight: 700">{{e.title}}</h3>
+<span style="font-size: 15px; color: #4B5751">{{e.place}} · {{e.time}}</span>
+</div>
+<button type="button" aria-pressed="{{e.pressed}}" onClick="{{e.toggle}}" style="{{e.btn}}">{{e.label}}</button>
+</article>
+</sc-for>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; color: #4B5751">No events of this type scheduled yet.</p>
+</sc-if>
+</div>
+
+<aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<section aria-labelledby="map-h" style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="map-h" style="margin: 0; font-size: 18px; font-weight: 700">On the map</h2>
+<div style="aspect-ratio: 1 / 1; border-radius: 14px; background: #E3E8E4; display: flex; align-items: center; justify-content: center; color: #4B5751; font-weight: 600">[Map of events]</div>
+</section>
+<section aria-labelledby="going-h" style="background: #E7F0EA; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+<h2 id="going-h" style="margin: 0; font-size: 18px; font-weight: 700">You're going to {{goingCount}} event(s)</h2>
+<p style="margin: 0; color: #3D4A43; font-size: 15px">We'll send an SMS reminder the day before.</p>
+</section>
+<section aria-labelledby="host-h" style="background: #13201A; color: #F6F5F0; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+<h2 id="host-h" style="margin: 0; font-size: 18px; font-weight: 700">Branch official or volunteer?</h2>
+<p style="margin: 0; color: #B9C2BC; font-size: 15px">Add events and track attendance from the portal.</p>
+<a href="SignIn.dc.html" style="color: #F2B705; font-weight: 700">Sign in →</a>
+</section>
+</aside>
+</main>
+
+<footer style="background: #13201A; color: #B9C2BC">
+<div style="max-width: 1240px; margin: 0 auto; padding: 28px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; font-size: 13px">
+<span>© [Year] Pamoja Party · Reg. No. [000]</span>
+<span>Powered by [Your product]</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { type: 'All', going: {} }; }
+  renderVals() {
+    const all = [
+      { id: 1, dow: 'SAT', day: '[00]', type: 'Rally', county: '[County]', title: '[National rally]', place: '[Venue]', time: '[10:00]' },
+      { id: 2, dow: 'TUE', day: '[00]', type: 'Town hall', county: '[County]', title: '[Youth league forum on jobs]', place: '[Venue]', time: '[14:00]' },
+      { id: 3, dow: 'THU', day: '[00]', type: 'Branch', county: '[County]', title: '[County delegates meeting]', place: '[Branch office]', time: '[09:00]' },
+      { id: 4, dow: 'SAT', day: '[00]', type: 'Training', county: 'Online', title: '[Aspirants induction]', place: '[Online link sent on RSVP]', time: '[11:00]' },
+      { id: 5, dow: 'SUN', day: '[00]', type: 'Town hall', county: '[County]', title: '[Women\'s league town hall]', place: '[Venue]', time: '[15:00]' }
+    ];
+    const sel = this.state.type;
+    const g = this.state.going;
+    const events = all.filter((e) => sel === 'All' || e.type === sel).map((e) => {
+      const on = !!g[e.id];
+      return {
+        ...e, pressed: on ? 'true' : 'false', label: on ? 'Going ✓' : 'RSVP',
+        toggle: () => this.setState({ going: { ...g, [e.id]: !on } }),
+        btn: 'font: inherit; font-weight: 700; font-size: 15px; min-width: 110px; height: 46px; border-radius: 999px; cursor: pointer; ' + (on ? 'background: #0B5D3B; color: #FFFFFF; border: 1.5px solid #0B5D3B' : 'background: #FFFFFF; color: #13201A; border: 1.5px solid #13201A')
+      };
+    });
+    const types = ['All', 'Rally', 'Town hall', 'Branch', 'Training'].map((label) => ({
+      label, pressed: sel === label ? 'true' : 'false', pick: () => this.setState({ type: label }),
+      style: 'font: inherit; font-size: 15px; font-weight: 600; min-height: 46px; padding: 0 18px; border-radius: 999px; cursor: pointer; ' + (sel === label ? 'background: #F2B705; color: #13201A; border: 1.5px solid #F2B705' : 'background: transparent; color: #F6F5F0; border: 1.5px solid #5B6B62')
+    }));
+    return { types, events, empty: events.length === 0, goingCount: Object.values(g).filter(Boolean).length };
+  }
+}
+</script>
+</body>
+</html>

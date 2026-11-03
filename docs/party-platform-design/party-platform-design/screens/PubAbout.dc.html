@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pamoja Party — About us</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F0}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
+<header style="background: #F6F5F0; border-bottom: 1px solid #DEDBD0">
+<div style="max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #13201A"><span style="width: 44px; height: 44px; border-radius: 12px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">P</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Pamoja Party</span></a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px 22px; font-weight: 600; font-size: 15px">
+<a href="PubAbout.dc.html" aria-current="page" style="color: #0B5D3B; text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; padding: 10px 0">About</a>
+<a href="PubIssue.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Agenda &amp; issues</a>
+<a href="News.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">News</a>
+<a href="Events.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Events</a>
+<a href="Candidates.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Candidates</a>
+</nav>
+<a href="Join.dc.html" style="font-weight: 700; font-size: 15px; color: #13201A; background: #F2B705; padding: 13px 20px; border-radius: 999px; text-decoration: none">Join the party</a>
+</div>
+</header>
+
+<section style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 32px; display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+<div style="flex: 1 1 520px; display: flex; flex-direction: column; gap: 16px">
+<p style="margin: 0; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #0B5D3B">About us</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(40px, 5vw, 64px); line-height: 1; letter-spacing: -0.03em">[A one-line statement of who the party is]</h1>
+<p style="margin: 0; font-size: 19px; line-height: 1.65; color: #3D4A43">[Founded in [year] by [founders]. Two or three sentences on the party's story and what it stands for.]</p>
+</div>
+<div style="flex: 1 1 360px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #4B5751">Founded</span><strong style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px">[YYYY]</strong></div>
+<div style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #4B5751">Registration no.</span><strong style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px">[000]</strong></div>
+<div style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #4B5751">County branches</span><strong style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px">[00]</strong></div>
+<div style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #4B5751">Members</span><strong style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px">[000,000]</strong></div>
+</div>
+</section>
+
+<section style="max-width: 1240px; margin: 0 auto; padding: 24px 24px; display: flex; flex-direction: column; gap: 18px">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">What we believe</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px">
+<sc-for list="{{values}}" as="v" hint-placeholder-count="4"><div style="background: #E7F0EA; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 8px"><strong style="font-size: 18px">{{v}}</strong><span style="font-size: 15px; color: #3D4A43; line-height: 1.55">[What this value means in practice.]</span></div></sc-for>
+</div>
+</section>
+
+<section style="max-width: 1240px; margin: 0 auto; padding: 32px 24px; display: flex; flex-direction: column; gap: 18px">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">Leadership</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px">
+<sc-for list="{{leaders}}" as="l" hint-placeholder-count="4">
+<div style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 18px; overflow: hidden; display: flex; flex-direction: column">
+<div style="aspect-ratio: 1 / 1; background: #DCD8CB; display: flex; align-items: center; justify-content: center; color: #5B6660; font-size: 13px; font-weight: 600">[Portrait]</div>
+<div style="padding: 16px; display: flex; flex-direction: column; gap: 4px"><strong style="font-size: 17px">[Name]</strong><span style="font-size: 14px; color: #4B5751">{{l}}</span></div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="max-width: 1240px; margin: 0 auto; padding: 24px 24px 72px; display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch">
+<div style="flex: 2 1 480px; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700">How the party is run</h2>
+<sc-for list="{{organs}}" as="o" hint-placeholder-count="4"><div style="display: flex; flex-direction: column; gap: 2px; padding-top: 10px; border-top: 1px solid #EDEBE4"><strong>{{o.n}}</strong><span style="font-size: 14px; color: #4B5751">{{o.d}}</span></div></sc-for>
+</div>
+<div style="flex: 1 1 300px; background: #13201A; color: #F6F5F0; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700">Documents</h2>
+<a href="#" style="color: #F2B705; font-weight: 700">Party constitution (PDF)</a>
+<a href="#" style="color: #F2B705; font-weight: 700">Nomination rules (PDF)</a>
+<a href="#" style="color: #F2B705; font-weight: 700">Manifesto (PDF)</a>
+<a href="#" style="color: #F2B705; font-weight: 700">Privacy notice</a>
+<span style="font-size: 14px; color: #B9C2BC; margin-top: auto">Headquarters: [address] · [phone] · [email]</span>
+</div>
+</section>
+<footer style="background: #13201A; color: #B9C2BC"><div style="max-width: 1240px; margin: 0 auto; padding: 28px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; font-size: 13px"><span>© [Year] Pamoja Party · Reg. No. [000]</span><span>Powered by [Your product]</span></div></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      values: ['[Value one]', '[Value two]', '[Value three]', '[Value four]'],
+      leaders: ['Party Leader', 'National Chairperson', 'Secretary General', 'National Treasurer', 'Youth League Chair', 'Women’s League Chair', 'Elections Board Chair', 'Disputes Committee Chair'],
+      organs: [{ n: 'National Delegates Convention', d: 'Supreme organ; elects national officials and amends the constitution.' }, { n: 'National Executive Committee', d: 'Runs the party between conventions; approves party lists.' }, { n: 'National Elections Board', d: 'Runs nominations and internal elections.' }, { n: 'Appeals & Disputes Committee', d: 'Hears appeals on nominations and party elections.' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

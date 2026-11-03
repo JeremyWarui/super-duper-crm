@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Candidate workspace — Mobilizers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+<nav aria-label="Workspace" style="flex: 1 1 240px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E1E4E2; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #0B5D3B">Pamoja Party · Field plan</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 19px">[Candidate] for MP</span>
+<span style="font-size: 13px; color: #4B5751">[Constituency], [County]</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="8"><a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a></sc-for>
+</div>
+<div style="margin-top: auto; padding: 0 8px; font-size: 13px; color: #4B5751">Powered by [Your product]</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Mobilizers</h1>
+<span style="font-size: 14px; color: #4B5751">One lead per ward to start. Mobilizers use the phone app and only see their own ward.</span>
+</div>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section aria-label="Mobilizers by ward" style="flex: 3 1 520px; min-width: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px">
+<sc-for list="{{cards}}" as="c" hint-placeholder-count="5">
+<article style="{{c.cardStyle}}">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">{{c.ward}}</span>
+<span style="{{c.pill}}">{{c.status}}</span>
+</div>
+<sc-if value="{{c.has}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 40px; height: 40px; border-radius: 50%; background: #E7F0EA; color: #0B5D3B; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px">MB</span><div style="display: flex; flex-direction: column"><span style="font-weight: 700">[Mobilizer name]</span><span style="font-size: 13px; color: #4B5751">07•• ••• [000]</span></div></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 13px; color: #4B5751">
+<div style="display: flex; flex-direction: column"><span>Events</span><strong style="font-size: 17px; color: #13201A">[00]</strong></div>
+<div style="display: flex; flex-direction: column"><span>Households</span><strong style="font-size: 17px; color: #13201A">[000]</strong></div>
+<div style="display: flex; flex-direction: column"><span>Synced</span><strong style="font-size: 15px; color: #13201A">{{c.sync}}</strong></div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{c.none}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 15px; color: #3D4A43">No one is covering this ward yet.</span>
+<button type="button" onClick="{{c.invite}}" style="{{c.btn}}">{{c.btnLabel}}</button>
+</div>
+</sc-if>
+</article>
+</sc-for>
+</section>
+
+<section aria-labelledby="inv-h" style="flex: 2 1 320px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<h2 id="inv-h" style="margin: 0; font-size: 20px; font-weight: 700">Add a mobilizer</h2>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Full name<input type="text" style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Phone<input type="tel" placeholder="07XX XXX XXX" style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Ward<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>[Ward 4]</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Role<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>Mobilizer</option><option>Ward coordinator</option><option>Polling agent (election day)</option></select></label>
+<p style="margin: 0; font-size: 13px; color: #4B5751; line-height: 1.5">They get an SMS link to install the app and sign in with a code. You can remove access at any time.</p>
+<button type="button" style="font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 46px; border-radius: 12px; cursor: pointer">Send invite</button>
+<a href="Mobilizer.dc.html" style="font-size: 14px; font-weight: 700">See what mobilizers see →</a>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { invited: false }; }
+  renderVals() {
+    const S = this.state;
+    const pill = (bg, fg) => 'font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: ' + bg + '; color: ' + fg;
+    const defs = [['[Ward 1]', 'Active', 'Today'], ['[Ward 2]', 'Active', 'Today'], ['[Ward 3]', 'Inactive', '[6 days ago]'], ['[Ward 4]', null, null], ['[Ward 5]', 'Active', 'Yesterday']];
+    const cards = defs.map((d) => {
+      const has = !!d[1];
+      const status = has ? d[1] : (S.invited ? 'Invite sent' : 'Uncovered');
+      const p = status === 'Active' ? pill('#E3F1E8', '#0B5D3B') : status === 'Inactive' ? pill('#FFF3CC', '#6B5100') : status === 'Invite sent' ? pill('#ECEEF0', '#3D4A43') : pill('#FCE4E2', '#9A1C12');
+      return { ward: d[0], has, none: !has, status, pill: p, sync: d[2],
+        cardStyle: 'border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; ' + (has ? 'background: #FFFFFF; border: 1px solid #E1E4E2' : 'background: #FBFBFA; border: 1.5px dashed #C9C5B8'),
+        invite: () => this.setState({ invited: true }), btnLabel: S.invited ? 'Invite sent ✓' : 'Invite a mobilizer',
+        btn: 'font: inherit; font-weight: 700; font-size: 14px; height: 42px; border-radius: 10px; cursor: pointer; ' + (S.invited ? 'background: #FFFFFF; color: #0B5D3B; border: 1.5px solid #0B5D3B' : 'background: #0B5D3B; color: #FFFFFF; border: 0') };
+    });
+    const items = [['Strategy', 'Workspace.dc.html'], ['Targets & wards', 'WsTargets.dc.html'], ['Events', 'WsEvents.dc.html'], ['Mobilizers', 'WsMobilizers.dc.html'], ['Supporters', 'WsSupporters.dc.html'], ['Messages', 'WsMessages.dc.html'], ['Party feed & sharing', 'WsParty.dc.html'], ['Election-day agents', 'WsAgents.dc.html'], ['Spending', 'WsSpending.dc.html']];
+    const nav = items.map((x) => ({ label: x[0], href: x[1], style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (x[0] === 'Mobilizers' ? 'background: #E7F0EA; color: #0B5D3B' : 'color: #3D4A43') }));
+    return { nav, cards };
+  }
+}
+</script>
+</body>
+</html>

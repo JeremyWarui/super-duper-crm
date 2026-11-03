@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Candidate workspace — Supporters</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+<nav aria-label="Workspace" style="flex: 1 1 240px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E1E4E2; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #0B5D3B">Pamoja Party · Field plan</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 19px">[Candidate] for MP</span>
+<span style="font-size: 13px; color: #4B5751">[Constituency], [County]</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="8"><a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a></sc-for>
+</div>
+<div style="margin-top: auto; padding: 0 8px; font-size: 13px; color: #4B5751">Powered by [Your product]</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Supporters</h1>
+<span style="font-size: 14px; color: #4B5751; display: flex; gap: 6px; align-items: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4B5751" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Private to your campaign team. Never shared with the party.</span>
+</div>
+<div role="group" aria-label="Filter" style="display: flex; border: 1px solid #D5D9D6; border-radius: 999px; padding: 3px; background: #FFFFFF">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}}</button></sc-for>
+</div>
+</header>
+
+<section aria-label="Summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px">
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Supporters</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[0,000]</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Can be messaged</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; color: #0B5D3B">[0,000]</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Opted out</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[00]</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Volunteers</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[000]</span></div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section aria-label="Supporter list" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 15px">
+<thead><tr style="text-align: left; color: #4B5751; font-size: 13px">
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Name</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Ward</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Came from</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Consent</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<tr style="{{r.rowStyle}}">
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE"><button type="button" onClick="{{r.open}}" style="font: inherit; font-weight: 700; color: #13201A; background: none; border: 0; padding: 6px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #C9C5B8">{{r.name}}</button></td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{r.ward}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{r.src}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE"><span style="{{r.pill}}">{{r.consent}}</span></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<aside aria-labelledby="cr-h" style="flex: 2 1 320px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<h2 id="cr-h" style="margin: 0; font-size: 20px; font-weight: 700">Consent record</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 10px 14px; font-size: 14px">
+<dt style="color: #4B5751">Person</dt><dd style="margin: 0; font-weight: 600">{{sel.name}} · 07•• ••• [000]</dd>
+<dt style="color: #4B5751">Given</dt><dd style="margin: 0; font-weight: 600">[date, time]</dd>
+<dt style="color: #4B5751">Where</dt><dd style="margin: 0; font-weight: 600">{{sel.src}}</dd>
+<dt style="color: #4B5751">Notice</dt><dd style="margin: 0; font-weight: 600">Campaign privacy notice v[0.0]</dd>
+<dt style="color: #4B5751">Status</dt><dd style="margin: 0; font-weight: 600">{{sel.consent}}</dd>
+</dl>
+<div style="background: #F3F4F2; border-radius: 10px; padding: 12px; font-size: 13px; line-height: 1.5; color: #3D4A43">Wording they agreed to: "I agree that this campaign may contact me. My details go to the campaign only."</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" onClick="{{sel.withdraw}}" style="font: inherit; font-weight: 600; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; height: 42px; padding: 0 14px; border-radius: 10px; cursor: pointer">Record opt-out</button>
+<button type="button" style="font: inherit; font-weight: 600; font-size: 14px; color: #9A1C12; background: #FFFFFF; border: 1px solid #E8C4C0; height: 42px; padding: 0 14px; border-radius: 10px; cursor: pointer">Delete on request</button>
+</div>
+<p style="margin: 0; font-size: 12px; color: #4B5751">People who opt out stay listed so they're never messaged again, but can't be exported or added to SMS sends.</p>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { f: 'All', sel: 1, out: { 4: true } }; }
+  renderVals() {
+    const S = this.state;
+    const defs = [[1, '[Supporter 01]', '[Ward 2]', 'Candidate page'], [2, '[Supporter 02]', '[Ward 1]', 'Town hall sign-in'], [3, '[Supporter 03]', '[Ward 4]', 'Mobilizer app'], [4, '[Supporter 04]', '[Ward 2]', 'Candidate page'], [5, '[Supporter 05]', '[Ward 5]', 'Mobilizer app'], [6, '[Supporter 06]', '[Ward 3]', 'Town hall sign-in']];
+    const all = defs.map((d) => { const o = !!S.out[d[0]]; return { id: d[0], name: d[1], ward: d[2], src: d[3], consent: o ? 'Opted out' : 'Can message',
+      pill: 'font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; ' + (o ? 'background: #ECEEF0; color: #3D4A43' : 'background: #E3F1E8; color: #0B5D3B'),
+      rowStyle: d[0] === S.sel ? 'background: #F4F8F5' : '', open: () => this.setState({ sel: d[0] }) }; });
+    const rows = S.f === 'All' ? all : S.f === 'Can message' ? all.filter((r) => r.consent === 'Can message') : all.filter((r) => r.consent === 'Opted out');
+    const filters = ['All', 'Can message', 'Opted out'].map((label) => ({ label, pressed: S.f === label ? 'true' : 'false', pick: () => this.setState({ f: label }),
+      style: 'font: inherit; font-size: 14px; font-weight: 700; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; cursor: pointer; ' + (S.f === label ? 'background: #0B5D3B; color: #FFFFFF' : 'background: transparent; color: #13201A') }));
+    const s = all.find((r) => r.id === S.sel);
+    const sel = { name: s.name, src: s.src, consent: s.consent, withdraw: () => this.setState({ out: { ...S.out, [s.id]: true } }) };
+    const items = [['Strategy', 'Workspace.dc.html'], ['Targets & wards', 'WsTargets.dc.html'], ['Events', 'WsEvents.dc.html'], ['Mobilizers', 'WsMobilizers.dc.html'], ['Supporters', 'WsSupporters.dc.html'], ['Messages', 'WsMessages.dc.html'], ['Party feed & sharing', 'WsParty.dc.html'], ['Election-day agents', 'WsAgents.dc.html'], ['Spending', 'WsSpending.dc.html']];
+    const nav = items.map((x) => ({ label: x[0], href: x[1], style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (x[0] === 'Supporters' ? 'background: #E7F0EA; color: #0B5D3B' : 'color: #3D4A43') }));
+    return { nav, filters, rows, sel };
+  }
+}
+</script>
+</body>
+</html>

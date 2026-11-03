@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Apply for nomination</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F0}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
+<header style="background: #FFFFFF; border-bottom: 1px solid #DEDBD0">
+<div style="max-width: 1100px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #13201A"><span style="width: 40px; height: 40px; border-radius: 11px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">P</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">Pamoja Party</span></a>
+<span style="font-size: 14px; color: #4B5751">Signed in as <strong style="color: #13201A">[Member name]</strong> · [PP-000000]</span>
+</div>
+</header>
+
+<main style="max-width: 1100px; margin: 0 auto; padding: 36px 24px 72px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<p style="margin: 0; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #0B5D3B">Nominations [Year] · applications close [dd Mon]</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.02em">{{heading}}</h1>
+</div>
+
+<sc-if value="{{inForm}}" hint-placeholder-val="{{ true }}">
+<ol aria-label="Steps" style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="4"><li aria-current="{{s.current}}" style="display: flex; flex-direction: column; gap: 6px"><span style="{{s.bar}}"></span><span style="{{s.lab}}">{{s.label}}</span></li></sc-for>
+</ol>
+</sc-if>
+
+<section style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 18px">
+<sc-if value="{{s1}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; gap: 10px; align-items: center; background: #E7F0EA; border-radius: 12px; padding: 12px 14px; font-size: 14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B5D3B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span>Verified member since [Month YYYY] · membership up to date · registered voter in [Constituency]</span></div>
+<span id="seat-l" style="font-size: 15px; font-weight: 700">Which seat are you vying for?</span>
+<div role="radiogroup" aria-labelledby="seat-l" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px">
+<sc-for list="{{seats}}" as="s" hint-placeholder-count="5"><button type="button" role="radio" aria-checked="{{s.checked}}" onClick="{{s.pick}}" style="{{s.style}}"><strong>{{s.label}}</strong><span style="font-size: 13px; font-weight: 400; color: #4B5751">{{s.area}}</span></button></sc-for>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; max-width: 420px">{{areaLabel}}<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>[Your registered area]</option></select></label>
+</div>
+</sc-if>
+
+<sc-if value="{{s2}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Upload your documents</h2>
+<p style="margin: 0; color: #4B5751; font-size: 14px">Clear photos or PDFs, up to [10] MB each. You can come back and finish later.</p>
+<sc-for list="{{docs}}" as="d" hint-placeholder-count="5">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #E1E4E2">
+<div style="display: flex; flex-direction: column; gap: 2px"><strong>{{d.label}}</strong><span style="font-size: 13px; color: #4B5751">{{d.status}}</span></div>
+<button type="button" onClick="{{d.up}}" style="{{d.btn}}">{{d.btnLabel}}</button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{s3}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px; max-width: 560px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Pay the nomination fee</h2>
+<div style="display: flex; justify-content: space-between; align-items: center; background: #F3F4F2; border-radius: 14px; padding: 18px 20px"><span>{{seatName}} nomination fee</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[KSh 00,000]</span></div>
+<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5"><input type="checkbox" style="width: 18px; height: 18px; margin: 2px 0 0; accent-color: #0B5D3B">I qualify for the reduced fee (youth, women or persons with disability). Proof is checked during vetting.</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">M-Pesa number<input type="tel" value="07XX XXX XXX" style="font: inherit; font-weight: 400; font-size: 16px; padding: 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
+<button type="button" onClick="{{pay}}" style="{{payStyle}}">{{payLabel}}</button>
+<span style="font-size: 13px; color: #4B5751">Fees are not refundable once vetting starts, except as the party rules say.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{s4}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 700px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Declaration</h2>
+<label style="display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.5"><input type="checkbox" checked="{{agree}}" onChange="{{toggleAgree}}" style="width: 20px; height: 20px; margin: 2px 0 0; accent-color: #0B5D3B">I confirm the information and documents are true, I meet the requirements for this seat, and I will abide by the party's nomination rules and the outcome of the process.</label>
+<label style="display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.5"><input type="checkbox" style="width: 20px; height: 20px; margin: 2px 0 0; accent-color: #0B5D3B">Show my name on the public aspirants list while nominations are open.</label>
+</div>
+</sc-if>
+
+<sc-if value="{{s5}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<p style="margin: 0; font-size: 17px; line-height: 1.6">Application <strong>[APP-0000]</strong> for <strong>{{seatName}}</strong> was received. We've sent a confirmation SMS.</p>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0">
+<li style="display: flex; gap: 14px; padding: 12px 0"><span style="flex: 0 0 28px; height: 28px; border-radius: 50%; background: #0B5D3B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px">✓</span><span><strong>Submitted</strong> · [date, time]</span></li>
+<li style="display: flex; gap: 14px; padding: 12px 0"><span style="flex: 0 0 28px; height: 28px; border-radius: 50%; background: #F2B705; color: #13201A; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px">2</span><span><strong>Vetting</strong> · the Elections Board reviews by [dd Mon]. You'll get an SMS if anything is missing.</span></li>
+<li style="display: flex; gap: 14px; padding: 12px 0"><span style="flex: 0 0 28px; height: 28px; border-radius: 50%; background: #E1E4E2; color: #3D4A43; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px">3</span><span><strong>Decision</strong> · cleared aspirants go on the ballot for the [method] on [dd Mon].</span></li>
+</ol>
+<div style="background: #13201A; color: #F6F5F0; border-radius: 16px; padding: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<span style="font-size: 15px; max-width: 520px">While you wait: set up your campaign workspace to plan wards, events and mobilizers.</span>
+<a href="Plans.dc.html" style="font-weight: 700; color: #13201A; background: #F2B705; padding: 12px 18px; border-radius: 999px; text-decoration: none">See workspace plans</a>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{inForm}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #EDEBE4; padding-top: 18px">
+<button type="button" onClick="{{back}}" style="{{backStyle}}">Back</button>
+<button type="button" onClick="{{next}}" style="{{nextStyle}}">{{nextLabel}}</button>
+</div>
+</sc-if>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { st: 1, seat: 'MP', docs: [true, true, false, false, false], paid: false, agree: false }; }
+  renderVals() {
+    const S = this.state;
+    const seatDefs = [['MCA', 'one ward'], ['MP', 'one constituency'], ['Woman Rep', 'one county'], ['Senator', 'one county'], ['Governor', 'one county']];
+    const seats = seatDefs.map((s) => ({ label: s[0], area: s[1], checked: S.seat === s[0] ? 'true' : 'false', pick: () => this.setState({ seat: s[0] }),
+      style: 'font: inherit; text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 12px; cursor: pointer; color: #13201A; ' + (S.seat === s[0] ? 'background: #E7F0EA; border: 2px solid #0B5D3B' : 'background: #FFFFFF; border: 2px solid #E1E4E2') }));
+    const dl = ['National ID (both sides)', 'Tax compliance certificate', 'Police clearance (good conduct)', 'Signed self-declaration form', 'Academic certificates (if required)'];
+    const docs = dl.map((label, i) => { const on = S.docs[i]; return { label, status: on ? 'Uploaded · [file name]' : 'Not uploaded',
+      up: () => { const n = S.docs.slice(); n[i] = true; this.setState({ docs: n }); }, btnLabel: on ? 'Replace' : 'Upload',
+      btn: 'font: inherit; font-weight: 700; font-size: 14px; height: 40px; padding: 0 16px; border-radius: 10px; cursor: pointer; ' + (on ? 'background: #FFFFFF; color: #13201A; border: 1px solid #D5D9D6' : 'background: #0B5D3B; color: #FFFFFF; border: 0') }; });
+    const labels = ['Seat & area', 'Documents', 'Fee', 'Declaration'];
+    const steps = labels.map((label, i) => { const n = i + 1; const on = S.st >= n; return { label, current: S.st === n ? 'step' : 'false', bar: 'display: block; height: 6px; border-radius: 999px; background: ' + (on ? '#0B5D3B' : '#E1E4E2'), lab: 'font-size: 13px; font-weight: 700; color: ' + (on ? '#13201A' : '#6B7570') }; });
+    const canNext = S.st === 1 || (S.st === 2 && S.docs.slice(0, 4).every(Boolean)) || (S.st === 3 && S.paid) || (S.st === 4 && S.agree);
+    const areaLabel = { MCA: 'Ward', MP: 'Constituency', 'Woman Rep': 'County', Senator: 'County', Governor: 'County' }[S.seat];
+    return {
+      seats, docs, steps, areaLabel, seatName: S.seat,
+      heading: S.st === 5 ? 'Application submitted' : 'Apply for nomination',
+      inForm: S.st < 5, s1: S.st === 1, s2: S.st === 2, s3: S.st === 3, s4: S.st === 4, s5: S.st === 5,
+      pay: () => this.setState({ paid: true }), payLabel: S.paid ? '✓ Paid · M-Pesa [REF]' : 'Send M-Pesa prompt',
+      payStyle: 'font: inherit; font-weight: 700; font-size: 16px; height: 50px; border-radius: 999px; cursor: pointer; ' + (S.paid ? 'background: #E7F0EA; color: #0B5D3B; border: 1.5px solid #0B5D3B' : 'background: #F2B705; color: #13201A; border: 0'),
+      agree: S.agree, toggleAgree: () => this.setState({ agree: !S.agree }),
+      back: () => this.setState({ st: Math.max(1, S.st - 1) }),
+      backStyle: 'font: inherit; font-weight: 700; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #C9C5B8; height: 48px; padding: 0 22px; border-radius: 999px; cursor: pointer; visibility: ' + (S.st === 1 ? 'hidden' : 'visible'),
+      next: () => { if (canNext) this.setState({ st: S.st + 1 }); },
+      nextLabel: S.st === 4 ? 'Submit application' : S.st === 2 && !canNext ? 'Upload required documents' : S.st === 3 && !canNext ? 'Pay to continue' : 'Continue',
+      nextStyle: 'font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; border: 0; height: 48px; padding: 0 24px; border-radius: 999px; ' + (canNext ? 'background: #0B5D3B; cursor: pointer' : 'background: #9AA49F; cursor: not-allowed')
+    };
+  }
+}
+</script>
+</body>
+</html>

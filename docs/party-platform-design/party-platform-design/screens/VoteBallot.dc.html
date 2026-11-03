@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Primaries ballot</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F0}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
+<header style="background: #13201A; color: #F6F5F0">
+<div style="max-width: 1000px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; border-radius: 10px; background: #F2B705; display: flex; align-items: center; justify-content: center; color: #13201A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800">P</span><span style="font-weight: 700">Pamoja Party primaries · [Year]</span></div>
+<span style="font-size: 14px; color: #B9C2BC">Polls close [time] · signed in as [PP-000000]</span>
+</div>
+</header>
+
+<main style="max-width: 1000px; margin: 0 auto; padding: 32px 24px 64px; display: flex; flex-direction: column; gap: 22px">
+
+<sc-if value="{{isBallot}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px" aria-label="Races on your ballot">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="3"><button type="button" onClick="{{c.go}}" aria-current="{{c.current}}" style="{{c.style}}">{{c.label}} {{c.mark}}</button></sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">Race {{raceNo}} of 3 · {{raceArea}}</span>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 36px; letter-spacing: -0.02em">Choose one for {{raceName}}</h1>
+</div>
+<div role="radiogroup" aria-label="{{raceName}} candidates" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px">
+<sc-for list="{{cands}}" as="c" hint-placeholder-count="3">
+<button type="button" role="radio" aria-checked="{{c.checked}}" onClick="{{c.pick}}" style="{{c.style}}">
+<span style="flex: 0 0 72px; height: 72px; border-radius: 14px; background: #DCD8CB; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5B6660">[Photo]</span>
+<span style="display: flex; flex-direction: column; gap: 4px; text-align: left"><strong style="font-size: 18px">{{c.name}}</strong><span style="font-size: 14px; color: #4B5751">Ballot no. {{c.no}}</span></span>
+<span style="{{c.dot}}"></span>
+</button>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid #DEDBD0; padding-top: 18px">
+<button type="button" onClick="{{skip}}" style="font: inherit; font-weight: 600; font-size: 15px; color: #13201A; background: transparent; border: 0; padding: 12px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 4px">Leave this race blank</button>
+<button type="button" onClick="{{next}}" style="font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 52px; padding: 0 28px; border-radius: 999px; cursor: pointer">{{nextLabel}}</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isReview}}" hint-placeholder-val="{{ false }}">
+<section style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 16px">
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">Check your choices</h1>
+<sc-for list="{{review}}" as="r" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-top: 1px solid #EDEBE4">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 700; color: #4B5751">{{r.race}}</span><strong style="font-size: 18px">{{r.choice}}</strong></div>
+<button type="button" onClick="{{r.edit}}" style="font: inherit; font-weight: 700; font-size: 14px; color: #0B5D3B; background: none; border: 0; padding: 10px; cursor: pointer">Change</button>
+</div>
+</sc-for>
+<p style="margin: 0; font-size: 14px; color: #4B5751">Once you confirm, your vote can't be changed. Your ballot is secret: the party sees that you voted, never who you chose.</p>
+<button type="button" onClick="{{toOtp}}" style="align-self: flex-start; font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 52px; padding: 0 28px; border-radius: 999px; cursor: pointer">Confirm with SMS code</button>
+</section>
+</sc-if>
+
+<sc-if value="{{isOtp}}" hint-placeholder-val="{{ false }}">
+<section style="max-width: 480px; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 16px">
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">Enter the code we sent</h1>
+<p style="margin: 0; color: #3D4A43">To 07•• ••• [000]. This confirms it's really you casting this vote.</p>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">SMS code<input type="text" inputmode="numeric" maxlength="6" value="{{otp}}" onChange="{{setOtp}}" style="font: inherit; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px; letter-spacing: 0.4em; text-align: center; padding: 14px; border: 2px solid #C9C5B8; border-radius: 14px"></label>
+<button type="button" onClick="{{cast}}" style="{{castStyle}}">Cast my vote</button>
+</section>
+</sc-if>
+
+<sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+<section style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start">
+<span style="width: 56px; height: 56px; border-radius: 50%; background: #0B5D3B; display: flex; align-items: center; justify-content: center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">Your vote is cast. Asante!</h1>
+<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #3D4A43">Receipt code <strong style="color: #13201A">[K7Q2-9XMD]</strong>. After results are published at [time], you can enter it on the results page to confirm your ballot was counted — it never shows who you chose.</p>
+<p style="margin: 0; font-size: 14px; color: #4B5751">You can't vote again online or at a polling centre. If someone pressured you to vote a certain way, report it confidentially: [hotline].</p>
+</section>
+</sc-if>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { race: 0, picks: {}, stage: 'ballot', otp: '' }; }
+  renderVals() {
+    const S = this.state;
+    const races = [['MCA', '[Ward] Ward'], ['MP', '[Constituency] Constituency'], ['Governor', '[County] County']];
+    const names = [['[Aspirant A]', '[Aspirant B]', '[Aspirant C]'], ['[Aspirant D]', '[Aspirant E]'], ['[Aspirant F]', '[Aspirant G]', '[Aspirant H]']];
+    const r = S.race;
+    const pickFor = (i) => S.picks[i];
+    const chips = races.map((x, i) => { const p = pickFor(i); const cur = i === r; return { label: x[0], mark: p === undefined ? '' : p === -1 ? '· blank' : '✓', current: cur ? 'step' : 'false', go: () => this.setState({ race: i, stage: 'ballot' }),
+      style: 'font: inherit; font-size: 14px; font-weight: 700; min-height: 40px; padding: 0 16px; border-radius: 999px; cursor: pointer; ' + (cur ? 'background: #13201A; color: #FFFFFF; border: 1.5px solid #13201A' : p !== undefined ? 'background: #E7F0EA; color: #0B5D3B; border: 1.5px solid #0B5D3B' : 'background: #FFFFFF; color: #13201A; border: 1.5px solid #C9C5B8') }; });
+    const cands = names[r].map((name, i) => { const on = pickFor(r) === i; return { name, no: i + 1, checked: on ? 'true' : 'false', pick: () => this.setState({ picks: { ...S.picks, [r]: i } }),
+      style: 'font: inherit; color: #13201A; display: flex; align-items: center; gap: 16px; padding: 16px; border-radius: 18px; cursor: pointer; ' + (on ? 'background: #E7F0EA; border: 2.5px solid #0B5D3B' : 'background: #FFFFFF; border: 2.5px solid #DEDBD0'),
+      dot: 'margin-left: auto; flex: 0 0 26px; height: 26px; border-radius: 50%; box-sizing: border-box; ' + (on ? 'border: 8px solid #0B5D3B; background: #FFFFFF' : 'border: 2px solid #9AA49F') }; });
+    const advance = () => r < 2 ? this.setState({ race: r + 1 }) : this.setState({ stage: 'review' });
+    const review = races.map((x, i) => { const p = pickFor(i); return { race: x[0] + ' · ' + x[1], choice: p === undefined || p === -1 ? 'Left blank' : names[i][p], edit: () => this.setState({ race: i, stage: 'ballot' }) }; });
+    const otpOk = S.otp.length === 6;
+    return {
+      chips, cands, review,
+      raceNo: r + 1, raceName: races[r][0], raceArea: races[r][1],
+      isBallot: S.stage === 'ballot', isReview: S.stage === 'review', isOtp: S.stage === 'otp', isDone: S.stage === 'done',
+      skip: () => { this.setState({ picks: { ...S.picks, [r]: -1 } }); advance(); },
+      next: advance, nextLabel: r < 2 ? 'Next race' : 'Review my ballot',
+      toOtp: () => this.setState({ stage: 'otp' }),
+      otp: S.otp, setOtp: (e) => this.setState({ otp: e.target.value.replace(/\D/g, '').slice(0, 6) }),
+      cast: () => { if (otpOk) this.setState({ stage: 'done' }); },
+      castStyle: 'font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; border: 0; height: 52px; border-radius: 999px; ' + (otpOk ? 'background: #0B5D3B; cursor: pointer' : 'background: #9AA49F; cursor: not-allowed')
+    };
+  }
+}
+</script>
+</body>
+</html>

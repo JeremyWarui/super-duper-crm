@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aspirant plans</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F0}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
+
+<header style="border-bottom: 1px solid #DEDBD0">
+<div style="max-width: 1240px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #13201A">
+<span style="width: 40px; height: 40px; border-radius: 10px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">P</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Pamoja Party</span>
+</a>
+<span style="font-size: 14px; color: #4B5751">Signed in as <strong style="color: #13201A">[Aspirant name]</strong> · Nomination: <strong style="color: #0B5D3B">Cleared</strong></span>
+</div>
+</header>
+
+<main style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 72px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 720px">
+<p style="margin: 0; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #0B5D3B">Campaign workspace</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(36px, 5vw, 60px); line-height: 1; letter-spacing: -0.03em">Run your campaign on the party's ground game.</h1>
+<p style="margin: 0; font-size: 18px; line-height: 1.6; color: #3D4A43">Plan by ward and polling station, manage mobilizers and events, and see party reach in your area. Your campaign data stays private to you.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span id="seat-l" style="font-weight: 700">Which seat are you vying for?</span>
+<div role="group" aria-labelledby="seat-l" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{seats}}" as="s" hint-placeholder-count="5">
+<button type="button" aria-pressed="{{s.pressed}}" onClick="{{s.pick}}" style="{{s.style}}">{{s.label}}</button>
+</sc-for>
+</div>
+<p style="margin: 0; font-size: 15px; color: #4B5751">{{scopeNote}}</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; align-items: stretch">
+<sc-for list="{{tiers}}" as="t" hint-placeholder-count="3">
+<article style="{{t.cardStyle}}">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700">{{t.name}}</h2>
+<sc-if value="{{t.popular}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; font-weight: 700; background: #F2B705; color: #13201A; padding: 4px 10px; border-radius: 999px">Most chosen</span></sc-if>
+</div>
+<p style="margin: 0; font-size: 15px; opacity: 0.85">{{t.desc}}</p>
+<p style="margin: 0; display: flex; align-items: baseline; gap: 6px"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 34px">{{t.price}}</span><span style="font-size: 14px; opacity: 0.8">/ month</span></p>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 15px">
+<sc-for list="{{t.features}}" as="f" hint-placeholder-count="5">
+<li style="display: flex; gap: 10px; align-items: flex-start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 18px; margin-top: 2px"><path d="M20 6 9 17l-5-5"></path></svg><span>{{f}}</span></li>
+</sc-for>
+</ul>
+<a href="WsSetup.dc.html" style="{{t.ctaStyle}}">Choose {{t.name}}</a>
+</article>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px">
+<section style="flex: 1 1 360px; min-width: 0; background: #E7F0EA; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">What the party shares with you</h2>
+<p style="margin: 0; color: #3D4A43; line-height: 1.6">Party membership per ward, attendance at party events in your area, issue priorities raised at party forums, and IEBC voter and turnout data — already loaded.</p>
+</section>
+<section style="flex: 1 1 360px; min-width: 0; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Your data stays yours</h2>
+<p style="margin: 0; color: #3D4A43; line-height: 1.6">Supporters, targets and strategy are visible only to your team. You decide what, if anything, to share with the party — and you can withdraw it at any time.</p>
+</section>
+</div>
+<p style="margin: 0; font-size: 14px; color: #4B5751">Pay by M-Pesa or card. Fees are campaign expenditure — keep your receipt for your declaration. Powered by [Your product].</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { seat: 'MP' }; }
+  renderVals() {
+    const scope = { MCA: 'Priced for one ward, planned down to polling stations.', MP: 'Priced for one constituency, planned ward by ward.', 'Woman Rep': 'Priced for one county, planned constituency by constituency.', Senator: 'Priced for one county, planned constituency by constituency.', Governor: 'Priced for one county, with a running-mate seat included.' };
+    const sel = this.state.seat;
+    const seats = ['MCA', 'MP', 'Woman Rep', 'Senator', 'Governor'].map((label) => ({
+      label, pressed: sel === label ? 'true' : 'false', pick: () => this.setState({ seat: label }),
+      style: 'font: inherit; font-size: 15px; font-weight: 700; min-height: 44px; padding: 0 18px; border-radius: 999px; cursor: pointer; ' + (sel === label ? 'background: #13201A; color: #FFFFFF; border: 1.5px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1.5px solid #C9C5B8')
+    }));
+    const card = (dark) => 'border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 18px; ' + (dark ? 'background: #0B5D3B; color: #FFFFFF' : 'background: #FFFFFF; color: #13201A; border: 1px solid #DEDBD0');
+    const cta = (dark) => 'margin-top: auto; display: block; text-align: center; font-weight: 700; font-size: 16px; padding: 15px; border-radius: 999px; text-decoration: none; ' + (dark ? 'background: #F2B705; color: #13201A' : 'background: #13201A; color: #FFFFFF');
+    const tiers = [
+      { name: 'Essentials', desc: 'For the nominations period.', price: '[KSh 00,000]', popular: false, features: ['Win-number targets by area', 'Event planner with invited vs attended', 'Up to [00] mobilizers', 'Supporter sign-up page with consent', 'Party reach in your area'] },
+      { name: 'Field', desc: 'For a full ground campaign.', price: '[KSh 00,000]', popular: true, features: ['Everything in Essentials', 'Unlimited mobilizers + phone app', 'Polling-station drill-down', 'Bulk SMS (opt-in contacts)', 'Strategy & gap analysis'] },
+      { name: 'Command', desc: 'For county-wide races.', price: '[KSh 000,000]', popular: false, features: ['Everything in Field', 'Multiple managers & regions', 'Agents on election day', 'Spending tracker for declarations', 'Priority support'] }
+    ].map((t) => ({ ...t, cardStyle: card(t.popular), ctaStyle: cta(t.popular) }));
+    return { seats, tiers, scopeNote: scope[sel] };
+  }
+}
+</script>
+</body>
+</html>

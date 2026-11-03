@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Publish nominations timetable</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh">
+<header style="background: #FFFFFF; border-bottom: 1px solid #E1E4E2">
+<div style="max-width: 1200px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 2px"><a href="CrmNominations.dc.html" style="font-size: 14px; font-weight: 600">← Nominations</a><h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">Publish nominations timetable</h1></div>
+<span style="font-size: 14px; color: #4B5751">Draft saved [time]</span>
+</div>
+</header>
+
+<main style="max-width: 1200px; margin: 0 auto; padding: 28px 24px 64px; display: flex; flex-direction: column; gap: 24px">
+<ol aria-label="Steps" style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+<li aria-current="{{s.current}}"><button type="button" onClick="{{s.go}}" style="{{s.style}}"><span style="{{s.num}}">{{s.n}}</span>{{s.label}}</button></li>
+</sc-for>
+</ol>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section style="flex: 3 1 560px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 18px">
+
+<sc-if value="{{s1}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Key dates</h2>
+<sc-for list="{{dates}}" as="d" hint-placeholder-count="5">
+<div style="display: grid; grid-template-columns: minmax(160px, 1fr) repeat(2, minmax(150px, 1fr)); gap: 12px; align-items: end; padding-bottom: 14px; border-bottom: 1px solid #EDEFEE">
+<div style="display: flex; flex-direction: column; gap: 2px"><strong>{{d.label}}</strong><span style="font-size: 13px; color: #4B5751">{{d.hint}}</span></div>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: #4B5751">Opens<input type="date" style="font: inherit; font-size: 15px; color: #13201A; padding: 9px 10px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: #4B5751">Closes<input type="date" style="font: inherit; font-size: 15px; color: #13201A; padding: 9px 10px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
+</div>
+</sc-for>
+<p style="margin: 0; font-size: 13px; color: #4B5751">The system warns you if a date falls after the IEBC deadline for submitting nominees ([date]).</p>
+</div>
+</sc-if>
+
+<sc-if value="{{s2}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Seats, fees &amp; method</h2>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 560px; border-collapse: collapse; font-size: 15px">
+<thead><tr style="text-align: left; color: #4B5751; font-size: 13px"><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Seat</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Nomination fee (KSh)</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Reduced fee for youth, women, PWD</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Default method</th></tr></thead>
+<tbody>
+<sc-for list="{{seats}}" as="s" hint-placeholder-count="6">
+<tr>
+<td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE; font-weight: 700">{{s}}</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE"><input type="text" inputmode="numeric" placeholder="[00,000]" aria-label="{{s}} fee" style="font: inherit; font-size: 15px; width: 120px; padding: 9px 10px; border: 1.5px solid #C9C5B8; border-radius: 10px"></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE"><input type="text" inputmode="numeric" placeholder="[00,000]" aria-label="{{s}} reduced fee" style="font: inherit; font-size: 15px; width: 120px; padding: 9px 10px; border: 1.5px solid #C9C5B8; border-radius: 10px"></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE"><select aria-label="{{s}} method" style="font: inherit; font-size: 15px; padding: 9px 10px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>Primary (members vote)</option><option>Delegates</option><option>Consensus</option></select></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; font-size: 13px; color: #4B5751">You can override the method for a single seat later, with a recorded reason.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{s3}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Requirements aspirants must meet</h2>
+<sc-for list="{{reqs}}" as="r" hint-placeholder-count="7">
+<label style="display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; background: #F3F4F2; cursor: pointer">
+<input type="checkbox" checked="{{r.on}}" onChange="{{r.toggle}}" style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B">
+<span style="display: flex; flex-direction: column"><strong style="font-size: 15px">{{r.label}}</strong><span style="font-size: 13px; color: #4B5751">{{r.hint}}</span></span>
+</label>
+</sc-for>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Nomination rules (PDF)<button type="button" style="font: inherit; font-size: 14px; font-weight: 600; color: #3D4A43; background: #F3F4F2; border: 1.5px dashed #C9C5B8; border-radius: 12px; height: 56px; cursor: pointer">Upload the party's nomination rules</button></label>
+</div>
+</sc-if>
+
+<sc-if value="{{s4}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Review &amp; publish</h2>
+<div style="border: 1px solid #E1E4E2; border-radius: 14px; overflow: hidden">
+<div style="background: #0B5D3B; color: #FFFFFF; padding: 16px 18px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 800; letter-spacing: 0.1em; color: #F2B705">PUBLIC NOTICE · PREVIEW</span><strong style="font-size: 19px">Pamoja Party nominations timetable [Year]</strong></div>
+<div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; font-size: 15px">
+<span>Applications: [dd Mon] – [dd Mon] · Vetting until [dd Mon] · Appeals [dd Mon] – [dd Mon]</span>
+<span>Primaries: [dd Mon] · Certificates by [dd Mon]</span>
+<span style="color: #4B5751">Fees, requirements and full rules attached. Apply at www.[party].ke/vie</span>
+</div>
+</div>
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="font-size: 15px; font-weight: 700; margin-bottom: 8px">When published</legend>
+<label style="display: flex; gap: 10px; align-items: center; font-size: 15px"><input type="checkbox" checked style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B">Post on the website's News and "Vie with us" page</label>
+<label style="display: flex; gap: 10px; align-items: center; font-size: 15px"><input type="checkbox" checked style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B">SMS all verified members who opted in ([00,000])</label>
+<label style="display: flex; gap: 10px; align-items: center; font-size: 15px"><input type="checkbox" checked style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B">Open the online application form on the opening date</label>
+</fieldset>
+<div style="{{approvalBox}}">
+<strong>{{approvalTitle}}</strong>
+<span style="font-size: 14px">{{approvalNote}}</span>
+</div>
+</div>
+</sc-if>
+
+<div style="display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #EDEFEE; padding-top: 18px">
+<button type="button" onClick="{{back}}" style="{{backStyle}}">Back</button>
+<button type="button" onClick="{{next}}" style="{{nextStyle}}">{{nextLabel}}</button>
+</div>
+</section>
+
+<aside style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<section style="background: #13201A; color: #F6F5F0; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 17px; font-weight: 700">Two people sign off</h2>
+<p style="margin: 0; font-size: 14px; color: #B9C2BC; line-height: 1.55">The Elections Board secretary prepares the timetable; the Board chair approves before anything goes public. Both names are recorded.</p>
+</section>
+<section style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 17px; font-weight: 700">After publishing</h2>
+<span style="font-size: 14px; color: #3D4A43">Dates can only move later, and every change sends a corrected notice.</span>
+</section>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { st: 1, phase: 'draft', req: [true, true, true, true, true, true, false] }; }
+  renderVals() {
+    const S = this.state;
+    const labels = ['Key dates', 'Seats & fees', 'Requirements', 'Review & publish'];
+    const steps = labels.map((label, i) => { const n = i + 1; const cur = S.st === n; const done = S.st > n;
+      return { n: done ? '✓' : n, label, current: cur ? 'step' : 'false', go: () => this.setState({ st: n }),
+        style: 'font: inherit; width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; font-size: 15px; font-weight: 700; padding: 12px 14px; border-radius: 12px; cursor: pointer; ' + (cur ? 'background: #FFFFFF; border: 2px solid #0B5D3B; color: #13201A' : 'background: #FFFFFF; border: 2px solid #E1E4E2; color: ' + (done ? '#13201A' : '#6B7570')),
+        num: 'flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; ' + (cur || done ? 'background: #0B5D3B; color: #FFFFFF' : 'background: #E1E4E2; color: #3D4A43') }; });
+    const dates = [['Applications', 'Aspirants apply and pay'], ['Vetting', 'Board checks documents'], ['Appeals', 'Rejected aspirants can appeal'], ['Primaries', 'Voting day(s)'], ['Certificates', 'Winners receive certificates']].map((d) => ({ label: d[0], hint: d[1] }));
+    const rq = [['National ID & voter registration', 'Checked against the area they are vying in'], ['Verified party member', 'Membership checked automatically'], ['Nomination fee paid', 'Matched from M-Pesa'], ['Tax compliance certificate', 'Upload'], ['Police clearance (good conduct)', 'Upload'], ['Self-declaration form', 'Signed upload'], ['Academic certificates', 'Only where the law sets a minimum for the seat']];
+    const reqs = rq.map((r, i) => ({ label: r[0], hint: r[1], on: S.req[i], toggle: () => { const n = S.req.slice(); n[i] = !n[i]; this.setState({ req: n }); } }));
+    const last = S.st === 4;
+    const phase = S.phase;
+    let nextLabel = 'Continue', next = () => this.setState({ st: Math.min(4, S.st + 1) });
+    if (last && phase === 'draft') { nextLabel = 'Send to Board chair for approval'; next = () => this.setState({ phase: 'pending' }); }
+    if (last && phase === 'pending') { nextLabel = 'Approve & publish (as chair)'; next = () => this.setState({ phase: 'live' }); }
+    if (last && phase === 'live') { nextLabel = 'Published ✓'; next = () => {}; }
+    const ab = { draft: ['#F3F4F2', '#13201A', 'Not yet approved', 'Sending notifies the Elections Board chair.'], pending: ['#FFF8E1', '#4B4013', 'Waiting for the Board chair', 'Sent [time]. The chair approves from their own account.'], live: ['#E7F0EA', '#0B5D3B', 'Published', 'Live on the website; [00,000] SMS queued. Approved by [chair], [time].'] }[phase];
+    return {
+      steps, dates, seats: ['MCA', 'MP', 'Woman Rep', 'Senator', 'Governor', 'President'], reqs,
+      s1: S.st === 1, s2: S.st === 2, s3: S.st === 3, s4: last,
+      back: () => this.setState({ st: Math.max(1, S.st - 1) }),
+      backStyle: 'font: inherit; font-weight: 700; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; height: 46px; padding: 0 20px; border-radius: 12px; cursor: pointer; visibility: ' + (S.st === 1 ? 'hidden' : 'visible'),
+      next, nextLabel,
+      nextStyle: 'font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; border: 0; height: 46px; padding: 0 20px; border-radius: 12px; cursor: pointer; background: ' + (last && phase === 'live' ? '#5E9A7B' : '#0B5D3B'),
+      approvalBox: 'border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; background: ' + ab[0] + '; color: ' + ab[1],
+      approvalTitle: ab[2], approvalNote: ab[3]
+    };
+  }
+}
+</script>
+</body>
+</html>

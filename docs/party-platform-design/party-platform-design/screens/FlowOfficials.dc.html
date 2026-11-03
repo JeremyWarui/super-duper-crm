@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Edit branch officials</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="position: relative; min-height: 1000px; font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; display: flex; flex-wrap: wrap">
+<div aria-hidden="true" style="flex: 0 1 240px; background: #13201A; min-height: 1000px"></div>
+<div aria-hidden="true" style="flex: 999 1 560px; padding: 32px; display: flex; flex-direction: column; gap: 20px">
+<div style="height: 36px; width: 240px; border-radius: 8px; background: #DDE1DE"></div>
+<div style="height: 110px; border-radius: 16px; background: #FFFFFF"></div>
+<div style="height: 520px; border-radius: 16px; background: #FFFFFF"></div>
+</div>
+
+<div style="position: absolute; inset: 0; background: rgba(19,32,26,0.55); display: flex; justify-content: flex-end">
+<div role="dialog" aria-modal="true" aria-labelledby="dr-h" style="width: 100%; max-width: 560px; background: #FFFFFF; display: flex; flex-direction: column; box-shadow: -12px 0 40px rgba(0,0,0,0.2)">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 24px 28px; border-bottom: 1px solid #EDEFEE">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 id="dr-h" style="margin: 0; font-size: 22px; font-weight: 700">Officials · Nakuru County</h2><span style="font-size: 14px; color: #4B5751">Changes need meeting minutes and HQ approval.</span></div>
+<a href="CrmBranches.dc.html" aria-label="Close" style="flex: 0 0 40px; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #13201A"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></a>
+</div>
+
+<sc-if value="{{editing}}" hint-placeholder-val="{{ true }}">
+<div style="flex: 1; overflow: auto; padding: 22px 28px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{offices}}" as="o" hint-placeholder-count="5">
+<div style="{{o.box}}">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="font-weight: 700">{{o.role}}</span>
+<span style="{{o.tag}}">{{o.tagLabel}}</span>
+</div>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: #4B5751">Holder
+<select onChange="{{o.set}}" style="font: inherit; font-size: 15px; font-weight: 500; color: #13201A; padding: 10px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF">
+<option value="{{o.current}}">{{o.current}}</option>
+<option value="[Member A] · [PP-000001]">[Member A] · [PP-000001]</option>
+<option value="[Member B] · [PP-000002]">[Member B] · [PP-000002]</option>
+<option value="Vacant">Vacant</option>
+</select>
+</label>
+</div>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Reason<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>Elected at branch meeting</option><option>Interim appointment</option><option>Resignation</option><option>Removal</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Effective from<input type="date" style="font: inherit; font-weight: 400; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; font-weight: 600">Signed minutes of the meeting</span>
+<button type="button" onClick="{{upload}}" style="{{upStyle}}">{{upLabel}}</button>
+</div>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 18px 28px; border-top: 1px solid #EDEFEE">
+<span style="font-size: 13px; color: #4B5751">{{changes}} change(s)</span>
+<div style="display: flex; gap: 10px">
+<a href="CrmBranches.dc.html" style="font-weight: 700; font-size: 15px; color: #13201A; padding: 0 18px; height: 46px; display: flex; align-items: center; border: 1px solid #D5D9D6; border-radius: 12px; text-decoration: none">Cancel</a>
+<button type="button" onClick="{{save}}" style="{{saveStyle}}">Submit for approval</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 28px; display: flex; flex-direction: column; gap: 14px">
+<span style="align-self: flex-start; font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: 999px; background: #FFF3CC; color: #6B5100">Awaiting HQ approval</span>
+<p style="margin: 0; font-size: 16px; line-height: 1.6">Your {{changes}} change(s) were sent to the Secretary General. Until approved, the current officials stay listed. New officials get an SMS and portal access once approved.</p>
+<a href="CrmBranches.dc.html" style="font-weight: 700">Back to branches</a>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { pick: {}, up: false, sent: false }; }
+  renderVals() {
+    const S = this.state;
+    const offs = [['Chairperson', 'Vacant'], ['Secretary', '[Name] · [PP-000010]'], ['Treasurer', '[Name] · [PP-000011]'], ['Youth leader', 'Vacant'], ['Women leader', '[Name] · [PP-000012]']];
+    let changes = 0;
+    const offices = offs.map((o) => {
+      const v = S.pick[o[0]];
+      const changed = v && v !== o[1];
+      if (changed) changes++;
+      const now = changed ? v : o[1];
+      const vac = now === 'Vacant';
+      return { role: o[0], current: o[1], set: (e) => this.setState({ pick: { ...S.pick, [o[0]]: e.target.value } }),
+        tagLabel: changed ? 'Changed' : vac ? 'Vacant' : 'In office',
+        tag: 'font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; ' + (changed ? 'background: #FFF3CC; color: #6B5100' : vac ? 'background: #FCE4E2; color: #9A1C12' : 'background: #E3F1E8; color: #0B5D3B'),
+        box: 'display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 12px; ' + (changed ? 'background: #FFFBEA; border: 1.5px solid #F1DE9A' : 'background: #F7F8F7; border: 1.5px solid #EDEFEE') };
+    });
+    const ok = changes > 0 && S.up;
+    return {
+      offices, changes, editing: !S.sent, sent: S.sent,
+      upload: () => this.setState({ up: true }),
+      upLabel: S.up ? '✓ minutes_[date].pdf uploaded' : 'Upload PDF or photo of signed minutes',
+      upStyle: 'font: inherit; font-size: 14px; font-weight: 600; height: 60px; border-radius: 12px; cursor: pointer; ' + (S.up ? 'background: #E7F0EA; color: #0B5D3B; border: 1.5px solid #0B5D3B' : 'background: #F3F4F2; color: #3D4A43; border: 1.5px dashed #C9C5B8'),
+      save: () => { if (ok) this.setState({ sent: true }); },
+      saveStyle: 'font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; border: 0; height: 46px; padding: 0 20px; border-radius: 12px; ' + (ok ? 'background: #0B5D3B; cursor: pointer' : 'background: #9AA49F; cursor: not-allowed')
+    };
+  }
+}
+</script>
+</body>
+</html>

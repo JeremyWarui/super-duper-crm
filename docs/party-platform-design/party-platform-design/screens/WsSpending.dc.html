@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Candidate workspace — Spending</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+<nav aria-label="Workspace" style="flex: 1 1 240px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E1E4E2; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #0B5D3B">Pamoja Party · Command plan</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 19px">[Candidate] for MP</span>
+<span style="font-size: 13px; color: #4B5751">[Constituency], [County]</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="9"><a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a></sc-for>
+</div>
+<div style="margin-top: auto; padding: 0 8px; font-size: 13px; color: #4B5751">Powered by [Your product]</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px"><h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Spending</h1><span style="font-size: 14px; color: #4B5751">Keeps the records you'll need for your campaign finance declaration</span></div>
+<button type="button" style="font: inherit; font-weight: 700; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Export declaration report</button>
+</header>
+
+<section aria-label="Summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px">
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Spending limit for this seat</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px">[KSh 00,000,000]</span><span style="font-size: 13px; color: #4B5751">as set by the regulator</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Spent so far</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px">[KSh 0,000,000]</span><span style="font-size: 13px; color: #4B5751">+ {{added}} recorded today</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Contributions received</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px">[KSh 0,000,000]</span><span style="font-size: 13px; color: #4B5751">[00] contributors</span></div>
+<div style="background: #FFF8E1; border: 1px solid #F1DE9A; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B4013">Missing receipts</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; color: #6B5100">{{missing}}</span><span style="font-size: 13px; color: #4B4013">upload before you export</span></div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start">
+<section aria-labelledby="l-h" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="l-h" style="margin: 0; font-size: 20px; font-weight: 700">Expenses</h2>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 15px">
+<thead><tr style="text-align: left; color: #4B5751; font-size: 13px"><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Date</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">What</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Category</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">Amount</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Receipt</th></tr></thead>
+<tbody>
+<sc-for list="{{ledger}}" as="e" hint-placeholder-count="5">
+<tr><td style="padding: 11px 8px; border-bottom: 1px solid #EDEFEE; color: #4B5751">{{e.date}}</td><td style="padding: 11px 8px; border-bottom: 1px solid #EDEFEE; font-weight: 600">{{e.what}}</td><td style="padding: 11px 8px; border-bottom: 1px solid #EDEFEE">{{e.cat}}</td><td style="padding: 11px 8px; border-bottom: 1px solid #EDEFEE; text-align: right; font-variant-numeric: tabular-nums">{{e.amt}}</td><td style="padding: 11px 8px; border-bottom: 1px solid #EDEFEE"><span style="{{e.pill}}">{{e.rc}}</span></td></tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<section aria-labelledby="a-h" style="flex: 2 1 320px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="a-h" style="margin: 0; font-size: 20px; font-weight: 700">Record an expense</h2>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">What was it for?<input type="text" value="{{what}}" onChange="{{setWhat}}" placeholder="e.g. Sound system, Ward 2 town hall" style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Amount (KSh)<input type="text" inputmode="numeric" value="{{amt}}" onChange="{{setAmt}}" style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Category<select onChange="{{setCat}}" style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>Venues &amp; events</option><option>Transport</option><option>Publicity &amp; media</option><option>Personnel</option><option>Administration</option></select></label>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Paid via<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px; background: #FFFFFF"><option>M-Pesa</option><option>Bank</option><option>Cash</option></select></label>
+<button type="button" onClick="{{toggleRc}}" style="{{rcStyle}}">{{rcLabel}}</button>
+<button type="button" onClick="{{add}}" style="font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 46px; border-radius: 12px; cursor: pointer">Add expense</button>
+<p style="margin: 0; font-size: 12px; color: #4B5751">The platform keeps the records; your campaign remains responsible for what it declares.</p>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { what: '', amt: '', cat: 'Venues & events', rc: false, extra: [] }; }
+  renderVals() {
+    const S = this.state;
+    const ok = 'font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: #E3F1E8; color: #0B5D3B';
+    const miss = 'font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: #FFF3CC; color: #6B5100';
+    const base = [['[date]', 'Venue hire, [Ward 2] town hall', 'Venues & events', '[KSh 00,000]', true], ['[date]', 'Posters — 5,000 copies', 'Publicity & media', '[KSh 00,000]', true], ['[date]', 'Fuel, field team', 'Transport', '[KSh 0,000]', false], ['[date]', 'Workspace subscription', 'Administration', '[KSh 00,000]', true], ['[date]', 'Mobilizer stipends', 'Personnel', '[KSh 00,000]', false]];
+    const rows = S.extra.concat(base.map((b) => ({ date: b[0], what: b[1], cat: b[2], amt: b[3], has: b[4] })));
+    const ledger = rows.map((r) => ({ ...r, rc: r.has ? 'Uploaded' : 'Missing', pill: r.has ? ok : miss }));
+    const addedSum = S.extra.reduce((a, e) => a + e.n, 0);
+    const items = [['Strategy', 'Workspace.dc.html'], ['Targets & wards', 'WsTargets.dc.html'], ['Events', 'WsEvents.dc.html'], ['Mobilizers', 'WsMobilizers.dc.html'], ['Supporters', 'WsSupporters.dc.html'], ['Messages', 'WsMessages.dc.html'], ['Party feed & sharing', 'WsParty.dc.html'], ['Election-day agents', 'WsAgents.dc.html'], ['Spending', 'WsSpending.dc.html']];
+    const nav = items.map((x) => ({ label: x[0], href: x[1], style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (x[0] === 'Spending' ? 'background: #E7F0EA; color: #0B5D3B' : 'color: #3D4A43') }));
+    return {
+      nav, ledger, missing: ledger.filter((l) => !l.has).length,
+      added: 'KSh ' + addedSum.toLocaleString('en-KE'),
+      what: S.what, setWhat: (e) => this.setState({ what: e.target.value }),
+      amt: S.amt, setAmt: (e) => this.setState({ amt: e.target.value.replace(/\D/g, '') }),
+      setCat: (e) => this.setState({ cat: e.target.value }),
+      toggleRc: () => this.setState({ rc: !S.rc }),
+      rcLabel: S.rc ? '✓ Receipt photo attached' : 'Attach receipt photo',
+      rcStyle: 'font: inherit; font-size: 14px; font-weight: 600; height: 52px; border-radius: 12px; cursor: pointer; ' + (S.rc ? 'background: #E7F0EA; color: #0B5D3B; border: 1.5px solid #0B5D3B' : 'background: #F3F4F2; color: #3D4A43; border: 1.5px dashed #C9C5B8'),
+      add: () => { const n = parseInt(S.amt, 10) || 0; if (!S.what || !n) return; this.setState({ extra: [{ date: 'Today', what: S.what, cat: S.cat, amt: 'KSh ' + n.toLocaleString('en-KE'), has: S.rc, n }].concat(S.extra), what: '', amt: '', rc: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

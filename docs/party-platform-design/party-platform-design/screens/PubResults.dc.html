@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pamoja Party — Primary results</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F0}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
+<header style="background: #F6F5F0; border-bottom: 1px solid #DEDBD0">
+<div style="max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #13201A"><span style="width: 44px; height: 44px; border-radius: 12px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">P</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Pamoja Party</span></a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px 22px; font-weight: 600; font-size: 15px">
+<a href="PubAbout.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">About</a>
+<a href="PubIssue.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Agenda &amp; issues</a>
+<a href="News.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">News</a>
+<a href="Events.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Events</a>
+<a href="Candidates.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Candidates</a>
+</nav>
+<a href="Join.dc.html" style="font-weight: 700; font-size: 15px; color: #13201A; background: #F2B705; padding: 13px 20px; border-radius: 999px; text-decoration: none">Join the party</a>
+</div>
+</header>
+
+<section style="background: #13201A; color: #F6F5F0">
+<div style="max-width: 1240px; margin: 0 auto; padding: 48px 24px; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 12px; max-width: 640px">
+<p style="margin: 0; font-size: 14px; color: #B9C2BC"><a href="PartyHome.dc.html" style="color: #B9C2BC">Home</a> / Primary results</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(40px, 5vw, 60px); letter-spacing: -0.03em">Primary results [Year]</h1>
+<p style="margin: 0; font-size: 17px; color: #CFE0D5; line-height: 1.6">Official results declared by the party's Elections Board, with signed results forms for every polling centre.</p>
+</div>
+<form style="flex: 0 1 420px; background: #F6F5F0; color: #13201A; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<strong style="font-size: 17px">Check your vote was counted</strong>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Receipt code from your SMS<input type="text" value="{{code}}" onChange="{{setCode}}" placeholder="XXXX-XXXX" style="font: inherit; font-size: 18px; font-weight: 600; letter-spacing: 0.1em; padding: 12px; border: 1.5px solid #C9C5B8; border-radius: 12px; text-transform: uppercase"></label>
+<button type="button" onClick="{{check}}" style="font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 46px; border-radius: 12px; cursor: pointer">Check</button>
+<sc-if value="{{found}}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; font-size: 14px; color: #0B5D3B; font-weight: 600">✓ Counted in the [County] primary on [date]. Receipts never show who you voted for.</p></sc-if>
+<sc-if value="{{notFound}}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; font-size: 14px; color: #9A1C12; font-weight: 600">No ballot with that code. Check it against your SMS, or call [hotline].</p></sc-if>
+</form>
+</div>
+</section>
+
+<main style="max-width: 1240px; margin: 0 auto; padding: 36px 24px 72px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between">
+<div role="group" aria-label="Seat" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{seats}}" as="s" hint-placeholder-count="4"><button type="button" aria-pressed="{{s.pressed}}" onClick="{{s.pick}}" style="{{s.style}}">{{s.label}}</button></sc-for>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">County<select style="font: inherit; font-size: 15px; font-weight: 500; padding: 12px; border: 1.5px solid #C9C5B8; border-radius: 12px; background: #FFFFFF; min-width: 200px"><option>All counties</option><option>[County]</option></select></label>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px">
+<sc-for list="{{races}}" as="r" hint-placeholder-count="4">
+<article style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px"><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">{{r.seat}}</span><strong style="font-size: 19px">{{r.area}}</strong></div><span style="{{r.pill}}">{{r.status}}</span></div>
+<sc-for list="{{r.rows}}" as="x" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid #EDEBE4; font-size: 15px"><span style="{{x.nameStyle}}">{{x.name}}</span><span style="font-variant-numeric: tabular-nums; font-weight: 600">[0,000] votes</span></div>
+</sc-for>
+<div style="display: flex; justify-content: space-between; font-size: 13px; color: #4B5751"><span>Turnout [00]% of eligible members</span><a href="#" style="font-weight: 700">Centre forms (PDF)</a></div>
+</article>
+</sc-for>
+</div>
+</main>
+
+<footer style="background: #13201A; color: #B9C2BC"><div style="max-width: 1240px; margin: 0 auto; padding: 28px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; font-size: 13px"><span>© [Year] Pamoja Party · Reg. No. [000]</span><span>Powered by [Your product]</span></div></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { code: '', res: null, seat: 'All' }; }
+  renderVals() {
+    const S = this.state;
+    const pill = (s) => 'flex: 0 0 auto; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; ' + (s === 'Nominee certified' ? 'background: #E3F1E8; color: #0B5D3B' : s === 'Under appeal' ? 'background: #FFF3CC; color: #6B5100' : 'background: #ECEEF0; color: #3D4A43');
+    const all = [
+      ['Governor', '[County A]', 'Under appeal', ['[Aspirant A]', '[Aspirant B]', '[Aspirant C]']],
+      ['MP', '[Constituency A]', 'Nominee certified', ['[Aspirant D]', '[Aspirant E]']],
+      ['MP', '[Constituency C]', 'Nominee certified', ['[Aspirant J]', '[Aspirant K]']],
+      ['MCA', '[Ward C]', 'Counting', ['[Aspirant L]', '[Aspirant M]', '[Aspirant N]']]
+    ];
+    const races = all.filter((r) => S.seat === 'All' || r[0] === S.seat).map((r) => ({ seat: r[0], area: r[1], status: r[2], pill: pill(r[2]),
+      rows: r[3].map((n, i) => ({ name: (i === 0 && r[2] !== 'Counting' ? '✓ ' : '') + n, nameStyle: 'font-weight: ' + (i === 0 && r[2] !== 'Counting' ? '800; color: #0B5D3B' : '500') })) }));
+    const seats = ['All', 'Governor', 'MP', 'MCA'].map((label) => ({ label, pressed: S.seat === label ? 'true' : 'false', pick: () => this.setState({ seat: label }),
+      style: 'font: inherit; font-size: 15px; font-weight: 600; min-height: 44px; padding: 0 18px; border-radius: 999px; cursor: pointer; ' + (S.seat === label ? 'background: #13201A; color: #FFFFFF; border: 1.5px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1.5px solid #C9C5B8') }));
+    return {
+      seats, races, code: S.code,
+      setCode: (e) => this.setState({ code: e.target.value.toUpperCase(), res: null }),
+      check: () => this.setState({ res: /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(S.code.trim()) ? 'ok' : 'no' }),
+      found: S.res === 'ok', notFound: S.res === 'no'
+    };
+  }
+}
+</script>
+</body>
+</html>

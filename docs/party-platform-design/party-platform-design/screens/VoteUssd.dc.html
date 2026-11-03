@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>USSD voting</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; font-family: 'Public Sans', system-ui, sans-serif; background: #1E2622; color: #F6F5F0; display: flex; flex-direction: column; padding: 28px 22px; gap: 20px; position: relative">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #9FAAA4">Works on any phone · no data needed</span>
+<span style="font-size: 22px; font-weight: 700">Vote by USSD</span>
+</div>
+
+<sc-if value="{{idle}}" hint-placeholder-val="{{ true }}">
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px">
+<span style="font-size: 34px; font-weight: 600; letter-spacing: 0.06em">*[000]#</span>
+<button type="button" onClick="{{dial}}" aria-label="Dial" style="width: 72px; height: 72px; border-radius: 50%; border: 0; background: #2DA160; cursor: pointer; display: flex; align-items: center; justify-content: center">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"></path></svg>
+</button>
+<span style="font-size: 14px; color: #9FAAA4; text-align: center; max-width: 280px">Tap dial to start. Only works from the phone number on your membership.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{open}}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; display: flex; align-items: center; justify-content: center">
+<div role="dialog" aria-label="USSD session" style="width: 100%; background: #F4F4F4; color: #111111; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.4)">
+<sc-if value="{{err}}" hint-placeholder-val="{{ false }}"><span style="font-size: 14px; color: #A3150A; font-weight: 600">Invalid entry. Try again.</span></sc-if>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; white-space: pre-line">{{text}}</p>
+<sc-if value="{{needsInput}}" hint-placeholder-val="{{ true }}">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #555555">Reply
+<input type="text" inputmode="numeric" value="{{val}}" onChange="{{setVal}}" style="font: inherit; font-size: 18px; color: #111111; padding: 8px 4px; border: 0; border-bottom: 2px solid #2DA160; background: transparent">
+</label>
+</sc-if>
+<div style="display: flex; justify-content: flex-end; gap: 6px">
+<button type="button" onClick="{{cancel}}" style="font: inherit; font-weight: 700; font-size: 15px; color: #2DA160; background: none; border: 0; padding: 10px 14px; cursor: pointer">{{cancelLabel}}</button>
+<sc-if value="{{needsInput}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{send}}" style="font: inherit; font-weight: 700; font-size: 15px; color: #2DA160; background: none; border: 0; padding: 10px 14px; cursor: pointer">SEND</button></sc-if>
+</div>
+</div>
+</div>
+</sc-if>
+
+<p style="margin: 0; font-size: 12px; color: #9FAAA4; line-height: 1.5">Votes are tied to the member's registered phone and voting PIN. One vote per member across online, USSD and polling centres.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { s: -1, val: '', err: false, c: [] }; }
+  renderVals() {
+    const S = this.state;
+    const races = [['MCA', ['[Aspirant A]', '[Aspirant B]', '[Aspirant C]']], ['MP', ['[Aspirant D]', '[Aspirant E]']], ['Governor', ['[Aspirant F]', '[Aspirant G]', '[Aspirant H]']]];
+    const pick = (i) => { const v = S.c[i]; return v === 0 ? 'Blank' : races[i][1][v - 1]; };
+    let text = '';
+    if (S.s === 0) text = 'Pamoja Party Primaries\n1. Vote\n2. My voting status\n3. Help';
+    if (S.s === 1) text = 'Enter your 4-digit voting PIN';
+    if (S.s >= 2 && S.s <= 4) { const r = races[S.s - 2]; text = r[0] + ' — choose one\n' + r[1].map((n, i) => (i + 1) + '. ' + n).join('\n') + '\n0. Leave blank'; }
+    if (S.s === 5) text = 'Confirm your vote\nMCA: ' + pick(0) + '\nMP: ' + pick(1) + '\nGovernor: ' + pick(2) + '\n1. Cast vote\n2. Start again';
+    if (S.s === 6) text = 'Vote cast. Asante!\nReceipt [K7Q2-9XMD] sent by SMS.';
+    const v = S.val.trim();
+    const send = () => {
+      const bad = () => this.setState({ err: true, val: '' });
+      if (S.s === 0) return v === '1' ? this.setState({ s: 1, val: '', err: false }) : bad();
+      if (S.s === 1) return /^\d{4}$/.test(v) ? this.setState({ s: 2, val: '', err: false }) : bad();
+      if (S.s >= 2 && S.s <= 4) { const n = Number(v); const max = races[S.s - 2][1].length; if (v !== '' && n >= 0 && n <= max) { const c = S.c.slice(); c[S.s - 2] = n; return this.setState({ s: S.s + 1, c, val: '', err: false }); } return bad(); }
+      if (S.s === 5) { if (v === '1') return this.setState({ s: 6, val: '', err: false }); if (v === '2') return this.setState({ s: 2, c: [], val: '', err: false }); return bad(); }
+    };
+    return {
+      idle: S.s === -1, open: S.s >= 0, text, err: S.err, val: S.val,
+      needsInput: S.s >= 0 && S.s < 6,
+      setVal: (e) => this.setState({ val: e.target.value }),
+      dial: () => this.setState({ s: 0, val: '', err: false, c: [] }),
+      cancel: () => this.setState({ s: -1, val: '', err: false }), cancelLabel: S.s === 6 ? 'OK' : 'CANCEL',
+      send
+    };
+  }
+}
+</script>
+</body>
+</html>

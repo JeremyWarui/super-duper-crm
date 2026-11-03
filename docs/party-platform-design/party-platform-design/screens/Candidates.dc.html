@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pamoja Party — Our candidates</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F0}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
+
+<header style="background: #F6F5F0; border-bottom: 1px solid #DEDBD0">
+<div style="max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #13201A">
+<span style="width: 44px; height: 44px; border-radius: 12px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">P</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Pamoja Party</span>
+</a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px 22px; font-weight: 600; font-size: 15px">
+<a href="PartyHome.dc.html#about" style="color: #13201A; text-decoration: none; padding: 10px 0">About</a>
+<a href="PartyHome.dc.html#issues" style="color: #13201A; text-decoration: none; padding: 10px 0">Agenda &amp; issues</a>
+<a href="News.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">News</a>
+<a href="Events.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Events</a>
+<a href="Candidates.dc.html" aria-current="page" style="color: #0B5D3B; text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; padding: 10px 0">Candidates</a>
+</nav>
+<a href="Join.dc.html" style="font-weight: 700; font-size: 15px; color: #13201A; background: #F2B705; padding: 13px 20px; border-radius: 999px; text-decoration: none">Join the party</a>
+</div>
+</header>
+
+<section style="background: #0B5D3B; color: #FFFFFF">
+<div style="max-width: 1240px; margin: 0 auto; padding: 48px 24px; display: flex; flex-direction: column; gap: 22px">
+<p style="margin: 0; font-size: 14px; color: #CFE0D5"><a href="PartyHome.dc.html" style="color: #CFE0D5">Home</a> / Candidates</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(40px, 5vw, 64px); letter-spacing: -0.03em">Our candidates</h1>
+<p style="margin: 0; font-size: 18px; color: #CFE0D5; max-width: 60ch">Find the Pamoja Party candidate for your ward, constituency and county.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #DDE3DF; flex: 1 1 280px">Search by name or area
+<input type="search" placeholder="e.g. a name, ward or constituency" style="font: inherit; font-size: 16px; font-weight: 400; padding: 14px; border: 0; border-radius: 12px; color: #13201A">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #DDE3DF">County
+<select onChange="{{pickCounty}}" style="font: inherit; font-size: 16px; font-weight: 500; padding: 14px; border: 0; border-radius: 12px; min-width: 200px; background: #FFFFFF; color: #13201A">
+<option value="All">All counties</option>
+<option value="Nairobi">Nairobi</option>
+<option value="Mombasa">Mombasa</option>
+<option value="Kisumu">Kisumu</option>
+<option value="Nakuru">Nakuru</option>
+</select>
+</label>
+</div>
+</div>
+</section>
+
+<main style="max-width: 1240px; margin: 0 auto; padding: 36px 24px 80px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div role="group" aria-label="Filter by seat" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{seats}}" as="s" hint-placeholder-count="7">
+<button type="button" aria-pressed="{{s.pressed}}" onClick="{{s.pick}}" style="{{s.style}}">{{s.label}}</button>
+</sc-for>
+</div>
+<div role="group" aria-label="Stage" style="display: flex; border: 1.5px solid #C9C5B8; border-radius: 999px; padding: 3px; background: #FFFFFF">
+<sc-for list="{{stages}}" as="g" hint-placeholder-count="2">
+<button type="button" aria-pressed="{{g.pressed}}" onClick="{{g.pick}}" style="{{g.style}}">{{g.label}}</button>
+</sc-for>
+</div>
+</div>
+<p style="margin: 0; font-size: 15px; color: #4B5751"><strong style="color: #13201A">{{count}}</strong> {{stageNoun}} shown</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px">
+<sc-for list="{{people}}" as="c" hint-placeholder-count="8">
+<a href="Candidate.dc.html" style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; text-decoration: none; color: #13201A">
+<div style="aspect-ratio: 4 / 3; background: #DCD8CB; display: flex; align-items: center; justify-content: center; color: #5B6660; font-weight: 600; font-size: 14px">[Portrait]</div>
+<div style="padding: 18px; display: flex; flex-direction: column; gap: 6px; flex: 1">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">{{c.seat}}</span>
+<span style="{{c.badge}}">{{c.stage}}</span>
+</div>
+<span style="font-size: 18px; font-weight: 700">{{c.name}}</span>
+<span style="font-size: 14px; color: #4B5751">{{c.area}} · {{c.county}}</span>
+<span style="margin-top: auto; padding-top: 8px; font-size: 14px; font-weight: 700; color: #0B5D3B">View profile →</span>
+</div>
+</a>
+</sc-for>
+</div>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+<div style="background: #FFFFFF; border: 1px dashed #C9C5B8; border-radius: 20px; padding: 32px; text-align: center; color: #4B5751">No candidates match these filters yet. <a href="Plans.dc.html" style="font-weight: 700">Thinking of vying?</a></div>
+</sc-if>
+<p style="margin: 0; font-size: 14px; color: #4B5751">Aspirants are listed while nominations are open. After the party primaries, only nominees are shown.</p>
+</main>
+
+<footer style="background: #13201A; color: #B9C2BC">
+<div style="max-width: 1240px; margin: 0 auto; padding: 28px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; font-size: 13px">
+<span>© [Year] Pamoja Party · Reg. No. [000]</span>
+<span>Powered by [Your product]</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { seat: 'All', county: 'All', stage: 'Nominees' }; }
+  renderVals() {
+    const S = this.state;
+    const all = [
+      ['Governor', 'County-wide', 'Nairobi', 'Nominee'], ['Senator', 'County-wide', 'Nairobi', 'Nominee'],
+      ['Woman Rep', 'County-wide', 'Nairobi', 'Nominee'], ['MP', '[Constituency]', 'Nairobi', 'Nominee'],
+      ['MCA', '[Ward]', 'Nairobi', 'Nominee'], ['MCA', '[Ward]', 'Nairobi', 'Aspirant'],
+      ['Governor', 'County-wide', 'Mombasa', 'Nominee'], ['MP', '[Constituency]', 'Mombasa', 'Aspirant'],
+      ['MP', '[Constituency]', 'Kisumu', 'Nominee'], ['MCA', '[Ward]', 'Kisumu', 'Aspirant'],
+      ['Senator', 'County-wide', 'Nakuru', 'Aspirant'], ['MCA', '[Ward]', 'Nakuru', 'Nominee']
+    ].map((r) => ({ seat: r[0], area: r[1], county: r[2], stage: r[3], name: '[Candidate name]' }));
+    const wantStage = S.stage === 'Nominees' ? 'Nominee' : 'Aspirant';
+    const people = all
+      .filter((c) => c.stage === wantStage)
+      .filter((c) => S.seat === 'All' || c.seat === S.seat)
+      .filter((c) => S.county === 'All' || c.county === S.county)
+      .map((c) => ({ ...c, badge: 'font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; ' + (c.stage === 'Nominee' ? 'background: #E3F1E8; color: #0B5D3B' : 'background: #FFF3CC; color: #6B5100') }));
+    const pill = (on) => 'font: inherit; font-size: 15px; font-weight: 600; min-height: 44px; padding: 0 16px; border-radius: 999px; cursor: pointer; ' + (on ? 'background: #13201A; color: #FFFFFF; border: 1.5px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1.5px solid #C9C5B8');
+    const seg = (on) => 'font: inherit; font-size: 14px; font-weight: 700; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; cursor: pointer; ' + (on ? 'background: #0B5D3B; color: #FFFFFF' : 'background: transparent; color: #13201A');
+    return {
+      seats: ['All', 'Governor', 'Senator', 'Woman Rep', 'MP', 'MCA'].map((label) => ({ label, pressed: S.seat === label ? 'true' : 'false', pick: () => this.setState({ seat: label }), style: pill(S.seat === label) })),
+      stages: ['Nominees', 'Aspirants'].map((label) => ({ label, pressed: S.stage === label ? 'true' : 'false', pick: () => this.setState({ stage: label }), style: seg(S.stage === label) })),
+      pickCounty: (e) => this.setState({ county: e.target.value }),
+      people, count: people.length, empty: people.length === 0,
+      stageNoun: S.stage === 'Nominees' ? 'nominees' : 'aspirants'
+    };
+  }
+}
+</script>
+</body>
+</html>

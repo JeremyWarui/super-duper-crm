@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pamoja Party — Home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F0}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100%">
+
+<div style="background: #13201A; color: #B9C2BC; font-size: 13px">
+<div style="max-width: 1240px; margin: 0 auto; padding: 8px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
+<span>Registered political party · Reg. No. [000] · [Hotline 0700 000 000]</span>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<div role="group" aria-label="Language" style="display: flex; gap: 2px">
+<button type="button" onClick="{{setEn}}" style="{{enStyle}}">EN</button>
+<button type="button" onClick="{{setSw}}" style="{{swStyle}}">SW</button>
+</div>
+<a href="SignIn.dc.html" style="color: #F6F5F0; font-weight: 600; padding: 8px 0">Staff &amp; volunteer sign in</a>
+</div>
+</div>
+</div>
+
+<header style="background: #F6F5F0; border-bottom: 1px solid #DEDBD0">
+<div style="max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #13201A">
+<span style="width: 44px; height: 44px; border-radius: 12px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">P</span>
+<span style="display: flex; flex-direction: column; line-height: 1.1">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Pamoja Party</span>
+<span style="font-size: 12px; color: #4B5751; font-weight: 600">[Party slogan]</span>
+</span>
+</a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px 22px; font-weight: 600; font-size: 15px">
+<a href="PubAbout.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">About</a>
+<a href="#issues" style="color: #13201A; text-decoration: none; padding: 10px 0">Agenda &amp; issues</a>
+<a href="News.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">News</a>
+<a href="Events.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Events</a>
+<a href="#branches" style="color: #13201A; text-decoration: none; padding: 10px 0">Counties</a>
+<a href="Candidates.dc.html" style="color: #13201A; text-decoration: none; padding: 10px 0">Candidates</a>
+</nav>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<a href="#contribute" style="font-weight: 700; font-size: 15px; color: #13201A; padding: 12px 18px; border: 1.5px solid #13201A; border-radius: 999px; text-decoration: none">Contribute</a>
+<a href="Join.dc.html" style="font-weight: 700; font-size: 15px; color: #13201A; background: #F2B705; padding: 13px 20px; border-radius: 999px; text-decoration: none">Join the party</a>
+</div>
+</div>
+</header>
+
+<section style="background: #0B5D3B; color: #FFFFFF">
+<div style="max-width: 1240px; margin: 0 auto; padding: 64px 24px; display: flex; flex-wrap: wrap; gap: 48px; align-items: center">
+<div style="flex: 1 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 22px">
+<p style="margin: 0; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #F2B705">{{kicker}}</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(42px, 5.5vw, 76px); line-height: 0.98; letter-spacing: -0.03em">{{headline}}</h1>
+<p style="margin: 0; font-size: 19px; line-height: 1.6; color: #CFE0D5; max-width: 40ch">{{sub}}</p>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; padding-top: 6px">
+<a href="Join.dc.html" style="font-weight: 700; font-size: 17px; color: #13201A; background: #F2B705; padding: 16px 28px; border-radius: 999px; text-decoration: none">Join the party</a>
+<a href="#issues" style="font-weight: 700; font-size: 17px; color: #FFFFFF; padding: 16px 28px; border-radius: 999px; border: 1.5px solid #FFFFFF; text-decoration: none">Read the manifesto</a>
+</div>
+</div>
+<div style="flex: 1 1 400px; min-width: 0">
+<div style="aspect-ratio: 5 / 4; width: 100%; border-radius: 24px; background: #0F7049; border: 1px dashed #5E9A7B; display: flex; align-items: center; justify-content: center; color: #CFE0D5; font-size: 15px; font-weight: 600; text-align: center; padding: 24px; box-sizing: border-box">[Party leader addressing a crowd]</div>
+</div>
+</div>
+</section>
+
+<div style="background: #FFFFFF; border-bottom: 1px solid #DEDBD0">
+<div style="max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; background: #13201A; color: #F2B705; padding: 6px 10px; border-radius: 6px">Latest</span>
+<sc-for list="{{ticker}}" as="t" hint-placeholder-count="3">
+<a href="News.dc.html" style="color: #13201A; font-weight: 600; font-size: 15px; text-decoration: none">{{t}}</a>
+</sc-for>
+</div>
+</div>
+
+<section id="issues" style="max-width: 1240px; margin: 0 auto; padding: 80px 24px 40px; display: flex; flex-direction: column; gap: 32px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 10px; max-width: 640px">
+<p style="margin: 0; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #0B5D3B">Our agenda</p>
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.02em">Where we stand</h2>
+</div>
+<a href="#issues" style="font-weight: 700">Download the manifesto (PDF)</a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+<sc-for list="{{issues}}" as="i" hint-placeholder-count="6">
+<a href="PubIssue.dc.html" style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: #13201A">
+<span style="width: 44px; height: 44px; border-radius: 12px; background: #E7F0EA; display: flex; align-items: center; justify-content: center; color: #0B5D3B; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800">{{i.num}}</span>
+<span style="font-size: 20px; font-weight: 700">{{i.title}}</span>
+<span style="color: #4B5751; line-height: 1.55; font-size: 15px">{{i.body}}</span>
+<span style="color: #0B5D3B; font-weight: 700; font-size: 14px">Our position →</span>
+</a>
+</sc-for>
+</div>
+</section>
+
+<section id="news" style="max-width: 1240px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.02em">News &amp; statements</h2>
+<a href="News.dc.html" style="font-weight: 700">All news →</a>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 28px">
+<a href="News.dc.html" style="flex: 3 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 14px; text-decoration: none; color: #13201A">
+<div style="aspect-ratio: 16 / 9; border-radius: 20px; background: #DCD8CB; display: flex; align-items: center; justify-content: center; color: #5B6660; font-weight: 600">[Featured story photo]</div>
+<span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">Press release · [Date]</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px; line-height: 1.15; letter-spacing: -0.01em">[Headline of the party's lead story this week]</span>
+<span style="color: #4B5751; line-height: 1.6">[One-sentence summary of the story.]</span>
+</a>
+<div style="flex: 2 1 320px; min-width: 0; display: flex; flex-direction: column">
+<sc-for list="{{news}}" as="n" hint-placeholder-count="4">
+<a href="News.dc.html" style="display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid #DEDBD0; text-decoration: none; color: #13201A">
+<div style="flex: 0 0 104px; height: 76px; border-radius: 12px; background: #DCD8CB"></div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">{{n.tag}}</span>
+<span style="font-weight: 700; line-height: 1.35">{{n.title}}</span>
+</div>
+</a>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section id="events" style="background: #13201A; color: #F6F5F0; margin-top: 40px">
+<div style="max-width: 1240px; margin: 0 auto; padding: 72px 24px; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.02em">Upcoming events</h2>
+<a href="Events.dc.html" style="color: #F2B705; font-weight: 700">Full calendar →</a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+<sc-for list="{{events}}" as="e" hint-placeholder-count="4">
+<a href="Events.dc.html" style="border: 1px solid #34443B; border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 14px; text-decoration: none; color: #F6F5F0">
+<div style="display: flex; align-items: center; gap: 14px">
+<div style="flex: 0 0 58px; height: 64px; border-radius: 12px; background: #F2B705; color: #13201A; display: flex; flex-direction: column; align-items: center; justify-content: center">
+<span style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em">{{e.mon}}</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; line-height: 1">{{e.day}}</span>
+</div>
+<span style="font-size: 13px; font-weight: 700; color: #B9C2BC; text-transform: uppercase; letter-spacing: 0.06em">{{e.type}}</span>
+</div>
+<span style="font-size: 19px; font-weight: 700; line-height: 1.3">{{e.title}}</span>
+<span style="font-size: 14px; color: #B9C2BC">{{e.place}}</span>
+</a>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section id="branches" style="max-width: 1240px; margin: 0 auto; padding: 80px 24px 40px; display: flex; flex-wrap: wrap; gap: 40px; align-items: center">
+<div style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<p style="margin: 0; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #0B5D3B">In all 47 counties</p>
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.02em">Find your branch</h2>
+<p style="margin: 0; font-size: 18px; line-height: 1.6; color: #3D4A43">Meet your county officials, attend local meetings and get involved where you live.</p>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; max-width: 360px">County
+<select onChange="{{pickCounty}}" style="font: inherit; font-weight: 500; font-size: 16px; padding: 14px; border: 1.5px solid #C9C5B8; border-radius: 12px; background: #FFFFFF">
+<option value="">Choose a county</option>
+<option value="Nairobi">Nairobi</option>
+<option value="Mombasa">Mombasa</option>
+<option value="Kisumu">Kisumu</option>
+<option value="Nakuru">Nakuru</option>
+<option value="Embu">Embu</option>
+</select>
+</label>
+</div>
+<div style="flex: 1 1 420px; min-width: 0; background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 16px">
+<sc-if value="{{hasCounty}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<h3 style="margin: 0; font-size: 24px; font-weight: 700">{{county}} branch</h3>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 15px">
+<span><strong>Chairperson:</strong> [Name]</span>
+<span><strong>Secretary:</strong> [Name]</span>
+<span><strong>Office:</strong> [Address] · [Phone]</span>
+<span><strong>Next branch meeting:</strong> [Date, venue]</span>
+</div>
+<a href="PubBranch.dc.html" style="font-weight: 700">Visit the {{county}} branch page →</a>
+</div>
+</sc-if>
+<sc-if value="{{noCounty}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px; color: #4B5751">
+<span style="font-size: 18px; font-weight: 700; color: #13201A">Choose a county to see its branch</span>
+<span>Officials, office address and the next branch meeting appear here.</span>
+</div>
+</sc-if>
+</div>
+</section>
+
+<section id="candidates" style="max-width: 1240px; margin: 0 auto; padding: 40px 24px 80px; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.02em">Our candidates</h2>
+<a href="Candidates.dc.html" style="font-weight: 700">All candidates by county →</a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px">
+<sc-for list="{{candidates}}" as="c" hint-placeholder-count="4">
+<a href="Candidate.dc.html" style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; text-decoration: none; color: #13201A">
+<div style="aspect-ratio: 1 / 1; background: #DCD8CB; display: flex; align-items: center; justify-content: center; color: #5B6660; font-weight: 600; font-size: 14px">[Portrait]</div>
+<div style="padding: 18px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #0B5D3B">{{c.seat}}</span>
+<span style="font-size: 18px; font-weight: 700">{{c.name}}</span>
+<span style="font-size: 14px; color: #4B5751">{{c.area}}</span>
+</div>
+</a>
+</sc-for>
+</div>
+</section>
+
+<section id="about" style="background: #E7F0EA">
+<div style="max-width: 1240px; margin: 0 auto; padding: 72px 24px; display: flex; flex-direction: column; gap: 28px">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.02em">Party leadership</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px">
+<sc-for list="{{leaders}}" as="l" hint-placeholder-count="4">
+<div style="display: flex; gap: 14px; align-items: center">
+<div style="flex: 0 0 72px; height: 72px; border-radius: 50%; background: #C7D9CD"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 700">[Name]</span>
+<span style="font-size: 14px; color: #3D4A43">{{l}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section id="join" style="max-width: 1240px; margin: 0 auto; padding: 80px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px">
+<div style="background: #F2B705; border-radius: 24px; padding: 32px; display: flex; flex-direction: column; gap: 14px">
+<h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">Join the party</h3>
+<p style="margin: 0; color: #3B3415; line-height: 1.6">Become a registered member and have a say in your branch.</p>
+<a href="Join.dc.html" style="margin-top: auto; align-self: flex-start; font-weight: 700; color: #F6F5F0; background: #13201A; padding: 14px 22px; border-radius: 999px; text-decoration: none">Register as a member</a>
+</div>
+<div style="background: #0B5D3B; color: #FFFFFF; border-radius: 24px; padding: 32px; display: flex; flex-direction: column; gap: 14px">
+<h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">Vie with us</h3>
+<p style="margin: 0; color: #CFE0D5; line-height: 1.6">Seeking a seat? Apply for nomination and get the party's campaign tools.</p>
+<a href="FlowApply.dc.html" style="margin-top: auto; align-self: flex-start; font-weight: 700; color: #13201A; background: #F2B705; padding: 14px 22px; border-radius: 999px; text-decoration: none">Become an aspirant</a>
+</div>
+<div id="contribute" style="background: #FFFFFF; border: 1px solid #DEDBD0; border-radius: 24px; padding: 32px; display: flex; flex-direction: column; gap: 14px">
+<h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">Contribute</h3>
+<p style="margin: 0; color: #3D4A43; line-height: 1.6">M-Pesa Paybill [000000], account [NAME]. Contributions are declared as the law requires.</p>
+<a href="#contribute" style="margin-top: auto; align-self: flex-start; font-weight: 700; color: #FFFFFF; background: #13201A; padding: 14px 22px; border-radius: 999px; text-decoration: none">Give now</a>
+</div>
+</section>
+
+<section style="border-top: 1px solid #DEDBD0">
+<div style="max-width: 1240px; margin: 0 auto; padding: 48px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h2 style="margin: 0; font-size: 24px; font-weight: 700">Get party news by SMS or email</h2>
+<p style="margin: 0; color: #4B5751">Weekly, no spam. Unsubscribe any time.</p>
+</div>
+<form style="display: flex; flex-wrap: wrap; gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Phone or email<input type="text" placeholder="07XX… or name@mail.com" style="font: inherit; font-size: 16px; font-weight: 400; padding: 13px 14px; border: 1.5px solid #C9C5B8; border-radius: 12px; min-width: 260px"></label>
+<button type="button" style="align-self: flex-end; font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; background: #0B5D3B; border: 0; padding: 0 24px; height: 50px; border-radius: 12px; cursor: pointer">Subscribe</button>
+</form>
+</div>
+</section>
+
+<footer style="background: #13201A; color: #B9C2BC">
+<div style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 24px; display: flex; flex-direction: column; gap: 32px">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 28px; font-size: 15px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px; color: #F6F5F0">Pamoja Party</span>
+<span>[Party headquarters address]</span>
+<span>[Phone] · [Email]</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-weight: 700; color: #F6F5F0">The party</span>
+<a href="PubAbout.dc.html" style="color: #B9C2BC">About &amp; history</a>
+<a href="PubAbout.dc.html" style="color: #B9C2BC">Leadership</a>
+<a href="PubAbout.dc.html" style="color: #B9C2BC">Constitution &amp; rules</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-weight: 700; color: #F6F5F0">Take part</span>
+<a href="Join.dc.html" style="color: #B9C2BC">Membership</a>
+<a href="Plans.dc.html" style="color: #B9C2BC">Aspirants</a>
+<a href="Events.dc.html" style="color: #B9C2BC">Events</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-weight: 700; color: #F6F5F0">Media</span>
+<a href="News.dc.html" style="color: #B9C2BC">Press releases</a>
+<a href="PubResults.dc.html" style="color: #B9C2BC">Primary results</a>
+<a href="News.dc.html" style="color: #B9C2BC">Photos &amp; video</a>
+<a href="SignIn.dc.html" style="color: #B9C2BC">Staff &amp; volunteer sign in</a>
+</div>
+</div>
+<div style="border-top: 1px solid #34443B; padding-top: 18px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; font-size: 13px">
+<span>© [Year] Pamoja Party · Reg. No. [000] · <a href="#top" style="color: #B9C2BC">Privacy &amp; data protection</a></span>
+<span>Powered by [Your product]</span>
+</div>
+</div>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3600}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { lang: 'en', county: '' }; }
+  renderVals() {
+    const en = this.state.lang === 'en';
+    const on = 'font: inherit; font-size: 12px; font-weight: 700; border: 0; border-radius: 6px; padding: 6px 10px; min-width: 36px; cursor: pointer; background: #F2B705; color: #13201A';
+    const off = 'font: inherit; font-size: 12px; font-weight: 700; border: 0; border-radius: 6px; padding: 6px 10px; min-width: 36px; cursor: pointer; background: transparent; color: #DDE3DF';
+    const c = this.state.county;
+    return {
+      enStyle: en ? on : off, swStyle: en ? off : on,
+      setEn: () => this.setState({ lang: 'en' }),
+      setSw: () => this.setState({ lang: 'sw' }),
+      kicker: en ? '[Year] General Election' : 'Uchaguzi Mkuu [Mwaka]',
+      headline: en ? 'One Kenya. Every ward. Together.' : 'Kenya moja. Kila wadi. Pamoja.',
+      sub: en ? '[The party\'s core message in one or two sentences — who it stands for and what it will change.]' : '[Ujumbe mkuu wa chama kwa sentensi moja au mbili.]',
+      ticker: ['[Statement on latest national issue]', '[Branch elections update]', '[Nominations timetable released]'],
+      issues: [
+        { num: '01', title: '[Jobs & livelihoods]', body: '[One-line summary of the party\'s position.]' },
+        { num: '02', title: '[Health]', body: '[One-line summary of the party\'s position.]' },
+        { num: '03', title: '[Education & youth]', body: '[One-line summary of the party\'s position.]' },
+        { num: '04', title: '[Agriculture & food]', body: '[One-line summary of the party\'s position.]' },
+        { num: '05', title: '[Devolution]', body: '[One-line summary of the party\'s position.]' },
+        { num: '06', title: '[Governance & integrity]', body: '[One-line summary of the party\'s position.]' }
+      ],
+      news: [
+        { tag: 'Statement', title: '[Party responds to …]' },
+        { tag: 'Branches', title: '[County branch holds delegates meeting]' },
+        { tag: 'Nominations', title: '[Aspirant applications now open]' },
+        { tag: 'Opinion', title: '[Op-ed by party official]' }
+      ],
+      events: [
+        { mon: 'NOV', day: '[00]', type: 'Rally', title: '[National rally]', place: '[Venue], [County]' },
+        { mon: 'NOV', day: '[00]', type: 'Town hall', title: '[Youth league forum]', place: '[Venue], [County]' },
+        { mon: 'DEC', day: '[00]', type: 'Branch', title: '[Delegates meeting]', place: '[Venue], [County]' },
+        { mon: 'DEC', day: '[00]', type: 'Training', title: '[Aspirants induction]', place: '[Venue], [County]' }
+      ],
+      hasCounty: !!c, noCounty: !c, county: c,
+      pickCounty: (e) => this.setState({ county: e.target.value }),
+      candidates: [
+        { seat: 'Governor', name: '[Candidate name]', area: '[County]' },
+        { seat: 'Senator', name: '[Candidate name]', area: '[County]' },
+        { seat: 'MP', name: '[Candidate name]', area: '[Constituency]' },
+        { seat: 'MCA', name: '[Candidate name]', area: '[Ward]' }
+      ],
+      leaders: ['Party Leader', 'Chairperson', 'Secretary General', 'Treasurer']
+    };
+  }
+}
+</script>
+</body>
+</html>

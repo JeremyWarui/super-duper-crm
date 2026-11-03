@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Set up your campaign workspace</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh">
+<header style="background: #FFFFFF; border-bottom: 1px solid #E1E4E2">
+<div style="max-width: 1100px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 800; letter-spacing: 0.1em; color: #0B5D3B">PAMOJA PARTY · FIELD PLAN</span><h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">Set up your campaign workspace</h1></div>
+<span style="font-size: 14px; color: #4B5751">Takes about 5 minutes · you can change everything later</span>
+</div>
+</header>
+
+<main style="max-width: 1100px; margin: 0 auto; padding: 28px 24px 64px; display: flex; flex-direction: column; gap: 22px">
+<ol aria-label="Steps" style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="4"><li aria-current="{{s.current}}" style="display: flex; flex-direction: column; gap: 6px"><span style="{{s.bar}}"></span><span style="{{s.lab}}">{{s.label}}</span></li></sc-for>
+</ol>
+
+<section style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 18px">
+<sc-if value="{{s1}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700">Your race</h2>
+<div style="display: flex; gap: 10px; align-items: center; background: #E7F0EA; border-radius: 12px; padding: 12px 14px; font-size: 14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B5D3B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span>Filled in from your cleared nomination application [APP-0000].</span></div>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 10px 18px; font-size: 16px">
+<dt style="color: #4B5751">Seat</dt><dd style="margin: 0; font-weight: 700">Member of Parliament</dd>
+<dt style="color: #4B5751">Area</dt><dd style="margin: 0; font-weight: 700">[Constituency] Constituency, [County]</dd>
+<dt style="color: #4B5751">Plan</dt><dd style="margin: 0; font-weight: 700">Field</dd>
+<dt style="color: #4B5751">Voter data</dt><dd style="margin: 0; font-weight: 700">IEBC register of voters, 2022 turnout by county</dd>
+</dl>
+</div>
+</sc-if>
+
+<sc-if value="{{s2}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 22px; font-weight: 700">Your targets</h2><span style="font-size: 14px; color: #4B5751">One target per ward, generated for you. Sample figures shown.</span></div>
+<label style="display: flex; flex-direction: column; gap: 8px; font-weight: 600; max-width: 520px">
+<span style="display: flex; justify-content: space-between"><span>Expected turnout</span><span style="color: #0B5D3B; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">{{t}}%</span></span>
+<input type="range" min="40" max="85" value="{{t}}" onChange="{{setT}}" style="width: 100%; accent-color: #0B5D3B">
+<span style="font-size: 13px; font-weight: 400; color: #4B5751">Starts at the 2022 county turnout. Win number = half of projected votes cast, plus one.</span>
+</label>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 480px; border-collapse: collapse; font-size: 15px">
+<thead><tr style="text-align: left; color: #4B5751; font-size: 13px"><th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Ward</th><th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">Registered</th><th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">Win number</th></tr></thead>
+<tbody><sc-for list="{{wards}}" as="w" hint-placeholder-count="5"><tr><td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE; font-weight: 600">{{w.n}}</td><td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE; text-align: right; font-variant-numeric: tabular-nums">{{w.r}}</td><td style="padding: 10px 8px; border-bottom: 1px solid #EDEFEE; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums">{{w.w}}</td></tr></sc-for>
+<tr><td style="padding: 12px 8px; font-weight: 800">Constituency</td><td style="padding: 12px 8px; text-align: right; font-weight: 800">{{totR}}</td><td style="padding: 12px 8px; text-align: right; font-weight: 800; color: #0B5D3B">{{totW}}</td></tr></tbody>
+</table>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{s3}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 640px">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 22px; font-weight: 700">Your team</h2><span style="font-size: 14px; color: #4B5751">Optional now. Invites go by SMS; people sign in with a code.</span></div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Campaign manager's phone<input type="tel" placeholder="07XX XXX XXX" style="font: inherit; font-weight: 400; font-size: 15px; padding: 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"><span style="font-size: 12px; font-weight: 400; color: #4B5751">Full access to the workspace, except billing.</span></label>
+<sc-for list="{{wards}}" as="w" hint-placeholder-count="5">
+<label style="display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: 14px; font-weight: 600">{{w.n}}<input type="tel" placeholder="Mobilizer phone (optional)" aria-label="{{w.n}} mobilizer phone" style="font: inherit; font-weight: 400; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9C5B8; border-radius: 10px"></label>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{s4}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 680px">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 22px; font-weight: 700">What the party can see</h2><span style="font-size: 14px; color: #4B5751">Everything is off unless you turn it on. You can change this any time.</span></div>
+<sc-for list="{{shares}}" as="s" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #EDEFEE">
+<div style="display: flex; flex-direction: column; gap: 2px"><strong>{{s.label}}</strong><span style="font-size: 13px; color: #4B5751">{{s.hint}}</span></div>
+<button type="button" role="switch" aria-checked="{{s.checked}}" aria-label="{{s.label}}" onClick="{{s.toggle}}" style="{{s.track}}"><span style="width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.2)"></span></button>
+</div>
+</sc-for>
+<p style="margin: 0; font-size: 13px; color: #4B5751">Your supporter list is never shared with the party.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{s5}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px; align-items: flex-start">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px">Your workspace is ready</h2>
+<p style="margin: 0; font-size: 16px; color: #3D4A43">Win number {{totW}} across 5 wards. Start with the ward furthest from its target.</p>
+<a href="Workspace.dc.html" style="font-weight: 700; color: #FFFFFF; background: #0B5D3B; padding: 14px 22px; border-radius: 999px; text-decoration: none">Open my workspace</a>
+</div>
+</sc-if>
+
+<sc-if value="{{inWizard}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #EDEFEE; padding-top: 18px">
+<button type="button" onClick="{{back}}" style="{{backStyle}}">Back</button>
+<div style="display: flex; gap: 8px">
+<sc-if value="{{s3}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{next}}" style="font: inherit; font-weight: 600; font-size: 15px; color: #13201A; background: none; border: 0; height: 48px; padding: 0 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 4px">Skip for now</button></sc-if>
+<button type="button" onClick="{{next}}" style="font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 48px; padding: 0 24px; border-radius: 999px; cursor: pointer">{{nextLabel}}</button>
+</div>
+</div>
+</sc-if>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { st: 1, t: 62, sh: {} }; }
+  renderVals() {
+    const S = this.state;
+    const fmt = (n) => n.toLocaleString('en-KE');
+    const raw = [['[Ward 1]', 40000], ['[Ward 2]', 36000], ['[Ward 3]', 31000], ['[Ward 4]', 28000], ['[Ward 5]', 25000]];
+    let tr = 0;
+    const wards = raw.map((w) => { tr += w[1]; return { n: w[0], r: fmt(w[1]), w: fmt(Math.floor(w[1] * S.t / 200) + 1) }; });
+    const totW = Math.floor(Math.round(tr * S.t / 100) / 2) + 1;
+    const labels = ['Your race', 'Targets', 'Team', 'Sharing'];
+    const steps = labels.map((label, i) => { const on = S.st >= i + 1; return { label, current: S.st === i + 1 ? 'step' : 'false', bar: 'display: block; height: 6px; border-radius: 999px; background: ' + (on ? '#0B5D3B' : '#E1E4E2'), lab: 'font-size: 13px; font-weight: 700; color: ' + (on ? '#13201A' : '#6B7570') }; });
+    const sw = (on) => 'flex: 0 0 50px; width: 50px; height: 28px; border-radius: 999px; border: 0; padding: 3px; display: flex; cursor: pointer; justify-content: ' + (on ? 'flex-end' : 'flex-start') + '; background: ' + (on ? '#0B5D3B' : '#9AA49F');
+    const shares = [['reach', 'Event reach summary', 'Totals invited vs attended'], ['map', 'Coverage map', 'Which wards have mobilizers'], ['counts', 'Supporter counts by ward', 'Numbers only, no names']].map((s) => ({ label: s[1], hint: s[2], checked: S.sh[s[0]] ? 'true' : 'false', track: sw(!!S.sh[s[0]]), toggle: () => this.setState({ sh: { ...S.sh, [s[0]]: !S.sh[s[0]] } }) }));
+    return {
+      steps, wards, shares, t: S.t, setT: (e) => this.setState({ t: Number(e.target.value) }), totR: fmt(tr), totW: fmt(totW),
+      s1: S.st === 1, s2: S.st === 2, s3: S.st === 3, s4: S.st === 4, s5: S.st === 5, inWizard: S.st < 5,
+      next: () => this.setState({ st: S.st + 1 }), back: () => this.setState({ st: Math.max(1, S.st - 1) }),
+      nextLabel: S.st === 4 ? 'Finish setup' : 'Continue',
+      backStyle: 'font: inherit; font-weight: 700; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; height: 48px; padding: 0 22px; border-radius: 999px; cursor: pointer; visibility: ' + (S.st === 1 ? 'hidden' : 'visible')
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Party CRM — Overview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+
+<nav aria-label="Party CRM" style="flex: 1 1 240px; max-width: 100%; background: #13201A; color: #DDE3DF; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
+<span style="width: 34px; height: 34px; border-radius: 9px; background: #F2B705; display: flex; align-items: center; justify-content: center; color: #13201A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 17px">P</span>
+<div style="display: flex; flex-direction: column">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #F6F5F0">Pamoja Party</span>
+<span style="font-size: 12px; color: #9FAAA4">Secretariat · HQ</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="9">
+<a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a>
+</sc-for>
+</div>
+<p style="margin: auto 8px 0; font-size: 12px; color: #9FAAA4">Powered by [Your product]</p>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4B5751">Nominations window: [opens dd/mm] – [closes dd/mm]</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Party overview</h1>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600">County
+<select style="font: inherit; font-weight: 500; height: 44px; padding: 0 12px; border: 1px solid #D5D9D6; border-radius: 12px; background: #FFFFFF"><option>All 47 counties</option><option>[County]</option></select>
+</label>
+<a href="CrmEvents.dc.html" style="font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; padding: 0 20px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">New party event</a>
+</div>
+</header>
+
+<section aria-label="Summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="4">
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; font-weight: 600; color: #4B5751">{{s.label}}</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">{{s.value}}</span>
+<span style="font-size: 13px; color: #4B5751">{{s.note}}</span>
+</div>
+</sc-for>
+</section>
+
+<section aria-labelledby="nom-h" style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<h2 id="nom-h" style="margin: 0; font-size: 20px; font-weight: 700">Nominations at a glance</h2>
+<span style="font-size: 14px; color: #4B5751">IEBC deadline [dd Mon] · [00] days left</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
+<a href="CrmNominations.dc.html" style="background: #F3F4F2; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: #13201A"><span style="font-size: 13px; font-weight: 600; color: #4B5751">Awaiting vetting</span><strong style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px">[000]</strong><span style="font-size: 13px; font-weight: 700; color: #0B5D3B">Vetting queue →</span></a>
+<a href="VoteControl.dc.html" style="background: #F3F4F2; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: #13201A"><span style="font-size: 13px; font-weight: 600; color: #4B5751">Primaries this week</span><strong style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px">[00]</strong><span style="font-size: 13px; font-weight: 700; color: #0B5D3B">Control room →</span></a>
+<a href="Nominees.dc.html" style="background: #FCE4E2; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: #13201A"><span style="font-size: 13px; font-weight: 600; color: #7A1A12">Seats needing action</span><strong style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; color: #9A1C12">[00]</strong><span style="font-size: 13px; font-weight: 700; color: #9A1C12">Nominees board →</span></a>
+<a href="Nominees.dc.html" style="background: #E7F0EA; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: #13201A"><span style="font-size: 13px; font-weight: 600; color: #3D4A43">Nominees certified</span><strong style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; color: #0B5D3B">[000] / [0,000]</strong><span style="font-size: 13px; font-weight: 700; color: #0B5D3B">See coverage →</span></a>
+</div>
+<p style="margin: 0; font-size: 13px; color: #4B5751; display: flex; gap: 8px; align-items: center">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4B5751" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+Campaign workspaces are private to each aspirant. The party sees only the summaries an aspirant chooses to share.
+</p>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section aria-labelledby="ev-h" style="flex: 3 1 420px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="ev-h" style="margin: 0; font-size: 20px; font-weight: 700">Recent party events</h2>
+<sc-for list="{{events}}" as="e" hint-placeholder-count="3">
+<div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; padding: 12px 0; border-top: 1px solid #EDEFEE">
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-weight: 600">{{e.title}}</span>
+<span style="font-size: 13px; color: #4B5751">{{e.meta}}</span>
+</div>
+<span style="font-size: 14px; color: #4B5751">Invited <strong style="color: #13201A">{{e.inv}}</strong> · Attended <strong style="color: #13201A">{{e.att}}</strong></span>
+</div>
+</sc-for>
+</section>
+<section aria-labelledby="br-h" style="flex: 2 1 300px; min-width: 0; background: #13201A; color: #F6F5F0; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="br-h" style="margin: 0; font-size: 20px; font-weight: 700">Branches needing attention</h2>
+<sc-for list="{{branches}}" as="b" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #34443B">
+<span style="font-weight: 600">{{b.name}}</span>
+<span style="color: #F2B705; font-size: 14px; font-weight: 600">{{b.issue}}</span>
+</div>
+</sc-for>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { seat: 'All' }; }
+  renderVals() {
+    const navItems = [['Overview', 'PartyCRM.dc.html'], ['Members', 'Members.dc.html'], ['Branches', 'CrmBranches.dc.html'], ['Events', 'CrmEvents.dc.html'], ['Nominations', 'CrmNominations.dc.html'], ['Nominees board', 'Nominees.dc.html'], ['Communications', 'CrmComms.dc.html'], ['Finance', 'CrmFinance.dc.html'], ['Website content', 'Content.dc.html'], ['Users & data', 'CrmUsers.dc.html']];
+    const nav = navItems.map((n, i) => ({ label: n[0], href: n[1], style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (i === 0 ? 'background: #0B5D3B; color: #FFFFFF' : 'color: #DDE3DF') }));
+    const all = [
+      { name: '[Aspirant A]', seat: 'MCA', area: '[Ward], [County]', status: 'Cleared', plan: 'Ward', share: 'Event reach' },
+      { name: '[Aspirant B]', seat: 'MCA', area: '[Ward], [County]', status: 'Vetting', plan: 'Ward', share: 'Nothing yet' },
+      { name: '[Aspirant C]', seat: 'MP', area: '[Constituency]', status: 'Cleared', plan: 'Constituency', share: 'Coverage map' },
+      { name: '[Aspirant D]', seat: 'Woman Rep', area: '[County]', status: 'Applied', plan: 'No plan', share: '—' },
+      { name: '[Aspirant E]', seat: 'Senator', area: '[County]', status: 'Cleared', plan: 'County', share: 'Event reach' },
+      { name: '[Aspirant F]', seat: 'Governor', area: '[County]', status: 'Vetting', plan: 'County', share: 'Nothing yet' }
+    ];
+    const tone = { Cleared: 'background: #E3F1E8; color: #0B5D3B', Vetting: 'background: #FFF3CC; color: #6B5100', Applied: 'background: #ECEEF0; color: #3D4A43' };
+    const seatOpts = ['All', 'MCA', 'MP', 'Woman Rep', 'Senator', 'Governor'];
+    const sel = this.state.seat;
+    return {
+      nav,
+      seats: seatOpts.map((label) => ({ label, pressed: sel === label ? 'true' : 'false', pick: () => this.setState({ seat: label }), style: 'font: inherit; font-size: 14px; font-weight: 600; min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; ' + (sel === label ? 'background: #13201A; color: #FFFFFF; border: 1px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1px solid #D5D9D6') })),
+      rows: all.filter((r) => sel === 'All' || r.seat === sel).map((r) => ({ ...r, statusStyle: 'display: inline-block; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; ' + tone[r.status] })),
+      stats: [
+        { label: 'Registered members', value: '[000,000]', note: '[+000] this month' },
+        { label: 'Active branches', value: '[00]', note: 'of 47 counties' },
+        { label: 'Aspirants registered', value: '[000]', note: 'across all seats' },
+        { label: 'Paid workspaces', value: '[00]', note: 'subscription income [KSh 000]' }
+      ],
+      events: [
+        { title: '[Party rally — county]', meta: '[Date] · [Venue]', inv: '[000]', att: '[000]' },
+        { title: '[Youth league forum]', meta: '[Date] · [Venue]', inv: '[000]', att: '[000]' },
+        { title: '[Women\'s league town hall]', meta: '[Date] · [Venue]', inv: '[000]', att: '[000]' }
+      ],
+      branches: [
+        { name: '[County] branch', issue: 'No officials listed' },
+        { name: '[County] branch', issue: 'Membership drive due' },
+        { name: '[County] branch', issue: 'Report overdue' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

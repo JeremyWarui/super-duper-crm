@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Party CRM — Finance</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+<nav aria-label="Party CRM" style="flex: 1 1 240px; max-width: 100%; background: #13201A; color: #DDE3DF; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
+<span style="width: 34px; height: 34px; border-radius: 9px; background: #F2B705; display: flex; align-items: center; justify-content: center; color: #13201A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 17px">P</span>
+<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #F6F5F0">Pamoja Party</span><span style="font-size: 12px; color: #9FAAA4">Treasury</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="8"><a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a></sc-for>
+</div>
+<p style="margin: auto 8px 0; font-size: 12px; color: #9FAAA4">Powered by [Your product]</p>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4B5751">Financial year [YYYY/YY]</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Finance</h1>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600">Period<select style="font: inherit; font-weight: 500; height: 44px; padding: 0 12px; border: 1px solid #D5D9D6; border-radius: 12px; background: #FFFFFF"><option>This quarter</option><option>This year</option></select></label>
+<button type="button" style="font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; border: 0; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Export statement</button>
+</div>
+</header>
+
+<section aria-label="Income by source" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px">
+<sc-for list="{{streams}}" as="s" hint-placeholder-count="5">
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; font-weight: 600; color: #4B5751">{{s.label}}</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">[KSh 0.0M]</span>
+<span style="font-size: 13px; color: #4B5751">{{s.note}}</span>
+</div>
+</sc-for>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section aria-labelledby="t-h" style="flex: 3 1 540px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<h2 id="t-h" style="margin: 0; font-size: 20px; font-weight: 700">M-Pesa transactions</h2>
+<div role="group" aria-label="Filter" style="display: flex; gap: 6px">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="2"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}}</button></sc-for>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 640px; border-collapse: collapse; font-size: 15px">
+<thead><tr style="text-align: left; color: #4B5751; font-size: 13px">
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Reference</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Payer</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Type</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">Amount</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Matched to</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{tx}}" as="t" hint-placeholder-count="6">
+<tr>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE; font-variant-numeric: tabular-nums; color: #4B5751">[REF{{t.n}}]</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">07•• ••• [000]</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{t.type}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE; text-align: right; font-weight: 600">[KSh 0,000]</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">
+<sc-if value="{{t.matched}}" hint-placeholder-val="{{ true }}"><span style="font-size: 14px; color: #0B5D3B; font-weight: 600">{{t.match}}</span></sc-if>
+<sc-if value="{{t.unmatched}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{t.fix}}" style="font: inherit; font-size: 13px; font-weight: 700; color: #6B5100; background: #FFF3CC; border: 0; height: 34px; padding: 0 12px; border-radius: 8px; cursor: pointer">Match to record</button></sc-if>
+</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<aside style="flex: 2 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<section aria-labelledby="r-h" style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="r-h" style="margin: 0; font-size: 20px; font-weight: 700">Reports</h2>
+<a href="#" style="font-weight: 700">Quarterly income statement</a>
+<a href="#" style="font-weight: 700">Register of contributions</a>
+<a href="#" style="font-weight: 700">Nomination fees by seat</a>
+<a href="#" style="font-weight: 700">Branch remittances</a>
+</section>
+<section style="background: #FFF8E1; border: 1px solid #F1DE9A; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 17px; font-weight: 700">{{bigCount}} contributions need disclosure review</h2>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #4B4013">Contributions above [threshold] are flagged so the treasurer can check source and record them for statutory reporting.</p>
+</section>
+<section style="background: #13201A; color: #F6F5F0; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; color: #B9C2BC">Paybill</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">[000000]</span>
+<span style="font-size: 13px; color: #B9C2BC">Payments match automatically by account number (member no., ID or aspirant code).</span>
+</section>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { f: 'All', fixed: {} }; }
+  renderVals() {
+    const S = this.state;
+    const base = [
+      { n: 1, type: 'Membership fee', match: '[PP-000000]' },
+      { n: 2, type: 'Nomination fee', match: '[Aspirant A]' },
+      { n: 3, type: 'Contribution', match: null },
+      { n: 4, type: 'Workspace subscription', match: '[Candidate] · Field' },
+      { n: 5, type: 'Membership fee', match: null },
+      { n: 6, type: 'Contribution', match: '[Contributor]' }
+    ];
+    const all = base.map((t) => { const m = t.match || (S.fixed[t.n] ? 'Matched manually' : null); return { ...t, match: m, matched: !!m, unmatched: !m, fix: () => this.setState({ fixed: { ...S.fixed, [t.n]: true } }) }; });
+    const tx = S.f === 'All' ? all : all.filter((t) => t.unmatched);
+    const filters = ['All', 'Unmatched'].map((label) => ({ label, pressed: S.f === label ? 'true' : 'false', pick: () => this.setState({ f: label }),
+      style: 'font: inherit; font-size: 14px; font-weight: 600; min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; ' + (S.f === label ? 'background: #13201A; color: #FFFFFF; border: 1px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1px solid #D5D9D6') }));
+    const streams = [
+      { label: 'Membership fees', note: '[0,000] payments' }, { label: 'Renewals', note: '[0,000] payments' },
+      { label: 'Nomination fees', note: '[000] aspirants' }, { label: 'Contributions', note: '[000] contributors' },
+      { label: 'Workspace subscriptions', note: '[00] campaigns' }
+    ];
+    const items = [['Overview', 'PartyCRM.dc.html'], ['Members', 'Members.dc.html'], ['Branches', 'CrmBranches.dc.html'], ['Events', 'CrmEvents.dc.html'], ['Nominations', 'CrmNominations.dc.html'], ['Nominees board', 'Nominees.dc.html'], ['Communications', 'CrmComms.dc.html'], ['Finance', 'CrmFinance.dc.html'], ['Website content', 'Content.dc.html'], ['Users & data', 'CrmUsers.dc.html']];
+    const nav = items.map((x) => ({ label: x[0], href: x[1], style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (x[0] === 'Finance' ? 'background: #0B5D3B; color: #FFFFFF' : 'color: #DDE3DF') }));
+    return { nav, streams, filters, tx, bigCount: '[0]' };
+  }
+}
+</script>
+</body>
+</html>

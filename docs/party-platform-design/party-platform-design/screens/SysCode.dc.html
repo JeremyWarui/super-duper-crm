@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Enter your code</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; padding: 32px 24px; display: flex; flex-direction: column; gap: 28px">
+<a href="SignIn.dc.html" style="align-self: flex-start; font-weight: 600; font-size: 15px; padding: 10px 0">← Back</a>
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="width: 40px; height: 40px; border-radius: 11px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">P</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">Pamoja Party</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Enter your code</h1>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #3D4A43">We sent a 6-digit code by SMS to <strong style="color: #13201A">07•• ••• [000]</strong>.</p>
+</div>
+<label style="display: flex; flex-direction: column; gap: 8px; font-weight: 600; font-size: 14px">SMS code
+<input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" value="{{code}}" onChange="{{setCode}}" placeholder="••••••" style="{{inputStyle}}">
+</label>
+<sc-if value="{{wrong}}" hint-placeholder-val="{{ false }}">
+<p role="alert" style="margin: -12px 0 0; font-size: 14px; color: #9A1C12; font-weight: 600">That code didn't match. Check the SMS and try again — {{triesLeft}} tries left.</p>
+</sc-if>
+<sc-if value="{{ready}}" hint-placeholder-val="{{ false }}">
+<a href="{{next}}" onClick="{{check}}" style="display: block; text-align: center; font-weight: 700; font-size: 17px; color: #FFFFFF; background: #0B5D3B; padding: 16px; border-radius: 999px; text-decoration: none">Verify &amp; continue</a>
+</sc-if>
+<sc-if value="{{notReady}}" hint-placeholder-val="{{ true }}">
+<span aria-disabled="true" style="display: block; text-align: center; font-weight: 700; font-size: 17px; color: #FFFFFF; background: #9AA49F; padding: 16px; border-radius: 999px">Verify &amp; continue</span>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 10px; font-size: 15px">
+<span style="color: #4B5751">Didn't get it? You can resend in <strong style="color: #13201A">0:45</strong></span>
+<a href="#" style="font-weight: 700">Get the code by voice call instead</a>
+<a href="SignIn.dc.html" style="font-weight: 700">Use a different number</a>
+</div>
+<p style="margin: auto 0 0; font-size: 13px; color: #4B5751; line-height: 1.5">Try typing 000000 to see the wrong-code message.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { code: '', wrong: false, tries: 3 }; }
+  renderVals() {
+    const S = this.state;
+    const ready = S.code.length === 6;
+    const bad = S.code === '000000';
+    return {
+      code: S.code,
+      setCode: (e) => this.setState({ code: e.target.value.replace(/\D/g, '').slice(0, 6), wrong: false }),
+      ready, notReady: !ready, wrong: S.wrong, triesLeft: S.tries,
+      next: bad ? '#' : 'SysChooser.dc.html',
+      check: () => { if (bad) this.setState({ wrong: true, tries: Math.max(0, S.tries - 1) }); },
+      inputStyle: 'font: inherit; font-family: \'Bricolage Grotesque\', sans-serif; font-weight: 800; font-size: 34px; letter-spacing: 0.5em; text-align: center; padding: 16px 12px; border-radius: 16px; background: #FFFFFF; border: 2px solid ' + (S.wrong ? '#B42318' : ready ? '#0B5D3B' : '#C9C5B8')
+    };
+  }
+}
+</script>
+</body>
+</html>

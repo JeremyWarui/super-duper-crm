@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pamoja Party — Sign in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F0}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100vh; display: flex; flex-wrap: wrap">
+
+<aside style="flex: 1 1 420px; min-width: 0; background: #0B5D3B; color: #F6F5F0; padding: 48px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; gap: 48px">
+<a href="PartyHome.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #F6F5F0">
+<span style="width: 40px; height: 40px; border-radius: 10px; background: #F2B705; display: flex; align-items: center; justify-content: center; color: #13201A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">P</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Pamoja Party</span>
+</a>
+<div style="display: flex; flex-direction: column; gap: 20px; max-width: 440px">
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(36px, 4vw, 56px); line-height: 1.02; letter-spacing: -0.02em">The team behind the movement.</h1>
+<p style="margin: 0; font-size: 18px; line-height: 1.6; color: #CFE0D5">Members, candidate teams, mobilizers and party staff sign in here. One account, routed to the right place.</p>
+</div>
+<a href="PartyHome.dc.html" style="color: #F2B705; font-weight: 700; font-size: 15px">← Back to public site</a>
+</aside>
+
+<main style="flex: 1 1 520px; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 48px 24px; box-sizing: border-box">
+<div style="width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 34px; letter-spacing: -0.02em">Sign in</h2>
+<p style="margin: 0; color: #4B5751">Choose how you work with the party.</p>
+</div>
+
+<div role="tablist" aria-label="Account type" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; background: #E9E6DC; border-radius: 14px; padding: 4px">
+<button type="button" role="tab" aria-selected="{{volSel}}" onClick="{{pickVol}}" style="{{volStyle}}">Members &amp; campaigns</button>
+<button type="button" role="tab" aria-selected="{{staffSel}}" onClick="{{pickStaff}}" style="{{staffStyle}}">Party staff</button>
+</div>
+
+<form style="display: flex; flex-direction: column; gap: 18px">
+<sc-if value="{{isVol}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Phone number<input type="tel" placeholder="07XX XXX XXX" style="font: inherit; font-weight: 400; font-size: 16px; padding: 14px; border: 1.5px solid #C9C5B8; border-radius: 12px; background: #FFFFFF"></label>
+<p style="margin: 0; font-size: 14px; color: #4B5751; line-height: 1.5">We'll send a 6-digit code by SMS. No password needed.</p>
+<a href="SysCode.dc.html" style="display: block; text-align: center; font-weight: 700; font-size: 17px; color: #FFFFFF; background: #0B5D3B; padding: 16px; border-radius: 999px; text-decoration: none">Send code</a>
+</div>
+</sc-if>
+<sc-if value="{{isStaff}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Work email<input type="email" placeholder="name@pamoja.ke" style="font: inherit; font-weight: 400; font-size: 16px; padding: 14px; border: 1.5px solid #C9C5B8; border-radius: 12px; background: #FFFFFF"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Password<input type="password" placeholder="••••••••" style="font: inherit; font-weight: 400; font-size: 16px; padding: 14px; border: 1.5px solid #C9C5B8; border-radius: 12px; background: #FFFFFF"></label>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 14px">
+<label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B">Keep me signed in</label>
+<a href="SysReset.dc.html" style="font-weight: 600">Forgot password?</a>
+</div>
+<a href="SysChooser.dc.html" style="display: block; text-align: center; font-weight: 700; font-size: 17px; color: #FFFFFF; background: #0B5D3B; padding: 16px; border-radius: 999px; text-decoration: none">Sign in</a>
+<p style="margin: 0; font-size: 13px; color: #4B5751; text-align: center">Two-step verification is required for staff accounts.</p>
+</div>
+</sc-if>
+</form>
+
+<div style="border-top: 1px solid #DEDBD0; padding-top: 20px; font-size: 15px; color: #4B5751">Not a member yet? <a href="Join.dc.html" style="font-weight: 700">Join the party</a></div>
+</div>
+</main>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { role: 'vol' }; }
+  renderVals() {
+    const vol = this.state.role === 'vol';
+    const on = 'font: inherit; font-weight: 700; font-size: 15px; border: 0; border-radius: 10px; padding: 12px; min-height: 44px; cursor: pointer; background: #FFFFFF; color: #13201A; box-shadow: 0 1px 3px rgba(19,32,26,0.12)';
+    const off = 'font: inherit; font-weight: 600; font-size: 15px; border: 0; border-radius: 10px; padding: 12px; min-height: 44px; cursor: pointer; background: transparent; color: #4B5751';
+    return {
+      isVol: vol, isStaff: !vol,
+      volSel: vol ? 'true' : 'false', staffSel: vol ? 'false' : 'true',
+      volStyle: vol ? on : off, staffStyle: vol ? off : on,
+      pickVol: () => this.setState({ role: 'vol' }),
+      pickStaff: () => this.setState({ role: 'staff' })
+    };
+  }
+}
+</script>
+</body>
+</html>

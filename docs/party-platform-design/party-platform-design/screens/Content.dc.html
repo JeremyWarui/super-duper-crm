@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Party CRM — Website content</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+
+<nav aria-label="Party CRM" style="flex: 1 1 240px; max-width: 100%; background: #13201A; color: #DDE3DF; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
+<span style="width: 34px; height: 34px; border-radius: 9px; background: #F2B705; display: flex; align-items: center; justify-content: center; color: #13201A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 17px">P</span>
+<div style="display: flex; flex-direction: column">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #F6F5F0">Pamoja Party</span>
+<span style="font-size: 12px; color: #9FAAA4">Secretariat · HQ</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="9">
+<a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a>
+</sc-for>
+</div>
+<p style="margin: auto 8px 0; font-size: 12px; color: #9FAAA4">Powered by [Your product]</p>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4B5751">Website content</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Edit the party website</h1>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+<span style="{{saveStyle}}">{{saveLabel}}</span>
+<a href="PartyHome.dc.html" style="font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; padding: 0 18px; height: 44px; border-radius: 12px; display: flex; align-items: center; text-decoration: none">View live site</a>
+<button type="button" onClick="{{publish}}" style="font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; border: 0; padding: 0 20px; height: 44px; border-radius: 12px; cursor: pointer">Publish changes</button>
+</div>
+</header>
+
+<div role="tablist" aria-label="Content area" style="display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #D5D9D6">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+<button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{isHome}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section aria-label="Homepage editor" style="flex: 1 1 380px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">Hero banner</h2>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Headline<input type="text" value="{{headline}}" onChange="{{setHeadline}}" style="font: inherit; font-weight: 400; font-size: 16px; padding: 12px 14px; border: 1.5px solid #C9C5B8; border-radius: 12px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Supporting text<textarea rows="3" value="{{sub}}" onChange="{{setSub}}" style="font: inherit; font-weight: 400; font-size: 16px; padding: 12px 14px; border: 1.5px solid #C9C5B8; border-radius: 12px; resize: vertical"></textarea></label>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 600; font-size: 14px">Hero photo</span>
+<button type="button" style="font: inherit; font-size: 14px; font-weight: 600; color: #3D4A43; background: #F3F4F2; border: 1.5px dashed #C9C5B8; border-radius: 12px; height: 72px; cursor: pointer">Upload or drag a photo (JPG, PNG)</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 6px 0 0; font-size: 18px; font-weight: 700">Homepage sections</h2>
+<p style="margin: 0; font-size: 14px; color: #4B5751">Turn sections on or off. Content in each fills in from News, Events and Candidates.</p>
+<sc-for list="{{sections}}" as="s" hint-placeholder-count="7">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid #EDEFEE">
+<span style="font-weight: 600">{{s.label}}</span>
+<button type="button" role="switch" aria-checked="{{s.checked}}" aria-label="{{s.label}}" onClick="{{s.toggle}}" style="{{s.track}}"><span style="width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.2)"></span></button>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section aria-label="Live preview" style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #4B5751">Live preview</span>
+<div style="background: #F6F5F0; border: 1px solid #D5D9D6; border-radius: 16px; overflow: hidden">
+<div style="background: #FFFFFF; border-bottom: 1px solid #E1E4E2; padding: 10px 14px; display: flex; align-items: center; gap: 8px">
+<span style="{{logoStyle}}">P</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px">{{partyName}}</span>
+</div>
+<div style="{{heroStyle}}">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; line-height: 1.05; letter-spacing: -0.02em">{{headline}}</span>
+<span style="font-size: 14px; line-height: 1.5; opacity: 0.85">{{sub}}</span>
+<span style="align-self: flex-start; font-size: 13px; font-weight: 700; background: #F2B705; color: #13201A; padding: 8px 14px; border-radius: 999px">Join the party</span>
+</div>
+<div style="padding: 14px; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{shown}}" as="b" hint-placeholder-count="5">
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 10px; padding: 12px 14px; font-size: 13px; font-weight: 700; color: #3D4A43">{{b}}</div>
+</sc-for>
+</div>
+</div>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{isNews}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section aria-labelledby="posts-h" style="flex: 1 1 300px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<h2 id="posts-h" style="margin: 0; font-size: 18px; font-weight: 700">Posts</h2>
+<button type="button" style="font: inherit; font-size: 14px; font-weight: 700; color: #FFFFFF; background: #0B5D3B; border: 0; height: 38px; padding: 0 14px; border-radius: 10px; cursor: pointer">New post</button>
+</div>
+<sc-for list="{{posts}}" as="p" hint-placeholder-count="4">
+<button type="button" onClick="{{p.open}}" style="{{p.style}}">
+<span style="font-weight: 700; font-size: 15px">{{p.title}}</span>
+<span style="display: flex; gap: 8px; align-items: center; font-size: 13px; color: #4B5751">{{p.cat}} · <span style="{{p.pill}}">{{p.status}}</span></span>
+</button>
+</sc-for>
+</section>
+<section aria-label="Post editor" style="flex: 2 1 460px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Title<input type="text" value="{{post.title}}" style="font: inherit; font-weight: 600; font-size: 20px; padding: 12px 14px; border: 1.5px solid #C9C5B8; border-radius: 12px"></label>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Category<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C9C5B8; border-radius: 12px; background: #FFFFFF"><option>{{post.cat}}</option><option>Press release</option><option>Statement</option><option>Branches</option><option>Opinion</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">County<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C9C5B8; border-radius: 12px; background: #FFFFFF"><option>National</option><option>[County]</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Publish on<input type="datetime-local" style="font: inherit; font-weight: 400; font-size: 15px; padding: 10px 12px; border: 1.5px solid #C9C5B8; border-radius: 12px"></label>
+</div>
+<div style="border: 1.5px solid #C9C5B8; border-radius: 12px; overflow: hidden">
+<div role="toolbar" aria-label="Formatting" style="display: flex; flex-wrap: wrap; gap: 2px; padding: 6px; background: #F3F4F2; border-bottom: 1px solid #E1E4E2">
+<button type="button" aria-label="Bold" style="font: inherit; font-weight: 800; width: 40px; height: 36px; border: 0; background: transparent; border-radius: 8px; cursor: pointer">B</button>
+<button type="button" aria-label="Italic" style="font: inherit; font-style: italic; font-weight: 700; width: 40px; height: 36px; border: 0; background: transparent; border-radius: 8px; cursor: pointer">I</button>
+<button type="button" style="font: inherit; font-size: 13px; font-weight: 700; height: 36px; padding: 0 10px; border: 0; background: transparent; border-radius: 8px; cursor: pointer">Heading</button>
+<button type="button" style="font: inherit; font-size: 13px; font-weight: 700; height: 36px; padding: 0 10px; border: 0; background: transparent; border-radius: 8px; cursor: pointer">Quote</button>
+<button type="button" style="font: inherit; font-size: 13px; font-weight: 700; height: 36px; padding: 0 10px; border: 0; background: transparent; border-radius: 8px; cursor: pointer">Link</button>
+<button type="button" style="font: inherit; font-size: 13px; font-weight: 700; height: 36px; padding: 0 10px; border: 0; background: transparent; border-radius: 8px; cursor: pointer">Image</button>
+</div>
+<div style="padding: 16px; min-height: 160px; font-size: 16px; line-height: 1.7; color: #3D4A43">[Body of the statement. Officials write here; the comms team edits; the Secretary General approves before it goes live.]</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; background: #F3F4F2; border-radius: 12px; padding: 14px 16px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; color: #4B5751">Approval</span>
+<span style="font-weight: 700">{{post.stepNote}}</span>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" style="font: inherit; font-weight: 600; font-size: 14px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; height: 42px; padding: 0 16px; border-radius: 10px; cursor: pointer">Save draft</button>
+<button type="button" onClick="{{post.advance}}" style="font: inherit; font-weight: 700; font-size: 14px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 42px; padding: 0 16px; border-radius: 10px; cursor: pointer">{{post.action}}</button>
+</div>
+</div>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{isEvents}}" hint-placeholder-val="{{ false }}">
+<section aria-label="Events on the website" style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">Events from the CRM</h2>
+<span style="font-size: 14px; color: #4B5751">Events created in Events appear here. Choose which are public.</span>
+</div>
+<sc-for list="{{events}}" as="e" hint-placeholder-count="4">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #EDEFEE">
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-weight: 700">{{e.title}}</span>
+<span style="font-size: 13px; color: #4B5751">{{e.meta}}</span>
+</div>
+<label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600">Show on website
+<button type="button" role="switch" aria-checked="{{e.checked}}" aria-label="Show {{e.title}} on website" onClick="{{e.toggle}}" style="{{e.track}}"><span style="width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.2)"></span></button>
+</label>
+</div>
+</sc-for>
+</section>
+</sc-if>
+
+<sc-if value="{{isBrand}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section aria-label="Branding" style="flex: 1 1 420px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+<p style="margin: 0; font-size: 14px; color: #4B5751; background: #E7F0EA; border-radius: 10px; padding: 12px">Branding applies everywhere: the public website, member and volunteer portals, candidate workspaces and this CRM.</p>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Party name<input type="text" value="{{partyName}}" onChange="{{setName}}" style="font: inherit; font-weight: 400; font-size: 16px; padding: 12px 14px; border: 1.5px solid #C9C5B8; border-radius: 12px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Slogan<input type="text" value="[Party slogan]" style="font: inherit; font-weight: 400; font-size: 16px; padding: 12px 14px; border: 1.5px solid #C9C5B8; border-radius: 12px"></label>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 600; font-size: 14px">Logo &amp; party symbol</span>
+<button type="button" style="font: inherit; font-size: 14px; font-weight: 600; color: #3D4A43; background: #F3F4F2; border: 1.5px dashed #C9C5B8; border-radius: 12px; height: 72px; cursor: pointer">Upload SVG or PNG</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span id="col-l" style="font-weight: 600; font-size: 14px">Party colour</span>
+<div role="radiogroup" aria-labelledby="col-l" style="display: flex; flex-wrap: wrap; gap: 10px">
+<sc-for list="{{swatches}}" as="w" hint-placeholder-count="5">
+<button type="button" role="radio" aria-checked="{{w.checked}}" aria-label="{{w.name}}" onClick="{{w.pick}}" style="{{w.style}}"></button>
+</sc-for>
+</div>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px">Website address<input type="text" value="www.[party].ke" style="font: inherit; font-weight: 400; font-size: 16px; padding: 12px 14px; border: 1.5px solid #C9C5B8; border-radius: 12px"></label>
+</section>
+<section aria-label="Brand preview" style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #4B5751">Preview</span>
+<div style="background: #FFFFFF; border: 1px solid #D5D9D6; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="{{logoStyle}}">P</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px">{{partyName}}</span></div>
+<span style="{{btnPreview}}">Join the party</span>
+<div style="{{cardPreview}}">Member card · [PP-000000]</div>
+</div>
+</section>
+</div>
+</sc-if>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = {
+      tab: 'Homepage', dirty: false, published: false,
+      headline: 'One Kenya. Every ward. Together.',
+      sub: '[The party\'s core message in one or two sentences.]',
+      name: 'Pamoja Party', color: '#0B5D3B',
+      sec: { news: true, issues: true, events: true, branches: true, candidates: true, leaders: true, newsletter: false },
+      post: 1, postStatus: { 1: 'Draft', 2: 'Awaiting approval', 3: 'Published', 4: 'Published' },
+      ev: { 1: true, 2: true, 3: false, 4: true }
+    };
+  }
+  renderVals() {
+    const S = this.state;
+    const edit = (patch) => this.setState({ ...patch, dirty: true, published: false });
+    const sw = (on) => 'flex: 0 0 50px; width: 50px; height: 28px; border-radius: 999px; border: 0; padding: 3px; display: flex; cursor: pointer; justify-content: ' + (on ? 'flex-end' : 'flex-start') + '; background: ' + (on ? S.color : '#9AA49F');
+    const secDefs = [['news', 'News & statements'], ['issues', 'Agenda & issues'], ['events', 'Upcoming events'], ['branches', 'Find your branch'], ['candidates', 'Our candidates'], ['leaders', 'Party leadership'], ['newsletter', 'Newsletter sign-up']];
+    const sections = secDefs.map((d) => ({ label: d[1], checked: S.sec[d[0]] ? 'true' : 'false', track: sw(S.sec[d[0]]), toggle: () => edit({ sec: { ...S.sec, [d[0]]: !S.sec[d[0]] } }) }));
+    const shown = secDefs.filter((d) => S.sec[d[0]]).map((d) => d[1]);
+    const tabs = ['Homepage', 'News', 'Branding'].map((label) => ({
+      label, selected: S.tab === label ? 'true' : 'false', pick: () => this.setState({ tab: label }),
+      style: 'font: inherit; font-size: 15px; font-weight: 700; background: none; border: 0; padding: 12px 16px; min-height: 46px; cursor: pointer; margin-bottom: -1px; border-bottom: 3px solid ' + (S.tab === label ? '#0B5D3B; color: #0B5D3B' : 'transparent; color: #4B5751')
+    }));
+    const flow = { 'Draft': ['Submit for approval', 'Awaiting approval', 'Draft — written by comms team'], 'Awaiting approval': ['Approve & publish', 'Published', 'Waiting for Secretary General'], 'Published': ['Unpublish', 'Draft', 'Live on the website'] };
+    const pill = (st) => 'font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; ' + (st === 'Published' ? 'background: #E3F1E8; color: #0B5D3B' : st === 'Draft' ? 'background: #ECEEF0; color: #3D4A43' : 'background: #FFF3CC; color: #6B5100');
+    const postDefs = [[1, '[Statement on the budget]', 'Statement'], [2, '[Branch elections timetable]', 'Branches'], [3, '[Nominations open]', 'Press release'], [4, '[Youth league launch]', 'Branches']];
+    const posts = postDefs.map((p) => {
+      const st = S.postStatus[p[0]];
+      return { title: p[1], cat: p[2], status: st, pill: pill(st), open: () => this.setState({ post: p[0] }),
+        style: 'font: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 12px; cursor: pointer; color: #13201A; ' + (S.post === p[0] ? 'background: #E7F0EA; border: 1.5px solid #0B5D3B' : 'background: #FFFFFF; border: 1.5px solid #E1E4E2') };
+    });
+    const cur = postDefs.find((p) => p[0] === S.post);
+    const cs = S.postStatus[S.post];
+    const post = { title: cur[1], cat: cur[2], action: flow[cs][0], stepNote: flow[cs][2], advance: () => this.setState({ postStatus: { ...S.postStatus, [S.post]: flow[cs][1] } }) };
+    const evDefs = [[1, '[National rally]', '[Date] · [Venue], [County]'], [2, '[Youth league forum]', '[Date] · [Venue], [County]'], [3, '[Executive committee meeting]', '[Date] · HQ · internal'], [4, '[Aspirants induction]', '[Date] · Online']];
+    const events = evDefs.map((e) => ({ title: e[1], meta: e[2], checked: S.ev[e[0]] ? 'true' : 'false', track: sw(S.ev[e[0]]), toggle: () => edit({ ev: { ...S.ev, [e[0]]: !S.ev[e[0]] } }) }));
+    const swDefs = [['Green', '#0B5D3B'], ['Blue', '#1D4ED8'], ['Red', '#B42318'], ['Purple', '#6D28D9'], ['Orange', '#C2410C']];
+    const swatches = swDefs.map((w) => ({ name: w[0], checked: S.color === w[1] ? 'true' : 'false', pick: () => edit({ color: w[1] }),
+      style: 'width: 48px; height: 48px; border-radius: 50%; cursor: pointer; background: ' + w[1] + '; border: 3px solid #FFFFFF; box-shadow: 0 0 0 ' + (S.color === w[1] ? '3px #13201A' : '1px #C9C5B8') }));
+    const navItems = [['Overview', 'PartyCRM.dc.html'], ['Members', 'Members.dc.html'], ['Branches', 'CrmBranches.dc.html'], ['Events', 'CrmEvents.dc.html'], ['Nominations', 'CrmNominations.dc.html'], ['Nominees board', 'Nominees.dc.html'], ['Communications', 'CrmComms.dc.html'], ['Finance', 'CrmFinance.dc.html'], ['Website content', 'Content.dc.html'], ['Users & data', 'CrmUsers.dc.html']];
+    const nav = navItems.map((n) => ({ label: n[0], href: n[1], style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (n[0] === 'Website content' ? 'background: #0B5D3B; color: #FFFFFF' : 'color: #DDE3DF') }));
+    return {
+      nav, tabs, sections, shown, posts, post, events, swatches,
+      isHome: S.tab === 'Homepage', isNews: S.tab === 'News', isEvents: S.tab === 'Events', isBrand: S.tab === 'Branding',
+      headline: S.headline, sub: S.sub, partyName: S.name,
+      setHeadline: (e) => edit({ headline: e.target.value }),
+      setSub: (e) => edit({ sub: e.target.value }),
+      setName: (e) => edit({ name: e.target.value }),
+      publish: () => this.setState({ dirty: false, published: true }),
+      saveLabel: S.published ? 'All changes live' : S.dirty ? 'Unpublished changes' : 'Up to date',
+      saveStyle: 'font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; ' + (S.dirty ? 'background: #FFF3CC; color: #6B5100' : 'background: #E3F1E8; color: #0B5D3B'),
+      heroStyle: 'padding: 24px 20px; display: flex; flex-direction: column; gap: 12px; color: #FFFFFF; background: ' + S.color,
+      logoStyle: 'width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: \'Bricolage Grotesque\', sans-serif; font-weight: 800; color: #F2B705; background: ' + S.color,
+      btnPreview: 'align-self: flex-start; font-weight: 700; font-size: 15px; color: #FFFFFF; padding: 12px 20px; border-radius: 999px; background: ' + S.color,
+      cardPreview: 'border-radius: 14px; padding: 18px; color: #FFFFFF; font-weight: 700; background: ' + S.color
+    };
+  }
+}
+</script>
+</body>
+</html>

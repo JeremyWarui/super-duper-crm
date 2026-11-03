@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Primary day control room</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh">
+<header style="background: #13201A; color: #F6F5F0">
+<div style="max-width: 1280px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 4px"><a href="CrmNominations.dc.html" style="font-size: 14px; color: #F2B705; font-weight: 600">← Nominations</a><h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">Primary day · [County]</h1></div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<span style="font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: #34443B">Hybrid · online, USSD &amp; polling centres</span>
+<span style="{{pollBadge}}">{{pollLabel}}</span>
+</div>
+</div>
+</header>
+
+<main style="max-width: 1280px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 22px">
+<section aria-label="Live summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px">
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Turnout so far</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[00]%</span><span style="font-size: 13px; color: #4B5751">[00,000] of [00,000] eligible</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">By channel</span><span style="font-size: 15px; font-weight: 700">Online [00]% · USSD [00]%</span><span style="font-size: 15px; font-weight: 700">Polling centres [00]%</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Centres open</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[00] / [00]</span><span style="font-size: 13px; color: #4B5751">[0] not yet opened</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Open incidents</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; color: #9A1C12">{{openInc}}</span><span style="font-size: 13px; color: #4B5751">needs a board decision</span></div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start">
+<section aria-labelledby="race-h" style="flex: 3 1 560px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
+<h2 id="race-h" style="margin: 0; font-size: 20px; font-weight: 700">Turnout by ward</h2>
+<div role="tablist" aria-label="Race" style="display: flex; gap: 6px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 520px; border-collapse: collapse; font-size: 15px">
+<thead><tr style="text-align: left; color: #4B5751; font-size: 13px"><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Ward</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Eligible</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Voted</th><th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Centres reporting</th></tr></thead>
+<tbody>
+<sc-for list="{{wards}}" as="w" hint-placeholder-count="5"><tr><td style="padding: 12px 8px; border-bottom: 1px solid #EDEFEE; font-weight: 600">{{w}}</td><td style="padding: 12px 8px; border-bottom: 1px solid #EDEFEE">[0,000]</td><td style="padding: 12px 8px; border-bottom: 1px solid #EDEFEE">[0,000]</td><td style="padding: 12px 8px; border-bottom: 1px solid #EDEFEE">[0] / [0]</td></tr></sc-for>
+</tbody>
+</table>
+</div>
+<sc-if value="{{sealed}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 14px; align-items: center; background: #13201A; color: #F6F5F0; border-radius: 14px; padding: 18px">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F2B705" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+<div style="display: flex; flex-direction: column; gap: 2px"><strong>Vote counts are sealed until polls close</strong><span style="font-size: 14px; color: #B9C2BC">No one — including HQ — can see who is leading while voting is open. Only turnout is shown.</span></div>
+</div>
+</sc-if>
+<sc-if value="{{unsealed}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; background: #E7F0EA; border-radius: 14px; padding: 18px">
+<div style="display: flex; flex-direction: column; gap: 2px"><strong>Polls closed · counts unsealed</strong><span style="font-size: 14px; color: #3D4A43">Online and USSD totals are combined with polling-centre forms in the tally.</span></div>
+<a href="FlowResults.dc.html" style="font-weight: 700; color: #FFFFFF; background: #0B5D3B; padding: 12px 16px; border-radius: 10px; text-decoration: none">Open the tally</a>
+</div>
+</sc-if>
+</section>
+
+<aside style="flex: 2 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+<section aria-labelledby="inc-h" style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<h2 id="inc-h" style="margin: 0; font-size: 18px; font-weight: 700">Incidents</h2>
+<sc-for list="{{incidents}}" as="i" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-top: 1px solid #EDEFEE">
+<div style="display: flex; justify-content: space-between; gap: 8px"><strong style="font-size: 15px">{{i.title}}</strong><span style="{{i.pill}}">{{i.state}}</span></div>
+<span style="font-size: 13px; color: #4B5751">{{i.meta}}</span>
+<sc-if value="{{i.open}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{i.resolve}}" style="align-self: flex-start; font: inherit; font-size: 13px; font-weight: 700; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; height: 34px; padding: 0 12px; border-radius: 8px; cursor: pointer">Mark resolved</button></sc-if>
+</div>
+</sc-for>
+</section>
+<section style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+<h2 style="margin: 0 0 4px; font-size: 18px; font-weight: 700">Integrity checks</h2>
+<span>Second votes blocked: <strong>[00]</strong></span>
+<span>Failed SMS / PIN attempts: <strong>[00]</strong></span>
+<span>Agents &amp; observers with view access: <strong>[00]</strong></span>
+<a href="#" style="font-weight: 700">Download the audit log</a>
+</section>
+<section style="background: #FFFFFF; border: 2px solid #13201A; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">Close polls</h2>
+<span style="font-size: 14px; color: #3D4A43">Needs two keyholders: Board chair and Board secretary. Online and USSD voting stop at once.</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="2"><button type="button" onClick="{{k.turn}}" style="{{k.style}}">{{k.label}}</button></sc-for>
+</div>
+</section>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { race: 'MP', k: [false, false], res: {} }; }
+  renderVals() {
+    const S = this.state;
+    const closed = S.k[0] && S.k[1];
+    const tabs = ['MCA', 'MP', 'Governor'].map((label) => ({ label, selected: S.race === label ? 'true' : 'false', pick: () => this.setState({ race: label }),
+      style: 'font: inherit; font-size: 14px; font-weight: 700; min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; ' + (S.race === label ? 'background: #13201A; color: #FFFFFF; border: 1px solid #13201A' : 'background: #FFFFFF; color: #13201A; border: 1px solid #D5D9D6') }));
+    const inc = [[1, 'Centre opened late', '[Registration centre 3] · reported [time] by clerk'], [2, 'Voter says someone else voted with their number', '[Ward 2] · online · [time]'], [3, 'Agent denied entry', '[Registration centre 1] · [time]']];
+    const incidents = inc.map((i) => { const done = !!S.res[i[0]]; return { title: i[1], meta: i[2], open: !done, state: done ? 'Resolved' : 'Open', resolve: () => this.setState({ res: { ...S.res, [i[0]]: true } }),
+      pill: 'font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; ' + (done ? 'background: #E3F1E8; color: #0B5D3B' : 'background: #FCE4E2; color: #9A1C12') }; });
+    const keys = ['Board chair', 'Board secretary'].map((who, i) => { const on = S.k[i]; return { label: on ? '✓ ' + who + ' confirmed' : 'Confirm as ' + who, turn: () => { const k = S.k.slice(); k[i] = true; this.setState({ k }); },
+      style: 'font: inherit; font-weight: 700; font-size: 14px; height: 44px; border-radius: 10px; cursor: pointer; ' + (on ? 'background: #E7F0EA; color: #0B5D3B; border: 1.5px solid #0B5D3B' : 'background: #13201A; color: #FFFFFF; border: 0') }; });
+    return {
+      tabs, incidents, keys, sealed: !closed, unsealed: closed,
+      wards: ['[Ward 1]', '[Ward 2]', '[Ward 3]', '[Ward 4]', '[Ward 5]'],
+      openInc: incidents.filter((i) => i.open).length,
+      pollLabel: closed ? 'Polls closed' : 'Open · closes in [hh:mm]',
+      pollBadge: 'font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; ' + (closed ? 'background: #F2B705; color: #13201A' : 'background: #2DA160; color: #FFFFFF')
+    };
+  }
+}
+</script>
+</body>
+</html>

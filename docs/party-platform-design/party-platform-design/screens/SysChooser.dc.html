@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Where to?</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F0}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F6F5F0; min-height: 100vh; display: flex; justify-content: center; padding: 56px 24px; box-sizing: border-box">
+<div style="width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="width: 40px; height: 40px; border-radius: 11px; background: #0B5D3B; display: flex; align-items: center; justify-content: center; color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">P</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">Pamoja Party</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 44px); letter-spacing: -0.02em">Karibu, [first name]. Where to?</h1>
+<p style="margin: 0; font-size: 16px; color: #3D4A43">Your account has more than one role. You'll only see the places your roles allow.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px">
+<sc-for list="{{places}}" as="p" hint-placeholder-count="4">
+<a href="{{p.href}}" style="background: #FFFFFF; border: 1.5px solid #DEDBD0; border-radius: 18px; padding: 20px; display: flex; gap: 16px; align-items: flex-start; text-decoration: none; color: #13201A">
+<span style="{{p.iconBox}}">{{p.initial}}</span>
+<span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<strong style="font-size: 18px">{{p.title}}</strong>
+<span style="font-size: 14px; color: #4B5751; line-height: 1.5">{{p.desc}}</span>
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #0B5D3B; padding-top: 4px">{{p.role}}</span>
+</span>
+</a>
+</sc-for>
+</div>
+
+<label style="display: flex; gap: 10px; align-items: center; font-size: 15px"><input type="checkbox" style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B">Always open my member account first on this device</label>
+<p style="margin: 0; font-size: 13px; color: #4B5751">Switch any time from the menu at the top of each area. Election-day roles, such as polling clerk, appear here only on voting day.</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const box = (bg, fg) => 'flex: 0 0 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-family: \'Bricolage Grotesque\', sans-serif; font-weight: 800; font-size: 20px; background: ' + bg + '; color: ' + fg;
+    const places = [
+      ['MemberAccount.dc.html', 'My membership', 'Card, renewal, branch meetings, elections, my nomination, my data', 'Member', 'M', '#E7F0EA', '#0B5D3B'],
+      ['Workspace.dc.html', '[Candidate] for MP', 'Campaign workspace: targets, events, mobilizers, supporters', 'Candidate team', 'W', '#13201A', '#F2B705'],
+      ['Mobilizer.dc.html', 'Mobilizer app · [Ward 4]', 'Today’s events and attendance for your ward', 'Mobilizer', 'F', '#FFF3CC', '#6B5100'],
+      ['PartyCRM.dc.html', 'Party CRM', 'Members, branches, nominations, finance and website', 'Party staff · [County] official', 'C', '#0B5D3B', '#FFFFFF']
+    ].map((p) => ({ href: p[0], title: p[1], desc: p[2], role: p[3], initial: p[4], iconBox: box(p[5], p[6]) }));
+    return { places };
+  }
+}
+</script>
+</body>
+</html>

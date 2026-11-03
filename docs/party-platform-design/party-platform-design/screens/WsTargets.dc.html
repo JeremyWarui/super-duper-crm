@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Candidate workspace — Targets</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+<nav aria-label="Workspace" style="flex: 1 1 240px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E1E4E2; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #0B5D3B">Pamoja Party · Field plan</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 19px">[Candidate] for MP</span>
+<span style="font-size: 13px; color: #4B5751">[Constituency], [County]</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="8"><a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a></sc-for>
+</div>
+<div style="margin-top: auto; padding: 0 8px; font-size: 13px; color: #4B5751">Powered by [Your product]</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Targets &amp; wards</h1>
+<span style="font-size: 14px; color: #4B5751">Sample figures shown — live version uses IEBC registered voters and 2022 turnout.</span>
+</div>
+</header>
+
+<section aria-label="Turnout assumption" style="background: #13201A; color: #F6F5F0; border-radius: 20px; padding: 24px 28px; display: flex; flex-wrap: wrap; align-items: center; gap: 28px">
+<label style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 10px; font-weight: 600">
+<span style="display: flex; justify-content: space-between"><span>Expected turnout</span><span style="color: #F2B705; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px">{{turnout}}%</span></span>
+<input type="range" min="40" max="85" step="1" value="{{turnout}}" onChange="{{setTurnout}}" style="width: 100%; accent-color: #F2B705">
+<span style="font-size: 13px; color: #B9C2BC">Drag to test scenarios. 2022 county turnout: [00]%</span>
+</label>
+<div style="display: flex; flex-wrap: wrap; gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #B9C2BC">Registered voters</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px">{{reg}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #B9C2BC">Projected votes cast</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px">{{cast}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #B9C2BC">Win number (50% + 1)</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px; color: #F2B705">{{win}}</span></div>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section aria-labelledby="w-h" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="w-h" style="margin: 0; font-size: 20px; font-weight: 700">Ward targets</h2>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 15px">
+<thead><tr style="text-align: left; color: #4B5751; font-size: 13px">
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Ward</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">Registered</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">Win number</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2; text-align: right">Supporters</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Progress</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{wards}}" as="w" hint-placeholder-count="5">
+<tr style="{{w.rowStyle}}">
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE"><button type="button" onClick="{{w.open}}" style="font: inherit; font-weight: 700; color: #13201A; background: none; border: 0; padding: 6px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #C9C5B8">{{w.name}}</button></td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE; text-align: right; font-variant-numeric: tabular-nums">{{w.regLabel}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums">{{w.winLabel}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE; text-align: right; font-variant-numeric: tabular-nums">{{w.supLabel}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE; min-width: 160px">
+<div style="display: flex; align-items: center; gap: 8px"><div style="flex: 1; height: 8px; border-radius: 999px; background: #E1E4E2; overflow: hidden"><div style="{{w.bar}}"></div></div><span style="font-size: 13px; font-weight: 700; width: 40px; text-align: right">{{w.pct}}%</span></div>
+</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<aside aria-labelledby="ps-h" style="flex: 2 1 320px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="ps-h" style="margin: 0; font-size: 20px; font-weight: 700">{{selName}}: polling centres</h2>
+<span style="font-size: 14px; color: #4B5751">Plan events at registration centres; count votes by station.</span>
+<sc-for list="{{centres}}" as="c" hint-placeholder-count="4">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: #F3F4F2">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700; font-size: 14px">{{c.name}}</span><span style="font-size: 13px; color: #4B5751">{{c.st}} stations · [0,000] voters</span></div>
+<a href="WsEvents.dc.html" style="font-size: 13px; font-weight: 700">Plan event</a>
+</div>
+</sc-for>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { t: 62, sel: 0 }; }
+  renderVals() {
+    const S = this.state;
+    const fmt = (n) => n.toLocaleString('en-KE');
+    const wards = [['[Ward 1]', 40000, 9100], ['[Ward 2]', 36000, 4300], ['[Ward 3]', 31000, 8200], ['[Ward 4]', 28000, 1900], ['[Ward 5]', 25000, 5100]];
+    let reg = 0, win = 0;
+    const rows = wards.map((w, i) => {
+      const wn = Math.floor(w[1] * S.t / 100 / 2) + 1;
+      reg += w[1]; win += wn;
+      const pct = Math.min(100, Math.round(w[2] / wn * 100));
+      const col = pct >= 75 ? '#0B5D3B' : pct >= 40 ? '#C99400' : '#B42318';
+      return { name: w[0], regLabel: fmt(w[1]), winLabel: fmt(wn), supLabel: fmt(w[2]), pct,
+        bar: 'height: 100%; border-radius: 999px; width: ' + pct + '%; background: ' + col,
+        rowStyle: i === S.sel ? 'background: #F4F8F5' : '', open: () => this.setState({ sel: i }) };
+    });
+    const cast = Math.round(reg * S.t / 100);
+    const centres = [1, 2, 3, 4].map((k) => ({ name: '[Registration centre ' + k + ']', st: k === 1 ? 4 : k === 2 ? 3 : 2 }));
+    const items = [['Strategy', 'Workspace.dc.html'], ['Targets & wards', 'WsTargets.dc.html'], ['Events', 'WsEvents.dc.html'], ['Mobilizers', 'WsMobilizers.dc.html'], ['Supporters', 'WsSupporters.dc.html'], ['Messages', 'WsMessages.dc.html'], ['Party feed & sharing', 'WsParty.dc.html'], ['Election-day agents', 'WsAgents.dc.html'], ['Spending', 'WsSpending.dc.html']];
+    const nav = items.map((x) => ({ label: x[0], href: x[1], style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (x[0] === 'Targets & wards' ? 'background: #E7F0EA; color: #0B5D3B' : 'color: #3D4A43') }));
+    return { nav, turnout: S.t, setTurnout: (e) => this.setState({ t: Number(e.target.value) }), reg: fmt(reg), cast: fmt(cast), win: fmt(Math.floor(cast / 2) + 1), wards: rows, selName: wards[S.sel][0], centres };
+  }
+}
+</script>
+</body>
+</html>

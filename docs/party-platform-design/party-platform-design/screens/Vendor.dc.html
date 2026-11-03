@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vendor console</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F4F5F8}
+a{color:#2448C8}a:hover{color:#1A3599}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #141826; background: #F4F5F8; min-height: 100vh; display: flex; flex-wrap: wrap">
+<nav aria-label="Vendor console" style="flex: 1 1 240px; max-width: 100%; background: #141826; color: #D7DBE6; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
+<span style="width: 34px; height: 34px; border-radius: 9px; background: #2F5BEA; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 16px">Y</span>
+<div style="display: flex; flex-direction: column"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #FFFFFF">[Your product]</span><span style="font-size: 12px; color: #9AA1B5">Vendor console</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="6"><a href="#" style="{{n.style}}">{{n.label}}</a></sc-for>
+</div>
+<p style="margin: auto 8px 0; font-size: 12px; color: #9AA1B5">Signed in: [you] · owner</p>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px"><p style="margin: 0; font-size: 14px; font-weight: 600; color: #4E566B">Your company</p><h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Parties</h1></div>
+<button type="button" onClick="{{startWizard}}" style="font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; background: #2F5BEA; border: 0; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Onboard a party</button>
+</header>
+
+<section aria-label="Business summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px">
+<div style="background: #FFFFFF; border: 1px solid #E2E5EC; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4E566B">Live parties</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">{{liveCount}}</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E2E5EC; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4E566B">Onboarding</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">{{onbCount}}</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E2E5EC; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4E566B">Candidate workspaces</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[000]</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E2E5EC; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4E566B">Monthly revenue</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[KSh 0.0M]</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E2E5EC; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; color: #4E566B">Open tickets</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px">[00]</span></div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start">
+<section aria-label="Parties" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E5EC; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 620px; border-collapse: collapse; font-size: 15px">
+<thead><tr style="text-align: left; color: #4E566B; font-size: 13px">
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E2E5EC">Party</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E2E5EC">Plan</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E2E5EC">Members</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E2E5EC">Workspaces</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E2E5EC">Renewal</th>
+<th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E2E5EC">Status</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{parties}}" as="p" hint-placeholder-count="4">
+<tr style="{{p.rowStyle}}">
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F4"><button type="button" onClick="{{p.open}}" style="font: inherit; color: #141826; background: none; border: 0; padding: 6px 0; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: 700"><span style="{{p.chip}}"></span>{{p.name}}</button></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F4">{{p.plan}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F4">[000,000]</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F4">[00]</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F4; color: #4E566B">[dd Mon]</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F4"><span style="{{p.pill}}">{{p.status}}</span></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<sc-if value="{{showDetail}}" hint-placeholder-val="{{ true }}">
+<aside aria-labelledby="pd-h" style="flex: 2 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E5EC; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="{{sel.chipBig}}"></span><h2 id="pd-h" style="margin: 0; font-size: 20px; font-weight: 700">{{sel.name}}</h2></div>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font-size: 14px">
+<dt style="color: #4E566B">Web address</dt><dd style="margin: 0; font-weight: 600">www.[{{sel.slug}}].ke</dd>
+<dt style="color: #4E566B">Licence</dt><dd style="margin: 0; font-weight: 600">{{sel.plan}} · renews [dd Mon YYYY]</dd>
+<dt style="color: #4E566B">Hosting</dt><dd style="margin: 0; font-weight: 600">[Region] · daily backups</dd>
+<dt style="color: #4E566B">Data agreement</dt><dd style="margin: 0; font-weight: 600">Signed [date] ✓</dd>
+</dl>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<strong style="font-size: 15px">Invoices</strong>
+<div style="display: flex; justify-content: space-between; font-size: 14px; padding: 8px 10px; background: #F4F5F8; border-radius: 8px"><span>Licence · [Quarter]</span><span style="color: #1B7A47; font-weight: 700">Paid</span></div>
+<div style="display: flex; justify-content: space-between; font-size: 14px; padding: 8px 10px; background: #F4F5F8; border-radius: 8px"><span>Candidate workspaces · [Month]</span><span style="font-weight: 700">[KSh 000,000]</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #EEF0F4; padding-top: 12px">
+<strong style="font-size: 15px">Support access</strong>
+<span style="font-size: 14px; color: #4E566B; line-height: 1.5">{{accessNote}}</span>
+<button type="button" onClick="{{requestAccess}}" style="{{accessStyle}}">{{accessLabel}}</button>
+</div>
+</aside>
+</sc-if>
+
+<sc-if value="{{showWizard}}" hint-placeholder-val="{{ false }}">
+<aside aria-labelledby="wz-h" style="flex: 2 1 380px; min-width: 0; background: #FFFFFF; border: 2px solid #2F5BEA; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 id="wz-h" style="margin: 0; font-size: 20px; font-weight: 700">Onboard a party</h2><span style="font-size: 13px; font-weight: 700; color: #4E566B">Step {{step}} of 4</span></div>
+<sc-if value="{{w1}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Registered party name<input type="text" style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C8CDD9; border-radius: 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Registration number<input type="text" style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C8CDD9; border-radius: 10px"></label>
+<label style="display: flex; gap: 10px; align-items: center; font-size: 14px"><input type="checkbox" style="width: 18px; height: 18px; margin: 0; accent-color: #2F5BEA">Checked against the Registrar of Political Parties</label>
+</div>
+</sc-if>
+<sc-if value="{{w2}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">First HQ admin (e.g. Secretary General)<input type="email" placeholder="name@party.ke" style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C8CDD9; border-radius: 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Data protection officer<input type="email" placeholder="dpo@party.ke" style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C8CDD9; border-radius: 10px"></label>
+</div>
+</sc-if>
+<sc-if value="{{w3}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Web address<input type="text" placeholder="www.[party].ke" style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C8CDD9; border-radius: 10px"></label>
+<span style="font-size: 14px; color: #4E566B">The party sets its own name, logo and colour later in Website content → Branding.</span>
+</div>
+</sc-if>
+<sc-if value="{{w4}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Licence<select style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C8CDD9; border-radius: 10px; background: #FFFFFF"><option>Starter · up to [00,000] members</option><option>Standard · up to [000,000] members</option><option>National · unlimited</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Candidate workspace revenue share<input type="text" placeholder="[00]% to the party" style="font: inherit; font-weight: 400; font-size: 15px; padding: 11px 12px; border: 1.5px solid #C8CDD9; border-radius: 10px"></label>
+<button type="button" onClick="{{uploadDpa}}" style="{{dpaStyle}}">{{dpaLabel}}</button>
+</div>
+</sc-if>
+<div style="display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #EEF0F4; padding-top: 14px">
+<button type="button" onClick="{{wBack}}" style="font: inherit; font-weight: 700; font-size: 14px; color: #141826; background: #FFFFFF; border: 1px solid #C8CDD9; height: 44px; padding: 0 16px; border-radius: 10px; cursor: pointer">{{backLabel}}</button>
+<button type="button" onClick="{{wNext}}" style="{{nextStyle}}">{{nextLabel}}</button>
+</div>
+</aside>
+</sc-if>
+</div>
+<p style="margin: 0; font-size: 13px; color: #4E566B">You run the platform; each party owns its data. Your team can't open a party's members, nominations or a candidate's workspace without a time-limited access grant the party approves.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { sel: 1, mode: 'detail', step: 1, dpa: false, access: {}, extra: [] }; }
+  renderVals() {
+    const S = this.state;
+    const base = [
+      { id: 1, name: 'Pamoja Party', slug: 'pamoja', plan: 'National', status: 'Live', color: '#0B5D3B' },
+      { id: 2, name: '[Party B]', slug: 'party-b', plan: 'Standard', status: 'Live', color: '#1D4ED8' },
+      { id: 3, name: '[Party C]', slug: 'party-c', plan: 'Starter', status: 'Renewal due', color: '#B42318' },
+      { id: 4, name: '[Party D]', slug: 'party-d', plan: 'Standard', status: 'Onboarding', color: '#6D28D9' }
+    ].concat(S.extra);
+    const tone = { 'Live': ['#E3F3EA', '#1B7A47'], 'Onboarding': ['#E6ECFD', '#2448C8'], 'Renewal due': ['#FFF3CC', '#6B5100'] };
+    const parties = base.map((p) => ({ ...p, open: () => this.setState({ sel: p.id, mode: 'detail' }),
+      rowStyle: p.id === S.sel && S.mode === 'detail' ? 'background: #F2F5FE' : '',
+      chip: 'flex: 0 0 14px; width: 14px; height: 14px; border-radius: 4px; background: ' + p.color,
+      pill: 'font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; background: ' + tone[p.status][0] + '; color: ' + tone[p.status][1] }));
+    const sp = base.find((p) => p.id === S.sel) || base[0];
+    const acc = S.access[sp.id];
+    const sel = { ...sp, chipBig: 'width: 22px; height: 22px; border-radius: 6px; background: ' + sp.color };
+    const st = S.step;
+    const B = 'font: inherit; font-weight: 700; font-size: 14px; color: #FFFFFF; border: 0; height: 44px; padding: 0 18px; border-radius: 10px; ';
+    const canNext = st < 4 || S.dpa;
+    const nav = ['Parties', 'Licences & billing', 'Usage', 'Support', 'Releases', 'Security & access'].map((label, i) => ({ label, style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (i === 0 ? 'background: #2F5BEA; color: #FFFFFF' : 'color: #D7DBE6') }));
+    return {
+      nav, parties, sel,
+      liveCount: base.filter((p) => p.status !== 'Onboarding').length, onbCount: base.filter((p) => p.status === 'Onboarding').length,
+      showDetail: S.mode === 'detail', showWizard: S.mode === 'wizard',
+      accessNote: acc ? 'Request sent to the party’s HQ admin. Access lasts [24] hours once approved, and every action is logged in the party’s audit log.' : 'No access to this party’s data. Request it only to resolve a support ticket.',
+      accessLabel: acc ? 'Awaiting party approval' : 'Request support access',
+      requestAccess: () => this.setState({ access: { ...S.access, [sp.id]: true } }),
+      accessStyle: 'align-self: flex-start; font: inherit; font-weight: 700; font-size: 14px; height: 42px; padding: 0 16px; border-radius: 10px; cursor: pointer; ' + (acc ? 'background: #F4F5F8; color: #4E566B; border: 1px solid #C8CDD9' : 'background: #FFFFFF; color: #2448C8; border: 1.5px solid #2F5BEA'),
+      startWizard: () => this.setState({ mode: 'wizard', step: 1, dpa: false }),
+      step: st, w1: st === 1, w2: st === 2, w3: st === 3, w4: st === 4,
+      backLabel: st === 1 ? 'Cancel' : 'Back',
+      wBack: () => st === 1 ? this.setState({ mode: 'detail' }) : this.setState({ step: st - 1 }),
+      wNext: () => { if (st < 4) return this.setState({ step: st + 1 }); if (S.dpa) { const id = 100 + S.extra.length; this.setState({ extra: S.extra.concat([{ id, name: '[New party]', slug: 'new-party', plan: 'Standard', status: 'Onboarding', color: '#C2410C' }]), sel: id, mode: 'detail' }); } },
+      nextLabel: st < 4 ? 'Continue' : 'Create & send admin invite',
+      nextStyle: B + (canNext ? 'background: #2F5BEA; cursor: pointer' : 'background: #A8B0C4; cursor: not-allowed'),
+      uploadDpa: () => this.setState({ dpa: true }),
+      dpaLabel: S.dpa ? '✓ Signed data processing agreement uploaded' : 'Upload signed data processing agreement (required)',
+      dpaStyle: 'font: inherit; font-size: 14px; font-weight: 600; height: 56px; border-radius: 12px; cursor: pointer; ' + (S.dpa ? 'background: #E3F3EA; color: #1B7A47; border: 1.5px solid #1B7A47' : 'background: #F4F5F8; color: #4E566B; border: 1.5px dashed #C8CDD9')
+    };
+  }
+}
+</script>
+</body>
+</html>

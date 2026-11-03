@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Party CRM — Members</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F3F4F2}
+a{color:#0B5D3B}a:hover{color:#08442B}
+</style>
+</helmet>
+<div style="font-family: 'Public Sans', system-ui, sans-serif; color: #13201A; background: #F3F4F2; min-height: 100vh; display: flex; flex-wrap: wrap">
+
+<nav aria-label="Party CRM" style="flex: 1 1 240px; max-width: 100%; background: #13201A; color: #DDE3DF; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
+<span style="width: 34px; height: 34px; border-radius: 9px; background: #F2B705; display: flex; align-items: center; justify-content: center; color: #13201A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 17px">P</span>
+<div style="display: flex; flex-direction: column">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #F6F5F0">Pamoja Party</span>
+<span style="font-size: 12px; color: #9FAAA4">Secretariat · HQ</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="9">
+<a href="{{n.href}}" style="{{n.style}}">{{n.label}}</a>
+</sc-for>
+</div>
+<p style="margin: auto 8px 0; font-size: 12px; color: #9FAAA4">Powered by [Your product]</p>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #4B5751">Members</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em">Membership verification</h1>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" style="font: inherit; font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Export register</button>
+<button type="button" style="font: inherit; font-weight: 600; font-size: 15px; color: #13201A; background: #FFFFFF; border: 1px solid #D5D9D6; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Import from branch</button>
+<button type="button" style="font: inherit; font-weight: 700; font-size: 15px; color: #FFFFFF; background: #0B5D3B; border: 0; padding: 0 18px; height: 44px; border-radius: 12px; cursor: pointer">Add member</button>
+</div>
+</header>
+
+<section aria-label="Summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px">
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Awaiting verification</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">{{nPending}}</span><span style="font-size: 13px; color: #4B5751">in this queue</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Flagged by checks</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; color: #9A1C12">{{nFlagged}}</span><span style="font-size: 13px; color: #4B5751">need a decision</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Verified today</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; color: #0B5D3B">{{nVerified}}</span><span style="font-size: 13px; color: #4B5751">by your team</span></div>
+<div style="background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; font-weight: 600; color: #4B5751">Total registered</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">[000,000]</span><span style="font-size: 13px; color: #4B5751">all counties</span></div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section aria-label="Member queue" style="flex: 3 1 560px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<div role="tablist" aria-label="Queue" style="display: flex; gap: 4px; border-bottom: 1px solid #E1E4E2">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+<button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}} <span style="{{t.countStyle}}">{{t.count}}</span></button>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<label style="display: flex; flex-direction: column; font-size: 12px; font-weight: 600; color: #4B5751">County<select style="font: inherit; font-size: 14px; font-weight: 500; height: 40px; padding: 0 10px; border: 1px solid #D5D9D6; border-radius: 10px; background: #FFFFFF; color: #13201A"><option>All</option><option>[County]</option></select></label>
+<label style="display: flex; flex-direction: column; font-size: 12px; font-weight: 600; color: #4B5751">Channel<select style="font: inherit; font-size: 14px; font-weight: 500; height: 40px; padding: 0 10px; border: 1px solid #D5D9D6; border-radius: 10px; background: #FFFFFF; color: #13201A"><option>All</option><option>Website</option><option>USSD</option><option>Branch agent</option></select></label>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 720px; border-collapse: collapse; font-size: 15px">
+<thead>
+<tr style="text-align: left; color: #4B5751; font-size: 13px">
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Applicant</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">ID no.</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Branch</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Channel</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Fee</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2">Checks</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E1E4E2"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Actions</span></th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<tr style="{{r.rowStyle}}">
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE"><button type="button" onClick="{{r.open}}" style="font: inherit; font-weight: 700; color: #13201A; background: none; border: 0; padding: 6px 0; cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #C9C5B8">{{r.name}}</button></td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE; font-variant-numeric: tabular-nums; color: #4B5751">{{r.idno}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{r.branch}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE">{{r.channel}}</td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE"><span style="{{r.feeStyle}}">{{r.fee}}</span></td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE"><span style="{{r.checkStyle}}">{{r.check}}</span></td>
+<td style="padding: 12px; border-bottom: 1px solid #EDEFEE; white-space: nowrap; text-align: right">
+<sc-if value="{{r.actionable}}" hint-placeholder-val="{{ true }}">
+<span style="display: inline-flex; gap: 6px">
+<button type="button" onClick="{{r.reject}}" style="font: inherit; font-size: 14px; font-weight: 600; color: #9A1C12; background: #FFFFFF; border: 1px solid #E8C4C0; height: 38px; padding: 0 12px; border-radius: 10px; cursor: pointer">Reject</button>
+<button type="button" onClick="{{r.verify}}" style="font: inherit; font-size: 14px; font-weight: 700; color: #FFFFFF; background: #0B5D3B; border: 0; height: 38px; padding: 0 14px; border-radius: 10px; cursor: pointer">{{r.verifyLabel}}</button>
+</span>
+</sc-if>
+</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; padding: 24px; text-align: center; color: #4B5751">Nothing here. The queue is clear.</p>
+</sc-if>
+</section>
+
+<aside aria-labelledby="det-h" style="flex: 1 1 300px; min-width: 0; background: #FFFFFF; border: 1px solid #E1E4E2; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 48px; height: 48px; border-radius: 50%; background: #E7F0EA; color: #0B5D3B; display: flex; align-items: center; justify-content: center; font-weight: 800">{{sel.initials}}</span>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<h2 id="det-h" style="margin: 0; font-size: 19px; font-weight: 700">{{sel.name}}</h2>
+<span style="font-size: 13px; color: #4B5751">Applied [date] via {{sel.channel}}</span>
+</div>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font-size: 14px">
+<dt style="color: #4B5751">ID no.</dt><dd style="margin: 0; font-weight: 600">{{sel.idno}}</dd>
+<dt style="color: #4B5751">Phone</dt><dd style="margin: 0; font-weight: 600">07•• ••• [000]</dd>
+<dt style="color: #4B5751">Branch</dt><dd style="margin: 0; font-weight: 600">{{sel.branch}}</dd>
+<dt style="color: #4B5751">Leagues</dt><dd style="margin: 0; font-weight: 600">{{sel.leagues}}</dd>
+<dt style="color: #4B5751">Status</dt><dd style="margin: 0; font-weight: 600">{{sel.statusLabel}}</dd>
+</dl>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 14px; font-weight: 700">Automatic checks</h3>
+<sc-for list="{{sel.checks}}" as="c" hint-placeholder-count="4">
+<div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 8px 12px; border-radius: 10px; background: #F3F4F2">
+<span>{{c.label}}</span><span style="{{c.style}}">{{c.result}}</span>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{sel.flagged}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; font-size: 14px; line-height: 1.5; background: #FCE4E2; color: #7A1A12; border-radius: 10px; padding: 12px">{{sel.flagNote}}</p>
+</sc-if>
+<p style="margin: 0; font-size: 12px; color: #4B5751">Every decision is logged with the officer's name and time.</p>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = { tab: 'Pending', selId: 1, status: { 1: 'pending', 2: 'pending', 3: 'flagged', 4: 'pending', 5: 'flagged', 6: 'pending', 7: 'pending', 8: 'verified' } };
+  }
+  renderVals() {
+    const S = this.state;
+    const base = [
+      { id: 1, name: '[Member 01]', ini: 'M1', idno: '•••• [0000]', branch: '[Ward], [County]', channel: 'Website', fee: 'Paid', check: 'Clear', leagues: 'Youth' },
+      { id: 2, name: '[Member 02]', ini: 'M2', idno: '•••• [0000]', branch: '[Ward], [County]', channel: 'USSD', fee: 'Paid', check: 'Clear', leagues: '—' },
+      { id: 3, name: '[Member 03]', ini: 'M3', idno: '•••• [0000]', branch: '[Ward], [County]', channel: 'Branch agent', fee: 'Paid', check: 'Other party', leagues: 'Women' },
+      { id: 4, name: '[Member 04]', ini: 'M4', idno: '•••• [0000]', branch: '[Ward], [County]', channel: 'Website', fee: 'Pending', check: 'Clear', leagues: '—' },
+      { id: 5, name: '[Member 05]', ini: 'M5', idno: '•••• [0000]', branch: '[Ward], [County]', channel: 'Website', fee: 'Paid', check: 'Duplicate ID', leagues: 'Youth' },
+      { id: 6, name: '[Member 06]', ini: 'M6', idno: '•••• [0000]', branch: '[Ward], [County]', channel: 'USSD', fee: 'Paid', check: 'Clear', leagues: 'PWD' },
+      { id: 7, name: '[Member 07]', ini: 'M7', idno: '•••• [0000]', branch: '[Ward], [County]', channel: 'Branch agent', fee: 'Paid', check: 'Clear', leagues: '—' },
+      { id: 8, name: '[Member 08]', ini: 'M8', idno: '•••• [0000]', branch: '[Ward], [County]', channel: 'Website', fee: 'Paid', check: 'Clear', leagues: 'Women' }
+    ];
+    const set = (id, v) => this.setState({ status: { ...S.status, [id]: v } });
+    const tabKey = { Pending: 'pending', Flagged: 'flagged', Verified: 'verified' };
+    const count = (k) => base.filter((m) => S.status[m.id] === k).length;
+    const pill = (bg, fg) => 'display: inline-block; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; background: ' + bg + '; color: ' + fg;
+    const rows = base.filter((m) => S.status[m.id] === tabKey[S.tab]).map((m) => {
+      const st = S.status[m.id];
+      return {
+        ...m,
+        rowStyle: m.id === S.selId ? 'background: #F4F8F5' : '',
+        open: () => this.setState({ selId: m.id }),
+        feeStyle: m.fee === 'Paid' ? pill('#E3F1E8', '#0B5D3B') : pill('#FFF3CC', '#6B5100'),
+        checkStyle: m.check === 'Clear' ? pill('#E3F1E8', '#0B5D3B') : pill('#FCE4E2', '#9A1C12'),
+        actionable: st !== 'verified',
+        verifyLabel: st === 'flagged' ? 'Override & verify' : 'Verify',
+        verify: () => set(m.id, 'verified'),
+        reject: () => set(m.id, 'rejected')
+      };
+    });
+    const tabs = ['Pending', 'Flagged', 'Verified'].map((label) => {
+      const on = S.tab === label;
+      return {
+        label, count: count(tabKey[label]), selected: on ? 'true' : 'false', pick: () => this.setState({ tab: label }),
+        style: 'font: inherit; font-size: 15px; font-weight: 700; background: none; border: 0; padding: 12px 14px; min-height: 44px; cursor: pointer; display: flex; gap: 8px; align-items: center; margin-bottom: -1px; border-bottom: 3px solid ' + (on ? '#0B5D3B; color: #0B5D3B' : 'transparent; color: #4B5751'),
+        countStyle: 'font-size: 12px; padding: 2px 8px; border-radius: 999px; ' + (label === 'Flagged' ? 'background: #FCE4E2; color: #9A1C12' : 'background: #ECEEF0; color: #3D4A43')
+      };
+    });
+    const m = base.find((x) => x.id === S.selId) || base[0];
+    const ok = 'color: #0B5D3B; font-weight: 700';
+    const bad = 'color: #9A1C12; font-weight: 700';
+    const stLabel = { pending: 'Awaiting verification', flagged: 'Flagged', verified: 'Verified', rejected: 'Rejected' };
+    const sel = {
+      name: m.name, initials: m.ini, idno: m.idno, branch: m.branch, channel: m.channel, leagues: m.leagues,
+      statusLabel: stLabel[S.status[m.id]],
+      flagged: m.check !== 'Clear',
+      flagNote: m.check === 'Other party' ? 'This ID appears on another party\'s member register. Ask the applicant for proof of resignation before verifying.' : 'This ID is already linked to another membership. Merge the records or reject the duplicate.',
+      checks: [
+        { label: 'ID format valid', result: 'Pass', style: ok },
+        { label: 'Not already a member', result: m.check === 'Duplicate ID' ? 'Duplicate' : 'Pass', style: m.check === 'Duplicate ID' ? bad : ok },
+        { label: 'Official party register', result: m.check === 'Other party' ? 'Listed elsewhere' : 'Pass', style: m.check === 'Other party' ? bad : ok },
+        { label: 'Fee received', result: m.fee === 'Paid' ? 'M-Pesa [REF]' : 'Pending', style: m.fee === 'Paid' ? ok : 'color: #6B5100; font-weight: 700' }
+      ]
+    };
+    const navItems = [['Overview', 'PartyCRM.dc.html'], ['Members', 'Members.dc.html'], ['Branches', 'CrmBranches.dc.html'], ['Events', 'CrmEvents.dc.html'], ['Nominations', 'CrmNominations.dc.html'], ['Nominees board', 'Nominees.dc.html'], ['Communications', 'CrmComms.dc.html'], ['Finance', 'CrmFinance.dc.html'], ['Website content', 'Content.dc.html'], ['Users & data', 'CrmUsers.dc.html']];
+    const nav = navItems.map((n) => ({ label: n[0], href: n[1], style: 'display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; ' + (n[0] === 'Members' ? 'background: #0B5D3B; color: #FFFFFF' : 'color: #DDE3DF') }));
+    return { nav, tabs, rows, sel, empty: rows.length === 0, nPending: count('pending'), nFlagged: count('flagged'), nVerified: count('verified') };
+  }
+}
+</script>
+</body>
+</html>
