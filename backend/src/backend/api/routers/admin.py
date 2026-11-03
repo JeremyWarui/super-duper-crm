@@ -25,6 +25,9 @@ from backend.schemas.admin import (
 )
 from backend.schemas.audit import AuditEventRead
 from backend.schemas.content import (
+    BranchAdminRead,
+    BranchUpdate,
+    CountyBranch,
     LeaderAdminRead,
     LeaderCreate,
     LeaderUpdate,
@@ -34,7 +37,7 @@ from backend.schemas.content import (
 )
 from backend.schemas.party import PartySettingsRead, PartySettingsUpdate
 from backend.services import admin as service
-from backend.services import audit, content
+from backend.services import audit, branches, content
 from backend.services import party as party_service
 from backend.services.errors import Refused
 
@@ -96,6 +99,19 @@ async def update_party_post(
 @router.delete("/party/posts/{post_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_party_post(post_id: uuid.UUID, session: SessionDep, admin: AdminUser):
     await content.delete_post(session, post_id, actor=admin)
+
+
+@router.get("/party/branches/", response_model=list[CountyBranch])
+async def party_branches(session: SessionDep, _: AdminUser):
+    """Every county with its branch, published or not."""
+    return await branches.by_county(session)
+
+
+@router.put("/party/branches/{county_id}/", response_model=BranchAdminRead)
+async def save_party_branch(
+    county_id: uuid.UUID, payload: BranchUpdate, session: SessionDep, admin: AdminUser
+):
+    return await branches.save(session, county_id, payload, actor=admin)
 
 
 @router.put("/party/", response_model=PartySettingsRead)

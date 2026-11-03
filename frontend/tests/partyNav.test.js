@@ -13,7 +13,7 @@ describe("the party CRM sidebar", () => {
 
   it("gives the superuser every page and the console", () => {
     expect(labels({ is_superuser: true, party_roles: [] })).toEqual([
-      "Dashboard", "Members", "Volunteers", "Aspirants", "Finance", "Website", "Console",
+      "Dashboard", "Members", "Volunteers", "Aspirants", "Finance", "Branches", "Website", "Console",
     ]);
   });
 });

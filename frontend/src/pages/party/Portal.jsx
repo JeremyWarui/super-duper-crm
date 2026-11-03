@@ -6,6 +6,7 @@ import { useAuth } from "../../store/auth";
 import { homeOf } from "../../lib/home";
 import Legacy from "../../components/Legacy";
 import Aspirants from "./Aspirants";
+import Branches from "./Branches";
 import Dashboard from "./Dashboard";
 import Finance from "./Finance";
 import Members from "./Members";
@@ -21,6 +22,7 @@ const PAGES = [
   ["volunteers", "Volunteers", "membership_officer", <Volunteers key="volunteers" />],
   ["aspirants", "Aspirants", "nominations_officer", <Aspirants key="aspirants" />],
   ["finance", "Finance", "finance_officer", <Finance key="finance" />],
+  ["branches", "Branches", "superuser", <Branches key="branches" />, { kit: true, context: "Party structure", title: "Branches" }],
   ["website", "Website", "superuser", <Website key="website" />],
 ];
 
@@ -39,8 +41,8 @@ export function officeOf(user) {
     : (user?.party_roles || []).map((r) => PARTY_ROLE_LABEL[r] || r).join(", ");
 }
 
-/** The party CRM's frame around one page still drawn by index.css. */
-export function PartyShell({ crumb, children }) {
+/** The party CRM's frame around one page; a page not yet on the kit stays inside Legacy. */
+export function PartyShell({ crumb, page, children }) {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
   return (
@@ -53,9 +55,13 @@ export function PartyShell({ crumb, children }) {
       user={{ name: user?.full_name || user?.username || "", role: officeOf(user) }}
       onSignOut={logout}
     >
-      <AppPage crumb={crumb}>
-        <Legacy>{children}</Legacy>
-      </AppPage>
+      {page?.kit ? (
+        <AppPage crumb={crumb} context={page.context} title={page.title}>{children}</AppPage>
+      ) : (
+        <AppPage crumb={crumb}>
+          <Legacy>{children}</Legacy>
+        </AppPage>
+      )}
     </AppLayout>
   );
 }
@@ -68,7 +74,7 @@ export default function Portal() {
   const current = pages.find(([key]) => pathname.startsWith(`/party/${key}`)) ?? pages[0];
 
   return (
-    <PartyShell crumb={current?.[1] || "Party CRM"}>
+    <PartyShell crumb={current?.[1] || "Party CRM"} page={current?.[4]}>
       {pages.length ? (
         <Routes>
           {pages.map(([key, , , element]) => (

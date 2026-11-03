@@ -422,7 +422,7 @@ Decisions taken by Jeremy:
 - `components/CrmTopBar.jsx` on every party console page: breadcrumb, search (Ctrl K) over members and aspirants (`GET /api/party/search/?q=`, officers see only what their roles allow), notifications with counts (pending applications, submitted aspirants, held payments) linking to their pages, help, the signed-in person and role; each console page gets the frosted page header with its actions on the right.
 - Tests: search returns only what the caller's role may see; a membership officer gets no aspirant results; the notification count matches pending applications.
 
-**R5-15 County branches** (backend and frontend; depends R5-11)
+**R5-15 County branches** (backend and frontend; depends R5-11; done, migration head `branches`; the console form also sets the next meeting and Published, which nothing else sets; events in the county wait for R5-13)
 - `branches`: one per county (`county_id` unique), chairperson, secretary, office address, phone, email, next meeting (date, venue), published. Superuser edits them in the console (`pages/party/Branches.jsx` on `CrmBranches.dc.html`, officials and office only). Public `GET /api/party/branches/` and `/branches/{county_id}/`; `pages/public/Branches.jsx` (`/counties`) and `Branch.jsx` (`/counties/:id`) on `PubBranch.dc.html`: officials, office, next meeting, sub-branches as the county's constituencies and wards, upcoming party events in the county (after R5-13). The homepage's "Find your branch" card and band (R5-12) read them. The demo seed fills a dummy branch for every county.
 - Tests: an unpublished branch is not public; only the superuser edits; the seed gives each county one branch.
 

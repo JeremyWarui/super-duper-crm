@@ -18,7 +18,7 @@ from backend.models import (
     Seat,
     Ward,
 )
-from backend.schemas.content import LeaderRead, PostRead
+from backend.schemas.content import BranchDetail, BranchRead, LeaderRead, PostRead
 from backend.schemas.dashboard import Dashboard
 from backend.schemas.party import (
     EMAIL,
@@ -33,7 +33,7 @@ from backend.schemas.party import (
     PartyWithdrawn,
 )
 from backend.security import hash_password
-from backend.services import content, dashboard, membership, subscribers
+from backend.services import branches, content, dashboard, membership, subscribers
 from backend.services import party as service
 from backend.services.accounts import clean_email
 from backend.services.ratelimit import RateLimit
@@ -87,6 +87,18 @@ async def get_party(session: SessionDep) -> PartySettingsRead:
 async def leaders(session: SessionDep):
     """The published leaders, in the order the party set."""
     return await content.published_leaders(session)
+
+
+@router.get("/branches/", response_model=list[BranchRead])
+async def party_branches(session: SessionDep):
+    """The published county branches, by county name."""
+    return await branches.published(session)
+
+
+@router.get("/branches/{county_id}/", response_model=BranchDetail)
+async def party_branch(county_id: uuid.UUID, session: SessionDep):
+    """A published branch, with its county's constituencies and wards."""
+    return await branches.published_detail(session, county_id)
 
 
 @router.get("/posts/", response_model=list[PostRead])

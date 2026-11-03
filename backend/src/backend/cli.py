@@ -22,7 +22,7 @@ from backend.seed.reference import (
     import_centres,
     import_geography,
 )
-from backend.seed.site import seed_site
+from backend.seed.site import seed_branches, seed_site
 from backend.services import admin
 from backend.services.accounts import clean_email, new_login, user_with_email
 from backend.services.audit import record
@@ -77,8 +77,11 @@ async def _demo(args: argparse.Namespace, session: AsyncSession) -> int:
 
 
 async def _demo_site(args: argparse.Namespace, session: AsyncSession) -> int:
+    added = await seed_branches(session, today())
+    if added:
+        print(f"Published a demo branch for {added} counties.")
     if not await seed_site(session, today()):
-        print("The website already has leaders or posts; nothing was added.")
+        print("The website already has leaders or posts; nothing else was added.")
         return 0
     print("Published 6 leaders, 4 news posts and 3 events for Pamoja Party.")
     print("Open http://localhost:5173/ to see the site.")
@@ -280,7 +283,9 @@ def build_parser() -> argparse.ArgumentParser:
     demo = command("demo", _demo, "build the demo campaign and its sign-ins")
     demo.add_argument("-p", "--password", help="one password for every demo account")
 
-    command("demo-site", _demo_site, "brand the party and publish demo leaders, news and events")
+    command(
+        "demo-site", _demo_site, "brand the party; publish demo leaders, news, events and branches"
+    )
 
     createuser = command("createuser", _createuser, "add a login")
     needs_user(createuser)

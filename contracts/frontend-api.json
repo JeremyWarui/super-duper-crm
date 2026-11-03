@@ -597,6 +597,29 @@
       "consent_wording",
       "consent_at",
       "volunteer"
+    ],
+    "GET /api/party/branches/": [
+      "county",
+      "chairperson"
+    ],
+    "GET /api/party/branches/{county_id}/": [
+      "county",
+      "chairperson",
+      "secretary",
+      "office_address",
+      "phone",
+      "email",
+      "next_meeting_on",
+      "next_meeting_venue",
+      "constituencies"
+    ],
+    "GET /api/admin/party/branches/": [
+      "county",
+      "branch"
+    ],
+    "PUT /api/admin/party/branches/{county_id}/": [
+      "chairperson",
+      "published"
     ]
   },
   "nested_reads": {
@@ -815,6 +838,21 @@
       "preferred_contact",
       "consent_wording",
       "consent_at"
+    ],
+    "GET /api/party/branches/{county_id}/.constituencies": [
+      "id",
+      "name",
+      "wards"
+    ],
+    "GET /api/admin/party/branches/.branch": [
+      "chairperson",
+      "secretary",
+      "office_address",
+      "phone",
+      "email",
+      "next_meeting_on",
+      "next_meeting_venue",
+      "published"
     ]
   },
   "writes": {
@@ -1126,7 +1164,17 @@
       "consent_given"
     ],
     "POST /api/account/volunteer/stop/": [],
-    "POST /api/account/leave/": []
+    "POST /api/account/leave/": [],
+    "PUT /api/admin/party/branches/{county_id}/": [
+      "chairperson",
+      "secretary",
+      "office_address",
+      "phone",
+      "email",
+      "next_meeting_on",
+      "next_meeting_venue",
+      "published"
+    ]
   },
   "enums": {
     "user.role": [

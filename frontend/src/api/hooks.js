@@ -578,6 +578,31 @@ export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = 
     staleTime: Infinity,
   });
 
+// County branches: published ones for the site, every county's for the superuser.
+export const usePublicBranches = () =>
+  useQuery({ queryKey: ["public-branches"], queryFn: () => api("/party/branches/", { anonymous: true }) });
+
+export const usePublicBranch = (countyId) =>
+  useQuery({
+    queryKey: ["public-branches", countyId],
+    queryFn: () => api(`/party/branches/${countyId}/`, { anonymous: true }),
+  });
+
+export const useAdminBranches = () =>
+  useQuery({ queryKey: ["admin-branches"], queryFn: () => api("/admin/party/branches/") });
+
+export function useSaveBranch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ county, ...payload }) =>
+      api(`/admin/party/branches/${county}/`, { method: "PUT", body: payload }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-branches"] });
+      qc.invalidateQueries({ queryKey: ["public-branches"] });
+    },
+  });
+}
+
 // The signed-in member's own account.
 export const useAccount = () => useQuery({ queryKey: ["account"], queryFn: () => api("/account/") });
 

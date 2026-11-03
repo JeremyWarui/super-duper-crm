@@ -14,6 +14,7 @@ export const siteNav = [
   { label: 'Manifesto', to: '/manifesto' },
   { label: 'News', to: '/news' },
   { label: 'Events', to: '/events' },
+  { label: 'Counties', to: '/counties' },
 ] as const
 
 /** Dark 13px utility bar above the header: registration, hotline, and sign-in or the signed-in login. */

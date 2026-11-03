@@ -1,5 +1,6 @@
-"""The party's public content: its leaders, its news and events, and its news sign-ups."""
+"""The party's public content: leaders, news and events, county branches, and news sign-ups."""
 
+import uuid
 from datetime import UTC, date, datetime
 
 from sqlalchemy import (
@@ -7,16 +8,20 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     DateTime,
+    ForeignKey,
     Index,
     Integer,
     String,
     Text,
+    Uuid,
+    false,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
 from backend.models.enums import PostKind
+from backend.models.geography import County
 
 
 def _updated_at() -> Mapped[datetime]:
@@ -77,3 +82,24 @@ class Subscriber(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     consent_wording: Mapped[str] = mapped_column(Text)
     notice_version: Mapped[str] = mapped_column(String(20))
     unsubscribe_code: Mapped[str] = mapped_column(String(32), unique=True)
+
+
+class Branch(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A county's party branch: its officials, office and next meeting, public once published."""
+
+    __tablename__ = "branches"
+
+    county_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("counties.id", ondelete="CASCADE"), unique=True
+    )
+    chairperson: Mapped[str] = mapped_column(String(150), default="", server_default="")
+    secretary: Mapped[str] = mapped_column(String(150), default="", server_default="")
+    office_address: Mapped[str] = mapped_column(String(300), default="", server_default="")
+    phone: Mapped[str] = mapped_column(String(20), default="", server_default="")
+    email: Mapped[str] = mapped_column(String(254), default="", server_default="")
+    next_meeting_on: Mapped[date | None] = mapped_column(Date, default=None)
+    next_meeting_venue: Mapped[str] = mapped_column(String(150), default="", server_default="")
+    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    updated_at: Mapped[datetime] = _updated_at()
+
+    county: Mapped["County"] = relationship(lazy="raise")

@@ -1,11 +1,11 @@
-"""The demo website: a made-up party's branding, leaders, news and events, all published."""
+"""The demo website: a made-up party's branding, leaders, news, events and branches."""
 
 from datetime import date, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import PartyLeader, PartyPost, PartySettings, PostKind
+from backend.models import Branch, County, PartyLeader, PartyPost, PartySettings, PostKind
 
 PHOTO = "https://randomuser.me/api/portraits/{}.jpg"
 PICTURE = "https://picsum.photos/seed/pamoja-{}/1200/675"
@@ -60,6 +60,32 @@ BODY = (
     "This is sample text for the demo website. A real post would carry the full story: "
     "who spoke, what was agreed, and what members can do next."
 )
+
+
+async def seed_branches(session: AsyncSession, today: date) -> int:
+    """A published dummy branch for every county that has none; returns how many were added."""
+    have = set(await session.scalars(select(Branch.county_id)))
+    added = 0
+    for county in await session.scalars(select(County).order_by(County.name)):
+        if county.id in have:
+            continue
+        slug = "".join(ch for ch in county.name.lower() if ch.isalnum())
+        session.add(
+            Branch(
+                county_id=county.id,
+                chairperson="Demo chairperson",
+                secretary="Demo secretary",
+                office_address=f"Party office, {county.name}",
+                phone=SETTINGS["contact_phone"],
+                email=f"{slug}@demo.pamoja.test",
+                next_meeting_on=today + timedelta(days=14),
+                next_meeting_venue=f"{county.name} branch office",
+                published=True,
+            )
+        )
+        added += 1
+    await session.commit()
+    return added
 
 
 async def seed_site(session: AsyncSession, today: date) -> bool:

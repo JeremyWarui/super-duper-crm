@@ -118,3 +118,76 @@ class PostUpdate(WriteModel):
         if value is None:
             raise ValueError("An event needs a date.")
         return value
+
+
+class BranchCounty(ORMModel):
+    id: uuid.UUID
+    name: str
+
+
+class BranchRead(ORMModel):
+    """A published branch as the public site shows it."""
+
+    county: BranchCounty
+    chairperson: str
+    secretary: str
+    office_address: str
+    phone: str
+    email: str
+    next_meeting_on: date | None
+    next_meeting_venue: str
+
+
+class BranchWard(ORMModel):
+    id: uuid.UUID
+    name: str
+
+
+class BranchConstituency(ORMModel):
+    id: uuid.UUID
+    name: str
+    wards: list[BranchWard]
+
+
+class BranchDetail(BranchRead):
+    """One branch, with the county's constituencies and their wards as its sub-branches."""
+
+    constituencies: list[BranchConstituency]
+
+
+class BranchAdminRead(BranchRead):
+    published: bool
+    updated_at: datetime
+
+
+class CountyBranch(ORMModel):
+    """A county and its branch, or None before the superuser writes one."""
+
+    county: BranchCounty
+    branch: BranchAdminRead | None
+
+
+class BranchUpdate(WriteModel):
+    """The whole branch; the request replaces every field."""
+
+    chairperson: Venue = ""
+    secretary: Venue = ""
+    office_address: Annotated[
+        str, Field(max_length=300), AfterValidator(lambda v: plain_text(v).strip())
+    ] = ""
+    phone: Annotated[str, Field(max_length=20), AfterValidator(lambda v: plain_text(v).strip())] = (
+        ""
+    )
+    email: Annotated[
+        str, Field(max_length=254), AfterValidator(lambda v: plain_text(v).strip())
+    ] = ""
+    next_meeting_on: date | None = None
+    next_meeting_venue: Venue = ""
+    published: bool = False
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, value: str) -> str:
+        if value and ("@" not in value or any(c.isspace() for c in value)):
+            raise ValueError("Use an email address like name@example.com.")
+        return value
