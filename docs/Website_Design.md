@@ -180,7 +180,7 @@ The migration runs first and alone (R4-1). A route enters
 - Tests: adding, publishing and deleting a post call the right routes; an event needs a date before it saves.
 - Depends: R4-2.
 
-**R4-7 Dashboard page** (frontend)
+**R4-7 Dashboard page** (frontend) — done 3 Nov 2026
 - Files: new `pages/party/Dashboard.jsx`, `Portal.jsx`, `api/hooks`, `contracts/frontend-api.json` (`/api/party/dashboard/`), tests.
 - Tests: the tiles show the API's figures; changing a filter refetches with it.
 - Depends: R4-3.

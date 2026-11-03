@@ -566,7 +566,8 @@ export const useDeletePost = () =>
 // Counties, or one county's constituencies, or one constituency's wards.
 export const usePartyPlaces = ({ county, constituency, enabled = true } = {}) =>
   useQuery({
-    queryKey: ["party-places", county || null, constituency || null],
+    // A lookup waiting for its county or constituency keys apart, so it never shows the counties.
+    queryKey: ["party-places", county || null, constituency || null, enabled],
     enabled,
     queryFn: () => {
       if (constituency) return api(`/party/places/?constituency=${constituency}`, { anonymous: true });
@@ -647,6 +648,14 @@ const memberQuery = (filters) => {
   }
   return params.toString();
 };
+
+// The superuser's party-wide counts; `from` and `to` bound events and revenue.
+export const usePartyDashboard = (filters) =>
+  useQuery({
+    queryKey: ["party-dashboard", filters],
+    queryFn: () => api(`/party/dashboard/?${memberQuery(filters)}`),
+    placeholderData: keepPreviousData,
+  });
 
 export const usePartyMembers = (filters) =>
   useQuery({

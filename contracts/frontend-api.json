@@ -513,6 +513,22 @@
       "venue",
       "published_on",
       "published"
+    ],
+    "GET /api/party/dashboard/": [
+      "approved_members",
+      "pending_applications",
+      "active_volunteers",
+      "volunteers_by_county",
+      "volunteers_by_interest",
+      "approved_aspirants",
+      "active_campaigns",
+      "active_subscriptions",
+      "events_from",
+      "events_to",
+      "upcoming_events_by_county",
+      "upcoming_events_by_seat",
+      "campaigns_by_county_and_seat",
+      "revenue"
     ]
   },
   "nested_reads": {
@@ -683,6 +699,36 @@
     ],
     "GET /api/party/finance/reports/revenue/.by_plan": [
       "plan",
+      "total_kes",
+      "count"
+    ],
+    "GET /api/party/dashboard/.volunteers_by_county": [
+      "county_id",
+      "county",
+      "count"
+    ],
+    "GET /api/party/dashboard/.volunteers_by_interest": [
+      "interest",
+      "count"
+    ],
+    "GET /api/party/dashboard/.upcoming_events_by_county": [
+      "county_id",
+      "county",
+      "count"
+    ],
+    "GET /api/party/dashboard/.upcoming_events_by_seat": [
+      "seat",
+      "count"
+    ],
+    "GET /api/party/dashboard/.campaigns_by_county_and_seat": [
+      "county_id",
+      "county",
+      "seat",
+      "count"
+    ],
+    "GET /api/party/dashboard/.revenue": [
+      "start",
+      "end",
       "total_kes",
       "count"
     ]

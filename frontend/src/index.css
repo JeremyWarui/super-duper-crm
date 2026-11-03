@@ -1828,3 +1828,11 @@ select.inline-select { height: 30px; padding-right: 30px; background-position: r
 .site-card-text { margin: 4px 0 0; color: var(--color-text-secondary); line-height: 1.6; }
 
 .site-pager { display: flex; gap: 8px; }
+
+/* ---- party dashboard ---- */
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}

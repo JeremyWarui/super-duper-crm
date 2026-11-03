@@ -4,6 +4,7 @@ import { useAuth } from "../../store/auth";
 import { useParty } from "../../api/hooks";
 import PortalLayout from "../../components/PortalLayout";
 import Aspirants from "./Aspirants";
+import Dashboard from "./Dashboard";
 import Finance from "./Finance";
 import Members from "./Members";
 import Volunteers from "./Volunteers";
@@ -13,6 +14,7 @@ import { PARTY_ROLE_LABEL } from "./helpers";
 // Each page and the office that opens it; the superuser opens every one, and only the
 // superuser opens those marked "superuser".
 const PAGES = [
+  ["dashboard", "Dashboard", "superuser", <Dashboard key="dashboard" />],
   ["members", "Members", "membership_officer", <Members key="members" />],
   ["volunteers", "Volunteers", "membership_officer", <Volunteers key="volunteers" />],
   ["aspirants", "Aspirants", "nominations_officer", <Aspirants key="aspirants" />],
