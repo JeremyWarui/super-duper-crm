@@ -1,6 +1,7 @@
 /** The component stylesheets cover every class name the components use. */
 import { globSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import postcss from "postcss";
 import { describe, expect, it } from "vitest";
 
 const src = (path) => readFileSync(resolve(process.cwd(), "src", path), "utf8");
@@ -31,7 +32,7 @@ function classesUsed() {
 
 function classesDefined() {
   const found = new Set();
-  for (const [, name] of STYLESHEET.matchAll(/^\.([a-zA-Z0-9_-]+)\s*[,{]/gm)) {
+  for (const [, name] of STYLESHEET.matchAll(/^\.(?:legacy \.)?([a-zA-Z0-9_-]+)\s*[,{]/gm)) {
     found.add(name);
   }
   return found;
@@ -44,6 +45,15 @@ describe("the stylesheet", () => {
     expect(missing, `src/index.css is missing ${missing.join(", ")}`).toEqual(
       [],
     );
+  });
+
+  it("styles nothing outside a .legacy root on screen", () => {
+    const loose = [];
+    postcss.parse(src("index.css")).walkRules((rule) => {
+      if (rule.parent.type === "atrule" && rule.parent.params === "print") return;
+      loose.push(...rule.selectors.filter((s) => !/^\.legacy\b/.test(s)));
+    });
+    expect(loose).toEqual([]);
   });
 
 });

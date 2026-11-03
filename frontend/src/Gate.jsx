@@ -12,6 +12,7 @@ import Portal from "./pages/party/Portal";
 import Join from "./components/Join";
 import Withdraw from "./components/Withdraw";
 import PublicLayout from "./components/PublicLayout";
+import Legacy from "./components/Legacy";
 import About from "./pages/public/About";
 import Events from "./pages/public/Events";
 import Home from "./pages/public/Home";
@@ -105,20 +106,20 @@ function WithdrawVolunteerPage() {
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-      <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
-      <Route path="/leadership" element={<PublicLayout><Leadership /></PublicLayout>} />
-      <Route path="/manifesto" element={<PublicLayout><Manifesto /></PublicLayout>} />
-      <Route path="/news" element={<PublicLayout><News /></PublicLayout>} />
-      <Route path="/news/:id" element={<PublicLayout><PostPage /></PublicLayout>} />
-      <Route path="/events" element={<PublicLayout><Events /></PublicLayout>} />
-      <Route path="/signin" element={<SignInPage />} />
-      <Route path="/join/:code" element={<JoinPage />} />
-      <Route path="/withdraw/:code" element={<WithdrawPage />} />
-      <Route path="/join-party" element={<PublicLayout><JoinParty /></PublicLayout>} />
-      <Route path="/party/withdraw/:code" element={<WithdrawPartyPage />} />
-      <Route path="/party/volunteer/withdraw/:code" element={<WithdrawVolunteerPage />} />
-      <Route path="/*" element={<Root />} />
+      <Route path="/" element={<Legacy><PublicLayout><Home /></PublicLayout></Legacy>} />
+      <Route path="/about" element={<Legacy><PublicLayout><About /></PublicLayout></Legacy>} />
+      <Route path="/leadership" element={<Legacy><PublicLayout><Leadership /></PublicLayout></Legacy>} />
+      <Route path="/manifesto" element={<Legacy><PublicLayout><Manifesto /></PublicLayout></Legacy>} />
+      <Route path="/news" element={<Legacy><PublicLayout><News /></PublicLayout></Legacy>} />
+      <Route path="/news/:id" element={<Legacy><PublicLayout><PostPage /></PublicLayout></Legacy>} />
+      <Route path="/events" element={<Legacy><PublicLayout><Events /></PublicLayout></Legacy>} />
+      <Route path="/signin" element={<Legacy><SignInPage /></Legacy>} />
+      <Route path="/join/:code" element={<Legacy><JoinPage /></Legacy>} />
+      <Route path="/withdraw/:code" element={<Legacy><WithdrawPage /></Legacy>} />
+      <Route path="/join-party" element={<Legacy><PublicLayout><JoinParty /></PublicLayout></Legacy>} />
+      <Route path="/party/withdraw/:code" element={<Legacy><WithdrawPartyPage /></Legacy>} />
+      <Route path="/party/volunteer/withdraw/:code" element={<Legacy><WithdrawVolunteerPage /></Legacy>} />
+      <Route path="/*" element={<Legacy><Root /></Legacy>} />
     </Routes>
   );
 }
