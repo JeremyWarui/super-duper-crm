@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAspirants, usePartyDashboard, usePartyPlaces } from "../../api/hooks";
 import { Button, ErrorState, Field, LoadingState, PageTitle, Panel } from "../../components/ui";
 import { formatDate, formatKes, formatNumber } from "../../lib/format";
-import { INTEREST_LABEL, SEAT_LABEL, SEATS } from "./helpers";
+import { AREA_LABEL, SEAT_LABEL, SEATS } from "./helpers";
 
 const EMPTY = { county: "", constituency: "", ward: "", seat: "", aspirant: "", from: "", to: "" };
 
@@ -124,9 +124,9 @@ export default function Dashboard() {
               rows={d.volunteers_by_county.map((r) => [r.county_id, r.county, r.count])}
             />
             <Counts
-              title="Active volunteers by interest"
+              title="Active volunteers by area"
               head="Interest"
-              rows={d.volunteers_by_interest.map((r) => [r.interest, INTEREST_LABEL[r.interest] || r.interest, r.count])}
+              rows={d.volunteers_by_interest.map((r) => [r.interest, AREA_LABEL[r.interest] || r.interest, r.count])}
             />
           </div>
         </>

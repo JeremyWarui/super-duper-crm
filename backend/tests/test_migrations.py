@@ -1,6 +1,7 @@
 """The migrations build the schema the models describe, on SQLite and as Postgres SQL."""
 
 import functools
+import json
 import secrets
 from urllib.parse import quote
 
@@ -277,4 +278,40 @@ def test_the_volunteer_register_migration_gives_each_profile_its_members_details
         "w@example.com",
         "w1",
         None,
+    )
+
+
+def test_the_volunteer_areas_migration_maps_old_interests_to_the_new_areas() -> None:
+    revisions = revision_modules()
+    last = next(i for i, m in enumerate(revisions) if m.revision == "volunteer_areas")
+    engine = sa.create_engine("sqlite://")
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            for module in revisions[:last]:
+                module.upgrade()
+        for statement in (
+            "INSERT INTO counties (id, name, code) VALUES ('k1', 'Nairobi', '047')",
+            "INSERT INTO constituencies (id, county_id, name, code) "
+            "VALUES ('c1', 'k1', 'W', '274')",
+            "INSERT INTO wards (id, constituency_id, name, code) VALUES ('w1', 'c1', 'P', '1370')",
+            "INSERT INTO party_members (id, full_name, phone, ward_id, status, "
+            "consent_wording, consent_channel, consent_at) VALUES ('m1', 'Wanjiru Kamau', "
+            "'+254712345678', 'w1', 'approved', 'I agree.', 'web_form', '2026-11-01')",
+            "INSERT INTO volunteer_profiles (id, member_id, first_name, last_name, phone, ward_id, "
+            "status, interests, interest_other, profession_other, preferred_contact, "
+            "consent_wording, consent_at) VALUES ('v1', 'm1', 'Wanjiru', 'Kamau', "
+            "'+254712345678', 'w1', 'active', "
+            "'[\"mobilisation\", \"events\", \"fundraising\", \"polling_day\"]', '', '', 'call', "
+            "'I agree.', '2026-11-01')",
+        ):
+            connection.execute(sa.text(statement))
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].upgrade()
+        row = connection.execute(
+            sa.text("SELECT interests, interest_other FROM volunteer_profiles")
+        ).one()
+    engine.dispose()
+    assert (json.loads(row[0]), row[1]) == (
+        ["mobilising_voters", "fundraising", "other"],
+        "Events, Polling day",
     )

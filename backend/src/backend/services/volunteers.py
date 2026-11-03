@@ -18,7 +18,7 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import contains_eager
+from sqlalchemy.orm import contains_eager, joinedload
 from sqlalchemy.orm.attributes import set_committed_value
 
 from backend.db.session import upsert
@@ -27,8 +27,9 @@ from backend.models import (
     ContactMethod,
     PartyMember,
     PartyMemberStatus,
+    Profession,
     User,
-    VolunteerInterest,
+    VolunteerArea,
     VolunteerProfile,
     VolunteerStatus,
     Ward,
@@ -183,7 +184,11 @@ async def apply_part(
     statements whatever the register holds.
     """
     part = join["volunteer"]
-    first_name, last_name = split_name(join["full_name"])
+    if "surname" in join:
+        first_name, last_name = join["first_name"][:75], join["surname"][:75]
+    else:
+        first_name, last_name = split_name(join["full_name"])
+    centre = join.get("registration_centre_id")
     now = datetime.now(UTC)
     values = {
         "first_name": first_name,
@@ -191,7 +196,11 @@ async def apply_part(
         "phone": join["phone"],
         "email": join["email"],
         "ward_id": uuid.UUID(join["ward_id"]),
-        "interests": [VolunteerInterest(i).value for i in part["interests"]],
+        "registration_centre_id": uuid.UUID(centre) if centre else None,
+        "profession": Profession(part["profession"]) if "profession" in part else None,
+        "profession_other": part.get("profession_other", ""),
+        "interests": [VolunteerArea(a).value for a in part.get("areas", [])],
+        "interest_other": part.get("area_other", ""),
         "preferred_contact": ContactMethod(part["preferred_contact"]),
         "consent_wording": VOLUNTEER_WORDING,
         "consent_at": datetime.fromisoformat(part["consent_at"]),
@@ -302,7 +311,7 @@ def _like(text: str) -> str:
 class VolunteerFilters:
     q: str | None = None
     status: VolunteerStatus | None = None
-    interest: VolunteerInterest | None = None
+    area: VolunteerArea | None = None
     county: uuid.UUID | None = None
     constituency: uuid.UUID | None = None
     ward: uuid.UUID | None = None
@@ -314,8 +323,8 @@ class VolunteerFilters:
             found["q"] = True
         if self.status is not None:
             found["status"] = self.status.value
-        if self.interest is not None:
-            found["interest"] = self.interest.value
+        if self.area is not None:
+            found["area"] = self.area.value
         for name in ("county", "constituency", "ward"):
             if getattr(self, name) is not None:
                 found[name] = str(getattr(self, name))
@@ -332,8 +341,10 @@ def _query(filters: VolunteerFilters) -> Select:
             contains_eager(VolunteerProfile.member)
             .contains_eager(PartyMember.ward)
             .contains_eager(Ward.constituency)
-            .joinedload(Constituency.county)
+            .joinedload(Constituency.county),
+            joinedload(VolunteerProfile.registration_centre),
         )
+        .where(VolunteerProfile.campaign_id.is_(None))
     )
     if filters.q and filters.q.strip():
         pattern = _like(filters.q.strip())
@@ -346,11 +357,11 @@ def _query(filters: VolunteerFilters) -> Select:
         statement = statement.where(matches)
     if filters.status is not None:
         statement = statement.where(VolunteerProfile.status == filters.status)
-    if filters.interest is not None:
-        # The JSON list as text holds each value quoted, so "events" matches only that value.
+    if filters.area is not None:
+        # The JSON list as text holds each value quoted, so "other" matches only that value.
         statement = statement.where(
             cast(VolunteerProfile.interests, String).like(
-                _like(f'"{filters.interest.value}"'), escape="\\"
+                _like(f'"{filters.area.value}"'), escape="\\"
             )
         )
     if filters.county is not None:

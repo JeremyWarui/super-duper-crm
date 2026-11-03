@@ -5,7 +5,7 @@ from datetime import date
 
 from pydantic import BaseModel
 
-from backend.models import Seat, VolunteerInterest
+from backend.models import Seat, VolunteerArea
 
 
 class CountyCount(BaseModel):
@@ -27,7 +27,7 @@ class CountySeatCount(BaseModel):
 
 
 class InterestCount(BaseModel):
-    interest: VolunteerInterest
+    interest: VolunteerArea
     count: int
 
 

@@ -332,8 +332,12 @@
       "ward",
       "constituency",
       "county",
+      "registration_centre",
+      "profession",
+      "profession_other",
       "status",
       "interests",
+      "interest_other",
       "preferred_contact",
       "availability_notes",
       "member_status"
@@ -634,8 +638,12 @@
       "ward",
       "constituency",
       "county",
+      "registration_centre",
+      "profession",
+      "profession_other",
       "status",
       "interests",
+      "interest_other",
       "preferred_contact",
       "availability_notes",
       "member_status"
@@ -900,10 +908,13 @@
       "role"
     ],
     "POST /api/party/join/": [
-      "full_name",
+      "first_name",
+      "surname",
       "phone",
       "email",
+      "password",
       "ward",
+      "registration_centre",
       "consent_given",
       "volunteer"
     ],
@@ -913,7 +924,10 @@
       "reason"
     ],
     "POST /api/party/join/.volunteer": [
-      "interests",
+      "profession",
+      "profession_other",
+      "areas",
+      "area_other",
       "preferred_contact",
       "consent_given"
     ],
@@ -1065,7 +1079,11 @@
     "_comment": "src/api/client.js reads detail first, then the first value of the first field. Login also reads non_field_errors[0]. A closed campaign's 403 also carries a code: src/Gate.jsx reads \"campaign_suspended\" (its aspirant is not approved) and \"campaign_locked\" (its subscription allows no access); \"campaign_read_only\" (a write while read-only) reaches the user only as that write's error sentence.",
     "detail": "string",
     "code": "string, on a closed campaign's 403 only",
-    "codes": ["campaign_suspended", "campaign_locked", "campaign_read_only"]
+    "codes": [
+      "campaign_suspended",
+      "campaign_locked",
+      "campaign_read_only"
+    ]
   },
   "no_content": {
     "_comment": "Routes that answer 204 with no body. Only that they still exist is checked.",

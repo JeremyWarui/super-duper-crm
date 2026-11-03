@@ -26,12 +26,13 @@ from backend.services import membership
 from backend.services.aspirants import LIVE
 from backend.services.consent import PARTY_WORDING, VOLUNTEER_WORDING
 from tests.conftest import World
+from tests.factories import join_details
 
 PHONE = "+254712345678"
 STRANGER = "+254799000111"
 MEMBER_STATES = [None, *PartyMemberStatus]
 VOLUNTEER_STATES = [None, *VolunteerStatus]
-VOLUNTEER_PART = {"interests": ["events"], "preferred_contact": "call"}
+VOLUNTEER_PART = {"profession": "farmer", "areas": ["door_to_door"], "preferred_contact": "call"}
 
 
 async def _register(
@@ -63,7 +64,7 @@ async def _register(
                 phone=PHONE,
                 ward_id=world.ward.id,
                 status=volunteer_status,
-                interests=["events"],
+                interests=["door_to_door"],
                 preferred_contact=ContactMethod.CALL,
                 consent_wording=VOLUNTEER_WORDING,
                 consent_at=datetime.now(UTC),
@@ -91,10 +92,7 @@ def _queue(session: AsyncSession, world: World, shape: str) -> None:
     if shape.startswith("join"):
         membership.request_join(
             session,
-            full_name="Achieng",
-            phone=STRANGER if shape.endswith("stranger") else PHONE,
-            email=None,
-            ward_id=world.ward.id,
+            **join_details(world.centre, phone=STRANGER if shape.endswith("stranger") else PHONE),
             volunteer=VOLUNTEER_PART if "volunteer" in shape else None,
         )
     elif shape == "withdraw live":

@@ -14,6 +14,7 @@ from backend.models import (
     PartyMemberStatus,
     PartyRoleName,
     VolunteerProfile,
+    VolunteerStatus,
 )
 from backend.services import audit
 from backend.services.consent import VOLUNTEER_WORDING
@@ -57,7 +58,7 @@ async def test_an_officer_activates_an_approved_members_volunteer_and_it_is_audi
         last_name="Kamau",
         phone=member.phone,
         ward_id=member.ward_id,
-        interests=["events"],
+        interests=["door_to_door"],
         preferred_contact=ContactMethod.CALL,
         consent_wording=VOLUNTEER_WORDING,
         consent_at=datetime.now(UTC),
@@ -77,3 +78,31 @@ async def test_an_officer_activates_an_approved_members_volunteer_and_it_is_audi
     assert [(e.action, e.detail) for e in events] == [
         ("volunteer.status", {"from": "interested", "to": "active"})
     ]
+
+
+async def test_a_campaign_volunteer_stays_out_of_the_register_its_csv_and_the_dashboard(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
+):
+    session.add(
+        VolunteerProfile(
+            campaign_id=world.campaign.id,
+            first_name="Otieno",
+            last_name="Kamau",
+            phone="+254733000111",
+            ward_id=world.ward.id,
+            status=VolunteerStatus.ACTIVE,
+            interests=["door_to_door"],
+            preferred_contact=ContactMethod.CALL,
+            consent_wording=VOLUNTEER_WORDING,
+            consent_at=datetime.now(UTC),
+        )
+    )
+    await session.commit()
+
+    register = (await client.get("/api/party/volunteers/", headers=admin_headers)).json()
+    csv = (await client.get("/api/party/volunteers/export.csv", headers=admin_headers)).text
+    board = (await client.get("/api/party/dashboard/", headers=admin_headers)).json()
+
+    assert register["total"] == 0
+    assert "Otieno" not in csv
+    assert (board["active_volunteers"], board["volunteers_by_interest"]) == (0, [])

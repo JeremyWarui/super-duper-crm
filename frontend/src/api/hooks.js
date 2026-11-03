@@ -564,12 +564,13 @@ export const useDeletePost = () =>
   useSiteWrite((id) => api(`/admin/party/posts/${id}/`, { method: "DELETE" }));
 
 // Counties, or one county's constituencies, or one constituency's wards.
-export const usePartyPlaces = ({ county, constituency, enabled = true } = {}) =>
+export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = {}) =>
   useQuery({
-    // A lookup waiting for its county or constituency keys apart, so it never shows the counties.
-    queryKey: ["party-places", county || null, constituency || null, enabled],
+    // A lookup waiting for its place keys apart, so it never shows the counties.
+    queryKey: ["party-places", county || null, constituency || null, ward || null, enabled],
     enabled,
     queryFn: () => {
+      if (ward) return api(`/party/places/?ward=${ward}`, { anonymous: true });
       if (constituency) return api(`/party/places/?constituency=${constituency}`, { anonymous: true });
       if (county) return api(`/party/places/?county=${county}`, { anonymous: true });
       return api("/party/places/", { anonymous: true });

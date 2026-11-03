@@ -14,13 +14,18 @@ from backend.models import (
 )
 from backend.services.membership import process_requests
 from tests.conftest import World
+from tests.factories import TEST_PASSWORD
 
 
 def _application(world: World, **overrides) -> dict:
     return {
-        "full_name": "Wanjiru Kamau",
+        "first_name": "Wanjiru",
+        "surname": "Kamau",
         "phone": "0712 345678",
-        "ward": str(world.ward.id),
+        "email": "wanjiru@example.com",
+        "password": TEST_PASSWORD,
+        "ward": str(world.centre.ward_id),
+        "registration_centre": str(world.centre.id),
         "consent_given": True,
         **overrides,
     }
@@ -46,7 +51,7 @@ async def test_a_repeat_phone_answers_like_a_new_one_and_leaves_the_member_alone
     code = member.withdraw_code
 
     repeat = await client.post(
-        "/api/party/join/", json=_application(world, full_name="Someone Else")
+        "/api/party/join/", json=_application(world, first_name="Someone", surname="Else")
     )
     await process_requests(session)
     await session.refresh(member)
@@ -109,7 +114,8 @@ async def test_the_members_own_link_withdraws_them_once_and_is_audited_as_public
 
 def _volunteer(**overrides) -> dict:
     return {
-        "interests": ["events", "polling_day"],
+        "profession": "teacher",
+        "areas": ["door_to_door", "barazas"],
         "preferred_contact": "whatsapp",
         "consent_given": True,
         **overrides,
@@ -163,7 +169,7 @@ async def test_a_join_with_a_members_phone_cannot_take_over_their_volunteer_prof
 
     stranger = await client.post(
         "/api/party/join/",
-        json=_application(world, volunteer=_volunteer(interests=["fundraising"])),
+        json=_application(world, volunteer=_volunteer(areas=["fundraising"])),
     )
     await process_requests(session)
     stranger_code = stranger.json()["volunteer_withdraw_url"].rsplit("/", 1)[1]
@@ -173,7 +179,7 @@ async def test_a_join_with_a_members_phone_cannot_take_over_their_volunteer_prof
 
     assert (profile.status, profile.interests, profile.withdraw_code) == (
         VolunteerStatus.ACTIVE,
-        ["events", "polling_day"],
+        ["door_to_door", "barazas"],
         owner_code,
     )
 
@@ -194,3 +200,63 @@ async def test_a_join_with_a_members_phone_does_not_sign_them_up_to_volunteer(
     await process_requests(session)
 
     assert (await session.scalars(select(VolunteerProfile))).all() == []
+
+
+async def test_a_join_stores_the_volunteers_details_and_never_queues_the_password(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    volunteer = _volunteer(profession="other", profession_other="Boda rider")
+    await client.post(
+        "/api/party/join/",
+        json=_application(
+            world, volunteer={**volunteer, "areas": ["other"], "area_other": "Music"}
+        ),
+    )
+    queued = await session.scalar(select(PartyRequest))
+    await process_requests(session)
+    member = await session.scalar(select(PartyMember))
+    profile = await session.scalar(select(VolunteerProfile))
+
+    assert TEST_PASSWORD not in str(queued.payload)
+    assert queued.payload["password_hash"].startswith("$argon2")
+    assert (member.first_name, member.full_name, member.email, member.registration_centre_id) == (
+        "Wanjiru",
+        "Wanjiru Kamau",
+        "wanjiru@example.com",
+        world.centre.id,
+    )
+    assert (
+        profile.member_id,
+        profile.last_name,
+        profile.registration_centre_id,
+        profile.profession,
+        profile.profession_other,
+        profile.interests,
+        profile.interest_other,
+    ) == (member.id, "Kamau", world.centre.id, "other", "Boda rider", ["other"], "Music")
+
+
+async def test_a_join_refuses_a_missing_detail_or_a_station_outside_the_ward(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    complete = _application(world)
+    refused = [
+        {k: v for k, v in complete.items() if k != "email"},
+        {k: v for k, v in complete.items() if k != "password"},
+        {**complete, "ward": str(world.other_ward.id)},
+        _application(world, volunteer=_volunteer(profession="other")),
+        _application(world, volunteer=_volunteer(areas=["other"])),
+    ]
+
+    answers = [(await client.post("/api/party/join/", json=body)).status_code for body in refused]
+
+    assert answers == [400] * len(refused)
+    assert (await session.scalars(select(PartyRequest))).all() == []
+
+
+async def test_the_place_picker_lists_a_wards_polling_stations(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    centres = (await client.get(f"/api/party/places/?ward={world.centre.ward_id}")).json()
+
+    assert centres == [{"id": str(world.centre.id), "name": "Zimmerman Primary"}]

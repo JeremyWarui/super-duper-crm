@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
 from backend.api.deps import MembershipOfficer, SessionDep
-from backend.models import VolunteerInterest, VolunteerProfile, VolunteerStatus
+from backend.models import VolunteerArea, VolunteerProfile, VolunteerStatus
 from backend.schemas.common import plain_text
 from backend.schemas.volunteers import VolunteerPage, VolunteerRead, VolunteerUpdate
 from backend.services import membership, volunteers
@@ -23,7 +23,10 @@ CSV_COLUMNS = (
     "phone",
     "status",
     "interests",
+    "interest_other",
+    "profession",
     "preferred_contact",
+    "polling_station",
     "ward",
     "constituency",
     "county",
@@ -37,7 +40,7 @@ FORMULA_LEADS = ("=", "+", "-", "@", chr(9), chr(13))
 def _filters(
     q: str | None = None,
     status: VolunteerStatus | None = None,
-    interest: VolunteerInterest | None = None,
+    area: VolunteerArea | None = None,
     county: uuid.UUID | None = None,
     constituency: uuid.UUID | None = None,
     ward: uuid.UUID | None = None,
@@ -49,7 +52,7 @@ def _filters(
     return VolunteerFilters(
         q=q,
         status=status,
-        interest=interest,
+        area=area,
         county=county,
         constituency=constituency,
         ward=ward,
@@ -75,8 +78,12 @@ def _read(row: VolunteerProfile) -> VolunteerRead:
         ward=ward,
         constituency=ward.constituency,
         county=ward.constituency.county,
+        registration_centre=row.registration_centre,
+        profession=row.profession,
+        profession_other=row.profession_other,
         status=row.status,
         interests=row.interests,
+        interest_other=row.interest_other,
         preferred_contact=row.preferred_contact,
         availability_notes=row.availability_notes,
         member_status=member.status,
@@ -125,7 +132,10 @@ async def export_volunteers(
                 member.phone,
                 row.status.value,
                 _cell(";".join(row.interests)),
+                _cell(row.interest_other),
+                _cell(row.profession_other or (row.profession.value if row.profession else "")),
                 row.preferred_contact.value,
+                _cell(row.registration_centre.name if row.registration_centre else ""),
                 _cell(ward.name),
                 _cell(ward.constituency.name),
                 _cell(ward.constituency.county.name),

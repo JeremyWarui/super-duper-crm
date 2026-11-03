@@ -38,7 +38,7 @@ async def make_volunteer(
         last_name="Kamau",
         phone=member.phone,
         ward_id=member.ward_id,
-        interests=["events"],
+        interests=["door_to_door"],
         preferred_contact=ContactMethod.CALL,
         consent_wording=VOLUNTEER_WORDING,
         consent_at=datetime.now(UTC),

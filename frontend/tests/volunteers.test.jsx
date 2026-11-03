@@ -10,17 +10,18 @@ afterEach(() => {
 });
 
 describe("the volunteers page", () => {
-  it("lets a membership officer filter by interest and activate a volunteer", async () => {
+  it("lets a membership officer filter by area, see the polling station and activate a volunteer", async () => {
     const user = userEvent.setup();
     signInAsParty(["membership_officer"]);
     const calls = stubApi(volunteerRoutes({ "GET /campaigns/": [] }));
     renderApp(<Root />, { path: "/party/volunteers" });
 
-    await user.selectOptions(await screen.findByRole("combobox", { name: "Interest" }), "events");
+    await user.selectOptions(await screen.findByRole("combobox", { name: "Area" }), "barazas");
     await waitFor(() =>
-      expect(calls.some((c) => c.path.startsWith("/party/volunteers/?") && c.path.includes("interest=events"))).toBe(true),
+      expect(calls.some((c) => c.path.startsWith("/party/volunteers/?") && c.path.includes("area=barazas"))).toBe(true),
     );
     await user.click(await screen.findByRole("button", { name: "Achieng Otieno" }));
+    expect(await screen.findByText("Polling station: Githurai Primary")).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Activate" }));
 
     await waitFor(() =>

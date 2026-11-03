@@ -12,7 +12,8 @@ WORDING: dict[ConsentChannel, str] = {
 
 PARTY_WORDING: dict[PartyConsentChannel, str] = {
     PartyConsentChannel.WEB_FORM: (
-        "I agree that the party may keep my name, phone number and ward to manage my membership."
+        "I agree that the party may keep my name, phone number, email, ward and polling station "
+        "to manage my membership."
     ),
     PartyConsentChannel.OFFICER_ENTRY: (
         "The member agreed to the party keeping their details under the Data Protection Act, 2019."

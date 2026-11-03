@@ -124,8 +124,8 @@ async def nakuru(session: AsyncSession, world: World) -> dict:
             leader,
             _member(world.ward, "+254700000102"),
             _member(world.ward, "+254700000103", PartyMemberStatus.PENDING),
-            _volunteer(leader, ["events", "mobilisation"]),
-            _volunteer(_member(ward, "+254700000201"), ["events"]),
+            _volunteer(leader, ["door_to_door", "mobilising_voters"]),
+            _volunteer(_member(ward, "+254700000201"), ["door_to_door"]),
             _volunteer(_member(ward, "+254700000202"), ["fundraising"], VolunteerStatus.INACTIVE),
         ]
     )
@@ -197,8 +197,8 @@ async def test_each_figure_counts_what_the_design_says(
         ("Nakuru", 1),
     ]
     assert [(r["interest"], r["count"]) for r in board["volunteers_by_interest"]] == [
-        ("events", 2),
-        ("mobilisation", 1),
+        ("door_to_door", 2),
+        ("mobilising_voters", 1),
     ]
     assert [(r["county"], r["count"]) for r in board["upcoming_events_by_county"]] == [
         ("Nairobi City", 1),

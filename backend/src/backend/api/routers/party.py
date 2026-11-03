@@ -13,6 +13,7 @@ from backend.models import (
     Constituency,
     County,
     PostKind,
+    RegistrationCentre,
     Seat,
     Ward,
 )
@@ -25,6 +26,7 @@ from backend.schemas.party import (
     PartySettingsRead,
     PartyWithdrawn,
 )
+from backend.security import hash_password
 from backend.services import content, dashboard, membership
 from backend.services import party as service
 from backend.services.ratelimit import RateLimit
@@ -104,10 +106,20 @@ async def party_dashboard(
 
 @router.get("/places/", response_model=list[PartyPlace])
 async def places(
-    session: SessionDep, county: uuid.UUID | None = None, constituency: uuid.UUID | None = None
+    session: SessionDep,
+    county: uuid.UUID | None = None,
+    constituency: uuid.UUID | None = None,
+    ward: uuid.UUID | None = None,
 ) -> list[PartyPlace]:
-    """Counties; a county's constituencies; or a constituency's wards, by name."""
-    if constituency is not None:
+    """Counties; a county's constituencies; a constituency's wards; or a ward's polling
+    stations, by name."""
+    if ward is not None:
+        statement = (
+            select(RegistrationCentre)
+            .where(RegistrationCentre.ward_id == ward)
+            .order_by(RegistrationCentre.name)
+        )
+    elif constituency is not None:
         statement = select(Ward).where(Ward.constituency_id == constituency).order_by(Ward.name)
     elif county is not None:
         statement = (
@@ -136,12 +148,20 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
         )
     if await session.get(Ward, payload.ward) is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such ward.")
+    centre = await session.get(RegistrationCentre, payload.registration_centre)
+    if centre is None or centre.ward_id != payload.ward:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "Choose a polling station in the ward you chose."
+        )
     code, volunteer_code = membership.request_join(
         session,
-        full_name=payload.full_name,
+        first_name=payload.first_name,
+        surname=payload.surname,
         phone=phone,
-        email=payload.email or None,
+        email=payload.email,
+        password_hash=hash_password(payload.password),
         ward_id=payload.ward,
+        registration_centre_id=payload.registration_centre,
         volunteer=payload.volunteer.model_dump() if payload.volunteer else None,
     )
     await session.commit()

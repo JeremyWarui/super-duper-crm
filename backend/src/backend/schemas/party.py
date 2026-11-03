@@ -15,7 +15,13 @@ from pydantic import (
     model_validator,
 )
 
-from backend.models import ContactMethod, PartyConsentChannel, PartyMemberStatus, VolunteerInterest
+from backend.models import (
+    ContactMethod,
+    PartyConsentChannel,
+    PartyMemberStatus,
+    Profession,
+    VolunteerArea,
+)
 from backend.schemas.common import ORMModel, WriteModel, plain_text
 from backend.services.consent import PARTY_WORDING, VOLUNTEER_WORDING
 
@@ -95,18 +101,30 @@ class PartySettingsUpdate(WriteModel):
         return self
 
 
-class VolunteerPart(WriteModel):
-    """The application form's optional volunteer section."""
+Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=75)]
+OtherText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]
 
-    interests: Annotated[list[VolunteerInterest], Field(min_length=1)]
+
+class VolunteerPart(WriteModel):
+    """The application form's volunteer section, shown by the "Volunteer for events" tick."""
+
+    profession: Profession
+    profession_other: OtherText = ""
+    areas: Annotated[list[VolunteerArea], Field(min_length=1)]
+    area_other: OtherText = ""
     preferred_contact: ContactMethod
     consent_given: StrictBool
 
-    @field_validator("interests")
+    @field_validator("profession_other", "area_other")
     @classmethod
-    def _no_duplicates(cls, value: list[VolunteerInterest]) -> list[VolunteerInterest]:
+    def _plain(cls, value: str) -> str:
+        return plain_text(value)
+
+    @field_validator("areas")
+    @classmethod
+    def _no_duplicates(cls, value: list[VolunteerArea]) -> list[VolunteerArea]:
         if len(set(value)) != len(value):
-            raise ValueError("List each interest once.")
+            raise ValueError("List each area once.")
         return value
 
     @field_validator("consent_given")
@@ -116,23 +134,38 @@ class VolunteerPart(WriteModel):
             raise ValueError("Consent is required before the party can contact you.")
         return value
 
+    @model_validator(mode="after")
+    def _other_text(self) -> "VolunteerPart":
+        if self.profession is Profession.OTHER:
+            if not self.profession_other:
+                raise ValueError("Say what your profession is.")
+        else:
+            self.profession_other = ""
+        if VolunteerArea.OTHER in self.areas:
+            if not self.area_other:
+                raise ValueError("Say how else you would like to help.")
+        else:
+            self.area_other = ""
+        return self
+
 
 class PartyJoinCreate(WriteModel):
-    full_name: Annotated[
-        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)
-    ]
+    first_name: Name
+    surname: Name
     phone: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
-    email: Annotated[Email, StringConstraints(strip_whitespace=True)] | None = None
+    email: Annotated[Email, StringConstraints(strip_whitespace=True, min_length=1)]
+    password: str = Field(min_length=8, max_length=128)
     ward: uuid.UUID
+    registration_centre: uuid.UUID
     consent_given: StrictBool
     volunteer: VolunteerPart | None = None
 
-    @field_validator("full_name", "phone", "email")
+    @field_validator("first_name", "surname", "phone", "email")
     @classmethod
-    def _plain(cls, value: str | None) -> str | None:
+    def _plain(cls, value: str) -> str:
         return plain_text(value)
 
-    @field_validator("full_name")
+    @field_validator("first_name", "surname")
     @classmethod
     def _has_a_letter(cls, value: str) -> str:
         if not any(ch.isalpha() for ch in value):

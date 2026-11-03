@@ -135,14 +135,17 @@ class VolunteerStatus(LabelledStrEnum):
     WITHDRAWN = ("withdrawn", "Withdrawn")
 
 
-class VolunteerInterest(LabelledStrEnum):
-    MOBILISATION = ("mobilisation", "Mobilisation")
-    EVENTS = ("events", "Events")
-    COMMUNICATIONS = ("communications", "Communications")
-    SOCIAL_MEDIA = ("social_media", "Social media")
-    FUNDRAISING = ("fundraising", "Fundraising")
-    ADMINISTRATION = ("administration", "Administration")
-    POLLING_DAY = ("polling_day", "Polling day")
+class VolunteerArea(LabelledStrEnum):
+    FUNDRAISING = ("fundraising", "Fundraising Support")
+    DOOR_TO_DOOR = ("door_to_door", "Door-to-door Campaign")
+    MOBILISING_VOTERS = ("mobilising_voters", "Mobilising Voters")
+    SOCIAL_MEDIA = ("social_media", "Social Media Support")
+    RECRUITING = ("recruiting", "Recruiting Volunteers")
+    MATERIALS = ("materials", "Distributing Campaign Materials")
+    DATA_COLLECTION = ("data_collection", "Data Collection")
+    COMMUNITY_LISTENING = ("community_listening", "Community Listening")
+    BARAZAS = ("barazas", "Holding Barazas & Household Meetings")
+    OTHER = ("other", "Other")
 
 
 class Profession(LabelledStrEnum):

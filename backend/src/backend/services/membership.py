@@ -21,8 +21,9 @@ from backend.models import (
     PartyRequest,
     PartyRequestKind,
     PartySettings,
+    Profession,
     User,
-    VolunteerInterest,
+    VolunteerArea,
     Ward,
 )
 from backend.services import aspirants, volunteers
@@ -110,15 +111,18 @@ async def move(
 def request_join(
     session: AsyncSession,
     *,
-    full_name: str,
+    first_name: str,
+    surname: str,
     phone: str,
-    email: str | None,
+    email: str,
+    password_hash: str,
     ward_id: uuid.UUID,
+    registration_centre_id: uuid.UUID,
     volunteer: dict | None = None,
 ) -> tuple[str, str | None]:
     """Queue a public application; returns its withdraw code and the volunteer one, if any.
 
-    The caller commits.
+    The caller commits and checks that the centre lies in the ward.
 
     Every application is this one insert, whatever the register holds, so neither the answer
     nor its timing shows whether the phone is registered.
@@ -126,10 +130,14 @@ def request_join(
     code = new_withdraw_code()
     now = datetime.now(UTC).isoformat()
     payload = {
-        "full_name": full_name,
+        "first_name": first_name,
+        "surname": surname,
+        "full_name": f"{first_name} {surname}"[:150],
         "phone": phone,
         "email": email,
+        "password_hash": password_hash,
         "ward_id": str(ward_id),
+        "registration_centre_id": str(registration_centre_id),
         "consent_wording": PARTY_WORDING[PartyConsentChannel.WEB_FORM],
         "consent_at": now,
     }
@@ -137,7 +145,10 @@ def request_join(
     if volunteer is not None:
         volunteer_code = new_withdraw_code()
         payload["volunteer"] = {
-            "interests": [VolunteerInterest(i).value for i in volunteer["interests"]],
+            "profession": Profession(volunteer["profession"]).value,
+            "profession_other": volunteer.get("profession_other", ""),
+            "areas": [VolunteerArea(a).value for a in volunteer["areas"]],
+            "area_other": volunteer.get("area_other", ""),
             "preferred_contact": ContactMethod(volunteer["preferred_contact"]).value,
             "consent_at": now,
             "code": volunteer_code,
@@ -160,6 +171,10 @@ def request_volunteer_withdraw(session: AsyncSession, code: str) -> None:
 WITHDRAWABLE = frozenset(old for old, targets in MOVES.items() if S.WITHDRAWN in targets)
 
 
+def _uuid(value: str | None) -> uuid.UUID | None:
+    return uuid.UUID(value) if value else None
+
+
 async def _apply_join(session: AsyncSession, code: str, p: dict) -> None:
     """Add the applicant, or put a rejected or withdrawn member back to pending.
 
@@ -167,8 +182,10 @@ async def _apply_join(session: AsyncSession, code: str, p: dict) -> None:
     """
     values = {
         "full_name": p["full_name"],
+        "first_name": p.get("first_name"),
         "email": p["email"],
         "ward_id": uuid.UUID(p["ward_id"]),
+        "registration_centre_id": _uuid(p.get("registration_centre_id")),
         "consent_channel": PartyConsentChannel.WEB_FORM,
         "consent_wording": p["consent_wording"],
         "consent_at": datetime.fromisoformat(p["consent_at"]),

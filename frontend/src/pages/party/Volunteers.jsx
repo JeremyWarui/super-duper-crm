@@ -9,8 +9,9 @@ import {
 import { Badge, Button, ErrorState, LoadingState, Modal, PageTitle, Panel } from "../../components/ui";
 import {
   CONTACT_LABEL,
-  INTERESTS,
-  INTEREST_LABEL,
+  AREAS,
+  AREA_LABEL,
+  PROFESSION_LABEL,
   STATUS_LABEL,
   STATUS_TONE,
   VOLUNTEER_STATUS_LABEL,
@@ -20,7 +21,10 @@ import {
 const PAGE_SIZE = 50;
 
 const place = (v) => [v.ward.name, v.constituency.name, v.county.name].join(" / ");
-const interestsOf = (v) => v.interests.map((x) => INTEREST_LABEL[x] || x).join(", ");
+const areasOf = (v) =>
+  v.interests.map((x) => (x === "other" && v.interest_other ? `Other: ${v.interest_other}` : AREA_LABEL[x] || x)).join(", ");
+const professionOf = (v) =>
+  v.profession === "other" ? v.profession_other : PROFESSION_LABEL[v.profession] || "Not given";
 
 function PlaceFilter({ label, value, onChange, places, disabled }) {
   return (
@@ -49,7 +53,9 @@ function Detail({ row, onClose }) {
       <div className="modal-text">
         <div><Badge text={VOLUNTEER_STATUS_LABEL[v.status]} tone={VOLUNTEER_STATUS_TONE[v.status]} /></div>
         <div className="muted">Phone: {v.phone}</div>
-        <div className="muted">Interests: {interestsOf(v)}</div>
+        <div className="muted">Polling station: {v.registration_centre?.name || "Not given"}</div>
+        <div className="muted">Profession: {professionOf(v)}</div>
+        <div className="muted">Areas: {areasOf(v)}</div>
         <div className="muted">Preferred contact: {CONTACT_LABEL[v.preferred_contact] || v.preferred_contact}</div>
         <div className="muted">Membership: {STATUS_LABEL[v.member_status]}</div>
       </div>
@@ -80,7 +86,7 @@ function Detail({ row, onClose }) {
 export default function Volunteers() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
-  const [interest, setInterest] = useState("");
+  const [area, setArea] = useState("");
   const [county, setCounty] = useState("");
   const [constituency, setConstituency] = useState("");
   const [ward, setWard] = useState("");
@@ -91,7 +97,7 @@ export default function Volunteers() {
   const constituencies = usePartyPlaces({ county, enabled: !!county });
   const wards = usePartyPlaces({ constituency, enabled: !!constituency });
 
-  const filters = { q: q.trim(), status, interest, county, constituency, ward };
+  const filters = { q: q.trim(), status, area, county, constituency, ward };
   const { data, isLoading, error } = usePartyVolunteers({ ...filters, limit: PAGE_SIZE, offset });
   const set = (setter) => (value) => { setter(value); setOffset(0); };
   const total = data?.total ?? 0;
@@ -130,9 +136,9 @@ export default function Volunteers() {
           <option value="">All statuses</option>
           {Object.entries(VOLUNTEER_STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
-        <select aria-label="Interest" className="app-field filter-field" value={interest} onChange={(e) => set(setInterest)(e.target.value)}>
-          <option value="">All interests</option>
-          {INTERESTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        <select aria-label="Area" className="app-field filter-field" value={area} onChange={(e) => set(setArea)(e.target.value)}>
+          <option value="">All areas</option>
+          {AREAS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
         <PlaceFilter label="County" value={county} places={counties.data} onChange={(v) => { set(setCounty)(v); setConstituency(""); setWard(""); }} />
         <PlaceFilter label="Constituency" value={constituency} places={constituencies.data} disabled={!county} onChange={(v) => { set(setConstituency)(v); setWard(""); }} />
@@ -141,7 +147,7 @@ export default function Volunteers() {
       <Panel pad={0}>
         <div className="table-scroll">
           <table className="table">
-            <thead><tr><th>Name</th><th>Phone</th><th>Ward / constituency / county</th><th>Status</th><th>Interests</th><th>Member</th><th>Contact</th></tr></thead>
+            <thead><tr><th>Name</th><th>Phone</th><th>Ward / constituency / county</th><th>Status</th><th>Profession</th><th>Areas</th><th>Member</th><th>Contact</th></tr></thead>
             <tbody>
               {items.map((v) => (
                 <tr key={v.id}>
@@ -149,12 +155,13 @@ export default function Volunteers() {
                   <td className="muted">{v.phone}</td>
                   <td className="muted">{place(v)}</td>
                   <td><Badge text={VOLUNTEER_STATUS_LABEL[v.status]} tone={VOLUNTEER_STATUS_TONE[v.status]} /></td>
-                  <td className="muted">{interestsOf(v)}</td>
+                  <td className="muted">{professionOf(v)}</td>
+                  <td className="muted">{areasOf(v)}</td>
                   <td><Badge text={STATUS_LABEL[v.member_status]} tone={STATUS_TONE[v.member_status]} /></td>
                   <td className="muted">{CONTACT_LABEL[v.preferred_contact] || v.preferred_contact}</td>
                 </tr>
               ))}
-              {items.length === 0 && <tr><td colSpan={7} className="empty-row">No volunteers match.</td></tr>}
+              {items.length === 0 && <tr><td colSpan={8} className="empty-row">No volunteers match.</td></tr>}
             </tbody>
           </table>
         </div>

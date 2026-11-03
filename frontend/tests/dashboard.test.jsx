@@ -15,7 +15,7 @@ const BOARD = {
   pending_applications: 56,
   active_volunteers: 78,
   volunteers_by_county: [{ county_id: "c1", county: "Nakuru", count: 78 }],
-  volunteers_by_interest: [{ interest: "events", count: 40 }],
+  volunteers_by_interest: [{ interest: "door_to_door", count: 40 }],
   approved_aspirants: 9,
   active_campaigns: 7,
   active_subscriptions: 6,

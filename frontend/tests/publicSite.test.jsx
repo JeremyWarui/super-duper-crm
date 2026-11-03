@@ -90,7 +90,7 @@ describe("the public site", () => {
       expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
     }
     await user.click(menu().getByRole("link", { name: "Join" }));
-    expect(await screen.findByRole("textbox", { name: "Full name" })).toBeInTheDocument();
+    expect(await screen.findByRole("textbox", { name: "First name" })).toBeInTheDocument();
     expect(menu().getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/signin");
   });
 });

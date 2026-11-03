@@ -29,7 +29,7 @@ from backend.models.enums import (
     SupportLevel,
     UserKind,
     UserRole,
-    VolunteerInterest,
+    VolunteerArea,
     VolunteerStatus,
 )
 from backend.models.event import Event
@@ -99,7 +99,7 @@ __all__ = [
     "Supporter",
     "Target",
     "User",
-    "VolunteerInterest",
+    "VolunteerArea",
     "VolunteerProfile",
     "VolunteerStatus",
     "UserKind",

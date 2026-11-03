@@ -18,6 +18,8 @@ from backend.models import (
     Mobilizer,
     OfficeLevel,
     OperationalGrain,
+    PartyConsentChannel,
+    PartyMember,
     PartyPost,
     PartyRoleName,
     PostKind,
@@ -208,27 +210,58 @@ async def test_only_an_event_has_a_date(
         await session.commit()
 
 
+def _member(ward_id, phone: str) -> PartyMember:
+    return PartyMember(
+        full_name="Wanjiru Kamau",
+        phone=phone,
+        ward_id=ward_id,
+        consent_wording="I agree.",
+        consent_channel=PartyConsentChannel.WEB_FORM,
+        consent_at=datetime.now(UTC),
+    )
+
+
+def _volunteer(ward_id, campaign: Campaign | None, member: PartyMember | None) -> VolunteerProfile:
+    return VolunteerProfile(
+        campaign_id=campaign.id if campaign else None,
+        member=member,
+        first_name="Wanjiru",
+        last_name="Kamau",
+        phone="+254712345678",
+        ward_id=ward_id,
+        preferred_contact="call",
+        consent_wording="I agree.",
+        consent_at=datetime.now(UTC),
+    )
+
+
 async def test_a_phone_volunteers_once_for_the_party_and_once_per_campaign(
     session: AsyncSession,
 ) -> None:
     _, _, ward, _ = await make_geography(session)
     campaigns = [await make_campaign(session, ward), await make_rival_campaign(session, ward)]
-
-    def volunteer(campaign: Campaign | None) -> VolunteerProfile:
-        return VolunteerProfile(
-            campaign_id=campaign.id if campaign else None,
-            first_name="Wanjiru",
-            last_name="Kamau",
-            phone="+254712345678",
-            ward_id=ward.id,
-            preferred_contact="call",
-            consent_wording="I agree.",
-            consent_at=datetime.now(UTC),
-        )
-
-    session.add_all([volunteer(None), *(volunteer(c) for c in campaigns)])
+    first = _member(ward.id, "+254712345678")
+    session.add_all(
+        [_volunteer(ward.id, None, first), *(_volunteer(ward.id, c, None) for c in campaigns)]
+    )
     await session.commit()
-    session.add(volunteer(None))
+    session.add(_volunteer(ward.id, None, _member(ward.id, "+254712000000")))
+
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
+@pytest.mark.parametrize("for_campaign", [False, True])
+async def test_a_party_volunteer_has_a_member_and_a_campaign_volunteer_has_none(
+    session: AsyncSession, for_campaign: bool
+) -> None:
+    _, _, ward, _ = await make_geography(session)
+    campaign = await make_campaign(session, ward)
+    member = _member(ward.id, "+254712345678")
+    if for_campaign:
+        session.add(_volunteer(ward.id, campaign, member))
+    else:
+        session.add(_volunteer(ward.id, None, None))
 
     with pytest.raises(IntegrityError):
         await session.commit()

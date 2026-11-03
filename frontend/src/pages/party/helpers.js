@@ -33,17 +33,30 @@ export const MOVES = {
   withdrawn: [],
 };
 
-export const INTERESTS = [
-  ["mobilisation", "Mobilisation"],
-  ["events", "Events"],
-  ["communications", "Communications"],
-  ["social_media", "Social media"],
-  ["fundraising", "Fundraising"],
-  ["administration", "Administration"],
-  ["polling_day", "Polling day"],
+export const AREAS = [
+  ["fundraising", "Fundraising Support"],
+  ["door_to_door", "Door-to-door Campaign"],
+  ["mobilising_voters", "Mobilising Voters"],
+  ["social_media", "Social Media Support"],
+  ["recruiting", "Recruiting Volunteers"],
+  ["materials", "Distributing Campaign Materials"],
+  ["data_collection", "Data Collection"],
+  ["community_listening", "Community Listening"],
+  ["barazas", "Holding Barazas & Household Meetings"],
+  ["other", "Other"],
 ];
 
-export const INTEREST_LABEL = Object.fromEntries(INTERESTS);
+export const AREA_LABEL = Object.fromEntries(AREAS);
+
+export const PROFESSIONS = [
+  ["farmer", "Farmer"],
+  ["teacher", "Teacher"],
+  ["business", "Business"],
+  ["student", "Student"],
+  ["other", "Other"],
+];
+
+export const PROFESSION_LABEL = Object.fromEntries(PROFESSIONS);
 
 export const CONTACT_METHODS = [
   ["call", "Call"],

@@ -18,6 +18,7 @@ from backend.services import membership
 from backend.services.consent import PARTY_WORDING
 from backend.services.errors import Refused
 from tests.conftest import World
+from tests.factories import join_details
 
 
 def make_member(world: World, *, full_name: str = "Wanjiru Kamau") -> PartyMember:
@@ -78,7 +79,8 @@ async def test_a_join_for_an_approved_member_leaves_them_approved_and_unchanged(
     session.add(member)
     await session.commit()
     membership.request_join(
-        session, full_name="Someone Else", phone=member.phone, email=None, ward_id=world.ward.id
+        session,
+        **join_details(world.centre, first_name="Someone", surname="Else", phone=member.phone),
     )
     await session.commit()
 
@@ -99,13 +101,7 @@ async def test_a_request_that_cannot_be_applied_is_dropped_and_the_queue_moves_o
         )
     )
     await session.commit()
-    membership.request_join(
-        session,
-        full_name="Achieng Otieno",
-        phone="+254711222333",
-        email=None,
-        ward_id=world.ward.id,
-    )
+    membership.request_join(session, **join_details(world.centre))
     await session.commit()
 
     taken = await membership.process_requests(session)
@@ -140,9 +136,7 @@ async def test_the_inbox_runs_the_same_statements_whether_or_not_the_phone_is_re
     await session.commit()
     runs = []
     for phone in (member.phone, "+254799000111"):
-        code, _ = membership.request_join(
-            session, full_name="Achieng Otieno", phone=phone, email=None, ward_id=world.ward.id
-        )
+        code, _ = membership.request_join(session, **join_details(world.centre, phone=phone))
         membership.request_withdraw(session, code)
         await session.commit()
         runs.append(await _statements(engine, session))

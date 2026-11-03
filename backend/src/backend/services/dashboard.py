@@ -29,7 +29,7 @@ from backend.models import (
     PartyMemberStatus,
     Seat,
     SubscriptionEntry,
-    VolunteerInterest,
+    VolunteerArea,
     VolunteerProfile,
     VolunteerStatus,
     Ward,
@@ -136,7 +136,10 @@ async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard
     query = (
         select(VolunteerProfile.interests)
         .join(PartyMember, PartyMember.id == VolunteerProfile.member_id)
-        .where(VolunteerProfile.status == VolunteerStatus.ACTIVE)
+        .where(
+            VolunteerProfile.status == VolunteerStatus.ACTIVE,
+            VolunteerProfile.campaign_id.is_(None),
+        )
     )
     query, county = _in_ward(query, PartyMember.ward_id, f)
     volunteers = (await session.execute(query.add_columns(county))).all()
@@ -221,8 +224,7 @@ async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard
         active_volunteers=len(volunteers),
         volunteers_by_county=_by_county(Counter(c for _, c in volunteers), names),
         volunteers_by_interest=[
-            InterestCount(interest=VolunteerInterest(i), count=n)
-            for i, n in sorted(interests.items())
+            InterestCount(interest=VolunteerArea(i), count=n) for i, n in sorted(interests.items())
         ],
         approved_aspirants=await _count(session, aspirants),
         active_campaigns=answering,

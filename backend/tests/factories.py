@@ -200,3 +200,17 @@ async def sign_in(client, username: str, password: str = TEST_PASSWORD) -> str:
 
 def auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Token {token}"}
+
+
+def join_details(centre, **overrides) -> dict:
+    """The keyword arguments of `membership.request_join` for an applicant at `centre`."""
+    return {
+        "first_name": "Achieng",
+        "surname": "Otieno",
+        "phone": "+254711222333",
+        "email": "achieng@example.com",
+        "password_hash": "$argon2id$test",
+        "ward_id": centre.ward_id,
+        "registration_centre_id": centre.id,
+        **overrides,
+    }

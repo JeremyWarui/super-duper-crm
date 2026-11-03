@@ -32,7 +32,7 @@ async def test_an_officer_cannot_move_their_own_membership_volunteering_or_nomin
         last_name="",
         phone=member.phone,
         ward_id=member.ward_id,
-        interests=["events"],
+        interests=["door_to_door"],
         preferred_contact=ContactMethod.CALL,
         consent_wording=VOLUNTEER_WORDING,
         consent_at=datetime.now(UTC),

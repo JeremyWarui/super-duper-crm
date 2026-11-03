@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from backend.models import ContactMethod, PartyMemberStatus, VolunteerStatus
+from backend.models import ContactMethod, PartyMemberStatus, Profession, VolunteerStatus
 from backend.schemas.common import ORMModel, WriteModel, plain_text
 from backend.schemas.party import MemberPlace
 
@@ -21,8 +21,12 @@ class VolunteerRead(ORMModel):
     ward: MemberPlace
     constituency: MemberPlace
     county: MemberPlace
+    registration_centre: MemberPlace | None
+    profession: Profession | None
+    profession_other: str
     status: VolunteerStatus
     interests: list[str]
+    interest_other: str
     preferred_contact: ContactMethod
     availability_notes: str | None
     member_status: PartyMemberStatus

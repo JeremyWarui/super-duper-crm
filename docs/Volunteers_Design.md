@@ -271,7 +271,7 @@ it. Each ticket gets one cold critic judged on its text and section 4 only.
 
 **R5-1 Volunteer register schema** (done, `a8344f6`).
 
-**R5-2 Join and volunteer areas** (backend)
+**R5-2 Join and volunteer areas** (backend; done with R5-4, migration head `volunteer_areas`)
 - Files: revision `volunteer_areas`; `models/enums.py` (`VolunteerArea`), `models/party.py`; `schemas/party.py`, `schemas/dashboard.py`; `services/membership.py`, `services/volunteers.py`, `services/dashboard.py`; `api/routers/party.py` (join, centres of a ward), `api/routers/party_volunteers.py`; `docs/party-platform-design/party-platform-design/screens/Join.dc.html` (polling centre required, email required, password field); tests; `backend/evals/test_inbox_constant_work.py`, whose join payload and `VOLUNTEER_PART` change.
 - Tests: a join stores first name and surname, email and polling station on the member; with the tick, the volunteer's profession and areas; a centre outside the ward, a missing email or password, and `other` without text are refused; the queued payload holds no clear password; a party row without a member and a campaign row with one fail at the database; the register, CSV and dashboard leave campaign rows out.
 
@@ -279,7 +279,7 @@ it. Each ticket gets one cold critic judged on its text and section 4 only.
 - Files: revision `member_logins`; `models/user.py`, `models/enums.py` (`UserKind.MEMBER`); `schemas/auth.py`; `services/accounts.py`, `services/membership.py` (member login on apply); `api/deps.py`; `api/routers/auth.py`, `api/routers/account.py`, `api/routers/party_members.py` and `schemas/party.py` `MemberRead` (`has_login`); `cli.py` (`set-email`); `seed/demo.py`; tests.
 - Tests: a login signs in with email and password and no longer with a username; a pending member's right password gets the wrong-password answer; a member login gets 403 from every staff and campaign route, and suspending the member makes its next account request 401; a linked campaign login reads its member's account; applying a join makes a member login, and an email already in use leaves the member without one.
 
-**R5-4 Join page and party volunteer pages** (frontend; depends R5-2)
+**R5-4 Join page and party volunteer pages** (frontend; done with R5-2, so the join form and its API change together)
 - Files: `pages/public/JoinParty.jsx`, `pages/party/Volunteers.jsx`, `Dashboard.jsx`, `Members.jsx` ("No sign-in: email in use"), `helpers.js`, `api/hooks`, contract, tests.
 - Tests: the polling station is required and loads for the chosen ward; the tick shows and requires the volunteer fields; the request carries what the route takes; the officer register filters by the new areas.
 
