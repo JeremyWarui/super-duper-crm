@@ -2,7 +2,7 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { usePartyStats, useParty, usePublicDocuments, usePublicLeaders, usePublicOrgans, usePublicValues } from "@/api/hooks";
+import { usePartyStats, useParty, usePublicDocuments, useSite, usePublicLeaders, usePublicOrgans, usePublicValues } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
 import { Photo } from "./story";
@@ -49,7 +49,7 @@ function LeaderCarousel({ leaders }) {
 }
 
 export default function About() {
-  const party = useParty().data || {};
+  const party = { ...useSite().data, ...useParty().data };
   const values = usePublicValues().data || [];
   const leaders = usePublicLeaders().data || [];
   const organs = usePublicOrgans().data || [];

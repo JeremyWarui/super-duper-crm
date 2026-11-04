@@ -1,10 +1,10 @@
 // The public page a volunteer's private link opens: stop volunteer contact, keep the membership.
-import { useParty, useWithdrawVolunteer } from "../../api/hooks";
+import { useSite, useWithdrawVolunteer } from "../../api/hooks";
 import { Button } from "../../components/ui";
 import { partyColours } from "./colours";
 
 export default function WithdrawVolunteer({ code }) {
-  const party = useParty();
+  const party = useSite();
   const withdraw = useWithdrawVolunteer(code);
   return (
     <div className="join-shell" style={partyColours(party.data)}>

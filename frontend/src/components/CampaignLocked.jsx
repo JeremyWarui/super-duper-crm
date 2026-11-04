@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
-import { useOwnSubscription, useParty } from "../api/hooks";
+import { useOwnSubscription, useSite } from "../api/hooks";
 import { addDays, formatDate, formatKes } from "../lib/format";
 import { useAuth } from "../store/auth";
 
@@ -68,7 +68,7 @@ export default function CampaignLocked({ message }) {
   const logout = useAuth((s) => s.logout);
   const queryClient = useQueryClient();
   const own = useOwnSubscription();
-  const party = useParty().data;
+  const party = useSite().data;
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState("");
   const sub = own.data;

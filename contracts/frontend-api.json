@@ -237,7 +237,7 @@
       "code",
       "open"
     ],
-    "GET /api/party/": [
+    "GET /api/site/": [
       "name",
       "short_name",
       "logo_url",
@@ -251,18 +251,21 @@
       "manifesto_url",
       "social_links",
       "updated_at",
-      "consent_wording",
       "volunteer_consent_wording",
       "slogan",
-      "registration_number",
       "privacy_notice",
       "privacy_notice_version",
       "subscribe_consent_wording",
-      "about_headline",
-      "founded_year",
-      "aspirant_steps"
+      "about_headline"
     ],
-    "PUT /api/admin/party/": [
+    "GET /api/party/": [
+      "consent_wording",
+      "registration_number",
+      "founded_year",
+      "aspirant_steps",
+      "updated_at"
+    ],
+    "PUT /api/admin/site/": [
       "name",
       "short_name",
       "logo_url",
@@ -277,11 +280,15 @@
       "social_links",
       "updated_at",
       "slogan",
-      "registration_number",
       "privacy_notice",
       "privacy_notice_version",
-      "about_headline",
-      "founded_year"
+      "about_headline"
+    ],
+    "PUT /api/admin/party/": [
+      "updated_at",
+      "registration_number",
+      "founded_year",
+      "aspirant_steps"
     ],
     "POST /api/admin/users/{user_id}/party-roles/": [
       "id",
@@ -1424,7 +1431,7 @@
     "POST /api/campaigns/{campaign_id}/signups/": [
       "open"
     ],
-    "PUT /api/admin/party/": [
+    "PUT /api/admin/site/": [
       "name",
       "short_name",
       "logo_url",
@@ -1438,10 +1445,12 @@
       "manifesto_url",
       "social_links",
       "slogan",
-      "registration_number",
       "privacy_notice",
       "privacy_notice_version",
-      "about_headline",
+      "about_headline"
+    ],
+    "PUT /api/admin/party/": [
+      "registration_number",
       "founded_year",
       "aspirant_steps"
     ],

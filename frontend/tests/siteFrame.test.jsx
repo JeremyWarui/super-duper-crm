@@ -14,7 +14,7 @@ const SITE = { ...PARTY, subscribe_consent_wording: "I agree to party news." };
 describe("the website frame", () => {
   it("signs a contact up with consent and hands back its unsubscribe link", async () => {
     const calls = stubApi({
-      "GET /party/": SITE,
+      "GET /site/": SITE,
       "GET /party/posts/": [],
       "POST /party/subscribe/": { message: "Thank you.", unsubscribe_url: "/unsubscribe/abc" },
     });
@@ -31,7 +31,7 @@ describe("the website frame", () => {
 
   it("answers a contribution with the demo message", async () => {
     stubApi({
-      "GET /party/": SITE,
+      "GET /site/": SITE,
       "POST /party/contribute/": { demo: true, message: "No money moved." },
     });
     renderApp(<AppRoutes />, { path: "/contribute" });

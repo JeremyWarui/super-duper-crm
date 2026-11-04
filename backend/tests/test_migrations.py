@@ -315,3 +315,62 @@ def test_the_volunteer_areas_migration_maps_old_interests_to_the_new_areas() -> 
         ["mobilising_voters", "fundraising", "other"],
         "Events, Polling day",
     )
+
+
+def test_the_site_settings_migration_copies_every_field_and_sets_party() -> None:
+    revisions = revision_modules()
+    last = next(i for i, m in enumerate(revisions) if m.revision == "site_settings")
+    moved = {
+        "name": "Pamoja Party",
+        "short_name": "PP",
+        "slogan": "Pamoja tunaweza",
+        "about_headline": "Built in every ward",
+        "logo_url": "https://example.com/logo.png",
+        "primary_colour": "#0b5d3b",
+        "secondary_colour": "#f2b705",
+        "contact_email": "info@example.com",
+        "contact_phone": "0700 000000",
+        "address": "Moi Avenue",
+        "social_links": '{"X": "https://x.com/example"}',
+        "description": "A party.",
+        "manifesto_text": "1. Jobs.",
+        "manifesto_url": "https://example.com/manifesto.pdf",
+        "privacy_notice": "We keep your data safe.",
+        "privacy_notice_version": "2026-11",
+    }
+    engine = sa.create_engine("sqlite://")
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            for module in revisions[:last]:
+                module.upgrade()
+        connection.execute(
+            sa.text(
+                "UPDATE party_settings SET "
+                + ", ".join(f"{name} = :{name}" for name in moved)
+                + ", registration_number = 'DEMO-001', grace_days = 3"
+            ),
+            moved,
+        )
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].upgrade()
+        site = connection.execute(sa.text("SELECT * FROM site_settings")).mappings().one()
+        party = connection.execute(sa.text("SELECT * FROM party_settings")).mappings().one()
+    engine.dispose()
+    assert site["organisation_type"] == "party"
+    assert {name: site[name] for name in moved} == moved
+    assert set(party) == {
+        "id",
+        "registration_number",
+        "founded_year",
+        "aspirant_steps",
+        "grace_days",
+        "read_only_days",
+        "payment_instructions",
+        "hosting_enabled",
+        "updated_at",
+    }
+    assert (party["registration_number"], party["grace_days"], party["hosting_enabled"]) == (
+        "DEMO-001",
+        3,
+        1,
+    )

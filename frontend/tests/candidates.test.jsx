@@ -26,7 +26,7 @@ const DETAIL = {
   consent_wording: "I agree that this campaign may contact me.",
 };
 const PUBLIC = {
-  "GET /party/": { name: "Umoja Party" },
+  "GET /site/": { name: "Umoja Party" },
   "GET /party/places/": [{ id: "c1", name: "Nairobi City" }],
   "GET /candidates/?seat=&county=&q=": [CARD],
   "GET /candidates/?seat=governor&county=&q=": [],
@@ -103,7 +103,7 @@ describe("the website editor's candidates", () => {
     const candidate = { aspirant_id: "a1", name: "Brian Ochieng", seat: "mp", area: "Westlands", profile: { photo_url: "", slogan: "", bio: "", priorities: [], office_address: "", office_phone: "", office_email: "", published: false } };
     const event = { id: "e1", kind: "event", title: "Town hall", body: "", image_url: "", event_date: "2026-11-20", venue: "", published_on: null, published: true, updated_at: "2026-11-01T00:00:00Z" };
     const calls = stubApi({
-      "GET /party/": { name: "Umoja Party" },
+      "GET /site/": { name: "Umoja Party" },
       "GET /admin/party/posts/": [event],
       "GET /admin/party/candidates/": [candidate],
       "PUT /admin/party/candidates/a1/profile/": candidate,

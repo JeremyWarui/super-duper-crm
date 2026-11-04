@@ -10,7 +10,8 @@ from pydantic import AfterValidator, BaseModel, Field, field_validator
 from backend.models import ContactMethod, Profession, Seat, VolunteerStatus
 from backend.schemas.common import ORMModel, WriteModel, plain_text
 from backend.schemas.content import Image
-from backend.schemas.party import Email, MemberPlace, Name, VolunteerPart
+from backend.schemas.party import MemberPlace, Name, VolunteerPart
+from backend.schemas.site import Email
 
 
 def _line(limit: int):

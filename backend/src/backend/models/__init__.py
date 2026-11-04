@@ -30,6 +30,7 @@ from backend.models.enums import (
     LabelledStrEnum,
     OfficeLevel,
     OperationalGrain,
+    OrganisationType,
     PartyConsentChannel,
     PartyMemberStatus,
     PartyRequestKind,
@@ -67,6 +68,7 @@ from backend.models.party import (
 )
 from backend.models.party_payment import PartyPayment
 from backend.models.payment import Payment
+from backend.models.site import SiteSettings
 from backend.models.supporter import Supporter
 from backend.models.target import Target, compute_win_number, unit_key
 from backend.models.user import User
@@ -100,6 +102,7 @@ __all__ = [
     "ContactMethod",
     "Profession",
     "OperationalGrain",
+    "OrganisationType",
     "PartyConsentChannel",
     "PartyLeader",
     "PartyMember",
@@ -124,6 +127,7 @@ __all__ = [
     "PartyVideo",
     "PrimaryResult",
     "Seat",
+    "SiteSettings",
     "RegistrationCentre",
     "SupportLevel",
     "Subscriber",

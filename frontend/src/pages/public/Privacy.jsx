@@ -1,10 +1,10 @@
 // The party's privacy notice, from its settings.
-import { useParty } from "@/api/hooks";
+import { useSite } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import PageHead from "./PageHead";
 
 export default function Privacy() {
-  const party = useParty().data;
+  const party = useSite().data;
   if (!party) return null;
   return (
     <div className="site-container py-12">

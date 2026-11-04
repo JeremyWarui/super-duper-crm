@@ -1,0 +1,55 @@
+"""Read and replace the site settings row; the organisation type is read-only here."""
+
+from datetime import UTC, datetime
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.models import OrganisationType, SiteSettings, User
+from backend.schemas.site import SiteSettingsUpdate
+from backend.services.audit import record
+from backend.services.errors import NotFound
+
+_organisation_type: OrganisationType | None = None
+
+
+async def read_settings(session: AsyncSession) -> SiteSettings:
+    """The one site settings row."""
+    row = await session.get(SiteSettings, 1)
+    if row is None:
+        raise NotFound("The site settings row is missing.")
+    return row
+
+
+async def organisation_type(session: AsyncSession) -> OrganisationType:
+    """Party or aspirant; read once per process, since setup fixes it for good."""
+    global _organisation_type
+    if _organisation_type is None:
+        value = await session.scalar(
+            select(SiteSettings.organisation_type).where(SiteSettings.id == 1)
+        )
+        if value is None:
+            raise NotFound("The site settings row is missing.")
+        _organisation_type = value
+    return _organisation_type
+
+
+async def update_settings(
+    session: AsyncSession, payload: SiteSettingsUpdate, *, actor: User | None
+) -> SiteSettings:
+    """Replace every editable field and audit the names of those that changed."""
+    row = await read_settings(session)
+    values = payload.model_dump()
+    changed = sorted(name for name, value in values.items() if getattr(row, name) != value)
+    for name, value in values.items():
+        setattr(row, name, value)
+    row.updated_at = datetime.now(UTC)
+    record(
+        session,
+        actor=actor,
+        action="site_settings.update",
+        subject_type="site_settings",
+        detail={"fields": changed},
+    )
+    await session.commit()
+    return row

@@ -12,7 +12,8 @@ afterEach(() => {
 
 const PARTY = { name: "Umoja Party", logo_url: "", primary_colour: "#112233", secondary_colour: "#445566", description: "One country.", consent_wording: "Umoja may keep my details.", volunteer_consent_wording: "Umoja may contact me about volunteering." };
 const ROUTES = {
-  "GET /party/": PARTY,
+  "GET /site/": PARTY,
+  "GET /party/": { consent_wording: PARTY.consent_wording },
   "GET /party/places/": [{ id: "c1", name: "Nairobi" }],
   "GET /party/places/?county=c1": [{ id: "k1", name: "Roysambu" }],
   "GET /party/places/?constituency=k1": [{ id: "w1", name: "Githurai" }],

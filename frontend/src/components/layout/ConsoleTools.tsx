@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, CircleHelp, Search } from 'lucide-react'
-import { useParty, usePartyNotifications, usePartySearch } from '@/api/hooks'
+import { useSite, usePartyNotifications, usePartySearch } from '@/api/hooks'
 
 /** An open/closed panel that Escape or a click outside closes. */
 function usePanel() {
@@ -109,7 +109,7 @@ function Notifications() {
 /** Who to contact at the party office. */
 function Help() {
   const { open, setOpen, ref } = usePanel()
-  const party = (useParty().data || {}) as { contact_phone?: string; contact_email?: string }
+  const party = (useSite().data || {}) as { contact_phone?: string; contact_email?: string }
   return (
     <div ref={ref} className="relative">
       <button type="button" aria-expanded={open} aria-controls="party-help" aria-label="Help" onClick={() => setOpen(!open)} className={ICON_BUTTON}>

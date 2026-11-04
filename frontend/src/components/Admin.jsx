@@ -15,9 +15,10 @@ import {
   useGrantPartyRole,
   useLinkPartyMember,
   useParty,
+  useSite,
   usePartyMembers,
   useRevokePartyRole,
-  useSaveParty,
+  useSaveSettings,
   useRenameCampaign,
   useRemoveMember,
   useResetPassword,
@@ -751,7 +752,7 @@ const partyForm = (party) => ({
 });
 
 function PartyForm({ party }) {
-  const save = useSaveParty();
+  const save = useSaveSettings();
   const [form, setForm] = useState(() => partyForm(party));
   const [saved, setSaved] = useState(false);
   const set = (patch) => {
@@ -888,19 +889,26 @@ function PartyForm({ party }) {
 }
 
 function PartySettings() {
+  const site = useSite();
   const party = useParty();
-  if (party.isPending)
+  if (site.isPending || party.isPending)
     return <LoadingState className="admin-loading" message="Loading the party settings…" />;
-  if (party.error)
+  const failed = [site, party].find((q) => q.error);
+  if (failed)
     return (
       <Card>
-        <div className="admin-red">{party.error.message}</div>
+        <div className="admin-red">{failed.error.message}</div>
         <div className="admin-overview-action">
-          <Btn onClick={() => party.refetch()}>Try again</Btn>
+          <Btn onClick={() => failed.refetch()}>Try again</Btn>
         </div>
       </Card>
     );
-  return <PartyForm key={party.data.updated_at} party={party.data} />;
+  return (
+    <PartyForm
+      key={`${site.data.updated_at} ${party.data.updated_at}`}
+      party={{ ...site.data, ...party.data }}
+    />
+  );
 }
 
 // The shell's menu carries the only way out of the console, so every state renders

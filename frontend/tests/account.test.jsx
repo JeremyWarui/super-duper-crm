@@ -44,7 +44,7 @@ function signInAs(user) {
 }
 
 const routes = (overrides = {}) => ({
-  "GET /party/": { ...PARTY, volunteer_consent_wording: "I agree to volunteer contact." },
+  "GET /site/": { ...PARTY, volunteer_consent_wording: "I agree to volunteer contact." },
   "GET /account/": ACCOUNT,
   "GET /party/posts/": [],
   ...overrides,

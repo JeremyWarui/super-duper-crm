@@ -66,9 +66,11 @@ from backend.schemas.content import (
     VideoUpdate,
 )
 from backend.schemas.party import PartySettingsRead, PartySettingsUpdate
+from backend.schemas.site import SiteSettingsRead, SiteSettingsUpdate
 from backend.services import admin as service
 from backend.services import audit, branches, candidates, content, home
 from backend.services import party as party_service
+from backend.services import site as site_service
 from backend.services.errors import Refused
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -148,8 +150,16 @@ async def save_party_branch(
 async def update_party(
     payload: PartySettingsUpdate, session: SessionDep, admin: AdminUser
 ) -> PartySettingsRead:
-    """Replace the party's settings."""
+    """Replace the party-only settings."""
     return await party_service.update_settings(session, payload, actor=admin)
+
+
+@router.put("/site/", response_model=SiteSettingsRead)
+async def update_site(
+    payload: SiteSettingsUpdate, session: SessionDep, admin: AdminUser
+) -> SiteSettingsRead:
+    """Replace the site settings; the organisation type stays as setup wrote it."""
+    return await site_service.update_settings(session, payload, actor=admin)
 
 
 @router.get("/campaigns/", response_model=list[AdminCampaignRead])

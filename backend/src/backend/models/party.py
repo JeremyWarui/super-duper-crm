@@ -1,4 +1,4 @@
-"""The party's public identity: one row, id 1."""
+"""The party office: settings, offices, members, aspirants and volunteers."""
 
 import uuid
 from datetime import UTC, datetime
@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -18,6 +19,7 @@ from sqlalchemy import (
     Uuid,
     func,
     text,
+    true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -49,47 +51,28 @@ def hex_colour(column: str) -> str:
 
 
 class PartySettings(Base):
-    """Name, branding, contacts and manifesto of the party this deployment serves."""
+    """The party-only settings: registration, aspirant steps and hosted-workspace billing."""
 
     __tablename__ = "party_settings"
     __table_args__ = (
         CheckConstraint("id = 1", name="singleton"),
-        CheckConstraint(hex_colour("primary_colour"), name="primary_colour_hex"),
-        CheckConstraint(hex_colour("secondary_colour"), name="secondary_colour_hex"),
         CheckConstraint("grace_days BETWEEN 0 AND 60", name="grace_days_range"),
         CheckConstraint("read_only_days BETWEEN 0 AND 60", name="read_only_days_range"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False, default=1)
-    name: Mapped[str] = mapped_column(String(150))
-    short_name: Mapped[str] = mapped_column(String(30), default="")
-    slogan: Mapped[str] = mapped_column(String(150), default="", server_default=text("''"))
     registration_number: Mapped[str] = mapped_column(
         String(40), default="", server_default=text("''")
     )
-    about_headline: Mapped[str] = mapped_column(String(150), default="", server_default=text("''"))
     founded_year: Mapped[str] = mapped_column(String(4), default="", server_default=text("''"))
-    logo_url: Mapped[str] = mapped_column(String(500), default="")
-    primary_colour: Mapped[str] = mapped_column(String(7), default="#1f2937")
-    secondary_colour: Mapped[str] = mapped_column(String(7), default="#f59e0b")
-    contact_email: Mapped[str] = mapped_column(String(254), default="")
-    contact_phone: Mapped[str] = mapped_column(String(20), default="")
-    address: Mapped[str] = mapped_column(String(300), default="")
-    description: Mapped[str] = mapped_column(Text, default="")
-    manifesto_text: Mapped[str] = mapped_column(Text, default="")
-    manifesto_url: Mapped[str] = mapped_column(String(500), default="")
     # The Vie with us page's steps, one per line.
     aspirant_steps: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
-    privacy_notice: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
-    # Recorded with every news sign-up; the party raises it when the notice changes.
-    privacy_notice_version: Mapped[str] = mapped_column(
-        String(20), default="1", server_default=text("'1'")
-    )
-    social_links: Mapped[dict] = mapped_column(JSON, default=dict)
     # Days of full access, then of read-only access, after a campaign's paid period ends.
     grace_days: Mapped[int] = mapped_column(Integer, default=7, server_default=text("7"))
     read_only_days: Mapped[int] = mapped_column(Integer, default=7, server_default=text("7"))
     payment_instructions: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
+    # Whether the party rents campaign workspaces to its aspirants.
+    hosting_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

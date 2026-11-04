@@ -14,6 +14,7 @@ from backend.models import (
     Constituency,
     County,
     HeroSlide,
+    OrganisationType,
     PartyConsentChannel,
     PartyDocument,
     PartyLeader,
@@ -28,6 +29,7 @@ from backend.models import (
     PostLabel,
     PrimaryResult,
     Seat,
+    SiteSettings,
     Ward,
     party_post_aspirants,
 )
@@ -95,6 +97,8 @@ SETTINGS = {
         "YouTube": "https://youtube.com/@example",
     },
 }
+# The SETTINGS keys that live on the party settings row; the rest are site settings.
+PARTY_FIELDS = {"registration_number", "founded_year", "aspirant_steps"}
 
 LEADERS = [
     ("Amina Wanjiru", "Party Leader", "amina", "Former county executive for trade."),
@@ -335,15 +339,18 @@ async def seed_home(session: AsyncSession) -> int:
 async def seed_site(session: AsyncSession, today: date) -> bool:
     """Brand the party and publish the demo leaders and posts; False when content already exists.
 
-    Overwrites the party's name, branding, contacts and manifesto; for a local or demo database.
+    Overwrites the site's name, branding, contacts and manifesto; for a local or demo database.
     """
     for model in (PartyLeader, PartyPost):
         if await session.scalar(select(func.count()).select_from(model)):
             return False
-    settings = await session.get(PartySettings, 1) or PartySettings(id=1)
+    site = await session.get(SiteSettings, 1) or SiteSettings(
+        id=1, organisation_type=OrganisationType.PARTY
+    )
+    party = await session.get(PartySettings, 1) or PartySettings(id=1)
     for field, value in SETTINGS.items():
-        setattr(settings, field, value)
-    session.add(settings)
+        setattr(party if field in PARTY_FIELDS else site, field, value)
+    session.add_all([site, party])
     for order, (name, position, photo, bio) in enumerate(LEADERS):
         session.add(
             PartyLeader(
@@ -428,17 +435,15 @@ async def seed_news(session: AsyncSession, today: date) -> int:
         if town in counties:
             event.county_id = counties[town]
             changed += 1
-    settings = await session.get(PartySettings, 1)
-    if settings is not None:
-        for field in (
-            "slogan",
-            "registration_number",
-            "about_headline",
-            "founded_year",
-            "aspirant_steps",
-        ):
-            if not getattr(settings, field):
-                setattr(settings, field, SETTINGS[field])
+    site = await session.get(SiteSettings, 1)
+    party = await session.get(PartySettings, 1)
+    for row, fields in (
+        (site, ("slogan", "about_headline")),
+        (party, ("registration_number", "founded_year", "aspirant_steps")),
+    ):
+        for field in fields if row is not None else ():
+            if not getattr(row, field):
+                setattr(row, field, SETTINGS[field])
                 changed += 1
     for model, rows in ((PartyValue, VALUES), (PartyOrgan, ORGANS)):
         if not await session.scalar(select(func.count()).select_from(model)):

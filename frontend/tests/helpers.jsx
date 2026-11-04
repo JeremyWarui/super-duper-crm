@@ -409,7 +409,7 @@ export const MEMBER_DETAIL = {
 /** What the members page reads, with the officer's approval answered. */
 export function memberRoutes(overrides = {}) {
   return {
-    "GET /party/": PARTY,
+    "GET /site/": PARTY,
     "GET /party/places/": [PLACE.county],
     "GET /party/members/": { total: 1, items: [MEMBER] },
     "GET /party/members/pm1/": MEMBER_DETAIL,
@@ -439,7 +439,7 @@ export const VOLUNTEER = {
 /** What the volunteers page reads, with the officer's activation answered. */
 export function volunteerRoutes(overrides = {}) {
   return {
-    "GET /party/": PARTY,
+    "GET /site/": PARTY,
     "GET /party/places/": [PLACE.county],
     "GET /party/volunteers/": { total: 1, items: [VOLUNTEER] },
     "PATCH /party/volunteers/vp1/": { ...VOLUNTEER, status: "active" },
@@ -465,7 +465,7 @@ export const ASPIRANT = {
 /** What the aspirants page reads, with a workspace answered. */
 export function aspirantRoutes(overrides = {}) {
   return {
-    "GET /party/": PARTY,
+    "GET /site/": PARTY,
     "GET /party/places/": [PLACE.county],
     "GET /party/aspirants/": { total: 1, items: [ASPIRANT] },
     "GET /party/aspirants/as1/": ASPIRANT,
@@ -550,7 +550,7 @@ export const SUBSCRIPTION_DETAIL = {
 /** What the finance page reads, with each write answered by the subscription's detail. */
 export function financeRoutes(overrides = {}) {
   return {
-    "GET /party/": PARTY,
+    "GET /site/": PARTY,
     "GET /party/finance/plans/": [PLAN],
     "GET /party/finance/subscriptions/": { total: 1, items: [SUBSCRIPTION] },
     "GET /party/finance/subscriptions/s1/": SUBSCRIPTION_DETAIL,

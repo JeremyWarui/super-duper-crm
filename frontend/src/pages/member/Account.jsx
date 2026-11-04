@@ -1,7 +1,7 @@
 // /account: a member's card, volunteering, party events, and data & privacy.
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAccount, useChangeVolunteering, useLeaveParty, useParty, usePublicPosts, useStopVolunteering } from "@/api/hooks";
+import { useAccount, useChangeVolunteering, useLeaveParty, useSite, usePublicPosts, useStopVolunteering } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -235,7 +235,7 @@ function DataAndPrivacy({ account, party }) {
 
 export default function Account() {
   const account = useAccount();
-  const party = useParty().data;
+  const party = useSite().data;
   if (account.isLoading) return <div className="site-container py-10 text-muted-foreground">Loading…</div>;
   if (account.error) return <div role="alert" className="site-container py-10">{account.error.message}</div>;
   const a = account.data;

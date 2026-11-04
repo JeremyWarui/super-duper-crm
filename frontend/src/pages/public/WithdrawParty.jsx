@@ -1,10 +1,10 @@
 // The public page an applicant's private link opens: take their details off the party register.
-import { useParty, useWithdrawParty } from "../../api/hooks";
+import { useSite, useWithdrawParty } from "../../api/hooks";
 import { Button } from "../../components/ui";
 import { partyColours } from "./colours";
 
 export default function WithdrawParty({ code }) {
-  const party = useParty();
+  const party = useSite();
   const withdraw = useWithdrawParty(code);
   return (
     <div className="join-shell" style={partyColours(party.data)}>

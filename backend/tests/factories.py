@@ -15,12 +15,14 @@ from backend.models import (
     County,
     Mobilizer,
     OfficeLevel,
+    OrganisationType,
     PartyConsentChannel,
     PartyMember,
     PartyMemberStatus,
     PartyRole,
     PartyRoleName,
     RegistrationCentre,
+    SiteSettings,
     User,
     UserRole,
     Ward,
@@ -52,6 +54,13 @@ async def pay(session, campaign_id: uuid.UUID | str) -> None:
 
 # Generated per run, so no literal reads as a credential.
 TEST_PASSWORD = secrets.token_urlsafe(16)
+
+
+def site_settings(**fields) -> SiteSettings:
+    """A party installation's site settings row."""
+    return SiteSettings(
+        **{"id": 1, "organisation_type": OrganisationType.PARTY, "name": "Party name", **fields}
+    )
 
 
 def fresh_password() -> str:

@@ -1,4 +1,4 @@
-"""Read and replace the party's settings row."""
+"""Read and replace the party-only settings row."""
 
 from datetime import UTC, datetime
 

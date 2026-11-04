@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { useParty } from '@/api/hooks'
+import { useParty, useSite } from '@/api/hooks'
 
 /**
- * Party branding, from the singleton PartySettings record (GET /api/party/).
+ * Site branding, from the site settings (GET /api/site/); the registration number is party-only.
  * Only colours, names and images change per party. Spacing, type, radii and
  * neutrals are fixed by the platform so every party copy stays on-design.
  */
@@ -34,7 +34,7 @@ export const defaultBranding: Branding = {
 const shade = (hex: string, f: (c: number) => number) =>
   '#' + [1, 3, 5].map((i) => Math.round(f(parseInt(hex.slice(i, i + 2), 16))).toString(16).padStart(2, '0')).join('').toUpperCase()
 
-/** Maps GET /api/party/ onto the kit's branding; hover is the primary darkened, tint the primary over white. */
+/** Maps GET /api/site/ (plus the party's registration number) onto the kit's branding; hover is the primary darkened, tint the primary over white. */
 export function fromSettings(p: Record<string, any>): Branding {
   const primary = (p.primary_colour || defaultBranding.colors.primary).toUpperCase()
   return {
@@ -65,9 +65,13 @@ const Ctx = React.createContext<Branding>(defaultBranding)
 export const useBranding = () => React.useContext(Ctx)
 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
+  const site = useSite().data
   const party = useParty().data
-  const b = React.useMemo(() => (party ? fromSettings(party) : defaultBranding), [party])
+  const b = React.useMemo(
+    () => (site ? fromSettings({ ...site, registration_number: party?.registration_number }) : defaultBranding),
+    [site, party?.registration_number],
+  )
   React.useEffect(() => applyBranding(b), [b])
-  React.useEffect(() => { if (party?.name) document.title = party.name }, [party?.name])
+  React.useEffect(() => { if (site?.name) document.title = site.name }, [site?.name])
   return <Ctx.Provider value={b}>{children}</Ctx.Provider>
 }

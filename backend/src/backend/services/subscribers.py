@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Subscriber
 from backend.services.consent import SUBSCRIBE_WORDING
-from backend.services.party import read_settings
+from backend.services.site import read_settings
 
 
 async def subscribe(session: AsyncSession, contact: str, channel: str) -> str:

@@ -13,7 +13,7 @@ afterEach(() => {
 
 describe("the party's branding", () => {
   it("names the party from its settings on the sign-in page and in the tab title", async () => {
-    stubApi({ "GET /party/": { name: "Pamoja Party", logo_url: "" } });
+    stubApi({ "GET /site/": { name: "Pamoja Party", logo_url: "" } });
     renderApp(<Login />);
 
     expect(await screen.findByText("Pamoja Party")).toBeInTheDocument();
@@ -21,7 +21,7 @@ describe("the party's branding", () => {
   });
 
   it("colours the kit from the party's primary and secondary colours", async () => {
-    stubApi({ "GET /party/": { name: "Pamoja Party", primary_colour: "#0b5d3b", secondary_colour: "#f2b705" } });
+    stubApi({ "GET /site/": { name: "Pamoja Party", primary_colour: "#0b5d3b", secondary_colour: "#f2b705" } });
     renderApp(<BrandingProvider><span /></BrandingProvider>);
 
     const root = document.documentElement.style;

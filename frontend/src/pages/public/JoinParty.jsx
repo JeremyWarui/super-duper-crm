@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
-import { useJoinParty, useParty, usePartyPlaces } from "@/api/hooks";
+import { useJoinParty, useParty, usePartyPlaces, useSite } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
@@ -58,6 +58,7 @@ function Intro({ name }) {
 }
 
 export default function JoinParty() {
+  const site = useSite();
   const party = useParty();
   const join = useJoinParty();
   const [step, setStep] = useState(1);
@@ -97,9 +98,10 @@ export default function JoinParty() {
   const toggleArea = (value) =>
     setAreas((now) => (now.includes(value) ? now.filter((x) => x !== value) : [...now, value]));
 
-  if (party.isLoading) return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
-  if (party.error) return <div role="alert" className="site-container py-12">{party.error.message}</div>;
-  const p = party.data;
+  if (site.isLoading || party.isLoading) return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
+  const error = site.error || party.error;
+  if (error) return <div role="alert" className="site-container py-12">{error.message}</div>;
+  const p = { ...site.data, ...party.data };
 
   const send = () =>
     join.mutate({

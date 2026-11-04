@@ -499,9 +499,15 @@ export function useRemoveMember() {
   });
 }
 
-// ---- party settings and offices -------------------------------------------
+// ---- site and party settings, party offices --------------------------------
+export const useSite = () =>
+  useQuery({ queryKey: ["site"], queryFn: () => api("/site/", { anonymous: true }) });
+
+// The party-only settings; the rest are site settings.
 export const useParty = () =>
   useQuery({ queryKey: ["party"], queryFn: () => api("/party/", { anonymous: true }) });
+
+const PARTY_FIELDS = ["registration_number", "founded_year", "aspirant_steps"];
 
 // ---- public website content ------------------------------------------------
 export const usePublicLeaders = () =>
@@ -782,12 +788,22 @@ export function useWithdrawVolunteer(code) {
   });
 }
 
-export function useSaveParty() {
+// Saves one settings form: the site fields, then the party-only fields.
+export function useSaveSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload) =>
-      api("/admin/party/", { method: "PUT", body: payload }),
-    onSuccess: (data) => qc.setQueryData(["party"], data),
+    mutationFn: async (payload) => {
+      const party = Object.fromEntries(PARTY_FIELDS.map((key) => [key, payload[key]]));
+      const site = Object.fromEntries(Object.entries(payload).filter(([key]) => !PARTY_FIELDS.includes(key)));
+      const saved = await api("/admin/site/", { method: "PUT", body: site });
+      return { site: saved, party: await api("/admin/party/", { method: "PUT", body: party }) };
+    },
+    onSuccess: (data) => {
+      qc.setQueryData(["site"], data.site);
+      qc.setQueryData(["party"], data.party);
+    },
+    // The site half may have saved before the party half failed.
+    onError: () => qc.invalidateQueries({ queryKey: ["site"] }),
   });
 }
 

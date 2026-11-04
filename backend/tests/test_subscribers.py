@@ -6,13 +6,14 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.base import Base
-from backend.models import PartySettings, Subscriber
+from backend.models import Subscriber
 from backend.services.consent import SUBSCRIBE_WORDING
+from tests.factories import site_settings
 
 
 @pytest.fixture(autouse=True)
 async def settings_row(session: AsyncSession) -> None:
-    session.add(PartySettings(name="Party name", privacy_notice_version="2026-11"))
+    session.add(site_settings(privacy_notice_version="2026-11"))
     await session.commit()
 
 

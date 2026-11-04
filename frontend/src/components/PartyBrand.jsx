@@ -1,9 +1,9 @@
 // The party's logo and name, as every header shows them, from the website settings.
 import { useEffect } from "react";
-import { useParty } from "../api/hooks";
+import { useSite } from "../api/hooks";
 
 export default function PartyBrand({ className = "", label }) {
-  const party = useParty();
+  const party = useSite();
   const p = party.data;
   const name = p?.name || "";
 

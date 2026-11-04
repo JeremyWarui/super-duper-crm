@@ -1,6 +1,6 @@
 // /vie: how to become one of the party's aspirants, step by step, and whom to call.
 import { Link } from "react-router-dom";
-import { useParty } from "@/api/hooks";
+import { useParty, useSite } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
@@ -8,7 +8,7 @@ import { Crumbs } from "@/components/ui/typography";
 const steps = (text) => text.split("\n").map((l) => l.trim().replace(/^\d+[.)]\s*/, "")).filter(Boolean);
 
 export default function Vie() {
-  const party = useParty().data || {};
+  const party = { ...useSite().data, ...useParty().data };
   const list = steps(party.aspirant_steps || "");
   const office = [
     ["Office", party.address],

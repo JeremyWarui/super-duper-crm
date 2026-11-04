@@ -220,3 +220,10 @@ class ReceiptMethod(LabelledStrEnum):
     BANK = ("bank", "Bank")
     CASH = ("cash", "Cash")
     OTHER = ("other", "Other")
+
+
+class OrganisationType(LabelledStrEnum):
+    """Who runs this copy: a party or a single aspirant. Set once, at setup."""
+
+    PARTY = ("party", "Party")
+    ASPIRANT = ("aspirant", "Aspirant")

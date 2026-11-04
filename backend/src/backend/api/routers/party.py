@@ -42,7 +42,6 @@ from backend.schemas.content import (
 )
 from backend.schemas.dashboard import Dashboard
 from backend.schemas.party import (
-    EMAIL,
     PartyContribute,
     PartyContributed,
     PartyJoinCreate,
@@ -54,6 +53,7 @@ from backend.schemas.party import (
     PartySubscribed,
     PartyWithdrawn,
 )
+from backend.schemas.site import EMAIL
 from backend.security import hash_password
 from backend.services import branches, content, dashboard, home, membership, subscribers
 from backend.services import party as service

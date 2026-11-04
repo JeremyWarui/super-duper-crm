@@ -41,7 +41,8 @@ const post = (id, kind, title, extra = {}) => ({
 });
 
 const ROUTES = {
-  "GET /party/": PARTY,
+  "GET /site/": PARTY,
+  "GET /party/": { consent_wording: "Umoja may keep my details." },
   "GET /party/places/": [],
   "GET /party/posts/?kind=news&offset=0": [post("n1", "news", "Party congress opens")],
   "GET /party/posts/?kind=event&offset=0": [

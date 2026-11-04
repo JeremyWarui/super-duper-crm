@@ -17,7 +17,7 @@ describe("county branches", () => {
     const user = userEvent.setup();
     useAuth.setState({ token: TEST_TOKEN, user: { id: "root", username: "root", full_name: "The Operator", role: null, is_superuser: true, party_roles: [] } });
     const calls = stubApi({
-      "GET /party/": PARTY,
+      "GET /site/": PARTY,
       "GET /admin/party/branches/": [{ county: NAKURU, branch: null }],
       "PUT /admin/party/branches/n32/": { county: NAKURU, chairperson: "Wanjiru Kamau", published: true },
     });
@@ -33,7 +33,7 @@ describe("county branches", () => {
 
   it("shows a branch's officials, office and sub-branches", async () => {
     stubApi({
-      "GET /party/": PARTY,
+      "GET /site/": PARTY,
       "GET /party/branches/n32/": {
         county: NAKURU,
         chairperson: "Wanjiru Kamau",

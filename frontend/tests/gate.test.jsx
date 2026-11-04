@@ -33,7 +33,7 @@ describe("the gate", () => {
 
   it.each([false, true])("shows the public home at /, signed in: %s", async (signedIn) => {
     if (signedIn) signIn("manager");
-    stubApi({ "GET /party/": { name: "Umoja Party", description: "For every ward." } });
+    stubApi({ "GET /site/": { name: "Umoja Party", description: "For every ward." } });
     renderApp(<AppRoutes />);
 
     expect(await screen.findByRole("heading", { name: "Umoja Party" })).toBeInTheDocument();

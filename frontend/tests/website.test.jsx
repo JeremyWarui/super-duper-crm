@@ -24,7 +24,7 @@ const POST = {
 };
 
 const ROUTES = {
-  "GET /party/": { name: "Umoja Party" },
+  "GET /site/": { name: "Umoja Party" },
   "GET /admin/party/posts/": [POST],
   "GET /admin/party/leaders/": [],
   "POST /admin/party/posts/": { ...POST, id: "p2" },

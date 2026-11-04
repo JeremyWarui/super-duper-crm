@@ -146,7 +146,7 @@ async def test_the_demo_site_publishes_once(
     events = (await client.get("/api/party/posts/", params={"kind": "event"})).json()
     assert (first, again) == (True, False)
     assert (len(leaders), len(events)) == (6, 3)
-    assert (await client.get("/api/party/")).json()["name"] == "Pamoja Party"
+    assert (await client.get("/api/site/")).json()["name"] == "Pamoja Party"
 
 
 async def test_the_demo_site_lists_its_candidates_and_names_one_in_the_next_event(

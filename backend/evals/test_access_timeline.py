@@ -55,9 +55,7 @@ async def test_each_day_of_a_lapse_answers_as_the_design_says(
     grace_days: int,
     read_only_days: int,
 ) -> None:
-    session.add(
-        PartySettings(id=1, name="Party", grace_days=grace_days, read_only_days=read_only_days)
-    )
+    session.add(PartySettings(id=1, grace_days=grace_days, read_only_days=read_only_days))
     world.campaign.subscription.paid_until = PAID_UNTIL
     await session.commit()
     headers = world.headers("manager")

@@ -432,7 +432,7 @@ async def _rival(session: AsyncSession, world: World, title: str, paid_until, **
 async def test_the_expiring_list_holds_lapsing_campaigns_soonest_first(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
-    session.add(PartySettings(id=1, name="Party", grace_days=3, read_only_days=4))
+    session.add(PartySettings(id=1, grace_days=3, read_only_days=4))
     headers = await _finance(client, session, world)
     day = lambda n: TEST_TODAY + timedelta(days=n)  # noqa: E731
     await _paid_until(session, world, day(14))

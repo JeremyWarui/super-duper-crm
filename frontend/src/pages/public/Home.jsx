@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Play } from "lucide-react";
 import {
-  useParty,
+  useSite,
   usePublicBranches,
   usePublicCandidates,
   usePublicIssues,
@@ -63,7 +63,7 @@ function BranchFinder() {
 /** Rotates every 6 seconds; Pause stops it, and it never moves on its own for reduced motion. */
 export function Carousel() {
   const { partyName, slogan } = useBranding();
-  const party = useParty().data;
+  const party = useSite().data;
   const published = usePublicSlides().data || [];
   const slides = published.length ? published : [{ id: "party", kicker: partyName, headline: slogan || partyName, line: party?.description || "", image_url: "" }];
   const [index, setIndex] = useState(0);
@@ -178,7 +178,7 @@ export function youtubeThumb(url) {
 
 function Watch() {
   const videos = (usePublicVideos().data || []).slice(0, 3);
-  const youtube = Object.entries(useParty().data?.social_links || {}).find(([name]) => /youtube/i.test(name))?.[1];
+  const youtube = Object.entries(useSite().data?.social_links || {}).find(([name]) => /youtube/i.test(name))?.[1];
   if (!videos.length) return null;
   return (
     <section aria-labelledby="watch-h" className="flex flex-col gap-4 border-t-[3px] border-ink pt-3.5">

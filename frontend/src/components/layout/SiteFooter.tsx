@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
-import { useParty, useSubscribe } from '@/api/hooks'
+import { useSite, useSubscribe } from '@/api/hooks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useBranding } from '@/theme/branding'
@@ -58,7 +58,7 @@ function Newsletter({ wording }: { wording: string }) {
 /** Shared website footer: news sign-up, the party's contacts and socials, link columns, legal row. */
 export function SiteFooter({ newsletter = true }: { newsletter?: boolean }) {
   const b = useBranding()
-  const party: any = useParty().data
+  const party: any = useSite().data
   const socials = Object.entries(party?.social_links || {}) as [string, string][]
   const contact = [party?.contact_phone, party?.contact_email].filter(Boolean)
   return (

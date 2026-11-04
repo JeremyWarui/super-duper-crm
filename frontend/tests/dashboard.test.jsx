@@ -28,7 +28,7 @@ const BOARD = {
 };
 
 const ROUTES = {
-  "GET /party/": { name: "Umoja Party" },
+  "GET /site/": { name: "Umoja Party" },
   "GET /party/places/": [{ id: "c1", name: "Nakuru" }],
   "GET /party/aspirants/": { total: 0, items: [] },
   "GET /party/dashboard/": BOARD,
