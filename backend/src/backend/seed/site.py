@@ -18,6 +18,8 @@ from backend.models import (
     PartyValue,
     PostKind,
     PostLabel,
+    PrimaryResult,
+    Seat,
 )
 
 PHOTO = "https://randomuser.me/api/portraits/{}.jpg"
@@ -45,6 +47,13 @@ SETTINGS = {
         "2. Farmers: fair prices and cold stores in every county.\n"
         "3. Health: a staffed dispensary within 5 km of every home.\n"
         "4. Open counties: every budget line published online."
+    ),
+    "aspirant_steps": (
+        "Be a paid-up party member for at least six months.\n"
+        "Read the nomination rules and pick the seat you will vie for.\n"
+        "Apply through your account with your ID and a short statement.\n"
+        "Pay the nomination fee once the Elections Board clears you.\n"
+        "Campaign in the party primary under the party's code of conduct."
     ),
     "social_links": {"X": "https://x.com/example", "Facebook": "https://facebook.com/example"},
 }
@@ -102,6 +111,14 @@ DOCUMENTS = [
     ("Party constitution (PDF)", "https://example.com/pamoja/constitution.pdf"),
     ("Nomination rules (PDF)", "https://example.com/pamoja/nomination-rules.pdf"),
     ("Manifesto (PDF)", "https://example.com/pamoja/manifesto.pdf"),
+]
+
+# (seat, area, days before today it was declared or None while counting, candidates)
+RESULTS = [
+    (Seat.GOVERNOR, "Nakuru County", 6, [("Mary Njeri", 18_402), ("Samuel Korir", 15_960)]),
+    (Seat.MP, "Westlands", 5, [("Brian Ochieng", 6_215), ("Lucy Wairimu", 4_870)]),
+    (Seat.MP, "Kisumu Central", 5, [("Akinyi Odhiambo", 7_034), ("Tom Ouma", 3_112)]),
+    (Seat.MCA, "Kileleshwa", None, [("Faith Muthoni", 812), ("Ali Hassan", 774)]),
 ]
 
 BODY = (
@@ -328,7 +345,13 @@ async def seed_news(session: AsyncSession, today: date) -> int:
             changed += 1
     settings = await session.get(PartySettings, 1)
     if settings is not None:
-        for field in ("slogan", "registration_number", "about_headline", "founded_year"):
+        for field in (
+            "slogan",
+            "registration_number",
+            "about_headline",
+            "founded_year",
+            "aspirant_steps",
+        ):
             if not getattr(settings, field):
                 setattr(settings, field, SETTINGS[field])
                 changed += 1
@@ -341,5 +364,21 @@ async def seed_news(session: AsyncSession, today: date) -> int:
         for n, (title, url) in enumerate(DOCUMENTS):
             session.add(PartyDocument(title=title, url=url, sort_order=n, published=True))
         changed += len(DOCUMENTS)
+    if not await session.scalar(select(func.count()).select_from(PrimaryResult)):
+        for seat, area, days_ago, candidates in RESULTS:
+            declared = None if days_ago is None else today - timedelta(days=days_ago)
+            for name, votes in candidates:
+                session.add(
+                    PrimaryResult(
+                        seat=seat,
+                        area=area,
+                        candidate=name,
+                        votes=votes,
+                        declared_on=declared,
+                        demo=True,
+                        published=True,
+                    )
+                )
+                changed += 1
     await session.commit()
     return changed

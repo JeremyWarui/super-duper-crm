@@ -259,7 +259,8 @@
       "privacy_notice_version",
       "subscribe_consent_wording",
       "about_headline",
-      "founded_year"
+      "founded_year",
+      "aspirant_steps"
     ],
     "PUT /api/admin/party/": [
       "name",
@@ -730,6 +731,25 @@
     "GET /api/party/stats/": [
       "members",
       "branches"
+    ],
+    "GET /api/party/results/": [
+      "id",
+      "seat",
+      "area",
+      "candidate",
+      "votes",
+      "declared_on",
+      "demo"
+    ],
+    "GET /api/admin/party/results/": [
+      "id",
+      "seat",
+      "area",
+      "candidate",
+      "votes",
+      "declared_on",
+      "demo",
+      "published"
     ]
   },
   "nested_reads": {
@@ -1136,7 +1156,8 @@
       "privacy_notice",
       "privacy_notice_version",
       "about_headline",
-      "founded_year"
+      "founded_year",
+      "aspirant_steps"
     ],
     "POST /api/admin/users/{user_id}/party-roles/": [
       "role"
@@ -1371,6 +1392,21 @@
       "text",
       "sort_order",
       "published"
+    ],
+    "POST /api/admin/party/results/": [
+      "seat",
+      "area",
+      "candidate",
+      "votes",
+      "declared_on"
+    ],
+    "PATCH /api/admin/party/results/{result_id}/": [
+      "seat",
+      "area",
+      "candidate",
+      "votes",
+      "declared_on",
+      "published"
     ]
   },
   "enums": {
@@ -1444,7 +1480,8 @@
       "DELETE /api/admin/party/issues/{issue_id}/",
       "DELETE /api/admin/party/documents/{document_id}/",
       "DELETE /api/admin/party/values/{value_id}/",
-      "DELETE /api/admin/party/organs/{organ_id}/"
+      "DELETE /api/admin/party/organs/{organ_id}/",
+      "DELETE /api/admin/party/results/{result_id}/"
     ]
   }
 }

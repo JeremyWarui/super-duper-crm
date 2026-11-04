@@ -14,6 +14,7 @@ from backend.models.content import (
     PartyOrgan,
     PartyPost,
     PartyValue,
+    PrimaryResult,
     Subscriber,
 )
 from backend.models.enums import (
@@ -111,6 +112,7 @@ __all__ = [
     "PartyDocument",
     "PartyOrgan",
     "PartyValue",
+    "PrimaryResult",
     "Seat",
     "RegistrationCentre",
     "SupportLevel",

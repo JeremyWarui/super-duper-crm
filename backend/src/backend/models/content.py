@@ -20,7 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
-from backend.models.enums import PostKind, PostLabel
+from backend.models.enums import PostKind, PostLabel, Seat
 from backend.models.geography import County
 
 
@@ -179,5 +179,22 @@ class PartyOrgan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(150))
     text: Mapped[str] = mapped_column(String(300), default="", server_default="")
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    updated_at: Mapped[datetime] = _updated_at()
+
+
+class PrimaryResult(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """One candidate's votes in a party primary, on the Results page once published."""
+
+    __tablename__ = "primary_results"
+    __table_args__ = (CheckConstraint("votes >= 0", name="votes_not_negative"),)
+
+    seat: Mapped[Seat] = mapped_column(choice_type(Seat, "seat"))
+    area: Mapped[str] = mapped_column(String(150))
+    candidate: Mapped[str] = mapped_column(String(150))
+    votes: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    declared_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Set by the demo seed; the page then says the results are demo results.
+    demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     updated_at: Mapped[datetime] = _updated_at()

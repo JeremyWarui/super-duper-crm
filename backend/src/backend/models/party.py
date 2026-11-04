@@ -78,6 +78,8 @@ class PartySettings(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     manifesto_text: Mapped[str] = mapped_column(Text, default="")
     manifesto_url: Mapped[str] = mapped_column(String(500), default="")
+    # The Vie with us page's steps, one per line.
+    aspirant_steps: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
     privacy_notice: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
     # Recorded with every news sign-up; the party raises it when the notice changes.
     privacy_notice_version: Mapped[str] = mapped_column(

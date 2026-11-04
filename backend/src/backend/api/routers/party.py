@@ -22,6 +22,7 @@ from backend.models import (
     PartyValue,
     PostKind,
     PostLabel,
+    PrimaryResult,
     RegistrationCentre,
     Seat,
     Ward,
@@ -34,6 +35,7 @@ from backend.schemas.content import (
     IssueRead,
     LeaderRead,
     PostRead,
+    ResultRead,
     SlideRead,
 )
 from backend.schemas.dashboard import Dashboard
@@ -335,6 +337,12 @@ async def values(session: SessionDep):
 async def organs(session: SessionDep):
     """The party's published organs, in order."""
     return await home.published(session, PartyOrgan)
+
+
+@router.get("/results/", response_model=list[ResultRead])
+async def results(session: SessionDep):
+    """The published primary results, by seat, area and votes, most votes first."""
+    return await home.published(session, PrimaryResult)
 
 
 @router.get("/stats/", response_model=PartyStats)

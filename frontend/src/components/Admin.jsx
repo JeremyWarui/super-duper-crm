@@ -743,6 +743,7 @@ const partyForm = (party) => ({
       "secondary_colour",
       "description",
       "manifesto_text",
+      "aspirant_steps",
       "privacy_notice",
     ].map((key) => [key, party[key] ?? ""]),
   ),
@@ -823,6 +824,14 @@ function PartyForm({ party }) {
           className="admin-field admin-field-wide admin-field-area"
           value={form.manifesto_text}
           onChange={(e) => set({ manifesto_text: e.target.value })}
+        />
+      </Field>
+      <div className="admin-form-spacer" />
+      <Field label="Steps to become an aspirant (one per line)">
+        <textarea
+          className="admin-field admin-field-wide admin-field-area"
+          value={form.aspirant_steps}
+          onChange={(e) => set({ aspirant_steps: e.target.value })}
         />
       </Field>
       <div className="admin-form-spacer" />

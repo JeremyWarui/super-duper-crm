@@ -71,6 +71,7 @@ class PartySettingsRead(ORMModel):
     description: str
     manifesto_text: str
     manifesto_url: str
+    aspirant_steps: str
     social_links: dict[str, str]
     privacy_notice: str
     privacy_notice_version: str
@@ -99,6 +100,7 @@ class PartySettingsUpdate(WriteModel):
     description: str = ""
     manifesto_text: str = ""
     manifesto_url: Link = ""
+    aspirant_steps: str = Field(default="", max_length=20000)
     social_links: dict[Annotated[str, Field(max_length=40)], Link] = Field(default_factory=dict)
     privacy_notice: str = Field(default="", max_length=20000)
     privacy_notice_version: str = Field(default="1", min_length=1, max_length=20)
@@ -122,7 +124,14 @@ class PartySettingsUpdate(WriteModel):
             raise ValueError("The primary colour is too light for white text; pick a darker one.")
         if contrast(self.secondary_colour, INK) < MIN_CONTRAST:
             raise ValueError("The secondary colour is too dark for ink text; pick a lighter one.")
-        for name in ("address", "description", "manifesto_text", "manifesto_url", "privacy_notice"):
+        for name in (
+            "address",
+            "description",
+            "manifesto_text",
+            "manifesto_url",
+            "aspirant_steps",
+            "privacy_notice",
+        ):
             plain_text(getattr(self, name), lines=True)
         for key, link in self.social_links.items():
             plain_text(key)

@@ -12,12 +12,14 @@ import Portal from "./pages/party/Portal";
 import Join from "./components/Join";
 import Withdraw from "./components/Withdraw";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import Legacy, { LegacySite } from "./components/Legacy";
+import Legacy from "./components/Legacy";
 import About from "./pages/public/About";
 import Events from "./pages/public/Events";
 import Home from "./pages/public/Home";
 import Leadership from "./pages/public/Leadership";
 import Manifesto from "./pages/public/Manifesto";
+import Results from "./pages/public/Results";
+import Vie from "./pages/public/Vie";
 import News from "./pages/public/News";
 import Post from "./pages/public/Post";
 import JoinParty from "./pages/public/JoinParty";
@@ -138,12 +140,14 @@ export function AppRoutes() {
       <Route path="/news" element={<PublicLayout><News /></PublicLayout>} />
       <Route path="/news/:id" element={<PublicLayout><PostPage /></PublicLayout>} />
       <Route path="/events" element={<PublicLayout><Events /></PublicLayout>} />
+      <Route path="/results" element={<PublicLayout><Results /></PublicLayout>} />
+      <Route path="/vie" element={<PublicLayout><Vie /></PublicLayout>} />
       <Route path="/signin" element={<SignInPage />} />
       <Route path="/signin/where" element={<SignedInOnly><Chooser /></SignedInOnly>} />
       <Route path="/account" element={<SignedInOnly><AccountPage /></SignedInOnly>} />
       <Route path="/join/:code" element={<Legacy><JoinPage /></Legacy>} />
       <Route path="/withdraw/:code" element={<Legacy><WithdrawPage /></Legacy>} />
-      <Route path="/join-party" element={<PublicLayout><LegacySite><JoinParty /></LegacySite></PublicLayout>} />
+      <Route path="/join-party" element={<PublicLayout><JoinParty /></PublicLayout>} />
       <Route path="/contribute" element={<PublicLayout><Contribute /></PublicLayout>} />
       <Route path="/counties" element={<PublicLayout><Branches /></PublicLayout>} />
       <Route path="/counties/:id" element={<PublicLayout><Branch /></PublicLayout>} />

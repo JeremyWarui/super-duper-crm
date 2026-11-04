@@ -1,4 +1,4 @@
-// The superuser's editor for the public site: carousel slides, agenda issues, posts, leaders and documents.
+// The superuser's editor for the public site: slides, issues, posts, leaders, About content and results.
 import { useState } from "react";
 import {
   useDeleteDocument,
@@ -6,6 +6,7 @@ import {
   useDeleteLeader,
   useDeleteOrgan,
   useDeletePost,
+  useDeleteResult,
   useDeleteSlide,
   useDeleteValue,
   useSaveDocument,
@@ -13,6 +14,7 @@ import {
   useSaveLeader,
   useSaveOrgan,
   useSavePost,
+  useSaveResult,
   useSaveSlide,
   useSaveValue,
   usePartyPlaces,
@@ -21,6 +23,7 @@ import {
   useSiteLeaders,
   useSiteOrgans,
   useSitePosts,
+  useSiteResults,
   useSiteSlides,
   useSiteValues,
 } from "@/api/hooks";
@@ -31,6 +34,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/format";
+import { SEAT_LABEL, SEATS } from "./helpers";
 
 const HTTPS = /^https:\/\/\S+$/;
 const CHECKS = {
@@ -38,6 +42,7 @@ const CHECKS = {
   https: (v) => !v || HTTPS.test(v) || "Use an address starting with https://.",
   link: (v) => !v || HTTPS.test(v) || (/^\/(?!\/)\S*$/.test(v)) || "Use a page on this site such as /join-party, or an https:// address.",
   order: (v) => (/^\d{1,5}$/.test(v) && Number(v) <= 10000) || "Use a whole number from 0 to 10000.",
+  count: (v) => /^\d{1,8}$/.test(v) && Number(v) <= 10000000 || "Use a whole number of votes.",
 };
 const ORDER = { key: "sort_order", label: "Order", kind: "order", hint: "Lower numbers come first." };
 
@@ -98,6 +103,14 @@ const DOCUMENT_FIELDS = [
   ORDER,
 ];
 
+const RESULT_FIELDS = [
+  { key: "seat", label: "Seat", kind: "select", options: SEATS.map(([value, label]) => [value, label]) },
+  { key: "area", label: "Area", max: 150, required: true, hint: "The ward, constituency or county, such as Westlands." },
+  { key: "candidate", label: "Candidate", max: 150, required: true },
+  { key: "votes", label: "Votes", kind: "count", required: true },
+  { key: "declared_on", label: "Declared on (optional)", kind: "date", hint: "Leave empty while the count goes on." },
+];
+
 const SECTIONS = {
   Homepage: [
     { noun: "slide", title: "Carousel slides", hint: "Up to 5, rotating every 6 seconds.", fields: SLIDE_FIELDS, query: useSiteSlides, save: useSaveSlide, del: useDeleteSlide, name: (r) => r.headline, meta: (r) => `Order ${r.sort_order}`, max: 5 },
@@ -114,9 +127,12 @@ const SECTIONS = {
     { noun: "organ", title: "How the party is run", hint: "The party's organs and what each does.", fields: ABOUT_FIELDS, query: useSiteOrgans, save: useSaveOrgan, del: useDeleteOrgan, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
     { noun: "document", title: "Party documents", hint: "Linked from the About page.", fields: DOCUMENT_FIELDS, query: useSiteDocuments, save: useSaveDocument, del: useDeleteDocument, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
   ],
+  Results: [
+    { noun: "result", title: "Primary results", hint: "One row per candidate; rows with the same seat and area form one race.", fields: RESULT_FIELDS, query: useSiteResults, save: useSaveResult, del: useDeleteResult, name: (r) => `${r.candidate}, ${SEAT_LABEL[r.seat]} ${r.area}`, meta: (r) => `${r.votes.toLocaleString("en-KE")} votes · ${r.declared_on ? `declared ${formatDate(r.declared_on)}` : "counting"}${r.demo ? " · demo" : ""}` },
+  ],
 };
 
-const blank = (fields) => Object.fromEntries(fields.map((f) => [f.key, f.kind === "order" ? "0" : f.kind === "select" ? f.options[0][0] : ""]));
+const blank = (fields) => Object.fromEntries(fields.map((f) => [f.key, f.kind === "order" || f.kind === "count" ? "0" : f.kind === "select" ? f.options[0][0] : ""]));
 const formOf = (fields, row) => (row ? Object.fromEntries(fields.map((f) => [f.key, row[f.key] == null ? "" : String(row[f.key])])) : blank(fields));
 
 function problems(fields, form) {
@@ -138,7 +154,7 @@ function payload(fields, form, row) {
   for (const f of fields) {
     if ((f.show && !f.show(form)) || (f.newOnly && row)) continue;
     const v = f.kind === "area" ? form[f.key] : form[f.key].trim();
-    body[f.key] = f.kind === "order" ? Number(v) : f.kind === "county" ? v || null : v;
+    body[f.key] = f.kind === "order" || f.kind === "count" ? Number(v) : f.kind === "county" || (f.kind === "date" && !f.required) ? v || null : v;
   }
   if (!row) return body;
   return Object.fromEntries(Object.entries(body).filter(([k, v]) => (v ?? "") !== (row[k] ?? "")));
@@ -184,7 +200,7 @@ function ItemForm({ section, row, onDone }) {
               {f.kind === "area" ? <Textarea rows={4} maxLength={f.max} {...common} />
                 : f.kind === "select" ? <NativeSelect {...common}>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</NativeSelect>
                 : f.kind === "county" ? <CountySelect {...common} />
-                : <Input type={f.kind === "date" ? "date" : "text"} inputMode={f.kind === "order" ? "numeric" : undefined} maxLength={f.max} {...common} />}
+                : <Input type={f.kind === "date" ? "date" : "text"} inputMode={f.kind === "order" || f.kind === "count" ? "numeric" : undefined} maxLength={f.max} {...common} />}
             </Field>
           );
         })}

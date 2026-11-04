@@ -7,7 +7,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, Field, computed_field, field_validator, model_validator
 
-from backend.models import PostKind, PostLabel
+from backend.models import PostKind, PostLabel, Seat
 from backend.schemas.common import ORMModel, WriteModel, plain_text
 
 
@@ -392,4 +392,44 @@ class AboutItemUpdate(WriteModel):
     title: Line | None = None
     text: _short(300) | None = None
     sort_order: Order | None = None
+    published: bool | None = None
+
+
+Votes = Annotated[int, Field(ge=0, le=10_000_000)]
+
+
+class ResultRead(ORMModel):
+    """One candidate's votes in a primary race, a race being one seat in one area."""
+
+    id: uuid.UUID
+    seat: Seat
+    area: str
+    candidate: str
+    votes: int
+    declared_on: date | None
+    demo: bool
+
+
+class ResultAdminRead(ResultRead):
+    published: bool
+    updated_at: datetime
+
+
+class ResultCreate(WriteModel):
+    seat: Seat
+    area: Line
+    candidate: Line
+    votes: Votes = 0
+    declared_on: date | None = None
+    published: bool = False
+
+
+class ResultUpdate(WriteModel):
+    """Only the fields sent change; a null declared_on marks the race as still counting."""
+
+    seat: Seat | None = None
+    area: Line | None = None
+    candidate: Line | None = None
+    votes: Votes | None = None
+    declared_on: date | None = None
     published: bool | None = None

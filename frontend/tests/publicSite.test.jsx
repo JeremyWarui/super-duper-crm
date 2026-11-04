@@ -104,6 +104,26 @@ describe("the public site", () => {
     );
   });
 
+  it("groups results by seat and says when they are demo results", async () => {
+    const result = (id, seat, area, candidate, votes) => ({ id, seat, area, candidate, votes, declared_on: "2026-10-30", demo: true });
+    stubApi({
+      ...ROUTES,
+      "GET /party/results/": [
+        result("r1", "governor", "Nakuru County", "Mary Njeri", 1200),
+        result("r2", "mca", "Kileleshwa", "Faith Muthoni", 80),
+        result("r3", "mp", "Westlands", "Brian Ochieng", 900),
+        result("r4", "mp", "Westlands", "Lucy Wairimu", 400),
+      ],
+    });
+    renderApp(<AppRoutes />, { path: "/results" });
+
+    expect(await screen.findByRole("note")).toHaveTextContent("Demo results");
+    const races = screen.getAllByRole("article").map((a) => a.getAttribute("aria-label"));
+    expect(races).toEqual(["MCA · Kileleshwa", "MP · Westlands", "Governor · Nakuru County"]);
+    const westlands = within(screen.getByRole("article", { name: "MP · Westlands" }));
+    expect(westlands.getAllByRole("listitem").map((li) => li.textContent)).toEqual(["✓ Brian Ochieng900 votes", "Lucy Wairimu400 votes"]);
+  });
+
   it("lists the leaders in the order the server gives", async () => {
     stubApi(ROUTES);
     renderApp(<AppRoutes />, { path: "/leadership" });

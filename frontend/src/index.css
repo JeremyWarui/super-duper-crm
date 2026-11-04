@@ -1401,18 +1401,6 @@
 
 .legacy .join-loading { padding: 0; }
 
-.legacy .party-banner {
-  padding-bottom: 16px;
-  border-bottom: 3px solid var(--party-secondary, var(--color-border));
-}
-
-.legacy .party-logo {
-  display: block;
-  max-width: 120px;
-  max-height: 80px;
-  margin-bottom: 12px;
-}
-
 .legacy .join-message-success {
   margin-top: 20px;
   color: var(--color-primary);
@@ -1472,33 +1460,6 @@
   font-size: var(--text-md);
 }
 
-.legacy .join-steps {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: 20px 0 4px;
-  padding: 0;
-  list-style: none;
-}
-
-.legacy .join-step { display: flex; flex-direction: column; gap: 6px; }
-
-.legacy .join-step-done { background: var(--color-primary); }
-
-.legacy .join-step-label { font-size: var(--text-sm); font-weight: 700; color: var(--color-text-muted); }
-
-.legacy .join-step[aria-current="step"] .join-step-label { color: var(--color-text); }
-
-.legacy .join-nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.legacy .join-nav .join-submit { width: auto; margin-top: 0; }
-
 /* ---- narrow screens ----------------------------------------------------- */
 
 @media (max-width: 960px) {
@@ -1538,16 +1499,6 @@
 }
 
 .legacy .link-button:hover { text-decoration: underline; }
-
-.legacy .site-main {
-  flex: 1;
-  width: 100%;
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 32px 16px;
-}
-
-.legacy .site-main .join-shell { min-height: 0; padding: 0; }
 
 /* ---- party dashboard ---- */
 

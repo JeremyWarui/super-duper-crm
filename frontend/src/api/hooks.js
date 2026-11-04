@@ -547,6 +547,7 @@ function useSiteWrite(mutationFn) {
       qc.invalidateQueries({ queryKey: ["public-documents"] });
       qc.invalidateQueries({ queryKey: ["public-values"] });
       qc.invalidateQueries({ queryKey: ["public-organs"] });
+      qc.invalidateQueries({ queryKey: ["public-results"] });
     },
   });
 }
@@ -648,6 +649,21 @@ export const useSaveOrgan = () =>
   );
 export const useDeleteValue = () => useSiteWrite((id) => api(`/admin/party/values/${id}/`, { method: "DELETE" }));
 export const useDeleteOrgan = () => useSiteWrite((id) => api(`/admin/party/organs/${id}/`, { method: "DELETE" }));
+
+// Primary results: each row is one candidate's votes in one seat and area.
+export const usePublicResults = () =>
+  useQuery({ queryKey: ["public-results"], queryFn: () => api("/party/results/", { anonymous: true }) });
+
+export const useSiteResults = () =>
+  useQuery({ queryKey: ["site", "results"], queryFn: () => api("/admin/party/results/") });
+
+export const useSaveResult = () =>
+  useSiteWrite(({ id, ...body }) =>
+    id
+      ? api(`/admin/party/results/${id}/`, { method: "PATCH", body })
+      : api("/admin/party/results/", { method: "POST", body }),
+  );
+export const useDeleteResult = () => useSiteWrite((id) => api(`/admin/party/results/${id}/`, { method: "DELETE" }));
 
 // Counties, or one county's constituencies, or one constituency's wards.
 export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = {}) =>

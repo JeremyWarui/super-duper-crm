@@ -14,6 +14,7 @@ from backend.models import (
     PartyRoleName,
     PartyValue,
     PostKind,
+    PrimaryResult,
     UserRole,
 )
 from backend.schemas.admin import (
@@ -52,6 +53,9 @@ from backend.schemas.content import (
     PostAdminRead,
     PostCreate,
     PostUpdate,
+    ResultAdminRead,
+    ResultCreate,
+    ResultUpdate,
     SlideAdminRead,
     SlideCreate,
     SlideUpdate,
@@ -436,3 +440,25 @@ async def update_party_organ(
 @router.delete("/party/organs/{organ_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_party_organ(organ_id: uuid.UUID, session: SessionDep, admin: AdminUser):
     await home.delete(session, PartyOrgan, organ_id, actor=admin)
+
+
+@router.get("/party/results/", response_model=list[ResultAdminRead])
+async def party_results(session: SessionDep, _: AdminUser):
+    return await home.every(session, PrimaryResult)
+
+
+@router.post("/party/results/", response_model=ResultAdminRead, status_code=status.HTTP_201_CREATED)
+async def create_party_result(payload: ResultCreate, session: SessionDep, admin: AdminUser):
+    return await home.create(session, PrimaryResult, payload, actor=admin)
+
+
+@router.patch("/party/results/{result_id}/", response_model=ResultAdminRead)
+async def update_party_result(
+    result_id: uuid.UUID, payload: ResultUpdate, session: SessionDep, admin: AdminUser
+):
+    return await home.update(session, PrimaryResult, result_id, payload, actor=admin)
+
+
+@router.delete("/party/results/{result_id}/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_party_result(result_id: uuid.UUID, session: SessionDep, admin: AdminUser):
+    await home.delete(session, PrimaryResult, result_id, actor=admin)

@@ -1,4 +1,4 @@
-"""Homepage slides, agenda issues and About-page content; the public sees published ones."""
+"""Homepage, About-page and Results-page content; the public sees published ones."""
 
 import uuid
 
@@ -6,22 +6,35 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AgendaIssue, HeroSlide, PartyDocument, PartyOrgan, PartyValue, User
+from backend.models import (
+    AgendaIssue,
+    HeroSlide,
+    PartyDocument,
+    PartyOrgan,
+    PartyValue,
+    PrimaryResult,
+    User,
+)
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
 
 MAX_SLIDES = 5
-Row = HeroSlide | AgendaIssue | PartyDocument | PartyValue | PartyOrgan
+# Fields a null clears instead of leaving unchanged.
+CLEARABLE = {"declared_on"}
+Row = HeroSlide | AgendaIssue | PartyDocument | PartyValue | PartyOrgan | PrimaryResult
 NAMES = {
     HeroSlide: "hero_slide",
     AgendaIssue: "agenda_issue",
     PartyDocument: "document",
     PartyValue: "value",
     PartyOrgan: "organ",
+    PrimaryResult: "result",
 }
 
 
 def _ordered(model: type[Row]):
+    if model is PrimaryResult:
+        return select(model).order_by(model.seat, model.area, model.votes.desc(), model.candidate)
     return select(model).order_by(model.sort_order, model.created_at)
 
 
@@ -80,7 +93,11 @@ async def update(
     session: AsyncSession, model: type[Row], row_id: uuid.UUID, payload: BaseModel, *, actor: User
 ) -> Row:
     row = await _get(session, model, row_id)
-    changes = payload.model_dump(exclude_unset=True, exclude_none=True)
+    changes = {
+        name: value
+        for name, value in payload.model_dump(exclude_unset=True).items()
+        if value is not None or name in CLEARABLE
+    }
     for name, value in changes.items():
         setattr(row, name, value)
     _audit(session, actor, "update", row, fields=sorted(changes), published=row.published)
