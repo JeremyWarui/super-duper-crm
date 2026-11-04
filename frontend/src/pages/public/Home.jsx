@@ -1,10 +1,11 @@
-// The party's public homepage: carousel, agenda, news and videos, events, branches, leadership and ways to take part.
+// The party's public homepage: carousel, agenda, news and videos, events, branches, candidates, leadership and ways to take part.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Play } from "lucide-react";
 import {
   useParty,
   usePublicBranches,
+  usePublicCandidates,
   usePublicIssues,
   usePublicLeaders,
   usePublicPosts,
@@ -17,6 +18,7 @@ import { NativeSelect } from "@/components/ui/input";
 import { SectionHead } from "@/components/ui/typography";
 import { useBranding } from "@/theme/branding";
 import { LABELS, StoryKicker } from "./story";
+import { CandidateCard } from "./Candidates";
 
 const ROTATE_MS = 6000;
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -311,6 +313,21 @@ function Branches() {
   );
 }
 
+function OurCandidates() {
+  const people = (usePublicCandidates().data || []).slice(0, 4);
+  if (!people.length) return null;
+  return (
+    <section id="candidates" className="bg-white">
+      <div className="site-container flex flex-col gap-7 py-20">
+        <SectionHead kicker="On the ballot" title="Our candidates" action={{ label: "All candidates by county", to: "/candidates" }} />
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-5">
+          {people.map((c) => <CandidateCard key={c.slug} c={c} square />)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Leadership() {
   const leaders = usePublicLeaders().data || [];
   if (!leaders.length) return null;
@@ -373,6 +390,7 @@ export default function Home() {
       <News news={news} />
       <Events />
       <Branches />
+      <OurCandidates />
       <Leadership />
       <TakePart />
     </>

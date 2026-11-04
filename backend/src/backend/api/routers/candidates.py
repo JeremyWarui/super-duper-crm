@@ -25,12 +25,17 @@ WITHDRAWN = "Done. If you were on this campaign's volunteer list, you are off it
 @router.get("/", response_model=list[CandidateCard])
 async def list_candidates(
     session: SessionDep,
-    seat: Seat | None = None,
-    county: uuid.UUID | None = None,
+    seat: Annotated[str, Query(max_length=20)] = "",
+    county: Annotated[str, Query(max_length=40)] = "",
     q: Annotated[str, Query(max_length=100)] = "",
 ) -> list[CandidateCard]:
-    """Approved aspirants whose profile the party has published."""
-    return await service.candidates(session, seat=seat.value if seat else None, county=county, q=q)
+    """Approved aspirants whose profile the party has published; an empty filter means any."""
+    try:
+        seat_value = Seat(seat).value if seat else None
+        county_id = uuid.UUID(county) if county else None
+    except ValueError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unknown seat or county.") from None
+    return await service.candidates(session, seat=seat_value, county=county_id, q=q)
 
 
 @router.post("/volunteer/withdraw/{code}/", response_model=Withdrawn)

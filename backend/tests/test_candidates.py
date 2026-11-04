@@ -78,12 +78,14 @@ async def test_only_approved_aspirants_with_a_published_profile_are_listed(
 
     shown.status = AspirantStatus.SUSPENDED
     await session.commit()
+    filtered = (await client.get("/api/candidates/?seat=mca&county=&q=")).json()
     after = (await client.get("/api/candidates/")).json()
 
     assert [(c["name"], c["area"], c["county"]) for c in before] == [
         ("Officer shown", "Roysambu", "Nairobi City")
     ]
     assert before[0]["slug"].startswith("mp-roysambu-")
+    assert filtered == []
     assert after == []
 
 

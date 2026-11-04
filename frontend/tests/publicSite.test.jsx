@@ -148,16 +148,16 @@ describe("the public site", () => {
   });
 
   it("reaches every page from the menu", async () => {
-    stubApi(ROUTES);
+    stubApi({ ...ROUTES, "GET /candidates/?seat=&county=&q=": [], "GET /party/results/": [] });
     renderApp(<AppRoutes />);
     const user = userEvent.setup();
     const menu = () => within(screen.getByRole("navigation", { name: "Main" }));
     const pages = [
       ["About", "About Umoja"],
-      ["Leadership", "Leadership"],
-      ["Manifesto", "Manifesto"],
       ["News", "News"],
       ["Events", "Events near you"],
+      ["Candidates", "Our candidates"],
+      ["Results", "Primary results"],
     ];
 
     for (const [link, heading] of pages) {

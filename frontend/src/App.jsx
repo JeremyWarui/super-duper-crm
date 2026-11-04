@@ -22,6 +22,7 @@ import Supporters from "./pages/campaign/Supporters";
 import Events from "./pages/campaign/Events";
 import Register from "./pages/campaign/Register";
 import Payments from "./pages/campaign/Payments";
+import Volunteers from "./pages/campaign/Volunteers";
 
 // One page per NAV key.
 const PAGES = {
@@ -34,6 +35,7 @@ const PAGES = {
   supporters: Supporters,
   events: Events,
   payments: Payments,
+  volunteers: Volunteers,
   register: Register,
   myevents: (props) => <Events {...props} mine />,
   mysupporters: (props) => <Supporters {...props} mine />,

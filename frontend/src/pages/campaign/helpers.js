@@ -19,7 +19,7 @@ export const kes = (n) => `KES ${fmt(n)}`;
 
 export const NAV = {
   candidate: [["overview", "Overview"], ["units", "Ward performance"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["team", "Team"], ["payments", "Payments"], ["strategy", "Strategy"]],
-  manager: [["overview", "Overview"], ["targets", "Targets"], ["units", "Wards"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["team", "Team"], ["supporters", "Supporters"], ["payments", "Payments"], ["strategy", "Strategy"]],
+  manager: [["overview", "Overview"], ["targets", "Targets"], ["units", "Wards"], ["events", "Events"], ["mobilizers", "Mobilizers"], ["team", "Team"], ["supporters", "Supporters"], ["volunteers", "Volunteers"], ["payments", "Payments"], ["strategy", "Strategy"]],
   mobilizer: [["myevents", "My events"], ["register", "Register supporter"], ["mysupporters", "My supporters"], ["mypayments", "My payments"]],
 };
 export const ROLE_LABEL = { candidate: "Candidate", manager: "Campaign Manager", mobilizer: "Mobilizer" };

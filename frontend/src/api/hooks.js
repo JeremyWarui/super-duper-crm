@@ -549,6 +549,7 @@ function useSiteWrite(mutationFn) {
       qc.invalidateQueries({ queryKey: ["public-organs"] });
       qc.invalidateQueries({ queryKey: ["public-results"] });
       qc.invalidateQueries({ queryKey: ["public-videos"] });
+      qc.invalidateQueries({ queryKey: ["public-candidates"] });
     },
   });
 }
@@ -1055,3 +1056,65 @@ export function useLinkPartyMember() {
     onSuccess: invalidate,
   });
 }
+
+// Candidates on the website: the directory, one profile, and its "Support" form.
+export const usePublicCandidates = ({ seat = "", county = "", q = "" } = {}) =>
+  useQuery({
+    queryKey: ["public-candidates", seat, county, q],
+    queryFn: () => api(`/candidates/?seat=${seat}&county=${county}&q=${encodeURIComponent(q)}`, { anonymous: true }),
+  });
+
+export const usePublicCandidate = (slug) =>
+  useQuery({
+    queryKey: ["public-candidates", "one", slug],
+    queryFn: () => api(`/candidates/${slug}/`, { anonymous: true }),
+    enabled: !!slug,
+  });
+
+export const useCandidateVolunteer = (slug) =>
+  useMutation({
+    mutationFn: (payload) => api(`/candidates/${slug}/volunteer/`, { method: "POST", body: payload, anonymous: true }),
+  });
+
+export const useCandidateWithdraw = () =>
+  useMutation({
+    mutationFn: (code) => api(`/candidates/volunteer/withdraw/${code}/`, { method: "POST", anonymous: true }),
+  });
+
+// The website editor's candidates: approved aspirants and their profiles, and an event's aspirants.
+export const useSiteCandidates = () =>
+  useQuery({ queryKey: ["site", "candidates"], queryFn: () => api("/admin/party/candidates/") });
+
+export const useSaveProfile = () =>
+  useSiteWrite(({ aspirant_id, ...body }) =>
+    api(`/admin/party/candidates/${aspirant_id}/profile/`, { method: "PUT", body }),
+  );
+
+export const usePostAspirants = (postId) =>
+  useQuery({
+    queryKey: ["site", "post-aspirants", postId],
+    queryFn: () => api(`/admin/party/posts/${postId}/aspirants/`),
+    enabled: !!postId,
+  });
+
+export const useSavePostAspirants = () =>
+  useSiteWrite(({ id, aspirant_ids }) =>
+    api(`/admin/party/posts/${id}/aspirants/`, { method: "PUT", body: { aspirant_ids } }),
+  );
+
+// A campaign's volunteers from its candidate's website page; the manager's list.
+export const useCampaignVolunteers = (campaignId) =>
+  useQuery({
+    queryKey: ["campaign-volunteers", campaignId],
+    queryFn: () => api(`/campaigns/${campaignId}/volunteers/`),
+    enabled: !!campaignId,
+  });
+
+export function useUpdateCampaignVolunteer(campaignId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }) => api(`/campaigns/${campaignId}/volunteers/${id}/`, { method: "PATCH", body }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["campaign-volunteers", campaignId] }),
+  });
+}
+

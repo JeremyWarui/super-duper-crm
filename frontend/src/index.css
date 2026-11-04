@@ -1500,6 +1500,9 @@
 
 .legacy .link-button:hover { text-decoration: underline; }
 
+/* A control a finger can hit: 44px tall at least. */
+.legacy .tap { min-height: 44px; }
+
 /* ---- party dashboard ---- */
 
 .legacy .filter-grid {

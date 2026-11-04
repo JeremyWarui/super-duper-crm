@@ -1,6 +1,10 @@
-// The superuser's editor for the public site: slides, issues, posts, leaders, About content and results.
+// The superuser's editor for the public site: slides, issues, posts, leaders, candidates, About content and results.
 import { useState } from "react";
 import {
+  usePostAspirants,
+  useSaveProfile,
+  useSavePostAspirants,
+  useSiteCandidates,
   useDeleteDocument,
   useDeleteIssue,
   useDeleteLeader,
@@ -283,8 +287,9 @@ function SectionList({ section }) {
         {full ? <p className="text-small text-muted-foreground">The carousel is full; delete a slide to add another.</p> : null}
       </Card>
       {editing ? (
-        <div className="min-w-0 flex-[1_1_420px]">
+        <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-6">
           <ItemForm key={editing.row?.id || "new"} section={section} row={editing.row} onDone={() => setEditing(null)} />
+          {section.noun === "post" && editing.row?.kind === "event" ? <EventAspirants key={`aspirants-${editing.row.id}`} postId={editing.row.id} /> : null}
         </div>
       ) : null}
       {deleting ? <ConfirmDelete section={section} row={deleting} onClose={() => setDeleting(null)} /> : null}
@@ -292,12 +297,136 @@ function SectionList({ section }) {
   );
 }
 
+/** The approved aspirants an event names; each one's profile lists the event. */
+function EventAspirants({ postId }) {
+  const named = usePostAspirants(postId);
+  const aspirants = useSiteCandidates().data || [];
+  const save = useSavePostAspirants();
+  const [picked, setPicked] = useState(null);
+  const chosen = picked ?? named.data?.aspirant_ids ?? [];
+  const toggle = (id) => setPicked(chosen.includes(id) ? chosen.filter((x) => x !== id) : [...chosen, id]);
+  return (
+    <Card variant="outline" className="gap-3">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-card-title font-bold">Aspirants at this event</h2>
+        <p className="text-small text-muted-foreground">The event shows on each one's candidate profile.</p>
+      </div>
+      {aspirants.length ? (
+        <div className="flex flex-col gap-1">
+          {aspirants.map((a) => (
+            <label key={a.aspirant_id} className="flex min-h-11 items-center gap-3">
+              <input type="checkbox" className="size-[18px] accent-primary" checked={chosen.includes(a.aspirant_id)} onChange={() => toggle(a.aspirant_id)} />
+              <span>{a.name} <span className="text-small text-muted-foreground">· {SEAT_LABEL[a.seat]} {a.area}</span></span>
+            </label>
+          ))}
+        </div>
+      ) : <p className="text-muted-foreground">No approved aspirants yet.</p>}
+      {save.error ? <p role="alert" className="text-small font-semibold text-destructive">{save.error.message}</p> : null}
+      {save.isSuccess && picked === null ? <p role="status" className="text-small text-muted-foreground">Saved.</p> : null}
+      <Button shape="rounded" className="self-start" disabled={picked === null || save.isPending} onClick={() => save.mutate({ id: postId, aspirant_ids: chosen }, { onSuccess: () => setPicked(null) })}>Save aspirants</Button>
+    </Card>
+  );
+}
+
+const PROFILE_FIELDS = [
+  ["photo_url", "Photo address (optional)", 500],
+  ["slogan", "Slogan (optional)", 120],
+  ["office_address", "Campaign office address (optional)", 300],
+  ["office_phone", "Campaign office phone (optional)", 20],
+  ["office_email", "Campaign office email (optional)", 254],
+];
+const NO_PRIORITY = { title: "", text: "" };
+
+function ProfileForm({ candidate, onDone }) {
+  const save = useSaveProfile();
+  const p = candidate.profile;
+  const [form, setForm] = useState({ ...p, priorities: [0, 1, 2].map((n) => p.priorities[n] || NO_PRIORITY) });
+  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+  const setPriority = (n, key) => (e) => setForm({ ...form, priorities: form.priorities.map((x, i) => (i === n ? { ...x, [key]: e.target.value } : x)) });
+  const photoBad = form.photo_url.trim() && !HTTPS.test(form.photo_url.trim());
+  const submit = (e) => {
+    e.preventDefault();
+    if (photoBad) return;
+    const body = Object.fromEntries(PROFILE_FIELDS.map(([key]) => [key, form[key].trim()]));
+    const priorities = form.priorities.map((x) => ({ title: x.title.trim(), text: x.text.trim() })).filter((x) => x.title);
+    save.mutate({ aspirant_id: candidate.aspirant_id, ...body, bio: form.bio, published: form.published, priorities }, { onSuccess: onDone });
+  };
+  return (
+    <Card variant="outline" asChild>
+      <form onSubmit={submit} noValidate>
+        <h2 className="text-card-title font-bold">Profile of {candidate.name}</h2>
+        {PROFILE_FIELDS.map(([key, label, max]) => (
+          <Field key={key} label={label} hint={key === "photo_url" && photoBad ? "Use an address starting with https://." : undefined}>
+            <Input value={form[key]} maxLength={max} onChange={set(key)} aria-invalid={key === "photo_url" && photoBad ? true : undefined} />
+          </Field>
+        ))}
+        <Field label="Biography (optional)"><Textarea rows={5} maxLength={2000} value={form.bio} onChange={set("bio")} /></Field>
+        {form.priorities.map((x, n) => (
+          <div key={n} className="grid gap-2 sm:grid-cols-[1fr_2fr]">
+            <Field label={`Priority ${n + 1} (optional)`}><Input value={x.title} maxLength={80} onChange={setPriority(n, "title")} /></Field>
+            <Field label={`Priority ${n + 1} detail (optional)`}><Input value={x.text} maxLength={300} onChange={setPriority(n, "text")} /></Field>
+          </div>
+        ))}
+        <label className="flex min-h-11 items-center gap-3 font-semibold">
+          <input type="checkbox" className="size-[18px] accent-primary" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} />
+          Published on the website
+        </label>
+        {save.error ? <p role="alert" className="text-small font-semibold text-destructive">{save.error.message}</p> : null}
+        <div className="flex flex-wrap gap-2.5">
+          <Button type="submit" shape="rounded" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save profile"}</Button>
+          <Button type="button" shape="rounded" variant="quiet" onClick={onDone}>Cancel</Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+function CandidatesEditor() {
+  const list = useSiteCandidates();
+  const [editing, setEditing] = useState(null);
+  const rows = list.data || [];
+  return (
+    <div className="flex flex-wrap items-start gap-6">
+      <Card variant="outline" className="min-w-0 flex-[1_1_420px] gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-card-title font-bold">Candidate profiles</h2>
+          <p className="text-small text-muted-foreground">Every approved aspirant. Write the profile from what the candidate sends, then publish it.</p>
+        </div>
+        {list.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
+        {list.error ? <p role="alert" className="text-destructive">{list.error.message}</p> : null}
+        {list.isSuccess && !rows.length ? <p className="text-muted-foreground">No approved aspirants yet.</p> : null}
+        <ul className="flex flex-col">
+          {rows.map((c) => (
+            <li key={c.aspirant_id} className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft py-3">
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="font-bold">{c.name}</span>
+                <span className="text-small text-muted-foreground">{SEAT_LABEL[c.seat]} · {c.area}</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <Badge tone={c.profile.published ? "ok" : "info"}>{c.profile.published ? "Published" : "Draft"}</Badge>
+                <Button shape="rounded" variant="quiet" onClick={() => setEditing(c)}>Edit profile</Button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Card>
+      {editing ? (
+        <div className="min-w-0 flex-[1_1_420px]">
+          <ProfileForm key={editing.aspirant_id} candidate={editing} onDone={() => setEditing(null)} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+const TABS = [...Object.keys(SECTIONS).slice(0, 3), "Candidates", ...Object.keys(SECTIONS).slice(3)];
+
 export default function Website() {
   const [tab, setTab] = useState("Posts");
   return (
     <div className="flex flex-col gap-6">
-      <FilterPills label="Website content" options={Object.keys(SECTIONS)} value={tab} onChange={setTab} />
-      {SECTIONS[tab].map((section) => <SectionList key={section.noun} section={section} />)}
+      <FilterPills label="Website content" options={TABS} value={tab} onChange={setTab} />
+      {tab === "Candidates" ? <CandidatesEditor /> : SECTIONS[tab].map((section) => <SectionList key={section.noun} section={section} />)}
     </div>
   );
 }

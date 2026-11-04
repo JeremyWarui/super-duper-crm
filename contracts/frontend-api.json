@@ -766,6 +766,64 @@
       "duration",
       "sort_order",
       "published"
+    ],
+    "GET /api/candidates/": [
+      "slug",
+      "name",
+      "seat",
+      "area",
+      "county",
+      "photo_url",
+      "slogan"
+    ],
+    "GET /api/candidates/{slug}/": [
+      "slug",
+      "name",
+      "seat",
+      "area",
+      "county",
+      "photo_url",
+      "slogan",
+      "bio",
+      "priorities",
+      "office_address",
+      "office_phone",
+      "office_email",
+      "events",
+      "volunteering_open",
+      "wards",
+      "consent_wording"
+    ],
+    "POST /api/candidates/{slug}/volunteer/": [
+      "message",
+      "withdraw_code"
+    ],
+    "POST /api/candidates/volunteer/withdraw/{code}/": [
+      "message"
+    ],
+    "GET /api/admin/party/candidates/": [
+      "aspirant_id",
+      "name",
+      "seat",
+      "area",
+      "profile"
+    ],
+    "GET /api/admin/party/posts/{post_id}/aspirants/": [
+      "aspirant_ids"
+    ],
+    "GET /api/campaigns/{campaign_id}/volunteers/": [
+      "id",
+      "first_name",
+      "last_name",
+      "phone",
+      "ward",
+      "registration_centre",
+      "profession",
+      "profession_other",
+      "status",
+      "interests",
+      "interest_other",
+      "preferred_contact"
     ]
   },
   "nested_reads": {
@@ -1001,6 +1059,38 @@
       "published"
     ],
     "GET /api/party/posts/.county": [
+      "id",
+      "name"
+    ],
+    "GET /api/candidates/{slug}/.events": [
+      "id",
+      "title",
+      "event_date",
+      "venue"
+    ],
+    "GET /api/candidates/{slug}/.wards": [
+      "id",
+      "name"
+    ],
+    "GET /api/candidates/{slug}/.priorities": [
+      "title",
+      "text"
+    ],
+    "GET /api/admin/party/candidates/.profile": [
+      "photo_url",
+      "slogan",
+      "bio",
+      "priorities",
+      "office_address",
+      "office_phone",
+      "office_email",
+      "published"
+    ],
+    "GET /api/campaigns/{campaign_id}/volunteers/.ward": [
+      "id",
+      "name"
+    ],
+    "GET /api/campaigns/{campaign_id}/volunteers/.registration_centre": [
       "id",
       "name"
     ]
@@ -1438,7 +1528,38 @@
       "duration",
       "sort_order",
       "published"
-    ]
+    ],
+    "POST /api/candidates/{slug}/volunteer/": [
+      "first_name",
+      "last_name",
+      "email",
+      "phone",
+      "ward",
+      "registration_centre",
+      "profession",
+      "profession_other",
+      "areas",
+      "area_other",
+      "preferred_contact",
+      "consent_given"
+    ],
+    "PUT /api/admin/party/candidates/{aspirant_id}/profile/": [
+      "photo_url",
+      "slogan",
+      "bio",
+      "priorities",
+      "office_address",
+      "office_phone",
+      "office_email",
+      "published"
+    ],
+    "PUT /api/admin/party/posts/{post_id}/aspirants/": [
+      "aspirant_ids"
+    ],
+    "PATCH /api/campaigns/{campaign_id}/volunteers/{volunteer_id}/": [
+      "status"
+    ],
+    "POST /api/candidates/volunteer/withdraw/{code}/": []
   },
   "enums": {
     "user.role": [

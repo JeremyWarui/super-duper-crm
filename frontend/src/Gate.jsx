@@ -19,6 +19,9 @@ import Home from "./pages/public/Home";
 import Leadership from "./pages/public/Leadership";
 import Manifesto from "./pages/public/Manifesto";
 import Results from "./pages/public/Results";
+import Candidates from "./pages/public/Candidates";
+import CandidatePage from "./pages/public/Candidate";
+import CandidateWithdraw from "./pages/public/CandidateWithdraw";
 import Vie from "./pages/public/Vie";
 import News from "./pages/public/News";
 import Post from "./pages/public/Post";
@@ -105,6 +108,11 @@ function AccountPage() {
   return <PublicLayout><Account /></PublicLayout>;
 }
 
+function CandidateRoute() {
+  const { slug } = useParams();
+  return <CandidatePage key={slug} slug={slug} />;
+}
+
 function PostPage() {
   const { id } = useParams();
   return <Post key={id} id={id} />;
@@ -141,6 +149,9 @@ export function AppRoutes() {
       <Route path="/news/:id" element={<PublicLayout><PostPage /></PublicLayout>} />
       <Route path="/events" element={<PublicLayout><Events /></PublicLayout>} />
       <Route path="/results" element={<PublicLayout><Results /></PublicLayout>} />
+      <Route path="/candidates" element={<PublicLayout><Candidates /></PublicLayout>} />
+      <Route path="/candidates/volunteer/withdraw/:code" element={<PublicLayout><CandidateWithdraw /></PublicLayout>} />
+      <Route path="/candidates/:slug" element={<PublicLayout><CandidateRoute /></PublicLayout>} />
       <Route path="/vie" element={<PublicLayout><Vie /></PublicLayout>} />
       <Route path="/signin" element={<SignInPage />} />
       <Route path="/signin/where" element={<SignedInOnly><Chooser /></SignedInOnly>} />

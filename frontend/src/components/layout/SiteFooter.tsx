@@ -8,7 +8,7 @@ import { Logo } from './Logo'
 
 const cols = [
   { title: 'The party', links: [['About', '/about'], ['Leadership', '/leadership'], ['Manifesto', '/manifesto']] },
-  { title: 'Take part', links: [['Join the party', '/join-party'], ['Events', '/events'], ['Contribute', '/contribute'], ['Vie with us', '/vie']] },
+  { title: 'Take part', links: [['Join the party', '/join-party'], ['Events', '/events'], ['Contribute', '/contribute'], ['Vie with us', '/vie'], ['Our candidates', '/candidates']] },
   { title: 'Media', links: [['News & statements', '/news'], ['Primary results', '/results']] },
   { title: 'Accounts', links: [['Member sign in', '/signin']] },
 ] as const

@@ -39,7 +39,7 @@ describe("what each role is shown", () => {
 
     expect(screen.getByRole("button", { name: /Campaign Manager$/ })).toBeInTheDocument();
     expect(sidebar()).toEqual([
-      "Overview", "Targets", "Wards", "Events", "Mobilizers", "Team", "Supporters", "Payments", "Strategy",
+      "Overview", "Targets", "Wards", "Events", "Mobilizers", "Team", "Supporters", "Volunteers", "Payments", "Strategy",
     ]);
     for (const page of [
       "Targets",

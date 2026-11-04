@@ -1,17 +1,24 @@
 """The demo website: a made-up party's branding, leaders, news, events and branches."""
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import (
     AgendaIssue,
+    Aspirant,
+    AspirantStatus,
     Branch,
+    CandidateProfile,
+    Constituency,
     County,
     HeroSlide,
+    PartyConsentChannel,
     PartyDocument,
     PartyLeader,
+    PartyMember,
+    PartyMemberStatus,
     PartyOrgan,
     PartyPost,
     PartySettings,
@@ -21,10 +28,16 @@ from backend.models import (
     PostLabel,
     PrimaryResult,
     Seat,
+    Ward,
+    party_post_aspirants,
 )
+from backend.services.consent import PARTY_WORDING
 
-PHOTO = "https://randomuser.me/api/portraits/{}.jpg"
-PICTURE = "https://picsum.photos/seed/pamoja-{}/1200/675"
+# Free (CC0) StockSnap photos, named by their StockSnap id.
+PHOTO = PICTURE = "https://cdn.stocksnap.io/img-thumbs/960w/{}.jpg"
+SLIDE_PICTURES = ["HBADKDBJYU", "X60YH1SWTF", "5TRB09XUBX", "6DWU4LVLXE", "FOMJTSRHS3"]
+NEWS_PICTURES = ["GZLDAMHFU4", "6B6QMRB4XI", "ZMTW3XX4SO", "UE4PDNKNCS"]
+EVENT_PICTURES = ["6KRBT8MYES", "PYULJR0I6W", "HOSIXQG6JS"]
 
 SETTINGS = {
     "name": "Pamoja Party",
@@ -64,12 +77,12 @@ SETTINGS = {
 }
 
 LEADERS = [
-    ("Amina Wanjiru", "Party Leader", "women/44", "Former county executive for trade."),
-    ("David Otieno", "Deputy Party Leader", "men/32", "Agricultural economist from Kisumu."),
-    ("Grace Chebet", "Secretary General", "women/68", "Runs the party's branch network."),
-    ("Joseph Mwangi", "National Treasurer", "men/75", "Accountant and co-operative organiser."),
-    ("Halima Abdi", "Youth League Chair", "women/12", "Founded a youth skills hub in Garissa."),
-    ("Peter Kiprono", "Organising Secretary", "men/52", "Leads voter registration drives."),
+    ("Amina Wanjiru", "Party Leader", "TI7XCCOF5U", "Former county executive for trade."),
+    ("David Otieno", "Deputy Party Leader", "OIO01RKMXU", "Agricultural economist from Kisumu."),
+    ("Grace Chebet", "Secretary General", "W6GFOSFAXA", "Runs the party's branch network."),
+    ("Joseph Mwangi", "National Treasurer", "T8VNJRQH7F", "Accountant and co-operative organiser."),
+    ("Halima Abdi", "Youth League Chair", "THKNOI5LH6", "Founded a youth skills hub in Garissa."),
+    ("Peter Kiprono", "Organising Secretary", "YIIOGSJBMI", "Leads voter registration drives."),
 ]
 
 NEWS = [
@@ -91,8 +104,8 @@ STATEMENTS = [
 ]
 
 OPINIONS = [
-    ("Why this election is about young people", "Amina Wanjiru", "women/44", 3),
-    ("Devolution works when counties publish their budgets", "Joseph Mwangi", "men/75", 8),
+    ("Why this election is about young people", "Amina Wanjiru", "TI7XCCOF5U", 3),
+    ("Devolution works when counties publish their budgets", "Joseph Mwangi", "T8VNJRQH7F", 8),
 ]
 
 VALUES = [
@@ -119,9 +132,50 @@ DOCUMENTS = [
 ]
 
 VIDEOS = [
-    ("Party leader's rally speech in Nakuru", "12:40", 21),
-    ("Manifesto launch highlights", "4:15", 22),
-    ("Town hall: questions from members", "38:02", 23),
+    ("Party leader's rally speech in Nakuru", "12:40", "QYPJ92FECM"),
+    ("Manifesto launch highlights", "4:15", "162JMR86DU"),
+    ("Town hall: questions from members", "38:02", "6A2TYWJGIL"),
+]
+
+# (name, phone, seat, area, photo, slogan, priorities); the area is a county, constituency or
+# ward name by the seat.
+CANDIDATES = [
+    (
+        "Mary Njeri",
+        "+254700100001",
+        Seat.GOVERNOR,
+        "Nakuru",
+        "HIOJW30YKD",
+        "A county that works for farmers",
+        ["Cold stores in every sub-county", "Fair maize prices"],
+    ),
+    (
+        "Brian Ochieng",
+        "+254700100002",
+        Seat.MP,
+        "Westlands",
+        "H7X6H0Q4IA",
+        "Jobs for Westlands youth",
+        ["A skills hub in every ward", "Safer streets at night"],
+    ),
+    (
+        "Akinyi Odhiambo",
+        "+254700100003",
+        Seat.MP,
+        "Kisumu Central",
+        "VTHPEAGBVR",
+        "Kisumu rising",
+        ["Clean water for every estate", "Lakefront jobs"],
+    ),
+    (
+        "Faith Muthoni",
+        "+254700100004",
+        Seat.MCA,
+        "Kileleshwa",
+        "WSNKQAI78D",
+        "Your ward, your voice",
+        ["Open ward budgets", "Street lights on every road"],
+    ),
 ]
 
 # (seat, area, days before today it was declared or None while counting, candidates)
@@ -235,7 +289,7 @@ async def seed_home(session: AsyncSession) -> int:
                     line=line,
                     button_label=label,
                     button_url=url,
-                    image_url=PICTURE.format(f"slide-{n + 1}"),
+                    image_url=PICTURE.format(SLIDE_PICTURES[n % len(SLIDE_PICTURES)]),
                     sort_order=n,
                     published=True,
                 )
@@ -287,7 +341,7 @@ async def seed_site(session: AsyncSession, today: date) -> bool:
                 kind=PostKind.NEWS,
                 title=title,
                 body=BODY,
-                image_url=PICTURE.format(f"news-{n}"),
+                image_url=PICTURE.format(NEWS_PICTURES[n % len(NEWS_PICTURES)]),
                 published_on=today - timedelta(days=days_ago),
                 published=True,
             )
@@ -298,7 +352,7 @@ async def seed_site(session: AsyncSession, today: date) -> bool:
                 kind=PostKind.EVENT,
                 title=title,
                 body=BODY,
-                image_url=PICTURE.format(f"event-{n}"),
+                image_url=PICTURE.format(EVENT_PICTURES[n % len(EVENT_PICTURES)]),
                 event_date=today + timedelta(days=days_ahead),
                 venue=venue,
                 published_on=today,
@@ -388,6 +442,7 @@ async def seed_news(session: AsyncSession, today: date) -> int:
                 )
             )
         changed += len(VIDEOS)
+    changed += await _seed_candidates(session, today)
     if not await session.scalar(select(func.count()).select_from(PrimaryResult)):
         for seat, area, days_ago, candidates in RESULTS:
             declared = None if days_ago is None else today - timedelta(days=days_ago)
@@ -406,3 +461,76 @@ async def seed_news(session: AsyncSession, today: date) -> int:
                 changed += 1
     await session.commit()
     return changed
+
+
+async def _place(session: AsyncSession, seat: Seat, name: str) -> dict | None:
+    """The aspirant's area columns for `name`, and a ward for its member; None if not loaded."""
+    if seat is Seat.MCA:
+        ward = await session.scalar(select(Ward).where(Ward.name == name).limit(1))
+        return ward and {"ward_id": ward.id, "_ward": ward.id}
+    if seat is Seat.MP:
+        place = await session.scalar(select(Constituency).where(Constituency.name == name).limit(1))
+        ward = place and await session.scalar(
+            select(Ward.id).where(Ward.constituency_id == place.id).limit(1)
+        )
+        return place and ward and {"constituency_id": place.id, "_ward": ward}
+    county = await session.scalar(select(County).where(County.name.startswith(name)).limit(1))
+    ward = county and await session.scalar(
+        select(Ward.id)
+        .join(Constituency, Constituency.id == Ward.constituency_id)
+        .where(Constituency.county_id == county.id)
+        .limit(1)
+    )
+    return county and ward and {"county_id": county.id, "_ward": ward}
+
+
+async def _seed_candidates(session: AsyncSession, today: date) -> int:
+    """Demo aspirants with published profiles, the first named by the next demo event."""
+    if await session.scalar(select(func.count()).select_from(CandidateProfile)):
+        return 0
+    made = []
+    for name, phone, seat, area, photo, slogan, priorities in CANDIDATES:
+        place = await _place(session, seat, area)
+        if place is None or await session.scalar(
+            select(PartyMember.id).where(PartyMember.phone == phone)
+        ):
+            continue
+        member = PartyMember(
+            full_name=name,
+            first_name=name.split()[0],
+            phone=phone,
+            ward_id=place.pop("_ward"),
+            status=PartyMemberStatus.APPROVED,
+            consent_wording=PARTY_WORDING[PartyConsentChannel.WEB_FORM],
+            consent_channel=PartyConsentChannel.WEB_FORM,
+            consent_at=datetime.now(UTC),
+        )
+        session.add(member)
+        await session.flush()
+        aspirant = Aspirant(member_id=member.id, seat=seat, status=AspirantStatus.APPROVED, **place)
+        session.add(aspirant)
+        await session.flush()
+        session.add(
+            CandidateProfile(
+                aspirant_id=aspirant.id,
+                photo_url=PHOTO.format(photo),
+                slogan=slogan,
+                bio=f"{name} is a demo aspirant. " + BODY,
+                priorities=[{"title": t, "text": ""} for t in priorities],
+                office_address=f"Campaign office, {area}",
+                office_phone=SETTINGS["contact_phone"],
+                published=True,
+            )
+        )
+        made.append(aspirant.id)
+    event = await session.scalar(
+        select(PartyPost.id)
+        .where(PartyPost.kind == PostKind.EVENT, PartyPost.event_date >= today)
+        .order_by(PartyPost.event_date)
+        .limit(1)
+    )
+    if made and event:
+        await session.execute(
+            insert(party_post_aspirants), [{"post_id": event, "aspirant_id": made[0]}]
+        )
+    return len(made)
