@@ -33,8 +33,28 @@ from backend.models import (
 )
 from backend.services.consent import PARTY_WORDING
 
-# Free (CC0) StockSnap photos, named by their StockSnap id.
-PHOTO = PICTURE = "https://cdn.stocksnap.io/img-thumbs/960w/{}.jpg"
+# Official-style portraits from Unsplash (free licence), named by their image path.
+_PORTRAIT = "https://images.unsplash.com/{}?w=600&h=750&fit=crop&crop=faces"
+PORTRAITS = {
+    "amina": "photo-1573497491207-618cc224f243",
+    "david": "photo-1588178454780-441fa5b99fa5",
+    "grace": "photo-1666867936058-de34bfd5b320",
+    "joseph": "photo-1789972449452-b5d1009f7794",
+    "halima": "photo-1666867540898-aaa1993ffabc",
+    "peter": "photo-1642257859842-c95f9fa8121d",
+    "mary": "photo-1700156246325-65bbb9e1dc0d",
+    "brian": "photo-1616805765352-beedbad46b2a",
+    "akinyi": "photo-1763757321139-e7e4de128cd9",
+    "faith": "photo-1573497019418-b400bb3ab074",
+}
+
+
+def portrait(key: str) -> str:
+    return _PORTRAIT.format(PORTRAITS[key])
+
+
+# Free (CC0) StockSnap scenes, named by their StockSnap id.
+PICTURE = "https://cdn.stocksnap.io/img-thumbs/960w/{}.jpg"
 SLIDE_PICTURES = ["HBADKDBJYU", "X60YH1SWTF", "5TRB09XUBX", "6DWU4LVLXE", "FOMJTSRHS3"]
 NEWS_PICTURES = ["GZLDAMHFU4", "6B6QMRB4XI", "ZMTW3XX4SO", "UE4PDNKNCS"]
 EVENT_PICTURES = ["6KRBT8MYES", "PYULJR0I6W", "HOSIXQG6JS"]
@@ -77,12 +97,12 @@ SETTINGS = {
 }
 
 LEADERS = [
-    ("Amina Wanjiru", "Party Leader", "TI7XCCOF5U", "Former county executive for trade."),
-    ("David Otieno", "Deputy Party Leader", "OIO01RKMXU", "Agricultural economist from Kisumu."),
-    ("Grace Chebet", "Secretary General", "W6GFOSFAXA", "Runs the party's branch network."),
-    ("Joseph Mwangi", "National Treasurer", "T8VNJRQH7F", "Accountant and co-operative organiser."),
-    ("Halima Abdi", "Youth League Chair", "THKNOI5LH6", "Founded a youth skills hub in Garissa."),
-    ("Peter Kiprono", "Organising Secretary", "YIIOGSJBMI", "Leads voter registration drives."),
+    ("Amina Wanjiru", "Party Leader", "amina", "Former county executive for trade."),
+    ("David Otieno", "Deputy Party Leader", "david", "Agricultural economist from Kisumu."),
+    ("Grace Chebet", "Secretary General", "grace", "Runs the party's branch network."),
+    ("Joseph Mwangi", "National Treasurer", "joseph", "Accountant and co-operative organiser."),
+    ("Halima Abdi", "Youth League Chair", "halima", "Founded a youth skills hub in Garissa."),
+    ("Peter Kiprono", "Organising Secretary", "peter", "Leads voter registration drives."),
 ]
 
 NEWS = [
@@ -104,8 +124,8 @@ STATEMENTS = [
 ]
 
 OPINIONS = [
-    ("Why this election is about young people", "Amina Wanjiru", "TI7XCCOF5U", 3),
-    ("Devolution works when counties publish their budgets", "Joseph Mwangi", "T8VNJRQH7F", 8),
+    ("Why this election is about young people", "Amina Wanjiru", "amina", 3),
+    ("Devolution works when counties publish their budgets", "Joseph Mwangi", "joseph", 8),
 ]
 
 VALUES = [
@@ -145,7 +165,7 @@ CANDIDATES = [
         "+254700100001",
         Seat.GOVERNOR,
         "Nakuru",
-        "HIOJW30YKD",
+        "mary",
         "A county that works for farmers",
         ["Cold stores in every sub-county", "Fair maize prices"],
     ),
@@ -154,7 +174,7 @@ CANDIDATES = [
         "+254700100002",
         Seat.MP,
         "Westlands",
-        "H7X6H0Q4IA",
+        "brian",
         "Jobs for Westlands youth",
         ["A skills hub in every ward", "Safer streets at night"],
     ),
@@ -163,7 +183,7 @@ CANDIDATES = [
         "+254700100003",
         Seat.MP,
         "Kisumu Central",
-        "VTHPEAGBVR",
+        "akinyi",
         "Kisumu rising",
         ["Clean water for every estate", "Lakefront jobs"],
     ),
@@ -172,7 +192,7 @@ CANDIDATES = [
         "+254700100004",
         Seat.MCA,
         "Kileleshwa",
-        "WSNKQAI78D",
+        "faith",
         "Your ward, your voice",
         ["Open ward budgets", "Street lights on every road"],
     ),
@@ -330,7 +350,7 @@ async def seed_site(session: AsyncSession, today: date) -> bool:
                 name=name,
                 position=position,
                 bio=bio,
-                photo_url=PHOTO.format(photo),
+                photo_url=portrait(photo),
                 sort_order=order,
                 published=True,
             )
@@ -394,7 +414,7 @@ async def seed_news(session: AsyncSession, today: date) -> int:
                     body=BODY,
                     place="National",
                     author=author,
-                    author_photo_url=PHOTO.format(photo),
+                    author_photo_url=portrait(photo),
                     published_on=today - timedelta(days=days_ago),
                     published=True,
                 )
@@ -513,7 +533,7 @@ async def _seed_candidates(session: AsyncSession, today: date) -> int:
         session.add(
             CandidateProfile(
                 aspirant_id=aspirant.id,
-                photo_url=PHOTO.format(photo),
+                photo_url=portrait(photo),
                 slogan=slogan,
                 bio=f"{name} is a demo aspirant. " + BODY,
                 priorities=[{"title": t, "text": ""} for t in priorities],
