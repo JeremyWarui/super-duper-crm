@@ -38,6 +38,7 @@ PUBLIC_ROUTES = {
     ("GET", "/api/candidates/{slug}/"),
     ("POST", "/api/candidates/{slug}/volunteer/"),
     ("POST", "/api/candidates/volunteer/withdraw/{code}/"),
+    ("POST", "/api/payments/paystack/webhook/"),
     ("GET", "/health"),
 }
 

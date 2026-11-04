@@ -115,6 +115,16 @@ class PaymentStatus(LabelledStrEnum):
     CANCELLED = ("cancelled", "Cancelled")
 
 
+class PayeeKind(LabelledStrEnum):
+    """Who the party pays."""
+
+    POLLING_AGENT = ("polling_agent", "Polling agent")
+    PARTY_AGENT = ("party_agent", "Party agent")
+    VOLUNTEER = ("volunteer", "Volunteer")
+    MEMBER = ("member", "Member")
+    STAFF = ("staff", "Staff")
+
+
 class SupportLevel(LabelledStrEnum):
     SUPPORTER = ("supporter", "Supporter")
     UNDECIDED = ("undecided", "Undecided")

@@ -362,6 +362,8 @@
 
 .legacy .segmented {
   display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
   padding: 3px;
   border-radius: var(--radius-md);
   background: var(--color-neutral-soft);
@@ -898,6 +900,30 @@
 }
 
 .legacy .inline-badge { margin-left: 8px; }
+
+.legacy .payee-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legacy .payee-result,
+.legacy .picked-payee {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  text-align: left;
+  font: inherit;
+}
+
+.legacy .payee-result { cursor: pointer; }
+.legacy .payee-result:hover { border-color: var(--color-primary); }
 .legacy .result-text { margin-top: 4px; color: var(--color-text-muted); font-size: var(--text-sm); line-height: 1.5; }
 .legacy .result-bad { margin-top: 6px; color: var(--color-danger); font-size: var(--text-sm); }
 .legacy .result-note { margin-top: 6px; color: var(--color-text-muted); font-size: var(--text-sm); }

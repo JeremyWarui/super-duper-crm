@@ -79,6 +79,20 @@ class Settings(BaseSettings):
     # "demo" takes contributions on the website but charges and stores nothing.
     payments_provider: Literal["demo"] = "demo"
 
+    # Webhook signing secret (whsec_...) from the Paystack dashboard; blank checks the
+    # older x-paystack-signature header against the secret key instead.
+    paystack_webhook_secret: str = ""
+    paystack_secret_key: str = ""
+    # "practice" moves no money; "paystack" sends M-Pesa transfers for party and campaign payments.
+    payout_provider: Literal["practice", "paystack"] = "practice"
+
+    @field_validator("payout_provider", mode="after")
+    @classmethod
+    def _paystack_needs_a_key(cls, value: str, info: ValidationInfo) -> str:
+        if value == "paystack" and not info.data.get("paystack_secret_key"):
+            raise ValueError("PAYOUT_PROVIDER=paystack needs PAYSTACK_SECRET_KEY.")
+        return value
+
     @field_validator("sms_provider", mode="after")
     @classmethod
     def _gateway_needs_credentials(cls, value: str, info: ValidationInfo) -> str:

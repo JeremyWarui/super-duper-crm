@@ -101,3 +101,40 @@ describe("the finance page", () => {
     expect(pay).toHaveFocus();
   });
 });
+
+describe("party payouts", () => {
+  it("schedules a typed-in polling agent for a campaign, in practice mode", async () => {
+    const user = userEvent.setup();
+    signInAsParty(["finance_officer"]);
+    const calls = stubApi(financeRoutes({
+      "GET /party/finance/payouts/": [],
+      "GET /party/finance/payouts/spend/": { rows: [], paid_kes: 0, owed_kes: 0 },
+      "GET /party/finance/payouts/campaigns/": [{ aspirant: "a1", label: "Achieng Otieno · MCA · Githurai" }],
+      "GET /payments/payout-mode/": { mode: "practice", moves_money: false },
+      "GET /party/places/": [],
+      "POST /party/finance/payouts/": { id: "pp1" },
+    }));
+    renderApp(<Root />, { path: "/party/finance?tab=payouts" });
+
+    expect(await screen.findByText(/Practice mode: releasing a payment moves no money/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Schedule payment" }));
+    await user.type(screen.getByLabelText("Name"), "Wanjiru Kamau");
+    await user.type(screen.getByLabelText("M-Pesa phone"), "0712 345678");
+    await user.selectOptions(screen.getByLabelText("For"), "a1");
+    await user.type(screen.getByLabelText("What for"), "Polling day");
+    await user.type(screen.getByLabelText("Amount (KES)"), "1500");
+    await user.click(screen.getByRole("button", { name: "Schedule" }));
+
+    await waitFor(() =>
+      expect(sent(calls, "POST", "/party/finance/payouts/")?.body).toEqual({
+        payee_kind: "polling_agent",
+        name: "Wanjiru Kamau",
+        phone: "0712 345678",
+        centre: null,
+        aspirant: "a1",
+        purpose: "Polling day",
+        amount_kes: 1500,
+      }),
+    );
+  });
+});

@@ -824,6 +824,130 @@
       "interests",
       "interest_other",
       "preferred_contact"
+    ],
+    "GET /api/party/finance/payouts/": [
+      "id",
+      "payee_kind",
+      "recipient_name",
+      "recipient_phone",
+      "polling_station",
+      "aspirant",
+      "campaign_label",
+      "purpose",
+      "amount_kes",
+      "status",
+      "reference",
+      "provider",
+      "failure_reason",
+      "stuck",
+      "paid_at",
+      "created_at"
+    ],
+    "POST /api/party/finance/payouts/": [
+      "id",
+      "payee_kind",
+      "recipient_name",
+      "recipient_phone",
+      "polling_station",
+      "aspirant",
+      "campaign_label",
+      "purpose",
+      "amount_kes",
+      "status",
+      "reference",
+      "provider",
+      "failure_reason",
+      "stuck",
+      "paid_at",
+      "created_at"
+    ],
+    "POST /api/party/finance/payouts/{payment_id}/release/": [
+      "id",
+      "payee_kind",
+      "recipient_name",
+      "recipient_phone",
+      "polling_station",
+      "aspirant",
+      "campaign_label",
+      "purpose",
+      "amount_kes",
+      "status",
+      "reference",
+      "provider",
+      "failure_reason",
+      "stuck",
+      "paid_at",
+      "created_at"
+    ],
+    "POST /api/party/finance/payouts/{payment_id}/paid/": [
+      "id",
+      "payee_kind",
+      "recipient_name",
+      "recipient_phone",
+      "polling_station",
+      "aspirant",
+      "campaign_label",
+      "purpose",
+      "amount_kes",
+      "status",
+      "reference",
+      "provider",
+      "failure_reason",
+      "stuck",
+      "paid_at",
+      "created_at"
+    ],
+    "POST /api/party/finance/payouts/{payment_id}/not-sent/": [
+      "id",
+      "payee_kind",
+      "recipient_name",
+      "recipient_phone",
+      "polling_station",
+      "aspirant",
+      "campaign_label",
+      "purpose",
+      "amount_kes",
+      "status",
+      "reference",
+      "provider",
+      "failure_reason",
+      "stuck",
+      "paid_at",
+      "created_at"
+    ],
+    "POST /api/party/finance/payouts/{payment_id}/cancel/": [
+      "id",
+      "payee_kind",
+      "recipient_name",
+      "recipient_phone",
+      "polling_station",
+      "aspirant",
+      "campaign_label",
+      "purpose",
+      "amount_kes",
+      "status",
+      "reference",
+      "provider",
+      "failure_reason",
+      "stuck",
+      "paid_at",
+      "created_at"
+    ],
+    "GET /api/party/finance/payouts/payees/": [
+      "source",
+      "id",
+      "name",
+      "phone",
+      "polling_station"
+    ],
+    "GET /api/party/finance/payouts/campaigns/": [
+      "aspirant",
+      "label"
+    ],
+    "GET /api/party/finance/payouts/spend/": [
+      "rows",
+      "paid_kes",
+      "owed_kes"
     ]
   },
   "nested_reads": {
@@ -1093,6 +1217,13 @@
     "GET /api/campaigns/{campaign_id}/volunteers/.registration_centre": [
       "id",
       "name"
+    ],
+    "GET /api/party/finance/payouts/spend/.rows": [
+      "aspirant",
+      "label",
+      "paid_kes",
+      "owed_kes",
+      "payments"
     ]
   },
   "writes": {
@@ -1559,7 +1690,24 @@
     "PATCH /api/campaigns/{campaign_id}/volunteers/{volunteer_id}/": [
       "status"
     ],
-    "POST /api/candidates/volunteer/withdraw/{code}/": []
+    "POST /api/candidates/volunteer/withdraw/{code}/": [],
+    "POST /api/party/finance/payouts/": [
+      "payee_kind",
+      "member",
+      "volunteer",
+      "name",
+      "phone",
+      "centre",
+      "aspirant",
+      "purpose",
+      "amount_kes"
+    ],
+    "POST /api/party/finance/payouts/{payment_id}/paid/": [
+      "reference"
+    ],
+    "POST /api/party/finance/payouts/{payment_id}/release/": [],
+    "POST /api/party/finance/payouts/{payment_id}/not-sent/": [],
+    "POST /api/party/finance/payouts/{payment_id}/cancel/": []
   },
   "enums": {
     "user.role": [

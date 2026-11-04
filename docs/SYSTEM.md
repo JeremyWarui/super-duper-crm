@@ -360,6 +360,8 @@ campaign does.
 - The supporter register, with consent and one entry per phone per campaign.
 - The strategy read: progress, the biggest gaps, and what to do next.
 - Payments to mobilizers for events, in practice mode (see section 7, Outside services).
+- Party payments by the finance officer to polling and party agents, volunteers,
+  members and staff, each optionally for a campaign, with the spend per campaign.
 - The admin console for the operator, and a command line (`campaign-crm`) for
   the same operations.
 - The party platform: settings, offices, the member and volunteer registers,
@@ -382,7 +384,7 @@ campaign does.
 |---|---|
 | **Self-serve subscription payment** | Campaigns pay the party by M-Pesa, bank or cash and the finance officer records it. Paying online (Paystack) with automatic recording comes later. |
 | **Real SMS** | The Africa's Talking adapter is written and tested against recorded replies; the deployment sends nothing (`SMS_PROVIDER=console`). |
-| **Real payouts** | Payments run in practice mode; a real mobile-money provider plugs in behind the same interface. |
+| **Real payouts** | Payments run in practice mode. The Paystack provider (M-Pesa transfers and their webhook) is written and tested against recorded responses; it is switched on with `PAYOUT_PROVIDER=paystack` once the party has a Paystack Kenya account with transfers. |
 | **Email password reset** | Designed, waiting on a sending domain. Resets are done by the operator or, inside a campaign, by the aspirant and manager. |
 | **Ward managers** | A manager per ward for large seats. Today a campaign has one manager. |
 | **Invitation links** | New logins get a password to pass on, not a link to claim. |
@@ -478,6 +480,7 @@ counts toward, not what they can see.
 | Supporter register, placing supporters at centres | Built | |
 | Strategy read and notes | Built | |
 | Payments to mobilizers | Built, practice mode | References read `PRACTICE`; no money moves |
+| Party payments (Finance > Payouts) | Built, practice mode | Finance officer only; spend per campaign |
 | Party settings, edited in the console | Built | `GET /api/party/`, `PUT /api/admin/party/` |
 | Party offices granted to staff logins | Built | Membership, nominations and finance officer; holders linked to an approved member |
 | Nominations: nominate, move, follow the member | Built | `frontend/src/pages/party/Aspirants.jsx` |
@@ -640,9 +643,11 @@ in full without either:
 - **SMS** (`services/sms.py`): `console` records and sends nothing;
   `africastalking` is ready but has never sent to the live gateway.
 - **Payouts** (`services/payouts.py`): practice mode marks every payment paid
-  under a `PRACTICE` reference. The payment flow (scheduled, sending, paid,
-  failed, cancelled, with one live payment per mobilizer per event) is already
-  the real one.
+  under a `PRACTICE` reference; `paystack` sends M-Pesa transfers and settles
+  them from the signed webhook at `/api/payments/paystack/webhook/`, which has
+  never run against the live gateway. The payment flow (scheduled, sending,
+  paid, failed, cancelled; `services/payout_flow.py`) is the same for party and
+  campaign payments.
 
 ---
 

@@ -62,7 +62,7 @@ def _url(path: str) -> str:
 
 
 def test_the_matrix_covers_every_finance_route() -> None:
-    assert len(FINANCE_ROUTES) == 14
+    assert len(FINANCE_ROUTES) == 23
 
 
 @pytest.mark.parametrize("who", FINANCE_ANSWERS)

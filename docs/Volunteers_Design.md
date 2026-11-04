@@ -430,7 +430,7 @@ Decisions taken by Jeremy:
 - `primary_results` as website content: seat, area name, candidate name, votes, declared date, published. `GET /api/party/results/`; `pages/public/Results.jsx` (`/results`) on `PubResults.dc.html` without the receipt checker; the editor enters results; the seed adds demo results marked "Demo results". `pages/public/Vie.jsx` (`/vie`): the steps to become an aspirant from a website setting, and the party office's contacts.
 - Tests: only published results show, grouped by seat; the page says "Demo results" when the seed made them.
 
-**R5-17 Party payments** (backend and frontend; depends R5-6; decided by Jeremy 4 Nov 2026)
+**R5-17 Party payments** (backend and frontend; depends R5-6; decided by Jeremy 4 Nov 2026; done, migration head `party_payments`; Finance > Payouts tab; webhook at `POST /api/payments/paystack/webhook/`, checking `Paystack-Signature` with `PAYSTACK_WEBHOOK_SECRET`, else the older `x-paystack-signature`; known gaps: the M-Pesa account number is sent as `2547XXXXXXXX`, which Paystack's docs do not confirm; nothing stops the finance officer paying their own member record, since there is no second approver)
 - The party's finance area pays people the way a campaign pays its mobilizers: schedule, release, mark paid, mark not sent, cancel, with the same one-attempt-at-a-time guard and "outcome unknown" handling.
 - Payees: mostly polling and party agents, also volunteers, members and staff. An agent is a name, phone and polling station entered by hand, or picked from the member or volunteer register; each payment may name the campaign or aspirant it is for, so the party sees what it spends on each campaign.
 - The finance officer alone schedules and releases (no second approver).

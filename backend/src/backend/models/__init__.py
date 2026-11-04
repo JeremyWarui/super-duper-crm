@@ -34,6 +34,7 @@ from backend.models.enums import (
     PartyMemberStatus,
     PartyRequestKind,
     PartyRoleName,
+    PayeeKind,
     PaymentStatus,
     PostKind,
     PostLabel,
@@ -64,6 +65,7 @@ from backend.models.party import (
     PartySettings,
     VolunteerProfile,
 )
+from backend.models.party_payment import PartyPayment
 from backend.models.payment import Payment
 from backend.models.supporter import Supporter
 from backend.models.target import Target, compute_win_number, unit_key
@@ -108,6 +110,8 @@ __all__ = [
     "PartyRole",
     "PartyRoleName",
     "PartySettings",
+    "PartyPayment",
+    "PayeeKind",
     "Payment",
     "PaymentStatus",
     "PostKind",

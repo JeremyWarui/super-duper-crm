@@ -1039,6 +1039,40 @@ export const useSetHold = () =>
     api(`/party/finance/subscriptions/${id}/hold/`, { method: "PUT", body }),
   );
 
+// ---- party payouts ---------------------------------------------------------
+export const usePartyPayouts = () =>
+  useQuery({ queryKey: ["finance", "payouts"], queryFn: () => api("/party/finance/payouts/") });
+
+export const usePayoutSpend = () =>
+  useQuery({ queryKey: ["finance", "payouts", "spend"], queryFn: () => api("/party/finance/payouts/spend/") });
+
+export const usePayoutCampaigns = () =>
+  useQuery({ queryKey: ["finance", "payouts", "campaigns"], queryFn: () => api("/party/finance/payouts/campaigns/") });
+
+export const usePayoutPayees = (q) =>
+  useQuery({
+    queryKey: ["finance", "payouts", "payees", q],
+    enabled: q.trim().length >= 2,
+    queryFn: () => api(`/party/finance/payouts/payees/?q=${encodeURIComponent(q.trim())}`),
+  });
+
+export const useSchedulePayout = () =>
+  useFinanceWrite((body) => api("/party/finance/payouts/", { method: "POST", body }));
+
+export const useReleasePayout = () =>
+  useFinanceWrite(({ id }) => api(`/party/finance/payouts/${id}/release/`, { method: "POST" }));
+
+export const useMarkPayoutPaid = () =>
+  useFinanceWrite(({ id, reference }) =>
+    api(`/party/finance/payouts/${id}/paid/`, { method: "POST", body: { reference } }),
+  );
+
+export const useMarkPayoutNotSent = () =>
+  useFinanceWrite(({ id }) => api(`/party/finance/payouts/${id}/not-sent/`, { method: "POST" }));
+
+export const useCancelPayout = () =>
+  useFinanceWrite(({ id }) => api(`/party/finance/payouts/${id}/cancel/`, { method: "POST" }));
+
 export function useSaveFinanceSettings() {
   const qc = useQueryClient();
   return useMutation({

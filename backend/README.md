@@ -185,6 +185,24 @@ AT_SENDER_ID=                 # blank uses the shared short code
 Without it the console provider records the request and reports
 `delivered: false`.
 
+## Payouts
+
+Releasing a party payment (`/api/party/finance/payouts/`) or a campaign's
+mobilizer payment (`/api/payments/`) goes through one payout provider. The
+default, `practice`, moves no money and marks each release paid under a
+`PRACTICE-` reference. Real M-Pesa transfers through Paystack need:
+
+```bash
+PAYOUT_PROVIDER=paystack
+PAYSTACK_SECRET_KEY=<paystack-secret-key>
+PAYSTACK_WEBHOOK_SECRET=<whsec-signing-secret>   # blank: legacy x-paystack-signature
+```
+
+and the Paystack webhook pointed at `/api/payments/paystack/webhook/`. A
+transfer Paystack accepts stays `sending` until `transfer.success`,
+`transfer.failed` or `transfer.reversed` arrives for that attempt's reference
+(`party-<id>-<attempt>` or `pay-<id>-<attempt>`).
+
 ## The models
 
 ```

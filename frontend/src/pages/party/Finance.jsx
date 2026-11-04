@@ -1,4 +1,4 @@
-// The finance officer's page: campaign subscriptions and their ledger, plans, reports and lapse settings.
+// The finance officer's page: campaign subscriptions and their ledger, plans, party payouts, reports and lapse settings.
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -40,11 +40,13 @@ import {
   SEAT_LABEL,
   paidUntilAfter,
 } from "./helpers";
+import Payouts from "./Payouts";
 
 const PAGE_SIZE = 50;
 const TABS = [
   ["campaigns", "Campaigns"],
   ["plans", "Plans"],
+  ["payouts", "Payouts"],
   ["reports", "Reports"],
   ["settings", "Settings"],
 ];
@@ -1010,7 +1012,7 @@ export default function Finance() {
 
   return (
     <>
-      <PageTitle title="Finance" sub="Campaign subscriptions, the payments that keep them open, and the plans they pay for." />
+      <PageTitle title="Finance" sub="Campaign subscriptions and the plans they pay for, and the party's payments to agents and others." />
       <div className="chip-row">
         <div role="tablist" aria-label="Finance" className="flex gap-1 segmented">
           {TABS.map(([key, label]) => (
@@ -1031,6 +1033,7 @@ export default function Finance() {
         ? <SubscriptionView key={openId} id={openId} onBack={() => go({ tab: "campaigns" })} />
         : <CampaignList onOpen={openSubscription} />)}
       {tab === "plans" && <Plans />}
+      {tab === "payouts" && <Payouts />}
       {tab === "reports" && (
         <div className="overview-stack">
           <Revenue />
