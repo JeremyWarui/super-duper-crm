@@ -26,6 +26,14 @@ async def _finance(client: httpx.AsyncClient, session: AsyncSession, world: Worl
     return auth(await sign_in(client, "pesa"))
 
 
+async def _approved(client: httpx.AsyncClient, finance: dict, admin: dict, **overrides) -> dict:
+    """A payment the finance officer scheduled and the party super admin approved."""
+    made = (await client.post(URL, headers=finance, json=_agent(**overrides))).json()
+    approved = await client.post(f"{URL}{made['id']}/approve/", headers=admin)
+    assert approved.status_code == 200, approved.text
+    return made
+
+
 def _agent(**overrides) -> dict:
     return {
         "payee_kind": "polling_agent",
@@ -58,11 +66,34 @@ async def test_only_a_finance_officer_schedules_or_releases(
     assert manager_schedule.status_code == 403
 
 
-async def test_a_practice_release_is_paid_under_a_practice_reference(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+async def test_a_payment_goes_out_only_once_another_person_with_overall_rights_approves_it(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
     finance = await _finance(client, session, world)
     made = (await client.post(URL, headers=finance, json=_agent())).json()
+    own = (await client.post(URL, headers=admin_headers, json=_agent())).json()
+
+    early_release = await client.post(f"{URL}{made['id']}/release/", headers=finance)
+    early_paid = await client.post(
+        f"{URL}{made['id']}/paid/", headers=finance, json={"reference": "QX12AB34"}
+    )
+    by_finance = await client.post(f"{URL}{made['id']}/approve/", headers=finance)
+    by_scheduler = await client.post(f"{URL}{own['id']}/approve/", headers=admin_headers)
+    approved = (await client.post(f"{URL}{made['id']}/approve/", headers=admin_headers)).json()
+    released = await client.post(f"{URL}{made['id']}/release/", headers=finance)
+
+    assert (early_release.status_code, early_paid.status_code) == (400, 400)
+    assert "waiting for approval" in early_release.json()["detail"]
+    assert (by_finance.status_code, by_scheduler.status_code) == (403, 403)
+    assert approved["approved_at"] is not None
+    assert released.json()["status"] == "paid"
+
+
+async def test_a_practice_release_is_paid_under_a_practice_reference(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
+) -> None:
+    finance = await _finance(client, session, world)
+    made = await _approved(client, finance, admin_headers)
 
     released = (await client.post(f"{URL}{made['id']}/release/", headers=finance)).json()
 
@@ -96,12 +127,14 @@ class _Paystack:
         return PayoutResult(PaymentStatus.SENDING, "TRF_v0hd9hxmgsq4qwp")
 
 
-async def _sending_second_attempt(client, session, world, monkeypatch) -> tuple[dict, dict]:
+async def _sending_second_attempt(
+    client, session, world, monkeypatch, admin: dict
+) -> tuple[dict, dict]:
     """A payment whose first Paystack attempt was settled as not sent, and whose second is out."""
     from backend.api.routers import party_payouts
 
     finance = await _finance(client, session, world)
-    made = (await client.post(URL, headers=finance, json=_agent())).json()
+    made = await _approved(client, finance, admin)
     _Paystack.sends = []
     monkeypatch.setattr(party_payouts, "get_payout_provider", _Paystack)
     await client.post(f"{URL}{made['id']}/release/", headers=finance)
@@ -112,9 +145,16 @@ async def _sending_second_attempt(client, session, world, monkeypatch) -> tuple[
 
 
 async def test_a_paystack_webhook_with_a_bad_signature_changes_nothing(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, monkeypatch, paystack_keys
+    client: httpx.AsyncClient,
+    session: AsyncSession,
+    world: World,
+    monkeypatch,
+    paystack_keys,
+    admin_headers: dict,
 ) -> None:
-    finance, made = await _sending_second_attempt(client, session, world, monkeypatch)
+    finance, made = await _sending_second_attempt(
+        client, session, world, monkeypatch, admin_headers
+    )
     raw = _webhook(f"party-{made['id']}-2")
     forged = hmac.new(b"not-the-key", raw, hashlib.sha512).hexdigest()
 
@@ -128,10 +168,17 @@ async def test_a_paystack_webhook_with_a_bad_signature_changes_nothing(
 
 
 async def test_a_success_webhook_pays_only_the_attempt_it_names(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, monkeypatch, paystack_keys
+    client: httpx.AsyncClient,
+    session: AsyncSession,
+    world: World,
+    monkeypatch,
+    paystack_keys,
+    admin_headers: dict,
 ) -> None:
     monkeypatch.setenv("PAYSTACK_WEBHOOK_SECRET", paystack_keys["webhook"])
-    finance, made = await _sending_second_attempt(client, session, world, monkeypatch)
+    finance, made = await _sending_second_attempt(
+        client, session, world, monkeypatch, admin_headers
+    )
 
     async def deliver(attempt: int) -> dict:
         raw = _webhook(f"party-{made['id']}-{attempt}")
@@ -152,7 +199,7 @@ async def test_a_success_webhook_pays_only_the_attempt_it_names(
 
 
 async def test_the_spend_per_campaign_adds_up(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
     finance = await _finance(client, session, world)
     officer_member = (await make_officer(session, world.ward, username="mgombea")).party_member_id
@@ -172,13 +219,13 @@ async def test_the_spend_per_campaign_adds_up(
         (700, aspirant.id, "cancel"),
         (300, None, "release"),
     ):
-        made = (
-            await client.post(
-                URL,
-                headers=finance,
-                json=_agent(amount_kes=amount, aspirant=str(aspirant_id) if aspirant_id else None),
-            )
-        ).json()
+        made = await _approved(
+            client,
+            finance,
+            admin_headers,
+            amount_kes=amount,
+            aspirant=str(aspirant_id) if aspirant_id else None,
+        )
         if settle:
             await client.post(f"{URL}{made['id']}/{settle}/", headers=finance)
 

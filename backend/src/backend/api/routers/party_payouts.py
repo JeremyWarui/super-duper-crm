@@ -1,4 +1,4 @@
-"""The finance officer pays agents, volunteers, members and staff: schedule, release, settle."""
+"""The finance officer pays agents and others; the party super admin approves each payment."""
 
 import uuid
 from typing import Annotated
@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
 
-from backend.api.deps import FinanceOfficer, SessionDep
+from backend.api.deps import AdminUser, FinanceOfficer, SessionDep
 from backend.models import PartyPayment
 from backend.schemas.common import plain_text
 from backend.schemas.party_payment import (
@@ -90,12 +90,21 @@ async def _logged(
     return payment
 
 
+@router.post("/{payment_id}/approve/", response_model=PartyPaymentRead)
+async def approve_payout(
+    payment_id: uuid.UUID, user: AdminUser, session: SessionDep
+) -> PartyPayment:
+    """The party super admin lets a scheduled payment go out; never the one who scheduled it."""
+    return await party_payouts.approve(session, await _payout(session, payment_id), actor=user)
+
+
 @router.post("/{payment_id}/release/", response_model=PartyPaymentRead)
 async def release_payout(
     payment_id: uuid.UUID, user: FinanceOfficer, session: SessionDep
 ) -> PartyPayment:
     """Send a scheduled or failed payment to the number it was scheduled for."""
     payment = await _payout(session, payment_id)
+    party_payouts.require_approved(payment)
     phone = normalise_phone(payment.recipient_phone)
     if phone is None:
         raise HTTPException(
@@ -129,9 +138,9 @@ async def mark_paid(
     payment_id: uuid.UUID, payload: PaymentPaid, user: FinanceOfficer, session: SessionDep
 ) -> PartyPayment:
     """Record by hand that the money went out, under its M-Pesa or bank reference."""
-    done = await payout_flow.mark_paid(
-        session, await _payout(session, payment_id), payload.reference
-    )
+    payment = await _payout(session, payment_id)
+    party_payouts.require_approved(payment)
+    done = await payout_flow.mark_paid(session, payment, payload.reference)
     return await _logged(session, user, done, "paid")
 
 

@@ -33,6 +33,9 @@ FINANCE_ANSWERS = {
     "superuser": True,
 }
 
+# Finance routes only the party super admin reaches: approving what the finance officer scheduled.
+SUPERUSER_ONLY = {("POST", "/api/party/finance/payouts/{payment_id}/approve/")}
+
 OFFICES = {
     "membership_officer": PartyRoleName.MEMBERSHIP_OFFICER,
     "nominations_officer": PartyRoleName.NOMINATIONS_OFFICER,
@@ -62,7 +65,7 @@ def _url(path: str) -> str:
 
 
 def test_the_matrix_covers_every_finance_route() -> None:
-    assert len(FINANCE_ROUTES) == 23
+    assert len(FINANCE_ROUTES) == 24
 
 
 @pytest.mark.parametrize("who", FINANCE_ANSWERS)
@@ -83,8 +86,11 @@ async def test_every_finance_route_answers_each_login_as_the_permissions_table_s
         for method, path in FINANCE_ROUTES
     }
 
-    if FINANCE_ANSWERS[who]:
+    if who == "superuser":
         assert not {route: code for route, code in answers.items() if code in (401, 403)}
+    elif FINANCE_ANSWERS[who]:
+        shut = {route for route, code in answers.items() if code in (401, 403)}
+        assert shut == SUPERUSER_ONLY
     else:
         assert answers == {route: refused for route in FINANCE_ROUTES}
 

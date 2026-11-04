@@ -1,8 +1,9 @@
 """The finance officer's payments to agents, volunteers, members and staff."""
 
 import uuid
+from datetime import UTC, datetime
 
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import case, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -26,7 +27,8 @@ from backend.schemas.party_payment import (
     SpendRow,
 )
 from backend.services.audit import record
-from backend.services.errors import NotFound, Refused
+from backend.services.errors import Forbidden, NotFound, Refused
+from backend.services.payout_flow import OPEN
 from backend.services.sms import normalise_phone
 
 OWED = (PaymentStatus.SCHEDULED, PaymentStatus.SENDING, PaymentStatus.FAILED)
@@ -173,6 +175,50 @@ async def schedule(
         detail={"amount_kes": payment.amount_kes, "payee_kind": payment.payee_kind.value},
     )
     await session.commit()
+    return payment
+
+
+def require_approved(payment: PartyPayment) -> None:
+    """Money goes out, or is recorded as gone, only once the party super admin has approved it."""
+    if payment.approved_at is None:
+        raise Refused("This payment is waiting for approval by the party super admin.")
+
+
+async def approve(session: AsyncSession, payment: PartyPayment, *, actor: User) -> PartyPayment:
+    """The party super admin lets a payment go out; never the person who scheduled it."""
+    if payment.created_by_id == actor.id:
+        raise Forbidden("You scheduled this payment; another person approves it.")
+    approved = await session.scalar(
+        update(PartyPayment)
+        .where(
+            PartyPayment.id == payment.id,
+            PartyPayment.approved_at.is_(None),
+            PartyPayment.status.in_(OPEN),
+        )
+        .values(
+            approved_by_id=actor.id,
+            approved_by_name=actor.full_name or actor.username,
+            approved_at=datetime.now(UTC),
+        )
+        .returning(PartyPayment.id)
+    )
+    if approved is None:
+        await session.refresh(payment)
+        raise Refused(
+            "That payment is already approved."
+            if payment.approved_at
+            else f"That payment is already {payment.status.label.lower()}."
+        )
+    record(
+        session,
+        actor=actor,
+        action="finance.payout.approve",
+        subject_type="party_payment",
+        subject_id=payment.id,
+        detail={"amount_kes": payment.amount_kes},
+    )
+    await session.commit()
+    await session.refresh(payment)
     return payment
 
 

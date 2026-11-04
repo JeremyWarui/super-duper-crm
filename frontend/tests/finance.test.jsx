@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Root from "../src/Gate";
 import { nairobiDate } from "../src/lib/format";
+import { useAuth } from "../src/store/auth";
 import { financeRoutes, renderApp, signInAsParty, stubApi } from "./helpers";
 
 afterEach(() => {
@@ -136,5 +137,30 @@ describe("party payouts", () => {
         amount_kes: 1500,
       }),
     );
+  });
+  it("shows no Release before approval, and lets the party super admin approve what the finance officer scheduled", async () => {
+    const user = userEvent.setup();
+    signInAsParty([]);
+    useAuth.setState({ user: { ...useAuth.getState().user, id: "boss", is_superuser: true } });
+    const waiting = {
+      id: "pp1", payee_kind: "polling_agent", recipient_name: "Wanjiru Kamau", recipient_phone: "+254712345678",
+      polling_station: "", aspirant: null, campaign_label: "", purpose: "Polling day", amount_kes: 1500,
+      status: "scheduled", reference: "", provider: "", failure_reason: "", stuck: false, paid_at: null,
+      created_at: "2026-11-05T08:00:00Z", created_by: "pesa", approved_by_name: "", approved_at: null,
+    };
+    const calls = stubApi(financeRoutes({
+      "GET /party/finance/payouts/": [waiting],
+      "GET /party/finance/payouts/spend/": { rows: [], paid_kes: 0, owed_kes: 0 },
+      "GET /payments/payout-mode/": { mode: "practice", moves_money: false },
+      "POST /party/finance/payouts/pp1/approve/": { ...waiting, approved_by_name: "Mary Officer", approved_at: "2026-11-05T09:00:00Z" },
+    }));
+    renderApp(<Root />, { path: "/party/finance?tab=payouts" });
+
+    expect(await screen.findByText("Waiting for approval")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Release" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Approve" }));
+    await user.click(screen.getAllByRole("button", { name: "Approve" }).at(-1));
+
+    await waitFor(() => expect(sent(calls, "POST", "/party/finance/payouts/pp1/approve/")).toBeTruthy());
   });
 });

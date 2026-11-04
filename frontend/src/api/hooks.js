@@ -1059,6 +1059,9 @@ export const usePayoutPayees = (q) =>
 export const useSchedulePayout = () =>
   useFinanceWrite((body) => api("/party/finance/payouts/", { method: "POST", body }));
 
+export const useApprovePayout = () =>
+  useFinanceWrite(({ id }) => api(`/party/finance/payouts/${id}/approve/`, { method: "POST" }));
+
 export const useReleasePayout = () =>
   useFinanceWrite(({ id }) => api(`/party/finance/payouts/${id}/release/`, { method: "POST" }));
 

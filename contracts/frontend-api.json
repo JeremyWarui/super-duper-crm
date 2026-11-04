@@ -841,7 +841,10 @@
       "failure_reason",
       "stuck",
       "paid_at",
-      "created_at"
+      "created_at",
+      "created_by",
+      "approved_by_name",
+      "approved_at"
     ],
     "POST /api/party/finance/payouts/": [
       "id",
@@ -859,7 +862,10 @@
       "failure_reason",
       "stuck",
       "paid_at",
-      "created_at"
+      "created_at",
+      "created_by",
+      "approved_by_name",
+      "approved_at"
     ],
     "POST /api/party/finance/payouts/{payment_id}/release/": [
       "id",
@@ -877,7 +883,10 @@
       "failure_reason",
       "stuck",
       "paid_at",
-      "created_at"
+      "created_at",
+      "created_by",
+      "approved_by_name",
+      "approved_at"
     ],
     "POST /api/party/finance/payouts/{payment_id}/paid/": [
       "id",
@@ -895,7 +904,10 @@
       "failure_reason",
       "stuck",
       "paid_at",
-      "created_at"
+      "created_at",
+      "created_by",
+      "approved_by_name",
+      "approved_at"
     ],
     "POST /api/party/finance/payouts/{payment_id}/not-sent/": [
       "id",
@@ -913,7 +925,10 @@
       "failure_reason",
       "stuck",
       "paid_at",
-      "created_at"
+      "created_at",
+      "created_by",
+      "approved_by_name",
+      "approved_at"
     ],
     "POST /api/party/finance/payouts/{payment_id}/cancel/": [
       "id",
@@ -931,7 +946,10 @@
       "failure_reason",
       "stuck",
       "paid_at",
-      "created_at"
+      "created_at",
+      "created_by",
+      "approved_by_name",
+      "approved_at"
     ],
     "GET /api/party/finance/payouts/payees/": [
       "source",
@@ -948,6 +966,27 @@
       "rows",
       "paid_kes",
       "owed_kes"
+    ],
+    "POST /api/party/finance/payouts/{payment_id}/approve/": [
+      "id",
+      "payee_kind",
+      "recipient_name",
+      "recipient_phone",
+      "polling_station",
+      "aspirant",
+      "campaign_label",
+      "purpose",
+      "amount_kes",
+      "status",
+      "reference",
+      "provider",
+      "failure_reason",
+      "stuck",
+      "paid_at",
+      "created_at",
+      "created_by",
+      "approved_by_name",
+      "approved_at"
     ]
   },
   "nested_reads": {
@@ -1707,7 +1746,8 @@
     ],
     "POST /api/party/finance/payouts/{payment_id}/release/": [],
     "POST /api/party/finance/payouts/{payment_id}/not-sent/": [],
-    "POST /api/party/finance/payouts/{payment_id}/cancel/": []
+    "POST /api/party/finance/payouts/{payment_id}/cancel/": [],
+    "POST /api/party/finance/payouts/{payment_id}/approve/": []
   },
   "enums": {
     "user.role": [

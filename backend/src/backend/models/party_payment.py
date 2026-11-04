@@ -1,8 +1,9 @@
 """Money the party pays out to agents, volunteers, members and staff, for a campaign or none."""
 
 import uuid
+from datetime import datetime
 
-from sqlalchemy import CheckConstraint, ForeignKey, String, Uuid
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
@@ -41,3 +42,9 @@ class PartyPayment(PayoutMixin, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
     )
+    # The party super admin who let it go out; release and marking paid wait for this.
+    approved_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    approved_by_name: Mapped[str] = mapped_column(String(150), default="")
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

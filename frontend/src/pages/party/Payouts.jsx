@@ -1,6 +1,8 @@
-// The finance officer's payments to agents, volunteers, members and staff, and the spend per campaign.
+// The finance officer's payments to agents, volunteers, members and staff, approved by the party
+// super admin, and the spend per campaign.
 import { useState } from "react";
 import {
+  useApprovePayout,
   useCancelPayout,
   useMarkPayoutNotSent,
   useMarkPayoutPaid,
@@ -15,6 +17,7 @@ import {
 } from "../../api/hooks";
 import { Badge, Button, Chip, ErrorState, Field, LoadingState, Modal, Panel } from "../../components/ui";
 import { formatDate, formatKes } from "../../lib/format";
+import { useAuth } from "../../store/auth";
 
 const KINDS = [
   ["polling_agent", "Polling agent"],
@@ -261,6 +264,19 @@ function NotSentForm({ payment, onClose }) {
   );
 }
 
+function ApproveForm({ payment, onClose }) {
+  return (
+    <ConfirmForm
+      title="Approve payment"
+      sub={`${formatKes(payment.amount_kes)} to ${payment.recipient_name}, ${payment.campaign_label || "party work"}${payment.purpose ? `: ${payment.purpose}` : ""}. The finance officer can then release it.`}
+      action="Approve"
+      write={useApprovePayout()}
+      payment={payment}
+      onClose={onClose}
+    />
+  );
+}
+
 function CancelForm({ payment, onClose }) {
   return (
     <ConfirmForm
@@ -308,11 +324,15 @@ function Spend() {
 export default function Payouts() {
   const payouts = usePartyPayouts();
   const payout = usePayoutMode();
+  const user = useAuth((s) => s.user);
   const [modal, setModal] = useState(null);
   if (payouts.isLoading) return <LoadingState />;
   if (payouts.error) return <ErrorState error={payouts.error} />;
   const rows = payouts.data;
-  const scheduled = rows.filter((p) => p.status === "scheduled");
+  const scheduled = rows.filter((p) => p.status === "scheduled" && p.approved_at);
+  const waiting = rows.filter((p) => OPEN.includes(p.status) && !p.approved_at);
+  // The party super admin approves, never the person who scheduled the payment.
+  const mayApprove = (p) => user?.is_superuser && p.created_by !== user.id;
   const total = (statuses) => rows.filter((p) => statuses.includes(p.status)).reduce((s, p) => s + p.amount_kes, 0);
   const close = () => setModal(null);
 
@@ -322,7 +342,10 @@ export default function Payouts() {
         <div className="notice-warn">Practice mode: releasing a payment moves no money. Paystack is switched on by the operator when the party's account is ready.</div>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="meta">{formatKes(total(["paid"]))} paid · {formatKes(total(["scheduled", "sending", "failed"]))} still owed</span>
+        <span className="meta">
+          {formatKes(total(["paid"]))} paid · {formatKes(total(["scheduled", "sending", "failed"]))} still owed
+          {waiting.length > 0 && ` · ${waiting.length} waiting for approval`}
+        </span>
         <div className="flex gap-2">
           {scheduled.length > 0 && <Button onClick={() => setModal({ type: "release", payments: scheduled })}>Release all scheduled</Button>}
           <Button primary onClick={() => setModal({ type: "schedule" })}>Schedule payment</Button>
@@ -347,14 +370,21 @@ export default function Payouts() {
                   <td className="num figure">{formatKes(p.amount_kes)}</td>
                   <td>
                     <Badge text={STATUS_LABEL[p.status]} tone={TONE[p.status]} />
+                    {OPEN.includes(p.status) && (p.approved_at
+                      ? <div className="cell-sub">Approved by {p.approved_by_name}</div>
+                      : <div className="cell-sub text-warn">Waiting for approval</div>)}
                     {p.failure_reason && <div className={`cell-sub ${p.status === "failed" ? "text-bad" : "text-warn"}`}>{p.failure_reason}</div>}
                   </td>
                   <td className="muted">{p.reference || "—"}</td>
                   <td className="actions-cell">
                     {OPEN.includes(p.status) && (
                       <div className="flex justify-end gap-2">
-                        <Button primary onClick={() => setModal({ type: "release", payments: [p] })}>Release</Button>
-                        <Button onClick={() => setModal({ type: "paid", payment: p })}>Mark paid</Button>
+                        {p.approved_at ? (
+                          <>
+                            <Button primary onClick={() => setModal({ type: "release", payments: [p] })}>Release</Button>
+                            <Button onClick={() => setModal({ type: "paid", payment: p })}>Mark paid</Button>
+                          </>
+                        ) : mayApprove(p) && <Button primary onClick={() => setModal({ type: "approve", payment: p })}>Approve</Button>}
                         <Button onClick={() => setModal({ type: "cancel", payment: p })}>Cancel</Button>
                       </div>
                     )}
@@ -377,6 +407,7 @@ export default function Payouts() {
       {modal?.type === "release" && <ReleaseForm payments={modal.payments} mode={payout.data} onClose={close} />}
       {modal?.type === "paid" && <MarkPaidForm payment={modal.payment} onClose={close} />}
       {modal?.type === "notsent" && <NotSentForm payment={modal.payment} onClose={close} />}
+      {modal?.type === "approve" && <ApproveForm payment={modal.payment} onClose={close} />}
       {modal?.type === "cancel" && <CancelForm payment={modal.payment} onClose={close} />}
     </div>
   );

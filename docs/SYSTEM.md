@@ -480,7 +480,7 @@ counts toward, not what they can see.
 | Supporter register, placing supporters at centres | Built | |
 | Strategy read and notes | Built | |
 | Payments to mobilizers | Built, practice mode | References read `PRACTICE`; no money moves |
-| Party payments (Finance > Payouts) | Built, practice mode | Finance officer only; spend per campaign |
+| Party payments (Finance > Payouts) | Built, practice mode | Finance officer schedules and releases; the party super admin approves each first; spend per campaign |
 | Party settings, edited in the console | Built | `GET /api/party/`, `PUT /api/admin/party/` |
 | Party offices granted to staff logins | Built | Membership, nominations and finance officer; holders linked to an approved member |
 | Nominations: nominate, move, follow the member | Built | `frontend/src/pages/party/Aspirants.jsx` |

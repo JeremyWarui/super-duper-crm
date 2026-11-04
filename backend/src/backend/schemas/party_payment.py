@@ -33,6 +33,9 @@ class PartyPaymentRead(ORMModel):
     stuck: bool
     paid_at: datetime | None
     created_at: datetime
+    created_by: uuid.UUID | None = Field(default=None, validation_alias="created_by_id")
+    approved_by_name: str
+    approved_at: datetime | None
 
 
 class PartyPaymentCreate(WriteModel):
