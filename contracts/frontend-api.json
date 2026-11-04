@@ -987,6 +987,16 @@
       "created_by",
       "approved_by_name",
       "approved_at"
+    ],
+    "GET /api/party/search/": [
+      "kind",
+      "id",
+      "label",
+      "detail"
+    ],
+    "GET /api/party/notifications/": [
+      "key",
+      "count"
     ]
   },
   "nested_reads": {

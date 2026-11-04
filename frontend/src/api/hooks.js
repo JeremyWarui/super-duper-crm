@@ -1039,6 +1039,21 @@ export const useSetHold = () =>
     api(`/party/finance/subscriptions/${id}/hold/`, { method: "PUT", body }),
   );
 
+// ---- party console top bar -------------------------------------------------
+export const usePartySearch = (q) =>
+  useQuery({
+    queryKey: ["party-search", q.trim()],
+    enabled: q.trim().length >= 2,
+    queryFn: () => api(`/party/search/?q=${encodeURIComponent(q.trim())}`),
+  });
+
+export const usePartyNotifications = () =>
+  useQuery({
+    queryKey: ["party-notifications"],
+    queryFn: () => api("/party/notifications/"),
+    refetchInterval: 60_000,
+  });
+
 // ---- party payouts ---------------------------------------------------------
 export const usePartyPayouts = () =>
   useQuery({ queryKey: ["finance", "payouts"], queryFn: () => api("/party/finance/payouts/") });

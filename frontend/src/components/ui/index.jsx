@@ -1,3 +1,4 @@
+import { PageHeader, useSlottedHeader } from "../layout/AppPage";
 import { useEffect, useId, useRef } from "react";
 
 export function Button({
@@ -91,7 +92,15 @@ export const Badge = ({ text, tone = "neutral" }) => <span className={`badge ton
 export const Bar = ({ pct, tone }) => <div className="bar"><div className={`bar-fill tone-${tone}`} style={{width: `${Math.min(pct, 100)}%`}} /></div>;
 // A pill that toggles, for sort orders and filters.
 export const Chip = ({ on, onClick, className = "", children }) => <button type="button" aria-pressed={on} onClick={onClick} className={`chip ${on ? "chip-on" : ""} ${className}`.trim()}>{children}</button>;
-export const PageTitle = ({ title, sub, action }) => <div className="flex flex-wrap items-end justify-between gap-3 page-head"><div><div className="page-title">{title}</div>{sub && <div className="page-sub">{sub}</div>}</div>{action}</div>;
+// The legacy root's full-screen height and ground, undone so only its button styles apply.
+const HEADER_ACTIONS = { minHeight: 0, background: "transparent" };
+
+// In the party console the title and its actions move into the frosted page header.
+export function PageTitle({ title, sub, action }) {
+  const header = useSlottedHeader(<PageHeader title={title} sub={sub} actions={action && <div className="legacy" style={HEADER_ACTIONS}>{action}</div>} />);
+  if (header.slotted) return header.rendered;
+  return <div className="flex flex-wrap items-end justify-between gap-3 page-head"><div><div className="page-title">{title}</div>{sub && <div className="page-sub">{sub}</div>}</div>{action}</div>;
+}
 
 const FOCUSABLE = "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";
 

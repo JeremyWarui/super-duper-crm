@@ -2,6 +2,7 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppPage } from "@/components/layout/AppPage";
+import { ConsoleTools } from "@/components/layout/ConsoleTools";
 import { useAuth } from "../../store/auth";
 import { homeOf } from "../../lib/home";
 import Legacy from "../../components/Legacy";
@@ -54,6 +55,8 @@ export function PartyShell({ crumb, page, children }) {
       subtitle={officeOf(user)}
       user={{ name: user?.full_name || user?.username || "", role: officeOf(user) }}
       onSignOut={logout}
+      tools={<ConsoleTools />}
+      slotHeaders
     >
       {page?.kit ? (
         <AppPage crumb={crumb} context={page.context} title={page.title}>{children}</AppPage>

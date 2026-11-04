@@ -1012,7 +1012,7 @@ export default function Finance() {
 
   return (
     <>
-      <PageTitle title="Finance" sub="Campaign subscriptions and the plans they pay for, and the party's payments to agents and others." />
+      {!openId && <PageTitle title="Finance" sub="Campaign subscriptions and the plans they pay for, and the party's payments to agents and others." />}
       <div className="chip-row">
         <div role="tablist" aria-label="Finance" className="flex gap-1 segmented">
           {TABS.map(([key, label]) => (

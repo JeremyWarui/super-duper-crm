@@ -8,6 +8,8 @@ export type AppContext = {
   user: { initials: string; name: string; role: string }
   onSignOut: () => void
   openMenu: () => void
+  tools?: React.ReactNode
+  slotHeaders?: boolean
 }
 
 const Ctx = React.createContext<AppContext | null>(null)
@@ -20,7 +22,7 @@ const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 
  * tone="dark" is the party CRM, tone="light" a campaign workspace. The sidebar is 240px on
  * desktop and a slide-in drawer on phones.
  */
-export function AppLayout({ tone, nav, rootLabel, rootPath, eyebrow, title, subtitle, user, onSignOut, children }: {
+export function AppLayout({ tone, nav, rootLabel, rootPath, eyebrow, title, subtitle, user, onSignOut, tools, slotHeaders, children }: {
   tone: 'dark' | 'light'
   nav: NavItem[]
   rootLabel: string
@@ -30,6 +32,10 @@ export function AppLayout({ tone, nav, rootLabel, rootPath, eyebrow, title, subt
   subtitle?: string
   user: { name: string; role: string }
   onSignOut: () => void
+  /** Search, notifications and help, shown in the top bar before the signed-in person. */
+  tools?: React.ReactNode
+  /** A page's own PageTitle becomes its frosted header. */
+  slotHeaders?: boolean
   children: React.ReactNode
 }) {
   const [menu, setMenu] = React.useState(false)
@@ -42,7 +48,7 @@ export function AppLayout({ tone, nav, rootLabel, rootPath, eyebrow, title, subt
     return () => document.removeEventListener('keydown', onKey)
   }, [menu])
   const ctx: AppContext = {
-    rootLabel, rootPath, onSignOut,
+    rootLabel, rootPath, onSignOut, tools, slotHeaders,
     user: { ...user, initials: initialsOf(user.name) },
     openMenu: () => setMenu(true),
   }

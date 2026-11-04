@@ -1,5 +1,6 @@
 // The membership officer's register: filter, page through, open a member, move their status.
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   exportPartyMembers,
   useMoveMember,
@@ -84,6 +85,12 @@ function Detail({ row, onClose }) {
   );
 }
 
+// A record opened from a link (`?open=<id>`), once it has loaded.
+function Linked({ id, onClose }) {
+  const detail = usePartyMember(id);
+  return detail.data ? <Detail row={detail.data} onClose={onClose} /> : null;
+}
+
 export default function Members() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
@@ -93,6 +100,17 @@ export default function Members() {
   const [offset, setOffset] = useState(0);
   const [open, setOpen] = useState(null);
   const [exportError, setExportError] = useState("");
+  const [params, setParams] = useSearchParams();
+  const linked = params.get("open");
+  const closeLinked = () => setParams((p) => { p.delete("open"); return p; }, { replace: true });
+  // A link's `?status=` sets the filter each time the link changes.
+  const wanted = params.get("status");
+  const [applied, setApplied] = useState(null);
+  if (wanted !== null && wanted !== applied) {
+    setApplied(wanted);
+    setStatus(wanted);
+    setOffset(0);
+  }
   const counties = usePartyPlaces();
   const constituencies = usePartyPlaces({ county, enabled: !!county });
   const wards = usePartyPlaces({ constituency, enabled: !!constituency });
@@ -168,6 +186,7 @@ export default function Members() {
         </div>
       </div>
       {open && <Detail row={open} onClose={() => setOpen(null)} />}
+      {linked && !open && <Linked id={linked} onClose={closeLinked} />}
     </>
   );
 }

@@ -30,12 +30,13 @@ function UserMenu({ user, onSignOut }: { user: { initials: string; name: string;
   )
 }
 
-/** Top bar shared by every CRM / workspace screen, 64px: breadcrumb and the signed-in person. */
-export function CrmTopBar({ crumbs, user, onSignOut, onMenu }: {
+/** Top bar shared by every CRM / workspace screen, 64px: breadcrumb, any tools, the signed-in person. */
+export function CrmTopBar({ crumbs, user, onSignOut, onMenu, tools }: {
   crumbs: { label: string; to?: string }[]
   user: { initials: string; name: string; role: string }
   onSignOut: () => void
   onMenu?: () => void
+  tools?: React.ReactNode
 }) {
   return (
     <div className="border-b border-black/[0.06] bg-white">
@@ -50,6 +51,7 @@ export function CrmTopBar({ crumbs, user, onSignOut, onMenu }: {
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-1.5">
+          {tools}
           <UserMenu user={user} onSignOut={onSignOut} />
         </div>
       </div>

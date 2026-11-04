@@ -1,5 +1,6 @@
 // The nominations officer's page: nominate approved members, move nominations, create workspaces.
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { isEmail } from "../../lib/email";
 import {
   useAspirant,
@@ -264,12 +265,29 @@ function Detail({ row, onClose }) {
   );
 }
 
+// A record opened from a link (`?open=<id>`), once it has loaded.
+function Linked({ id, onClose }) {
+  const detail = useAspirant(id);
+  return detail.data ? <Detail row={detail.data} onClose={onClose} /> : null;
+}
+
 export default function Aspirants() {
   const [status, setStatus] = useState("");
   const [seat, setSeat] = useState("");
   const [offset, setOffset] = useState(0);
   const [open, setOpen] = useState(null);
   const [nominating, setNominating] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const linked = params.get("open");
+  const closeLinked = () => setParams((p) => { p.delete("open"); return p; }, { replace: true });
+  // A link's `?status=` sets the filter each time the link changes.
+  const wanted = params.get("status");
+  const [applied, setApplied] = useState(null);
+  if (wanted !== null && wanted !== applied) {
+    setApplied(wanted);
+    setStatus(wanted);
+    setOffset(0);
+  }
   const { data, isLoading, error } = useAspirants({ status, seat, limit: PAGE_SIZE, offset });
   const total = data?.total ?? 0;
   const items = data?.items || [];
@@ -326,6 +344,7 @@ export default function Aspirants() {
       </div>
       {nominating && <Nominate onClose={() => setNominating(false)} />}
       {open && <Detail row={open} onClose={() => setOpen(null)} />}
+      {linked && !open && <Linked id={linked} onClose={closeLinked} />}
     </>
   );
 }
