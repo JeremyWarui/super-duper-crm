@@ -4,14 +4,17 @@ import uuid
 from datetime import UTC, date, datetime
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
+    Column,
     Date,
     DateTime,
     ForeignKey,
     Index,
     Integer,
     String,
+    Table,
     Text,
     Uuid,
     false,
@@ -211,5 +214,34 @@ class PartyVideo(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     thumbnail_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
     duration: Mapped[str] = mapped_column(String(8), default="", server_default="")
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    updated_at: Mapped[datetime] = _updated_at()
+
+
+# The aspirants a party event names; it shows on each one's candidate profile.
+party_post_aspirants = Table(
+    "party_post_aspirants",
+    Base.metadata,
+    Column("post_id", Uuid, ForeignKey("party_posts.id", ondelete="CASCADE"), primary_key=True),
+    Column("aspirant_id", Uuid, ForeignKey("aspirants.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class CandidateProfile(TimestampMixin, Base):
+    """An approved aspirant's page on the website, written by the website editor."""
+
+    __tablename__ = "candidate_profiles"
+
+    aspirant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("aspirants.id", ondelete="CASCADE"), primary_key=True
+    )
+    photo_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    slogan: Mapped[str] = mapped_column(String(120), default="", server_default="")
+    bio: Mapped[str] = mapped_column(Text, default="", server_default="")
+    # Up to three {"title", "text"} pairs.
+    priorities: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    office_address: Mapped[str] = mapped_column(String(300), default="", server_default="")
+    office_phone: Mapped[str] = mapped_column(String(20), default="", server_default="")
+    office_email: Mapped[str] = mapped_column(String(254), default="", server_default="")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     updated_at: Mapped[datetime] = _updated_at()

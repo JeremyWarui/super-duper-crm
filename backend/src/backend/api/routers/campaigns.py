@@ -1,15 +1,19 @@
-"""Campaigns: reading them and rebuilding their targets."""
+"""Campaigns: reading them, rebuilding their targets, and the volunteers their candidate's
+website page signed up."""
 
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter
-from sqlalchemy import select
+from fastapi import APIRouter, HTTPException, Query, status
+from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
 from backend.api.deps import CurrentUser, SessionDep, Writer
 from backend.api.scope import all_rows, load, require_visible_campaign, visible_campaign_ids
-from backend.models import Campaign
+from backend.models import Campaign, VolunteerProfile, VolunteerStatus
 from backend.schemas.campaign import CampaignRead, CampaignSignups, EventSignups, SetupSummary
+from backend.schemas.candidates import CampaignVolunteerRead, CampaignVolunteerUpdate
+from backend.services import volunteers
 from backend.services.targets import generate_targets
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
@@ -86,3 +90,71 @@ async def regenerate_targets(
     )
     await session.commit()
     return summary
+
+
+VOLUNTEER_PLACES = (
+    selectinload(VolunteerProfile.ward),
+    selectinload(VolunteerProfile.registration_centre),
+)
+
+
+@router.get("/{campaign_id}/volunteers/", response_model=list[CampaignVolunteerRead])
+async def list_volunteers(
+    campaign_id: uuid.UUID,
+    session: SessionDep,
+    user: Writer,
+    q: Annotated[str, Query(max_length=100)] = "",
+    ward: uuid.UUID | None = None,
+    volunteer_status: Annotated[VolunteerStatus | None, Query(alias="status")] = None,
+) -> list[VolunteerProfile]:
+    """The volunteers the candidate's website page signed up, newest first; manager only."""
+    await require_visible_campaign(session, user, campaign_id)
+    statement = (
+        select(VolunteerProfile)
+        .where(VolunteerProfile.campaign_id == campaign_id)
+        .options(*VOLUNTEER_PLACES)
+        .order_by(VolunteerProfile.created_at.desc())
+    )
+    if q.strip():
+        like = f"%{q.strip().lower()}%"
+        statement = statement.where(
+            or_(
+                (VolunteerProfile.first_name + " " + VolunteerProfile.last_name).ilike(like),
+                VolunteerProfile.phone.ilike(like),
+            )
+        )
+    if ward:
+        statement = statement.where(VolunteerProfile.ward_id == ward)
+    if volunteer_status:
+        statement = statement.where(VolunteerProfile.status == volunteer_status)
+    return list(await session.scalars(statement))
+
+
+@router.patch("/{campaign_id}/volunteers/{volunteer_id}/", response_model=CampaignVolunteerRead)
+async def update_volunteer(
+    campaign_id: uuid.UUID,
+    volunteer_id: uuid.UUID,
+    payload: CampaignVolunteerUpdate,
+    session: SessionDep,
+    user: Writer,
+) -> VolunteerProfile:
+    """Make a volunteer active or inactive, and edit the notes about them."""
+    await require_visible_campaign(session, user, campaign_id)
+    profile = await session.scalar(
+        select(VolunteerProfile).where(
+            VolunteerProfile.id == volunteer_id, VolunteerProfile.campaign_id == campaign_id
+        )
+    )
+    if profile is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such volunteer.")
+    if payload.status is not None:
+        await volunteers.set_status(session, profile, VolunteerStatus(payload.status), actor=user)
+    if "availability_notes" in payload.model_fields_set:
+        volunteers.set_notes(session, profile, payload.availability_notes, actor=user)
+    await session.commit()
+    return await session.scalar(
+        select(VolunteerProfile)
+        .where(VolunteerProfile.id == volunteer_id)
+        .options(*VOLUNTEER_PLACES)
+        .execution_options(populate_existing=True)
+    )

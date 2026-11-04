@@ -34,6 +34,10 @@ PUBLIC_ROUTES = {
     ("POST", "/api/party/subscribe/"),
     ("POST", "/api/party/unsubscribe/{code}/"),
     ("POST", "/api/party/contribute/"),
+    ("GET", "/api/candidates/"),
+    ("GET", "/api/candidates/{slug}/"),
+    ("POST", "/api/candidates/{slug}/volunteer/"),
+    ("POST", "/api/candidates/volunteer/withdraw/{code}/"),
     ("GET", "/health"),
 }
 
@@ -116,6 +120,7 @@ CAMPAIGN_READS = {
     "/api/campaigns/{campaign_id}/",
     "/api/campaigns/{campaign_id}/signups/",
     "/api/campaigns/{campaign_id}/team/",
+    "/api/campaigns/{campaign_id}/volunteers/",
     "/api/centres/",
     "/api/constituencies/",
     "/api/counties/",

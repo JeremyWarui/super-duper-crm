@@ -244,6 +244,7 @@ class VolunteerProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
     member: Mapped[PartyMember | None] = relationship(back_populates="volunteer")
+    ward: Mapped["Ward"] = relationship()
     registration_centre: Mapped["RegistrationCentre | None"] = relationship()
 
 

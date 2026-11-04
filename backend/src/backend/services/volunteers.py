@@ -103,13 +103,16 @@ def _audit(
 async def set_status(
     session: AsyncSession, profile: VolunteerProfile, to: VolunteerStatus, *, actor: User
 ) -> None:
-    """An officer's move to active or inactive, audited; the caller commits."""
+    """An officer's or a campaign manager's move to active or inactive, audited.
+
+    The caller commits.
+    """
     refuse_own_record(actor, profile.member_id)
     old = profile.status
     if to not in OFFICER_TARGETS:
         raise Refused("An officer can only make a volunteer active or inactive.")
     check_move(old, to)
-    if to is V.ACTIVE:
+    if to is V.ACTIVE and profile.member_id is not None:
         # The lock makes a concurrent member move wait, or this wait for it.
         member_status = await session.scalar(
             select(PartyMember.status)

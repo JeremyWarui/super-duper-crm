@@ -24,6 +24,12 @@ VOLUNTEER_WORDING = (
     "I agree that the party may contact me about volunteering, by the method I chose."
 )
 
+# A candidate's "Support" form: the details go to that campaign, not the party.
+CAMPAIGN_VOLUNTEER_WORDING = (
+    "I agree that this campaign may contact me about volunteering, by the method I chose. "
+    "My details go to the campaign only."
+)
+
 SUBSCRIBE_WORDING = (
     "I agree that the party may send me news, events and nomination notices by SMS or email "
     "under its privacy notice. I can unsubscribe at any time."

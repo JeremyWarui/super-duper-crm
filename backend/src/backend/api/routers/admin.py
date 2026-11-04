@@ -35,6 +35,7 @@ from backend.schemas.admin import (
     PasswordResult,
 )
 from backend.schemas.audit import AuditEventRead
+from backend.schemas.candidates import CandidateAdminRead, PostAspirants, ProfileWrite
 from backend.schemas.content import (
     AboutItemAdminRead,
     AboutItemCreate,
@@ -66,7 +67,7 @@ from backend.schemas.content import (
 )
 from backend.schemas.party import PartySettingsRead, PartySettingsUpdate
 from backend.services import admin as service
-from backend.services import audit, branches, content, home
+from backend.services import audit, branches, candidates, content, home
 from backend.services import party as party_service
 from backend.services.errors import Refused
 
@@ -488,3 +489,36 @@ async def update_party_video(
 @router.delete("/party/videos/{video_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_party_video(video_id: uuid.UUID, session: SessionDep, admin: AdminUser):
     await home.delete(session, PartyVideo, video_id, actor=admin)
+
+
+@router.get("/party/candidates/", response_model=list[CandidateAdminRead])
+async def party_candidates(session: SessionDep, _: AdminUser):
+    """Every approved aspirant with the profile written so far."""
+    return await candidates.approved_with_profiles(session)
+
+
+@router.get("/party/candidates/{aspirant_id}/profile/", response_model=CandidateAdminRead)
+async def candidate_profile(aspirant_id: uuid.UUID, session: SessionDep, _: AdminUser):
+    return await candidates.read_profile(session, aspirant_id)
+
+
+@router.put("/party/candidates/{aspirant_id}/profile/", response_model=CandidateAdminRead)
+async def write_candidate_profile(
+    aspirant_id: uuid.UUID, payload: ProfileWrite, session: SessionDep, admin: AdminUser
+):
+    """Write and publish an approved aspirant's profile; the request replaces it."""
+    return await candidates.write_profile(session, aspirant_id, payload, actor=admin)
+
+
+@router.get("/party/posts/{post_id}/aspirants/", response_model=PostAspirants)
+async def post_aspirants(post_id: uuid.UUID, session: SessionDep, _: AdminUser):
+    return PostAspirants(aspirant_ids=await candidates.post_aspirants(session, post_id))
+
+
+@router.put("/party/posts/{post_id}/aspirants/", response_model=PostAspirants)
+async def set_post_aspirants(
+    post_id: uuid.UUID, payload: PostAspirants, session: SessionDep, admin: AdminUser
+):
+    """The approved aspirants an event names; it shows on each one's profile."""
+    ids = await candidates.set_post_aspirants(session, post_id, payload.aspirant_ids, actor=admin)
+    return PostAspirants(aspirant_ids=ids)

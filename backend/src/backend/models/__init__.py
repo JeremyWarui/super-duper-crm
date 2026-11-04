@@ -8,6 +8,7 @@ from backend.models.campaign import Campaign
 from backend.models.content import (
     AgendaIssue,
     Branch,
+    CandidateProfile,
     HeroSlide,
     PartyDocument,
     PartyLeader,
@@ -17,6 +18,7 @@ from backend.models.content import (
     PartyVideo,
     PrimaryResult,
     Subscriber,
+    party_post_aspirants,
 )
 from backend.models.enums import (
     AccessState,
@@ -113,6 +115,8 @@ __all__ = [
     "PartyDocument",
     "PartyOrgan",
     "PartyValue",
+    "CandidateProfile",
+    "party_post_aspirants",
     "PartyVideo",
     "PrimaryResult",
     "Seat",

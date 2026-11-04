@@ -21,11 +21,9 @@ from backend.models import (
     Aspirant,
     AspirantStatus,
     Campaign,
-    CampaignSubscription,
     Event,
     EventStatus,
     OperationalGrain,
-    PartySettings,
     RegistrationCentre,
     Supporter,
     SupportLevel,
@@ -81,31 +79,6 @@ class Link:
         return ConsentChannel.CAMPAIGN_LINK if self.event is None else ConsentChannel.EVENT_QR
 
 
-async def _access(session: SessionDep, campaign: Campaign, today: date) -> AccessState | None:
-    row = (
-        await session.execute(
-            select(
-                CampaignSubscription.paid_until,
-                CampaignSubscription.hold,
-                PartySettings.grace_days,
-                PartySettings.read_only_days,
-            )
-            .outerjoin(PartySettings, PartySettings.id == 1)
-            .where(CampaignSubscription.campaign_id == campaign.id)
-        )
-    ).first()
-    if row is None:
-        return None
-    paid_until, hold, grace_days, read_only_days = row
-    return billing.access(
-        paid_until,
-        hold,
-        today,
-        billing.GRACE_DAYS if grace_days is None else grace_days,
-        billing.READ_ONLY_DAYS if read_only_days is None else read_only_days,
-    ).state
-
-
 async def _link(session: SessionDep, code: str, today: date) -> Link:
     event = await session.scalar(
         select(Event)
@@ -130,7 +103,7 @@ async def _link(session: SessionDep, code: str, today: date) -> Link:
         campaign=campaign,
         event=event,
         aspirant=aspirant,
-        access=await _access(session, campaign, today),
+        access=await billing.campaign_access(session, campaign.id, today),
     )
 
 

@@ -663,3 +663,31 @@ async def update_settings(
     )
     await session.commit()
     return row
+
+
+async def campaign_access(
+    session: AsyncSession, campaign_id: uuid.UUID, today: date
+) -> AccessState | None:
+    """A campaign's access state today; None when it has no subscription row (as locked)."""
+    row = (
+        await session.execute(
+            select(
+                CampaignSubscription.paid_until,
+                CampaignSubscription.hold,
+                PartySettings.grace_days,
+                PartySettings.read_only_days,
+            )
+            .outerjoin(PartySettings, PartySettings.id == 1)
+            .where(CampaignSubscription.campaign_id == campaign_id)
+        )
+    ).first()
+    if row is None:
+        return None
+    paid_until, hold, grace_days, read_only_days = row
+    return access(
+        paid_until,
+        hold,
+        today,
+        GRACE_DAYS if grace_days is None else grace_days,
+        READ_ONLY_DAYS if read_only_days is None else read_only_days,
+    ).state
