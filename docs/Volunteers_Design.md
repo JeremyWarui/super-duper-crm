@@ -296,8 +296,10 @@ it. Each ticket gets one cold critic judged on its text and section 4 only.
 - Files: `screens/Candidate.dc.html` (the support form takes the sample's fields with first and last name), `Candidates.jsx`, `Candidate.jsx`, the withdraw page, `pages/party/Website.jsx`, `pages/campaign/Volunteers.jsx`, campaign `helpers.js` (manager menu), `PublicLayout.jsx`, `Gate.jsx`, `api/hooks`, contract, tests.
 - Tests: filters narrow the list; the profile's form offers only the seat's wards and is hidden without an open campaign; the editor publishes a profile and links an event; the manager lists volunteers.
 
-**R5-8 Integration** (lead)
+**R5-8 Integration** (lead; done 4 Nov 2026)
 - Both test lanes; `backend/evals/`; demo seed (a published profile with a linked event, a volunteer member who can sign in); `docs/SYSTEM.md`; one release critic against section 4 only.
+- Done: evals walk a member login through every member status and the profile's volunteer form day by day across a lapse; seed tests prove the demo candidates (one named at the next event) and the volunteer's sign-in; sign-in got its 10 tries an hour per device. The release critic failed points 3, 7, 9 and 10 (no `set-email` test; a stopped volunteer still shown as one; no test that the I'll volunteer form requires each field; `Candidate.dc.html` showing the old form); all fixed; fresh critics passed 9 and 10 in round 2, 7 in round 3 and 3 in round 4.
+- Known gaps (outside the rubric): an unknown email skips the password hash, so it answers faster than a wrong password (same body); `/api/auth/me/` still answers a member login whose member stopped being approved (every `/api/account/` route gives 401); `Join.dc.html` still shows national ID, date of birth, sex and leagues; `createuser` without `--email` makes a login that cannot sign in; the sign-in limit counts every try per address, so a busy office behind one address can reach it; `set-email` accepts an empty email.
 
 ---
 

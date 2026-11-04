@@ -71,14 +71,38 @@ describe("after sign-in", () => {
 });
 
 describe("the member's account", () => {
-  it("shows the card, the volunteer details and the empty tasks state", async () => {
+  it("shows the card, the volunteer details, the empty tasks state and party events", async () => {
     signInAs({});
-    stubApi(routes());
+    stubApi(routes({ "GET /party/posts/": [{ id: "e1", kind: "event", title: "Nairobi town hall", event_date: "2026-11-20", venue: "KICC" }] }));
     renderApp(<AppRoutes />, { path: "/account" });
 
     expect(await screen.findByRole("region", { name: "Member card" })).toHaveTextContent("Zimmerman, Nairobi");
     expect(screen.getByText("Fundraising Support")).toBeInTheDocument();
     expect(screen.getByText(/No tasks yet/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Party events" }));
+    expect(await screen.findByRole("link", { name: "Nairobi town hall" })).toBeInTheDocument();
+  });
+
+  it("changes the volunteer details, then stops and is offered the form again", async () => {
+    const user = userEvent.setup();
+    signInAs({});
+    const changed = { ...ACCOUNT, volunteer: { ...ACCOUNT.volunteer, areas: ["fundraising", "door_to_door"] } };
+    const calls = stubApi(routes({
+      "PUT /account/volunteer/": changed,
+      "POST /account/volunteer/stop/": { ...ACCOUNT, volunteer: null },
+    }));
+    renderApp(<AppRoutes />, { path: "/account" });
+
+    await user.click(await screen.findByRole("button", { name: "Change my volunteer details" }));
+    await user.click(screen.getByRole("checkbox", { name: "Door-to-door Campaign" }));
+    await user.click(screen.getByRole("button", { name: "Save my volunteer details" }));
+    expect(await screen.findByText("Fundraising Support, Door-to-door Campaign")).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "My data & privacy" }));
+    await user.click(screen.getByRole("button", { name: "Stop volunteering" }));
+    await user.click(screen.getByRole("tab", { name: "Volunteering" }));
+
+    expect(await screen.findByRole("button", { name: "Volunteer for events" })).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "PUT").body.areas).toEqual(["fundraising", "door_to_door"]);
   });
 
   it("offers a member who does not volunteer the volunteer form", async () => {

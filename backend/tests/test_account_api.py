@@ -68,9 +68,10 @@ async def test_a_login_signs_in_with_its_email_in_any_case_and_no_longer_with_it
         LOGIN, json={"email": " AMINA@example.test ", "password": TEST_PASSWORD}
     )
     by_name = await client.post(LOGIN, json={"username": "amina", "password": TEST_PASSWORD})
+    name_as_email = await client.post(LOGIN, json={"email": "amina", "password": TEST_PASSWORD})
 
     assert (by_email.status_code, by_email.json()["user"]["kind"]) == (200, "campaign")
-    assert by_name.status_code == 400
+    assert (by_name.status_code, name_as_email.status_code) == (400, 400)
 
 
 async def test_an_applied_join_makes_a_member_login_that_signs_in_only_once_approved(
@@ -175,15 +176,20 @@ async def test_a_member_volunteers_changes_stops_and_stays_a_member(
     profile = await session.scalar(
         select(VolunteerProfile).execution_options(populate_existing=True)
     )
+    stopped_status, stopped_code = profile.status, profile.withdraw_code
+    again = await client.put("/api/account/volunteer/", json=part, headers=auth(token))
+    profiles = (await session.scalars(select(VolunteerProfile))).all()
     await session.refresh(member)
 
     assert joined.json()["volunteer"]["status"] == "interested"
     assert changed.json()["volunteer"]["areas"] == ["recruiting", "other"]
-    assert (stopped.status_code, profile.status, profile.withdraw_code) == (
+    assert (stopped.status_code, stopped_status, stopped_code) == (
         200,
         VolunteerStatus.WITHDRAWN,
         None,
     )
+    assert stopped.json()["volunteer"] is None
+    assert (again.json()["volunteer"]["status"], len(profiles)) == ("interested", 1)
     assert member.status is PartyMemberStatus.APPROVED
 
 

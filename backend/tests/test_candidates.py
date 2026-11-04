@@ -3,6 +3,7 @@
 from datetime import UTC, datetime, time, timedelta
 
 import httpx
+import pytest
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -162,6 +163,40 @@ async def test_the_form_is_closed_without_a_campaign_or_in_read_only_or_locked(
     assert refused.status_code == 400
     assert (locked["volunteering_open"], locked_post.status_code) == (False, 400)
     assert no_campaign["volunteering_open"] is False
+
+
+@pytest.mark.parametrize(
+    "missing",
+    [
+        {"first_name": ""},
+        {"last_name": ""},
+        {"email": ""},
+        {"phone": ""},
+        {"ward": None},
+        {"registration_centre": None},
+        {"profession": None},
+        {"profession": "other", "profession_other": ""},
+        {"areas": []},
+        {"areas": ["other"], "area_other": ""},
+        {"preferred_contact": None},
+        {"consent_given": False},
+    ],
+)
+async def test_the_volunteer_form_refuses_any_missing_field_and_stores_nothing(
+    client: httpx.AsyncClient,
+    session: AsyncSession,
+    world: World,
+    admin_headers: dict,
+    missing: dict,
+) -> None:
+    await _publish(client, admin_headers, await _aspirant(session, world))
+
+    answer = await client.post(
+        f"/api/candidates/{await _slug(client)}/volunteer/", json=_volunteer(world, **missing)
+    )
+
+    assert answer.status_code in (400, 422)
+    assert await session.scalar(select(func.count()).select_from(VolunteerProfile)) == 0
 
 
 async def test_a_ward_or_centre_outside_the_seat_is_refused(

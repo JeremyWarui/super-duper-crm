@@ -1,5 +1,5 @@
-"""Walk a lapsing subscription day by day: the state, the API's answers and whether the
-sign-up link is open match the design.
+"""Walk a lapsing subscription day by day: the state, the API's answers, and whether the
+sign-up link and the candidate profile's volunteer form are open match the design.
 
 docs/Subscriptions_Design.md, "Access state": active through the last paid day, then
 `grace_days` of full access, then `read_only_days` of reads only, then locked.
@@ -13,9 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import get_today
 from backend.main import app
-from backend.models import AccessState, PartySettings, SubscriptionHold
+from backend.models import AccessState, CandidateProfile, PartySettings, SubscriptionHold
 from backend.services.billing import access
 from tests.conftest import World
+from tests.test_candidates import _aspirant
 from tests.test_join_api import _event
 
 PAID_UNTIL = date(2026, 11, 30)
@@ -32,7 +33,7 @@ def expected(day: date, grace_days: int, read_only_days: int) -> AccessState:
     return AccessState.LOCKED
 
 
-# A read, a write, and whether the public sign-up link is open.
+# A read, a write, and whether the public sign-up link and the profile's volunteer form are open.
 ANSWERS = {
     AccessState.ACTIVE: ((200, None), (400, None), True),
     AccessState.GRACE_PERIOD: ((200, None), (400, None), True),
@@ -61,6 +62,11 @@ async def test_each_day_of_a_lapse_answers_as_the_design_says(
     await session.commit()
     headers = world.headers("manager")
     link = f"/api/join/{(await _event(session, world)).signup_code}/"
+    aspirant = await _aspirant(session, world)
+    session.add(CandidateProfile(aspirant_id=aspirant.id, published=True))
+    await session.commit()
+    (card,) = (await client.get("/api/candidates/")).json()
+    profile = f"/api/candidates/{card['slug']}/"
 
     seen, wanted = [], []
     for offset in range(-1, grace_days + read_only_days + 2):
@@ -70,8 +76,10 @@ async def test_each_day_of_a_lapse_answers_as_the_design_says(
         read = await client.get("/api/supporters/", headers=headers)
         write = await client.post("/api/supporters/", headers=headers, json={})
         signup = (await client.get(link)).json()["open"]
+        volunteering = (await client.get(profile)).json()["volunteering_open"]
         computed = access(PAID_UNTIL, SubscriptionHold.NONE, day, grace_days, read_only_days)
-        seen.append((day, computed.state, _answer(read), _answer(write), signup))
-        wanted.append((day, state, *ANSWERS[state]))
+        seen.append((day, computed.state, _answer(read), _answer(write), signup, volunteering))
+        read_answer, write_answer, is_open = ANSWERS[state]
+        wanted.append((day, state, read_answer, write_answer, is_open, is_open))
 
     assert seen == wanted

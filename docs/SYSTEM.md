@@ -108,18 +108,56 @@ office (`users.kind`). The superuser is the party's super admin.
   like any deleted campaign's.
 - **Member register:** `party_members`, one row per phone, tied to a ward
   (county and constituency come from the ward). People apply at `/join-party`
-  with a county, constituency and ward picker and the consent box, whose
-  wording the server serves and records. A membership officer reviews them at
+  with first name, surname, phone, email, password, a county, constituency
+  and ward picker, a polling station inside that ward, and the consent box,
+  whose wording the server serves and records. The queued join holds the
+  password only as an argon2 hash; applying it writes the member and a member
+  login with that password. A membership officer reviews them at
   `/party/members`: search, filter by status and place, approve, reject,
   suspend, reinstate, withdraw, and export CSV.
 - **Volunteers:** an optional volunteer profile per member
-  (`volunteer_profiles`), made from the form's volunteer section (interests,
-  preferred contact, and its own consent box). Officers see them at
+  (`volunteer_profiles`), made from the join form's "Volunteer for events"
+  tick or later from the member's account: profession (Other with text), one
+  or more of ten areas (Other with text), preferred contact and its own
+  consent box. The database holds that a party volunteer row has a member and
+  a campaign volunteer row has none. Officers see them at
   `/party/volunteers`, filter by place, interest and status, edit availability
   notes, and make an approved member's profile active or inactive. The profile
   follows the member: withdrawn or rejected withdraws it, suspended makes it
   inactive. Its own link (`/party/volunteer/withdraw/<code>`) stops volunteer
-  contact and leaves the membership as it is. Volunteers have no login.
+  contact and leaves the membership as it is.
+- **Sign-in and member accounts:** every login signs in with email and
+  password (`users.email`, lower-cased and unique); a username no longer
+  signs in, and `campaign-crm set-email` gives an old login its email. A wrong
+  email, a wrong password and a member who is not approved get the same
+  answer. A device gets 10 sign-in tries an hour. A member login (`users.kind = member`) opens only `/api/account/`
+  routes, and only while its member is approved, checked on every request.
+  Its page at `/account` shows the member card, the volunteer part (details
+  with a change form, or the volunteer form for a non-volunteer), an empty
+  tasks state, upcoming party events, and data and privacy: "Stop
+  volunteering" keeps the membership, "Leave the party" queues the withdrawal
+  and ends the session. A staff or campaign login linked to a member gets a
+  chooser at `/signin/where` after signing in. The SMS code step is designed
+  (section 5 of `docs/Volunteers_Design.md`) and waits for an SMS provider.
+- **Candidates:** the website editor writes a profile for an approved aspirant
+  (`candidate_profiles`: photo, slogan, bio, priorities, office) and
+  publishes it; no field comes from a campaign's CRM. `/candidates` lists
+  approved aspirants with a published profile and `/candidates/<slug>` shows
+  one, with the party events that name the aspirant (never a campaign event).
+  Its "I'll volunteer" form is open only while the aspirant's campaign is
+  active or in grace, and accepts only a ward and polling station inside the
+  seat's area. Those volunteers belong to the campaign: only its manager sees
+  and changes them, they never reach the party register, its CSV or the
+  dashboard, and their withdrawal link deletes the row and answers the same
+  for any code.
+- **Party payments:** the finance officer schedules payments to agents and
+  others at Finance > Payouts; the superuser approves each one (never one they
+  scheduled) before it is released or marked paid. It runs in practice mode;
+  a Paystack provider is ready behind `PAYOUT_PROVIDER`.
+- **Console top bar:** every party console page has search
+  (`GET /api/party/search/`) and notifications
+  (`GET /api/party/notifications/`), each showing only what the caller's
+  offices may see.
 - **Status moves** are one table in `services/membership.py`; any other move is
   refused, and a move only lands if the row still has the status it was checked
   against. Every officer move and every export is in the audit trail, with ids,
@@ -136,10 +174,17 @@ office (`users.kind`). The superuser is the party's super admin.
   server's latency does not show it either; a withdrawal lands within minutes. Public re-applications and withdrawals are audited as
   `public`. Nobody proves they hold the number yet, so anyone can re-apply for
   a rejected or withdrawn number until SMS verification exists.
-- **Public website:** the party's site is at `/`, open to anyone: Home (the
-  description, the three latest news posts, the three next events and a join
-  button), About, Leadership, Manifesto, News, one post at `/news/<id>`, Events
-  and Join, all in the party's name, logo and colours from its settings. The
+- **Public website:** the party's site is at `/`, open to anyone, built on
+  the UI kit with one `SiteHeader` and `SiteFooter`: Home (a carousel of
+  slides turning every 6 seconds with Pause, agenda issues at `/issues/<id>`,
+  our candidates, news, events and a Watch row), About, Leadership,
+  Manifesto, News (news, statements and opinions), one post at `/news/<id>`,
+  Events, Candidates, Results (demo primary results, marked demo), Counties
+  (one branch per county at `/counties/<id>`), Vie with us, Contribute (it
+  charges and stores nothing, and says so), Privacy and Join, all in the
+  party's name, logo and colours from its settings (the demo party is Pamoja
+  Party). The footer's newsletter sign-up stores its consent wording, notice
+  version and date (`subscribers`) and is undone at `/unsubscribe/<code>`. The
   menu's last link is Sign in (`/signin`), or Portal for a signed-in login.
   Leaders and posts live in `party_leaders` and `party_posts`; a public route
   returns only published ones, news newest first 20 a page, events from today
@@ -147,7 +192,9 @@ office (`users.kind`). The superuser is the party's super admin.
   campaign's. Text is shown as text and image fields take `https://` addresses
   only; there is no upload.
 - **Website editor:** the superuser adds, edits, publishes, unpublishes and
-  deletes leaders and posts at `/party/website`. A new row is a draft; a post
+  deletes leaders, posts, homepage slides and issues, About content, results,
+  videos and candidate profiles at `/party/website`, and county branches at
+  `/party/branches`. A new row is a draft; a post
   gets its `published_on` day the first time it is published and keeps it.
   An event needs a date, held by the database
   (`CHECK ((kind = 'event') = (event_date IS NOT NULL))`). Every change is
@@ -163,12 +210,13 @@ office (`users.kind`). The superuser is the party's super admin.
   venue, and no supporter, member or phone detail leaves a campaign.
 - **Addresses:** a signed-out visit to any signed-in page goes to `/signin`.
   After signing in the superuser lands on the console at `/console`, party
-  staff on `/party`, and a campaign login on `/campaign`.
+  staff on `/party`, a campaign login on `/campaign`, a member login on
+  `/account`, and a login linked to a member on the chooser first.
 
 The designs and their decisions are in `docs/Identity_Access_Design.md`
 (Releases 0 and 1), `docs/Aspirants_Design.md` (Release 2),
-`docs/Subscriptions_Design.md` (Release 3) and `docs/Website_Design.md`
-(Release 4).
+`docs/Subscriptions_Design.md` (Release 3), `docs/Website_Design.md`
+(Release 4) and `docs/Volunteers_Design.md` (Release 5).
 
 ---
 
@@ -490,6 +538,13 @@ counts toward, not what they can see.
 | Public Join the Party page and withdrawal link | Built | `frontend/src/pages/public/` |
 | Party member register for membership officers | Built | `frontend/src/pages/party/Members.jsx`, CSV export |
 | Volunteer register: form section, own withdraw link, officer page | Built | `frontend/src/pages/party/Volunteers.jsx`, CSV export |
+| Email sign-in for every login | Built | A username no longer signs in; `campaign-crm set-email` |
+| Member logins and the member account | Built | `frontend/src/pages/member/Account.jsx`, `/api/account/` |
+| SMS code at sign-in | Designed, not built | Waits for an SMS provider (R5-9) |
+| Candidates directory, profiles and campaign volunteers | Built | `frontend/src/pages/public/Candidates.jsx`, `Candidate.jsx`; manager-only list |
+| County branches | Built | `frontend/src/pages/party/Branches.jsx`, `/counties` |
+| Newsletter sign-up and unsubscribe | Built | `subscribers`; footer form |
+| Console top bar: search and notifications | Built | `frontend/src/components/layout/ConsoleTools.tsx` |
 | Audit trail of sensitive actions | Built | Read at `GET /api/admin/audit/`; no console screen yet |
 | Erasing a withdrawn member on request | Planned | Decision 3 in the design |
 | Subscription, grace, read-only and locked states | Built | Computed on every request; 403 `campaign_read_only`, `campaign_locked` |
@@ -655,15 +710,15 @@ in full without either:
 
 | Check | What it proves | Runs |
 |---|---|---|
-| Backend tests (359: 356 run, 3 Postgres-only skipped) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
-| Backend evals (310: 286 run, 7 live checks and 17 impossible register states skipped) | The API still offers what the frontend's contract lists; every subscription state and HTTP answer, day by day across the end of the paid period | `cd backend && uv run pytest evals` |
-| Frontend tests (125) | Each screen per role, the public site, the forms, the contract from the frontend side | `cd frontend && npm test` |
+| Backend tests (460: 457 run, 3 Postgres-only skipped) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
+| Backend evals (411: 387 run, 7 live checks and 17 impossible register states skipped) | The API still offers what the frontend's contract lists; every subscription state, HTTP answer and candidate volunteer form, day by day across the end of the paid period; a member login across every member status | `cd backend && uv run pytest evals` |
+| Frontend tests (158) | Each screen per role, the public site, the forms, the contract from the frontend side | `cd frontend && npm test` |
 | Migration tests | The migrations build the models' schema and render correctly for Postgres | part of the backend tests |
 | Postgres lane | The same suite on a throwaway local Postgres built by the migrations: row locks, races, every migration down and up | `cd backend && TEST_POSTGRES=1 uv run pytest` |
 | Live database check | TLS, the latest migration and the seeded geography on a real database | `LIVE_DATABASE=1`, by hand; 7 checks skipped otherwise |
 | Secret scan | No password, key or token reaches the repository | a pre-commit hook (`git config core.hooksPath .githooks`), and again on every push in GitHub Actions (`.github/workflows/secret-scan.yml`) |
 
-`cd backend && uv run pytest` runs the tests and the evals together (669: 642 run, 27 skipped). With `TEST_POSTGRES=1`, 644 run: the three Postgres-only tests run and the SQLite-only CLI check skips.
+`cd backend && uv run pytest` runs the tests and the evals together (871: 844 run, 27 skipped). With `TEST_POSTGRES=1`, 846 run: the three Postgres-only tests run and the SQLite-only CLI check skips.
 
 ---
 

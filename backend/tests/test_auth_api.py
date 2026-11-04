@@ -23,6 +23,20 @@ async def test_signing_in_returns_a_token_and_the_caller(
     assert body["user"]["role"] == "manager"
 
 
+async def test_a_device_gets_ten_sign_in_tries_an_hour(
+    client: httpx.AsyncClient, session
+) -> None:
+    await make_user(session, username="amina")
+    wrong = {"email": "amina@example.test", "password": fresh_password()}
+
+    tries = [(await client.post("/api/auth/login/", json=wrong)).status_code for _ in range(10)]
+    right = await client.post(
+        "/api/auth/login/", json={"email": "amina@example.test", "password": TEST_PASSWORD}
+    )
+
+    assert (set(tries), right.status_code) == ({400}, 429)
+
+
 async def test_a_wrong_password_is_rejected_in_the_shape_the_form_reads(
     client: httpx.AsyncClient, session
 ) -> None:

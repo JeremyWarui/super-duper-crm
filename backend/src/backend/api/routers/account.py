@@ -14,6 +14,7 @@ from backend.models import (
     PartyMemberStatus,
     User,
     UserKind,
+    VolunteerStatus,
     Ward,
 )
 from backend.schemas.account import AccountRead, AccountVolunteer
@@ -69,7 +70,7 @@ def _read(member: PartyMember) -> AccountRead:
     ward = member.ward
     profile = member.volunteer
     volunteer = None
-    if profile is not None:
+    if profile is not None and profile.status is not VolunteerStatus.WITHDRAWN:
         volunteer = AccountVolunteer(
             status=profile.status,
             profession=profile.profession,

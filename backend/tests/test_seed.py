@@ -25,9 +25,9 @@ from backend.seed.reference import (
     import_centres,
     import_geography,
 )
-from backend.seed.site import seed_site
+from backend.seed.site import seed_news, seed_site
 from backend.services.billing import access, today
-from tests.factories import members_of
+from tests.factories import auth, members_of
 
 # Published IEBC figures for the 2022 register.
 KENYA_COUNTIES = 47
@@ -66,7 +66,7 @@ async def _user(session: AsyncSession, username: str) -> User:
 
 
 async def test_the_demo_builds_its_campaign_and_team(
-    session: AsyncSession,
+    client: httpx.AsyncClient, session: AsyncSession
 ) -> None:
     summary = await _demo(session)
 
@@ -86,6 +86,11 @@ async def test_the_demo_builds_its_campaign_and_team(
         assert (user.email, verify_password(password, user.password_hash)) == (email, True)
     volunteer = await _user(session, "volunteer")
     assert (volunteer.kind, volunteer.party_member_id is not None) == (UserKind.MEMBER, True)
+    email, password, _ = summary.sign_ins[-1]
+    signed_in = await client.post("/api/auth/login/", json={"email": email, "password": password})
+    token = signed_in.json()["token"]
+    account = (await client.get("/api/account/", headers=auth(token))).json()
+    assert (account["status"], account["volunteer"] is not None) == ("approved", True)
 
     roysambu = await session.scalar(
         select(Constituency)
@@ -142,3 +147,17 @@ async def test_the_demo_site_publishes_once(
     assert (first, again) == (True, False)
     assert (len(leaders), len(events)) == (6, 3)
     assert (await client.get("/api/party/")).json()["name"] == "Pamoja Party"
+
+
+async def test_the_demo_site_lists_its_candidates_and_names_one_in_the_next_event(
+    client: httpx.AsyncClient, session: AsyncSession
+) -> None:
+    await import_geography(session)
+    await seed_site(session, date(2026, 11, 1))
+    await seed_news(session, date(2026, 11, 1))
+
+    cards = (await client.get("/api/candidates/")).json()
+    pages = [(await client.get(f"/api/candidates/{card['slug']}/")).json() for card in cards]
+
+    assert len(cards) == 4
+    assert sorted(len(page["events"]) for page in pages) == [0, 0, 0, 1]

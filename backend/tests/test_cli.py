@@ -43,6 +43,20 @@ async def test_reset_password_hands_out_one_that_signs_in(
     assert "No user called nobody." in capsys.readouterr().err
 
 
+async def test_set_email_gives_a_login_the_email_it_signs_in_with(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, capsys: pytest.CaptureFixture
+) -> None:
+    assert await cli(session, "set-email", "-u", "jane", "--email", "Jane.New@Example.TEST") == 0
+    assert await cli(session, "set-email", "-u", "amina", "--email", "jane.new@example.test") == 1
+    old_email = await client.post(
+        "/api/auth/login/", json={"email": "jane@example.test", "password": TEST_PASSWORD}
+    )
+
+    assert await sign_in(client, "jane.new@example.test")
+    assert old_email.status_code == 400
+    assert "already belongs to jane" in capsys.readouterr().err
+
+
 @pytest.mark.skipif(POSTGRES, reason="the test database is Postgres")
 async def test_reset_database_refuses_anything_but_postgres(
     session: AsyncSession, world: World, capsys: pytest.CaptureFixture

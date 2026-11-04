@@ -62,6 +62,38 @@ describe("candidates on the website", () => {
     expect(wards).toEqual(["Pick your ward", "Parklands", "Kangemi"]);
     expect(screen.queryByRole("button", { name: "I'll volunteer" })).toBeNull();
   });
+
+  it("sends the volunteer form only once every field is filled", async () => {
+    const calls = stubApi({
+      ...PUBLIC,
+      "GET /party/places/?ward=w1": [{ id: "s1", name: "Parklands Primary" }],
+      [`POST /candidates/${CARD.slug}/volunteer/`]: { message: "Thank you.", withdraw_code: "x" },
+    });
+    renderApp(<AppRoutes />, { path: `/candidates/${CARD.slug}` });
+    const send = await screen.findByRole("button", { name: "I'll volunteer" });
+    const steps = [
+      () => userEvent.type(screen.getByRole("textbox", { name: "First name" }), "Wanjiku"),
+      () => userEvent.type(screen.getByRole("textbox", { name: "Last name" }), "Njeri"),
+      () => userEvent.type(screen.getByRole("textbox", { name: "Email" }), "wanjiku@example.com"),
+      () => userEvent.type(screen.getByRole("textbox", { name: "Phone" }), "0712345678"),
+      () => userEvent.selectOptions(screen.getByRole("combobox", { name: "Ward" }), "w1"),
+      async () => userEvent.selectOptions(screen.getByRole("combobox", { name: "Polling station" }), await screen.findByRole("option", { name: "Parklands Primary" })),
+      () => userEvent.selectOptions(screen.getByRole("combobox", { name: "Profession" }), "teacher"),
+      () => userEvent.click(screen.getByRole("checkbox", { name: "Door-to-door Campaign" })),
+      () => userEvent.selectOptions(screen.getByRole("combobox", { name: "Preferred contact" }), "sms"),
+      () => userEvent.click(screen.getByRole("checkbox", { name: DETAIL.consent_wording })),
+    ];
+    const disabled = [];
+    for (const step of steps) {
+      disabled.push(send.disabled);
+      await step();
+    }
+    await userEvent.click(send);
+
+    expect(disabled.every(Boolean)).toBe(true);
+    const sent = calls.find((c) => c.method === "POST").body;
+    expect(sent).toMatchObject({ first_name: "Wanjiku", last_name: "Njeri", email: "wanjiku@example.com", phone: "0712345678", ward: "w1", registration_centre: "s1", profession: "teacher", areas: ["door_to_door"], preferred_contact: "sms", consent_given: true });
+  });
 });
 
 describe("the website editor's candidates", () => {

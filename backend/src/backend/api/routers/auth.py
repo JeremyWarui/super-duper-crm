@@ -2,20 +2,23 @@
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import SessionDep, SignedInUser
+from backend.api.routers.join import _client
 from backend.models import AuthToken, User, UserKind
 from backend.schemas.auth import LoginRequest, LoginResponse, LoginUser
 from backend.security import hash_password, needs_rehash, new_token_key, verify_password
 from backend.services.accounts import user_with_email
+from backend.services.ratelimit import RateLimit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 WRONG_CREDENTIALS = "Unable to log in with the provided credentials."
+TRIES = RateLimit(limit=10, window=3600)
 
 
 async def _signed_in(session: AsyncSession, user: User) -> dict:
@@ -29,13 +32,19 @@ async def _signed_in(session: AsyncSession, user: User) -> dict:
     return {"token": token.key, "user": user}
 
 
-@router.post("/login/", response_model=LoginResponse, responses={400: {"description": "Rejected"}})
-async def login(payload: LoginRequest, session: SessionDep) -> object:
-    """Exchange an email and password for a token.
+@router.post(
+    "/login/",
+    response_model=LoginResponse,
+    responses={400: {"description": "Rejected"}, 429: {"description": "Too many tries"}},
+)
+async def login(payload: LoginRequest, request: Request, session: SessionDep) -> object:
+    """Exchange an email and password for a token; 10 tries an hour per device.
 
     A member login signs in only while its member is approved, and is refused otherwise with
     the answer a wrong password gets.
     """
+    if not TRIES.allow(_client(request)):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
     user = await user_with_email(session, payload.email, with_party_roles=True)
     if (
         user is None

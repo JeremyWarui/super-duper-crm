@@ -82,21 +82,21 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 </sc-for>
 </section>
 </sc-if>
-<sc-if value="{{isNews}}" hint-placeholder-val="{{ false }}">
-<section style="display: flex; flex-direction: column; gap: 14px">
-<h2 style="margin: 0; border-top: 3px solid #13201A; padding-top: 14px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px">From the campaign</h2>
-<a href="News.dc.html" style="font-size: 18px; font-weight: 700; color: #13201A">[Campaign update headline]</a>
-<a href="News.dc.html" style="font-size: 18px; font-weight: 700; color: #13201A">[Visit to … ward]</a>
-</section>
-</sc-if>
 </div>
 
 <aside id="support" style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
 <form style="background: #FFFFFF; border: 1px solid rgba(19,32,26,0.05); border-radius: 20px; box-shadow: 0 1px 2px rgba(19,32,26,0.04), 0 10px 30px rgba(19,32,26,0.07); padding: 24px; display: flex; flex-direction: column; gap: 14px">
 <h2 style="margin: 0; font-size: 20px; font-weight: 700">Support [first name]</h2>
-<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Full name<input type="text" style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px"></label>
-<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Phone<input type="tel" placeholder="07XX XXX XXX" style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px"></label>
-<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Ward<select style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px; background: #FFFFFF"><option>[Ward 1]</option><option>[Ward 2]</option></select></label>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px"><label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">First name<input type="text" required autocomplete="given-name" style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px"></label><label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Last name<input type="text" required autocomplete="family-name" style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px"></label></div>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Email<input type="email" required autocomplete="email" style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Phone<input type="tel" required placeholder="07XX XXX XXX" style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Ward<select required style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px; background: #FFFFFF"><option>Pick your ward</option><option>[Ward in the seat's area]</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Polling station<select required style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px; background: #FFFFFF"><option>Pick your polling station</option><option>[Centre in that ward]</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Profession<select required style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px; background: #FFFFFF"><option>Pick your profession</option><option>Farmer</option><option>Teacher</option><option>Business</option><option>Student</option><option>Other</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Your profession (when Other)<input type="text" maxlength="100" style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px"></label>
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px"><legend style="font-size: 13px; font-weight: 600; margin-bottom: 8px">How would you like to help?</legend><div style="display: flex; flex-wrap: wrap; gap: 8px"><label style="display: flex; gap: 8px; align-items: center; border: 1.5px solid #C9CCCF; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: #0B5D3B">Fundraising Support</label><label style="display: flex; gap: 8px; align-items: center; border: 1.5px solid #C9CCCF; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: #0B5D3B">Door-to-door Campaign</label><label style="display: flex; gap: 8px; align-items: center; border: 1.5px solid #C9CCCF; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: #0B5D3B">Mobilising Voters</label><label style="display: flex; gap: 8px; align-items: center; border: 1.5px solid #C9CCCF; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: #0B5D3B">Social Media Support</label><label style="display: flex; gap: 8px; align-items: center; border: 1.5px solid #C9CCCF; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: #0B5D3B">Recruiting Volunteers</label><label style="display: flex; gap: 8px; align-items: center; border: 1.5px solid #C9CCCF; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: #0B5D3B">Distributing Campaign Materials</label><label style="display: flex; gap: 8px; align-items: center; border: 1.5px solid #C9CCCF; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: #0B5D3B">Data Collection</label><label style="display: flex; gap: 8px; align-items: center; border: 1.5px solid #C9CCCF; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: #0B5D3B">Community Listening</label><label style="display: flex; gap: 8px; align-items: center; border: 1.5px solid #C9CCCF; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: #0B5D3B">Holding Barazas &amp; Household Meetings</label><label style="display: flex; gap: 8px; align-items: center; border: 1.5px solid #C9CCCF; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: #0B5D3B">Other</label></div></fieldset>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Other ways to help (when Other)<input type="text" maxlength="100" style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Preferred contact<select required style="font: inherit; font-size: 16px; font-weight: 400; padding: 12px 14px; border: 1.5px solid #C9CCCF; border-radius: 12px; background: #FFFFFF"><option>Pick a contact method</option><option>Call</option><option>SMS</option><option>WhatsApp</option><option>Email</option></select></label>
 <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: #4E5552; line-height: 1.5"><input type="checkbox" style="width: 18px; height: 18px; margin: 0; accent-color: #0B5D3B">I agree that this campaign may contact me. My details go to the campaign only.</label>
 <button type="button" style="font: inherit; font-weight: 700; font-size: 16px; color: #FFFFFF; background: #0B5D3B; border: 0; height: 48px; border-radius: 999px; cursor: pointer">I'll volunteer</button>
 </form>
@@ -105,7 +105,7 @@ a{color:#0B5D3B}a:hover{color:#08442B}
 <span style="color: #B9C2BC">[Address]</span>
 <span style="color: #B9C2BC">[Phone] · [Email]</span>
 </section>
-<p style="margin: 0; font-size: 13px; color: #4E5552">Profile maintained by the candidate's campaign and approved by Pamoja Party.</p>
+<p style="margin: 0; font-size: 13px; color: #4E5552">Profile written from what the candidate sent, and published by Pamoja Party.</p>
 </aside>
 </main>
 
@@ -117,13 +117,13 @@ class Component extends DCLogic {
   constructor(p) { super(p); this.state = { tab: 'About' }; }
   renderVals() {
     const sel = this.state.tab;
-    const tabs = ['About', 'Priorities', 'Events', 'News'].map((label) => ({
+    const tabs = ['About', 'Priorities', 'Events'].map((label) => ({
       label, selected: sel === label ? 'true' : 'false', pick: () => this.setState({ tab: label }),
       style: 'font: inherit; font-size: 16px; font-weight: 700; background: transparent; border: 0; padding: 18px 16px; min-height: 56px; cursor: pointer; border-bottom: 3px solid ' + (sel === label ? '#0B5D3B; color: #0B5D3B' : 'transparent; color: #4E5552')
     }));
     return {
       tabs,
-      isAbout: sel === 'About', isPriorities: sel === 'Priorities', isEvents: sel === 'Events', isNews: sel === 'News',
+      isAbout: sel === 'About', isPriorities: sel === 'Priorities', isEvents: sel === 'Events',
       priorities: [
         { num: '01', title: '[Local priority one]', link: '[Jobs & livelihoods]' },
         { num: '02', title: '[Local priority two]', link: '[Education & youth]' },
