@@ -16,6 +16,7 @@ from backend.models import (
     PartyPost,
     PartySettings,
     PartyValue,
+    PartyVideo,
     PostKind,
     PostLabel,
     PrimaryResult,
@@ -55,7 +56,11 @@ SETTINGS = {
         "Pay the nomination fee once the Elections Board clears you.\n"
         "Campaign in the party primary under the party's code of conduct."
     ),
-    "social_links": {"X": "https://x.com/example", "Facebook": "https://facebook.com/example"},
+    "social_links": {
+        "X": "https://x.com/example",
+        "Facebook": "https://facebook.com/example",
+        "YouTube": "https://youtube.com/@example",
+    },
 }
 
 LEADERS = [
@@ -111,6 +116,12 @@ DOCUMENTS = [
     ("Party constitution (PDF)", "https://example.com/pamoja/constitution.pdf"),
     ("Nomination rules (PDF)", "https://example.com/pamoja/nomination-rules.pdf"),
     ("Manifesto (PDF)", "https://example.com/pamoja/manifesto.pdf"),
+]
+
+VIDEOS = [
+    ("Party leader's rally speech in Nakuru", "12:40", 21),
+    ("Manifesto launch highlights", "4:15", 22),
+    ("Town hall: questions from members", "38:02", 23),
 ]
 
 # (seat, area, days before today it was declared or None while counting, candidates)
@@ -364,6 +375,19 @@ async def seed_news(session: AsyncSession, today: date) -> int:
         for n, (title, url) in enumerate(DOCUMENTS):
             session.add(PartyDocument(title=title, url=url, sort_order=n, published=True))
         changed += len(DOCUMENTS)
+    if not await session.scalar(select(func.count()).select_from(PartyVideo)):
+        for n, (title, duration, picture) in enumerate(VIDEOS):
+            session.add(
+                PartyVideo(
+                    title=title,
+                    url=f"https://example.com/pamoja/video-{n + 1}",
+                    thumbnail_url=PICTURE.format(picture),
+                    duration=duration,
+                    sort_order=n,
+                    published=True,
+                )
+            )
+        changed += len(VIDEOS)
     if not await session.scalar(select(func.count()).select_from(PrimaryResult)):
         for seat, area, days_ago, candidates in RESULTS:
             declared = None if days_ago is None else today - timedelta(days=days_ago)

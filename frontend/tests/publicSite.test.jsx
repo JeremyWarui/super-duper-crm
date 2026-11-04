@@ -104,6 +104,19 @@ describe("the public site", () => {
     );
   });
 
+  it("shows the Watch row with YouTube's thumbnail and the video's length", async () => {
+    stubApi({
+      ...ROUTES,
+      "GET /party/videos/": [{ id: "v1", title: "Manifesto launch", url: "https://youtu.be/dQw4w9WgXcQ", thumbnail_url: "", duration: "4:15" }],
+    });
+    const { container } = renderApp(<AppRoutes />);
+
+    const video = await screen.findByRole("link", { name: /Manifesto launch/ }, { timeout: 5000 });
+    expect(video).toHaveAttribute("href", "https://youtu.be/dQw4w9WgXcQ");
+    expect(video).toHaveTextContent("4:15");
+    expect(container.querySelector('img[src="https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg"]')).not.toBeNull();
+  });
+
   it("groups results by seat and says when they are demo results", async () => {
     const result = (id, seat, area, candidate, votes) => ({ id, seat, area, candidate, votes, declared_on: "2026-10-30", demo: true });
     stubApi({

@@ -9,6 +9,7 @@ import {
   useDeleteResult,
   useDeleteSlide,
   useDeleteValue,
+  useDeleteVideo,
   useSaveDocument,
   useSaveIssue,
   useSaveLeader,
@@ -17,6 +18,7 @@ import {
   useSaveResult,
   useSaveSlide,
   useSaveValue,
+  useSaveVideo,
   usePartyPlaces,
   useSiteDocuments,
   useSiteIssues,
@@ -26,6 +28,7 @@ import {
   useSiteResults,
   useSiteSlides,
   useSiteValues,
+  useSiteVideos,
 } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +45,7 @@ const CHECKS = {
   https: (v) => !v || HTTPS.test(v) || "Use an address starting with https://.",
   link: (v) => !v || HTTPS.test(v) || (/^\/(?!\/)\S*$/.test(v)) || "Use a page on this site such as /join-party, or an https:// address.",
   order: (v) => (/^\d{1,5}$/.test(v) && Number(v) <= 10000) || "Use a whole number from 0 to 10000.",
+  duration: (v) => !v || /^(\d{1,2}:)?\d{1,2}:\d{2}$/.test(v) || "Use minutes and seconds, such as 4:15.",
   count: (v) => /^\d{1,8}$/.test(v) && Number(v) <= 10000000 || "Use a whole number of votes.",
 };
 const ORDER = { key: "sort_order", label: "Order", kind: "order", hint: "Lower numbers come first." };
@@ -103,6 +107,14 @@ const DOCUMENT_FIELDS = [
   ORDER,
 ];
 
+const VIDEO_FIELDS = [
+  { key: "title", label: "Title", max: 150, required: true },
+  { key: "url", label: "Video address", max: 500, kind: "https", required: true, hint: "Such as a YouTube link; the card opens it." },
+  { key: "thumbnail_url", label: "Thumbnail address (optional)", max: 500, kind: "image", hint: "Left empty, a YouTube link shows YouTube's thumbnail." },
+  { key: "duration", label: "Length (optional)", max: 8, kind: "duration", hint: "Such as 4:15 or 1:02:30." },
+  ORDER,
+];
+
 const RESULT_FIELDS = [
   { key: "seat", label: "Seat", kind: "select", options: SEATS.map(([value, label]) => [value, label]) },
   { key: "area", label: "Area", max: 150, required: true, hint: "The ward, constituency or county, such as Westlands." },
@@ -115,6 +127,7 @@ const SECTIONS = {
   Homepage: [
     { noun: "slide", title: "Carousel slides", hint: "Up to 5, rotating every 6 seconds.", fields: SLIDE_FIELDS, query: useSiteSlides, save: useSaveSlide, del: useDeleteSlide, name: (r) => r.headline, meta: (r) => `Order ${r.sort_order}`, max: 5 },
     { noun: "issue", title: "Agenda issues", hint: "Each opens its own page from the homepage.", fields: ISSUE_FIELDS, query: useSiteIssues, save: useSaveIssue, del: useDeleteIssue, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
+    { noun: "video", title: "Watch videos", hint: "The first three show under News on the homepage.", fields: VIDEO_FIELDS, query: useSiteVideos, save: useSaveVideo, del: useDeleteVideo, name: (r) => r.title, meta: (r) => [r.duration, `order ${r.sort_order}`].filter(Boolean).join(" · ") },
   ],
   Posts: [
     { noun: "post", title: "News and events", fields: POST_FIELDS, query: useSitePosts, save: useSavePost, del: useDeletePost, name: (r) => r.title, meta: (r) => `${r.kind === "event" ? "Event" : "News"} · ${formatDate(r.kind === "event" ? r.event_date : r.published_on) || "not yet published"}` },

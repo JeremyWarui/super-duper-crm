@@ -1,6 +1,7 @@
-// The party's public homepage: carousel, agenda, news, events, branches, leadership and ways to take part.
+// The party's public homepage: carousel, agenda, news and videos, events, branches, leadership and ways to take part.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Play } from "lucide-react";
 import {
   useParty,
   usePublicBranches,
@@ -8,12 +9,14 @@ import {
   usePublicLeaders,
   usePublicPosts,
   usePublicSlides,
+  usePublicVideos,
 } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
 import { SectionHead } from "@/components/ui/typography";
 import { useBranding } from "@/theme/branding";
+import { LABELS, StoryKicker } from "./story";
 
 const ROTATE_MS = 6000;
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -165,6 +168,41 @@ function Photo({ url, className }) {
   return url ? <img src={url} alt="" className={`object-cover ${className}`} /> : <div className={`ph ${className}`} />;
 }
 
+/** YouTube's own thumbnail for a YouTube link, else nothing. */
+export function youtubeThumb(url) {
+  const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([\w-]{11})/)?.[1];
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
+}
+
+function Watch() {
+  const videos = (usePublicVideos().data || []).slice(0, 3);
+  const youtube = Object.entries(useParty().data?.social_links || {}).find(([name]) => /youtube/i.test(name))?.[1];
+  if (!videos.length) return null;
+  return (
+    <section aria-labelledby="watch-h" className="flex flex-col gap-4 border-t-[3px] border-ink pt-3.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 id="watch-h" className="font-display text-2xl font-extrabold">Watch</h3>
+        {youtube ? <a href={youtube} target="_blank" rel="noreferrer" className="font-bold">All videos →</a> : null}
+      </div>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+        {videos.map((v) => {
+          const thumb = v.thumbnail_url || youtubeThumb(v.url);
+          return (
+            <a key={v.id} href={v.url} target="_blank" rel="noreferrer" className="group flex flex-col gap-2 text-ink no-underline hover:text-primary">
+              <span className="relative flex aspect-video items-center justify-center overflow-hidden rounded-photo bg-[#34443B]">
+                {thumb ? <img src={thumb} alt="" className="absolute inset-0 size-full object-cover" /> : null}
+                <span aria-hidden className="relative flex size-[46px] items-center justify-center rounded-full bg-accent text-ink transition-transform group-hover:scale-110"><Play className="size-[18px] translate-x-px fill-current" /></span>
+                {v.duration ? <span className="absolute right-2.5 bottom-2.5 rounded-sm bg-black/60 px-2 py-[3px] text-meta font-bold text-white">{v.duration}</span> : null}
+              </span>
+              <span className="leading-[1.35] font-bold">{v.title}</span>
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function News({ news }) {
   if (!news.length) return null;
   const [lead, ...rest] = news;
@@ -175,15 +213,20 @@ function News({ news }) {
         <div className="flex flex-wrap gap-7">
           <Link to={`/news/${lead.id}`} className="flex min-w-0 flex-[3_1_460px] flex-col gap-3.5 text-ink no-underline hover:text-ink">
             <Photo url={lead.image_url} className="aspect-video w-full rounded-card" />
-            <span className="text-meta font-extrabold uppercase tracking-[0.1em] text-muted-foreground">{ago(lead.published_on)}</span>
+            <span className="flex flex-wrap items-center gap-2.5">
+              <StoryKicker post={lead} />
+              <span className="text-meta font-extrabold uppercase tracking-[0.1em] text-muted-foreground">{ago(lead.published_on)}</span>
+            </span>
             <span className="font-display text-[30px] leading-[1.15] font-extrabold tracking-[-0.01em]">{lead.title}</span>
-            {lead.body ? <span className="line-clamp-2 text-muted-foreground">{lead.body}</span> : null}
+            {lead.body ? <span className="line-clamp-2 leading-[1.6] text-muted-foreground">{lead.body}</span> : null}
+            <span className="text-small text-muted-foreground">{lead.author ? `By ${lead.author} · ` : ""}{lead.read_minutes} min read</span>
           </Link>
           <div className="flex min-w-0 flex-[2_1_320px] flex-col">
             {rest.slice(0, 3).map((n) => (
               <Link key={n.id} to={`/news/${n.id}`} className="flex gap-4 border-b border-line-2 py-4 text-ink no-underline hover:text-primary">
                 <Photo url={n.image_url} className="h-[76px] w-[104px] flex-none rounded-photo" />
                 <span className="flex min-w-0 flex-col gap-1.5">
+                  <span className="text-meta font-bold uppercase tracking-[0.08em] text-primary">{LABELS[n.label] || "News"}{n.place ? ` · ${n.place}` : ""}</span>
                   <span className="line-clamp-2 font-bold leading-[1.35]">{n.title}</span>
                   <span className="text-small text-muted-foreground">{ago(n.published_on)}</span>
                 </span>
@@ -191,6 +234,7 @@ function News({ news }) {
             ))}
           </div>
         </div>
+        <Watch />
       </div>
     </section>
   );

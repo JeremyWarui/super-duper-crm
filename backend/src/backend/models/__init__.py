@@ -14,6 +14,7 @@ from backend.models.content import (
     PartyOrgan,
     PartyPost,
     PartyValue,
+    PartyVideo,
     PrimaryResult,
     Subscriber,
 )
@@ -112,6 +113,7 @@ __all__ = [
     "PartyDocument",
     "PartyOrgan",
     "PartyValue",
+    "PartyVideo",
     "PrimaryResult",
     "Seat",
     "RegistrationCentre",

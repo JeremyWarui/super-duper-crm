@@ -12,6 +12,7 @@ from backend.models import (
     PartyDocument,
     PartyOrgan,
     PartyValue,
+    PartyVideo,
     PrimaryResult,
     User,
 )
@@ -21,7 +22,7 @@ from backend.services.errors import NotFound, Refused
 MAX_SLIDES = 5
 # Fields a null clears instead of leaving unchanged.
 CLEARABLE = {"declared_on"}
-Row = HeroSlide | AgendaIssue | PartyDocument | PartyValue | PartyOrgan | PrimaryResult
+Row = HeroSlide | AgendaIssue | PartyDocument | PartyValue | PartyOrgan | PrimaryResult | PartyVideo
 NAMES = {
     HeroSlide: "hero_slide",
     AgendaIssue: "agenda_issue",
@@ -29,6 +30,7 @@ NAMES = {
     PartyValue: "value",
     PartyOrgan: "organ",
     PrimaryResult: "result",
+    PartyVideo: "video",
 }
 
 

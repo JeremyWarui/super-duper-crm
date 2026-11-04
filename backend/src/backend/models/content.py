@@ -198,3 +198,18 @@ class PrimaryResult(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     updated_at: Mapped[datetime] = _updated_at()
+
+
+class PartyVideo(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A video in the homepage's Watch row once published; it links out to where it is hosted."""
+
+    __tablename__ = "party_videos"
+
+    title: Mapped[str] = mapped_column(String(150))
+    url: Mapped[str] = mapped_column(String(500))
+    # Empty means the page takes YouTube's thumbnail for a YouTube link.
+    thumbnail_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    duration: Mapped[str] = mapped_column(String(8), default="", server_default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    updated_at: Mapped[datetime] = _updated_at()

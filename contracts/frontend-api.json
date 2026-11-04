@@ -750,6 +750,22 @@
       "declared_on",
       "demo",
       "published"
+    ],
+    "GET /api/party/videos/": [
+      "id",
+      "title",
+      "url",
+      "thumbnail_url",
+      "duration"
+    ],
+    "GET /api/admin/party/videos/": [
+      "id",
+      "title",
+      "url",
+      "thumbnail_url",
+      "duration",
+      "sort_order",
+      "published"
     ]
   },
   "nested_reads": {
@@ -1407,6 +1423,21 @@
       "votes",
       "declared_on",
       "published"
+    ],
+    "POST /api/admin/party/videos/": [
+      "title",
+      "url",
+      "thumbnail_url",
+      "duration",
+      "sort_order"
+    ],
+    "PATCH /api/admin/party/videos/{video_id}/": [
+      "title",
+      "url",
+      "thumbnail_url",
+      "duration",
+      "sort_order",
+      "published"
     ]
   },
   "enums": {
@@ -1481,7 +1512,8 @@
       "DELETE /api/admin/party/documents/{document_id}/",
       "DELETE /api/admin/party/values/{value_id}/",
       "DELETE /api/admin/party/organs/{organ_id}/",
-      "DELETE /api/admin/party/results/{result_id}/"
+      "DELETE /api/admin/party/results/{result_id}/",
+      "DELETE /api/admin/party/videos/{video_id}/"
     ]
   }
 }

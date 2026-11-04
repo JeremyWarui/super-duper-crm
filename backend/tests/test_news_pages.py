@@ -34,6 +34,12 @@ async def test_the_about_page_lists_only_published_content(
         assert (
             await client.post("/api/admin/party/documents/", headers=admin_headers, json=body)
         ).status_code == 201
+    video = {"title": "Rally", "url": "https://youtu.be/abc", "duration": "4:15"}
+    for published in (True, False):
+        body = {**video, "published": published}
+        assert (
+            await client.post("/api/admin/party/videos/", headers=admin_headers, json=body)
+        ).status_code == 201
     for path in ("values", "organs"):
         for title, published in (("Shown", True), ("Hidden", False)):
             body = {"title": title, "text": "Why.", "published": published}
@@ -48,3 +54,5 @@ async def test_the_about_page_lists_only_published_content(
     assert [d["title"] for d in documents] == ["Constitution"]
     assert [(v["title"], v["text"]) for v in values] == [("Shown", "Why.")]
     assert [o["title"] for o in organs] == ["Shown"]
+    videos = (await client.get("/api/party/videos/")).json()
+    assert [(v["title"], v["duration"]) for v in videos] == [("Rally", "4:15")]

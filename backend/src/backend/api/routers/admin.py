@@ -13,6 +13,7 @@ from backend.models import (
     PartyOrgan,
     PartyRoleName,
     PartyValue,
+    PartyVideo,
     PostKind,
     PrimaryResult,
     UserRole,
@@ -59,6 +60,9 @@ from backend.schemas.content import (
     SlideAdminRead,
     SlideCreate,
     SlideUpdate,
+    VideoAdminRead,
+    VideoCreate,
+    VideoUpdate,
 )
 from backend.schemas.party import PartySettingsRead, PartySettingsUpdate
 from backend.services import admin as service
@@ -462,3 +466,25 @@ async def update_party_result(
 @router.delete("/party/results/{result_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_party_result(result_id: uuid.UUID, session: SessionDep, admin: AdminUser):
     await home.delete(session, PrimaryResult, result_id, actor=admin)
+
+
+@router.get("/party/videos/", response_model=list[VideoAdminRead])
+async def party_videos(session: SessionDep, _: AdminUser):
+    return await home.every(session, PartyVideo)
+
+
+@router.post("/party/videos/", response_model=VideoAdminRead, status_code=status.HTTP_201_CREATED)
+async def create_party_video(payload: VideoCreate, session: SessionDep, admin: AdminUser):
+    return await home.create(session, PartyVideo, payload, actor=admin)
+
+
+@router.patch("/party/videos/{video_id}/", response_model=VideoAdminRead)
+async def update_party_video(
+    video_id: uuid.UUID, payload: VideoUpdate, session: SessionDep, admin: AdminUser
+):
+    return await home.update(session, PartyVideo, video_id, payload, actor=admin)
+
+
+@router.delete("/party/videos/{video_id}/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_party_video(video_id: uuid.UUID, session: SessionDep, admin: AdminUser):
+    await home.delete(session, PartyVideo, video_id, actor=admin)

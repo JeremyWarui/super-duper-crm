@@ -433,3 +433,40 @@ class ResultUpdate(WriteModel):
     votes: Votes | None = None
     declared_on: date | None = None
     published: bool | None = None
+
+
+Duration = Annotated[str, Field(max_length=8, pattern=r"^(\d{1,2}:)?\d{1,2}:\d{2}$|^$")]
+
+
+class VideoRead(ORMModel):
+    id: uuid.UUID
+    title: str
+    url: str
+    thumbnail_url: str
+    duration: str
+
+
+class VideoAdminRead(VideoRead):
+    sort_order: int
+    published: bool
+    updated_at: datetime
+
+
+class VideoCreate(WriteModel):
+    title: Line
+    url: Annotated[str, Field(min_length=1, max_length=500), AfterValidator(_https)]
+    thumbnail_url: Image = ""
+    duration: Duration = ""
+    sort_order: Order = 0
+    published: bool = False
+
+
+class VideoUpdate(WriteModel):
+    """Only the fields sent change."""
+
+    title: Line | None = None
+    url: Annotated[str, Field(min_length=1, max_length=500), AfterValidator(_https)] | None = None
+    thumbnail_url: Image | None = None
+    duration: Duration | None = None
+    sort_order: Order | None = None
+    published: bool | None = None

@@ -20,6 +20,7 @@ from backend.models import (
     PartyMemberStatus,
     PartyOrgan,
     PartyValue,
+    PartyVideo,
     PostKind,
     PostLabel,
     PrimaryResult,
@@ -37,6 +38,7 @@ from backend.schemas.content import (
     PostRead,
     ResultRead,
     SlideRead,
+    VideoRead,
 )
 from backend.schemas.dashboard import Dashboard
 from backend.schemas.party import (
@@ -337,6 +339,12 @@ async def values(session: SessionDep):
 async def organs(session: SessionDep):
     """The party's published organs, in order."""
     return await home.published(session, PartyOrgan)
+
+
+@router.get("/videos/", response_model=list[VideoRead])
+async def videos(session: SessionDep):
+    """The published videos for the homepage's Watch row, in order."""
+    return await home.published(session, PartyVideo)
 
 
 @router.get("/results/", response_model=list[ResultRead])

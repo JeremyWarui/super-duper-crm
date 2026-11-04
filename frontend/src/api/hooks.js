@@ -548,6 +548,7 @@ function useSiteWrite(mutationFn) {
       qc.invalidateQueries({ queryKey: ["public-values"] });
       qc.invalidateQueries({ queryKey: ["public-organs"] });
       qc.invalidateQueries({ queryKey: ["public-results"] });
+      qc.invalidateQueries({ queryKey: ["public-videos"] });
     },
   });
 }
@@ -649,6 +650,21 @@ export const useSaveOrgan = () =>
   );
 export const useDeleteValue = () => useSiteWrite((id) => api(`/admin/party/values/${id}/`, { method: "DELETE" }));
 export const useDeleteOrgan = () => useSiteWrite((id) => api(`/admin/party/organs/${id}/`, { method: "DELETE" }));
+
+// The homepage's Watch row.
+export const usePublicVideos = () =>
+  useQuery({ queryKey: ["public-videos"], queryFn: () => api("/party/videos/", { anonymous: true }) });
+
+export const useSiteVideos = () =>
+  useQuery({ queryKey: ["site", "videos"], queryFn: () => api("/admin/party/videos/") });
+
+export const useSaveVideo = () =>
+  useSiteWrite(({ id, ...body }) =>
+    id
+      ? api(`/admin/party/videos/${id}/`, { method: "PATCH", body })
+      : api("/admin/party/videos/", { method: "POST", body }),
+  );
+export const useDeleteVideo = () => useSiteWrite((id) => api(`/admin/party/videos/${id}/`, { method: "DELETE" }));
 
 // Primary results: each row is one candidate's votes in one seat and area.
 export const usePublicResults = () =>
