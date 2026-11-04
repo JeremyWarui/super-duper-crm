@@ -145,7 +145,7 @@ async def cancel_payment(payment_id: uuid.UUID, session: SessionDep, user: Write
 
 @router.post("/paystack/webhook/")
 async def paystack_webhook(request: Request, session: SessionDep) -> dict[str, bool]:
-    """Paystack's word on a transfer, for a party or a campaign payment; signed or refused."""
+    """Paystack's word on a campaign payment's transfer; signed or refused."""
     raw = await request.body()
     if not paystack_signed(raw, {k.lower(): v for k, v in request.headers.items()}):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Bad signature.")

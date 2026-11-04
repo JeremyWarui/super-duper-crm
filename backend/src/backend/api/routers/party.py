@@ -157,7 +157,7 @@ async def party_dashboard(
     start: Annotated[date | None, Query(alias="from")] = None,
     end: Annotated[date | None, Query(alias="to")] = None,
 ) -> Dashboard:
-    """Party-wide counts; without dates, events cover the next 30 days and revenue this year."""
+    """Party-wide counts; without dates, events cover the next 30 days."""
     if start and end and start > end:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "The start date is after the end date.")
     filters = dashboard.Filters(county, constituency, ward, seat, aspirant, start, end)

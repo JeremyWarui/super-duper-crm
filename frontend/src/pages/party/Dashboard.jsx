@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useAspirants, usePartyDashboard, usePartyPlaces } from "../../api/hooks";
 import { Button, ErrorState, Field, LoadingState, PageTitle, Panel } from "../../components/ui";
-import { formatDate, formatKes, formatNumber } from "../../lib/format";
+import { formatDate, formatNumber } from "../../lib/format";
 import { AREA_LABEL, SEAT_LABEL, SEATS } from "./helpers";
 
 const EMPTY = { county: "", constituency: "", ward: "", seat: "", aspirant: "", from: "", to: "" };
@@ -60,14 +60,11 @@ export default function Dashboard() {
     ["Active volunteers", formatNumber(d.active_volunteers)],
     ["Approved aspirants", formatNumber(d.approved_aspirants)],
     ["Active campaigns", formatNumber(d.active_campaigns)],
-    ["Active CRM subscriptions", formatNumber(d.active_subscriptions)],
-    ["Recorded CRM revenue", formatKes(d.revenue.total_kes)],
-    ["Payments", formatNumber(d.revenue.count)],
   ];
 
   return (
     <div>
-      <PageTitle title="Dashboard" sub="Totals across the party's registers, campaigns and subscriptions." />
+      <PageTitle title="Dashboard" sub="Totals across the party's registers and campaigns." />
       <Panel pad={18}>
         <div className="filter-grid">
           <Pick label="County" value={filters.county} onChange={set("county")} options={places(counties)} />
@@ -99,8 +96,7 @@ export default function Dashboard() {
             ))}
           </div>
           <div className="page-note">
-            Events from {formatDate(d.events_from)} to {formatDate(d.events_to)}; revenue from{" "}
-            {formatDate(d.revenue.start)} to {formatDate(d.revenue.end)}.
+            Events from {formatDate(d.events_from)} to {formatDate(d.events_to)}.
           </div>
           <div className="grid overview-grid gap-4">
             <Counts

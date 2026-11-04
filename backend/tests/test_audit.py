@@ -45,13 +45,6 @@ ACTIONS = [
     ("member.add", "user", "post", "/admin/campaigns/{campaign}/members/", "root"),
     ("member.remove", "user", "delete", "/admin/campaigns/{campaign}/members/{mobilizer}/", "root"),
     ("team.set_manager", "user", "post", "/campaigns/{campaign}/team/manager/", "jane"),
-    (
-        "team.reset_password",
-        "user",
-        "post",
-        "/campaigns/{campaign}/team/{mobilizer}/reset-password/",
-        "amina",
-    ),
     ("mobilizer_login.create", "user", "post", "/users/", "amina"),
     ("mobilizer_login.delete", "user", "delete", "/users/{mobilizer}/", "amina"),
 ]

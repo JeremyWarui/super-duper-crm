@@ -1,8 +1,7 @@
 """The demo: one campaign with a sign-in per role."""
 
-import secrets
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,8 +13,6 @@ from backend.models import (
     Constituency,
     ContactMethod,
     County,
-    CrmPlan,
-    EntryKind,
     Event,
     EventStatus,
     OfficeLevel,
@@ -23,10 +20,8 @@ from backend.models import (
     PartyMember,
     PartyMemberStatus,
     Profession,
-    ReceiptMethod,
     RegistrationCentre,
     Seat,
-    SubscriptionEntry,
     Supporter,
     SupportLevel,
     Target,
@@ -39,7 +34,6 @@ from backend.models import (
 from backend.security import hash_password, new_password
 from backend.services.accounts import add_member, add_mobilizer
 from backend.services.admin import remove_campaign
-from backend.services.billing import extended, today
 from backend.services.consent import PARTY_WORDING, VOLUNTEER_WORDING
 from backend.services.targets import generate_targets
 
@@ -50,7 +44,6 @@ DEMO_MEMBER_PHONE = "+254700000009"
 DEMO_COUNTY = "Nairobi City"
 DEMO_CONSTITUENCY = "Roysambu"
 DEMO_CAMPAIGN_TITLE = "Jane for Roysambu"
-DEMO_PLAN = "Demo yearly"
 
 
 @dataclass
@@ -59,7 +52,6 @@ class DemoSummary:
     office: str
     units: int
     win_number: int
-    paid_until: date
     sign_ins: list[tuple[str, str, str]]
     """email, password, what that login sees."""
 
@@ -159,7 +151,6 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
 
     await _seed_ground_game(session, campaign, wards, mobilizer_user)
     await _volunteer(session, wards[0], passwords)
-    paid_until = await _pay(session, campaign)
     await session.commit()
 
     return DemoSummary(
@@ -167,7 +158,6 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
         office=f"{Seat.MP.label} seat - {constituency.name}",
         units=summary.units,
         win_number=summary.win_number,
-        paid_until=paid_until,
         sign_ins=[
             (demo_email(name), passwords[name], sees)
             for name, sees in (
@@ -231,35 +221,6 @@ async def _volunteer(session: AsyncSession, ward: Ward, passwords: dict[str, str
         ]
     )
     await session.flush()
-
-
-async def _pay(session: AsyncSession, campaign: Campaign) -> date:
-    """Put the campaign on the demo plan and record one payment received today."""
-    plan = await session.scalar(select(CrmPlan).where(CrmPlan.name == DEMO_PLAN))
-    if plan is None:
-        plan = CrmPlan(name=DEMO_PLAN, price_kes=120_000, duration_days=365)
-        session.add(plan)
-        await session.flush()
-    sub = campaign.subscription
-    sub.plan_id = plan.id
-    sub.paid_until = extended(None, today(), plan.duration_days)
-    session.add(
-        SubscriptionEntry(
-            subscription_id=sub.id,
-            kind=EntryKind.PAYMENT,
-            plan_id=plan.id,
-            amount_kes=plan.price_kes,
-            method=ReceiptMethod.MPESA,
-            # A new reference each run: a re-run keeps the old demo's ledger.
-            reference=f"DEMO-{secrets.token_hex(4).upper()}",
-            received_on=today(),
-            days=plan.duration_days,
-            paid_until_after=sub.paid_until,
-            note="Demo payment from the seed.",
-        )
-    )
-    await session.flush()
-    return sub.paid_until
 
 
 async def _seed_ground_game(

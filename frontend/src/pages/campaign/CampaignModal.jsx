@@ -2,7 +2,6 @@ import { useMobilizers } from "../../api/hooks";
 import { useUnits, useWardOptions } from "./helpers";
 import MobilizerForm from "./MobilizerForm";
 import ManagerForm from "./ManagerForm";
-import ResetPasswordForm from "./ResetPasswordForm";
 import AssignMobilizerForm from "./AssignMobilizerForm";
 import ScheduleEventForm from "./ScheduleEventForm";
 import RecordForm from "./RecordForm";
@@ -20,7 +19,6 @@ export default function CampaignModal({ modal, campaign, role, onClose }) {
     <>
       {modal?.type === "mobilizer" && <MobilizerForm campaignId={campaignId} units={units} byCentre={byCentre} mobilizers={mobilizers.data || []} mobilizer={modal.mobilizer} onClose={onClose} />}
       {modal?.type === "manager" && <ManagerForm campaignId={campaignId} sitting={modal.sitting} onClose={onClose} />}
-      {modal?.type === "reset" && <ResetPasswordForm campaignId={campaignId} person={modal.person} onClose={onClose} />}
       {modal?.type === "assign" && <AssignMobilizerForm unit={modal.unit} holder={modal.holder} mobilizers={mobilizers.data || []} onClose={onClose} />}
       {modal?.type === "event" && <ScheduleEventForm campaignId={campaignId} wardOptions={wardOptions} byCentre={byCentre} onClose={onClose} />}
       {modal?.type === "record" && <RecordForm event={modal.event} onClose={onClose} />}

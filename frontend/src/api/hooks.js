@@ -7,7 +7,6 @@ import { useEffect } from "react";
 import {
   keepPreviousData,
   useMutation,
-  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -259,10 +258,6 @@ export const useWardsIn = (constituencyId) =>
 export const useCampaigns = () =>
   useQuery({ queryKey: ["campaigns"], queryFn: () => api("/campaigns/") });
 
-// The signed-in campaign's own subscription; it answers even while the campaign is locked.
-export const useOwnSubscription = () =>
-  useQuery({ queryKey: ["subscription"], queryFn: () => api("/subscription/") });
-
 // Edit a target's turnout assumption; the server recomputes votes_needed.
 // Saves run one at a time, in order, and the saved row replaces the cached one.
 export function useUpdateTarget() {
@@ -356,15 +351,6 @@ export function useSetManager() {
     mutationFn: ({ campaign, ...body }) =>
       api(`/campaigns/${campaign}/team/manager/`, { method: "POST", body }),
     onSuccess: () => invalidate("team"),
-  });
-}
-
-export function useResetTeamPassword() {
-  return useMutation({
-    mutationFn: ({ campaign, user }) =>
-      api(`/campaigns/${campaign}/team/${user}/reset-password/`, {
-        method: "POST",
-      }),
   });
 }
 
@@ -850,7 +836,7 @@ const memberQuery = (filters) => {
   return params.toString();
 };
 
-// The superuser's party-wide counts; `from` and `to` bound events and revenue.
+// The superuser's party-wide counts; `from` and `to` bound events.
 export const usePartyDashboard = (filters) =>
   useQuery({
     queryKey: ["party-dashboard", filters],
@@ -958,103 +944,6 @@ export function useCreateWorkspace() {
   });
 }
 
-// ---- party finance --------------------------------------------------------
-export const useFinancePlans = () =>
-  useQuery({ queryKey: ["finance", "plans"], queryFn: () => api("/party/finance/plans/") });
-
-export const useFinanceSubscriptions = (filters) =>
-  useQuery({
-    queryKey: ["finance", "subscriptions", filters],
-    queryFn: () => api(`/party/finance/subscriptions/?${memberQuery(filters)}`),
-    placeholderData: keepPreviousData,
-  });
-
-// How many campaigns are in each state; "" counts them all.
-export const useFinanceStateCounts = (states) =>
-  useQueries({
-    queries: states.map((state) => ({
-      queryKey: ["finance", "subscriptions", { state, limit: 1 }],
-      queryFn: () => api(`/party/finance/subscriptions/?${memberQuery({ state, limit: 1 })}`),
-    })),
-    combine: (results) =>
-      Object.fromEntries(states.map((state, i) => [state, results[i].data?.total])),
-  });
-
-export const useFinanceSubscription = (id) =>
-  useQuery({
-    queryKey: ["finance", "subscription", id],
-    queryFn: () => api(`/party/finance/subscriptions/${id}/`),
-    enabled: !!id,
-  });
-
-export const useFinanceSettings = () =>
-  useQuery({ queryKey: ["finance", "settings"], queryFn: () => api("/party/finance/settings/") });
-
-export const useRevenueReport = ({ from, to }) =>
-  useQuery({
-    queryKey: ["finance", "revenue", from, to],
-    queryFn: () => api(`/party/finance/reports/revenue/?${memberQuery({ from, to })}`),
-    enabled: !!from && !!to,
-    placeholderData: keepPreviousData,
-  });
-
-export const useExpiringReport = (days) =>
-  useQuery({
-    queryKey: ["finance", "expiring", days],
-    queryFn: () => api(`/party/finance/reports/expiring/?days=${days}`),
-    placeholderData: keepPreviousData,
-  });
-
-// Every finance write refreshes every finance read: a payment moves the lists,
-// the reports and the detail, and a settings change moves every campaign's state.
-function useFinanceWrite(mutationFn) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn,
-    onSuccess: (data) => {
-      if (data?.entries) qc.setQueryData(["finance", "subscription", data.id], data);
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: ["finance"] }),
-  });
-}
-
-export const useCreatePlan = () =>
-  useFinanceWrite((body) => api("/party/finance/plans/", { method: "POST", body }));
-
-export const useUpdatePlan = () =>
-  useFinanceWrite(({ id, ...body }) =>
-    api(`/party/finance/plans/${id}/`, { method: "PATCH", body }),
-  );
-
-export const useChoosePlan = () =>
-  useFinanceWrite(({ id, plan }) =>
-    api(`/party/finance/subscriptions/${id}/plan/`, { method: "PUT", body: { plan } }),
-  );
-
-export const useRecordSubscriptionPayment = () =>
-  useFinanceWrite(({ id, ...body }) =>
-    api(`/party/finance/subscriptions/${id}/payments/`, { method: "POST", body }),
-  );
-
-export const useExtendSubscription = () =>
-  useFinanceWrite(({ id, ...body }) =>
-    api(`/party/finance/subscriptions/${id}/extensions/`, { method: "POST", body }),
-  );
-
-export const useVoidEntry = () =>
-  useFinanceWrite(({ id, entry, reason }) =>
-    api(`/party/finance/subscriptions/${id}/entries/${entry}/void/`, {
-      method: "POST",
-      body: { reason },
-    }),
-  );
-
-// `hold: "none"` lifts it; the server drops the reason.
-export const useSetHold = () =>
-  useFinanceWrite(({ id, ...body }) =>
-    api(`/party/finance/subscriptions/${id}/hold/`, { method: "PUT", body }),
-  );
-
 // ---- party console top bar -------------------------------------------------
 export const usePartySearch = (q) =>
   useQuery({
@@ -1069,52 +958,6 @@ export const usePartyNotifications = () =>
     queryFn: () => api("/party/notifications/"),
     refetchInterval: 60_000,
   });
-
-// ---- party payouts ---------------------------------------------------------
-export const usePartyPayouts = () =>
-  useQuery({ queryKey: ["finance", "payouts"], queryFn: () => api("/party/finance/payouts/") });
-
-export const usePayoutSpend = () =>
-  useQuery({ queryKey: ["finance", "payouts", "spend"], queryFn: () => api("/party/finance/payouts/spend/") });
-
-export const usePayoutCampaigns = () =>
-  useQuery({ queryKey: ["finance", "payouts", "campaigns"], queryFn: () => api("/party/finance/payouts/campaigns/") });
-
-export const usePayoutPayees = (q) =>
-  useQuery({
-    queryKey: ["finance", "payouts", "payees", q],
-    enabled: q.trim().length >= 2,
-    queryFn: () => api(`/party/finance/payouts/payees/?q=${encodeURIComponent(q.trim())}`),
-  });
-
-export const useSchedulePayout = () =>
-  useFinanceWrite((body) => api("/party/finance/payouts/", { method: "POST", body }));
-
-export const useApprovePayout = () =>
-  useFinanceWrite(({ id }) => api(`/party/finance/payouts/${id}/approve/`, { method: "POST" }));
-
-export const useReleasePayout = () =>
-  useFinanceWrite(({ id }) => api(`/party/finance/payouts/${id}/release/`, { method: "POST" }));
-
-export const useMarkPayoutPaid = () =>
-  useFinanceWrite(({ id, reference }) =>
-    api(`/party/finance/payouts/${id}/paid/`, { method: "POST", body: { reference } }),
-  );
-
-export const useMarkPayoutNotSent = () =>
-  useFinanceWrite(({ id }) => api(`/party/finance/payouts/${id}/not-sent/`, { method: "POST" }));
-
-export const useCancelPayout = () =>
-  useFinanceWrite(({ id }) => api(`/party/finance/payouts/${id}/cancel/`, { method: "POST" }));
-
-export function useSaveFinanceSettings() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (body) => api("/party/finance/settings/", { method: "PUT", body }),
-    onSuccess: (data) => qc.setQueryData(["finance", "settings"], data),
-    onSettled: () => qc.invalidateQueries({ queryKey: ["finance"] }),
-  });
-}
 
 export function useLinkPartyMember() {
   const invalidate = useAdminInvalidator();

@@ -1,4 +1,4 @@
-"""A campaign's own people: who is on it, its one manager, and new passwords."""
+"""A campaign's own people: who is on it and its one manager."""
 
 import uuid
 
@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models import AuthToken, Campaign, CampaignMember, User, UserRole
 from backend.services.accounts import add_member, new_login
 from backend.services.audit import record
-from backend.services.errors import Forbidden, NotFound, Refused
+from backend.services.errors import Refused
 
 ORDER = {UserRole.CANDIDATE: 0, UserRole.MANAGER: 1, UserRole.MOBILIZER: 2}
 
@@ -68,24 +68,3 @@ async def set_manager(
     )
     await session.commit()
     return created, password, replaced
-
-
-async def resettable(
-    session: AsyncSession, caller: User, campaign_id: uuid.UUID, user_id: uuid.UUID
-) -> User:
-    """The teammate whose password the caller may reset; refused otherwise.
-
-    The aspirant resets the manager and the mobilizers; the manager resets the mobilizers.
-    """
-    member = await session.scalar(
-        select(User)
-        .join(CampaignMember, CampaignMember.user_id == User.id)
-        .where(CampaignMember.campaign_id == campaign_id, User.id == user_id)
-    )
-    if member is None:
-        raise NotFound("No such person on this campaign.")
-    if member.role is UserRole.CANDIDATE:
-        raise Forbidden("Only an admin resets the aspirant's password.")
-    if member.role is UserRole.MANAGER and caller.role is not UserRole.CANDIDATE:
-        raise Forbidden("Only the aspirant resets the manager's password.")
-    return member

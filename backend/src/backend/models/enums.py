@@ -34,7 +34,6 @@ class PartyRoleName(LabelledStrEnum):
 
     MEMBERSHIP_OFFICER = ("membership_officer", "Membership Officer")
     NOMINATIONS_OFFICER = ("nominations_officer", "Nominations Officer")
-    FINANCE_OFFICER = ("finance_officer", "Finance Officer")
 
 
 class OfficeLevel(LabelledStrEnum):
@@ -115,16 +114,6 @@ class PaymentStatus(LabelledStrEnum):
     CANCELLED = ("cancelled", "Cancelled")
 
 
-class PayeeKind(LabelledStrEnum):
-    """Who the party pays."""
-
-    POLLING_AGENT = ("polling_agent", "Polling agent")
-    PARTY_AGENT = ("party_agent", "Party agent")
-    VOLUNTEER = ("volunteer", "Volunteer")
-    MEMBER = ("member", "Member")
-    STAFF = ("staff", "Staff")
-
-
 class SupportLevel(LabelledStrEnum):
     SUPPORTER = ("supporter", "Supporter")
     UNDECIDED = ("undecided", "Undecided")
@@ -187,39 +176,6 @@ class PostLabel(LabelledStrEnum):
     STATEMENT = ("statement", "Statement")
     NEWS = ("news", "News")
     OPINION = ("opinion", "Opinion")
-
-
-class SubscriptionHold(LabelledStrEnum):
-    """A finance officer's stop on a campaign's access, whatever has been paid."""
-
-    NONE = ("none", "None")
-    SUSPENDED = ("suspended", "Suspended")
-    CANCELLED = ("cancelled", "Cancelled")
-
-
-class AccessState(LabelledStrEnum):
-    """What a campaign's subscription allows today; computed, never stored."""
-
-    PENDING_PAYMENT = ("pending_payment", "Pending payment")
-    ACTIVE = ("active", "Active")
-    GRACE_PERIOD = ("grace_period", "Grace period")
-    READ_ONLY = ("read_only", "Read-only")
-    LOCKED = ("locked", "Locked")
-    CANCELLED = ("cancelled", "Cancelled")
-
-
-class EntryKind(LabelledStrEnum):
-    PAYMENT = ("payment", "Payment")
-    EXTENSION = ("extension", "Extension")
-
-
-class ReceiptMethod(LabelledStrEnum):
-    """How a subscription payment reached the party."""
-
-    MPESA = ("mpesa", "M-Pesa")
-    BANK = ("bank", "Bank")
-    CASH = ("cash", "Cash")
-    OTHER = ("other", "Other")
 
 
 class OrganisationType(LabelledStrEnum):

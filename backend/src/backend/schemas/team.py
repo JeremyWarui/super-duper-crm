@@ -25,10 +25,3 @@ class ManagerCreated(NewLogin):
     """`password` is shown this once; `replaced` names the manager taken off."""
 
     replaced: str | None = None
-
-
-class TeamPassword(ORMModel):
-    """`password` is shown this once."""
-
-    username: str
-    password: str

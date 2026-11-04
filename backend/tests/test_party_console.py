@@ -61,7 +61,6 @@ async def test_search_returns_only_what_the_caller_s_offices_may_see(
     nominations = await _officer(
         client, session, world, PartyRoleName.NOMINATIONS_OFFICER, "uteuzi"
     )
-    finance = await _officer(client, session, world, PartyRoleName.FINANCE_OFFICER, "pesa")
 
     async def hits(headers: dict) -> list[tuple[str, str]]:
         answer = await client.get("/api/party/search/?q=achieng", headers=headers)
@@ -75,7 +74,6 @@ async def test_search_returns_only_what_the_caller_s_offices_may_see(
         ("member", "Achieng Wanjiru"),
     ]
     assert await hits(nominations) == [("aspirant", "Achieng Otieno")]
-    assert await hits(finance) == []
     assert manager.status_code == 403
 
 

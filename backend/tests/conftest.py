@@ -262,7 +262,7 @@ async def world(session: AsyncSession, client: httpx.AsyncClient) -> World:
     )
     from backend.services.accounts import add_member
     from backend.services.targets import generate_targets
-    from tests.factories import make_user, paid, sign_in
+    from tests.factories import make_user, sign_in
 
     county = County(
         name="Nairobi City",
@@ -285,12 +285,10 @@ async def world(session: AsyncSession, client: httpx.AsyncClient) -> World:
     manager = await make_user(session, username="amina", role=UserRole.MANAGER)
     mobilizer_user = await make_user(session, username="juma", role=UserRole.MOBILIZER)
 
-    campaign = paid(
-        Campaign(
-            title="Jane for Roysambu",
-            office_level=OfficeLevel.CONSTITUENCY,
-            constituency_id=constituency.id,
-        )
+    campaign = Campaign(
+        title="Jane for Roysambu",
+        office_level=OfficeLevel.CONSTITUENCY,
+        constituency_id=constituency.id,
     )
     session.add(campaign)
     await session.flush()

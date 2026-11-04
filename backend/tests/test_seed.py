@@ -8,9 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.models import (
-    AccessState,
     Campaign,
-    CampaignSubscription,
     Constituency,
     Mobilizer,
     Target,
@@ -26,7 +24,6 @@ from backend.seed.reference import (
     import_geography,
 )
 from backend.seed.site import seed_news, seed_site
-from backend.services.billing import access, today
 from tests.factories import auth, members_of
 
 # Published IEBC figures for the 2022 register.
@@ -119,21 +116,12 @@ async def test_the_demo_builds_its_campaign_and_team(
     assert any(t.votes_committed == 0 for t in targets)
 
 
-async def test_the_demo_campaign_is_paid_and_builds_again_on_a_rerun(
-    session: AsyncSession,
-) -> None:
+async def test_the_demo_builds_again_on_a_rerun(session: AsyncSession) -> None:
     await _demo(session)
     summary = await seed_demo(session)
 
-    campaign = await session.scalar(
-        select(Campaign)
-        .where(Campaign.title == summary.campaign_title)
-        .options(selectinload(Campaign.subscription).selectinload(CampaignSubscription.entries))
-    )
-    sub = campaign.subscription
-    (payment,) = sub.entries
-    assert access(sub.paid_until, sub.hold, today()).state is AccessState.ACTIVE
-    assert (payment.received_on, payment.paid_until_after) == (today(), summary.paid_until)
+    titles = list(await session.scalars(select(Campaign.title)))
+    assert titles == [summary.campaign_title]
 
 
 async def test_the_demo_site_publishes_once(

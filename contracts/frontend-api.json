@@ -218,10 +218,6 @@
       "password",
       "replaced"
     ],
-    "POST /api/campaigns/{campaign_id}/team/{user_id}/reset-password/": [
-      "username",
-      "password"
-    ],
     "POST /api/join/{code}/": [
       "message",
       "withdraw_code"
@@ -401,99 +397,6 @@
       "id",
       "party_member"
     ],
-    "GET /api/party/finance/plans/": [
-      "id",
-      "name",
-      "price_kes",
-      "duration_days",
-      "description",
-      "active"
-    ],
-    "GET /api/party/finance/subscriptions/": [
-      "total",
-      "items"
-    ],
-    "GET /api/party/finance/subscriptions/{subscription_id}/": [
-      "id",
-      "campaign_id",
-      "title",
-      "seat",
-      "area_name",
-      "candidate_name",
-      "plan",
-      "paid_until",
-      "state",
-      "hold",
-      "hold_reason",
-      "read_only_from",
-      "locks_on",
-      "entries"
-    ],
-    "PUT /api/party/finance/subscriptions/{subscription_id}/plan/": [
-      "id",
-      "entries"
-    ],
-    "POST /api/party/finance/subscriptions/{subscription_id}/payments/": [
-      "id",
-      "title",
-      "paid_until",
-      "state",
-      "entries"
-    ],
-    "POST /api/party/finance/subscriptions/{subscription_id}/extensions/": [
-      "id",
-      "entries"
-    ],
-    "POST /api/party/finance/subscriptions/{subscription_id}/entries/{entry_id}/void/": [
-      "id",
-      "entries"
-    ],
-    "PUT /api/party/finance/subscriptions/{subscription_id}/hold/": [
-      "id",
-      "entries"
-    ],
-    "GET /api/subscription/": [
-      "state",
-      "held",
-      "dated_state",
-      "paid_until",
-      "read_only_from",
-      "locks_on",
-      "payment_instructions",
-      "plan",
-      "last_paid_on",
-      "hold_reason"
-    ],
-    "GET /api/party/finance/settings/": [
-      "grace_days",
-      "read_only_days",
-      "payment_instructions"
-    ],
-    "PUT /api/party/finance/settings/": [
-      "grace_days",
-      "read_only_days",
-      "payment_instructions"
-    ],
-    "GET /api/party/finance/reports/revenue/": [
-      "total_kes",
-      "count",
-      "by_month",
-      "by_plan"
-    ],
-    "GET /api/party/finance/reports/expiring/": [
-      "id",
-      "campaign_id",
-      "title",
-      "seat",
-      "area_name",
-      "candidate_name",
-      "plan",
-      "paid_until",
-      "state",
-      "hold",
-      "read_only_from",
-      "locks_on"
-    ],
     "GET /api/party/leaders/": [
       "id",
       "name",
@@ -572,13 +475,11 @@
       "volunteers_by_interest",
       "approved_aspirants",
       "active_campaigns",
-      "active_subscriptions",
       "events_from",
       "events_to",
       "upcoming_events_by_county",
       "upcoming_events_by_seat",
-      "campaigns_by_county_and_seat",
-      "revenue"
+      "campaigns_by_county_and_seat"
     ],
     "POST /api/party/subscribe/": [
       "message",
@@ -832,169 +733,6 @@
       "interest_other",
       "preferred_contact"
     ],
-    "GET /api/party/finance/payouts/": [
-      "id",
-      "payee_kind",
-      "recipient_name",
-      "recipient_phone",
-      "polling_station",
-      "aspirant",
-      "campaign_label",
-      "purpose",
-      "amount_kes",
-      "status",
-      "reference",
-      "provider",
-      "failure_reason",
-      "stuck",
-      "paid_at",
-      "created_at",
-      "created_by",
-      "approved_by_name",
-      "approved_at"
-    ],
-    "POST /api/party/finance/payouts/": [
-      "id",
-      "payee_kind",
-      "recipient_name",
-      "recipient_phone",
-      "polling_station",
-      "aspirant",
-      "campaign_label",
-      "purpose",
-      "amount_kes",
-      "status",
-      "reference",
-      "provider",
-      "failure_reason",
-      "stuck",
-      "paid_at",
-      "created_at",
-      "created_by",
-      "approved_by_name",
-      "approved_at"
-    ],
-    "POST /api/party/finance/payouts/{payment_id}/release/": [
-      "id",
-      "payee_kind",
-      "recipient_name",
-      "recipient_phone",
-      "polling_station",
-      "aspirant",
-      "campaign_label",
-      "purpose",
-      "amount_kes",
-      "status",
-      "reference",
-      "provider",
-      "failure_reason",
-      "stuck",
-      "paid_at",
-      "created_at",
-      "created_by",
-      "approved_by_name",
-      "approved_at"
-    ],
-    "POST /api/party/finance/payouts/{payment_id}/paid/": [
-      "id",
-      "payee_kind",
-      "recipient_name",
-      "recipient_phone",
-      "polling_station",
-      "aspirant",
-      "campaign_label",
-      "purpose",
-      "amount_kes",
-      "status",
-      "reference",
-      "provider",
-      "failure_reason",
-      "stuck",
-      "paid_at",
-      "created_at",
-      "created_by",
-      "approved_by_name",
-      "approved_at"
-    ],
-    "POST /api/party/finance/payouts/{payment_id}/not-sent/": [
-      "id",
-      "payee_kind",
-      "recipient_name",
-      "recipient_phone",
-      "polling_station",
-      "aspirant",
-      "campaign_label",
-      "purpose",
-      "amount_kes",
-      "status",
-      "reference",
-      "provider",
-      "failure_reason",
-      "stuck",
-      "paid_at",
-      "created_at",
-      "created_by",
-      "approved_by_name",
-      "approved_at"
-    ],
-    "POST /api/party/finance/payouts/{payment_id}/cancel/": [
-      "id",
-      "payee_kind",
-      "recipient_name",
-      "recipient_phone",
-      "polling_station",
-      "aspirant",
-      "campaign_label",
-      "purpose",
-      "amount_kes",
-      "status",
-      "reference",
-      "provider",
-      "failure_reason",
-      "stuck",
-      "paid_at",
-      "created_at",
-      "created_by",
-      "approved_by_name",
-      "approved_at"
-    ],
-    "GET /api/party/finance/payouts/payees/": [
-      "source",
-      "id",
-      "name",
-      "phone",
-      "polling_station"
-    ],
-    "GET /api/party/finance/payouts/campaigns/": [
-      "aspirant",
-      "label"
-    ],
-    "GET /api/party/finance/payouts/spend/": [
-      "rows",
-      "paid_kes",
-      "owed_kes"
-    ],
-    "POST /api/party/finance/payouts/{payment_id}/approve/": [
-      "id",
-      "payee_kind",
-      "recipient_name",
-      "recipient_phone",
-      "polling_station",
-      "aspirant",
-      "campaign_label",
-      "purpose",
-      "amount_kes",
-      "status",
-      "reference",
-      "provider",
-      "failure_reason",
-      "stuck",
-      "paid_at",
-      "created_at",
-      "created_by",
-      "approved_by_name",
-      "approved_at"
-    ],
     "GET /api/party/search/": [
       "kind",
       "id",
@@ -1135,54 +873,6 @@
       "role",
       "password"
     ],
-    "GET /api/party/finance/subscriptions/.items": [
-      "id",
-      "campaign_id",
-      "title",
-      "seat",
-      "area_name",
-      "candidate_name",
-      "plan",
-      "paid_until",
-      "state",
-      "hold"
-    ],
-    "GET /api/party/finance/subscriptions/{subscription_id}/.entries": [
-      "id",
-      "kind",
-      "plan_name",
-      "amount_kes",
-      "method",
-      "reference",
-      "received_on",
-      "days",
-      "paid_until_before",
-      "paid_until_after",
-      "note",
-      "recorded_by",
-      "voided_at",
-      "void_reason",
-      "can_void"
-    ],
-    "GET /api/subscription/.plan": [
-      "name",
-      "price_kes",
-      "duration_days"
-    ],
-    "GET /api/party/finance/subscriptions/{subscription_id}/.plan": [
-      "id",
-      "name"
-    ],
-    "GET /api/party/finance/reports/revenue/.by_month": [
-      "month",
-      "total_kes",
-      "count"
-    ],
-    "GET /api/party/finance/reports/revenue/.by_plan": [
-      "plan",
-      "total_kes",
-      "count"
-    ],
     "GET /api/party/dashboard/.volunteers_by_county": [
       "county_id",
       "county",
@@ -1205,12 +895,6 @@
       "county_id",
       "county",
       "seat",
-      "count"
-    ],
-    "GET /api/party/dashboard/.revenue": [
-      "start",
-      "end",
-      "total_kes",
       "count"
     ],
     "GET /api/account/.volunteer": [
@@ -1273,13 +957,6 @@
     "GET /api/campaigns/{campaign_id}/volunteers/.registration_centre": [
       "id",
       "name"
-    ],
-    "GET /api/party/finance/payouts/spend/.rows": [
-      "aspirant",
-      "label",
-      "paid_kes",
-      "owed_kes",
-      "payments"
     ]
   },
   "writes": {
@@ -1426,7 +1103,6 @@
       "phone",
       "replace"
     ],
-    "POST /api/campaigns/{campaign_id}/team/{user_id}/reset-password/": [],
     "POST /api/join/withdraw/{code}/": [],
     "POST /api/campaigns/{campaign_id}/signups/": [
       "open"
@@ -1505,45 +1181,6 @@
     ],
     "PUT /api/admin/users/{user_id}/party-member/": [
       "member"
-    ],
-    "POST /api/party/finance/plans/": [
-      "name",
-      "price_kes",
-      "duration_days",
-      "description"
-    ],
-    "PATCH /api/party/finance/plans/{plan_id}/": [
-      "name",
-      "price_kes",
-      "duration_days",
-      "description",
-      "active"
-    ],
-    "PUT /api/party/finance/subscriptions/{subscription_id}/plan/": [
-      "plan"
-    ],
-    "POST /api/party/finance/subscriptions/{subscription_id}/payments/": [
-      "amount_kes",
-      "method",
-      "reference",
-      "received_on",
-      "note"
-    ],
-    "POST /api/party/finance/subscriptions/{subscription_id}/extensions/": [
-      "days",
-      "note"
-    ],
-    "POST /api/party/finance/subscriptions/{subscription_id}/entries/{entry_id}/void/": [
-      "reason"
-    ],
-    "PUT /api/party/finance/subscriptions/{subscription_id}/hold/": [
-      "hold",
-      "reason"
-    ],
-    "PUT /api/party/finance/settings/": [
-      "grace_days",
-      "read_only_days",
-      "payment_instructions"
     ],
     "POST /api/admin/party/leaders/": [
       "name",
@@ -1748,25 +1385,7 @@
     "PATCH /api/campaigns/{campaign_id}/volunteers/{volunteer_id}/": [
       "status"
     ],
-    "POST /api/candidates/volunteer/withdraw/{code}/": [],
-    "POST /api/party/finance/payouts/": [
-      "payee_kind",
-      "member",
-      "volunteer",
-      "name",
-      "phone",
-      "centre",
-      "aspirant",
-      "purpose",
-      "amount_kes"
-    ],
-    "POST /api/party/finance/payouts/{payment_id}/paid/": [
-      "reference"
-    ],
-    "POST /api/party/finance/payouts/{payment_id}/release/": [],
-    "POST /api/party/finance/payouts/{payment_id}/not-sent/": [],
-    "POST /api/party/finance/payouts/{payment_id}/cancel/": [],
-    "POST /api/party/finance/payouts/{payment_id}/approve/": []
+    "POST /api/candidates/volunteer/withdraw/{code}/": []
   },
   "enums": {
     "user.role": [
@@ -1817,13 +1436,11 @@
     ]
   },
   "error_shape": {
-    "_comment": "src/api/client.js reads detail first, then the first value of the first field. Login also reads non_field_errors[0]. A closed campaign's 403 also carries a code: src/Gate.jsx reads \"campaign_suspended\" (its aspirant is not approved) and \"campaign_locked\" (its subscription allows no access); \"campaign_read_only\" (a write while read-only) reaches the user only as that write's error sentence.",
+    "_comment": "src/api/client.js reads detail first, then the first value of the first field. Login also reads non_field_errors[0]. A closed campaign's 403 also carries a code: src/Gate.jsx reads \"campaign_suspended\" (its aspirant is not approved).",
     "detail": "string",
     "code": "string, on a closed campaign's 403 only",
     "codes": [
-      "campaign_suspended",
-      "campaign_locked",
-      "campaign_read_only"
+      "campaign_suspended"
     ]
   },
   "no_content": {

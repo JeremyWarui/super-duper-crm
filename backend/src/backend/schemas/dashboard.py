@@ -1,4 +1,4 @@
-"""The party dashboard: counts across the registers, campaigns and subscriptions."""
+"""The party dashboard: counts across the registers and campaigns."""
 
 import uuid
 from datetime import date
@@ -31,13 +31,6 @@ class InterestCount(BaseModel):
     count: int
 
 
-class DashboardRevenue(BaseModel):
-    start: date
-    end: date
-    total_kes: int
-    count: int
-
-
 class Dashboard(BaseModel):
     approved_members: int
     pending_applications: int
@@ -46,10 +39,8 @@ class Dashboard(BaseModel):
     volunteers_by_interest: list[InterestCount]
     approved_aspirants: int
     active_campaigns: int
-    active_subscriptions: int
     events_from: date
     events_to: date
     upcoming_events_by_county: list[CountyCount]
     upcoming_events_by_seat: list[SeatCount]
     campaigns_by_county_and_seat: list[CountySeatCount]
-    revenue: DashboardRevenue

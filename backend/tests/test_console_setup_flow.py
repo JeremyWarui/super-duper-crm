@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from backend.models import UserRole
 from tests.conftest import app_client, enforce_foreign_keys, upgrade_head
-from tests.factories import auth, make_geography, make_user, members_of, pay, sign_in
+from tests.factories import auth, make_geography, make_user, members_of, sign_in
 
 
 @pytest.fixture
@@ -58,7 +58,6 @@ async def test_the_superuser_sets_a_campaign_up_that_its_aspirant_and_manager_wo
 
     assert made.status_code == 201, made.text
     body = made.json()
-    await pay(session, body["campaign"]["id"])
     assert body["setup"]["win_number"] > 0
     assert await members_of(session, uuid.UUID(body["campaign"]["id"])) == {
         "wanjiku": "candidate",

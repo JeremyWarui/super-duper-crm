@@ -6,7 +6,6 @@ import { AppPage } from "@/components/layout/AppPage";
 import { useBranding } from "@/theme/branding";
 import { useAuth } from "./store/auth";
 import { useCampaigns } from "./api/hooks";
-import AccessBanner from "./components/AccessBanner";
 import Legacy from "./components/Legacy";
 import NoCampaign from "./components/NoCampaign";
 import { ErrorMsg, Loading } from "./pages/campaign/controls";
@@ -66,7 +65,6 @@ function Shell({ campaign, role, nav }) {
     >
       <AppPage crumb={current[1]}>
         <Legacy>
-          <AccessBanner role={role} />
           <Page campaign={campaign} role={role} onModal={setModal} />
           <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />
         </Legacy>

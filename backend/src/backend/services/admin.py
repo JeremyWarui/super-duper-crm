@@ -11,7 +11,6 @@ from backend.models import (
     AuthToken,
     Campaign,
     CampaignMember,
-    CampaignSubscription,
     Event,
     Mobilizer,
     PartyMember,
@@ -220,8 +219,6 @@ async def reset_password(
     password: str | None,
     *,
     actor: User | None,
-    action: str = "user.reset_password",
-    campaign_id: uuid.UUID | None = None,
 ) -> str:
     """Give a login a new password and sign out its session."""
     login = await _user(session, user_id)
@@ -236,10 +233,9 @@ async def reset_password(
     record(
         session,
         actor=actor,
-        action=action,
+        action="user.reset_password",
         subject_type="user",
         subject_id=login.id,
-        campaign_id=campaign_id,
     )
     await session.commit()
     return chosen
@@ -367,16 +363,6 @@ async def remove_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list
     people = await logins_on(session, campaign_id)
     if people:
         await session.execute(delete(User).where(User.id.in_([p.id for p in people])))
-    # The subscription outlives the campaign, under the campaign's name.
-    await session.execute(
-        update(CampaignSubscription)
-        .where(CampaignSubscription.campaign_id == campaign_id)
-        .values(
-            campaign_title=select(Campaign.title)
-            .where(Campaign.id == campaign_id)
-            .scalar_subquery()
-        )
-    )
     # The database's ON DELETE rules take the rest.
     await session.execute(delete(Campaign).where(Campaign.id == campaign_id))
     return [p.username for p in people]

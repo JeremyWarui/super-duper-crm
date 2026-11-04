@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import PartyPayment, Payment, PaymentStatus
+from backend.models import Payment, PaymentStatus
 from backend.models.payment import OUTCOME_UNKNOWN, PayoutMixin
 from backend.services.errors import Refused
 from backend.services.payouts import PayoutProvider
@@ -27,8 +27,8 @@ SETTLED = (PaymentStatus.PAID, PaymentStatus.SENDING, PaymentStatus.FAILED)
 SEND_TIMEOUT = 30  # seconds a provider has to answer
 
 # The attempt reference each table sends, so a webhook finds its row: `pay-<id>-<attempt>`.
-PREFIX: dict[type, str] = {Payment: "pay", PartyPayment: "party"}
-ATTEMPT = re.compile(r"^(pay|party)-([0-9a-f-]{36})-(\d+)$")
+PREFIX: dict[type, str] = {Payment: "pay"}
+ATTEMPT = re.compile(r"^(pay)-([0-9a-f-]{36})-(\d+)$")
 
 
 def _already(row: PayoutMixin) -> Refused:

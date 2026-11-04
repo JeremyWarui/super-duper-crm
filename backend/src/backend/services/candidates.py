@@ -35,7 +35,6 @@ from backend.schemas.candidates import (
     ProfileWrite,
 )
 from backend.schemas.party import MemberPlace
-from backend.services import billing
 from backend.services.audit import record
 from backend.services.consent import CAMPAIGN_VOLUNTEER_WORDING
 from backend.services.errors import NotFound, Refused
@@ -128,15 +127,9 @@ async def _by_slug(session: AsyncSession, value: str) -> tuple[Aspirant, Candida
     raise NotFound("No such candidate.")
 
 
-async def _volunteer_campaign(
-    session: AsyncSession, aspirant: Aspirant, today: date
-) -> Campaign | None:
-    """The aspirant's campaign while it may take volunteers: paid up or in grace."""
+async def _volunteer_campaign(session: AsyncSession, aspirant: Aspirant) -> Campaign | None:
+    """The listed (so approved) aspirant's campaign, when the party has made one."""
     if aspirant.campaign_id is None:
-        return None
-    if await billing.campaign_access(session, aspirant.campaign_id, today) not in (
-        billing.FULL_ACCESS
-    ):
         return None
     return await session.get(Campaign, aspirant.campaign_id)
 
@@ -155,7 +148,7 @@ async def candidate(session: AsyncSession, value: str, today: date) -> Candidate
         )
         .order_by(PartyPost.event_date)
     )
-    campaign = await _volunteer_campaign(session, aspirant, today)
+    campaign = await _volunteer_campaign(session, aspirant)
     wards = await wards_in_area(session, campaign) if campaign else []
     return CandidateDetail(
         **_card(aspirant, profile),
@@ -174,15 +167,13 @@ async def candidate(session: AsyncSession, value: str, today: date) -> Candidate
     )
 
 
-async def sign_up(
-    session: AsyncSession, value: str, payload: CandidateVolunteerCreate, today: date
-) -> str:
+async def sign_up(session: AsyncSession, value: str, payload: CandidateVolunteerCreate) -> str:
     """Add a volunteer to the candidate's campaign; a phone already there is left as it is.
 
     Returns a withdrawal code either way, a working one only for a new volunteer.
     """
     aspirant, _ = await _by_slug(session, value)
-    campaign = await _volunteer_campaign(session, aspirant, today)
+    campaign = await _volunteer_campaign(session, aspirant)
     if campaign is None:
         raise Refused("This candidate is not taking volunteers.")
     phone = normalise_phone(payload.phone)

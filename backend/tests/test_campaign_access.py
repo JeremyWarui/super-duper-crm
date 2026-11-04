@@ -1,6 +1,7 @@
-"""A campaign made for an aspirant works only while that aspirant is approved."""
+"""A campaign made for an aspirant works exactly while that aspirant is approved."""
 
 import httpx
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Aspirant, AspirantStatus, PartyRoleName, Seat
@@ -54,3 +55,38 @@ async def test_a_suspended_aspirants_sign_up_link_is_closed(
 
     assert before is True
     assert (await client.get(url)).json()["open"] is False
+
+
+async def test_an_approved_aspirants_campaign_is_fully_open(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    world.campaign.signups_open = True
+    await _aspirant_on(session, world, AspirantStatus.APPROVED)
+    headers = world.headers("manager")
+
+    read = await client.get("/api/supporters/", headers=headers)
+    write = await client.post("/api/supporters/", headers=headers, json={})
+    link = (await client.get(f"/api/join/{world.campaign.signup_code}/")).json()
+
+    assert read.status_code == 200
+    assert write.status_code == 400
+    assert link["open"] is True
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("GET", "/api/subscription/"),
+        ("GET", "/api/party/finance/plans/"),
+        ("GET", "/api/party/finance/subscriptions/"),
+        ("GET", "/api/party/finance/settings/"),
+        ("GET", "/api/party/finance/payouts/"),
+        ("POST", "/api/party/finance/payouts/"),
+    ],
+)
+async def test_the_removed_hosting_and_finance_routes_are_gone(
+    client: httpx.AsyncClient, admin_headers: dict, method: str, path: str
+) -> None:
+    answer = await client.request(method, path, headers=admin_headers, json={})
+
+    assert answer.status_code == 404

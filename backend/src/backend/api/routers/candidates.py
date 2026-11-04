@@ -58,12 +58,11 @@ async def volunteer(
     payload: CandidateVolunteerCreate,
     request: Request,
     session: SessionDep,
-    today: Today,
 ) -> JoinDone:
     """Sign up to volunteer for the candidate's campaign; a known phone gets the same answer."""
     if not SIGNUPS.allow(_client(request)):
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS, "Too many sign-ups from this device; try later."
         )
-    code = await service.sign_up(session, slug, payload, today)
+    code = await service.sign_up(session, slug, payload)
     return JoinDone(message=THANKS, withdraw_code=code)

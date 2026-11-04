@@ -31,8 +31,8 @@ against the same campaign. Sign out and back in to switch between them.
 
 | Username | What they get |
 |---|---|
-| `aspirant` | Candidate: overview, ward performance, events, mobilizers, team, strategy. Adds or replaces the manager, adds and assigns mobilizers, resets the team's passwords; everything else is read-only. |
-| `manager` | Campaign manager: targets, mobilizers, team and supporters, and every write. Resets mobilizers' passwords. |
+| `aspirant` | Candidate: overview, ward performance, events, mobilizers, team, strategy. Adds or replaces the manager, adds and assigns mobilizers; everything else is read-only. |
+| `manager` | Campaign manager: targets, mobilizers, team and supporters, and every write. |
 | `mobilizer` | Mobilizer: their own ward only - my events, register supporter, my supporters. |
 
 The passwords are generated per run and printed by `campaign-crm demo`. Pass
@@ -106,7 +106,7 @@ npm test
 | `onboarding.test.jsx` | The console's new-campaign wizard: the cascading pickers, the unit preview, and the win number |
 | `app.test.jsx` | The dashboard, what each role is shown, the four forms, and inviting |
 | `gate.test.jsx` | Which screen you land on: sign-in, the console, not on a campaign, or the dashboard |
-| `team.test.jsx` | The Team page: replacing the manager, and who may reset whose password |
+| `team.test.jsx` | The Team page: replacing the manager, and no password resets |
 | `join.test.jsx` | Signing up from an event or the campaign link, sharing both links, and withdrawing |
 | `contract.test.js` | The fixtures and the source still match `contracts/frontend-api.json` |
 
@@ -138,10 +138,9 @@ only the centres with a target.
 
 **The Team page runs the logins.** It lists everyone on the campaign. The
 aspirant sees **Add manager**, or **Replace manager** once there is one, which
-warns that the old manager loses their login. **Reset password** shows only on
-rows the server allows: the manager and mobilizers for the aspirant, mobilizers
-for the manager. Every new password is shown once, in a box a stray click on
-the backdrop does not close.
+warns that the old manager loses their login. The new manager's password is
+shown once, in a box a stray click on the backdrop does not close. Nobody on a
+campaign resets a teammate's password; only the superuser does.
 
 **A superuser gets the console, not a campaign.** `Gate.jsx` sends an account
 with `is_superuser` to `Admin.jsx` instead of the campaign gate: every campaign

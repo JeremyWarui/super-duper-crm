@@ -3,7 +3,6 @@
 from backend.db.base import Base
 from backend.models.audit import AuditEvent
 from backend.models.auth_token import AuthToken
-from backend.models.billing import CampaignSubscription, CrmPlan, SubscriptionEntry
 from backend.models.campaign import Campaign
 from backend.models.content import (
     AgendaIssue,
@@ -21,11 +20,9 @@ from backend.models.content import (
     party_post_aspirants,
 )
 from backend.models.enums import (
-    AccessState,
     AspirantStatus,
     ConsentChannel,
     ContactMethod,
-    EntryKind,
     EventStatus,
     LabelledStrEnum,
     OfficeLevel,
@@ -35,14 +32,11 @@ from backend.models.enums import (
     PartyMemberStatus,
     PartyRequestKind,
     PartyRoleName,
-    PayeeKind,
     PaymentStatus,
     PostKind,
     PostLabel,
     Profession,
-    ReceiptMethod,
     Seat,
-    SubscriptionHold,
     SupportLevel,
     UserKind,
     UserRole,
@@ -66,7 +60,6 @@ from backend.models.party import (
     PartySettings,
     VolunteerProfile,
 )
-from backend.models.party_payment import PartyPayment
 from backend.models.payment import Payment
 from backend.models.site import SiteSettings
 from backend.models.supporter import Supporter
@@ -74,7 +67,6 @@ from backend.models.target import Target, compute_win_number, unit_key
 from backend.models.user import User
 
 __all__ = [
-    "AccessState",
     "Aspirant",
     "AspirantStatus",
     "AuditEvent",
@@ -85,12 +77,6 @@ __all__ = [
     "Base",
     "Campaign",
     "CampaignMember",
-    "CampaignSubscription",
-    "CrmPlan",
-    "EntryKind",
-    "ReceiptMethod",
-    "SubscriptionEntry",
-    "SubscriptionHold",
     "Constituency",
     "County",
     "Event",
@@ -113,8 +99,6 @@ __all__ = [
     "PartyRole",
     "PartyRoleName",
     "PartySettings",
-    "PartyPayment",
-    "PayeeKind",
     "Payment",
     "PaymentStatus",
     "PostKind",

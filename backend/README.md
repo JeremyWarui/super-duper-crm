@@ -130,9 +130,9 @@ carry the parent's name beside it. Every error is `{"detail": "<sentence>"}`.
   replaces them: the old manager comes off the campaign and their login is
   turned off. The aspirant and the manager add and remove mobilizers. A second
   manager is refused everywhere, the console included.
-- **Team passwords are reset inside the campaign.** The aspirant resets the
-  manager's and the mobilizers'; the manager resets the mobilizers'. Nobody
-  resets the aspirant's but an admin. A reset signs the person out.
+- **Only the superuser resets a password**, from the console or with
+  `campaign-crm reset-password`. Nobody on a campaign resets a teammate's. A
+  reset signs the person out.
 - **In an MCA race a mobilizer works one registration centre with a target**,
   or none yet; a whole ward or an untargeted centre is refused.
 - **Supporters sign themselves up and withdraw themselves.** `/api/join/{code}/`
@@ -154,7 +154,6 @@ carry the parent's name beside it. Every error is `{"detail": "<sentence>"}`.
 | Set a campaign up | no | no | no |
 | Add or remove mobilizers | yes | yes | no |
 | Add or replace the manager | yes | no | no |
-| Reset a teammate's password | manager, mobilizers | mobilizers | no |
 | Change targets | no | yes | no |
 | Schedule and record events | no | yes | their ward |
 | Register supporters | no | yes | their ward |
@@ -187,8 +186,8 @@ Without it the console provider records the request and reports
 
 ## Payouts
 
-Releasing a party payment (`/api/party/finance/payouts/`) or a campaign's
-mobilizer payment (`/api/payments/`) goes through one payout provider. The
+Releasing a campaign's mobilizer payment (`/api/payments/`) goes through the
+payout provider. The
 default, `practice`, moves no money and marks each release paid under a
 `PRACTICE-` reference. Real M-Pesa transfers through Paystack need:
 

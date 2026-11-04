@@ -45,11 +45,10 @@ PUBLIC_ROUTES = {
 
 
 # Signed-in routes that skip the closed-campaign check, so a closed campaign's login can still
-# see who it is, see how to pay, and sign out; and the member account, which a member login opens.
+# see who it is and sign out; and the member account, which a member login opens.
 SIGNED_IN_ONLY = {
     ("GET", "/api/auth/me/"),
     ("POST", "/api/auth/logout/"),
-    ("GET", "/api/subscription/"),
     ("GET", "/api/account/"),
     ("PUT", "/api/account/volunteer/"),
     ("POST", "/api/account/volunteer/stop/"),
@@ -103,7 +102,7 @@ def test_the_route_walk_reports_a_route_with_no_login():
     assert inventory[("GET", "/closed")] is True
 
 
-def test_only_me_logout_and_the_subscription_skip_the_closed_campaign_check():
+def test_only_me_logout_and_the_member_account_skip_the_closed_campaign_check():
     skipping = set()
     for route in iter_route_contexts(app.routes):
         if not isinstance(route.original_route, APIRoute):
@@ -113,40 +112,3 @@ def test_only_me_logout_and_the_subscription_skip_the_closed_campaign_check():
             skipping |= {(method, route.path) for method in route.methods}
 
     assert skipping == SIGNED_IN_ONLY
-
-
-# Every GET route behind the campaign check, each reviewed to write nothing: a read-only
-# campaign is let through on GET alone, so a GET that wrote would be an edit while unpaid.
-CAMPAIGN_READS = {
-    "/api/campaigns/",
-    "/api/campaigns/{campaign_id}/",
-    "/api/campaigns/{campaign_id}/signups/",
-    "/api/campaigns/{campaign_id}/team/",
-    "/api/campaigns/{campaign_id}/volunteers/",
-    "/api/centres/",
-    "/api/constituencies/",
-    "/api/counties/",
-    "/api/counties/{county_id}/",
-    "/api/events/",
-    "/api/mobilizers/",
-    "/api/payments/",
-    "/api/payments/payout-mode/",
-    "/api/strategy/",
-    "/api/supporters/",
-    "/api/supporters/consent-wording/",
-    "/api/targets/",
-    "/api/wards/",
-}
-
-
-def test_every_campaign_read_route_is_a_reviewed_one():
-    reads = {
-        route.path
-        for route in iter_route_contexts(app.routes)
-        if isinstance(route.original_route, APIRoute)
-        and "GET" in route.methods
-        and _depends_on(route.dependant, get_current_user)
-        and not route.path.startswith(("/api/party/", "/api/admin/"))
-    }
-
-    assert reads == CAMPAIGN_READS

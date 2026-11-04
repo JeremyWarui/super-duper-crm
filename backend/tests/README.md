@@ -3,7 +3,7 @@
 ```bash
 uv run pytest          # everything; test_seed.py loads the real CSVs
 uv run pytest tests    # tests only
-uv run pytest evals    # the SPA contract only
+uv run pytest evals    # the SPA contract and the walks across statuses
 ```
 
 They build an in-memory SQLite database from the models, so no database server
@@ -29,7 +29,9 @@ migrations, row locks and anything else SQLite cannot prove.
 | `test_geography_api.py` | Reference reads, and a mobilizer's one ward |
 | `test_campaigns_api.py` | Campaign reads, setup refusals, and that nobody sets one up for themselves |
 | `test_users_api.py` | Mobilizer logins added and removed from inside a campaign |
-| `test_team_api.py` | The aspirant sets the one manager, team password resets, and an MCA mobilizer's centre |
+| `test_team_api.py` | The aspirant sets the one manager, nobody on the team resets a password, and an MCA mobilizer's centre |
+| `test_campaign_access.py` | A nominee's workspace is open exactly while its aspirant is approved; the removed hosting and finance routes are gone |
+| `test_clock.py` | Every request's today is the date in Nairobi |
 | `test_ground_api.py` | Mobilizers, events and the supporter register |
 | `test_ward_in_campaign.py` | A ward or centre in a request must lie inside the seat |
 | `test_targets_api.py` | Reading and editing the win number |
@@ -41,6 +43,7 @@ migrations, row locks and anything else SQLite cannot prove.
 | `test_cli.py` | campaign-crm |
 | `test_seed.py` | The bundled CSVs and the demo |
 | `../evals/test_frontend_contract.py` | The API offers what the SPA reads and accepts what it sends |
+| `../evals/test_aspirant_access_walk.py` | Every aspirant status: the team's reads and writes, the sign-up link and the volunteer form open together or not at all |
 
 SQLite cannot prove Postgres-only SQL, so `test_migrations.py` renders the
 migration for Postgres and checks the partial `WHERE` clauses and the

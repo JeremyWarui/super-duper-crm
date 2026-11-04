@@ -5,8 +5,6 @@ export function formatNumber(value) {
   return Number(value || 0).toLocaleString();
 }
 
-export const formatKes = (value) => `KES ${Number(value || 0).toLocaleString("en-US")}`;
-
 /** The calendar date in Nairobi (UTC+3) at `at`, as "2026-11-03". */
 export const nairobiDate = (at = new Date()) =>
   new Date(at.getTime() + NAIROBI_OFFSET_MS).toISOString().slice(0, 10);
@@ -17,16 +15,4 @@ export function formatDate(value) {
   const iso = value.length === 10 ? value : nairobiDate(new Date(value));
   const [year, month, day] = iso.split("-").map(Number);
   return `${day} ${MONTHS[month - 1]} ${year}`;
-}
-
-/** A "2026-11" month as "Nov 2026". */
-export function formatMonth(value) {
-  const [year, month] = value.split("-").map(Number);
-  return `${MONTHS[month - 1]} ${year}`;
-}
-
-/** A "2026-11-03" date moved by whole days. */
-export function addDays(iso, days) {
-  const [year, month, day] = iso.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }

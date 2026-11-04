@@ -3,7 +3,6 @@
 from datetime import UTC, date, datetime
 
 import pytest
-from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,9 +11,6 @@ from backend.models import (
     AspirantStatus,
     Campaign,
     CampaignMember,
-    CampaignSubscription,
-    CrmPlan,
-    EntryKind,
     Mobilizer,
     OfficeLevel,
     OperationalGrain,
@@ -23,9 +19,7 @@ from backend.models import (
     PartyPost,
     PartyRoleName,
     PostKind,
-    ReceiptMethod,
     Seat,
-    SubscriptionEntry,
     User,
     UserRole,
     VolunteerProfile,
@@ -126,76 +120,6 @@ async def test_a_nomination_names_only_the_area_its_seat_is_fought_over(
 
     with pytest.raises(IntegrityError):
         await session.commit()
-
-
-async def _plan_and_subscription(session: AsyncSession):
-    _, _, ward, _ = await make_geography(session)
-    campaign = await make_campaign(session, ward)
-    plan = CrmPlan(name="Ward season", price_kes=5_000, duration_days=30)
-    session.add(plan)
-    await session.flush()
-    return plan, campaign.subscription
-
-
-def _payment(subscription_id, plan_id, **fields):
-    values = {
-        "subscription_id": subscription_id,
-        "kind": EntryKind.PAYMENT,
-        "plan_id": plan_id,
-        "amount_kes": 5_000,
-        "method": ReceiptMethod.MPESA,
-        "reference": "SK41AB12CD",
-        "received_on": date(2026, 11, 1),
-        "days": 30,
-        "paid_until_after": date(2026, 11, 30),
-    }
-    return SubscriptionEntry(**(values | fields))
-
-
-async def test_a_new_campaign_has_an_unpaid_subscription(session: AsyncSession) -> None:
-    _, _, ward, _ = await make_geography(session)
-    campaign = Campaign(title="Githurai MCA 2027", office_level=OfficeLevel.WARD, ward=ward)
-    session.add(campaign)
-    await session.commit()
-
-    stored = await session.scalar(
-        select(CampaignSubscription).where(CampaignSubscription.campaign_id == campaign.id)
-    )
-
-    assert stored is not None
-    assert stored.paid_until is None
-
-
-async def test_a_payment_needs_its_reference(session: AsyncSession) -> None:
-    plan, subscription = await _plan_and_subscription(session)
-    session.add(_payment(subscription.id, plan.id, reference=None))
-
-    with pytest.raises(IntegrityError):
-        await session.commit()
-
-
-async def test_a_reference_is_recorded_once_until_that_payment_is_voided(
-    session: AsyncSession,
-) -> None:
-    plan, subscription = await _plan_and_subscription(session)
-    ids = (subscription.id, plan.id)
-    first = _payment(*ids)
-    session.add(first)
-    await session.commit()
-    first_id = first.id
-
-    session.add(_payment(*ids))
-    with pytest.raises(IntegrityError):
-        await session.commit()
-    await session.rollback()
-
-    await session.execute(
-        update(SubscriptionEntry)
-        .where(SubscriptionEntry.id == first_id)
-        .values(voided_at=datetime.now(UTC), void_reason="Entered against the wrong campaign.")
-    )
-    session.add(_payment(*ids))
-    await session.commit()
 
 
 @pytest.mark.parametrize(

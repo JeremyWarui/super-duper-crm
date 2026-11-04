@@ -1,4 +1,4 @@
-"""A campaign's own team: its aspirant sets the manager, and both reset team passwords."""
+"""A campaign's own team: who is on it, and the aspirant setting the manager."""
 
 import uuid
 from typing import Annotated
@@ -8,8 +8,8 @@ from fastapi import APIRouter, Depends, status
 from backend.api.deps import SessionDep, TeamWriter, require_role
 from backend.api.scope import require_visible_campaign
 from backend.models import User, UserRole
-from backend.schemas.team import ManagerCreate, ManagerCreated, TeamMemberRead, TeamPassword
-from backend.services import admin, team
+from backend.schemas.team import ManagerCreate, ManagerCreated, TeamMemberRead
+from backend.services import team
 
 router = APIRouter(prefix="/campaigns/{campaign_id}/team", tags=["team"])
 
@@ -49,17 +49,3 @@ async def set_manager(
         password=password,
         replaced=replaced,
     )
-
-
-@router.post("/{user_id}/reset-password/", response_model=TeamPassword)
-async def reset_password(
-    campaign_id: uuid.UUID, user_id: uuid.UUID, session: SessionDep, user: TeamWriter
-) -> TeamPassword:
-    """Hand a teammate a new password; their session is signed out."""
-    await require_visible_campaign(session, user, campaign_id)
-    member = await team.resettable(session, user, campaign_id, user_id)
-    username = member.username
-    password = await admin.reset_password(
-        session, member.id, None, actor=user, action="team.reset_password", campaign_id=campaign_id
-    )
-    return TeamPassword(username=username, password=password)

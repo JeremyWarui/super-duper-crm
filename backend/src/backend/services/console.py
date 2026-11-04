@@ -1,8 +1,6 @@
 """The party console's top bar: search over the registers and the counts that need someone."""
 
-from datetime import UTC, datetime
-
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -11,14 +9,10 @@ from backend.models import (
     AspirantStatus,
     PartyMember,
     PartyMemberStatus,
-    PartyPayment,
     PartyRoleName,
-    PaymentStatus,
     User,
 )
-from backend.models.payment import OUTCOME_UNKNOWN, STUCK_AFTER
 from backend.schemas.console import Notification, SearchHit
-from backend.services.payout_flow import OPEN
 
 HITS_SHOWN = 8
 
@@ -108,36 +102,6 @@ async def notifications(session: AsyncSession, user: User) -> list[Notification]
             Notification(
                 key="submitted_aspirants",
                 count=await _count(session, Aspirant, Aspirant.status == AspirantStatus.SUBMITTED),
-            )
-        )
-    if PartyRoleName.FINANCE_OFFICER in held:
-        quiet_since = datetime.now(UTC) - STUCK_AFTER
-        stuck = and_(
-            PartyPayment.status == PaymentStatus.SENDING,
-            or_(
-                PartyPayment.failure_reason == OUTCOME_UNKNOWN,
-                PartyPayment.sending_since.is_(None),
-                PartyPayment.sending_since < quiet_since,
-            ),
-        )
-        found.append(
-            Notification(
-                key="held_payments",
-                count=await _count(
-                    session, PartyPayment, or_(PartyPayment.status == PaymentStatus.FAILED, stuck)
-                ),
-            )
-        )
-    if user.is_superuser:
-        found.append(
-            Notification(
-                key="payments_to_approve",
-                count=await _count(
-                    session,
-                    PartyPayment,
-                    PartyPayment.status.in_(OPEN),
-                    PartyPayment.approved_at.is_(None),
-                ),
             )
         )
     return found

@@ -374,3 +374,117 @@ def test_the_site_settings_migration_copies_every_field_and_sets_party() -> None
         3,
         1,
     )
+
+
+def test_the_hosting_and_finance_removal_drops_the_finance_office_and_keeps_the_others() -> None:
+    revisions = revision_modules()
+    last = next(i for i, m in enumerate(revisions) if m.revision == "remove_hosting_finance")
+    engine = sa.create_engine("sqlite://")
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            for module in revisions[:last]:
+                module.upgrade()
+        connection.execute(
+            sa.text(
+                "INSERT INTO party_roles (user_id, kind, role) VALUES "
+                "('u1', 'staff', 'finance_officer'), ('u1', 'staff', 'nominations_officer')"
+            )
+        )
+        connection.execute(sa.text("UPDATE party_settings SET payment_instructions = 'Paybill 1'"))
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].upgrade()
+        roles = connection.execute(sa.text("SELECT role FROM party_roles")).scalars().all()
+        party = connection.execute(sa.text("SELECT * FROM party_settings")).mappings().one()
+        tables = set(sa.inspect(connection).get_table_names())
+        ddl = connection.execute(
+            sa.text("SELECT sql FROM sqlite_master WHERE name = 'party_roles'")
+        ).scalar()
+        with pytest.raises(sa.exc.IntegrityError):
+            connection.execute(
+                sa.text(
+                    "INSERT INTO party_roles (user_id, kind, role) "
+                    "VALUES ('u2', 'staff', 'finance_officer')"
+                )
+            )
+    engine.dispose()
+    assert roles == ["nominations_officer"]
+    assert "finance_officer" not in ddl
+    assert not tables & {
+        "crm_plans",
+        "campaign_subscriptions",
+        "subscription_entries",
+        "party_payments",
+    }
+    assert set(party) == {
+        "id",
+        "registration_number",
+        "founded_year",
+        "aspirant_steps",
+        "payment_instructions",
+        "updated_at",
+    }
+    assert party["payment_instructions"] == "Paybill 1"
+
+
+def _alembic(database: str, *steps: tuple[str, str]) -> None:
+    """Run `alembic upgrade|downgrade <target>` steps through env.py against one database."""
+    import os
+    from pathlib import Path
+
+    from alembic import command
+
+    root = Path(__file__).resolve().parent.parent
+    previous = os.environ.get("DATABASE_URL")
+    os.environ["DATABASE_URL"] = postgres_url(database)
+    get_settings.cache_clear()
+    try:
+        config = Config(str(root / "alembic.ini"))
+        config.set_main_option("script_location", str(root / "alembic"))
+        for action, target in steps:
+            getattr(command, action)(config, target)
+    finally:
+        if previous is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = previous
+        get_settings.cache_clear()
+
+
+@pytest.mark.skipif(not POSTGRES, reason="needs TEST_POSTGRES=1")
+def test_alembic_itself_narrows_the_party_office_check_both_ways_on_postgres() -> None:
+    import asyncio
+
+    from sqlalchemy.engine import make_url
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    name = f"{make_url(postgres_url()).database}_alembic"
+
+    async def run(database: str, sql: str) -> list:
+        engine = create_async_engine(postgres_url(database), isolation_level="AUTOCOMMIT")
+        async with engine.connect() as connection:
+            result = await connection.execute(sa.text(sql))
+            rows = result.all() if result.returns_rows else []
+        await engine.dispose()
+        return rows
+
+    checks = (
+        "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
+        "WHERE conrelid = 'party_roles'::regclass AND contype = 'c' "
+        "AND pg_get_constraintdef(oid) LIKE '%(role)::text%'"
+    )
+    asyncio.run(run("postgres", f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+    asyncio.run(run("postgres", f'CREATE DATABASE "{name}"'))
+    try:
+        _alembic(name, ("upgrade", "head"))
+        narrowed = asyncio.run(run(name, checks))
+        _alembic(name, ("downgrade", "-1"))
+        widened = asyncio.run(run(name, checks))
+        _alembic(name, ("upgrade", "head"))
+        again = asyncio.run(run(name, checks))
+    finally:
+        asyncio.run(run("postgres", f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+
+    assert [len(narrowed), len(widened), len(again)] == [1, 1, 1]
+    assert "finance_officer" not in narrowed[0][0]
+    assert "finance_officer" in widened[0][0]
+    assert again == narrowed

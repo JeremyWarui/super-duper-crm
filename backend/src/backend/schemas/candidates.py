@@ -83,7 +83,7 @@ class CandidateDetail(CandidateCard):
     office_phone: str
     office_email: str
     events: list[CandidateEvent]
-    # True when the aspirant's campaign is paid up; the support form shows only then.
+    # True when the aspirant has a campaign; the support form shows only then.
     volunteering_open: bool
     wards: list[MemberPlace]
     # The form's consent label; the server records this same text.

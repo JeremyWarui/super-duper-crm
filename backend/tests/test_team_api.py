@@ -1,4 +1,4 @@
-"""A campaign runs its own team: the aspirant sets the manager, and the team resets passwords."""
+"""A campaign runs its own team: the aspirant sets the manager; nobody on it resets passwords."""
 
 import httpx
 import pytest
@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import AuthToken, CampaignMember, RegistrationCentre, User, UserRole
 from tests.conftest import World
-from tests.factories import TEST_PASSWORD, auth, make_campaign, make_user, sign_in
+from tests.factories import auth, make_campaign, make_user, sign_in
 
 
 def _team(world: World, *rest: str) -> str:
@@ -139,46 +139,23 @@ async def test_the_database_holds_one_manager_per_campaign_whatever_the_route(
     ]
 
 
-async def test_the_aspirant_resets_the_manager_and_the_manager_only_mobilizers(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+@pytest.mark.parametrize("role", ["candidate", "manager"])
+async def test_a_candidate_or_manager_resets_nobody_s_password(
+    client: httpx.AsyncClient, world: World, role: str
 ) -> None:
-    outsider = await make_user(session, username="stranger", role=UserRole.MOBILIZER)
-    idle = await make_user(session, username="idle", role=UserRole.MOBILIZER, is_active=False)
-    session.add(CampaignMember(campaign_id=world.campaign.id, user_id=idle.id, role=idle.role))
-    await session.commit()
+    target = world.mobilizer_user.id
+    paths = [
+        _team(world, str(target), "reset-password"),
+        f"/api/admin/users/{target}/reset-password/",
+    ]
 
-    def reset(role: str, user: User):
-        return client.post(
-            _team(world, str(user.id), "reset-password"), headers=world.headers(role)
-        )
+    answers = [
+        (await client.post(path, headers=world.headers(role), json={})).status_code
+        for path in paths
+    ]
 
-    refused = {
-        "aspirant by manager": (await reset("manager", world.candidate)).status_code,
-        "manager by self": (await reset("manager", world.manager)).status_code,
-        "by mobilizer": (await reset("mobilizer", world.mobilizer_user)).status_code,
-        "off the campaign": (await reset("candidate", outsider)).status_code,
-        "turned off": (await reset("manager", idle)).status_code,
-    }
-    mobilizer_by_manager = await reset("manager", world.mobilizer_user)
-    manager_by_aspirant = await reset("candidate", world.manager)
-
-    assert manager_by_aspirant.json()["username"] == "amina"
-    assert mobilizer_by_manager.status_code == 200
-    assert refused == {
-        "aspirant by manager": 403,
-        "manager by self": 403,
-        "by mobilizer": 403,
-        "off the campaign": 404,
-        "turned off": 400,
-    }
-    assert (
-        await client.get("/api/campaigns/", headers=world.headers("mobilizer"))
-    ).status_code == 401
-    old = await client.post(
-        "/api/auth/login/", json={"email": "juma@example.test", "password": TEST_PASSWORD}
-    )
-    assert old.status_code == 400
-    await sign_in(client, "juma", mobilizer_by_manager.json()["password"])
+    assert answers == [404, 403]
+    await sign_in(client, "juma")
 
 
 async def test_an_mca_mobilizer_goes_on_a_targeted_centre_and_never_a_whole_ward(

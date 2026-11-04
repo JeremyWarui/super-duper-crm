@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     JSON,
-    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -19,7 +18,6 @@ from sqlalchemy import (
     Uuid,
     func,
     text,
-    true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -51,14 +49,10 @@ def hex_colour(column: str) -> str:
 
 
 class PartySettings(Base):
-    """The party-only settings: registration, aspirant steps and hosted-workspace billing."""
+    """The party-only settings: registration, founding year, aspirant steps and how to pay."""
 
     __tablename__ = "party_settings"
-    __table_args__ = (
-        CheckConstraint("id = 1", name="singleton"),
-        CheckConstraint("grace_days BETWEEN 0 AND 60", name="grace_days_range"),
-        CheckConstraint("read_only_days BETWEEN 0 AND 60", name="read_only_days_range"),
-    )
+    __table_args__ = (CheckConstraint("id = 1", name="singleton"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False, default=1)
     registration_number: Mapped[str] = mapped_column(
@@ -67,12 +61,7 @@ class PartySettings(Base):
     founded_year: Mapped[str] = mapped_column(String(4), default="", server_default=text("''"))
     # The Vie with us page's steps, one per line.
     aspirant_steps: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
-    # Days of full access, then of read-only access, after a campaign's paid period ends.
-    grace_days: Mapped[int] = mapped_column(Integer, default=7, server_default=text("7"))
-    read_only_days: Mapped[int] = mapped_column(Integer, default=7, server_default=text("7"))
     payment_instructions: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
-    # Whether the party rents campaign workspaces to its aspirants.
-    hosting_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

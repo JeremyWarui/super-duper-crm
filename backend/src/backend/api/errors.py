@@ -23,9 +23,6 @@ ONE_NOMINATION = ("uq_aspirants_one_live_per_member", "aspirants.member_id")
 ONE_WORKSPACE = ("uq_aspirants_campaign_id", "aspirants.campaign_id")
 # One live payment per mobilizer per event, as Postgres and SQLite name it.
 ONE_PAYMENT = ("uq_payments_event_mobilizer", "payments.event_id, payments.mobilizer_id")
-# One live payment per reference, and one plan per name, as Postgres and SQLite name them.
-ONE_REFERENCE = ("uq_subscription_entries_reference", "subscription_entries.reference")
-ONE_PLAN_NAME = ("uq_crm_plans_name", "crm_plans.name")
 # The one-mobilizer-per-unit indexes, as Postgres and SQLite name them.
 ONE_MOBILIZER = (
     "uq_mobilizers_campaign_ward",
@@ -106,12 +103,6 @@ def register_error_handlers(app: FastAPI) -> None:
             )
         if any(name in str(exc.orig) for name in ONE_MOBILIZER):
             return _detail("That ward already has a mobilizer.", status.HTTP_400_BAD_REQUEST)
-        if any(name in str(exc.orig) for name in ONE_REFERENCE):
-            return _detail(
-                "That payment reference is already recorded.", status.HTTP_400_BAD_REQUEST
-            )
-        if any(name in str(exc.orig) for name in ONE_PLAN_NAME):
-            return _detail("A plan with that name already exists.", status.HTTP_400_BAD_REQUEST)
         if any(name in str(exc.orig) for name in ONE_OFFICE):
             return _detail(
                 "That login already holds that party office.", status.HTTP_400_BAD_REQUEST

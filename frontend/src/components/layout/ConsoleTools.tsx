@@ -76,8 +76,6 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 const NOTES: Record<string, { text: (n: number) => string; to: string }> = {
   pending_members: { text: (n) => `${plural(n, 'membership application', 'membership applications')} to verify`, to: '/party/members?status=pending' },
   submitted_aspirants: { text: (n) => `${plural(n, 'nomination', 'nominations')} submitted for vetting`, to: '/party/aspirants?status=submitted' },
-  held_payments: { text: (n) => `${plural(n, 'party payment', 'party payments')} failed or stuck`, to: '/party/finance?tab=payouts' },
-  payments_to_approve: { text: (n) => `${plural(n, 'party payment', 'party payments')} waiting for your approval`, to: '/party/finance?tab=payouts' },
 }
 
 /** What waits on the caller's offices, with a count on the bell. */

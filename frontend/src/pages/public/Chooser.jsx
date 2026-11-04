@@ -15,7 +15,7 @@ export function placesOf(user) {
       ? { title: "Campaign workspace", desc: "Targets, events, mobilizers and supporters", role: ROLE[user.role] || "Campaign", initial: "W", box: "bg-ink text-accent" }
       : {
           title: user.is_superuser ? "Console" : "Party CRM",
-          desc: "Members, volunteers, aspirants, finance and website, as your roles allow",
+          desc: "Members, volunteers, aspirants and website, as your roles allow",
           role: user.is_superuser ? "Party super admin" : (user.party_roles || []).map((r) => PARTY_ROLE_LABEL[r] || r).join(", "),
           initial: "C",
           box: "bg-primary text-white",

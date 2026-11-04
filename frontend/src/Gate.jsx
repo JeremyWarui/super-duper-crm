@@ -6,7 +6,6 @@ import Login from "./components/Login";
 import Admin from "./components/Admin";
 import NoCampaign from "./components/NoCampaign";
 import CampaignClosed from "./components/CampaignClosed";
-import CampaignLocked from "./components/CampaignLocked";
 import App from "./App";
 import Portal from "./pages/party/Portal";
 import Join from "./components/Join";
@@ -54,9 +53,6 @@ function SignedIn() {
   if (staff && partyRoles?.length) return <Portal />;
   if (campaigns.error?.code === "campaign_suspended") {
     return <Legacy><CampaignClosed message={campaigns.error.message} /></Legacy>;
-  }
-  if (campaigns.error?.code === "campaign_locked") {
-    return <Legacy><CampaignLocked message={campaigns.error.message} /></Legacy>;
   }
   if (campaigns.isSuccess && campaigns.data.length === 0) {
     return partyRoles?.length ? <Portal /> : <Legacy><NoCampaign /></Legacy>;

@@ -26,7 +26,7 @@ from backend.seed.site import seed_branches, seed_home, seed_news, seed_site
 from backend.services import admin
 from backend.services.accounts import clean_email, new_login, user_with_email
 from backend.services.audit import record
-from backend.services.billing import today
+from backend.services.clock import today
 from backend.services.errors import Refused
 
 
@@ -68,7 +68,6 @@ async def _demo(args: argparse.Namespace, session: AsyncSession) -> int:
     summary = await seed_demo(session, password=args.password)
     print(f"{summary.campaign_title} - {summary.office}")
     print(f"  {summary.units} units, win number {summary.win_number:,}")
-    print(f"  Paid until {summary.paid_until:%d %b %Y}")
     print("\nSign in at http://localhost:5173 as (shown once, re-run to reset):")
     width = max(len(email) for email, _, _ in summary.sign_ins)
     for email, password, description in summary.sign_ins:

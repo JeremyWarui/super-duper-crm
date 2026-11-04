@@ -23,7 +23,6 @@ from tests.factories import (
     TEST_PASSWORD,
     auth,
     fresh_password,
-    pay,
     sign_in,
 )
 
@@ -189,7 +188,6 @@ async def test_the_console_creates_a_campaign_whose_aspirant_and_manager_see_onl
 
     assert response.status_code == 201, response.text
     body = response.json()
-    await pay(session, body["campaign"]["id"])
     assert (body["setup"]["units"], body["setup"]["win_number"]) == (2, 19_981)
     assert [(m["username"], m["role"]) for m in body["campaign"]["members"]] == [
         ("wanjiku", "candidate"),

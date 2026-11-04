@@ -4,13 +4,12 @@ from datetime import UTC, datetime, time, timedelta
 
 import httpx
 import pytest
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import (
     Aspirant,
     AspirantStatus,
-    CampaignSubscription,
     PartyRoleName,
     Seat,
     VolunteerProfile,
@@ -132,37 +131,18 @@ async def test_the_profile_lists_only_published_upcoming_events_naming_the_aspir
     assert {w["name"] for w in detail["wards"]} == {"Zimmerman", "Githurai"}
 
 
-async def test_the_form_is_closed_without_a_campaign_or_in_read_only_or_locked(
+async def test_the_form_is_closed_without_a_campaign(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
-    aspirant = await _aspirant(session, world)
+    aspirant = await _aspirant(session, world, campaign=False)
     await _publish(client, admin_headers, aspirant)
     slug = await _slug(client)
-    await session.execute(
-        update(CampaignSubscription)
-        .where(CampaignSubscription.campaign_id == world.campaign.id)
-        .values(paid_until=TEST_TODAY - timedelta(days=10))
-    )
-    await session.commit()
-    read_only = (await client.get(f"/api/candidates/{slug}/")).json()
+
+    page = (await client.get(f"/api/candidates/{slug}/")).json()
     refused = await client.post(f"/api/candidates/{slug}/volunteer/", json=_volunteer(world))
-    await session.execute(
-        update(CampaignSubscription)
-        .where(CampaignSubscription.campaign_id == world.campaign.id)
-        .values(paid_until=TEST_TODAY - timedelta(days=60))
-    )
-    await session.commit()
-    locked = (await client.get(f"/api/candidates/{slug}/")).json()
-    locked_post = await client.post(f"/api/candidates/{slug}/volunteer/", json=_volunteer(world))
 
-    aspirant.campaign_id = None
-    await session.commit()
-    no_campaign = (await client.get(f"/api/candidates/{slug}/")).json()
-
-    assert (read_only["volunteering_open"], read_only["wards"]) == (False, [])
+    assert (page["volunteering_open"], page["wards"]) == (False, [])
     assert refused.status_code == 400
-    assert (locked["volunteering_open"], locked_post.status_code) == (False, 400)
-    assert no_campaign["volunteering_open"] is False
 
 
 @pytest.mark.parametrize(

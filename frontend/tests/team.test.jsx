@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
@@ -61,36 +61,10 @@ describe("the team page", () => {
     expect(calls.find((c) => c.method === "POST").body.replace).toBe(false);
   });
 
-  it("lets the manager reset only the mobilizers' passwords, and set no manager", async () => {
-    await openTeam("manager", {
-      "GET /campaigns/c1/team/": [...TEAM, { id: "u5", username: "idle", full_name: "Idle Mobilizer", role: "mobilizer", phone: "", is_active: false }],
-    });
+  it.each(["candidate", "manager"])("offers the %s no password reset", async (role) => {
+    await openTeam(role);
 
-    const resettable = screen
-      .getAllByRole("button", { name: "Reset password" })
-      .map((b) => within(b.closest("tr")).getAllByRole("cell")[1].textContent);
-
-    expect(resettable).toEqual(["juma"]);
-    expect(screen.queryByRole("button", { name: /(add|replace) manager/i })).toBeNull();
-  });
-});
-
-describe("resetting a password", () => {
-  it("shows the new password once the aspirant confirms", async () => {
-    const password = fakeSecret();
-    const { calls, user } = await openTeam("candidate", {
-      "POST /campaigns/c1/team/u2/reset-password/": { username: "amina", password },
-    });
-
-    const row = screen.getByText("Amina Kariuki").closest("tr");
-    await user.click(within(row).getByRole("button", { name: "Reset password" }));
-    await user.click(screen.getAllByRole("button", { name: "Reset password" }).at(-1));
-
-    expect(await screen.findByText(password)).toBeTruthy();
-    await user.click(screen.getByText(password).closest(".modal-backdrop"));
-    expect(screen.getByText(password)).toBeTruthy();
-    await waitFor(() => expect(calls.filter((c) => c.method === "POST").map((c) => c.path)).toEqual([
-      "/campaigns/c1/team/u2/reset-password/",
-    ]));
+    expect(screen.queryByRole("button", { name: "Reset password" })).toBeNull();
+    expect(screen.queryAllByRole("button", { name: /(add|replace) manager/i }).length).toBe(role === "candidate" ? 1 : 0);
   });
 });

@@ -8,16 +8,14 @@ import os
 import secrets
 import uuid
 from dataclasses import dataclass
-from datetime import date
 
 from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
-from backend.api.deps import SessionDep, Today
+from backend.api.deps import SessionDep
 from backend.models import (
-    AccessState,
     Aspirant,
     AspirantStatus,
     Campaign,
@@ -30,7 +28,6 @@ from backend.models import (
     Target,
 )
 from backend.schemas.join import JoinCreate, JoinDone, JoinPlace, JoinRead, Withdrawn
-from backend.services import billing
 from backend.services.consent import WORDING, ConsentChannel
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import normalise_phone
@@ -61,14 +58,10 @@ class Link:
     event: Event | None
     # None for a campaign made without a nomination.
     aspirant: AspirantStatus | None = None
-    # None for a campaign with no subscription row, which counts as locked.
-    access: AccessState | None = None
 
     @property
     def open(self) -> bool:
         if self.aspirant not in (None, AspirantStatus.APPROVED):
-            return False
-        if self.access not in billing.FULL_ACCESS:
             return False
         if self.event is not None:
             return self.event.signups_open and self.event.status is not EventStatus.CANCELLED
@@ -79,7 +72,7 @@ class Link:
         return ConsentChannel.CAMPAIGN_LINK if self.event is None else ConsentChannel.EVENT_QR
 
 
-async def _link(session: SessionDep, code: str, today: date) -> Link:
+async def _link(session: SessionDep, code: str) -> Link:
     event = await session.scalar(
         select(Event)
         .where(Event.signup_code == code)
@@ -99,12 +92,7 @@ async def _link(session: SessionDep, code: str, today: date) -> Link:
     aspirant = await session.scalar(
         select(Aspirant.status).where(Aspirant.campaign_id == campaign.id)
     )
-    return Link(
-        campaign=campaign,
-        event=event,
-        aspirant=aspirant,
-        access=await billing.campaign_access(session, campaign.id, today),
-    )
+    return Link(campaign=campaign, event=event, aspirant=aspirant)
 
 
 async def _places(session: SessionDep, campaign: Campaign) -> list[JoinPlace]:
@@ -137,8 +125,8 @@ def _client(request: Request) -> str:
 
 
 @router.get("/{code}/", response_model=JoinRead)
-async def read_signup(code: str, session: SessionDep, today: Today) -> JoinRead:
-    link = await _link(session, code, today)
+async def read_signup(code: str, session: SessionDep) -> JoinRead:
+    link = await _link(session, code)
     campaign = link.campaign
     candidate = campaign.candidate
     on_campaign_link = link.event is None
@@ -176,7 +164,7 @@ async def _filed_at(
 
 @router.post("/{code}/", response_model=JoinDone, status_code=status.HTTP_201_CREATED)
 async def sign_up(
-    code: str, payload: JoinCreate, request: Request, session: SessionDep, today: Today
+    code: str, payload: JoinCreate, request: Request, session: SessionDep
 ) -> JoinDone:
     """Sign a person up; someone already on the register is left as they are.
 
@@ -187,7 +175,7 @@ async def sign_up(
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS, "Too many sign-ups from this device; try later."
         )
-    link = await _link(session, code, today)
+    link = await _link(session, code)
     if not link.open:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Sign-ups are closed.")
     phone = normalise_phone(payload.phone)

@@ -23,9 +23,7 @@ async def test_signing_in_returns_a_token_and_the_caller(
     assert body["user"]["role"] == "manager"
 
 
-async def test_a_device_gets_ten_sign_in_tries_an_hour(
-    client: httpx.AsyncClient, session
-) -> None:
+async def test_a_device_gets_ten_sign_in_tries_an_hour(client: httpx.AsyncClient, session) -> None:
     await make_user(session, username="amina")
     wrong = {"email": "amina@example.test", "password": fresh_password()}
 

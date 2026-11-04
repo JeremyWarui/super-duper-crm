@@ -10,25 +10,21 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from sqlalchemy import ColumnElement, Select, and_, func, select
+from sqlalchemy import ColumnElement, Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from backend.models import (
-    AccessState,
     Aspirant,
     AspirantStatus,
     Campaign,
-    CampaignSubscription,
     Constituency,
     County,
-    EntryKind,
     Event,
     EventStatus,
     PartyMember,
     PartyMemberStatus,
     Seat,
-    SubscriptionEntry,
     VolunteerArea,
     VolunteerProfile,
     VolunteerStatus,
@@ -38,15 +34,11 @@ from backend.schemas.dashboard import (
     CountyCount,
     CountySeatCount,
     Dashboard,
-    DashboardRevenue,
     InterestCount,
     SeatCount,
 )
-from backend.services.billing import access, lapse_days
 
 EVENT_DAYS = 30
-ANSWERING = frozenset({AccessState.ACTIVE, AccessState.GRACE_PERIOD, AccessState.READ_ONLY})
-PAID = frozenset({AccessState.ACTIVE, AccessState.GRACE_PERIOD})
 
 
 @dataclass(frozen=True)
@@ -58,10 +50,6 @@ class Filters:
     aspirant: uuid.UUID | None = None
     start: date | None = None
     end: date | None = None
-
-    @property
-    def narrows_campaigns(self) -> bool:
-        return any((self.county, self.constituency, self.ward, self.seat, self.aspirant))
 
 
 def _place(county, constituency, ward, f: Filters) -> list[ColumnElement[bool]]:
@@ -126,8 +114,6 @@ def _by_county(counts: Counter, names: dict[uuid.UUID, str]) -> list[CountyCount
 async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard:
     events_from = f.start or today
     events_to = f.end or today + timedelta(days=EVENT_DAYS)
-    revenue_from = f.start or date(today.year, 1, 1)
-    revenue_to = f.end or date(today.year, 12, 31)
 
     def members(status: PartyMemberStatus) -> Select:
         query = select(PartyMember.id).where(PartyMember.status == status)
@@ -157,24 +143,13 @@ async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard
         .correlate(Campaign)
         .scalar_subquery()
     )
-    query, county = _campaigns(
-        f, Campaign.seat, nominee, CampaignSubscription.paid_until, CampaignSubscription.hold
-    )
-    query = query.outerjoin(CampaignSubscription, CampaignSubscription.campaign_id == Campaign.id)
+    query, county = _campaigns(f, Campaign.seat, nominee)
     campaigns = (await session.execute(query.add_columns(county))).all()
-    lapse = await lapse_days(session)
-    # A campaign with no subscription row is locked, so it is neither answering nor paid.
-    states = [
-        (status, access(paid_until, hold, today, *lapse).state if hold is not None else None)
-        for _, status, paid_until, hold, _ in campaigns
-    ]
-    answering = sum(
-        1
-        for status, state in states
-        if state in ANSWERING and status in (None, AspirantStatus.APPROVED)
+    # A campaign is open while it has no aspirant or its aspirant is approved.
+    open_campaigns = sum(
+        1 for _, status, _ in campaigns if status in (None, AspirantStatus.APPROVED)
     )
-    paid = sum(1 for _, state in states if state in PAID)
-    by_county_seat = Counter((county_id, seat) for seat, _, _, _, county_id in campaigns)
+    by_county_seat = Counter((county_id, seat) for seat, _, county_id in campaigns)
 
     # An event is placed by its own ward; seat and aspirant still act through its campaign.
     query = _campaigns(Filters(seat=f.seat, aspirant=f.aspirant), Campaign.seat)[0]
@@ -188,29 +163,6 @@ async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard
             )
         )
     ).all()
-
-    live = and_(
-        SubscriptionEntry.kind == EntryKind.PAYMENT,
-        SubscriptionEntry.voided_at.is_(None),
-        SubscriptionEntry.received_on >= revenue_from,
-        SubscriptionEntry.received_on <= revenue_to,
-    )
-    query = _campaigns(f, SubscriptionEntry.amount_kes)[0]
-    query = (
-        query.join(CampaignSubscription, CampaignSubscription.campaign_id == Campaign.id)
-        .join(SubscriptionEntry, SubscriptionEntry.subscription_id == CampaignSubscription.id)
-        .where(live)
-    )
-    amounts = list(await session.scalars(query))
-    if not f.narrows_campaigns:
-        closed = (
-            select(SubscriptionEntry.amount_kes)
-            .join(
-                CampaignSubscription, CampaignSubscription.id == SubscriptionEntry.subscription_id
-            )
-            .where(live, CampaignSubscription.campaign_id.is_(None))
-        )
-        amounts += list(await session.scalars(closed))
 
     ids = {c for _, c in volunteers} | {c for c, _ in by_county_seat} | {c for _, c in upcoming}
     names = dict(
@@ -227,8 +179,7 @@ async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard
             InterestCount(interest=VolunteerArea(i), count=n) for i, n in sorted(interests.items())
         ],
         approved_aspirants=await _count(session, aspirants),
-        active_campaigns=answering,
-        active_subscriptions=paid,
+        active_campaigns=open_campaigns,
         events_from=events_from,
         events_to=events_to,
         upcoming_events_by_county=_by_county(Counter(c for _, c in upcoming), names),
@@ -241,7 +192,4 @@ async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard
                 by_county_seat.items(), key=lambda item: (names[item[0][0]], item[0][1])
             )
         ],
-        revenue=DashboardRevenue(
-            start=revenue_from, end=revenue_to, total_kes=sum(amounts), count=len(amounts)
-        ),
     )

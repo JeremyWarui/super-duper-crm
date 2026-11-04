@@ -18,13 +18,11 @@ const BOARD = {
   volunteers_by_interest: [{ interest: "door_to_door", count: 40 }],
   approved_aspirants: 9,
   active_campaigns: 7,
-  active_subscriptions: 6,
   events_from: "2026-11-01",
   events_to: "2026-12-01",
   upcoming_events_by_county: [{ county_id: "c1", county: "Nakuru", count: 3 }],
   upcoming_events_by_seat: [{ seat: "mp", count: 3 }],
   campaigns_by_county_and_seat: [{ county_id: "c1", county: "Nakuru", seat: "mp", count: 2 }],
-  revenue: { start: "2026-01-01", end: "2026-12-31", total_kes: 250000, count: 12 },
 };
 
 const ROUTES = {
@@ -51,7 +49,7 @@ describe("the party dashboard", () => {
     expect(await tile("Approved members")).toBe("1,234");
     expect(await tile("Pending applications")).toBe("56");
     expect(await tile("Active campaigns")).toBe("7");
-    expect(await tile("Recorded CRM revenue")).toBe("KES 250,000");
+    expect(screen.queryByText("Recorded CRM revenue")).toBeNull();
   });
 
   it("asks again with a filter once one is chosen", async () => {
