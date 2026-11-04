@@ -430,7 +430,14 @@ Decisions taken by Jeremy:
 - `primary_results` as website content: seat, area name, candidate name, votes, declared date, published. `GET /api/party/results/`; `pages/public/Results.jsx` (`/results`) on `PubResults.dc.html` without the receipt checker; the editor enters results; the seed adds demo results marked "Demo results". `pages/public/Vie.jsx` (`/vie`): the steps to become an aspirant from a website setting, and the party office's contacts.
 - Tests: only published results show, grouped by seat; the page says "Demo results" when the seed made them.
 
-**Order**: R5-3 (done), R5-10, R5-11, R5-5 (sign-in and account on the new shell), R5-15, R5-12, R5-13, R5-16, R5-6, R5-7, R5-14, R5-8; R5-9 last. The campaign CRM restyle (P8) follows when Jeremy adds its page designs.
+**R5-17 Party payments** (backend and frontend; depends R5-6; decided by Jeremy 4 Nov 2026)
+- The party's finance area pays people the way a campaign pays its mobilizers: schedule, release, mark paid, mark not sent, cancel, with the same one-attempt-at-a-time guard and "outcome unknown" handling.
+- Payees: mostly polling and party agents, also volunteers, members and staff. An agent is a name, phone and polling station entered by hand, or picked from the member or volunteer register; each payment may name the campaign or aspirant it is for, so the party sees what it spends on each campaign.
+- The finance officer alone schedules and releases (no second approver).
+- Practice mode moves no money. A `PaystackPayouts` provider (transfer recipient as M-Pesa mobile money, transfer, and the `transfer.success` / `transfer.failed` / `transfer.reversed` webhook with its signature check) is written and tested against Paystack's documented API with recorded responses, and switched on by `PAYOUT_PROVIDER=paystack` with `PAYSTACK_SECRET_KEY`; the campaigns' payments use the same provider once it is on. Live money is unchecked until a Paystack Kenya account with transfers exists.
+- Tests: only a finance officer schedules or releases; a release in practice mode is paid under a PRACTICE reference; a Paystack webhook with a bad signature changes nothing; a success webhook pays only the attempt it names; the spend per campaign adds up.
+
+**Order**: R5-3 (done), R5-10, R5-11, R5-5 (sign-in and account on the new shell), R5-15, R5-12, R5-13, R5-16, R5-6, R5-7, R5-17, R5-14, R5-8; R5-9 last. The campaign CRM restyle (P8) follows when Jeremy adds its page designs.
 
 ### New rubric points (frozen once approved)
 
