@@ -47,6 +47,9 @@ class PartyLeader(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     position: Mapped[str] = mapped_column(String(150))
     bio: Mapped[str] = mapped_column(Text, default="")
     photo_url: Mapped[str] = mapped_column(String(500), default="")
+    photo_file_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
+    )
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     published: Mapped[bool] = mapped_column(Boolean, default=False)
     updated_at: Mapped[datetime] = _updated_at()
@@ -126,6 +129,9 @@ class HeroSlide(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "hero_slides"
 
     image_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    image_file_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
+    )
     kicker: Mapped[str] = mapped_column(String(80), default="", server_default="")
     headline: Mapped[str] = mapped_column(String(120))
     line: Mapped[str] = mapped_column(String(300), default="", server_default="")
@@ -157,6 +163,9 @@ class PartyDocument(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     title: Mapped[str] = mapped_column(String(150))
     url: Mapped[str] = mapped_column(String(500))
+    file_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
+    )
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     updated_at: Mapped[datetime] = _updated_at()
@@ -239,6 +248,9 @@ class CandidateProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Uuid, ForeignKey("aspirants.id", ondelete="CASCADE"), unique=True, default=None
     )
     photo_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    photo_file_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
+    )
     slogan: Mapped[str] = mapped_column(String(120), default="", server_default="")
     bio: Mapped[str] = mapped_column(Text, default="", server_default="")
     # Up to three {"title", "text"} pairs.

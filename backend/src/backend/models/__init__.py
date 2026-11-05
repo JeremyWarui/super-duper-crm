@@ -24,6 +24,7 @@ from backend.models.enums import (
     ConsentChannel,
     ContactMethod,
     EventStatus,
+    FileArea,
     LabelledStrEnum,
     OfficeLevel,
     OperationalGrain,
@@ -45,6 +46,7 @@ from backend.models.enums import (
     WorkspaceKind,
 )
 from backend.models.event import Event
+from backend.models.files import StoredFile
 from backend.models.geography import (
     Constituency,
     County,
@@ -69,6 +71,7 @@ from backend.models.user import User
 from backend.models.volunteer import VolunteerProfile
 
 __all__ = [
+    "FileArea",
     "Aspirant",
     "AspirantStatus",
     "AuditEvent",
@@ -116,6 +119,7 @@ __all__ = [
     "PrimaryResult",
     "Seat",
     "SiteSettings",
+    "StoredFile",
     "RegistrationCentre",
     "SupportLevel",
     "Subscriber",

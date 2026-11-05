@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     # A built SPA served at "/"; blank serves the API alone.
     static_dir: str = ""
 
+    # Where uploaded files are kept; created on first upload.
+    upload_dir: str = "uploads"
+
     # Seconds between runs applying public party requests to the register; 0 switches it off.
     party_inbox_seconds: int = 60
 

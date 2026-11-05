@@ -49,6 +49,7 @@ Postgres.
 | `test_route_guards.py` | Every route needs a login unless public; exactly the party routes are party-only, and each answers 404 in an aspirant installation |
 | `test_permissions.py` | The permissions map is section 0.2, every role reaches exactly its routes, a coordinator stays in their area, a coordinator's payment needs the manager |
 | `test_party_workspace.py` | One national party workspace, staff refused, hosted workspaces never see it, coordinators' area register, recruitment codes |
+| `test_files_api.py` | Uploads: disguised and over-size files refused, metadata stripped, private files hidden, public ones cached |
 | `test_boundaries.py` | Campaign code never imports party code, and a planted import is caught |
 | `test_cli.py` | campaign-crm |
 | `test_seed.py` | The bundled CSVs and the demo |

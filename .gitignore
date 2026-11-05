@@ -6,3 +6,6 @@ __pycache__/
 .tokens_for_env.txt
 # UI kit screenshots are local reference images, not repo content.
 ui-kit/docs/screenshots/
+
+# Uploaded files (UPLOAD_DIR)
+backend/uploads/

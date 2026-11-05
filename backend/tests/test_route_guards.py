@@ -24,6 +24,8 @@ from tests.conftest import app_client
 from tests.factories import site_settings
 
 PUBLIC_ROUTES = {
+    # A public file; a private one answers 404 unless a superuser asks.
+    ("GET", "/api/files/{file_id}/"),
     ("POST", "/api/auth/login/"),
     ("GET", "/api/join/{code}/"),
     ("POST", "/api/join/{code}/"),

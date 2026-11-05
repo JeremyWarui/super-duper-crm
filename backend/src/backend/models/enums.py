@@ -195,3 +195,13 @@ class OrganisationType(LabelledStrEnum):
 
     PARTY = ("party", "Party")
     ASPIRANT = ("aspirant", "Aspirant")
+
+
+class FileArea(LabelledStrEnum):
+    """Where an uploaded file is used."""
+
+    SITE = ("site", "Site settings")
+    SLIDES = ("slides", "Hero slides")
+    LEADERS = ("leaders", "Party leaders")
+    DOCUMENTS = ("documents", "Documents")
+    CANDIDATES = ("candidates", "Candidate pages")

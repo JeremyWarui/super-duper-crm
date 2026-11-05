@@ -1,8 +1,20 @@
 """The website's identity and the organisation type: one row, id 1."""
 
+import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, Integer, String, Text, func, text
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    Uuid,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.db.base import Base, choice_type
@@ -30,6 +42,9 @@ class SiteSettings(Base):
     slogan: Mapped[str] = mapped_column(String(150), default="", server_default=text("''"))
     about_headline: Mapped[str] = mapped_column(String(150), default="", server_default=text("''"))
     logo_url: Mapped[str] = mapped_column(String(500), default="")
+    logo_file_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
+    )
     primary_colour: Mapped[str] = mapped_column(String(7), default="#1f2937")
     secondary_colour: Mapped[str] = mapped_column(String(7), default="#f59e0b")
     contact_email: Mapped[str] = mapped_column(String(254), default="")

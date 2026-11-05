@@ -220,6 +220,20 @@ way one is made); rename and delete a campaign; add and remove members; create a
 login; reset a password; disable or enable a login. An admin cannot disable themselves or the last active superuser,
 and a superuser is never put on a campaign.
 
+## Uploads
+
+A superuser uploads a file with `POST /api/files/` (multipart: `file`, `area`,
+`public`). JPEG, PNG and WebP images up to 5 MB are decoded and re-encoded at
+480, 960 and 1920 pixels wide (or the original width when narrower), which
+drops their metadata, location included. PDFs up to 10 MB are kept as sent. The
+type is read from the content and must match the type the file was sent as.
+Files live in `UPLOAD_DIR`; `stored_files` records each one.
+`GET /api/files/{id}/` (add `?w=` for a narrower image) serves a public file to
+anyone with a year-long cache, and a private one only to a superuser, as 404 to
+everyone else. `site_settings`, `hero_slides`, `party_leaders`,
+`party_documents` and `candidate_profiles` each have a `*_file_id` beside the
+`*_url` they keep as a fallback.
+
 ## Invitations
 
 `POST /api/events/{id}/invite/` texts an event's supporters, normalised to E.164
@@ -317,6 +331,13 @@ required and at least 32 characters.
 - A coordinator sees payments through their events' places, so a payment
   with no event never shows to them. `area_ids` reads the caller's areas
   without naming the campaign; one campaign per login keeps that exact.
+- Uploads: the `*_file_id` columns are not yet set or read by any editor or
+  page (PD-9, PD-22); the request body is read in full before the size check,
+  so the limit guards storage, not memory; a file nothing points to is never
+  removed, and the same file uploaded twice is kept twice. A PDF is checked by
+  its start and end markers only and is served inline (in a CSP sandbox). A
+  private file is for superusers only until receipts arrive. HEAD on a file
+  answers 405.
 - The party workspace: the member register lists members of every status; the
   dashboard's seat filter does not narrow its totals or the recruitment counts;
   a member who reapplies takes the recruiter of the new application, or none;
