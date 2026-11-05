@@ -1,32 +1,77 @@
-import { PageTitle } from "../../components/ui";
-import { useMobilizers } from "../../api/hooks";
-import { Btn, Card, ErrorMsg, Loading } from "./controls";
-import { useUnits } from "./helpers";
+import { useMobilizers } from "@/api/hooks";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { holderOf, useUnits } from "./helpers";
+import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
+const initials = (name) => name.split(/\s+/).filter((w) => /^\p{L}/u.test(w)).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+
+// How many targeted units have a mobilizer, naming the ones that have none.
+function Coverage({ units, mobilizers, noun }) {
+  const vacant = units.filter((u) => !holderOf(mobilizers, u));
+  return (
+    <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Coverage">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-card-title font-bold">Coverage</h2>
+        <span className="text-ui text-muted-foreground">{units.length - vacant.length} of {units.length} {noun}s have a mobilizer</span>
+      </div>
+      {vacant.length ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-ui font-semibold">No one covering:</span>
+          {vacant.map((u) => <Badge key={u.key} tone="bad">{u.name}</Badge>)}
+        </div>
+      ) : <p className="text-ui text-primary font-semibold">Every {noun} is covered.</p>}
+    </Card>
+  );
+}
+
+// The campaign's ground organisers: who they are, where they work, and how to reach them.
 export default function Mobilizers({ campaign, onModal }) {
-  const campaignId = campaign.id;
-  const units = useUnits(campaignId);
+  const units = useUnits(campaign.id);
   const byCentre = campaign.operational_grain === "centre";
-  const onAdd = () => onModal({ type: "mobilizer" });
-  const onEdit = (m) => onModal({ type: "mobilizer", mobilizer: m });
-  const { data, isLoading, error } = useMobilizers(campaignId);
-  if (isLoading) return <Loading />; if (error) return <ErrorMsg error={error} />;
+  const noun = byCentre ? "centre" : "ward";
+  const { data, isLoading, error } = useMobilizers(campaign.id);
+  const people = data || [];
   const placeOf = (m) => {
     if (!byCentre) return m.ward_name;
     if (!m.registration_centre) return null;
     return units.find((u) => u.registration_centre === m.registration_centre)?.name || "A centre with no target";
   };
+  const action = <Button shape="rounded" onClick={() => onModal({ type: "mobilizer" })}>Add mobilizer</Button>;
   return (
     <>
-      <PageTitle title="Mobilizers" sub={`Ground organisers by ${byCentre ? "registration centre" : "ward"}.`} action={<Btn primary onClick={onAdd}>Add mobilizer</Btn>} />
-      <Card pad={0}><div className="table-scroll">
-        <table className="table">
-          <thead><tr><th>Name</th><th>{byCentre ? "Centre" : "Ward"}</th><th>Phone</th><th/></tr></thead>
-          <tbody>{(data || []).map((m) => (<tr key={m.id}><td className="strong">{m.full_name}</td><td className={placeOf(m) ? undefined : "muted"}>{placeOf(m) || `No ${byCentre ? "centre" : "ward"} yet`}</td><td className="muted">{m.phone || "—"}</td><td className="actions-cell"><Btn onClick={() => onEdit(m)}>Edit</Btn></td></tr>))}
-          {(!data || data.length === 0) && <tr><td colSpan={4} className="empty-row">No mobilizers yet.</td></tr>}</tbody>
-        </table>
-      </div></Card>
+      <WsHeader context="Field" title="Mobilizers" sub={`One lead per ${noun}. Mobilizers only see their own ${noun}.`} actions={action} />
+      {isLoading && <KitLoading />}
+      {error && <KitError error={error} />}
+      {data && (
+        <>
+          {units.length > 0 && <Coverage units={units} mobilizers={people} noun={noun} />}
+          <Card variant="outline" className="min-w-0 gap-3">
+            <h2 className="text-card-title font-bold">Everyone</h2>
+            <Table minWidth={560}>
+              <THead><TR><TH>Name</TH><TH>{byCentre ? "Centre" : "Ward"}</TH><TH>Phone</TH><TH /></TR></THead>
+              <TBody>
+                {people.map((m) => (
+                  <TR key={m.id}>
+                    <TD>
+                      <div className="flex items-center gap-2.5">
+                        <span aria-hidden="true" className="flex size-9 flex-none items-center justify-center rounded-full bg-primary-tint text-meta font-extrabold text-primary">{initials(m.full_name)}</span>
+                        <span className="font-semibold">{m.full_name}</span>
+                      </div>
+                    </TD>
+                    <TD className={placeOf(m) ? undefined : "text-muted-foreground"}>{placeOf(m) || `No ${noun} yet`}</TD>
+                    <TD className="text-muted-foreground tabular-nums">{m.phone || "None"}</TD>
+                    <TD align="right"><Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "mobilizer", mobilizer: m })}>Edit</Button></TD>
+                  </TR>
+                ))}
+                {people.length === 0 && <TR><TD colSpan={4} className="text-muted-foreground">No mobilizers yet.</TD></TR>}
+              </TBody>
+            </Table>
+          </Card>
+        </>
+      )}
     </>
   );
 }
-
