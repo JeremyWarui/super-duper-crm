@@ -14,7 +14,7 @@ async function openTargets(routes) {
   renderApp(<App />);
   await screen.findByRole("link", { name: "Overview" });
   await userEvent.setup().click(screen.getByRole("link", { name: "Targets" }));
-  await screen.findByText("Targets — the win number");
+  await screen.findByRole("slider", { name: "Turnout for Zimmerman" });
   return calls;
 }
 
