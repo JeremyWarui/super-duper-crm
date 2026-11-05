@@ -26,7 +26,7 @@ describe("mobilizers and wards", () => {
   it("assigns a mobilizer without a ward to the ward row that was clicked", async () => {
     const { calls, user } = await open("Wards", { "PATCH /mobilizers/m2/": MOBILIZERS[1] });
 
-    const githurai = (await screen.findByText("Githurai")).closest("tr");
+    const githurai = within(await screen.findByRole("table")).getByText("Githurai").closest("tr");
     await user.click(within(githurai).getByRole("button", { name: "Assign" }));
     const picker = screen.getByRole("combobox", { name: "Mobilizer" });
     const offered = within(picker).getAllByRole("option").map((o) => o.textContent);

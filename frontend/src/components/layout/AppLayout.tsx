@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useLocation } from 'react-router-dom'
-import { AppSidebar, type NavItem } from './AppSidebar'
+import { AppSidebar, type NavGroup, type NavItem } from './AppSidebar'
 
 export type AppContext = {
   rootLabel: string
@@ -10,6 +10,15 @@ export type AppContext = {
   openMenu: () => void
   tools?: React.ReactNode
   slotHeaders?: boolean
+  /** Replaces the default top bar, as a campaign workspace does. */
+  topBar?: (bar: TopBarProps) => React.ReactNode
+}
+
+export type TopBarProps = {
+  crumbs: { label: string; to?: string }[]
+  user: { initials: string; name: string; role: string }
+  onSignOut: () => void
+  onMenu: () => void
 }
 
 const Ctx = React.createContext<AppContext | null>(null)
@@ -22,9 +31,15 @@ const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 
  * tone="dark" is the party CRM, tone="light" a campaign workspace. The sidebar is 240px on
  * desktop and a slide-in drawer on phones.
  */
-export function AppLayout({ tone, nav, rootLabel, rootPath, eyebrow, title, subtitle, user, onSignOut, tools, slotHeaders, children }: {
+export function AppLayout({ tone, nav = [], groups, brand, card, footer, topBar, rootLabel, rootPath, eyebrow, title, subtitle, user, onSignOut, tools, slotHeaders, children }: {
   tone: 'dark' | 'light'
-  nav: NavItem[]
+  nav?: NavItem[]
+  /** Grouped items with icons, for a campaign workspace. */
+  groups?: NavGroup[]
+  brand?: React.ReactNode
+  card?: React.ReactNode
+  footer?: React.ReactNode
+  topBar?: (bar: TopBarProps) => React.ReactNode
   rootLabel: string
   rootPath: string
   eyebrow?: string
@@ -48,7 +63,7 @@ export function AppLayout({ tone, nav, rootLabel, rootPath, eyebrow, title, subt
     return () => document.removeEventListener('keydown', onKey)
   }, [menu])
   const ctx: AppContext = {
-    rootLabel, rootPath, onSignOut, tools, slotHeaders,
+    rootLabel, rootPath, onSignOut, tools, slotHeaders, topBar,
     user: { ...user, initials: initialsOf(user.name) },
     openMenu: () => setMenu(true),
   }
@@ -56,7 +71,7 @@ export function AppLayout({ tone, nav, rootLabel, rootPath, eyebrow, title, subt
     <Ctx.Provider value={ctx}>
       <div className="app-shell flex min-h-dvh flex-col md:flex-row">
         {menu ? <button aria-label="Close menu" onClick={() => setMenu(false)} className="fixed inset-0 z-40 bg-ink/40 md:hidden" /> : null}
-        <AppSidebar items={nav} tone={tone} eyebrow={eyebrow} title={title} subtitle={subtitle} home={rootPath} open={menu} />
+        <AppSidebar items={nav} groups={groups} tone={tone} eyebrow={eyebrow} title={title} subtitle={subtitle} home={rootPath} open={menu} brand={brand} card={card} footer={footer} />
         {children}
       </div>
     </Ctx.Provider>

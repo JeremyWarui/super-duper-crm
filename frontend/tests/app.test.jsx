@@ -21,66 +21,76 @@ async function open(role = "manager", routes = {}) {
   signIn(role);
   const calls = stubApi(dashboardRoutes(routes));
   const rendered = renderApp(<App />);
-  const landing = role === "mobilizer" ? "My events" : "Overview";
+  const landing = { mobilizer: "My events", agent: "My events", comms: "Events" }[role] ?? "Overview";
   await screen.findByRole("link", { name: landing });
   await waitFor(() => expect(screen.queryByText("Loading…")).toBeNull());
   return { calls, ...rendered };
 }
 
-/** The labels in the campaign sidebar, in order. */
-const sidebar = () =>
-  within(screen.getByRole("navigation", { name: "Workspace" }))
-    .getAllByRole("link")
-    .map((link) => link.textContent);
+/** The campaign sidebar's groups, each with its links in order. */
+const groups = () =>
+  Object.fromEntries(
+    within(screen.getByRole("navigation", { name: "Workspace" }))
+      .getAllByRole("group")
+      .map((g) => [g.getAttribute("aria-label"), within(g).getAllByRole("link").map((a) => a.textContent)]),
+  );
+
+const LEAD = {
+  Plan: ["Overview", "Strategy", "Targets", "Wards"],
+  Field: ["Events", "Mobilizers", "Supporters", "Volunteers"],
+  People: ["Team"],
+  Money: ["Payments"],
+};
 
 describe("what each role is shown", () => {
-  it("gives a campaign manager the full war room", async () => {
-    await open("manager");
+  it.each([
+    ["candidate", "Candidate", LEAD],
+    ["manager", "Campaign Manager", LEAD],
+    [
+      "coordinator",
+      "Coordinator",
+      { Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, Money: ["Payments"] },
+    ],
+    ["comms", "Comms officer", { Field: ["Events"] }],
+    ["mobilizer", "Mobilizer", { "My work": ["My events", "Register supporter", "My supporters", "My payments"] }],
+    ["agent", "Agent", { "My work": ["My events", "My payments"] }],
+  ])("gives a %s exactly their groups", async (role, label, expected) => {
+    await open(role);
 
-    expect(screen.getByRole("button", { name: /Campaign Manager$/ })).toBeInTheDocument();
-    expect(sidebar()).toEqual([
-      "Overview", "Targets", "Wards", "Events", "Mobilizers", "Team", "Supporters", "Volunteers", "Payments", "Strategy",
-    ]);
-    for (const page of [
-      "Targets",
-      "Wards",
-      "Events",
-      "Mobilizers",
-      "Supporters",
-      "Strategy",
-    ]) {
-      expect(screen.getByRole("link", { name: page })).toBeInTheDocument();
-    }
-    // Consent is the person's own: the manager shares a link instead of registering people.
-    expect(screen.queryByRole("link", { name: "Register supporter" })).toBeNull();
+    expect(screen.getByRole("button", { name: new RegExp(`${label}$`) })).toBeInTheDocument();
+    expect(groups()).toEqual(expected);
+  });
+});
+
+describe("the seat card and the area picker", () => {
+  it("shows the seat and area, and offers only the wards the role reads", async () => {
+    await open("coordinator", {
+      "GET /targets/": [{ id: "t1", ward: "w2", ward_name: "Githurai", registration_centre: null }],
+    });
+    const card = screen.getByRole("region", { name: "Campaign" });
+    const area = screen.getByRole("combobox", { name: "Area" });
+
+    expect(within(card).getByText("Jane Wanjiku")).toBeInTheDocument();
+    expect(within(card).getByText("MP · Roysambu")).toBeInTheDocument();
+    expect(within(area).getAllByRole("option").map((o) => o.textContent)).toEqual(["Githurai"]);
+    expect(screen.getByText("Limited to Githurai.")).toBeInTheDocument();
   });
 
-  it("gives a candidate the cockpit and their mobilizers, not the manager's other pages", async () => {
-    await open("candidate");
+  it("shows the party workspace as National, with every ward on the picker", async () => {
+    await open("manager", {
+      "GET /campaigns/": [{ ...CAMPAIGN, kind: "party", candidate_name: "Umoja Party", seat: "National", area_name: "" }],
+    });
+    const card = screen.getByRole("region", { name: "Campaign" });
+    const area = screen.getByRole("combobox", { name: "Area" });
 
-    expect(screen.getByRole("button", { name: /Candidate$/ })).toBeInTheDocument();
-    expect(sidebar()).toEqual([
-      "Overview", "Ward performance", "Events", "Mobilizers", "Team", "Payments", "Strategy",
-    ]);
-    expect(
-      screen.getByRole("link", { name: "Ward performance" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Mobilizers" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Targets" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Supporters" })).toBeNull();
+    expect(within(card).getByText("National")).toBeInTheDocument();
+    expect(within(area).getAllByRole("option")[0].textContent).toBe("All wards");
   });
 
-  it("gives a mobilizer only their own four pages", async () => {
-    await open("mobilizer");
+  it("hides the picker from a role that reads no wards", async () => {
+    await open("comms");
 
-    expect(screen.getByRole("button", { name: /Mobilizer$/ })).toBeInTheDocument();
-    expect(sidebar()).toEqual(["My events", "Register supporter", "My supporters", "My payments"]);
-    for (const page of ["My events", "Register supporter", "My supporters"]) {
-      expect(screen.getByRole("link", { name: page })).toBeInTheDocument();
-    }
-    expect(screen.queryByRole("link", { name: "Overview" })).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Area" })).toBeNull();
   });
 });
 
@@ -121,7 +131,7 @@ describe("the forms", () => {
 
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Githurai rally");
-    await user.selectOptions(screen.getByRole("combobox"), "w2");
+    await user.selectOptions(screen.getAllByRole("combobox").at(-1), "w2");
     await user.type(boxes[1], "Githurai grounds");
     await user.type(document.querySelector('input[type="date"]'), "2027-06-12");
     await user.click(

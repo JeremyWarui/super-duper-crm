@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 
 /** The signed-in person's chip; it opens a small panel with Sign out. Escape or a click outside closes it. */
-function UserMenu({ user, onSignOut }: { user: { initials: string; name: string; role: string }; onSignOut: () => void }) {
+export function UserMenu({ user, onSignOut }: { user: { initials: string; name: string; role: string }; onSignOut: () => void }) {
   const [open, setOpen] = React.useState(false)
   const ref = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {

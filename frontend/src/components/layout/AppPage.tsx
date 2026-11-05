@@ -60,7 +60,9 @@ export function AppPage({ crumb, context, title, actions, children, gap = 24, cl
   return (
     <div className="flex min-w-0 flex-1 flex-col">
       <div className="sticky top-0 z-20">
-        <CrmTopBar crumbs={crumbs} user={app.user} onSignOut={app.onSignOut} onMenu={app.openMenu} tools={app.tools} />
+        {app.topBar
+          ? app.topBar({ crumbs, user: app.user, onSignOut: app.onSignOut, onMenu: app.openMenu })
+          : <CrmTopBar crumbs={crumbs} user={app.user} onSignOut={app.onSignOut} onMenu={app.openMenu} tools={app.tools} />}
         {title ? <PageHeader context={context} title={title} actions={actions} /> : null}
         {slotted ? <div ref={setSlot} /> : null}
       </div>

@@ -95,12 +95,12 @@ describe("the gate", () => {
     signIn("manager");
     stubApi(
       dashboardRoutes({
-        "GET /campaigns/": [{ ...CAMPAIGN, title: "Kimani for Kiambu" }],
+        "GET /campaigns/": [{ ...CAMPAIGN, candidate_name: "Kimani Njoroge" }],
       }),
     );
     const { queryClient } = renderApp(<Root />);
     const stop = forgetOnSwitch(queryClient);
-    await screen.findAllByText("Kimani for Kiambu");
+    await screen.findAllByText("Kimani Njoroge");
 
     act(() => {
       useAuth.getState().logout();

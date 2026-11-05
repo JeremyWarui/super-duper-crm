@@ -1,15 +1,20 @@
 // The signed-in campaign app: routes `/campaign/:page` and the shell around each page.
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppPage } from "@/components/layout/AppPage";
+import { WsTopBar } from "@/components/layout/WsTopBar";
 import { useBranding } from "@/theme/branding";
 import { useAuth } from "./store/auth";
 import { useCampaigns } from "./api/hooks";
 import Legacy from "./components/Legacy";
 import NoCampaign from "./components/NoCampaign";
 import { ErrorMsg, Loading } from "./pages/campaign/controls";
-import { NAV, ROLE_LABEL } from "./pages/campaign/helpers";
+import { NAV, ROLE_LABEL, pagesOf } from "./pages/campaign/helpers";
+import {
+  AccessFooter, AreaPicker, SeatCard, WorkspaceAlerts, WorkspaceBrand, WorkspaceHelp, WorkspaceSearch,
+} from "./pages/campaign/WorkspaceShell";
+import { AreaContext, ICONS, useShellData } from "./pages/campaign/shell";
 import CampaignModal from "./pages/campaign/CampaignModal";
 import Overview from "./pages/campaign/Overview";
 import Units from "./pages/campaign/Units";
@@ -41,53 +46,70 @@ const PAGES = {
   mypayments: (props) => <Payments {...props} mine />,
 };
 
-function Shell({ campaign, role, nav }) {
+function Shell({ campaign, role }) {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
   const { partyName } = useBranding();
   const [modal, setModal] = useState(null);
+  const [area, setArea] = useState(null);
   const { page } = useParams();
-  const current = nav.find(([key]) => key === page);
-  if (!current) return <Navigate to={`/campaign/${nav[0][0]}`} replace />;
+  const data = useShellData(campaign, role);
+  const areaValue = useMemo(() => ({ area, setArea, wards: data.wards }), [area, data.wards]);
+  const pages = pagesOf(role);
+  const current = pages.find(([key]) => key === page);
+  if (!current) return <Navigate to={`/campaign/${pages[0][0]}`} replace />;
   const Page = PAGES[page];
+  const groups = NAV[role].map((g) => ({
+    label: g.label,
+    items: g.items.map(([key, label]) => ({ label, to: `/campaign/${key}`, icon: ICONS[key] })),
+  }));
 
   return (
-    <AppLayout
-      tone="light"
-      nav={nav.map(([key, label]) => ({ label, to: `/campaign/${key}` }))}
-      rootLabel="Campaign"
-      rootPath="/campaign"
-      eyebrow={[partyName, "Campaign"].filter(Boolean).join(" · ")}
-      title={campaign.title}
-      subtitle={[campaign.candidate_name && `for ${campaign.candidate_name}`, campaign.seat, campaign.area_name].filter(Boolean).join(" · ")}
-      user={{ name: user?.full_name || user?.username || "", role: ROLE_LABEL[role] }}
-      onSignOut={logout}
-    >
-      <AppPage crumb={current[1]}>
-        <Legacy>
-          <Page campaign={campaign} role={role} onModal={setModal} />
-          <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />
-        </Legacy>
-      </AppPage>
-    </AppLayout>
+    <AreaContext.Provider value={areaValue}>
+      <AppLayout
+        tone="light"
+        groups={groups}
+        brand={<WorkspaceBrand name={partyName} />}
+        card={<SeatCard campaign={campaign} winNumber={data.strategy?.win_number} />}
+        footer={<AccessFooter role={role} wards={data.wards} />}
+        topBar={(bar) => (
+          <WsTopBar
+            {...bar}
+            search={<WorkspaceSearch data={data} role={role} />}
+            tools={<><AreaPicker /><WorkspaceAlerts data={data} role={role} /><WorkspaceHelp /></>}
+          />
+        )}
+        rootLabel="Campaign workspace"
+        rootPath="/campaign"
+        user={{ name: user?.full_name || user?.username || "", role: ROLE_LABEL[role] }}
+        onSignOut={logout}
+      >
+        <AppPage crumb={current[1]}>
+          <Legacy>
+            <Page campaign={campaign} role={role} onModal={setModal} />
+            <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />
+          </Legacy>
+        </AppPage>
+      </AppLayout>
+    </AreaContext.Provider>
   );
 }
 
 export default function App() {
   const role = useAuth((s) => s.user?.role);
-  const nav = NAV[role];
+  const pages = pagesOf(role);
   const campaigns = useCampaigns();
   const campaign = (campaigns.data || [])[0];
 
-  if (!nav) return <Legacy><NoCampaign /></Legacy>;
+  if (!pages.length) return <Legacy><NoCampaign /></Legacy>;
   if (campaigns.isLoading) return <Legacy><Loading /></Legacy>;
   if (campaigns.error) return <Legacy><ErrorMsg error={campaigns.error} /></Legacy>;
   if (!campaign) return <Legacy><div className="not-on-campaign">You are not on a campaign yet.</div></Legacy>;
 
   return (
     <Routes>
-      <Route path="campaign/:page" element={<Shell campaign={campaign} role={role} nav={nav} />} />
-      <Route path="*" element={<Navigate to={`/campaign/${nav[0][0]}`} replace />} />
+      <Route path="campaign/:page" element={<Shell campaign={campaign} role={role} />} />
+      <Route path="*" element={<Navigate to={`/campaign/${pages[0][0]}`} replace />} />
     </Routes>
   );
 }
