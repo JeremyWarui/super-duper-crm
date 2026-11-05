@@ -16,7 +16,7 @@ from backend.api.deps import (
     get_organisation_type,
     get_signed_in_user,
 )
-from backend.api.install import PartyOnlyRoute
+from backend.api.install import AspirantOnlyRoute, PartyOnlyRoute
 from backend.main import app
 from backend.models import OrganisationType
 from backend.services import site
@@ -108,12 +108,12 @@ def _api_routes(application: FastAPI) -> dict[tuple[str, str], bool]:
     return inventory
 
 
-def party_only_routes() -> set[tuple[str, str]]:
-    """Each (method, path) served by a `PartyOnlyRoute`."""
+def party_only_routes(kind: type = PartyOnlyRoute) -> set[tuple[str, str]]:
+    """Each (method, path) served by a route of this kind, `PartyOnlyRoute` by default."""
     return {
         (method, route.path)
         for route in iter_route_contexts(app.routes)
-        if isinstance(route.original_route, PartyOnlyRoute)
+        if isinstance(route.original_route, kind)
         for method in route.methods
     }
 
@@ -205,3 +205,22 @@ async def test_the_installation_type_is_read_from_the_site_settings(
         site._organisation_type = None
 
     assert answer.status_code == expected
+
+
+@pytest.mark.parametrize("organisation_type", [OrganisationType.PARTY], indirect=True)
+async def test_the_workspace_website_routes_are_aspirant_only_and_missing_in_a_party_installation(
+    client: httpx.AsyncClient,
+) -> None:
+    routes = party_only_routes(AspirantOnlyRoute)
+    answers = {
+        (method, path): (
+            await client.request(method, re.sub(r"\{[^}]+\}", SAMPLE, path), json={})
+        ).status_code
+        for method, path in routes
+    }
+
+    assert {path for _, path in routes} == {
+        path for _, path in _api_routes(app) if path.startswith("/api/workspace/site/")
+    }
+    assert len(routes) > 15
+    assert set(answers.values()) == {404}

@@ -26,6 +26,7 @@ from backend.api.routers import (
     targets,
     team,
     users,
+    workspace_site,
 )
 
 api_router = APIRouter(prefix="/api")
@@ -53,6 +54,7 @@ for module in (
     strategy,
     team,
     users,
+    workspace_site,
 ):
     api_router.include_router(module.router)
 for module in (admin, candidates, party):

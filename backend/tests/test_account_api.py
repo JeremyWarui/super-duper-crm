@@ -9,8 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import get_current_user
+from backend.api.install import InstallationRoute
 from backend.main import app
 from backend.models import (
+    OrganisationType,
     PartyMember,
     PartyMemberStatus,
     PartyRequest,
@@ -108,13 +110,18 @@ async def test_a_join_whose_email_another_login_holds_makes_no_member_login(
 
 
 async def test_a_member_login_gets_403_from_every_staff_and_campaign_route(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
+    client: httpx.AsyncClient,
+    session: AsyncSession,
+    world: World,
+    organisation_type: OrganisationType,
 ) -> None:
     _, token = await _approved_member_token(client, session, world)
     answers = {}
     for route in iter_route_contexts(app.routes):
         original = route.original_route
         if not isinstance(original, APIRoute) or not _guarded(route.dependant):
+            continue
+        if isinstance(original, InstallationRoute) and original.installation != organisation_type:
             continue
         path = route.path
         for name in route.param_convertors:

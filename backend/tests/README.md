@@ -50,6 +50,7 @@ Postgres.
 | `test_permissions.py` | The permissions map is section 0.2, every role reaches exactly its routes, a coordinator stays in their area, a coordinator's payment needs the manager |
 | `test_party_workspace.py` | One national party workspace, staff refused, hosted workspaces never see it, coordinators' area register, recruitment codes |
 | `test_files_api.py` | Uploads: disguised and over-size files refused, metadata stripped, private files hidden, public ones cached |
+| `test_workspace_site.py` | The aspirant workspace website: Comms edits posts and slides, contrast enforced, edits audited, other roles refused |
 | `test_boundaries.py` | Campaign code never imports party code, and a planted import is caught |
 | `test_cli.py` | campaign-crm |
 | `test_seed.py` | The bundled CSVs and the demo |

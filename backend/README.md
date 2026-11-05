@@ -220,6 +220,17 @@ way one is made); rename and delete a campaign; add and remove members; create a
 login; reset a password; disable or enable a login. An admin cannot disable themselves or the last active superuser,
 and a superuser is never put on a campaign.
 
+## The workspace website (aspirant installations)
+
+In an aspirant installation the Candidate, the Manager and Comms edit the
+website from the workspace under `site.write`: `/api/workspace/site/settings/`
+(GET, PUT) and the posts, slides, issues, documents and videos under
+`/api/workspace/site/{kind}/` (GET, POST, and PATCH or DELETE on `{id}/`).
+They call the services the console uses, so the same checks apply (colours must
+pass the contrast check) and every edit is audited. These routes are
+`AspirantOnlyRoute`s (`api/install.py`) and answer 404 in a party installation,
+where the website is edited from the console and the party office.
+
 ## Uploads
 
 A superuser uploads a file with `POST /api/files/` (multipart: `file`, `area`,
@@ -331,6 +342,10 @@ required and at least 32 characters.
 - A coordinator sees payments through their events' places, so a payment
   with no event never shows to them. `area_ids` reads the caller's areas
   without naming the campaign; one campaign per login keeps that exact.
+- The workspace website does not edit the candidate page, and its editors
+  cannot upload files: uploads are for a superuser (`/api/files/`).
+  It accepts event posts, though an aspirant site's public events are meant to
+  come from the workspace's own events (PD-9 decides which shows).
 - Uploads: the `*_file_id` columns are not yet set or read by any editor or
   page (PD-9, PD-22); the request body is read in full before the size check,
   so the limit guards storage, not memory; a file nothing points to is never

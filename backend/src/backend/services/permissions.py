@@ -53,6 +53,8 @@ MAP: dict[str, dict[UserRole, Reach]] = {
     "payments.approve": {R.MANAGER: ALL},
     # Really sending, not a dry run; a Mobilizer texts their own ward.
     "sms.send": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.MOBILIZER: OWN},
+    # Aspirant installations: the website and its settings.
+    "site.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COMMS: ALL},
     "volunteers.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
     "volunteers.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
 }

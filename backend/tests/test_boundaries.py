@@ -23,6 +23,7 @@ CAMPAIGN = [
             "team",
             "payments",
             "join",
+            "workspace_site",
         )
     ),
     *(

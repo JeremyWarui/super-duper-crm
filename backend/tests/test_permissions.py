@@ -7,7 +7,7 @@ import httpx
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import CampaignMemberArea, Supporter, UserRole
+from backend.models import CampaignMemberArea, OrganisationType, Supporter, UserRole
 from backend.services.accounts import add_member
 from backend.services.permissions import MAP
 from tests.conftest import World
@@ -39,6 +39,7 @@ TABLE = {
     "payments.schedule": {M, CO},
     "payments.approve": {M},
     "sms.send": {C, M, MO},
+    "site.write": {C, M, CM},
     "volunteers.read": {C, M, CO},
     "volunteers.write": {C, M, CO},
 }
@@ -64,6 +65,7 @@ def _route(action: str, campaign: uuid.UUID, event: uuid.UUID) -> tuple[str, str
         "payments.schedule": ("POST", "/api/payments/", {}),
         "payments.approve": ("POST", f"/api/payments/{NOBODY}/release/", None),
         "sms.send": ("POST", f"/api/events/{event}/invite/", {"message": "Rally at 4"}),
+        "site.write": ("GET", "/api/workspace/site/posts/", None),
         "volunteers.read": ("GET", f"/api/campaigns/{campaign}/volunteers/", None),
         "volunteers.write": ("PATCH", f"/api/campaigns/{campaign}/volunteers/{NOBODY}/", {}),
     }[action]
@@ -102,14 +104,21 @@ async def test_every_role_reaches_exactly_the_routes_the_map_gives_it(
     client: httpx.AsyncClient,
     world: World,
     everyone: dict[str, dict[str, str]],
+    organisation_type: OrganisationType,
 ) -> None:
     from backend.models import Event
 
     event = Event(campaign_id=world.campaign.id, ward_id=world.ward.id, title="Rally")
     session.add(event)
     await session.commit()
+    # The workspace website exists only in an aspirant installation.
+    table = {
+        action: roles
+        for action, roles in TABLE.items()
+        if action != "site.write" or organisation_type is OrganisationType.ASPIRANT
+    }
     allowed = {}
-    for action in TABLE:
+    for action in table:
         method, url, body = _route(action, world.campaign.id, event.id)
         allowed[action] = {
             role
@@ -117,7 +126,7 @@ async def test_every_role_reaches_exactly_the_routes_the_map_gives_it(
             if (await client.request(method, url, headers=head, json=body)).status_code != 403
         }
 
-    assert allowed == TABLE
+    assert allowed == table
 
 
 async def _supporter(session: AsyncSession, world: World, name: str, ward) -> Supporter:
