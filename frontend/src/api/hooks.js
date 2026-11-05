@@ -354,6 +354,33 @@ export function useSetManager() {
   });
 }
 
+// Adds a coordinator or comms officer; the password comes back once.
+export function useAddStaff() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ campaign, ...body }) =>
+      api(`/campaigns/${campaign}/team/`, { method: "POST", body }),
+    onSuccess: () => invalidate("team"),
+  });
+}
+
+// A coordinator's area: the wards and registration centres they cover.
+export const useArea = (campaignId, userId) =>
+  useQuery({
+    queryKey: ["area", campaignId, userId],
+    queryFn: () => api(`/campaigns/${campaignId}/team/${userId}/area/`),
+    enabled: !!campaignId && !!userId,
+  });
+
+export function useSetArea() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ campaign, user, ...body }) =>
+      api(`/campaigns/${campaign}/team/${user}/area/`, { method: "PUT", body }),
+    onSuccess: () => invalidate("area"),
+  });
+}
+
 // ---- admin console --------------------------------------------------------
 // Only a superuser may call these; every route checks the flag again itself.
 export const useAdminOverview = () =>

@@ -73,4 +73,13 @@ describe("payments", () => {
     expect(screen.queryByRole("button", { name: "Schedule payment" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Mark paid" })).toBeNull();
   });
+
+  it("lets a coordinator schedule a payment but leaves releasing to the manager", async () => {
+    await openPayments("coordinator");
+
+    expect(screen.getByRole("button", { name: "Schedule payment" })).toBeInTheDocument();
+    for (const name of ["Release", "Release all scheduled", "Mark paid", "Cancel"]) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+  });
 });

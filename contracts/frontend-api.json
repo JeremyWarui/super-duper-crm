@@ -218,6 +218,14 @@
       "password",
       "replaced"
     ],
+    "POST /api/campaigns/{campaign_id}/team/": [
+      "username",
+      "password"
+    ],
+    "GET /api/campaigns/{campaign_id}/team/{user_id}/area/": [
+      "wards",
+      "registration_centres"
+    ],
     "POST /api/join/{code}/": [
       "message",
       "withdraw_code"
@@ -1252,6 +1260,18 @@
       "last_name",
       "phone",
       "replace"
+    ],
+    "POST /api/campaigns/{campaign_id}/team/": [
+      "role",
+      "username",
+      "first_name",
+      "last_name",
+      "phone",
+      "email"
+    ],
+    "PUT /api/campaigns/{campaign_id}/team/{user_id}/area/": [
+      "wards",
+      "registration_centres"
     ],
     "POST /api/join/withdraw/{code}/": [],
     "POST /api/campaigns/{campaign_id}/signups/": [

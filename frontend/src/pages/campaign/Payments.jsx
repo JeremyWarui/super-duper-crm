@@ -12,9 +12,11 @@ import NotSentForm from "./NotSentForm";
 const PAY_STATUS = { scheduled: "warn", sending: "warn", paid: "good", failed: "bad", cancelled: "neutral" };
 const OPEN = ["scheduled", "failed"];  // still to go out: never sent, or a send that failed
 
-// The payments register: the manager schedules, pays and cancels; everyone else reads.
+// The payments register: the manager and coordinators schedule; only the manager releases,
+// marks paid and cancels; everyone else reads.
 export default function Payments({ campaign, role, mine }) {
   const campaignId = campaign.id;
+  const canSchedule = !mine && (role === "manager" || role === "coordinator");
   const canPay = role === "manager" && !mine;
   const { data, isLoading, error } = usePayments(campaignId);
   const [modal, setModal] = useState(null);
@@ -22,9 +24,9 @@ export default function Payments({ campaign, role, mine }) {
   const rows = data || [];
   const total = (status) => rows.filter((p) => p.status === status).reduce((s, p) => s + p.amount_kes, 0);
   const scheduled = rows.filter((p) => p.status === "scheduled");
-  const actions = canPay ? (
+  const actions = canSchedule ? (
     <div className="flex gap-2">
-      {scheduled.length > 0 && <Btn onClick={() => setModal({ type: "release", payments: scheduled })}>Release all scheduled</Btn>}
+      {canPay && scheduled.length > 0 && <Btn onClick={() => setModal({ type: "release", payments: scheduled })}>Release all scheduled</Btn>}
       <Btn primary onClick={() => setModal({ type: "schedule" })}>Schedule payment</Btn>
     </div>
   ) : null;
