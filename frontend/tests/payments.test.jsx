@@ -82,4 +82,30 @@ describe("payments", () => {
       expect(screen.queryByRole("button", { name })).toBeNull();
     }
   });
+
+  it("shows the practice-mode banner when releases move no money", async () => {
+    await openPayments("manager", { "GET /payments/payout-mode/": { mode: "practice", moves_money: false } });
+
+    expect(await screen.findByText("Practice mode.")).toBeInTheDocument();
+  });
+
+  it("shows no banner once releases move real money", async () => {
+    const { calls } = await openPayments("manager", { "GET /payments/payout-mode/": { mode: "live", moves_money: true } });
+
+    await waitFor(() => expect(calls.some((c) => c.path === "/payments/payout-mode/")).toBe(true));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText("Practice mode.")).toBeNull();
+  });
+
+  it("counts failed payments and ones stuck while sending as needing attention", async () => {
+    await openPayments("manager", { "GET /payments/": [
+      SCHEDULED,
+      { ...SCHEDULED, id: "p2", recipient_name: "Akinyi Wekesa", status: "failed", failure_reason: "Wrong number." },
+      { ...SCHEDULED, id: "p3", recipient_name: "Otieno Ouma", status: "sending", stuck: true },
+      { ...SCHEDULED, id: "p4", recipient_name: "Wanjiku Njeri", status: "sending", stuck: false },
+    ] });
+
+    const tile = within(screen.getByRole("region", { name: "Summary" })).getByText("Needs attention").parentElement;
+    expect(within(tile).getByText("2")).toBeInTheDocument();
+  });
 });

@@ -421,8 +421,6 @@
 
 .legacy .table td.empty-row { padding: 32px 20px; }
 
-.legacy .failure-reason { max-width: 260px; margin-top: 4px; font-size: var(--text-xs); }
-
 /* ---- app shell ---------------------------------------------------------- */
 
 .legacy .app-shell { min-height: 100vh; }

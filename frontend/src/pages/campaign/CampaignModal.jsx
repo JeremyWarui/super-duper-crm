@@ -10,6 +10,11 @@ import RecordForm from "./RecordForm";
 import InviteForm from "./InviteForm";
 import QrModal from "./QrModal";
 import CampaignLinkModal from "./CampaignLinkModal";
+import SchedulePaymentForm from "./SchedulePaymentForm";
+import MarkPaidForm from "./MarkPaidForm";
+import CancelPaymentForm from "./CancelPaymentForm";
+import ReleaseForm from "./ReleaseForm";
+import NotSentForm from "./NotSentForm";
 
 // The form a page asked for with onModal; nothing when none is open.
 export default function CampaignModal({ modal, campaign, role, onClose }) {
@@ -28,6 +33,11 @@ export default function CampaignModal({ modal, campaign, role, onClose }) {
       {modal?.type === "event" && <ScheduleEventForm campaignId={campaignId} wardOptions={wardOptions} byCentre={byCentre} onClose={onClose} />}
       {modal?.type === "record" && <RecordForm event={modal.event} onClose={onClose} />}
       {modal?.type === "invite" && <InviteForm event={modal.event} onClose={onClose} />}
+      {modal?.type === "payment-schedule" && <SchedulePaymentForm campaignId={campaignId} onClose={onClose} />}
+      {modal?.type === "payment-paid" && <MarkPaidForm payment={modal.payment} onClose={onClose} />}
+      {modal?.type === "payment-cancel" && <CancelPaymentForm payment={modal.payment} onClose={onClose} />}
+      {modal?.type === "payment-release" && <ReleaseForm payments={modal.payments} onClose={onClose} />}
+      {modal?.type === "payment-notsent" && <NotSentForm payment={modal.payment} onClose={onClose} />}
       {modal?.type === "link" && <CampaignLinkModal campaign={campaign} onClose={onClose} />}
       {modal?.type === "qr" && <QrModal event={modal.event} canClose={role === "manager"} onClose={onClose} />}
     </>
