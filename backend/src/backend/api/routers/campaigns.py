@@ -16,10 +16,10 @@ from backend.api.scope import (
     require_visible_campaign,
     visible_campaign_ids,
 )
-from backend.models import Campaign, User, VolunteerProfile, VolunteerStatus
+from backend.models import Campaign, User, VolunteerProfile, VolunteerStatus, WorkspaceKind
 from backend.schemas.campaign import CampaignRead, CampaignSignups, EventSignups, SetupSummary
 from backend.schemas.candidates import CampaignVolunteerRead, CampaignVolunteerUpdate
-from backend.services import campaign_volunteers
+from backend.services import campaign_volunteers, site
 from backend.services.targets import generate_targets
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
@@ -37,15 +37,19 @@ NAMED = (
 )
 
 
-def _named(campaign: Campaign) -> CampaignRead:
-    """A campaign with its candidate and seat spelt out; needs NAMED loaded."""
+async def _named(session: SessionDep, campaign: Campaign) -> CampaignRead:
+    """A campaign with its candidate and seat spelt out, the party's name standing for the
+    candidate of the party workspace; needs NAMED loaded."""
     area = campaign.area
     candidate = campaign.candidate
+    name = (candidate.full_name or candidate.username) if candidate else ""
+    if campaign.kind is WorkspaceKind.PARTY:
+        name = (await site.read_settings(session)).name
     return CampaignRead.model_validate(campaign).model_copy(
         update={
-            "candidate_name": (candidate.full_name or candidate.username) if candidate else "",
+            "candidate_name": name,
             "candidate_username": candidate.username if candidate else "",
-            "seat": f"{campaign.seat.label} seat",
+            "seat": campaign.seat_label,
             "area_name": area.name if area is not None else "",
         }
     )
@@ -60,7 +64,7 @@ async def list_campaigns(session: SessionDep, user: CurrentUser) -> list[Campaig
         .where(Campaign.id.in_(await visible_campaign_ids(session, user)))
         .order_by(Campaign.created_at)
     )
-    return [_named(c) for c in await all_rows(session, statement)]
+    return [await _named(session, c) for c in await all_rows(session, statement)]
 
 
 @router.get("/{campaign_id}/", response_model=CampaignRead)
@@ -68,7 +72,7 @@ async def get_campaign(
     campaign_id: uuid.UUID, session: SessionDep, user: CurrentUser
 ) -> CampaignRead:
     await require_visible_campaign(session, user, campaign_id)
-    return _named(await load(session, Campaign, campaign_id, NAMED))
+    return await _named(session, await load(session, Campaign, campaign_id, NAMED))
 
 
 @router.get("/{campaign_id}/signups/", response_model=CampaignSignups)

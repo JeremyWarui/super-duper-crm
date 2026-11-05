@@ -61,6 +61,7 @@ PARTY = (
     "backend.services.aspirants",
     "backend.services.volunteers",
     "backend.services.party",
+    "backend.services.party_workspace",
     "backend.api.routers.party",
 )
 ALLOWED = {

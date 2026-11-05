@@ -50,7 +50,7 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
     if campaign.operational_grain is OperationalGrain.WARD and payload.registration_centre:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            f"This {campaign.seat.label} race sets targets per ward, not per centre.",
+            f"This race ({campaign.seat_label}) sets targets per ward, not per centre.",
         )
     taken = set(
         (

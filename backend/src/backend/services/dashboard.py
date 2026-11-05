@@ -2,7 +2,8 @@
 
 A place filter keeps members and volunteers living in it, and campaigns, aspirants and
 events whose own area lies inside it. `seat` and `aspirant` act through the campaign.
-Only counts and county names leave; no campaign record's text does.
+Campaign counts are hosted workspaces; the party's own workspace is counted apart. Only
+counts, county names and recruiting coordinators' names leave; no campaign record's text does.
 """
 
 import uuid
@@ -18,23 +19,30 @@ from backend.models import (
     Aspirant,
     AspirantStatus,
     Campaign,
+    CampaignMember,
     Constituency,
     County,
     Event,
     EventStatus,
+    Mobilizer,
     PartyMember,
     PartyMemberStatus,
     Seat,
+    Supporter,
+    User,
     VolunteerArea,
     VolunteerProfile,
     VolunteerStatus,
     Ward,
+    WorkspaceKind,
 )
 from backend.schemas.dashboard import (
+    CoordinatorCount,
     CountyCount,
     CountySeatCount,
     Dashboard,
     InterestCount,
+    PartyWorkspaceTotals,
     SeatCount,
 )
 from backend.services import access
@@ -90,8 +98,9 @@ def _in_area(model, query: Select, f: Filters) -> tuple[Select, ColumnElement]:
 
 
 def _campaigns(f: Filters, *columns) -> tuple[Select, ColumnElement]:
-    """The campaigns the filters keep; returns the query and the campaign's county id."""
+    """The hosted campaigns the filters keep; returns the query and the campaign's county id."""
     query, county = _in_area(Campaign, select(*columns).select_from(Campaign), f)
+    query = query.where(Campaign.kind != WorkspaceKind.PARTY)
     if f.seat:
         query = query.where(Campaign.seat == f.seat)
     if f.aspirant:
@@ -162,7 +171,28 @@ async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard
         )
     ).all()
 
-    ids = {c for _, c in volunteers} | {c for c, _ in by_county_seat} | {c for _, c in upcoming}
+    party = await _party_workspace(session, f, events_from, events_to)
+
+    query = select(PartyMember.recruited_by_id, PartyMember.recruitment_county_id).where(
+        PartyMember.recruited_by_id.is_not(None)
+    )
+    recruited = (await session.execute(_in_ward(query, PartyMember.ward_id, f)[0])).all()
+    names_of = await session.execute(
+        select(CampaignMember.id, User.first_name, User.last_name, User.username)
+        .join(User, User.id == CampaignMember.user_id)
+        .where(CampaignMember.id.in_({r for r, _ in recruited}))
+    )
+    recruiters = {
+        member: f"{first} {last}".strip() or username
+        for member, first, last, username in names_of.all()
+    }
+
+    ids = (
+        {c for _, c in volunteers}
+        | {c for c, _ in by_county_seat}
+        | {c for _, c in upcoming}
+        | {c for _, c in recruited if c is not None}
+    )
     names = dict(
         (await session.execute(select(County.id, County.name).where(County.id.in_(ids)))).all()
     )
@@ -190,4 +220,35 @@ async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard
                 by_county_seat.items(), key=lambda item: (names[item[0][0]], item[0][1])
             )
         ],
+        party_workspace=party,
+        applications_by_county=_by_county(Counter(c for _, c in recruited if c is not None), names),
+        applications_by_coordinator=[
+            CoordinatorCount(coordinator=recruiters[m], count=n)
+            for m, n in sorted(
+                Counter(m for m, _ in recruited).items(), key=lambda item: recruiters[item[0]]
+            )
+        ],
+    )
+
+
+async def _party_workspace(
+    session: AsyncSession, f: Filters, events_from: date, events_to: date
+) -> PartyWorkspaceTotals | None:
+    """The party workspace's own counts in the place filter, or None before it exists."""
+    found = await session.scalar(select(Campaign.id).where(Campaign.kind == WorkspaceKind.PARTY))
+    if found is None:
+        return None
+
+    def mine(model) -> Select:
+        return _in_ward(select(model.id).where(model.campaign_id == found), model.ward_id, f)[0]
+
+    events = mine(Event).where(
+        Event.status == EventStatus.PLANNED,
+        func.date(Event.scheduled_date) >= events_from,
+        func.date(Event.scheduled_date) <= events_to,
+    )
+    return PartyWorkspaceTotals(
+        supporters=await _count(session, mine(Supporter)),
+        mobilizers=await _count(session, mine(Mobilizer)),
+        upcoming_events=await _count(session, events),
     )

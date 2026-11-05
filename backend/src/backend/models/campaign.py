@@ -131,6 +131,11 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         return self.title
 
     @property
+    def seat_label(self) -> str:
+        """ "MP seat", or "National" for the party workspace, which contests no seat."""
+        return f"{self.seat.label} seat" if self.seat is not None else "National"
+
+    @property
     def area(self) -> "County | Constituency | Ward | None":
         """The county, constituency or ward contested, None nationally; needs it loaded."""
         attribute = {

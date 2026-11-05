@@ -59,6 +59,7 @@ from backend.models.party import (
     PartyRequest,
     PartyRole,
     PartySettings,
+    RecruitmentCode,
 )
 from backend.models.payment import Payment
 from backend.models.site import SiteSettings
@@ -101,6 +102,7 @@ __all__ = [
     "PartyRole",
     "PartyRoleName",
     "PartySettings",
+    "RecruitmentCode",
     "Payment",
     "PaymentStatus",
     "PostKind",

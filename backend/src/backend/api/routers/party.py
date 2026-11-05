@@ -226,6 +226,7 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
         ward_id=payload.ward,
         registration_centre_id=payload.registration_centre,
         volunteer=payload.volunteer.model_dump() if payload.volunteer else None,
+        recruitment=payload.recruitment,
     )
     await session.commit()
     return PartyJoinDone(

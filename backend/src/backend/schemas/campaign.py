@@ -7,7 +7,13 @@ from typing import Any
 
 from pydantic import AliasPath, Field, ValidationInfo, field_validator
 
-from backend.models.enums import EventStatus, OfficeLevel, OperationalGrain, SupportLevel
+from backend.models.enums import (
+    EventStatus,
+    OfficeLevel,
+    OperationalGrain,
+    SupportLevel,
+    WorkspaceKind,
+)
 from backend.schemas.common import ORMModel, WriteModel
 
 
@@ -20,6 +26,7 @@ class CampaignRead(ORMModel):
     seat: str = ""
     area_name: str = ""
     title: str
+    kind: WorkspaceKind
     office_level: OfficeLevel
     county: uuid.UUID | None = Field(default=None, validation_alias="county_id")
     constituency: uuid.UUID | None = Field(default=None, validation_alias="constituency_id")
@@ -27,6 +34,12 @@ class CampaignRead(ORMModel):
     election_date: date | None
     operational_grain: OperationalGrain
     created_at: datetime
+
+    @field_validator("seat", mode="before")
+    @classmethod
+    def _no_seat(cls, value: object) -> object:
+        """The party workspace contests no seat; the router spells the seat out after."""
+        return "" if value is None else value
 
     @field_validator("candidate", mode="before")
     @classmethod

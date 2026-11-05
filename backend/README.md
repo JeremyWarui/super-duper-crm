@@ -137,6 +137,18 @@ Campaign workspace access is decided in `services/access.py`: party and
 standalone workspaces are always open; a hosted one is open while its aspirant
 is approved, or when it has none.
 
+The party workspace (`kind = 'party'`, national, no seat or candidate) is
+created once by a superuser (`POST /api/party/workspace/`) with its first
+Workspace Manager, and gets a target in every ward. Its coordinators read the
+party members living in their area (`GET /api/party/workspace/members/`,
+read-only, a page at a time, each page audited as `members.area_read`) and
+hold one active recruitment code each (`…/recruitment/`; POST replaces it).
+A Join the Party application carrying an active code records the coordinator
+and the county of the applicant's ward; any other code is ignored, and
+membership officers still decide every application. A coordinator of a
+hosted workspace gets 404 on these routes. The dashboard counts the party
+workspace apart from hosted ones.
+
 A candidate page (`candidate_profiles`) belongs to a campaign, one each; a
 hosted campaign's page also names its aspirant. A campaign's volunteers
 (`models/volunteer.py`, `campaign_id` set) are read, moved, signed up and
@@ -305,6 +317,10 @@ required and at least 32 characters.
 - A coordinator sees payments through their events' places, so a payment
   with no event never shows to them. `area_ids` reads the caller's areas
   without naming the campaign; one campaign per login keeps that exact.
+- The party workspace: the member register lists members of every status; the
+  dashboard's seat filter does not narrow its totals or the recruitment counts;
+  a member who reapplies takes the recruiter of the new application, or none;
+  the admin console builds the workspace's ~1,450 ward rows on each list.
 - The website editor lists every approved aspirant but saves a candidate
   page only for one with a workspace; it does not mark the others. Saving a
   page for an aspirant whose campaign already holds a page with no aspirant

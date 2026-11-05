@@ -44,3 +44,23 @@ class Dashboard(BaseModel):
     upcoming_events_by_county: list[CountyCount]
     upcoming_events_by_seat: list[SeatCount]
     campaigns_by_county_and_seat: list[CountySeatCount]
+    # Hosted workspaces only above; the party's own workspace is counted here.
+    party_workspace: "PartyWorkspaceTotals | None" = None
+    applications_by_county: list[CountyCount] = []
+    applications_by_coordinator: list["CoordinatorCount"] = []
+
+
+class PartyWorkspaceTotals(BaseModel):
+    supporters: int
+    mobilizers: int
+    upcoming_events: int
+
+
+class CoordinatorCount(BaseModel):
+    """Applications that came through one coordinator's recruitment links."""
+
+    coordinator: str
+    count: int
+
+
+Dashboard.model_rebuild()

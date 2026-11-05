@@ -106,6 +106,8 @@ class PartyJoinCreate(WriteModel):
     registration_centre: uuid.UUID
     consent_given: StrictBool
     volunteer: VolunteerPart | None = None
+    # A coordinator's recruitment code from `/join-party?r=`; any other value is ignored.
+    recruitment: str | None = Field(default=None, max_length=32)
 
     @field_validator("first_name", "surname", "phone", "email")
     @classmethod

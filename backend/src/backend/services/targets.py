@@ -1,4 +1,5 @@
-"""The wards a seat covers, and the vote targets built on them; re-running updates in place."""
+"""The wards a seat covers (every ward for the national party workspace), and the vote
+targets built on them; re-running updates in place."""
 
 import uuid
 from decimal import Decimal
@@ -23,7 +24,10 @@ WITH_COUNTY = selectinload(Ward.constituency).selectinload(Constituency.county)
 
 
 def _in_area(statement: Select, campaign: Campaign) -> Select | None:
-    """Narrow a ward query to a county or constituency seat, or None when no area is set."""
+    """Narrow a ward query to a county or constituency seat, leave it whole for the national
+    scope, or None when no area is set."""
+    if campaign.office_level is OfficeLevel.NATIONAL:
+        return statement
     if campaign.office_level is OfficeLevel.COUNTY and campaign.county_id is not None:
         return statement.join(Constituency).where(Constituency.county_id == campaign.county_id)
     if campaign.office_level is OfficeLevel.CONSTITUENCY and campaign.constituency_id is not None:

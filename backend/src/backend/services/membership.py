@@ -27,7 +27,7 @@ from backend.models import (
     VolunteerArea,
     Ward,
 )
-from backend.services import aspirants, volunteers
+from backend.services import aspirants, party_workspace, volunteers
 from backend.services.accounts import clean_email
 from backend.services.audit import record, record_if
 from backend.services.consent import PARTY_WORDING
@@ -121,6 +121,7 @@ def request_join(
     ward_id: uuid.UUID,
     registration_centre_id: uuid.UUID,
     volunteer: dict | None = None,
+    recruitment: str | None = None,
 ) -> tuple[str, str | None]:
     """Queue a public application; returns its withdraw code and the volunteer one, if any.
 
@@ -142,6 +143,7 @@ def request_join(
         "registration_centre_id": str(registration_centre_id),
         "consent_wording": PARTY_WORDING[PartyConsentChannel.WEB_FORM],
         "consent_at": now,
+        "recruitment": recruitment,
     }
     volunteer_code = None
     if volunteer is not None:
@@ -178,16 +180,30 @@ def _uuid(value: str | None) -> uuid.UUID | None:
 
 
 async def _apply_join(session: AsyncSession, code: str, p: dict) -> None:
-    """Add the applicant, or put a rejected or withdrawn member back to pending.
+    """Add the applicant, or put a rejected or withdrawn member back to pending, with the
+    coordinator whose active recruitment code they used and their ward's county.
 
     Any other member is left as they are and the code withdraws nothing.
     """
+    ward_id = uuid.UUID(p["ward_id"])
+    recruited_by = await party_workspace.recruiter(session, p.get("recruitment"))
+    county = (
+        await session.scalar(
+            select(Constituency.county_id)
+            .join(Ward, Ward.constituency_id == Constituency.id)
+            .where(Ward.id == ward_id)
+        )
+        if recruited_by is not None
+        else None
+    )
     values = {
         "full_name": p["full_name"],
         "first_name": p.get("first_name"),
         "email": p["email"],
-        "ward_id": uuid.UUID(p["ward_id"]),
+        "ward_id": ward_id,
         "registration_centre_id": _uuid(p.get("registration_centre_id")),
+        "recruited_by_id": recruited_by,
+        "recruitment_county_id": county,
         "consent_channel": PartyConsentChannel.WEB_FORM,
         "consent_wording": p["consent_wording"],
         "consent_at": datetime.fromisoformat(p["consent_at"]),

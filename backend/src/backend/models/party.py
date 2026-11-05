@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -125,6 +126,14 @@ class PartyMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     consent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
+    # The party workspace coordinator whose recruitment link brought the application, and the
+    # county of the applicant's ward then.
+    recruited_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("campaign_members.id", ondelete="SET NULL"), default=None, index=True
+    )
+    recruitment_county_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("counties.id", ondelete="SET NULL"), default=None
+    )
 
     ward: Mapped["Ward"] = relationship()
     registration_centre: Mapped["RegistrationCentre | None"] = relationship()
@@ -148,6 +157,27 @@ class PartyRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # A join's new withdraw code, or the code a withdrawal presents.
     code: Mapped[str] = mapped_column(String(32))
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class RecruitmentCode(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A party workspace coordinator's link to the Join the Party form; one active each."""
+
+    __tablename__ = "recruitment_codes"
+    __table_args__ = (
+        Index(
+            "uq_recruitment_codes_one_active",
+            "campaign_member_id",
+            unique=True,
+            postgresql_where=text("active"),
+            sqlite_where=text("active"),
+        ),
+    )
+
+    campaign_member_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("campaign_members.id", ondelete="CASCADE"), index=True
+    )
+    code: Mapped[str] = mapped_column(String(16), unique=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 # A member has at most one nomination in these statuses.
