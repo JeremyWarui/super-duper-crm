@@ -2,6 +2,7 @@
 
 import httpx
 
+from backend.models import OrganisationType
 from tests.conftest import World
 
 EVENT = {"kind": "event", "event_date": "2099-01-10", "published": True}
@@ -27,8 +28,9 @@ async def test_the_county_filter_narrows_events(
 
 
 async def test_the_about_page_lists_only_published_content(
-    client: httpx.AsyncClient, admin_headers: dict
+    client: httpx.AsyncClient, admin_headers: dict, organisation_type: OrganisationType
 ) -> None:
+    party_install = organisation_type is OrganisationType.PARTY
     for title, published in (("Constitution", True), ("Draft rules", False)):
         body = {"title": title, "url": "https://example.com/doc.pdf", "published": published}
         assert (
@@ -45,14 +47,17 @@ async def test_the_about_page_lists_only_published_content(
             body = {"title": title, "text": "Why.", "published": published}
             assert (
                 await client.post(f"/api/admin/party/{path}/", headers=admin_headers, json=body)
-            ).status_code == 201
+            ).status_code == (201 if party_install else 404)
 
     documents = (await client.get("/api/party/documents/")).json()
-    values = (await client.get("/api/party/values/")).json()
-    organs = (await client.get("/api/party/organs/")).json()
+    values = await client.get("/api/party/values/")
+    organs = await client.get("/api/party/organs/")
 
     assert [d["title"] for d in documents] == ["Constitution"]
-    assert [(v["title"], v["text"]) for v in values] == [("Shown", "Why.")]
-    assert [o["title"] for o in organs] == ["Shown"]
+    if party_install:
+        assert [(v["title"], v["text"]) for v in values.json()] == [("Shown", "Why.")]
+        assert [o["title"] for o in organs.json()] == ["Shown"]
+    else:
+        assert (values.status_code, organs.status_code) == (404, 404)
     videos = (await client.get("/api/party/videos/")).json()
     assert [(v["title"], v["duration"]) for v in videos] == [("Rally", "4:15")]

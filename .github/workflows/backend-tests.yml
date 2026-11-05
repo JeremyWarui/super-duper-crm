@@ -1,0 +1,51 @@
+name: backend-tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, postgres]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install uv and the locked dependencies
+        run: |
+          python -m pip install uv
+          uv sync --frozen
+      - name: Point the Postgres lane at the service container
+        if: matrix.database == 'postgres'
+        run: |
+          printf 'DB_NAME=campaign_crm\nDB_USER=postgres\nDB_PASSWORD=postgres\nDB_HOST=localhost\nDB_PORT=5432\n' > .env
+          echo "TEST_POSTGRES=1" >> "$GITHUB_ENV"
+      - name: Lint
+        run: |
+          uv run ruff check src tests evals
+          uv run ruff format --check src tests evals
+      - name: Tests and evals, as a party and as an aspirant installation
+        run: uv run pytest -q -p no:cacheprovider tests evals

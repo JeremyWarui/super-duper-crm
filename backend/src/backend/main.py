@@ -14,18 +14,21 @@ from starlette.responses import Response
 from starlette.types import Scope
 
 from backend import __version__
+from backend.api.deps import get_organisation_type
 from backend.api.errors import register_error_handlers
+from backend.api.install import InstallationType
 from backend.api.routers import api_router
 from backend.config import get_settings
 from backend.db.session import get_engine, get_sessionmaker
-from backend.models import Base  # noqa: F401
+from backend.models import Base, OrganisationType  # noqa: F401
 from backend.services import membership
 
 log = logging.getLogger(__name__)
 
 
 async def _apply_party_requests(every: int) -> None:
-    """Apply queued public party requests on a fixed clock, every `every` seconds.
+    """Apply queued public party requests on a fixed clock, every `every` seconds, in a party
+    installation only.
 
     Runs start on the clock rather than after the last run ends, so how long a run takes does
     not shift when the next one starts.
@@ -37,7 +40,8 @@ async def _apply_party_requests(every: int) -> None:
         await asyncio.sleep(max(0.0, tick - loop.time()))
         try:
             async with get_sessionmaker()() as session:
-                await membership.process_requests(session)
+                if await get_organisation_type(session) is OrganisationType.PARTY:
+                    await membership.process_requests(session)
         except Exception:
             log.exception("Applying party requests failed; retrying next run.")
 
@@ -72,6 +76,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.add_middleware(InstallationType)
     register_error_handlers(app)
     app.include_router(api_router)
 

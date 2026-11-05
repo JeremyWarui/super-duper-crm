@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 
 from backend.api.deps import AdminUser, SessionDep, Today
+from backend.api.install import PartyOnlyRoute
 from backend.api.routers.join import _client
 from backend.config import get_settings
 from backend.models import (
@@ -62,6 +63,8 @@ from backend.services.ratelimit import RateLimit
 from backend.services.sms import normalise_phone
 
 router = APIRouter(prefix="/party", tags=["party"])
+# Mounted in every installation; party_router only in a party installation.
+party_router = APIRouter(prefix="/party", tags=["party"], route_class=PartyOnlyRoute)
 
 # Applications one device may send in an hour, and withdrawal attempts.
 JOINS = RateLimit(limit=20, window=3600)
@@ -100,24 +103,24 @@ def _well_formed(code: str) -> bool:
     return len(code) <= 32 and code.replace("-", "").replace("_", "").isalnum() and code.isascii()
 
 
-@router.get("/", response_model=PartySettingsRead)
+@party_router.get("/", response_model=PartySettingsRead)
 async def get_party(session: SessionDep) -> PartySettingsRead:
     return await service.read_settings(session)
 
 
-@router.get("/leaders/", response_model=list[LeaderRead])
+@party_router.get("/leaders/", response_model=list[LeaderRead])
 async def leaders(session: SessionDep):
     """The published leaders, in the order the party set."""
     return await content.published_leaders(session)
 
 
-@router.get("/branches/", response_model=list[BranchRead])
+@party_router.get("/branches/", response_model=list[BranchRead])
 async def party_branches(session: SessionDep):
     """The published county branches, by county name."""
     return await branches.published(session)
 
 
-@router.get("/branches/{county_id}/", response_model=BranchDetail)
+@party_router.get("/branches/{county_id}/", response_model=BranchDetail)
 async def party_branch(county_id: uuid.UUID, session: SessionDep):
     """A published branch, with its county's constituencies and wards."""
     return await branches.published_detail(session, county_id)
@@ -144,7 +147,7 @@ async def post(post_id: uuid.UUID, session: SessionDep):
     return await content.published_post(session, post_id)
 
 
-@router.get("/dashboard/", response_model=Dashboard)
+@party_router.get("/dashboard/", response_model=Dashboard)
 async def party_dashboard(
     session: SessionDep,
     _: AdminUser,
@@ -190,7 +193,7 @@ async def places(
     return list(await session.scalars(statement))
 
 
-@router.post("/join/", response_model=PartyJoinDone, status_code=status.HTTP_201_CREATED)
+@party_router.post("/join/", response_model=PartyJoinDone, status_code=status.HTTP_201_CREATED)
 async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) -> PartyJoinDone:
     """Queue an application to join the party; the register changes out of band.
 
@@ -233,7 +236,7 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
     )
 
 
-@router.post("/withdraw/{code}/", response_model=PartyWithdrawn)
+@party_router.post("/withdraw/{code}/", response_model=PartyWithdrawn)
 async def withdraw(code: str, request: Request, session: SessionDep) -> PartyWithdrawn:
     """Queue a withdrawal by code; the answer is the same for any code."""
     if not WITHDRAWALS.allow(_client(request)):
@@ -244,7 +247,7 @@ async def withdraw(code: str, request: Request, session: SessionDep) -> PartyWit
     return PartyWithdrawn(message=WITHDRAWN)
 
 
-@router.post("/volunteer/withdraw/{code}/", response_model=PartyWithdrawn)
+@party_router.post("/volunteer/withdraw/{code}/", response_model=PartyWithdrawn)
 async def withdraw_volunteer(code: str, request: Request, session: SessionDep) -> PartyWithdrawn:
     """Queue a volunteer withdrawal by code; the answer is the same for any code."""
     if not VOLUNTEER_WITHDRAWALS.allow(_client(request)):
@@ -329,13 +332,13 @@ async def documents(session: SessionDep):
     return await home.published(session, PartyDocument)
 
 
-@router.get("/values/", response_model=list[AboutItemRead])
+@party_router.get("/values/", response_model=list[AboutItemRead])
 async def values(session: SessionDep):
     """The party's published values, in order."""
     return await home.published(session, PartyValue)
 
 
-@router.get("/organs/", response_model=list[AboutItemRead])
+@party_router.get("/organs/", response_model=list[AboutItemRead])
 async def organs(session: SessionDep):
     """The party's published organs, in order."""
     return await home.published(session, PartyOrgan)
@@ -347,13 +350,13 @@ async def videos(session: SessionDep):
     return await home.published(session, PartyVideo)
 
 
-@router.get("/results/", response_model=list[ResultRead])
+@party_router.get("/results/", response_model=list[ResultRead])
 async def results(session: SessionDep):
     """The published primary results, by seat, area and votes, most votes first."""
     return await home.published(session, PrimaryResult)
 
 
-@router.get("/stats/", response_model=PartyStats)
+@party_router.get("/stats/", response_model=PartyStats)
 async def stats(session: SessionDep) -> PartyStats:
     """How many approved members the party has and how many county branches are published."""
     return PartyStats(

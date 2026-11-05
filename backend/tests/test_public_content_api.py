@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AuditEvent, PartyRoleName
+from backend.models import AuditEvent, OrganisationType, PartyRoleName
 from tests.conftest import World
 from tests.factories import TEST_TODAY, auth, make_officer, sign_in
 
@@ -21,7 +21,7 @@ def _event(day, **fields) -> dict:
 
 
 async def test_drafts_never_reach_the_public(
-    client: httpx.AsyncClient, admin_headers: dict
+    client: httpx.AsyncClient, admin_headers: dict, organisation_type: OrganisationType
 ) -> None:
     await client.post(LEADERS, headers=admin_headers, json={"name": "A", "position": "Chair"})
     await client.post(
@@ -47,12 +47,15 @@ async def test_drafts_never_reach_the_public(
             },
         )
 
-    leaders = (await client.get("/api/party/leaders/")).json()
+    leaders = await client.get("/api/party/leaders/")
     news = (await client.get("/api/party/posts/", params={"kind": "news"})).json()
     events = (await client.get("/api/party/posts/", params={"kind": "event"})).json()
     by_id = await client.get(f"/api/party/posts/{draft['id']}/")
 
-    assert [leader["name"] for leader in leaders] == ["B"]
+    if organisation_type is OrganisationType.PARTY:
+        assert [leader["name"] for leader in leaders.json()] == ["B"]
+    else:
+        assert leaders.status_code == 404
     assert [post["title"] for post in news] == ["Out"]
     assert [post["title"] for post in events] == ["Rally"]
     assert by_id.status_code == 404
@@ -101,7 +104,7 @@ async def test_the_public_events_list_starts_today(
 
 @pytest.mark.parametrize("url", ["http://example.com/a.jpg", "javascript:alert(1)"])
 async def test_an_image_must_be_an_https_address(
-    client: httpx.AsyncClient, admin_headers: dict, url: str
+    client: httpx.AsyncClient, admin_headers: dict, url: str, organisation_type: OrganisationType
 ) -> None:
     leader = await client.post(
         LEADERS, headers=admin_headers, json={"name": "A", "position": "Chair", "photo_url": url}
@@ -110,7 +113,8 @@ async def test_an_image_must_be_an_https_address(
         POSTS, headers=admin_headers, json={"kind": "news", "title": "T", "image_url": url}
     )
 
-    assert (leader.status_code, post.status_code) == (400, 400)
+    leaders_exist = organisation_type is OrganisationType.PARTY
+    assert (leader.status_code, post.status_code) == (400 if leaders_exist else 404, 400)
 
 
 EDITING = [
@@ -127,7 +131,11 @@ EDITING = [
 
 @pytest.mark.parametrize("role", ["candidate", "manager", "mobilizer", "officer"])
 async def test_only_the_superuser_edits_content(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, role: str
+    client: httpx.AsyncClient,
+    session: AsyncSession,
+    world: World,
+    role: str,
+    organisation_type: OrganisationType,
 ) -> None:
     if role == "officer":
         await make_officer(session, world.ward, *PartyRoleName, username="ofisa")
@@ -140,4 +148,7 @@ async def test_only_the_superuser_edits_content(
         for method, url in EDITING
     }
 
-    assert set(answers.values()) == {403}
+    leaders = 403 if organisation_type is OrganisationType.PARTY else 404
+    assert answers == {
+        (method, url): leaders if url.startswith(LEADERS) else 403 for method, url in EDITING
+    }

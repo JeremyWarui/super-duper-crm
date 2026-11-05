@@ -3,6 +3,7 @@
 from datetime import date
 
 import httpx
+import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -124,6 +125,7 @@ async def test_the_demo_builds_again_on_a_rerun(session: AsyncSession) -> None:
     assert titles == [summary.campaign_title]
 
 
+@pytest.mark.party_only
 async def test_the_demo_site_publishes_once(
     client: httpx.AsyncClient, session: AsyncSession
 ) -> None:
@@ -137,6 +139,7 @@ async def test_the_demo_site_publishes_once(
     assert (await client.get("/api/site/")).json()["name"] == "Pamoja Party"
 
 
+@pytest.mark.party_only
 async def test_the_demo_site_lists_its_candidates_and_names_one_in_the_next_event(
     client: httpx.AsyncClient, session: AsyncSession
 ) -> None:

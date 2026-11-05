@@ -3,12 +3,15 @@
 from datetime import date
 
 import httpx
+import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Branch, County
 from backend.seed.site import seed_branches
 from tests.conftest import World
+
+pytestmark = pytest.mark.party_only
 
 BRANCH = {
     "chairperson": "Wanjiru Kamau",

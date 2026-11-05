@@ -14,6 +14,8 @@ from tests.conftest import World
 from tests.test_candidates import _aspirant
 from tests.test_join_api import _event
 
+pytestmark = pytest.mark.party_only
+
 # Every role reads the campaign list; the manager and mobilizers write supporters.
 READERS = ("candidate", "manager", "mobilizer")
 WRITERS = ("manager", "mobilizer")

@@ -5,12 +5,13 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, status
 
 from backend.api.deps import CurrentUser, SessionDep
+from backend.api.install import PartyOnlyRoute
 from backend.models import User
 from backend.schemas.common import plain_text
 from backend.schemas.console import Notification, SearchHit
 from backend.services import console
 
-router = APIRouter(prefix="/party", tags=["party"])
+router = APIRouter(prefix="/party", tags=["party"], route_class=PartyOnlyRoute)
 
 
 def _staff(user: User) -> None:

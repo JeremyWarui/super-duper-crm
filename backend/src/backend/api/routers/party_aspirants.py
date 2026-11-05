@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from backend.api.deps import NominationsOfficer, SessionDep
+from backend.api.install import PartyOnlyRoute
 from backend.models import Aspirant, AspirantStatus, Seat
 from backend.schemas.admin import AdminUserCreated
 from backend.schemas.aspirants import (
@@ -23,7 +24,7 @@ from backend.services import aspirants, membership
 from backend.services.aspirants import AspirantFilters
 from backend.services.campaigns import AREA_FIELD
 
-router = APIRouter(prefix="/party/aspirants", tags=["party"])
+router = APIRouter(prefix="/party/aspirants", tags=["party"], route_class=PartyOnlyRoute)
 
 
 def _read(row: Aspirant) -> AspirantRead:

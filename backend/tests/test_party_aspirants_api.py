@@ -27,6 +27,8 @@ from backend.services.errors import Refused
 from tests.conftest import POSTGRES, World
 from tests.factories import auth, make_officer, sign_in
 
+pytestmark = pytest.mark.party_only
+
 PHONE = "+254711222333"
 
 

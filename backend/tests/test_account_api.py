@@ -3,6 +3,7 @@
 import uuid
 
 import httpx
+import pytest
 from fastapi.routing import APIRoute, iter_route_contexts
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +23,8 @@ from backend.models import (
 from backend.services.membership import process_requests
 from tests.conftest import World
 from tests.factories import TEST_PASSWORD, auth, fresh_password, make_user
+
+pytestmark = pytest.mark.party_only
 
 APPLICANT = "wanjiru@example.com"
 LOGIN = "/api/auth/login/"

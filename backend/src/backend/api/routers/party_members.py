@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
 from backend.api.deps import MembershipOfficer, SessionDep
+from backend.api.install import PartyOnlyRoute
 from backend.models import PartyMember, PartyMemberStatus
 from backend.schemas.common import plain_text
 from backend.schemas.party import MemberDetail, MemberMove, MemberPage, MemberRead
@@ -16,7 +17,7 @@ from backend.services import membership
 from backend.services.audit import record
 from backend.services.membership import MemberFilters
 
-router = APIRouter(prefix="/party/members", tags=["party"])
+router = APIRouter(prefix="/party/members", tags=["party"], route_class=PartyOnlyRoute)
 
 CSV_COLUMNS = (
     "full_name",

@@ -17,6 +17,8 @@ from backend.services import audit
 from tests.conftest import World
 from tests.factories import auth, make_officer, sign_in
 
+pytestmark = pytest.mark.party_only
+
 
 async def _pending(session: AsyncSession, world: World) -> PartyMember:
     member = PartyMember(

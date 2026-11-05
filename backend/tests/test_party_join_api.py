@@ -1,6 +1,7 @@
 """The public party application and withdrawal."""
 
 import httpx
+import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +16,8 @@ from backend.models import (
 from backend.services.membership import process_requests
 from tests.conftest import World
 from tests.factories import TEST_PASSWORD
+
+pytestmark = pytest.mark.party_only
 
 
 def _application(world: World, **overrides) -> dict:

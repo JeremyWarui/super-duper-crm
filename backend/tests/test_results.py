@@ -3,9 +3,12 @@
 from datetime import date
 
 import httpx
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.seed.site import seed_news, seed_site
+
+pytestmark = pytest.mark.party_only
 
 
 async def test_only_published_results_show_ordered_by_seat_and_votes(

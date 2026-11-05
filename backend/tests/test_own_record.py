@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 import httpx
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import (
@@ -16,6 +17,8 @@ from backend.models import (
 from backend.services.consent import VOLUNTEER_WORDING
 from tests.conftest import World
 from tests.factories import auth, make_officer, make_user, sign_in
+
+pytestmark = pytest.mark.party_only
 
 BOTH = (PartyRoleName.MEMBERSHIP_OFFICER, PartyRoleName.NOMINATIONS_OFFICER)
 

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
 from backend.api.deps import MembershipOfficer, SessionDep
+from backend.api.install import PartyOnlyRoute
 from backend.models import VolunteerArea, VolunteerProfile, VolunteerStatus
 from backend.schemas.common import plain_text
 from backend.schemas.volunteers import VolunteerPage, VolunteerRead, VolunteerUpdate
@@ -16,7 +17,7 @@ from backend.services import membership, volunteers
 from backend.services.audit import record
 from backend.services.volunteers import VolunteerFilters
 
-router = APIRouter(prefix="/party/volunteers", tags=["party"])
+router = APIRouter(prefix="/party/volunteers", tags=["party"], route_class=PartyOnlyRoute)
 
 CSV_COLUMNS = (
     "full_name",

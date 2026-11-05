@@ -14,6 +14,7 @@ from backend.models import (
     CampaignMember,
     Event,
     Mobilizer,
+    OrganisationType,
     Supporter,
     Target,
     User,
@@ -25,6 +26,7 @@ from tests.factories import (
     fresh_password,
     sign_in,
 )
+from tests.test_route_guards import party_only_routes
 
 SAMPLE = "00000000-0000-0000-0000-000000000001"
 
@@ -43,12 +45,23 @@ def _admin_gets() -> list[str]:
 @pytest.mark.parametrize("path", _admin_gets())
 @pytest.mark.parametrize("role", ["candidate", "manager", "mobilizer"])
 async def test_no_campaign_role_reads_the_console(
-    client: httpx.AsyncClient, world: World, path: str, role: str
+    client: httpx.AsyncClient,
+    world: World,
+    path: str,
+    role: str,
+    organisation_type: OrganisationType,
 ) -> None:
+    unmounted = organisation_type is not OrganisationType.PARTY and path in {
+        re.sub(r"\{[^}]+\}", SAMPLE, route) for _, route in party_only_routes()
+    }
+
     response = await client.get(path, headers=world.headers(role))
 
-    assert response.status_code == 403
-    assert response.json()["detail"] == "This is not yours to see."
+    if unmounted:
+        assert response.status_code == 404
+    else:
+        assert response.status_code == 403
+        assert response.json()["detail"] == "This is not yours to see."
 
 
 async def test_a_reset_hands_back_a_working_password_and_signs_the_old_session_out(

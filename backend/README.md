@@ -117,6 +117,26 @@ Everything is under `/api`, with a trailing slash, and needs
 A foreign key travels under the bare name (`ward`, not `ward_id`), and reads
 carry the parent's name beside it. Every error is `{"detail": "<sentence>"}`.
 
+### By organisation type
+
+`site_settings.organisation_type` decides what exists. In an aspirant
+installation the party office (`/api/party/members/`, `…/volunteers/`,
+`…/aspirants/`, the dashboard and console), the party's own website pages
+(leaders, organs, values, branches, results, join and withdraw, the candidates
+directory) and their console editors answer 404, as if they were never
+mounted. The website content both types share (posts, slides, issues,
+documents, videos, places, subscribe, contribute) stays under `/api/party/`.
+Party-only routes are `PartyOnlyRoute`s (`api/install.py`): the routers that
+mix both kinds put them on a `party_router`. The `InstallationType`
+middleware reads the type for any request shaped like a party route, and a
+`PartyOnlyRoute` matches nothing outside a party installation, so any method,
+body or missing slash gets the same 404 as an unknown path. The party inbox
+task runs only in a party installation.
+
+Campaign workspace access is decided in `services/access.py`: party and
+standalone workspaces are always open; a hosted one is open while its aspirant
+is approved, or when it has none.
+
 ## Rules
 
 - **One campaign per login.** Every route that puts a login on a campaign
@@ -243,3 +263,20 @@ uv run alembic upgrade head --sql        # print the SQL
 
 Read from the environment and `.env`; see `.env.example`. `SECRET_KEY` is
 required and at least 32 characters.
+
+## Known gaps
+
+- `api/routers/campaigns.py` reads the campaign volunteer register through
+  `models.party.VolunteerProfile` and `services/volunteers.py`, so
+  `tests/test_boundaries.py` lists it as an allowed crossing. PD-4 moves the
+  campaign side into `services/campaign_volunteers.py`.
+- `tests/test_boundaries.py` reads import statements only: a star import,
+  `importlib`, or reaching party code through a package attribute
+  (`models.party.X`) is not caught, and a new campaign module must be added
+  to its `CAMPAIGN` list by hand.
+- The `InstallationType` middleware matches the raw request path, so serving
+  the API under a path prefix (`root_path`) hides party routes in a party
+  installation too.
+- Code that prints a campaign's seat (`api/routers/campaigns.py`,
+  `api/routers/targets.py`, `services/admin.py`) assumes one is set. A party
+  workspace has none; PD-7 creates the first.

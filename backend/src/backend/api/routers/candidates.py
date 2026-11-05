@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from backend.api.deps import SessionDep, Today
+from backend.api.install import PartyOnlyRoute
 from backend.api.routers.join import _client
 from backend.models import Seat
 from backend.schemas.candidates import CandidateCard, CandidateDetail, CandidateVolunteerCreate
@@ -14,6 +15,8 @@ from backend.services import candidates as service
 from backend.services.ratelimit import RateLimit
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
+# Mounted in every installation; party_router only in a party installation.
+party_router = APIRouter(prefix="/candidates", tags=["candidates"], route_class=PartyOnlyRoute)
 
 SIGNUPS = RateLimit(limit=20, window=3600)
 WITHDRAWALS = RateLimit(limit=20, window=3600)
@@ -22,7 +25,7 @@ THANKS = "Thank you. The campaign team will contact you."
 WITHDRAWN = "Done. If you were on this campaign's volunteer list, you are off it now."
 
 
-@router.get("/", response_model=list[CandidateCard])
+@party_router.get("/", response_model=list[CandidateCard])
 async def list_candidates(
     session: SessionDep,
     seat: Annotated[str, Query(max_length=20)] = "",

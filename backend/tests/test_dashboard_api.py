@@ -29,6 +29,8 @@ from backend.models import (
 from tests.conftest import World
 from tests.factories import TEST_TODAY, auth, make_officer, make_rival_campaign, sign_in
 
+pytestmark = pytest.mark.party_only
+
 URL = "/api/party/dashboard/"
 
 

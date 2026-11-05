@@ -13,6 +13,8 @@ from tests.conftest import World
 from tests.factories import TEST_PASSWORD, auth, fresh_password
 from tests.test_account_api import APPLICANT, LOGIN, _joined
 
+pytestmark = pytest.mark.party_only
+
 
 @pytest.mark.parametrize("status", list(PartyMemberStatus))
 async def test_a_member_login_works_only_while_its_member_is_approved(
@@ -21,9 +23,9 @@ async def test_a_member_login_works_only_while_its_member_is_approved(
     member = await _joined(client, session, world)
     member.status = PartyMemberStatus.APPROVED
     await session.commit()
-    token = (
-        await client.post(LOGIN, json={"email": APPLICANT, "password": TEST_PASSWORD})
-    ).json()["token"]
+    token = (await client.post(LOGIN, json={"email": APPLICANT, "password": TEST_PASSWORD})).json()[
+        "token"
+    ]
     wrong = await client.post(LOGIN, json={"email": APPLICANT, "password": fresh_password()})
 
     member.status = status

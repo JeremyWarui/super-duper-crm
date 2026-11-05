@@ -43,6 +43,7 @@ testpaths = ["tests", "evals"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = ["error"]
+markers = ["party_only: runs only as a party installation"]
 
 [tool.ruff]
 line-length = 100

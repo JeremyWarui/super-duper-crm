@@ -21,6 +21,8 @@ from backend.services.consent import VOLUNTEER_WORDING
 from tests.conftest import World
 from tests.factories import auth, make_officer, sign_in
 
+pytestmark = pytest.mark.party_only
+
 
 @pytest.mark.parametrize("role", ["candidate", "manager", "mobilizer"])
 async def test_a_campaign_login_gets_403_on_every_volunteer_route(

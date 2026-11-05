@@ -10,10 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models import (
     Aspirant,
     AspirantStatus,
+    CandidateProfile,
+    OrganisationType,
     PartyRoleName,
     Seat,
     VolunteerProfile,
 )
+from backend.services.candidates import slug as slug_of
 from tests.conftest import World
 from tests.factories import TEST_TODAY, make_officer
 
@@ -49,6 +52,15 @@ async def _slug(client) -> str:
     return card["slug"]
 
 
+async def _page(session: AsyncSession, world: World, *, campaign: bool = True) -> str:
+    """A listed candidate page, published without the party console; its slug."""
+    aspirant = await _aspirant(session, world, campaign=campaign)
+    session.add(CandidateProfile(aspirant_id=aspirant.id, **PROFILE))
+    await session.commit()
+    await session.refresh(aspirant, ["constituency"])
+    return slug_of(aspirant)
+
+
 def _volunteer(world: World, **overrides) -> dict:
     return {
         "first_name": "Wanjiku",
@@ -65,6 +77,7 @@ def _volunteer(world: World, **overrides) -> dict:
     }
 
 
+@pytest.mark.party_only
 async def test_only_approved_aspirants_with_a_published_profile_are_listed(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
@@ -89,6 +102,7 @@ async def test_only_approved_aspirants_with_a_published_profile_are_listed(
     assert after == []
 
 
+@pytest.mark.party_only
 async def test_the_profile_lists_only_published_upcoming_events_naming_the_aspirant(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
@@ -134,9 +148,7 @@ async def test_the_profile_lists_only_published_upcoming_events_naming_the_aspir
 async def test_the_form_is_closed_without_a_campaign(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
-    aspirant = await _aspirant(session, world, campaign=False)
-    await _publish(client, admin_headers, aspirant)
-    slug = await _slug(client)
+    slug = await _page(session, world, campaign=False)
 
     page = (await client.get(f"/api/candidates/{slug}/")).json()
     refused = await client.post(f"/api/candidates/{slug}/volunteer/", json=_volunteer(world))
@@ -169,10 +181,10 @@ async def test_the_volunteer_form_refuses_any_missing_field_and_stores_nothing(
     admin_headers: dict,
     missing: dict,
 ) -> None:
-    await _publish(client, admin_headers, await _aspirant(session, world))
+    slug = await _page(session, world)
 
     answer = await client.post(
-        f"/api/candidates/{await _slug(client)}/volunteer/", json=_volunteer(world, **missing)
+        f"/api/candidates/{slug}/volunteer/", json=_volunteer(world, **missing)
     )
 
     assert answer.status_code in (400, 422)
@@ -182,8 +194,7 @@ async def test_the_volunteer_form_refuses_any_missing_field_and_stores_nothing(
 async def test_a_ward_or_centre_outside_the_seat_is_refused(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
-    await _publish(client, admin_headers, await _aspirant(session, world))
-    slug = await _slug(client)
+    slug = await _page(session, world)
     from backend.models import Constituency, Ward
 
     elsewhere = Ward(
@@ -207,8 +218,7 @@ async def test_a_ward_or_centre_outside_the_seat_is_refused(
 async def test_a_known_phone_gets_the_same_answer_and_no_second_row(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
-    await _publish(client, admin_headers, await _aspirant(session, world))
-    slug = await _slug(client)
+    slug = await _page(session, world)
 
     first = await client.post(f"/api/candidates/{slug}/volunteer/", json=_volunteer(world))
     again = await client.post(
@@ -227,10 +237,14 @@ async def test_a_known_phone_gets_the_same_answer_and_no_second_row(
 
 
 async def test_only_the_campaigns_manager_sees_and_moves_its_volunteers(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
+    client: httpx.AsyncClient,
+    session: AsyncSession,
+    world: World,
+    admin_headers: dict,
+    organisation_type: OrganisationType,
 ) -> None:
-    await _publish(client, admin_headers, await _aspirant(session, world))
-    await client.post(f"/api/candidates/{await _slug(client)}/volunteer/", json=_volunteer(world))
+    slug = await _page(session, world)
+    await client.post(f"/api/candidates/{slug}/volunteer/", json=_volunteer(world))
     path = f"/api/campaigns/{world.campaign.id}/volunteers/"
     from tests.factories import make_rival_campaign
 
@@ -267,16 +281,17 @@ async def test_only_the_campaigns_manager_sees_and_moves_its_volunteers(
     assert len(listed.json()) == 1
     assert (moved.json()["status"], moved.json()["availability_notes"]) == ("active", "Weekends")
     assert (candidate.status_code, mobilizer.status_code, other.status_code) == (403, 403, 404)
-    assert party_register.json()["total"] == 0
+    if organisation_type is OrganisationType.PARTY:
+        assert party_register.json()["total"] == 0
+    else:
+        assert party_register.status_code == 404
 
 
 async def test_withdrawal_deletes_and_answers_the_same_for_any_code(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
-    await _publish(client, admin_headers, await _aspirant(session, world))
-    done = await client.post(
-        f"/api/candidates/{await _slug(client)}/volunteer/", json=_volunteer(world)
-    )
+    slug = await _page(session, world)
+    done = await client.post(f"/api/candidates/{slug}/volunteer/", json=_volunteer(world))
 
     real = await client.post(f"/api/candidates/volunteer/withdraw/{done.json()['withdraw_code']}/")
     fake = await client.post("/api/candidates/volunteer/withdraw/not-a-code/")
@@ -289,8 +304,8 @@ async def test_withdrawal_deletes_and_answers_the_same_for_any_code(
 async def test_deleting_the_campaign_deletes_its_volunteers(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
-    await _publish(client, admin_headers, await _aspirant(session, world))
-    await client.post(f"/api/candidates/{await _slug(client)}/volunteer/", json=_volunteer(world))
+    slug = await _page(session, world)
+    await client.post(f"/api/candidates/{slug}/volunteer/", json=_volunteer(world))
 
     await session.delete(world.campaign)
     await session.commit()
@@ -299,6 +314,7 @@ async def test_deleting_the_campaign_deletes_its_volunteers(
     assert left == 0
 
 
+@pytest.mark.party_only
 async def test_an_officer_holding_a_party_office_is_not_the_website_editor(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:

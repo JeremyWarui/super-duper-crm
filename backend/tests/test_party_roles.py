@@ -13,6 +13,8 @@ from backend.services import audit
 from tests.conftest import World
 from tests.factories import auth, make_officer, make_user, sign_in
 
+pytestmark = pytest.mark.party_only
+
 OFFICER = PartyRoleName.MEMBERSHIP_OFFICER
 
 

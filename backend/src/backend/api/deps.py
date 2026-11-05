@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 from backend.db.session import get_session
 from backend.models import (
     AuthToken,
+    OrganisationType,
     PartyMember,
     PartyMemberStatus,
     PartyRoleName,
@@ -19,8 +20,8 @@ from backend.models import (
     UserKind,
     UserRole,
 )
-from backend.services import access, clock, membership
-from backend.services.errors import CampaignClosed
+from backend.services import access, clock, membership, site
+from backend.services.errors import CampaignClosed, NotFound
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -65,6 +66,14 @@ async def get_today() -> date:
 
 
 Today = Annotated[date, Depends(get_today)]
+
+
+async def get_organisation_type(session: SessionDep) -> OrganisationType | None:
+    """Party or aspirant; None before setup."""
+    try:
+        return await site.organisation_type(session)
+    except NotFound:
+        return None
 
 
 async def get_current_user(user: SignedInUser, session: SessionDep) -> User:

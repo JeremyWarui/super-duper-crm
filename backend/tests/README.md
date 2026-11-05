@@ -15,6 +15,12 @@ by the `DB_*` values in `backend/.env`. It recreates the database
 before each test, and drops it when the run ends, so two runs at once never collide. It refuses any `DB_HOST` but this machine. Use it for
 migrations, row locks and anything else SQLite cannot prove.
 
+Every test that uses the `client` fixture runs twice, as a party and as an
+aspirant installation (`[party]` and `[aspirant]` in its id). A test or module
+marked `party_only` runs once, as a party.
+CI (`.github/workflows/backend-tests.yml`) runs everything on SQLite and on
+Postgres.
+
 | File | What it covers |
 |---|---|
 | `test_models.py` | Keys, deletes, constraints, computed values, enums |
@@ -40,6 +46,8 @@ migrations, row locks and anything else SQLite cannot prove.
 | `test_invite_api.py` | Texting an event's supporters |
 | `test_sms.py` | Phone normalising and both SMS providers |
 | `test_admin_api.py` | The admin console and its superuser gate |
+| `test_route_guards.py` | Every route needs a login unless public; exactly the party routes are party-only, and each answers 404 in an aspirant installation |
+| `test_boundaries.py` | Campaign code never imports party code, and a planted import is caught |
 | `test_cli.py` | campaign-crm |
 | `test_seed.py` | The bundled CSVs and the demo |
 | `../evals/test_frontend_contract.py` | The API offers what the SPA reads and accepts what it sends |

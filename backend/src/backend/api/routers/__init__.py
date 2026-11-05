@@ -51,5 +51,7 @@ for module in (
     users,
 ):
     api_router.include_router(module.router)
+for module in (admin, candidates, party):
+    api_router.include_router(module.party_router)
 
 __all__ = ["api_router"]

@@ -21,7 +21,29 @@ os.environ["DEFAULT_USER_PASSWORD"] = ""
 # Overrides a developer's .env, so no test can reach a real database.
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 
-from backend.models import Base  # noqa: E402
+from backend.models import Base, OrganisationType  # noqa: E402
+
+TYPES = [OrganisationType.PARTY, OrganisationType.ASPIRANT]
+
+
+def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
+    """Run every test that talks to the app once per organisation type; `party_only` tests
+    once, as a party installation."""
+    if "organisation_type" not in metafunc.fixturenames:
+        return
+    pinned = metafunc.definition.iter_markers("parametrize")
+    if any("organisation_type" in marker.args[0] for marker in pinned):
+        return
+    party_only = metafunc.definition.get_closest_marker("party_only") is not None
+    types = TYPES[:1] if party_only else TYPES
+    metafunc.parametrize("organisation_type", types, ids=[t.value for t in types], indirect=True)
+
+
+@pytest.fixture
+def organisation_type(request: pytest.FixtureRequest) -> OrganisationType:
+    """The installation type the app answers as."""
+    return getattr(request, "param", OrganisationType.PARTY)
+
 
 if TYPE_CHECKING:
     from backend.models import (
@@ -86,9 +108,11 @@ def enforce_foreign_keys(engine: AsyncEngine) -> AsyncEngine:
 
 
 @asynccontextmanager
-async def app_client(session: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
-    """The real app, serving every request from this session."""
-    from backend.api.deps import get_today
+async def app_client(
+    session: AsyncSession, organisation_type: OrganisationType = OrganisationType.PARTY
+) -> AsyncIterator[httpx.AsyncClient]:
+    """The real app as this type of installation, serving every request from this session."""
+    from backend.api.deps import get_organisation_type, get_today
     from backend.db.session import get_session
     from backend.main import app
     from tests.factories import TEST_TODAY
@@ -98,6 +122,7 @@ async def app_client(session: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
 
     app.dependency_overrides[get_session] = _use_it
     app.dependency_overrides[get_today] = lambda: TEST_TODAY
+    app.dependency_overrides[get_organisation_type] = lambda: organisation_type
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as http_client:
         yield http_client
@@ -222,8 +247,10 @@ async def session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
 
 
 @pytest.fixture
-async def client(session: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
-    async with app_client(session) as http_client:
+async def client(
+    session: AsyncSession, organisation_type: OrganisationType
+) -> AsyncIterator[httpx.AsyncClient]:
+    async with app_client(session, organisation_type) as http_client:
         yield http_client
 
 
