@@ -161,7 +161,7 @@ async def test_a_rival_campaign_cannot_write_into_this_register(
     assert await session.scalar(select(Supporter).where(Supporter.full_name == "Planted")) is None
 
 
-async def test_the_register_is_whole_for_a_manager_one_ward_for_a_mobilizer_closed_to_a_candidate(
+async def test_the_register_is_whole_for_the_candidate_and_manager_one_ward_for_a_mobilizer(
     client: httpx.AsyncClient, world: World
 ) -> None:
     head = world.headers("manager")
@@ -176,11 +176,11 @@ async def test_the_register_is_whole_for_a_manager_one_ward_for_a_mobilizer_clos
 
     whole = (await client.get("/api/supporters/", headers=head)).json()
     own = (await client.get("/api/supporters/", headers=world.headers("mobilizer"))).json()
-    candidate = await client.get("/api/supporters/", headers=world.headers("candidate"))
+    candidate = (await client.get("/api/supporters/", headers=world.headers("candidate"))).json()
 
     assert len(whole) == 2
     assert [s["full_name"] for s in own] == ["Wanjiku Njeri"]
-    assert candidate.status_code == 403
+    assert len(candidate) == 2
 
 
 @pytest.mark.parametrize(
@@ -188,7 +188,7 @@ async def test_the_register_is_whole_for_a_manager_one_ward_for_a_mobilizer_clos
     [
         ("manager", (200, 201)),
         ("mobilizer", (200, 201)),
-        ("candidate", (403, 403)),
+        ("candidate", (200, 201)),
     ],
 )
 async def test_only_the_campaign_team_lists_and_adds_supporters(

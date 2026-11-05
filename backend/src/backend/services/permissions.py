@@ -1,0 +1,96 @@
+"""What each campaign role may do, and how far it reaches (docs/Product_Design.md, section 0.2).
+
+`all` is the whole campaign, `area` the coordinator's wards and centres, `own` the caller's own
+rows (a mobilizer's ward). A role missing from an action may not do it. In the party workspace
+the Workspace Manager holds the Manager column.
+"""
+
+import uuid
+from dataclasses import dataclass
+from enum import StrEnum
+
+from sqlalchemy import ColumnElement, false, or_
+
+from backend.models import User, UserRole
+
+
+class Reach(StrEnum):
+    ALL = "all"
+    AREA = "area"
+    OWN = "own"
+
+
+R = UserRole
+ALL, AREA, OWN = Reach.ALL, Reach.AREA, Reach.OWN
+
+MAP: dict[str, dict[UserRole, Reach]] = {
+    "strategy.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
+    "targets.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA, R.MOBILIZER: OWN},
+    "targets.write": {R.CANDIDATE: ALL, R.MANAGER: ALL},
+    "team.manager": {R.CANDIDATE: ALL},
+    "team.write": {R.CANDIDATE: ALL, R.MANAGER: ALL},
+    "mobilizers.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA, R.MOBILIZER: OWN},
+    "mobilizers.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
+    "supporters.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA, R.MOBILIZER: OWN},
+    "supporters.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA, R.MOBILIZER: OWN},
+    "events.read": {
+        R.CANDIDATE: ALL,
+        R.MANAGER: ALL,
+        R.COORDINATOR: AREA,
+        R.COMMS: ALL,
+        R.MOBILIZER: OWN,
+        R.AGENT: OWN,
+    },
+    "events.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA, R.MOBILIZER: OWN},
+    "payments.read": {
+        R.CANDIDATE: ALL,
+        R.MANAGER: ALL,
+        R.COORDINATOR: AREA,
+        R.MOBILIZER: OWN,
+        R.AGENT: OWN,
+    },
+    "payments.schedule": {R.MANAGER: ALL, R.COORDINATOR: AREA},
+    "payments.approve": {R.MANAGER: ALL},
+    # Really sending, not a dry run; a Mobilizer texts their own ward.
+    "sms.send": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.MOBILIZER: OWN},
+    "volunteers.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
+    "volunteers.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
+}
+
+REFUSALS = {
+    "team.manager": "Only the aspirant adds or replaces the campaign manager.",
+    "team.write": "Only a candidate or a campaign manager may add or remove people.",
+    "mobilizers.write": "Only the candidate, the manager or a coordinator may change mobilizers.",
+    "supporters.read": "The supporter register is for the campaign team.",
+    "supporters.write": "The supporter register is for the campaign team.",
+}
+
+
+def reach(user: User, action: str) -> Reach | None:
+    """How far this login reaches with the action; None when it may not do it."""
+    if user.role is None:
+        return None
+    return MAP[action].get(user.role)
+
+
+def refusal(user: User, action: str) -> str:
+    if user.role is None:
+        return "This login has no campaign role."
+    return REFUSALS.get(action, f"A {user.role.label} may not do this.")
+
+
+@dataclass(frozen=True)
+class Area:
+    """The wards and registration centres a caller reaches; a row in either is inside."""
+
+    wards: frozenset[uuid.UUID]
+    centres: frozenset[uuid.UUID]
+
+    def holds(self, ward_id: uuid.UUID | None, centre_id: uuid.UUID | None = None) -> bool:
+        return ward_id in self.wards or (centre_id is not None and centre_id in self.centres)
+
+    def where(self, ward: ColumnElement, centre: ColumnElement | None = None) -> ColumnElement:
+        clauses = [ward.in_(self.wards)] if self.wards else []
+        if centre is not None and self.centres:
+            clauses.append(centre.in_(self.centres))
+        return or_(*clauses) if clauses else false()

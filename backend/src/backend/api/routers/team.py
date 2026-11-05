@@ -1,26 +1,29 @@
-"""A campaign's own team: who is on it, and the aspirant setting the manager."""
+"""A campaign's own team: who is on it, its manager, its coordinators and comms, and the
+coordinators' areas."""
 
 import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from backend.api.deps import SessionDep, TeamWriter, require_role
+from backend.api.deps import SessionDep, require
 from backend.api.scope import require_visible_campaign
-from backend.models import User, UserRole
-from backend.schemas.team import ManagerCreate, ManagerCreated, TeamMemberRead
+from backend.models import User
+from backend.schemas.team import (
+    AreaRead,
+    AreaWrite,
+    ManagerCreate,
+    ManagerCreated,
+    StaffCreate,
+    StaffCreated,
+    TeamMemberRead,
+)
 from backend.services import team
 
 router = APIRouter(prefix="/campaigns/{campaign_id}/team", tags=["team"])
 
-Aspirant = Annotated[
-    User,
-    Depends(
-        require_role(
-            UserRole.CANDIDATE, message="Only the aspirant adds or replaces the campaign manager."
-        )
-    ),
-]
+Aspirant = Annotated[User, Depends(require("team.manager"))]
+TeamWriter = Annotated[User, Depends(require("team.write"))]
 
 
 @router.get("/", response_model=list[TeamMemberRead])
@@ -49,3 +52,46 @@ async def set_manager(
         password=password,
         replaced=replaced,
     )
+
+
+@router.post("/", response_model=StaffCreated, status_code=status.HTTP_201_CREATED)
+async def add_staff(
+    campaign_id: uuid.UUID, payload: StaffCreate, session: SessionDep, user: TeamWriter
+) -> StaffCreated:
+    """Add a coordinator or comms officer; the password is shown once."""
+    campaign = await require_visible_campaign(session, user, campaign_id)
+    created, password = await team.add_staff(
+        session, campaign, payload.role, payload.model_dump(exclude={"role"}), actor=user
+    )
+    return StaffCreated(
+        id=created.id,
+        username=created.username,
+        full_name=created.full_name,
+        password=password,
+        role=created.role,
+    )
+
+
+@router.get("/{user_id}/area/", response_model=AreaRead)
+async def read_area(
+    campaign_id: uuid.UUID, user_id: uuid.UUID, session: SessionDep, user: TeamWriter
+) -> AreaRead:
+    await require_visible_campaign(session, user, campaign_id)
+    wards, centres = await team.areas(session, campaign_id, user_id)
+    return AreaRead(wards=wards, registration_centres=centres)
+
+
+@router.put("/{user_id}/area/", response_model=AreaRead)
+async def set_area(
+    campaign_id: uuid.UUID,
+    user_id: uuid.UUID,
+    payload: AreaWrite,
+    session: SessionDep,
+    user: TeamWriter,
+) -> AreaRead:
+    """Replace a coordinator's wards and registration centres."""
+    campaign = await require_visible_campaign(session, user, campaign_id)
+    wards, centres = await team.set_areas(
+        session, campaign, user_id, payload.wards, payload.registration_centres, actor=user
+    )
+    return AreaRead(wards=wards, registration_centres=centres)

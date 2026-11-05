@@ -268,7 +268,7 @@ async def test_a_known_phone_gets_the_same_answer_and_no_second_row(
     assert rows == 1
 
 
-async def test_only_the_campaigns_manager_sees_and_moves_its_volunteers(
+async def test_the_candidate_and_manager_see_and_move_the_campaigns_volunteers(
     client: httpx.AsyncClient,
     session: AsyncSession,
     world: World,
@@ -312,7 +312,7 @@ async def test_only_the_campaigns_manager_sees_and_moves_its_volunteers(
     assert (row["first_name"], row["ward"]["name"]) == ("Wanjiku", "Zimmerman")
     assert len(listed.json()) == 1
     assert (moved.json()["status"], moved.json()["availability_notes"]) == ("active", "Weekends")
-    assert (candidate.status_code, mobilizer.status_code, other.status_code) == (403, 403, 404)
+    assert (candidate.status_code, mobilizer.status_code, other.status_code) == (200, 403, 404)
     if organisation_type is OrganisationType.PARTY:
         assert party_register.json()["total"] == 0
     else:

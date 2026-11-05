@@ -25,7 +25,7 @@ def _mobilizer(world: World, **overrides) -> dict:
     return {**body, **overrides}
 
 
-TEAM_ONLY = "Only a candidate or a campaign manager may add or remove people."
+TEAM_ONLY = "Only the candidate, the manager or a coordinator may change mobilizers."
 
 
 @pytest.mark.parametrize("caller", ["manager", "candidate"])

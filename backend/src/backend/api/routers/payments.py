@@ -3,60 +3,81 @@
 import json
 import logging
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Request, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import false, select
 
-from backend.api.deps import CurrentUser, SessionDep, Writer
+from backend.api.deps import CurrentUser, SessionDep, require
 from backend.api.scope import (
     all_rows,
+    area_ids,
     require_campaign_mobilizer,
+    require_in_area,
+    require_mobilizer_in_area,
     require_visible_campaign,
     visible_campaign_ids,
 )
-from backend.models import Event, EventStatus, Mobilizer, Payment, PaymentStatus, UserRole
+from backend.models import Event, EventStatus, Mobilizer, Payment, PaymentStatus, User, UserRole
 from backend.schemas.payment import PaymentCreate, PaymentPaid, PaymentRead, PayoutMode
 from backend.services import payout_flow
 from backend.services.payout_flow import OPEN
 from backend.services.payouts import get_payout_provider, paystack_signed
+from backend.services.permissions import Reach, reach
 from backend.services.sms import normalise_phone
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 logger = logging.getLogger(__name__)
+Reader = Annotated[User, Depends(require("payments.read"))]
+Scheduler = Annotated[User, Depends(require("payments.schedule"))]
+Approver = Annotated[User, Depends(require("payments.approve"))]
 
 
 @router.get("/", response_model=list[PaymentRead])
 async def list_payments(
-    session: SessionDep, user: CurrentUser, campaign: uuid.UUID | None = None
+    session: SessionDep, user: Reader, campaign: uuid.UUID | None = None
 ) -> list[Payment]:
-    """Every payment of the caller's campaign; a mobilizer sees only their own."""
+    """The caller's campaign's payments: all of them, a coordinator's for events in their area,
+    or a mobilizer's own."""
     statement = select(Payment).where(
         Payment.campaign_id.in_(await visible_campaign_ids(session, user))
     )
     if campaign is not None:
         statement = statement.where(Payment.campaign_id == campaign)
-    if user.role is UserRole.MOBILIZER:
-        profile = user.mobilizer_profile
-        statement = statement.where(
-            Payment.mobilizer_id == (profile.id if profile is not None else uuid.UUID(int=0))
-        )
+    match reach(user, "payments.read"):
+        case Reach.AREA:
+            area = await area_ids(session, user)
+            statement = statement.join(Event, Event.id == Payment.event_id).where(
+                area.where(Event.ward_id, Event.registration_centre_id)
+            )
+        case Reach.OWN if user.role is UserRole.MOBILIZER:
+            profile = user.mobilizer_profile
+            statement = statement.where(
+                Payment.mobilizer_id == (profile.id if profile is not None else uuid.UUID(int=0))
+            )
+        case Reach.OWN:
+            statement = statement.where(false())
     return await all_rows(session, statement.order_by(Payment.created_at.desc()))
 
 
 @router.post("/", response_model=PaymentRead, status_code=status.HTTP_201_CREATED)
-async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Writer) -> Payment:
+async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Scheduler) -> Payment:
     await require_visible_campaign(session, user, payload.campaign)
     event = await session.get(Event, payload.event)
     if event is None or event.campaign_id != payload.campaign:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such event on this campaign.")
     if event.status is EventStatus.CANCELLED:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That event was cancelled.")
+    await require_in_area(
+        session, user, "payments.schedule", event.ward_id, event.registration_centre_id
+    )
     mobilizer_id = payload.mobilizer or event.mobilizer_id
     if mobilizer_id is None:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, "Nobody is credited with that event; name the mobilizer."
         )
     await require_campaign_mobilizer(session, payload.campaign, mobilizer_id)
+    await require_mobilizer_in_area(session, user, "payments.schedule", mobilizer_id)
     taken = await session.scalar(
         select(Payment.id).where(
             Payment.event_id == event.id,
@@ -83,7 +104,7 @@ async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Wr
     return payment
 
 
-async def _visible(session: SessionDep, user: Writer, payment_id: uuid.UUID) -> Payment:
+async def _visible(session: SessionDep, user: User, payment_id: uuid.UUID) -> Payment:
     payment = await session.get(Payment, payment_id)
     if payment is None or payment.campaign_id not in await visible_campaign_ids(session, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such payment.")
@@ -98,7 +119,7 @@ async def payout_mode(user: CurrentUser) -> PayoutMode:
 
 
 @router.post("/{payment_id}/release/", response_model=PaymentRead)
-async def release_payment(payment_id: uuid.UUID, session: SessionDep, user: Writer) -> Payment:
+async def release_payment(payment_id: uuid.UUID, session: SessionDep, user: Approver) -> Payment:
     """Send a scheduled or failed payment to the number it was scheduled for."""
     payment = await _visible(session, user, payment_id)
     if payment.status not in OPEN:
@@ -124,14 +145,14 @@ async def release_payment(payment_id: uuid.UUID, session: SessionDep, user: Writ
 
 
 @router.post("/{payment_id}/not-sent/", response_model=PaymentRead)
-async def mark_not_sent(payment_id: uuid.UUID, session: SessionDep, user: Writer) -> Payment:
+async def mark_not_sent(payment_id: uuid.UUID, session: SessionDep, user: Approver) -> Payment:
     """After checking the provider: a payment stuck in sending did not go out, so it can retry."""
     return await payout_flow.mark_not_sent(session, await _visible(session, user, payment_id))
 
 
 @router.post("/{payment_id}/paid/", response_model=PaymentRead)
 async def mark_paid(
-    payment_id: uuid.UUID, payload: PaymentPaid, session: SessionDep, user: Writer
+    payment_id: uuid.UUID, payload: PaymentPaid, session: SessionDep, user: Approver
 ) -> Payment:
     """Record by hand that the money went out, under its M-Pesa or bank reference."""
     payment = await _visible(session, user, payment_id)
@@ -139,7 +160,7 @@ async def mark_paid(
 
 
 @router.post("/{payment_id}/cancel/", response_model=PaymentRead)
-async def cancel_payment(payment_id: uuid.UUID, session: SessionDep, user: Writer) -> Payment:
+async def cancel_payment(payment_id: uuid.UUID, session: SessionDep, user: Approver) -> Payment:
     return await payout_flow.cancel(session, await _visible(session, user, payment_id))
 
 

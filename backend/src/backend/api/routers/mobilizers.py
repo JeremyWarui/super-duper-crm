@@ -1,15 +1,17 @@
 """The ground team: who works which ward."""
 
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import delete, select
 from sqlalchemy.orm import selectinload
 
-from backend.api.deps import CurrentUser, SessionDep, TeamWriter
+from backend.api.deps import SessionDep, require
 from backend.api.scope import (
     all_rows,
     load,
+    require_in_area,
     require_visible,
     require_visible_campaign,
     require_ward_in_campaign,
@@ -22,24 +24,31 @@ from backend.services.accounts import add_mobilizer, move_mobilizer
 router = APIRouter(prefix="/mobilizers", tags=["mobilizers"])
 
 LOADED = (selectinload(Mobilizer.ward),)
+Reader = Annotated[User, Depends(require("mobilizers.read"))]
+Writer = Annotated[User, Depends(require("mobilizers.write"))]
 
 
 @router.get("/", response_model=list[MobilizerRead])
 async def list_mobilizers(
-    session: SessionDep, user: CurrentUser, campaign: uuid.UUID | None = None
+    session: SessionDep, user: Reader, campaign: uuid.UUID | None = None
 ) -> list[Mobilizer]:
-    statement = await scoped(session, user, select(Mobilizer).options(*LOADED), Mobilizer, campaign)
+    statement = await scoped(
+        session, user, select(Mobilizer).options(*LOADED), Mobilizer, campaign, "mobilizers.read"
+    )
     statement = statement.outerjoin(Ward, Mobilizer.ward_id == Ward.id)
     return await all_rows(session, statement.order_by(Ward.name.nulls_last(), Mobilizer.full_name))
 
 
 @router.post("/", response_model=MobilizerRead, status_code=status.HTTP_201_CREATED)
 async def create_mobilizer(
-    payload: MobilizerCreate, session: SessionDep, user: TeamWriter
+    payload: MobilizerCreate, session: SessionDep, user: Writer
 ) -> Mobilizer:
     """Add somebody to the campaign, on a free ward or none, optionally with a login."""
     campaign = await require_visible_campaign(session, user, payload.campaign)
     await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
+    await require_in_area(
+        session, user, "mobilizers.write", payload.ward, payload.registration_centre
+    )
     login = await _free_mobilizer(session, payload.user) if payload.user is not None else None
     mobilizer = await add_mobilizer(
         session,
@@ -70,10 +79,12 @@ async def _free_mobilizer(session: SessionDep, user_id: uuid.UUID) -> User:
 
 @router.patch("/{mobilizer_id}/", response_model=MobilizerRead)
 async def update_mobilizer(
-    mobilizer_id: uuid.UUID, payload: MobilizerUpdate, session: SessionDep, user: TeamWriter
+    mobilizer_id: uuid.UUID, payload: MobilizerUpdate, session: SessionDep, user: Writer
 ) -> Mobilizer:
     """Rename, or move to a unit or to none; whoever held that unit is left unassigned."""
-    mobilizer = await require_visible(session, user, Mobilizer, mobilizer_id, "mobilizer")
+    mobilizer = await require_visible(
+        session, user, Mobilizer, mobilizer_id, "mobilizer", "mobilizers.write"
+    )
     fields = payload.model_dump(exclude_unset=True)
     if "ward" in fields or "registration_centre" in fields:
         # A field left out keeps its value; a new ward without a centre drops the old centre.
@@ -84,6 +95,7 @@ async def update_mobilizer(
             centre_id = None if "ward" in fields else mobilizer.registration_centre_id
         campaign = await session.get(Campaign, mobilizer.campaign_id)
         await require_ward_in_campaign(session, campaign, ward_id, centre_id)
+        await require_in_area(session, user, "mobilizers.write", ward_id, centre_id)
         await move_mobilizer(session, campaign, mobilizer, ward_id, centre_id)
     for name in ("full_name", "phone"):
         if fields.get(name) is not None:
@@ -93,11 +105,11 @@ async def update_mobilizer(
 
 
 @router.delete("/{mobilizer_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_mobilizer(
-    mobilizer_id: uuid.UUID, session: SessionDep, user: TeamWriter
-) -> Response:
+async def delete_mobilizer(mobilizer_id: uuid.UUID, session: SessionDep, user: Writer) -> Response:
     """Take somebody off the ground, and their login off the campaign."""
-    mobilizer = await require_visible(session, user, Mobilizer, mobilizer_id, "mobilizer")
+    mobilizer = await require_visible(
+        session, user, Mobilizer, mobilizer_id, "mobilizer", "mobilizers.write"
+    )
     if mobilizer.user_id is not None:
         await session.execute(
             delete(CampaignMember).where(

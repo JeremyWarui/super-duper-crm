@@ -55,10 +55,9 @@ async def test_unstaffed_units_are_flagged_by_name(client: httpx.AsyncClient, wo
     assert "Githurai" in unstaffed["text"]
 
 
-async def test_a_mobilizer_sees_only_their_own_ward_in_the_strategy(
+async def test_a_mobilizer_does_not_read_the_strategy(
     client: httpx.AsyncClient, world: World
 ) -> None:
-    body = await _strategy(client, world, "mobilizer")
+    response = await client.get("/api/strategy/", headers=world.headers("mobilizer"))
 
-    assert [u["unit"] for u in body["units"]] == ["Zimmerman"]
-    assert body["win_number"] == 9_211
+    assert response.status_code == 403

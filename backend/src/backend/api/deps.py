@@ -18,9 +18,8 @@ from backend.models import (
     PartyRoleName,
     User,
     UserKind,
-    UserRole,
 )
-from backend.services import access, clock, membership, site
+from backend.services import access, clock, membership, permissions, site
 from backend.services.errors import CampaignClosed, NotFound
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -94,18 +93,17 @@ async def get_current_user(user: SignedInUser, session: SessionDep) -> User:
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def require_role(*roles: UserRole, message: str | None = None):
-    """A guard letting only these roles through; 403 otherwise."""
+def require(action: str, *, whole: bool = False):
+    """A guard letting through the roles `services/permissions.py` gives this action; 403
+    otherwise. With `whole`, only roles reaching the whole campaign pass.
+
+    How far each role reaches is applied in `api/scope.py`.
+    """
 
     async def dependency(user: CurrentUser) -> User:
-        if user.role is None:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN, message or "This login has no campaign role."
-            )
-        if user.role not in roles:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN, message or f"A {user.role.label} may not change this."
-            )
+        found = permissions.reach(user, action)
+        if found is None or (whole and found is not permissions.Reach.ALL):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, permissions.refusal(user, action))
         return user
 
     return dependency
@@ -153,25 +151,3 @@ def require_party_role(*roles: PartyRoleName):
 AdminUser = Annotated[User, Depends(require_superuser)]
 MembershipOfficer = Annotated[User, Depends(require_party_role(PartyRoleName.MEMBERSHIP_OFFICER))]
 NominationsOfficer = Annotated[User, Depends(require_party_role(PartyRoleName.NOMINATIONS_OFFICER))]
-Writer = Annotated[User, Depends(require_role(UserRole.MANAGER))]
-MobilizerWriter = Annotated[User, Depends(require_role(UserRole.MANAGER, UserRole.MOBILIZER))]
-TeamWriter = Annotated[
-    User,
-    Depends(
-        require_role(
-            UserRole.MANAGER,
-            UserRole.CANDIDATE,
-            message="Only a candidate or a campaign manager may add or remove people.",
-        )
-    ),
-]
-SupporterTeam = Annotated[
-    User,
-    Depends(
-        require_role(
-            UserRole.MANAGER,
-            UserRole.MOBILIZER,
-            message="The supporter register is for the campaign team.",
-        )
-    ),
-]

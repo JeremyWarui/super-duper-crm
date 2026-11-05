@@ -154,8 +154,11 @@ handles the party's own.
   its aspirant and, optionally, its manager. Nobody signs up for a login.
 - **A campaign runs its own team.** Its aspirant adds the one manager, or
   replaces them: the old manager comes off the campaign and their login is
-  turned off. The aspirant and the manager add and remove mobilizers. A second
-  manager is refused everywhere, the console included.
+  turned off. The aspirant and the manager add coordinators and comms
+  officers (`POST /api/campaigns/{id}/team/`) and set a coordinator's wards and
+  centres (`PUT …/team/{user}/area/`); they and a coordinator (in their area)
+  add and remove mobilizers. A second manager is refused everywhere, the
+  console included.
 - **Only the superuser resets a password**, from the console or with
   `campaign-crm reset-password`. Nobody on a campaign resets a teammate's. A
   reset signs the person out.
@@ -163,27 +166,38 @@ handles the party's own.
   or none yet; a whole ward or an untargeted centre is refused.
 - **Supporters sign themselves up and withdraw themselves.** `/api/join/{code}/`
   takes an event's code or the campaign's own link (`/api/campaigns/{id}/signups/`,
-  which starts closed and only the manager reads or opens); the campaign link asks
+  which starts closed and only the candidate and manager read or open); the campaign link asks
   for a ward, or in an MCA race an optional centre, from the campaign. Every
   sign-up gets a withdrawal code, which only works for a new supporter, and
   `/api/join/withdraw/{code}/` answers the same for any code, so neither page
   shows whether a phone is on the register.
 - **Only an admin deletes a campaign**, and that deletes everything on it and the
   logins of its people.
-- **Scoping is by membership.** A campaign the caller is not on answers 404; a
-  mobilizer reads and writes only their own ward.
+- **Scoping is by membership.** A campaign the caller is not on answers 404.
+  Inside it, `services/permissions.py` maps each action to the roles that may do
+  it and how far they reach: the whole campaign, a coordinator's area (their
+  `campaign_member_areas` wards and centres), or a mobilizer's own ward. Routers
+  guard with `require(action)` (`api/deps.py`); `api/scope.py` applies the reach
+  to every read and write, and a place outside it answers 403.
 
-| | Candidate | Manager | Mobilizer |
-|---|---|---|---|
-| Read the campaign and its strategy | yes | yes | their ward |
-| Read the supporter register | no | yes | their ward |
-| Set a campaign up | no | no | no |
-| Add or remove mobilizers | yes | yes | no |
-| Add or replace the manager | yes | no | no |
-| Change targets | no | yes | no |
-| Schedule and record events | no | yes | their ward |
-| Register supporters | no | yes | their ward |
-| Delete a campaign, reach `/api/admin/` | no | no | no |
+| | Candidate | Manager | Coordinator | Comms | Mobilizer | Agent |
+|---|---|---|---|---|---|---|
+| Strategy | yes | yes | area | no | no | no |
+| Read targets | yes | yes | area | no | own ward | no |
+| Change targets | yes | yes | no | no | no | no |
+| Add or replace the manager | yes | no | no | no | no | no |
+| Team: coordinators, comms, areas | yes | yes | no | no | no | no |
+| Read mobilizers | yes | yes | area | no | own ward | no |
+| Add, move, remove mobilizers | yes | yes | area | no | no | no |
+| Supporter register, read and write | yes | yes | area | no | own ward | no |
+| Read events | yes | yes | area | yes | own ward | own |
+| Schedule and record events, preview invites | yes | yes | area | no | own ward | no |
+| Send event invites by SMS | yes | yes | no | no | own ward | no |
+| Read payments | yes | yes | area | no | own | own |
+| Schedule payments | no | yes | area | no | no | no |
+| Release, cancel, mark payments | no | yes | no | no | no | no |
+| Campaign volunteers | yes | yes | area | no | no | no |
+| Delete a campaign, reach `/api/admin/` | no | no | no | no | no | no |
 
 ## The admin console
 
@@ -272,11 +286,25 @@ required and at least 32 characters.
 
 ## Known gaps
 
-- Coordinator, Comms and Agent are stored roles with no screens or
-  permissions yet; `createuser` offers only candidate, manager and mobilizer.
-  Nothing yet enforces that only a coordinator holds `campaign_member_areas`
-  rows. Downgrading `campaign_roles` turns a pending login into a plain
+- Coordinator, Comms and Agent have permissions but no screens yet (PD-10);
+  `createuser` offers only candidate, manager and mobilizer. An agent's "own"
+  rows (events, payments) are empty until assignments exist (PD-37). The
+  team API refuses an area for anyone but a coordinator; the database does
+  not. Coordinators and comms officers are removed by an admin, not from the
+  Team page. Downgrading `campaign_roles` turns a pending login into a plain
   inactive one.
+- The map holds only the actions a route serves today; `team.approve`,
+  `agents.*`, `team.id_read`, `assignments.write`, `sms.*`, `sharing.write`,
+  `site.write` and `export` arrive with their routes. Payment release stays
+  with the Manager until approval routing (PD-37).
+- Two rows differ from section 0.2 by decision: a Mobilizer reads targets
+  and sends event invites in their own ward. `mobilizers.read` is not a row
+  there; it keeps who reads the mobilizer list as before, plus coordinators
+  in their area. A coordinator cannot set a mobilizer to no ward, as a place
+  with no ward is outside every area.
+- A coordinator sees payments through their events' places, so a payment
+  with no event never shows to them. `area_ids` reads the caller's areas
+  without naming the campaign; one campaign per login keeps that exact.
 - The website editor lists every approved aspirant but saves a candidate
   page only for one with a workspace; it does not mark the others. Saving a
   page for an aspirant whose campaign already holds a page with no aspirant

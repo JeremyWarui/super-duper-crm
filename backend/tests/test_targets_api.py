@@ -13,7 +13,7 @@ async def _targets(client: httpx.AsyncClient, world: World, role: str = "manager
     return response.json()
 
 
-async def test_a_candidate_may_read_targets_but_not_change_them(
+async def test_a_candidate_may_read_and_change_targets(
     client: httpx.AsyncClient, world: World
 ) -> None:
     rows = await _targets(client, world, role="candidate")
@@ -25,7 +25,7 @@ async def test_a_candidate_may_read_targets_but_not_change_them(
         json={"projected_turnout_pct": 70},
     )
 
-    assert response.status_code == 403
+    assert response.status_code == 200
 
 
 async def test_moving_the_turnout_slider_recomputes_the_win_number(

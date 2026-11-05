@@ -17,6 +17,7 @@ from backend.models import (
     unit_key,
 )
 from backend.schemas.strategy import NoteRead, StrategyRead, UnitRead
+from backend.services.permissions import Area
 
 WELL_WORKED = 4
 
@@ -26,7 +27,7 @@ async def read_strategy(
     *,
     campaign_ids: frozenset[uuid.UUID],
     campaign_id: uuid.UUID | None = None,
-    ward_id: uuid.UUID | None = None,
+    area: Area | None = None,
 ) -> StrategyRead:
     """Roll the visible targets up, then say what stands out."""
     statement = (
@@ -36,8 +37,8 @@ async def read_strategy(
     )
     if campaign_id is not None:
         statement = statement.where(Target.campaign_id == campaign_id)
-    if ward_id is not None:
-        statement = statement.where(Target.ward_id == ward_id)
+    if area is not None:
+        statement = statement.where(area.where(Target.ward_id, Target.registration_centre_id))
     targets = list((await session.scalars(statement)).all())
 
     seen = {t.campaign_id for t in targets}
@@ -87,8 +88,8 @@ async def read_strategy(
     )
     if campaign_id is not None:
         in_mca = in_mca.where(Supporter.campaign_id == campaign_id)
-    if ward_id is not None:
-        in_mca = in_mca.where(Supporter.ward_id == ward_id)
+    if area is not None:
+        in_mca = in_mca.where(area.where(Supporter.ward_id, Supporter.registration_centre_id))
     unplaced = sum(
         count for ward, centre, count in await session.execute(in_mca) if centre not in targeted
     )

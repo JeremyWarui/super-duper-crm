@@ -1,36 +1,41 @@
 """Vote targets; `votes_needed` is recomputed on every write, never taken from the client."""
 
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
-from backend.api.deps import CurrentUser, SessionDep, Writer
+from backend.api.deps import SessionDep, require
 from backend.api.scope import (
     all_rows,
     load,
     require_centre_in_ward_race,
-    require_own_ward,
+    require_in_area,
     require_visible,
     require_visible_campaign,
     require_ward_in_campaign,
     scoped,
 )
-from backend.models import OperationalGrain, RegistrationCentre, Target, Ward
+from backend.models import OperationalGrain, RegistrationCentre, Target, User, Ward
 from backend.schemas.campaign import TargetCreate, TargetRead, TargetUpdate
 
 router = APIRouter(prefix="/targets", tags=["targets"])
 
 LOADED = (selectinload(Target.ward), selectinload(Target.registration_centre))
+Reader = Annotated[User, Depends(require("targets.read"))]
+Writer = Annotated[User, Depends(require("targets.write"))]
 
 
 @router.get("/", response_model=list[TargetRead])
 async def list_targets(
-    session: SessionDep, user: CurrentUser, campaign: uuid.UUID | None = None
+    session: SessionDep, user: Reader, campaign: uuid.UUID | None = None
 ) -> list[Target]:
-    statement = await scoped(session, user, select(Target).options(*LOADED), Target, campaign)
+    statement = await scoped(
+        session, user, select(Target).options(*LOADED), Target, campaign, "targets.read"
+    )
     return await all_rows(
         session, statement.join(Ward, Target.ward_id == Ward.id).order_by(Ward.name)
     )
@@ -39,7 +44,7 @@ async def list_targets(
 @router.post("/", response_model=TargetRead, status_code=status.HTTP_201_CREATED)
 async def create_target(payload: TargetCreate, session: SessionDep, user: Writer) -> Target:
     campaign = await require_visible_campaign(session, user, payload.campaign)
-    require_own_ward(user, payload.ward)
+    await require_in_area(session, user, "targets.write", payload.ward, payload.registration_centre)
     await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
     await require_centre_in_ward_race(session, campaign, payload.ward, payload.registration_centre)
     if campaign.operational_grain is OperationalGrain.WARD and payload.registration_centre:
@@ -82,7 +87,9 @@ async def update_target(
     target_id: uuid.UUID, payload: TargetUpdate, session: SessionDep, user: Writer
 ) -> Target:
     """Change the turnout or the votes committed; the goal follows."""
-    target = await require_visible(session, user, Target, target_id, "target", LOADED)
+    target = await require_visible(
+        session, user, Target, target_id, "target", "targets.write", LOADED
+    )
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(target, field, value)
     return await _saved(session, target)
@@ -90,7 +97,7 @@ async def update_target(
 
 @router.delete("/{target_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_target(target_id: uuid.UUID, session: SessionDep, user: Writer) -> Response:
-    target = await require_visible(session, user, Target, target_id, "target")
+    target = await require_visible(session, user, Target, target_id, "target", "targets.write")
     await session.delete(target)
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

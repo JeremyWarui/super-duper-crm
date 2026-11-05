@@ -15,6 +15,7 @@ from backend.schemas.candidates import CampaignVolunteerUpdate, CandidateVolunte
 from backend.services.audit import record
 from backend.services.consent import CAMPAIGN_VOLUNTEER_WORDING
 from backend.services.errors import NotFound, Refused
+from backend.services.permissions import Area
 from backend.services.sms import normalise_phone
 from backend.services.targets import wards_in_area
 
@@ -84,8 +85,10 @@ async def volunteers(
     q: str = "",
     ward: uuid.UUID | None = None,
     status: VolunteerStatus | None = None,
+    area: Area | None = None,
 ) -> list[VolunteerProfile]:
-    """The campaign's volunteers, newest first, by name or phone, ward and status."""
+    """The campaign's volunteers in the area (None for all), newest first, by name or phone,
+    ward and status."""
     statement = (
         select(VolunteerProfile)
         .where(VolunteerProfile.campaign_id == campaign_id)
@@ -104,6 +107,10 @@ async def volunteers(
         statement = statement.where(VolunteerProfile.ward_id == ward)
     if status:
         statement = statement.where(VolunteerProfile.status == status)
+    if area is not None:
+        statement = statement.where(
+            area.where(VolunteerProfile.ward_id, VolunteerProfile.registration_centre_id)
+        )
     return list(await session.scalars(statement))
 
 
@@ -114,14 +121,18 @@ async def update_volunteer(
     payload: CampaignVolunteerUpdate,
     *,
     actor: User,
+    area: Area | None = None,
 ) -> VolunteerProfile:
-    """Make one of the campaign's volunteers active or inactive and edit the notes, audited."""
+    """Make one of the campaign's volunteers in the area (None for all) active or inactive and
+    edit the notes, audited."""
     profile = await session.scalar(
         select(VolunteerProfile).where(
             VolunteerProfile.id == volunteer_id, VolunteerProfile.campaign_id == campaign_id
         )
     )
-    if profile is None:
+    if profile is None or (
+        area is not None and not area.holds(profile.ward_id, profile.registration_centre_id)
+    ):
         raise NotFound("No such volunteer.")
     if payload.status is not None:
         to = VolunteerStatus(payload.status)

@@ -1,4 +1,5 @@
-"""What a caller may read and write: their own campaign, and a mobilizer's own ward."""
+"""What a caller may read and write: their own campaign, and within it how far their role
+reaches with the action (`services/permissions.py`)."""
 
 import uuid
 from collections.abc import Sequence
@@ -11,6 +12,7 @@ from sqlalchemy.orm.interfaces import ORMOption
 from backend.models import (
     Campaign,
     CampaignMember,
+    CampaignMemberArea,
     Mobilizer,
     OperationalGrain,
     RegistrationCentre,
@@ -18,6 +20,7 @@ from backend.models import (
     User,
     UserRole,
 )
+from backend.services.permissions import Area, Reach, reach
 from backend.services.targets import ward_in_area
 
 
@@ -50,6 +53,34 @@ def mobilizer_ward_id(user: User) -> uuid.UUID | None:
     return profile.ward_id
 
 
+async def area_ids(session: AsyncSession, user: User) -> Area:
+    """The wards and centres in the caller's `campaign_member_areas`."""
+    rows = (
+        await session.execute(
+            select(CampaignMemberArea.ward_id, CampaignMemberArea.registration_centre_id)
+            .join(CampaignMember, CampaignMember.id == CampaignMemberArea.campaign_member_id)
+            .where(CampaignMember.user_id == user.id)
+        )
+    ).all()
+    return Area(
+        frozenset(ward for ward, _ in rows if ward is not None),
+        frozenset(centre for _, centre in rows if centre is not None),
+    )
+
+
+async def area_of(session: AsyncSession, user: User, action: str) -> Area | None:
+    """Where the caller may do this action inside their campaign; None for everywhere."""
+    match reach(user, action):
+        case Reach.ALL:
+            return None
+        case Reach.AREA:
+            return await area_ids(session, user)
+        case Reach.OWN if user.role is UserRole.MOBILIZER:
+            return Area(frozenset({mobilizer_ward_id(user) or uuid.UUID(int=0)}), frozenset())
+        case _:
+            return Area(frozenset(), frozenset())
+
+
 def own_ground_row(user: User, campaign_id: uuid.UUID) -> Mobilizer | None:
     """The caller's own mobilizer row on this campaign."""
     if user.role is not UserRole.MOBILIZER:
@@ -59,15 +90,22 @@ def own_ground_row(user: User, campaign_id: uuid.UUID) -> Mobilizer | None:
 
 
 async def scoped(
-    session: AsyncSession, user: User, statement: Select, model: type, campaign: uuid.UUID | None
+    session: AsyncSession,
+    user: User,
+    statement: Select,
+    model: type,
+    campaign: uuid.UUID | None,
+    action: str,
 ) -> Select:
-    """Narrow a query on a campaign's rows to the caller's campaign and, for a mobilizer, ward."""
+    """Narrow a query on a campaign's rows to the caller's campaign and their reach in it."""
     if campaign is not None:
         statement = statement.where(model.campaign_id == campaign)
     statement = statement.where(model.campaign_id.in_(await visible_campaign_ids(session, user)))
-    own_ward = mobilizer_ward_id(user)
-    if own_ward is not None:
-        statement = statement.where(model.ward_id == own_ward)
+    area = await area_of(session, user, action)
+    if area is not None:
+        statement = statement.where(
+            area.where(model.ward_id, getattr(model, "registration_centre_id", None))
+        )
     return statement
 
 
@@ -100,26 +138,51 @@ async def require_visible(
     model: type,
     row_id: uuid.UUID,
     noun: str,
+    action: str,
     options: Sequence[ORMOption] = (),
 ):
-    """A row on the caller's campaign and, for a mobilizer, in their ward; otherwise 404 or 403.
+    """A row on the caller's campaign and inside their reach; otherwise 404 or 403.
 
-    A row with no ward is outside every mobilizer's ward.
+    A row with no ward is outside every area.
     """
     row = await load(session, model, row_id, options)
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"No such {noun}.")
     await require_visible_campaign(session, user, row.campaign_id)
-    require_own_ward(user, row.ward_id)
+    await require_in_area(
+        session, user, action, row.ward_id, getattr(row, "registration_centre_id", None)
+    )
     return row
 
 
-def require_own_ward(user: User, ward_id: uuid.UUID | None) -> None:
-    """403 for a mobilizer outside their own ward, a missing ward included."""
-    own_ward = mobilizer_ward_id(user)
-    if own_ward is not None and own_ward != ward_id:
+async def require_in_area(
+    session: AsyncSession,
+    user: User,
+    action: str,
+    ward_id: uuid.UUID | None,
+    centre_id: uuid.UUID | None = None,
+) -> None:
+    """403 for a place outside the caller's reach with this action, a missing ward included."""
+    area = await area_of(session, user, action)
+    if area is None or area.holds(ward_id, centre_id):
+        return
+    if user.role is UserRole.MOBILIZER:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, "A mobilizer may only work in their own ward."
+        )
+    raise HTTPException(status.HTTP_403_FORBIDDEN, "That is outside your area.")
+
+
+async def require_mobilizer_in_area(
+    session: AsyncSession, user: User, action: str, mobilizer_id: uuid.UUID | None
+) -> None:
+    """403 when a mobilizer named in a body works outside the caller's reach with this action."""
+    if mobilizer_id is None:
+        return
+    mobilizer = await session.get(Mobilizer, mobilizer_id)
+    if mobilizer is not None:
+        await require_in_area(
+            session, user, action, mobilizer.ward_id, mobilizer.registration_centre_id
         )
 
 

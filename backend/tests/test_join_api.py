@@ -83,7 +83,7 @@ async def test_a_closed_or_unconsented_sign_up_is_refused(
     assert (no_consent.status_code, closed.status_code) == (400, 400)
 
 
-async def test_the_candidate_does_not_get_the_sign_up_code(
+async def test_the_candidate_gets_the_sign_up_code(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
     event = await _event(session, world)
@@ -92,7 +92,7 @@ async def test_the_candidate_does_not_get_the_sign_up_code(
     candidate = (await client.get("/api/events/", headers=world.headers("candidate"))).json()
 
     assert [e["signup_code"] for e in manager] == [event.signup_code]
-    assert [e["signup_code"] for e in candidate] == [None]
+    assert [e["signup_code"] for e in candidate] == [event.signup_code]
 
 
 async def test_one_phone_in_other_digit_scripts_is_still_one_person(
@@ -140,22 +140,22 @@ async def _open_campaign_link(client: httpx.AsyncClient, world: World) -> str:
     return (await client.get(url, headers=world.headers("manager"))).json()["code"]
 
 
-async def test_only_the_manager_reads_or_opens_the_campaign_link(
+async def test_only_the_candidate_and_manager_read_or_open_the_campaign_link(
     client: httpx.AsyncClient, world: World
 ) -> None:
     url = f"/api/campaigns/{world.campaign.id}/signups/"
     before = (await client.get(url, headers=world.headers("manager"))).json()
 
+    candidate = await client.get(url, headers=world.headers("candidate"))
+    head = world.headers("mobilizer")
     refused = [
-        (await client.get(url, headers=world.headers(role))).status_code
-        for role in ("candidate", "mobilizer")
-    ] + [
-        (await client.post(url, headers=world.headers(role), json={"open": True})).status_code
-        for role in ("candidate", "mobilizer")
+        (await client.get(url, headers=head)).status_code,
+        (await client.post(url, headers=head, json={"open": True})).status_code,
     ]
 
     assert before["open"] is False
-    assert refused == [403, 403, 403, 403]
+    assert candidate.json()["code"] == before["code"]
+    assert refused == [403, 403]
     closed = await client.post(f"/api/join/{before['code']}/", json=_person())
     assert (closed.status_code, closed.json()["detail"]) == (400, "Sign-ups are closed.")
 

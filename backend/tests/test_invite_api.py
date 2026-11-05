@@ -62,16 +62,16 @@ def gateway(monkeypatch: pytest.MonkeyPatch) -> DeliveringProvider:
     return provider
 
 
-async def test_a_candidate_may_not_send_invitations(
+async def test_a_candidate_may_send_invitations(
     client: httpx.AsyncClient, session, world: World
 ) -> None:
     event = await _event(session, world)
     response = await client.post(
         f"/api/events/{event.id}/invite/",
         headers=world.headers("candidate"),
-        json={"message": "Hi"},
+        json={"message": "Hi", "dry_run": True},
     )
-    assert response.status_code == 403
+    assert response.status_code == 200
 
 
 async def test_a_mobilizer_cannot_invite_another_ward_s_event(
