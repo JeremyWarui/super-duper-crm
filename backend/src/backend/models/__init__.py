@@ -42,6 +42,7 @@ from backend.models.enums import (
     UserRole,
     VolunteerArea,
     VolunteerStatus,
+    WorkspaceKind,
 )
 from backend.models.event import Event
 from backend.models.geography import (
@@ -123,6 +124,7 @@ __all__ = [
     "VolunteerStatus",
     "UserKind",
     "UserRole",
+    "WorkspaceKind",
     "Ward",
     "compute_win_number",
     "unit_key",

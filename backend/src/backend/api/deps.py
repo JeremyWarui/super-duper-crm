@@ -11,10 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from backend.db.session import get_session
 from backend.models import (
-    Aspirant,
-    AspirantStatus,
     AuthToken,
-    CampaignMember,
     PartyMember,
     PartyMemberStatus,
     PartyRoleName,
@@ -22,7 +19,7 @@ from backend.models import (
     UserKind,
     UserRole,
 )
-from backend.services import clock, membership
+from backend.services import access, clock, membership
 from backend.services.errors import CampaignClosed
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -69,29 +66,19 @@ async def get_today() -> date:
 
 Today = Annotated[date, Depends(get_today)]
 
-SUSPENDED = "This campaign is suspended by the party."
-CLOSED = "This campaign is closed: its aspirant has withdrawn."
-
 
 async def get_current_user(user: SignedInUser, session: SessionDep) -> User:
-    """The signed-in caller, refused while their campaign's aspirant is not approved.
+    """The signed-in caller, refused while their campaign is closed (`services/access.py`).
 
-    A campaign with no aspirant is always open. A member login is refused: it opens only the
-    member account.
+    A member login is refused: it opens only the member account.
     """
     if user.kind is UserKind.MEMBER:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "A member login opens only its account.")
     if user.role is None or user.is_superuser:
         return user
-    aspirant = await session.scalar(
-        select(Aspirant.status)
-        .join(CampaignMember, CampaignMember.campaign_id == Aspirant.campaign_id)
-        .where(CampaignMember.user_id == user.id)
-    )
-    if aspirant is AspirantStatus.SUSPENDED:
-        raise CampaignClosed(SUSPENDED)
-    if aspirant is not None and aspirant is not AspirantStatus.APPROVED:
-        raise CampaignClosed(CLOSED)
+    found = await access.login_access(session, user.id)
+    if not found.open:
+        raise CampaignClosed(found.reason)
     return user
 
 

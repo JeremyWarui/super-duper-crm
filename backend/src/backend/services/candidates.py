@@ -35,6 +35,7 @@ from backend.schemas.candidates import (
     ProfileWrite,
 )
 from backend.schemas.party import MemberPlace
+from backend.services import access
 from backend.services.audit import record
 from backend.services.consent import CAMPAIGN_VOLUNTEER_WORDING
 from backend.services.errors import NotFound, Refused
@@ -128,8 +129,10 @@ async def _by_slug(session: AsyncSession, value: str) -> tuple[Aspirant, Candida
 
 
 async def _volunteer_campaign(session: AsyncSession, aspirant: Aspirant) -> Campaign | None:
-    """The listed (so approved) aspirant's campaign, when the party has made one."""
+    """The listed aspirant's campaign, when the party has made one and it is open."""
     if aspirant.campaign_id is None:
+        return None
+    if not (await access.workspace_access(session, aspirant.campaign_id)).open:
         return None
     return await session.get(Campaign, aspirant.campaign_id)
 

@@ -451,7 +451,7 @@ def _alembic(database: str, *steps: tuple[str, str]) -> None:
 
 
 @pytest.mark.skipif(not POSTGRES, reason="needs TEST_POSTGRES=1")
-def test_alembic_itself_narrows_the_party_office_check_both_ways_on_postgres() -> None:
+def test_alembic_itself_replaces_the_looked_up_checks_both_ways_on_postgres() -> None:
     import asyncio
 
     from sqlalchemy.engine import make_url
@@ -467,24 +467,83 @@ def test_alembic_itself_narrows_the_party_office_check_both_ways_on_postgres() -
         await engine.dispose()
         return rows
 
-    checks = (
-        "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
-        "WHERE conrelid = 'party_roles'::regclass AND contype = 'c' "
-        "AND pg_get_constraintdef(oid) LIKE '%(role)::text%'"
-    )
+    def checks(table: str, column: str) -> str:
+        return (
+            "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
+            f"WHERE conrelid = '{table}'::regclass AND contype = 'c' "
+            f"AND pg_get_constraintdef(oid) LIKE '%({column})::text%' "
+            "AND pg_get_constraintdef(oid) NOT LIKE '%seat%' "
+            "AND pg_get_constraintdef(oid) NOT LIKE '%kind%'"
+        )
+
+    def both() -> list:
+        return [
+            asyncio.run(run(name, checks("party_roles", "role"))),
+            asyncio.run(run(name, checks("campaigns", "office_level"))),
+        ]
+
     asyncio.run(run("postgres", f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
     asyncio.run(run("postgres", f'CREATE DATABASE "{name}"'))
     try:
         _alembic(name, ("upgrade", "head"))
-        narrowed = asyncio.run(run(name, checks))
-        _alembic(name, ("downgrade", "-1"))
-        widened = asyncio.run(run(name, checks))
+        head = both()
+        _alembic(name, ("downgrade", "site_settings"))
+        before = both()
         _alembic(name, ("upgrade", "head"))
-        again = asyncio.run(run(name, checks))
+        again = both()
     finally:
         asyncio.run(run("postgres", f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
 
-    assert [len(narrowed), len(widened), len(again)] == [1, 1, 1]
-    assert "finance_officer" not in narrowed[0][0]
-    assert "finance_officer" in widened[0][0]
-    assert again == narrowed
+    assert [len(rows) for rows in head + before] == [1, 1, 1, 1]
+    (roles,), (levels,) = (rows[0] for rows in head)
+    (old_roles,), (old_levels,) = (rows[0] for rows in before)
+    assert "finance_officer" not in roles and "finance_officer" in old_roles
+    assert "national" in levels and "national" not in old_levels
+    assert again == head
+
+
+def test_the_workspace_kinds_migration_makes_every_campaign_hosted_and_guards_the_scope() -> None:
+    revisions = revision_modules()
+    last = next(i for i, m in enumerate(revisions) if m.revision == "workspace_kinds")
+    engine = sa.create_engine("sqlite://")
+    insert = (
+        "INSERT INTO campaigns (id, title, office_level, seat, signup_code, signups_open, kind) "
+        "VALUES (:id, 't', :level, :seat, :id, 0, :kind)"
+    )
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            for module in revisions[:last]:
+                module.upgrade()
+        connection.execute(
+            sa.text(
+                "INSERT INTO campaigns (id, title, office_level, seat, signup_code, signups_open) "
+                "VALUES ('c1', 'MP race', 'constituency', 'mp', 'c1', 0)"
+            )
+        )
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].upgrade()
+        kinds = connection.execute(sa.text("SELECT kind FROM campaigns")).scalars().all()
+        connection.execute(
+            sa.text(insert), {"id": "p1", "level": "national", "seat": None, "kind": "party"}
+        )
+        refused = []
+        for row in (
+            {"id": "p2", "level": "national", "seat": None, "kind": "party"},
+            {"id": "h1", "level": "national", "seat": None, "kind": "hosted"},
+            {"id": "h2", "level": "constituency", "seat": None, "kind": "hosted"},
+            {"id": "p3", "level": "constituency", "seat": "mp", "kind": "standalone2"},
+        ):
+            try:
+                with connection.begin_nested():
+                    connection.execute(sa.text(insert), row)
+            except sa.exc.IntegrityError:
+                refused.append(row["id"])
+        with (
+            Operations.context(MigrationContext.configure(connection)),
+            pytest.raises(RuntimeError, match="party or standalone"),
+        ):
+            revisions[last].downgrade()
+    engine.dispose()
+
+    assert kinds == ["hosted"]
+    assert refused == ["p2", "h1", "h2", "p3"]

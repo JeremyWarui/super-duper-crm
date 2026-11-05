@@ -24,6 +24,7 @@ from backend.models import (
     VolunteerProfile,
     VolunteerStatus,
     Ward,
+    WorkspaceKind,
 )
 from tests.conftest import World
 from tests.factories import TEST_TODAY, auth, make_officer, make_rival_campaign, sign_in
@@ -233,3 +234,27 @@ async def test_a_ward_filter_counts_every_event_held_in_that_ward(
         ("governor", 1),
         ("mp", 1),
     ]
+
+
+async def test_a_standalone_workspace_counts_as_active_whatever_its_aspirant_says(
+    client: httpx.AsyncClient, session: AsyncSession, admin_headers: dict, world: World
+) -> None:
+    member = await make_officer(session, world.ward, PartyRoleName.MEMBERSHIP_OFFICER)
+    session.add(
+        Aspirant(
+            member_id=member.party_member_id,
+            seat=Seat.MP,
+            constituency_id=world.constituency.id,
+            status=AspirantStatus.SUSPENDED,
+            status_reason="Under review.",
+            campaign_id=world.campaign.id,
+        )
+    )
+    await session.commit()
+    hosted = (await client.get(URL, headers=admin_headers)).json()["active_campaigns"]
+
+    world.campaign.kind = WorkspaceKind.STANDALONE
+    await session.commit()
+    standalone = (await client.get(URL, headers=admin_headers)).json()["active_campaigns"]
+
+    assert (hosted, standalone) == (0, 1)

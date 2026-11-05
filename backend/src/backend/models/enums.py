@@ -40,6 +40,15 @@ class OfficeLevel(LabelledStrEnum):
     WARD = ("ward", "Ward (MCA)")
     CONSTITUENCY = ("constituency", "Constituency (MP)")
     COUNTY = ("county", "County (Governor / Senator / Women Rep)")
+    NATIONAL = ("national", "National (party workspace)")
+
+
+class WorkspaceKind(LabelledStrEnum):
+    """Who a campaign workspace belongs to, which decides who may create it and when it opens."""
+
+    PARTY = ("party", "Party workspace")
+    HOSTED = ("hosted", "Hosted workspace")
+    STANDALONE = ("standalone", "Standalone workspace")
 
 
 class Seat(LabelledStrEnum):

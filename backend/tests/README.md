@@ -30,7 +30,7 @@ migrations, row locks and anything else SQLite cannot prove.
 | `test_campaigns_api.py` | Campaign reads, setup refusals, and that nobody sets one up for themselves |
 | `test_users_api.py` | Mobilizer logins added and removed from inside a campaign |
 | `test_team_api.py` | The aspirant sets the one manager, nobody on the team resets a password, and an MCA mobilizer's centre |
-| `test_campaign_access.py` | A nominee's workspace is open exactly while its aspirant is approved; the removed hosting and finance routes are gone |
+| `test_campaign_access.py` | A hosted workspace is open exactly while its aspirant is approved; party and standalone workspaces are always open and there is at most one of each; the removed hosting and finance routes are gone |
 | `test_clock.py` | Every request's today is the date in Nairobi |
 | `test_ground_api.py` | Mobilizers, events and the supporter register |
 | `test_ward_in_campaign.py` | A ward or centre in a request must lie inside the seat |

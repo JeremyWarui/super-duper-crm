@@ -16,8 +16,6 @@ from sqlalchemy.orm import selectinload
 
 from backend.api.deps import SessionDep
 from backend.models import (
-    Aspirant,
-    AspirantStatus,
     Campaign,
     Event,
     EventStatus,
@@ -28,6 +26,7 @@ from backend.models import (
     Target,
 )
 from backend.schemas.join import JoinCreate, JoinDone, JoinPlace, JoinRead, Withdrawn
+from backend.services.access import FULL, Access, workspace_access
 from backend.services.consent import WORDING, ConsentChannel
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import normalise_phone
@@ -56,12 +55,11 @@ class Link:
 
     campaign: Campaign
     event: Event | None
-    # None for a campaign made without a nomination.
-    aspirant: AspirantStatus | None = None
+    access: Access = FULL
 
     @property
     def open(self) -> bool:
-        if self.aspirant not in (None, AspirantStatus.APPROVED):
+        if not self.access.open:
             return False
         if self.event is not None:
             return self.event.signups_open and self.event.status is not EventStatus.CANCELLED
@@ -89,10 +87,11 @@ async def _link(session: SessionDep, code: str) -> Link:
         )
     if campaign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "This sign-up link is not valid.")
-    aspirant = await session.scalar(
-        select(Aspirant.status).where(Aspirant.campaign_id == campaign.id)
+    return Link(
+        campaign=campaign,
+        event=event,
+        access=await workspace_access(session, campaign.id),
     )
-    return Link(campaign=campaign, event=event, aspirant=aspirant)
 
 
 async def _places(session: SessionDep, campaign: Campaign) -> list[JoinPlace]:

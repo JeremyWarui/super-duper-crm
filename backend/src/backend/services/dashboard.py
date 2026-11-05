@@ -37,6 +37,7 @@ from backend.schemas.dashboard import (
     InterestCount,
     SeatCount,
 )
+from backend.services import access
 
 EVENT_DAYS = 30
 
@@ -143,13 +144,10 @@ async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard
         .correlate(Campaign)
         .scalar_subquery()
     )
-    query, county = _campaigns(f, Campaign.seat, nominee)
+    query, county = _campaigns(f, Campaign.seat, Campaign.kind, nominee)
     campaigns = (await session.execute(query.add_columns(county))).all()
-    # A campaign is open while it has no aspirant or its aspirant is approved.
-    open_campaigns = sum(
-        1 for _, status, _ in campaigns if status in (None, AspirantStatus.APPROVED)
-    )
-    by_county_seat = Counter((county_id, seat) for seat, _, county_id in campaigns)
+    open_campaigns = sum(1 for _, kind, status, _ in campaigns if access.rule(kind, status).open)
+    by_county_seat = Counter((county_id, seat) for seat, _, _, county_id in campaigns)
 
     # An event is placed by its own ward; seat and aspirant still act through its campaign.
     query = _campaigns(Filters(seat=f.seat, aspirant=f.aspirant), Campaign.seat)[0]

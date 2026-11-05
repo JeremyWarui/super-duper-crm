@@ -1,10 +1,19 @@
-"""A campaign made for an aspirant works exactly while that aspirant is approved."""
+"""A hosted campaign works exactly while its aspirant is approved; party and standalone always."""
 
 import httpx
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Aspirant, AspirantStatus, PartyRoleName, Seat
+from backend.models import (
+    Aspirant,
+    AspirantStatus,
+    Campaign,
+    OfficeLevel,
+    PartyRoleName,
+    Seat,
+    WorkspaceKind,
+)
 from tests.conftest import World
 from tests.factories import make_officer
 
@@ -71,6 +80,51 @@ async def test_an_approved_aspirants_campaign_is_fully_open(
     assert read.status_code == 200
     assert write.status_code == 400
     assert link["open"] is True
+
+
+def _as_kind(campaign: Campaign, kind: WorkspaceKind) -> None:
+    campaign.kind = kind
+    if kind is WorkspaceKind.PARTY:
+        campaign.office_level, campaign.seat, campaign.constituency_id = (
+            OfficeLevel.NATIONAL,
+            None,
+            None,
+        )
+
+
+@pytest.mark.parametrize("kind", [WorkspaceKind.PARTY, WorkspaceKind.STANDALONE])
+async def test_party_and_standalone_workspaces_are_open_whatever_any_aspirant_says(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, kind: WorkspaceKind
+) -> None:
+    world.campaign.signups_open = True
+    _as_kind(world.campaign, kind)
+    await _aspirant_on(session, world, AspirantStatus.SUSPENDED)
+    headers = world.headers("manager")
+
+    read = await client.get("/api/supporters/", headers=headers)
+    write = await client.post("/api/supporters/", headers=headers, json={})
+    link = (await client.get(f"/api/join/{world.campaign.signup_code}/")).json()
+
+    assert (read.status_code, write.status_code, link["open"]) == (200, 400, True)
+
+
+@pytest.mark.parametrize("kind", [WorkspaceKind.PARTY, WorkspaceKind.STANDALONE])
+async def test_a_second_party_or_standalone_workspace_fails_at_the_database(
+    session: AsyncSession, world: World, kind: WorkspaceKind
+) -> None:
+    for title in ("First", "Second"):
+        campaign = Campaign(
+            title=title,
+            office_level=OfficeLevel.CONSTITUENCY,
+            constituency_id=world.constituency.id,
+        )
+        _as_kind(campaign, kind)
+        session.add(campaign)
+        if title == "Second":
+            with pytest.raises(IntegrityError):
+                await session.commit()
+        else:
+            await session.commit()
 
 
 @pytest.mark.parametrize(
