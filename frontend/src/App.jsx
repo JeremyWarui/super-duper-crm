@@ -33,7 +33,7 @@ import Settings from "./pages/campaign/Settings";
 import Recruitment from "./pages/campaign/Recruitment";
 
 // Pages built on the UI kit, which render outside the legacy stylesheet.
-const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "website", "settings", "recruitment"]);
+const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "website", "settings", "recruitment"]);
 
 // One page per NAV key.
 const PAGES = {
