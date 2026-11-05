@@ -9,6 +9,7 @@ import ScheduleEventForm from "./ScheduleEventForm";
 import RecordForm from "./RecordForm";
 import InviteForm from "./InviteForm";
 import QrModal from "./QrModal";
+import CampaignLinkModal from "./CampaignLinkModal";
 
 // The form a page asked for with onModal; nothing when none is open.
 export default function CampaignModal({ modal, campaign, role, onClose }) {
@@ -27,6 +28,7 @@ export default function CampaignModal({ modal, campaign, role, onClose }) {
       {modal?.type === "event" && <ScheduleEventForm campaignId={campaignId} wardOptions={wardOptions} byCentre={byCentre} onClose={onClose} />}
       {modal?.type === "record" && <RecordForm event={modal.event} onClose={onClose} />}
       {modal?.type === "invite" && <InviteForm event={modal.event} onClose={onClose} />}
+      {modal?.type === "link" && <CampaignLinkModal campaign={campaign} onClose={onClose} />}
       {modal?.type === "qr" && <QrModal event={modal.event} canClose={role === "manager"} onClose={onClose} />}
     </>
   );

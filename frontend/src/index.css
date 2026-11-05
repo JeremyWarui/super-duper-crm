@@ -263,7 +263,6 @@
 
 .legacy select.admin-field { height: 34px; }
 .legacy select.join-field { height: 46px; }
-.legacy select.inline-select { height: 30px; padding-right: 30px; background-position: right 8px center; }
 
 .legacy .app-field:disabled,
 .legacy .onboarding-field:disabled,
@@ -421,13 +420,6 @@
 }
 
 .legacy .table td.empty-row { padding: 32px 20px; }
-
-.legacy .inline-select {
-  width: auto;
-  margin-top: 0;
-  padding: 4px 8px;
-  font-size: var(--text-sm);
-}
 
 .legacy .failure-reason { max-width: 260px; margin-top: 4px; font-size: var(--text-xs); }
 
