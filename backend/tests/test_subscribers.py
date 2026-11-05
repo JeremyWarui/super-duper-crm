@@ -1,11 +1,10 @@
-"""The website footer's news sign-up, its unsubscribe link, and the demo Contribute form."""
+"""The website footer's news sign-up and its unsubscribe link."""
 
 import httpx
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.db.base import Base
 from backend.models import Subscriber
 from backend.services.consent import SUBSCRIBE_WORDING
 from tests.factories import site_settings
@@ -46,29 +45,3 @@ async def test_its_link_unsubscribes_and_any_code_gets_the_same_answer(
 
     assert unknown.json() == known.json()
     assert await session.scalar(select(func.count()).select_from(Subscriber)) == 0
-
-
-async def test_contribute_says_it_is_a_demo_and_stores_nothing(
-    client: httpx.AsyncClient, session: AsyncSession
-) -> None:
-    async def rows() -> int:
-        total = 0
-        for table in Base.metadata.sorted_tables:
-            total += await session.scalar(select(func.count()).select_from(table))
-        return total
-
-    before = await rows()
-    response = await client.post(
-        "/api/party/contribute/",
-        json={
-            "amount_kes": 500,
-            "name": "Ama Otieno",
-            "phone": "0712345678",
-            "consent_given": True,
-        },
-    )
-
-    assert response.status_code == 200
-    assert response.json()["demo"] is True
-    assert "no money moved" in response.json()["message"]
-    assert await rows() == before

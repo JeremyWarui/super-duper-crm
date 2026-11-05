@@ -39,8 +39,22 @@ export const NAV = {
   agent: OWN_WORK([["myevents", "My events"], ["mypayments", "My payments"]]),
 };
 
+const SITE_WRITERS = ["candidate", "manager", "comms"];
+
+/**
+ * A role's menu where it works: an aspirant installation adds the Website and Settings pages for
+ * those who edit the site; the party workspace adds Recruitment for its coordinators.
+ */
+export function navFor(role, { aspirant = false, partyWorkspace = false } = {}) {
+  const groups = NAV[role] || [];
+  const extra = [];
+  if (aspirant && SITE_WRITERS.includes(role)) extra.push({ label: "Website", items: [["website", "Website"], ["settings", "Settings"]] });
+  if (partyWorkspace && role === "coordinator") extra.push({ label: "Recruit", items: [["recruitment", "Recruitment"]] });
+  return [...groups, ...extra];
+}
+
 /** A role's pages in menu order, as [key, label]. */
-export const pagesOf = (role) => (NAV[role] || []).flatMap((group) => group.items);
+export const pagesOf = (role, where) => navFor(role, where).flatMap((group) => group.items);
 
 export const ROLE_LABEL = {
   candidate: "Candidate",

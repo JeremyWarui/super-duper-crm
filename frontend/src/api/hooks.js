@@ -489,9 +489,9 @@ export function useRemoveMember() {
 export const useSite = () =>
   useQuery({ queryKey: ["site"], queryFn: () => api("/site/", { anonymous: true }) });
 
-// The party-only settings; the rest are site settings.
-export const useParty = () =>
-  useQuery({ queryKey: ["party"], queryFn: () => api("/party/", { anonymous: true }) });
+// The party-only settings, read only in a party installation; the rest are site settings.
+export const useParty = (enabled = true) =>
+  useQuery({ queryKey: ["party"], queryFn: () => api("/party/", { anonymous: true }), enabled });
 
 const PARTY_FIELDS = ["registration_number", "founded_year", "aspirant_steps"];
 
@@ -748,12 +748,6 @@ export const useUnsubscribe = (code) =>
       api(`/party/unsubscribe/${encodeURIComponent(code)}/`, { method: "POST", anonymous: true }),
   });
 
-export const useContribute = () =>
-  useMutation({
-    mutationFn: (payload) =>
-      api("/party/contribute/", { method: "POST", body: payload, anonymous: true }),
-  });
-
 export const useJoinParty = () =>
   useMutation({
     mutationFn: (payload) =>
@@ -774,19 +768,20 @@ export function useWithdrawVolunteer(code) {
   });
 }
 
-// Saves one settings form: the site fields, then the party-only fields.
-export function useSaveSettings() {
+// Saves one settings form: the site fields, then, in a party installation, the party-only ones.
+export function useSaveSettings({ party: withParty = true } = {}) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload) => {
       const party = Object.fromEntries(PARTY_FIELDS.map((key) => [key, payload[key]]));
       const site = Object.fromEntries(Object.entries(payload).filter(([key]) => !PARTY_FIELDS.includes(key)));
       const saved = await api("/admin/site/", { method: "PUT", body: site });
+      if (!withParty) return { site: saved };
       return { site: saved, party: await api("/admin/party/", { method: "PUT", body: party }) };
     },
     onSuccess: (data) => {
       qc.setQueryData(["site"], data.site);
-      qc.setQueryData(["party"], data.party);
+      if (data.party) qc.setQueryData(["party"], data.party);
     },
     // The site half may have saved before the party half failed.
     onError: () => qc.invalidateQueries({ queryKey: ["site"] }),
@@ -1029,3 +1024,101 @@ export function useUpdateCampaignVolunteer(campaignId) {
   });
 }
 
+
+
+// ---- an aspirant installation's website ------------------------------------
+export const useSiteCandidate = () =>
+  useQuery({
+    queryKey: ["site-candidate"],
+    queryFn: () => api("/site/candidate/", { anonymous: true }),
+    retry: false,
+  });
+
+export const useSiteVolunteer = () =>
+  useMutation({
+    mutationFn: (payload) => api("/site/volunteer/", { method: "POST", body: payload, anonymous: true }),
+  });
+
+// The workspace's website editor (site.write): one list, save and delete per kind of item.
+function useWorkspaceWrite(mutationFn) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["workspace-site"] });
+      qc.invalidateQueries({ queryKey: ["site"] });
+      qc.invalidateQueries({ queryKey: ["site-candidate"] });
+    },
+  });
+}
+
+function useWsList(kind, queryFn) {
+  return useQuery({ queryKey: ["workspace-site", kind], queryFn });
+}
+
+export const WORKSPACE_SECTIONS = {
+  posts: {
+    query: function usePosts() { return useWsList("posts", () => api("/workspace/site/posts/")); },
+    save: function useSavePost() {
+      return useWorkspaceWrite(({ id, ...body }) =>
+        id ? api(`/workspace/site/posts/${id}/`, { method: "PATCH", body }) : api("/workspace/site/posts/", { method: "POST", body }));
+    },
+    del: function useDeletePost() { return useWorkspaceWrite((id) => api(`/workspace/site/posts/${id}/`, { method: "DELETE" })); },
+  },
+  slides: {
+    query: function useSlides() { return useWsList("slides", () => api("/workspace/site/slides/")); },
+    save: function useSaveSlide() {
+      return useWorkspaceWrite(({ id, ...body }) =>
+        id ? api(`/workspace/site/slides/${id}/`, { method: "PATCH", body }) : api("/workspace/site/slides/", { method: "POST", body }));
+    },
+    del: function useDeleteSlide() { return useWorkspaceWrite((id) => api(`/workspace/site/slides/${id}/`, { method: "DELETE" })); },
+  },
+  issues: {
+    query: function useIssues() { return useWsList("issues", () => api("/workspace/site/issues/")); },
+    save: function useSaveIssue() {
+      return useWorkspaceWrite(({ id, ...body }) =>
+        id ? api(`/workspace/site/issues/${id}/`, { method: "PATCH", body }) : api("/workspace/site/issues/", { method: "POST", body }));
+    },
+    del: function useDeleteIssue() { return useWorkspaceWrite((id) => api(`/workspace/site/issues/${id}/`, { method: "DELETE" })); },
+  },
+  documents: {
+    query: function useDocuments() { return useWsList("documents", () => api("/workspace/site/documents/")); },
+    save: function useSaveDocument() {
+      return useWorkspaceWrite(({ id, ...body }) =>
+        id ? api(`/workspace/site/documents/${id}/`, { method: "PATCH", body }) : api("/workspace/site/documents/", { method: "POST", body }));
+    },
+    del: function useDeleteDocument() { return useWorkspaceWrite((id) => api(`/workspace/site/documents/${id}/`, { method: "DELETE" })); },
+  },
+  videos: {
+    query: function useVideos() { return useWsList("videos", () => api("/workspace/site/videos/")); },
+    save: function useSaveVideo() {
+      return useWorkspaceWrite(({ id, ...body }) =>
+        id ? api(`/workspace/site/videos/${id}/`, { method: "PATCH", body }) : api("/workspace/site/videos/", { method: "POST", body }));
+    },
+    del: function useDeleteVideo() { return useWorkspaceWrite((id) => api(`/workspace/site/videos/${id}/`, { method: "DELETE" })); },
+  },
+};
+
+export const useWorkspaceSettings = () =>
+  useQuery({ queryKey: ["workspace-site", "settings"], queryFn: () => api("/workspace/site/settings/") });
+
+export const useSaveWorkspaceSettings = () =>
+  useWorkspaceWrite((body) => api("/workspace/site/settings/", { method: "PUT", body }));
+
+export const useWorkspaceCandidatePage = () =>
+  useQuery({ queryKey: ["workspace-site", "candidate"], queryFn: () => api("/workspace/site/candidate/") });
+
+export const useSaveWorkspaceCandidatePage = () =>
+  useWorkspaceWrite((body) => api("/workspace/site/candidate/", { method: "PUT", body }));
+
+// ---- the party workspace: a coordinator's recruitment link -----------------
+export const useRecruitment = () =>
+  useQuery({ queryKey: ["recruitment"], queryFn: () => api("/party/workspace/recruitment/") });
+
+export function useReplaceRecruitment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api("/party/workspace/recruitment/", { method: "POST" }),
+    onSuccess: (data) => qc.setQueryData(["recruitment"], data),
+  });
+}

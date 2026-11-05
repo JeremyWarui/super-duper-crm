@@ -24,6 +24,7 @@ CAMPAIGN = [
             "payments",
             "join",
             "workspace_site",
+            "aspirant_site",
         )
     ),
     *(
@@ -31,6 +32,7 @@ CAMPAIGN = [
         for name in (
             "campaigns",
             "campaign_volunteers",
+            "campaign_page",
             "targets",
             "strategy",
             "team",

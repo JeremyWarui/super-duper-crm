@@ -1,7 +1,11 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterEach, beforeEach } from "vitest";
 import { useAuth } from "../src/store/auth";
+
+// A findBy waits up to five seconds: on a loaded machine the first render of a route can take
+// longer than the one-second default, and the test would fail on timing, not behaviour.
+configure({ asyncUtilTimeout: 5000 });
 
 // jsdom lacks what Radix menus measure and capture with.
 globalThis.ResizeObserver ??= class {

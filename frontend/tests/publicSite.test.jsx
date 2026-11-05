@@ -152,6 +152,7 @@ describe("the public site", () => {
     stubApi({ ...ROUTES, "GET /candidates/?seat=&county=&q=": [], "GET /party/results/": [] });
     renderApp(<AppRoutes />);
     const user = userEvent.setup();
+    await screen.findByRole("navigation", { name: "Main" });
     const menu = () => within(screen.getByRole("navigation", { name: "Main" }));
     const pages = [
       ["About", "About Umoja"],

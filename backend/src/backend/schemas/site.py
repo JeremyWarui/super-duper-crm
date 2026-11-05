@@ -9,7 +9,7 @@ from pydantic import AfterValidator, Field, model_validator
 from backend.models import OrganisationType
 from backend.schemas.common import ORMModel, WriteModel, plain_text
 from backend.services.branding import INK, MIN_CONTRAST, WHITE, contrast
-from backend.services.consent import SUBSCRIBE_WORDING, VOLUNTEER_WORDING
+from backend.services.consent import VOLUNTEER_WORDING, subscribe_wording
 
 COLOUR = re.compile(r"^#[0-9a-fA-F]{6}$")
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -58,10 +58,16 @@ class SiteSettingsRead(ORMModel):
     manifesto_url: str
     privacy_notice: str
     privacy_notice_version: str
+    payment_instructions: str
     updated_at: datetime
     # The forms' consent labels; the server records these same texts.
     volunteer_consent_wording: str = VOLUNTEER_WORDING
-    subscribe_consent_wording: str = SUBSCRIBE_WORDING
+    subscribe_consent_wording: str = ""
+
+    @model_validator(mode="after")
+    def _wording(self) -> "SiteSettingsRead":
+        self.subscribe_consent_wording = subscribe_wording(self.organisation_type)
+        return self
 
 
 class SiteSettingsUpdate(WriteModel):
@@ -83,6 +89,7 @@ class SiteSettingsUpdate(WriteModel):
     manifesto_url: Link = ""
     privacy_notice: str = Field(default="", max_length=20000)
     privacy_notice_version: str = Field(default="1", min_length=1, max_length=20)
+    payment_instructions: str = Field(default="", max_length=2000)
 
     @model_validator(mode="after")
     def _plain(self) -> "SiteSettingsUpdate":
@@ -102,7 +109,14 @@ class SiteSettingsUpdate(WriteModel):
             raise ValueError("The primary colour is too light for white text; pick a darker one.")
         if contrast(self.secondary_colour, INK) < MIN_CONTRAST:
             raise ValueError("The secondary colour is too dark for ink text; pick a lighter one.")
-        for name in ("address", "description", "manifesto_text", "manifesto_url", "privacy_notice"):
+        for name in (
+            "address",
+            "description",
+            "manifesto_text",
+            "manifesto_url",
+            "privacy_notice",
+            "payment_instructions",
+        ):
             plain_text(getattr(self, name), lines=True)
         for key, link in self.social_links.items():
             plain_text(key)

@@ -24,6 +24,9 @@ from tests.conftest import app_client
 from tests.factories import site_settings
 
 PUBLIC_ROUTES = {
+    # An aspirant installation's homepage and its volunteer form.
+    ("GET", "/api/site/candidate/"),
+    ("POST", "/api/site/volunteer/"),
     # A public file; a private one answers 404 unless a superuser asks.
     ("GET", "/api/files/{file_id}/"),
     ("POST", "/api/auth/login/"),
@@ -52,7 +55,6 @@ PUBLIC_ROUTES = {
     ("GET", "/api/party/branches/{county_id}/"),
     ("POST", "/api/party/subscribe/"),
     ("POST", "/api/party/unsubscribe/{code}/"),
-    ("POST", "/api/party/contribute/"),
     ("GET", "/api/candidates/"),
     ("GET", "/api/candidates/{slug}/"),
     ("POST", "/api/candidates/{slug}/volunteer/"),
@@ -65,7 +67,7 @@ PUBLIC_ROUTES = {
 # Routes that exist only in a party installation (docs/Product_Design.md, "Organisation type"
 # and "Website"). The public content under /api/party/ is the website's in both types.
 PARTY_ONLY_PATHS = (
-    r"^/api/party/(?!(posts|places|subscribe|unsubscribe|contribute|slides|issues|documents"
+    r"^/api/party/(?!(posts|places|subscribe|unsubscribe|slides|issues|documents"
     r"|videos)/)",
     r"^/api/admin/party/($|(leaders|branches|values|organs|results|candidates)/"
     r"|posts/\{post_id\}/aspirants/)",
@@ -208,7 +210,7 @@ async def test_the_installation_type_is_read_from_the_site_settings(
 
 
 @pytest.mark.parametrize("organisation_type", [OrganisationType.PARTY], indirect=True)
-async def test_the_workspace_website_routes_are_aspirant_only_and_missing_in_a_party_installation(
+async def test_the_aspirant_website_routes_are_aspirant_only_and_missing_in_a_party_installation(
     client: httpx.AsyncClient,
 ) -> None:
     routes = party_only_routes(AspirantOnlyRoute)
@@ -220,7 +222,10 @@ async def test_the_workspace_website_routes_are_aspirant_only_and_missing_in_a_p
     }
 
     assert {path for _, path in routes} == {
-        path for _, path in _api_routes(app) if path.startswith("/api/workspace/site/")
+        path
+        for _, path in _api_routes(app)
+        if path.startswith("/api/workspace/site/")
+        or path in ("/api/site/candidate/", "/api/site/volunteer/")
     }
     assert len(routes) > 15
     assert set(answers.values()) == {404}

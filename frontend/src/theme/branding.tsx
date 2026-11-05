@@ -66,7 +66,7 @@ export const useBranding = () => React.useContext(Ctx)
 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const site = useSite().data
-  const party = useParty().data
+  const party = useParty(site?.organisation_type === 'party').data
   const b = React.useMemo(
     () => (site ? fromSettings({ ...site, registration_number: party?.registration_number }) : defaultBranding),
     [site, party?.registration_number],

@@ -216,32 +216,6 @@ class PartySubscribed(BaseModel):
     unsubscribe_url: str
 
 
-class PartyContribute(WriteModel):
-    """A contribution as the Contribute page takes it."""
-
-    amount_kes: int = Field(ge=10, le=1_000_000)
-    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)]
-    phone: str = Field(min_length=1, max_length=20)
-    consent_given: StrictBool
-
-    @field_validator("name", "phone")
-    @classmethod
-    def _plain(cls, value: str) -> str:
-        return plain_text(value)
-
-    @field_validator("consent_given")
-    @classmethod
-    def _consent_is_required(cls, value: bool) -> bool:
-        if not value:
-            raise ValueError("Tick the box to confirm the contribution is your own.")
-        return value
-
-
-class PartyContributed(BaseModel):
-    demo: bool
-    message: str
-
-
 class PartyStats(BaseModel):
     """Counts the About page shows."""
 

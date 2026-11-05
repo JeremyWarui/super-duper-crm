@@ -60,7 +60,6 @@ class PartySettings(Base):
     founded_year: Mapped[str] = mapped_column(String(4), default="", server_default=text("''"))
     # The Vie with us page's steps, one per line.
     aspirant_steps: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
-    payment_instructions: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

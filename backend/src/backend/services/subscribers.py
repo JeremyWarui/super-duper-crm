@@ -7,7 +7,7 @@ from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Subscriber
-from backend.services.consent import SUBSCRIBE_WORDING
+from backend.services.consent import subscribe_wording
 from backend.services.site import read_settings
 
 
@@ -25,7 +25,7 @@ async def subscribe(session: AsyncSession, contact: str, channel: str) -> str:
         .values(
             contact=contact,
             channel=channel,
-            consent_wording=SUBSCRIBE_WORDING,
+            consent_wording=subscribe_wording(settings.organisation_type),
             notice_version=settings.privacy_notice_version,
             unsubscribe_code=code,
         )

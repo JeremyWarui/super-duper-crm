@@ -125,7 +125,7 @@ installation the party office (`/api/party/members/`, `…/volunteers/`,
 (leaders, organs, values, branches, results, join and withdraw, the candidates
 directory) and their console editors answer 404, as if they were never
 mounted. The website content both types share (posts, slides, issues,
-documents, videos, places, subscribe, contribute) stays under `/api/party/`.
+documents, videos, places, subscribe) stays under `/api/party/`.
 Party-only routes are `PartyOnlyRoute`s (`api/install.py`): the routers that
 mix both kinds put them on a `party_router`. The `InstallationType`
 middleware reads the type for any request shaped like a party route, and a
@@ -230,6 +230,15 @@ They call the services the console uses, so the same checks apply (colours must
 pass the contrast check) and every edit is audited. These routes are
 `AspirantOnlyRoute`s (`api/install.py`) and answer 404 in a party installation,
 where the website is edited from the console and the party office.
+
+In an aspirant installation the homepage is the standalone campaign's
+candidate page: `GET /api/site/candidate/` (404 until published) and
+`POST /api/site/volunteer/`, which signs a volunteer up to the campaign
+(`services/campaign_page.py`); the workspace edits it at
+`/api/workspace/site/candidate/`. The site settings carry
+`payment_instructions`, which the Contribute page shows; the site takes no
+money. The news sign-up's consent wording follows the installation type
+(`consent.subscribe_wording`), and is the text recorded with each sign-up.
 
 ## Uploads
 
@@ -342,10 +351,9 @@ required and at least 32 characters.
 - A coordinator sees payments through their events' places, so a payment
   with no event never shows to them. `area_ids` reads the caller's areas
   without naming the campaign; one campaign per login keeps that exact.
-- The workspace website does not edit the candidate page, and its editors
-  cannot upload files: uploads are for a superuser (`/api/files/`).
-  It accepts event posts, though an aspirant site's public events are meant to
-  come from the workspace's own events (PD-9 decides which shows).
+- The workspace website's editors cannot upload files: uploads are for a
+  superuser (`/api/files/`). Its public Events page lists event posts; the
+  workspace's own events are not published to it.
 - Uploads: the `*_file_id` columns are not yet set or read by any editor or
   page (PD-9, PD-22); the request body is read in full before the size check,
   so the limit guards storage, not memory; a file nothing points to is never

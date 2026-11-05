@@ -10,7 +10,6 @@ from sqlalchemy import func, select
 from backend.api.deps import AdminUser, SessionDep, Today
 from backend.api.install import PartyOnlyRoute
 from backend.api.routers.join import _client
-from backend.config import get_settings
 from backend.models import (
     AgendaIssue,
     Constituency,
@@ -43,8 +42,6 @@ from backend.schemas.content import (
 )
 from backend.schemas.dashboard import Dashboard
 from backend.schemas.party import (
-    PartyContribute,
-    PartyContributed,
     PartyJoinCreate,
     PartyJoinDone,
     PartyPlace,
@@ -72,7 +69,6 @@ WITHDRAWALS = RateLimit(limit=20, window=3600)
 VOLUNTEER_WITHDRAWALS = RateLimit(limit=20, window=3600)
 SUBSCRIBES = RateLimit(limit=20, window=3600)
 UNSUBSCRIBES = RateLimit(limit=20, window=3600)
-CONTRIBUTIONS = RateLimit(limit=20, window=3600)
 UNSUBSCRIBE_PATH = "/unsubscribe/"
 WITHDRAW_PATH = "/party/withdraw/"
 VOLUNTEER_WITHDRAW_PATH = "/party/volunteer/withdraw/"
@@ -88,13 +84,9 @@ VOLUNTEER_WITHDRAWN = (
     "about volunteering within a few minutes. Your membership is unchanged."
 )
 
-SUBSCRIBED = "Thank you. You will get party news there; the link below unsubscribes you."
+SUBSCRIBED = "Thank you. You will get our news there; the link below unsubscribes you."
 UNSUBSCRIBED = (
-    "Received. If this link came with a news sign-up, that contact gets no more party news."
-)
-CONTRIBUTED_DEMO = (
-    "This is a demonstration site: no money moved and nothing was charged or stored. "
-    "A party using this platform takes contributions through its payment provider."
+    "Received. If this link came with a news sign-up, that contact gets no more news from us."
 )
 
 
@@ -294,20 +286,6 @@ async def unsubscribe(code: str, request: Request, session: SessionDep) -> Party
         await subscribers.unsubscribe(session, code)
         await session.commit()
     return PartyWithdrawn(message=UNSUBSCRIBED)
-
-
-@router.post("/contribute/", response_model=PartyContributed)
-async def contribute(payload: PartyContribute, request: Request) -> PartyContributed:
-    """Take a contribution. In demo mode nothing is charged or stored."""
-    if not CONTRIBUTIONS.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
-    if normalise_phone(payload.phone) is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Enter a Kenyan mobile number, like 0712 345678."
-        )
-    return PartyContributed(
-        demo=get_settings().payments_provider == "demo", message=CONTRIBUTED_DEMO
-    )
 
 
 @router.get("/slides/", response_model=list[SlideRead])

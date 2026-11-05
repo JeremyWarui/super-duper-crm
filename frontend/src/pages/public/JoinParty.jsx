@@ -1,6 +1,6 @@
 // /join-party: anyone applies to join the party in three steps, with no login.
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Check } from "lucide-react";
 import { useJoinParty, useParty, usePartyPlaces, useSite } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,8 @@ export default function JoinParty() {
   const site = useSite();
   const party = useParty();
   const join = useJoinParty();
+  // A coordinator's recruitment link adds ?r=; the server ignores a code it does not know.
+  const recruitment = useSearchParams()[0].get("r") || undefined;
   const [step, setStep] = useState(1);
   const [firstName, setFirstName] = useState("");
   const [surname, setSurname] = useState("");
@@ -113,6 +115,7 @@ export default function JoinParty() {
       ward,
       registration_centre: centre,
       consent_given: true,
+      ...(recruitment && { recruitment: recruitment.slice(0, 32) }),
       ...(volunteer && {
         volunteer: {
           profession,

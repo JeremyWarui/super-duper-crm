@@ -636,3 +636,28 @@ def test_the_campaign_roles_migration_admits_the_new_roles_and_guards_its_downgr
     engine.dispose()
 
     assert refused == ["coordinator", "comms", "agent"]
+
+
+def test_the_payment_instructions_move_from_the_party_to_the_site_settings() -> None:
+    revisions = revision_modules()
+    last = next(i for i, m in enumerate(revisions) if m.revision == "payment_instructions_to_site")
+    engine = sa.create_engine("sqlite://")
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            for module in revisions[:last]:
+                module.upgrade()
+        connection.execute(sa.text("UPDATE party_settings SET payment_instructions = 'Paybill 1'"))
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].upgrade()
+        moved = connection.execute(sa.text("SELECT payment_instructions FROM site_settings"))
+        site = moved.scalars().all()
+        party = {c["name"] for c in sa.inspect(connection).get_columns("party_settings")}
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].downgrade()
+        back = connection.execute(sa.text("SELECT payment_instructions FROM party_settings"))
+        restored = back.scalars().all()
+    engine.dispose()
+
+    assert site == ["Paybill 1"]
+    assert "payment_instructions" not in party
+    assert restored == ["Paybill 1"]

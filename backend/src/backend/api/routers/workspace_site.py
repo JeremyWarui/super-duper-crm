@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from backend.api.deps import SessionDep, Today, require
 from backend.api.install import AspirantOnlyRoute
 from backend.models import AgendaIssue, HeroSlide, PartyDocument, PartyVideo, PostKind, User
+from backend.schemas.candidates import ProfileRead, ProfileWrite
 from backend.schemas.content import (
     DocumentAdminRead,
     DocumentCreate,
@@ -31,7 +32,7 @@ from backend.schemas.content import (
     VideoUpdate,
 )
 from backend.schemas.site import SiteSettingsRead, SiteSettingsUpdate
-from backend.services import content, home, site
+from backend.services import campaign_page, content, home, site
 
 router = APIRouter(prefix="/workspace/site", tags=["workspace site"], route_class=AspirantOnlyRoute)
 Editor = Annotated[User, Depends(require("site.write"))]
@@ -46,6 +47,18 @@ async def read_settings(session: SessionDep, _: Editor):
 async def update_settings(payload: SiteSettingsUpdate, session: SessionDep, user: Editor):
     """Replace the site settings; colours must pass the contrast check."""
     return await site.update_settings(session, payload, actor=user)
+
+
+@router.get("/candidate/", response_model=ProfileRead)
+async def read_candidate_page(session: SessionDep, _: Editor):
+    """The candidate page the homepage shows, as written so far."""
+    return await campaign_page.read(session)
+
+
+@router.put("/candidate/", response_model=ProfileRead)
+async def write_candidate_page(payload: ProfileWrite, session: SessionDep, user: Editor):
+    """Replace the candidate page; it shows on the homepage once published."""
+    return await campaign_page.write(session, payload, actor=user)
 
 
 @router.get("/posts/", response_model=list[PostAdminRead])

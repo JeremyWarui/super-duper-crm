@@ -55,6 +55,8 @@ class SiteSettings(Base):
     manifesto_text: Mapped[str] = mapped_column(Text, default="")
     manifesto_url: Mapped[str] = mapped_column(String(500), default="")
     privacy_notice: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
+    # How to give, shown on the Contribute page; the site takes no money itself.
+    payment_instructions: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
     # Recorded with every news sign-up; raised when the notice changes.
     privacy_notice_version: Mapped[str] = mapped_column(
         String(20), default="1", server_default=text("'1'")

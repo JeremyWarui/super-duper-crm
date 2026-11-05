@@ -79,9 +79,6 @@ class Settings(BaseSettings):
     at_sandbox: bool = False
     sms_provider: Literal["console", "africastalking"] = "console"
 
-    # "demo" takes contributions on the website but charges and stores nothing.
-    payments_provider: Literal["demo"] = "demo"
-
     # Webhook signing secret (whsec_...) from the Paystack dashboard; blank checks the
     # older x-paystack-signature header against the secret key instead.
     paystack_webhook_secret: str = ""

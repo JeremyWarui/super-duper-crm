@@ -252,7 +252,8 @@
       "privacy_notice",
       "privacy_notice_version",
       "subscribe_consent_wording",
-      "about_headline"
+      "about_headline",
+      "payment_instructions"
     ],
     "GET /api/party/": [
       "consent_wording",
@@ -278,7 +279,8 @@
       "slogan",
       "privacy_notice",
       "privacy_notice_version",
-      "about_headline"
+      "about_headline",
+      "payment_instructions"
     ],
     "PUT /api/admin/party/": [
       "updated_at",
@@ -486,10 +488,6 @@
       "unsubscribe_url"
     ],
     "POST /api/party/unsubscribe/{code}/": [
-      "message"
-    ],
-    "POST /api/party/contribute/": [
-      "demo",
       "message"
     ],
     "GET /api/account/": [
@@ -742,6 +740,150 @@
     "GET /api/party/notifications/": [
       "key",
       "count"
+    ],
+    "GET /api/site/candidate/": [
+      "slug",
+      "name",
+      "seat",
+      "area",
+      "county",
+      "photo_url",
+      "slogan",
+      "bio",
+      "priorities",
+      "office_address",
+      "office_phone",
+      "office_email",
+      "events",
+      "volunteering_open",
+      "wards",
+      "consent_wording"
+    ],
+    "POST /api/site/volunteer/": [
+      "message",
+      "withdraw_code"
+    ],
+    "GET /api/workspace/site/posts/": [
+      "id",
+      "kind",
+      "title",
+      "body",
+      "image_url",
+      "event_date",
+      "venue",
+      "published_on",
+      "published",
+      "label",
+      "place",
+      "author",
+      "author_photo_url",
+      "reference",
+      "pdf_url",
+      "county_id"
+    ],
+    "GET /api/workspace/site/slides/": [
+      "id",
+      "image_url",
+      "kicker",
+      "headline",
+      "line",
+      "button_label",
+      "button_url",
+      "sort_order",
+      "published"
+    ],
+    "GET /api/workspace/site/issues/": [
+      "id",
+      "title",
+      "summary",
+      "what_we_will_do",
+      "why_it_matters",
+      "sort_order",
+      "published"
+    ],
+    "GET /api/workspace/site/documents/": [
+      "id",
+      "title",
+      "url",
+      "sort_order",
+      "published"
+    ],
+    "GET /api/workspace/site/videos/": [
+      "id",
+      "title",
+      "url",
+      "thumbnail_url",
+      "duration",
+      "sort_order",
+      "published"
+    ],
+    "GET /api/workspace/site/settings/": [
+      "name",
+      "short_name",
+      "logo_url",
+      "primary_colour",
+      "secondary_colour",
+      "contact_email",
+      "contact_phone",
+      "address",
+      "description",
+      "manifesto_text",
+      "manifesto_url",
+      "social_links",
+      "updated_at",
+      "slogan",
+      "privacy_notice",
+      "privacy_notice_version",
+      "about_headline",
+      "payment_instructions"
+    ],
+    "PUT /api/workspace/site/settings/": [
+      "name",
+      "short_name",
+      "logo_url",
+      "primary_colour",
+      "secondary_colour",
+      "contact_email",
+      "contact_phone",
+      "address",
+      "description",
+      "manifesto_text",
+      "manifesto_url",
+      "social_links",
+      "updated_at",
+      "slogan",
+      "privacy_notice",
+      "privacy_notice_version",
+      "about_headline",
+      "payment_instructions"
+    ],
+    "GET /api/workspace/site/candidate/": [
+      "photo_url",
+      "slogan",
+      "bio",
+      "priorities",
+      "office_address",
+      "office_phone",
+      "office_email",
+      "published"
+    ],
+    "PUT /api/workspace/site/candidate/": [
+      "photo_url",
+      "slogan",
+      "bio",
+      "priorities",
+      "office_address",
+      "office_phone",
+      "office_email",
+      "published"
+    ],
+    "GET /api/party/workspace/recruitment/": [
+      "code",
+      "by_status"
+    ],
+    "POST /api/party/workspace/recruitment/": [
+      "code",
+      "by_status"
     ]
   },
   "nested_reads": {
@@ -957,6 +1099,14 @@
     "GET /api/campaigns/{campaign_id}/volunteers/.registration_centre": [
       "id",
       "name"
+    ],
+    "GET /api/site/candidate/.wards": [
+      "id",
+      "name"
+    ],
+    "GET /api/site/candidate/.priorities": [
+      "title",
+      "text"
     ]
   },
   "writes": {
@@ -1123,7 +1273,8 @@
       "slogan",
       "privacy_notice",
       "privacy_notice_version",
-      "about_headline"
+      "about_headline",
+      "payment_instructions"
     ],
     "PUT /api/admin/party/": [
       "registration_number",
@@ -1232,12 +1383,6 @@
       "consent_given"
     ],
     "POST /api/party/unsubscribe/{code}/": [],
-    "POST /api/party/contribute/": [
-      "amount_kes",
-      "name",
-      "phone",
-      "consent_given"
-    ],
     "PUT /api/account/volunteer/": [
       "profession",
       "profession_other",
@@ -1385,7 +1530,141 @@
     "PATCH /api/campaigns/{campaign_id}/volunteers/{volunteer_id}/": [
       "status"
     ],
-    "POST /api/candidates/volunteer/withdraw/{code}/": []
+    "POST /api/candidates/volunteer/withdraw/{code}/": [],
+    "POST /api/site/volunteer/": [
+      "first_name",
+      "last_name",
+      "email",
+      "phone",
+      "ward",
+      "registration_centre",
+      "profession",
+      "profession_other",
+      "areas",
+      "area_other",
+      "preferred_contact",
+      "consent_given"
+    ],
+    "POST /api/workspace/site/posts/": [
+      "kind",
+      "title",
+      "body",
+      "image_url",
+      "event_date",
+      "venue",
+      "label",
+      "place",
+      "author",
+      "author_photo_url",
+      "reference",
+      "pdf_url",
+      "county_id"
+    ],
+    "PATCH /api/workspace/site/posts/{post_id}/": [
+      "title",
+      "body",
+      "image_url",
+      "event_date",
+      "venue",
+      "published",
+      "label",
+      "place",
+      "author",
+      "author_photo_url",
+      "reference",
+      "pdf_url",
+      "county_id"
+    ],
+    "POST /api/workspace/site/slides/": [
+      "headline",
+      "kicker",
+      "line",
+      "button_label",
+      "button_url",
+      "image_url",
+      "sort_order"
+    ],
+    "PATCH /api/workspace/site/slides/{item_id}/": [
+      "headline",
+      "kicker",
+      "line",
+      "button_label",
+      "button_url",
+      "image_url",
+      "sort_order",
+      "published"
+    ],
+    "POST /api/workspace/site/issues/": [
+      "title",
+      "summary",
+      "what_we_will_do",
+      "why_it_matters",
+      "sort_order"
+    ],
+    "PATCH /api/workspace/site/issues/{item_id}/": [
+      "title",
+      "summary",
+      "what_we_will_do",
+      "why_it_matters",
+      "sort_order",
+      "published"
+    ],
+    "POST /api/workspace/site/documents/": [
+      "title",
+      "url",
+      "sort_order"
+    ],
+    "PATCH /api/workspace/site/documents/{item_id}/": [
+      "title",
+      "url",
+      "sort_order",
+      "published"
+    ],
+    "POST /api/workspace/site/videos/": [
+      "title",
+      "url",
+      "thumbnail_url",
+      "duration",
+      "sort_order"
+    ],
+    "PATCH /api/workspace/site/videos/{item_id}/": [
+      "title",
+      "url",
+      "thumbnail_url",
+      "duration",
+      "sort_order",
+      "published"
+    ],
+    "PUT /api/workspace/site/settings/": [
+      "name",
+      "short_name",
+      "logo_url",
+      "primary_colour",
+      "secondary_colour",
+      "contact_email",
+      "contact_phone",
+      "address",
+      "description",
+      "manifesto_text",
+      "manifesto_url",
+      "social_links",
+      "slogan",
+      "privacy_notice",
+      "privacy_notice_version",
+      "about_headline",
+      "payment_instructions"
+    ],
+    "PUT /api/workspace/site/candidate/": [
+      "photo_url",
+      "slogan",
+      "bio",
+      "priorities",
+      "office_address",
+      "office_phone",
+      "office_email",
+      "published"
+    ],
+    "POST /api/party/workspace/recruitment/": []
   },
   "enums": {
     "user.role": [
@@ -1462,7 +1741,12 @@
       "DELETE /api/admin/party/values/{value_id}/",
       "DELETE /api/admin/party/organs/{organ_id}/",
       "DELETE /api/admin/party/results/{result_id}/",
-      "DELETE /api/admin/party/videos/{video_id}/"
+      "DELETE /api/admin/party/videos/{video_id}/",
+      "DELETE /api/workspace/site/posts/{post_id}/",
+      "DELETE /api/workspace/site/slides/{item_id}/",
+      "DELETE /api/workspace/site/issues/{item_id}/",
+      "DELETE /api/workspace/site/documents/{item_id}/",
+      "DELETE /api/workspace/site/videos/{item_id}/"
     ]
   }
 }

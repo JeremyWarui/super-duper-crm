@@ -38,6 +38,17 @@ against the same campaign. Sign out and back in to switch between them.
 The passwords are generated per run and printed by `campaign-crm demo`. Pass
 `--password <value>` to pin all three instead.
 
+## By organisation type
+
+`src/app/site.js` reads the installation's type from `GET /api/site/` once, and
+`src/copy.js` holds every word that differs by type. `Gate.jsx` serves the
+shared website pages in both, the party's pages in a party installation, and in
+an aspirant installation the candidate homepage at `/`, `/volunteer` and
+`/volunteer/withdraw/:code`; a path only the other type serves goes to `/`. In
+an aspirant installation the Candidate, Manager and Comms get the workspace
+**Website** and **Settings** pages; in the party workspace a coordinator gets
+**Recruitment**, their link and QR code to the Join the Party form.
+
 ## Styling
 
 Plain CSS, no framework. Everything lives in `src/index.css`:

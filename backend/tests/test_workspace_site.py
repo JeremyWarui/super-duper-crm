@@ -99,3 +99,67 @@ async def test_a_role_without_site_write_gets_403(
     ]
 
     assert answers == [403, 403, 403]
+
+
+async def test_the_homepage_shows_the_candidate_page_once_published_and_signs_volunteers_up(
+    session: AsyncSession, client: httpx.AsyncClient, world: World, comms: dict
+) -> None:
+    from backend.models import VolunteerProfile, WorkspaceKind
+
+    world.campaign.kind = WorkspaceKind.STANDALONE
+    await session.commit()
+    page = {"slogan": "Roysambu first", "bio": "Teacher.", "published": False}
+    draft = await client.put(f"{URL}candidate/", headers=comms, json=page)
+    hidden = await client.get("/api/site/candidate/")
+    await client.put(f"{URL}candidate/", headers=comms, json={**page, "published": True})
+    shown = await client.get("/api/site/candidate/")
+    joined = await client.post(
+        "/api/site/volunteer/",
+        json={
+            "first_name": "Wanjiku",
+            "last_name": "Njeri",
+            "email": "wanjiku@example.com",
+            "phone": "0712 345678",
+            "ward": str(world.ward.id),
+            "registration_centre": str(world.centre.id),
+            "profession": "teacher",
+            "areas": ["door_to_door"],
+            "preferred_contact": "sms",
+            "consent_given": True,
+        },
+    )
+    volunteer = await session.scalar(select(VolunteerProfile))
+
+    assert (draft.status_code, hidden.status_code) == (200, 404)
+    assert (shown.json()["slogan"], shown.json()["seat"]) == ("Roysambu first", "mp")
+    assert {w["name"] for w in shown.json()["wards"]} == {"Zimmerman", "Githurai"}
+    assert joined.status_code == 201
+    assert volunteer.campaign_id == world.campaign.id
+
+
+async def test_the_contribute_page_reads_the_payment_instructions_from_the_settings(
+    client: httpx.AsyncClient, comms: dict
+) -> None:
+    saved = await client.put(
+        f"{URL}settings/", headers=comms, json=_settings(payment_instructions="Paybill 123456")
+    )
+    public = await client.get("/api/site/")
+
+    assert saved.status_code == 200
+    assert public.json()["payment_instructions"] == "Paybill 123456"
+
+
+async def test_the_news_sign_up_shows_and_records_the_campaigns_wording(
+    session: AsyncSession, client: httpx.AsyncClient, comms: dict
+) -> None:
+    from backend.models import Subscriber
+    from backend.services.consent import CAMPAIGN_SUBSCRIBE_WORDING
+
+    shown = (await client.get("/api/site/")).json()["subscribe_consent_wording"]
+    answer = await client.post(
+        "/api/party/subscribe/", json={"contact": "0712345678", "consent_given": True}
+    )
+    recorded = await session.scalar(select(Subscriber.consent_wording))
+
+    assert shown == recorded == CAMPAIGN_SUBSCRIBE_WORDING
+    assert "party" not in (shown + answer.json()["message"]).lower()

@@ -10,7 +10,8 @@ import { useCampaigns } from "./api/hooks";
 import Legacy from "./components/Legacy";
 import NoCampaign from "./components/NoCampaign";
 import { ErrorMsg, Loading } from "./pages/campaign/controls";
-import { NAV, ROLE_LABEL, pagesOf } from "./pages/campaign/helpers";
+import { ROLE_LABEL, navFor, pagesOf } from "./pages/campaign/helpers";
+import { useInstall } from "./app/site";
 import {
   AccessFooter, AreaPicker, SeatCard, WorkspaceAlerts, WorkspaceBrand, WorkspaceHelp, WorkspaceSearch,
 } from "./pages/campaign/WorkspaceShell";
@@ -27,6 +28,12 @@ import Events from "./pages/campaign/Events";
 import Register from "./pages/campaign/Register";
 import Payments from "./pages/campaign/Payments";
 import Volunteers from "./pages/campaign/Volunteers";
+import Website from "./pages/campaign/Website";
+import Settings from "./pages/campaign/Settings";
+import Recruitment from "./pages/campaign/Recruitment";
+
+// Pages built on the UI kit, which render outside the legacy stylesheet.
+const KIT_PAGES = new Set(["website", "settings", "recruitment"]);
 
 // One page per NAV key.
 const PAGES = {
@@ -40,13 +47,16 @@ const PAGES = {
   events: Events,
   payments: Payments,
   volunteers: Volunteers,
+  website: Website,
+  settings: Settings,
+  recruitment: Recruitment,
   register: Register,
   myevents: (props) => <Events {...props} mine />,
   mysupporters: (props) => <Supporters {...props} mine />,
   mypayments: (props) => <Payments {...props} mine />,
 };
 
-function Shell({ campaign, role }) {
+function Shell({ campaign, role, where }) {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
   const { partyName } = useBranding();
@@ -55,11 +65,11 @@ function Shell({ campaign, role }) {
   const { page } = useParams();
   const data = useShellData(campaign, role);
   const areaValue = useMemo(() => ({ area, setArea, wards: data.wards }), [area, data.wards]);
-  const pages = pagesOf(role);
+  const pages = pagesOf(role, where);
   const current = pages.find(([key]) => key === page);
   if (!current) return <Navigate to={`/campaign/${pages[0][0]}`} replace />;
   const Page = PAGES[page];
-  const groups = NAV[role].map((g) => ({
+  const groups = navFor(role, where).map((g) => ({
     label: g.label,
     items: g.items.map(([key, label]) => ({ label, to: `/campaign/${key}`, icon: ICONS[key] })),
   }));
@@ -85,10 +95,14 @@ function Shell({ campaign, role }) {
         onSignOut={logout}
       >
         <AppPage crumb={current[1]}>
-          <Legacy>
-            <Page campaign={campaign} role={role} onModal={setModal} />
-            <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />
-          </Legacy>
+          {KIT_PAGES.has(page) ? (
+            <Page campaign={campaign} role={role} />
+          ) : (
+            <Legacy>
+              <Page campaign={campaign} role={role} onModal={setModal} />
+              <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />
+            </Legacy>
+          )}
         </AppPage>
       </AppLayout>
     </AreaContext.Provider>
@@ -97,18 +111,20 @@ function Shell({ campaign, role }) {
 
 export default function App() {
   const role = useAuth((s) => s.user?.role);
-  const pages = pagesOf(role);
+  const install = useInstall();
   const campaigns = useCampaigns();
   const campaign = (campaigns.data || [])[0];
 
-  if (!pages.length) return <Legacy><NoCampaign /></Legacy>;
+  if (!pagesOf(role).length) return <Legacy><NoCampaign /></Legacy>;
   if (campaigns.isLoading) return <Legacy><Loading /></Legacy>;
   if (campaigns.error) return <Legacy><ErrorMsg error={campaigns.error} /></Legacy>;
   if (!campaign) return <Legacy><div className="not-on-campaign">You are not on a campaign yet.</div></Legacy>;
+  const where = { aspirant: install.aspirant, partyWorkspace: campaign.kind === "party" };
+  const pages = pagesOf(role, where);
 
   return (
     <Routes>
-      <Route path="campaign/:page" element={<Shell campaign={campaign} role={role} />} />
+      <Route path="campaign/:page" element={<Shell campaign={campaign} role={role} where={where} />} />
       <Route path="*" element={<Navigate to={`/campaign/${pages[0][0]}`} replace />} />
     </Routes>
   );

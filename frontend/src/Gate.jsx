@@ -15,6 +15,9 @@ import Legacy from "./components/Legacy";
 import About from "./pages/public/About";
 import Events from "./pages/public/Events";
 import Home from "./pages/public/Home";
+import AspirantHome from "./pages/public/AspirantHome";
+import Volunteer from "./pages/public/Volunteer";
+import { useInstall } from "./app/site";
 import Leadership from "./pages/public/Leadership";
 import Manifesto from "./pages/public/Manifesto";
 import Results from "./pages/public/Results";
@@ -130,38 +133,67 @@ function WithdrawVolunteerPage() {
   return <WithdrawVolunteer code={useParams().code} />;
 }
 
-// The party's public site is at / and needs no login, nor do a sign-up link (/join/<code>),
-// a supporter's withdrawal link (/withdraw/<code>) and the party's application and withdrawal
-// pages. Every other address is a signed-in app.
+const page = (element) => <PublicLayout>{element}</PublicLayout>;
+
+// The website pages both kinds of installation serve, and those of each kind. A path only the
+// other kind serves goes home.
+const SHARED = [
+  ["/news", () => page(<News />)],
+  ["/news/:id", () => page(<PostPage />)],
+  ["/events", () => page(<Events />)],
+  ["/contribute", () => page(<Contribute />)],
+  ["/privacy", () => page(<Privacy />)],
+  ["/unsubscribe/:code", () => page(<Unsubscribe />)],
+  ["/signin", () => <SignInPage />],
+  ["/signin/where", () => <SignedInOnly><Chooser /></SignedInOnly>],
+  ["/account", () => <SignedInOnly><AccountPage /></SignedInOnly>],
+  ["/join/:code", () => <Legacy><JoinPage /></Legacy>],
+  ["/withdraw/:code", () => <Legacy><WithdrawPage /></Legacy>],
+];
+
+const PARTY = [
+  ["/", () => page(<Home />)],
+  ["/issues/:id", () => page(<Issue />)],
+  ["/about", () => page(<About />)],
+  ["/leadership", () => page(<Leadership />)],
+  ["/manifesto", () => page(<Manifesto />)],
+  ["/results", () => page(<Results />)],
+  ["/candidates", () => page(<Candidates />)],
+  ["/candidates/volunteer/withdraw/:code", () => page(<CandidateWithdraw />)],
+  ["/candidates/:slug", () => page(<CandidateRoute />)],
+  ["/vie", () => page(<Vie />)],
+  ["/join-party", () => page(<JoinParty />)],
+  ["/counties", () => page(<Branches />)],
+  ["/counties/:id", () => page(<Branch />)],
+  ["/party/withdraw/:code", () => <Legacy><WithdrawPartyPage /></Legacy>],
+  ["/party/volunteer/withdraw/:code", () => <Legacy><WithdrawVolunteerPage /></Legacy>],
+];
+
+const ASPIRANT = [
+  ["/", () => page(<AspirantHome />)],
+  ["/volunteer", () => page(<Volunteer />)],
+  ["/volunteer/withdraw/:code", () => page(<CandidateWithdraw />)],
+];
+
+const home = <Navigate to="/" replace />;
+
+// Everything else is a signed-in app.
 export function AppRoutes() {
+  const install = useInstall();
+  const own = install.aspirant ? ASPIRANT : PARTY;
+  const other = install.aspirant ? PARTY : ASPIRANT;
+  const taken = new Set(own.map(([path]) => path));
+  // Until the site settings say which kind this is, its own pages wait rather than guess.
+  const typed = install.loading
+    ? [...PARTY, ...ASPIRANT].map(([path]) => <Route key={path} path={path} element={null} />)
+    : [
+        ...own.map(([path, element]) => <Route key={path} path={path} element={element()} />),
+        ...other.filter(([path]) => !taken.has(path)).map(([path]) => <Route key={path} path={path} element={home} />),
+      ];
   return (
     <Routes>
-      <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-      <Route path="/issues/:id" element={<PublicLayout><Issue /></PublicLayout>} />
-      <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
-      <Route path="/leadership" element={<PublicLayout><Leadership /></PublicLayout>} />
-      <Route path="/manifesto" element={<PublicLayout><Manifesto /></PublicLayout>} />
-      <Route path="/news" element={<PublicLayout><News /></PublicLayout>} />
-      <Route path="/news/:id" element={<PublicLayout><PostPage /></PublicLayout>} />
-      <Route path="/events" element={<PublicLayout><Events /></PublicLayout>} />
-      <Route path="/results" element={<PublicLayout><Results /></PublicLayout>} />
-      <Route path="/candidates" element={<PublicLayout><Candidates /></PublicLayout>} />
-      <Route path="/candidates/volunteer/withdraw/:code" element={<PublicLayout><CandidateWithdraw /></PublicLayout>} />
-      <Route path="/candidates/:slug" element={<PublicLayout><CandidateRoute /></PublicLayout>} />
-      <Route path="/vie" element={<PublicLayout><Vie /></PublicLayout>} />
-      <Route path="/signin" element={<SignInPage />} />
-      <Route path="/signin/where" element={<SignedInOnly><Chooser /></SignedInOnly>} />
-      <Route path="/account" element={<SignedInOnly><AccountPage /></SignedInOnly>} />
-      <Route path="/join/:code" element={<Legacy><JoinPage /></Legacy>} />
-      <Route path="/withdraw/:code" element={<Legacy><WithdrawPage /></Legacy>} />
-      <Route path="/join-party" element={<PublicLayout><JoinParty /></PublicLayout>} />
-      <Route path="/contribute" element={<PublicLayout><Contribute /></PublicLayout>} />
-      <Route path="/counties" element={<PublicLayout><Branches /></PublicLayout>} />
-      <Route path="/counties/:id" element={<PublicLayout><Branch /></PublicLayout>} />
-      <Route path="/privacy" element={<PublicLayout><Privacy /></PublicLayout>} />
-      <Route path="/unsubscribe/:code" element={<PublicLayout><Unsubscribe /></PublicLayout>} />
-      <Route path="/party/withdraw/:code" element={<Legacy><WithdrawPartyPage /></Legacy>} />
-      <Route path="/party/volunteer/withdraw/:code" element={<Legacy><WithdrawVolunteerPage /></Legacy>} />
+      {SHARED.map(([path, element]) => <Route key={path} path={path} element={element()} />)}
+      {typed}
       <Route path="/*" element={<Root />} />
     </Routes>
   );

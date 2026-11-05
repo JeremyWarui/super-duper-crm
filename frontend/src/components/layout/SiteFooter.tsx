@@ -4,17 +4,13 @@ import { useSite, useSubscribe } from '@/api/hooks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useBranding } from '@/theme/branding'
+import { useCopy } from '@/copy'
 import { Logo } from './Logo'
 
-const cols = [
-  { title: 'The party', links: [['About', '/about'], ['Leadership', '/leadership'], ['Manifesto', '/manifesto']] },
-  { title: 'Take part', links: [['Join the party', '/join-party'], ['Events', '/events'], ['Contribute', '/contribute'], ['Vie with us', '/vie'], ['Our candidates', '/candidates']] },
-  { title: 'Media', links: [['News & statements', '/news'], ['Primary results', '/results']] },
-  { title: 'Accounts', links: [['Member sign in', '/signin']] },
-] as const
 
 /** The green band's SMS or email sign-up; the consent box carries the wording the server records. */
 function Newsletter({ wording }: { wording: string }) {
+  const copy = useCopy()
   const subscribe = useSubscribe()
   const [contact, setContact] = React.useState('')
   const [consent, setConsent] = React.useState(false)
@@ -23,8 +19,8 @@ function Newsletter({ wording }: { wording: string }) {
     <section aria-labelledby="ft-sub-h" className="bg-primary text-white">
       <div className="site-container flex flex-wrap items-center justify-between gap-5 py-11">
         <div className="flex max-w-[520px] flex-col gap-1.5">
-          <h2 id="ft-sub-h" className="font-display text-[28px] font-extrabold">Get party news by SMS or email</h2>
-          <p className="text-[#CFE0D5]">Statements, events near you and nomination notices. Unsubscribe any time.</p>
+          <h2 id="ft-sub-h" className="font-display text-[28px] font-extrabold">{copy.newsTitle}</h2>
+          <p className="text-[#CFE0D5]">{copy.newsLead}</p>
         </div>
         {done ? (
           <div role="status" className="flex max-w-[420px] flex-col gap-1.5">
@@ -55,9 +51,10 @@ function Newsletter({ wording }: { wording: string }) {
   )
 }
 
-/** Shared website footer: news sign-up, the party's contacts and socials, link columns, legal row. */
+/** Shared website footer: news sign-up, the site's contacts and socials, link columns, legal row. */
 export function SiteFooter({ newsletter = true }: { newsletter?: boolean }) {
   const b = useBranding()
+  const copy = useCopy()
   const party: any = useSite().data
   const socials = Object.entries(party?.social_links || {}) as [string, string][]
   const contact = [party?.contact_phone, party?.contact_email].filter(Boolean)
@@ -77,10 +74,10 @@ export function SiteFooter({ newsletter = true }: { newsletter?: boolean }) {
                 </span>
               ) : null}
             </div>
-            {cols.map((c) => (
+            {copy.footer.map((c) => (
               <div key={c.title} className="flex flex-col gap-2.5">
                 <span className="font-bold text-on-dark">{c.title}</span>
-                {c.links.map(([label, to]) => <Link key={label} to={to} className="py-0.5 text-on-dark-muted hover:text-white">{label}</Link>)}
+                {c.links.map(([label, to]: string[]) => <Link key={label} to={to} className="py-0.5 text-on-dark-muted hover:text-white">{label}</Link>)}
               </div>
             ))}
           </div>

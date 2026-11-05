@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from backend.api.routers import (
     account,
     admin,
+    aspirant_site,
     auth,
     campaigns,
     candidates,
@@ -55,6 +56,7 @@ for module in (
     team,
     users,
     workspace_site,
+    aspirant_site,
 ):
     api_router.include_router(module.router)
 for module in (admin, candidates, party):

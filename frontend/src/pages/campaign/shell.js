@@ -2,7 +2,8 @@
 // and what needs the role now.
 import { createContext, useContext, useMemo } from "react";
 import {
-  Banknote, CalendarDays, Crosshair, HandHeart, Heart, LayoutDashboard, Map, Target, UserPlus, UserRoundCog, Users,
+  Banknote, CalendarDays, Crosshair, Globe, HandHeart, Heart, LayoutDashboard, Map, QrCode, Settings, Target, UserPlus,
+  UserRoundCog, Users,
 } from "lucide-react";
 import { useEvents, useMobilizers, useStrategy, useSupporters, useTargets } from "../../api/hooks";
 import { pagesOf, reads } from "./helpers";
@@ -22,6 +23,9 @@ export const ICONS = {
   register: UserPlus,
   mysupporters: Heart,
   mypayments: Banknote,
+  website: Globe,
+  settings: Settings,
+  recruitment: QrCode,
 };
 
 /** The data the shell reads for this role; a query the role may not make is never sent. */

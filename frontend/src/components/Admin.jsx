@@ -746,13 +746,17 @@ const partyForm = (party) => ({
       "manifesto_text",
       "aspirant_steps",
       "privacy_notice",
+      "payment_instructions",
     ].map((key) => [key, party[key] ?? ""]),
   ),
   links: Object.entries(party.social_links || {}),
 });
 
-function PartyForm({ party }) {
-  const save = useSaveSettings();
+// Party-only fields, which an aspirant installation's settings leave out.
+const PARTY_ONLY = new Set(["registration_number", "founded_year", "aspirant_steps"]);
+
+function PartyForm({ party, isParty }) {
+  const save = useSaveSettings({ party: isParty });
   const [form, setForm] = useState(() => partyForm(party));
   const [saved, setSaved] = useState(false);
   const set = (patch) => {
@@ -767,7 +771,8 @@ function PartyForm({ party }) {
     });
 
   const submit = () => {
-    const { links, ...rest } = form;
+    const { links, ...all } = form;
+    const rest = isParty ? all : Object.fromEntries(Object.entries(all).filter(([key]) => !PARTY_ONLY.has(key)));
     save.mutate(
       {
         ...rest,
@@ -783,9 +788,9 @@ function PartyForm({ party }) {
 
   return (
     <Card>
-      <div className="admin-display admin-form-heading">Party settings</div>
+      <div className="admin-display admin-form-heading">{isParty ? "Party settings" : "Site settings"}</div>
       <div className="flex flex-wrap gap-2">
-        {PARTY_TEXT.map(([key, label]) => (
+        {PARTY_TEXT.filter(([key]) => isParty || !PARTY_ONLY.has(key)).map(([key, label]) => (
           <Field key={key} label={label}>
             <input
               className="admin-field admin-field-wide"
@@ -827,12 +832,25 @@ function PartyForm({ party }) {
           onChange={(e) => set({ manifesto_text: e.target.value })}
         />
       </Field>
+      {isParty ? (
+        <>
+          <div className="admin-form-spacer" />
+          <Field label="Steps to become an aspirant (one per line)">
+            <textarea
+              className="admin-field admin-field-wide admin-field-area"
+              value={form.aspirant_steps}
+              onChange={(e) => set({ aspirant_steps: e.target.value })}
+            />
+          </Field>
+        </>
+      ) : null}
       <div className="admin-form-spacer" />
-      <Field label="Steps to become an aspirant (one per line)">
+      <Field label="How to give (shown on the Contribute page)">
         <textarea
           className="admin-field admin-field-wide admin-field-area"
-          value={form.aspirant_steps}
-          onChange={(e) => set({ aspirant_steps: e.target.value })}
+          value={form.payment_instructions}
+          onChange={(e) => set({ payment_instructions: e.target.value })}
+          placeholder="M-Pesa paybill 123456, account: your name"
         />
       </Field>
       <div className="admin-form-spacer" />
@@ -881,7 +899,7 @@ function PartyForm({ party }) {
 
       <div className="flex flex-wrap gap-2 admin-form-actions">
         <Btn disabled={save.isPending} onClick={submit}>
-          {save.isPending ? "Saving…" : "Save the party settings"}
+          {save.isPending ? "Saving…" : isParty ? "Save the party settings" : "Save the site settings"}
         </Btn>
       </div>
     </Card>
@@ -890,10 +908,11 @@ function PartyForm({ party }) {
 
 function PartySettings() {
   const site = useSite();
-  const party = useParty();
-  if (site.isPending || party.isPending)
+  const isParty = site.data?.organisation_type === "party";
+  const party = useParty(isParty);
+  if (site.isPending || (isParty && party.isPending))
     return <LoadingState className="admin-loading" message="Loading the party settings…" />;
-  const failed = [site, party].find((q) => q.error);
+  const failed = [site, ...(isParty ? [party] : [])].find((q) => q.error);
   if (failed)
     return (
       <Card>
@@ -905,8 +924,9 @@ function PartySettings() {
     );
   return (
     <PartyForm
-      key={`${site.data.updated_at} ${party.data.updated_at}`}
+      key={`${site.data.updated_at} ${party.data?.updated_at}`}
       party={{ ...site.data, ...party.data }}
+      isParty={isParty}
     />
   );
 }

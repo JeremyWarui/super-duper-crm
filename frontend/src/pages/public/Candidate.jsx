@@ -1,4 +1,5 @@
 // /candidates/:slug: one candidate's profile, the party events naming them, and the "Support" form.
+// CandidateView is the page body, which an aspirant installation's homepage shows as well.
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCandidateVolunteer, usePartyPlaces, usePublicCandidate } from "@/api/hooks";
@@ -15,9 +16,8 @@ const TABS = ["About", "Priorities", "Events"];
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PILL = "flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-line-control bg-white px-3.5 text-small font-semibold has-[:checked]:border-primary has-[:checked]:bg-primary-tint";
 
-function SupportForm({ c }) {
+export function SupportForm({ c, send, withdrawPath }) {
   const first = c.name.split(/\s+/)[0];
-  const send = useCandidateVolunteer(c.slug);
   const [f, setF] = useState({ first_name: "", last_name: "", email: "", phone: "", ward: "", registration_centre: "", profession: "", profession_other: "", areas: [], area_other: "", preferred_contact: "", consent_given: false });
   const centres = usePartyPlaces({ ward: f.ward, enabled: !!f.ward }).data || [];
   const set = (key) => (e) => setF({ ...f, [key]: e.target.value });
@@ -32,7 +32,7 @@ function SupportForm({ c }) {
     send.mutate({ ...f, first_name: f.first_name.trim(), last_name: f.last_name.trim(), email: f.email.trim(), phone: f.phone.trim(), profession_other: f.profession_other.trim(), area_other: f.area_other.trim() });
   };
   if (send.isSuccess) {
-    const link = `${window.location.origin}/candidates/volunteer/withdraw/${send.data.withdraw_code}`;
+    const link = `${window.location.origin}${withdrawPath}${send.data.withdraw_code}`;
     return (
       <Card className="gap-3 p-6">
         <h2 className="text-[20px] font-bold">Thank you</h2>
@@ -98,10 +98,29 @@ function SupportForm({ c }) {
 
 export default function Candidate({ slug }) {
   const query = usePublicCandidate(slug);
-  const [tab, setTab] = useState("About");
+  const send = useCandidateVolunteer(slug);
   if (query.isLoading) return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
   if (query.error) return <div role="alert" className="site-container py-12">{query.error.message}</div>;
   const c = query.data;
+  return (
+    <CandidateView
+      c={c}
+      send={send}
+      withdrawPath="/candidates/volunteer/withdraw/"
+      crumbs={[{ label: "Home", to: "/" }, { label: "Candidates", to: "/candidates" }, { label: c.area }]}
+      note={`Profile written from what the candidate sent, and published by the party. ${SEAT_NAME[c.seat]} aspirant.`}
+      events
+    />
+  );
+}
+
+/**
+ * One candidate's page: hero, tabs (About, Priorities, and Events where `events`), the volunteer
+ * form and the campaign office. `crumbs` and `note` are left out on a homepage.
+ */
+export function CandidateView({ c, send, withdrawPath, crumbs, note, events = false }) {
+  const [tab, setTab] = useState("About");
+  const tabs = events ? TABS : TABS.filter((t) => t !== "Events");
   const first = c.name.split(/\s+/)[0];
   const where = [c.area, c.county].filter((v, i, all) => v && all.indexOf(v) === i).join(", ");
   const contact = [c.office_phone, c.office_email].filter(Boolean).join(" · ");
@@ -109,7 +128,7 @@ export default function Candidate({ slug }) {
     <>
       <section className="bg-primary text-white">
         <div className="site-container flex flex-col gap-6 pt-10 pb-12">
-          <Crumbs onDark items={[{ label: "Home", to: "/" }, { label: "Candidates", to: "/candidates" }, { label: c.area }]} />
+          {crumbs ? <Crumbs onDark items={crumbs} /> : null}
           <div className="flex flex-wrap items-center gap-9">
             <Photo url={c.photo_url} className="h-[260px] w-[220px] flex-none rounded-band bg-[#0F7049]" />
             <div className="flex min-w-0 flex-[1_1_400px] flex-col gap-3.5">
@@ -118,7 +137,7 @@ export default function Candidate({ slug }) {
               <p className="text-[19px] text-[#CFE0D5]">{where}{c.slogan ? ` · "${c.slogan}"` : ""}</p>
               <div className="flex flex-wrap gap-3 pt-1">
                 {c.volunteering_open ? <Button asChild variant="accent"><a href="#support">Volunteer for this campaign</a></Button> : null}
-                {c.events.length ? <Button asChild variant="onDark"><a href="#events" onClick={() => setTab("Events")}>Meet the candidate</a></Button> : null}
+                {events && c.events.length ? <Button asChild variant="onDark"><a href="#events" onClick={() => setTab("Events")}>Meet the candidate</a></Button> : null}
               </div>
             </div>
           </div>
@@ -126,7 +145,7 @@ export default function Candidate({ slug }) {
       </section>
       <div className="border-b border-line-2 bg-white">
         <div role="tablist" aria-label="Profile sections" className="site-container flex flex-wrap gap-1">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`min-h-12 cursor-pointer px-4 text-[15px] font-bold ${tab === t ? "text-primary shadow-[inset_0_-3px_0_var(--party-primary)]" : "text-ink"}`}>{t}</button>
           ))}
         </div>
@@ -165,7 +184,7 @@ export default function Candidate({ slug }) {
           ) : null}
         </div>
         <aside id="support" className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
-          {c.volunteering_open ? <SupportForm c={c} /> : null}
+          {c.volunteering_open ? <SupportForm c={c} send={send} withdrawPath={withdrawPath} /> : null}
           {c.office_address || contact ? (
             <Card variant="ink" className="gap-2 text-[15px]">
               <h2 className="mb-1 text-[18px] font-bold">Campaign office</h2>
@@ -173,7 +192,7 @@ export default function Candidate({ slug }) {
               {contact ? <span className="text-on-dark-muted">{contact}</span> : null}
             </Card>
           ) : null}
-          <p className="text-small text-muted-foreground">Profile written from what the candidate sent, and published by the party. {SEAT_NAME[c.seat]} aspirant.</p>
+          {note ? <p className="text-small text-muted-foreground">{note}</p> : null}
         </aside>
       </div>
     </>

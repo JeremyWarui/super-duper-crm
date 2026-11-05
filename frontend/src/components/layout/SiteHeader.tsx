@@ -6,20 +6,14 @@ import { Button } from '@/components/ui/button'
 import { useBranding } from '@/theme/branding'
 import { homeOf } from '@/lib/home'
 import { useAuth } from '@/store/auth'
+import { useCopy } from '@/copy'
 import { Logo } from './Logo'
 
-export const siteNav = [
-  { label: 'About', to: '/about' },
-  { label: 'News', to: '/news' },
-  { label: 'Events', to: '/events' },
-  { label: 'Candidates', to: '/candidates' },
-  { label: 'Results', to: '/results' },
-  { label: 'Counties', to: '/counties' },
-] as const
 
 /** Dark 13px utility bar above the header: registration, hotline, and sign-in or the signed-in login. */
 export function SiteUtilityBar() {
   const b = useBranding()
+  const copy = useCopy()
   const token = useAuth((s: any) => s.token)
   const user = useAuth((s: any) => s.user)
   const logout = useAuth((s: any) => s.logout)
@@ -27,7 +21,7 @@ export function SiteUtilityBar() {
   return (
     <div className="bg-ink text-small text-[#C9CDCB]">
       <div className="site-container flex flex-wrap items-center justify-between gap-2 py-2">
-        <span className="hidden sm:inline">{['Registered political party', ...facts].join(' · ')}</span>
+        <span className="hidden sm:inline">{[copy.tagline, ...facts].join(' · ')}</span>
         <span className="sm:hidden">{b.hotline ? `Hotline ${b.hotline}` : null}</span>
         {token ? (
           <span className="flex items-center gap-3.5">
@@ -44,9 +38,10 @@ export function SiteUtilityBar() {
 
 /**
  * Shared website header: frosted white, pinned by the layout. Current page = soft green pill.
- * Below 1280px the menu folds into a "Menu" button; Join and Contribute move to the phone action bar.
+ * Below 1280px the menu folds into a "Menu" button; Contribute and the join button move to the phone action bar.
  */
 export function SiteHeader() {
+  const copy = useCopy()
   const [open, setOpen] = React.useState(false)
   const { pathname } = useLocation()
   React.useEffect(() => setOpen(false), [pathname])
@@ -56,11 +51,11 @@ export function SiteHeader() {
       <div className="site-container flex items-center justify-between gap-3.5 py-3.5">
         <Logo size="lg" withSlogan />
         <nav aria-label="Main" className="hidden flex-wrap gap-x-1 gap-y-0.5 text-body font-semibold xl:flex">
-          {siteNav.map((n) => <NavLink key={n.to} to={n.to} className={link}>{n.label}</NavLink>)}
+          {copy.nav.map((n) => <NavLink key={n.to} to={n.to} className={link}>{n.label}</NavLink>)}
         </nav>
         <div className="hidden gap-2.5 md:flex">
           <Button asChild variant="outline"><Link to="/contribute">Contribute</Link></Button>
-          <Button asChild variant="accent"><Link to="/join-party">Join the party</Link></Button>
+          <Button asChild variant="accent"><Link to={copy.join.to}>{copy.join.label}</Link></Button>
         </div>
         <Button variant="quiet" className="xl:hidden" aria-expanded={open} aria-controls="site-menu" onClick={() => setOpen(!open)}>
           {open ? <X className="size-4" /> : <Menu className="size-4" />}Menu
@@ -68,7 +63,7 @@ export function SiteHeader() {
       </div>
       {open ? (
         <nav id="site-menu" aria-label="Main" className="site-container flex flex-col gap-1 pb-4 text-base font-semibold xl:hidden">
-          {siteNav.map((n) => <NavLink key={n.to} to={n.to} className={({ isActive }) => cn(link({ isActive }), 'px-4 py-3')}>{n.label}</NavLink>)}
+          {copy.nav.map((n) => <NavLink key={n.to} to={n.to} className={({ isActive }) => cn(link({ isActive }), 'px-4 py-3')}>{n.label}</NavLink>)}
         </nav>
       ) : null}
     </header>

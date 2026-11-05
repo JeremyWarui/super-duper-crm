@@ -1,5 +1,5 @@
 /** The website frame's news sign-up, and the demo Contribute page. */
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../src/Gate";
@@ -29,20 +29,12 @@ describe("the website frame", () => {
     expect(calls.find((c) => c.method === "POST").body).toEqual({ contact: "0712345678", consent_given: true });
   });
 
-  it("answers a contribution with the demo message", async () => {
-    stubApi({
-      "GET /site/": SITE,
-      "POST /party/contribute/": { demo: true, message: "No money moved." },
-    });
+  it("shows how to give, and takes nothing", async () => {
+    const calls = stubApi({ "GET /site/": { ...SITE, payment_instructions: "M-Pesa paybill 123456" } });
     renderApp(<AppRoutes />, { path: "/contribute" });
-    const user = userEvent.setup();
 
-    await user.type(await screen.findByRole("textbox", { name: "Full name" }), "Ama Otieno");
-    await user.type(screen.getByRole("textbox", { name: "M-Pesa phone number" }), "0712345678");
-    await user.click(screen.getByRole("checkbox", { name: /my own money/ }));
-    await user.click(screen.getByRole("button", { name: /^Give KES/ }));
-
-    expect(await screen.findByText("No money moved.")).toBeInTheDocument();
-    expect(screen.getByText("Demo")).toBeInTheDocument();
+    expect(await screen.findByText("M-Pesa paybill 123456")).toBeInTheDocument();
+    expect(within(screen.getByRole("main")).queryByRole("textbox")).toBeNull();
+    expect(calls.filter((c) => c.method !== "GET")).toEqual([]);
   });
 });

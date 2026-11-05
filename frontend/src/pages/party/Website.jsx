@@ -1,4 +1,5 @@
 // The superuser's editor for the public site: slides, issues, posts, leaders, candidates, About content and results.
+// Its lists, item form and profile form also serve an aspirant installation's workspace Website page.
 import { useState } from "react";
 import {
   usePostAspirants,
@@ -54,7 +55,7 @@ const CHECKS = {
 };
 const ORDER = { key: "sort_order", label: "Order", kind: "order", hint: "Lower numbers come first." };
 
-const SLIDE_FIELDS = [
+export const SLIDE_FIELDS = [
   { key: "headline", label: "Headline", max: 120, required: true },
   { key: "kicker", label: "Kicker (optional)", max: 80, hint: "The small line above the headline." },
   { key: "line", label: "Supporting text (optional)", max: 300, kind: "area" },
@@ -64,7 +65,7 @@ const SLIDE_FIELDS = [
   ORDER,
 ];
 
-const ISSUE_FIELDS = [
+export const ISSUE_FIELDS = [
   { key: "title", label: "Title", max: 150, required: true },
   { key: "summary", label: "Summary (optional)", max: 300, kind: "area" },
   { key: "what_we_will_do", label: "What we will do (optional)", max: 20000, kind: "area", hint: "One step per line; each becomes a numbered card." },
@@ -83,7 +84,7 @@ const LEADER_FIELDS = [
 const isEvent = (form) => form.kind === "event";
 const isNews = (form) => form.kind !== "event";
 const isStatement = (form) => isNews(form) && form.label === "statement";
-const POST_FIELDS = [
+export const POST_FIELDS = [
   { key: "kind", label: "Kind", kind: "select", options: [["news", "News"], ["event", "Event"]], newOnly: true },
   { key: "label", label: "Label", kind: "select", options: [["news", "News"], ["statement", "Statement"], ["opinion", "Opinion"]], show: isNews },
   { key: "title", label: "Title", max: 150, required: true },
@@ -105,13 +106,13 @@ const ABOUT_FIELDS = [
   ORDER,
 ];
 
-const DOCUMENT_FIELDS = [
+export const DOCUMENT_FIELDS = [
   { key: "title", label: "Title", max: 150, required: true, hint: "Such as Party constitution (PDF)." },
   { key: "url", label: "Address", max: 500, kind: "https", required: true },
   ORDER,
 ];
 
-const VIDEO_FIELDS = [
+export const VIDEO_FIELDS = [
   { key: "title", label: "Title", max: 150, required: true },
   { key: "url", label: "Video address", max: 500, kind: "https", required: true, hint: "Such as a YouTube link; the card opens it." },
   { key: "thumbnail_url", label: "Thumbnail address (optional)", max: 500, kind: "image", hint: "Left empty, a YouTube link shows YouTube's thumbnail." },
@@ -134,7 +135,7 @@ const SECTIONS = {
     { noun: "video", title: "Watch videos", hint: "The first three show under News on the homepage.", fields: VIDEO_FIELDS, query: useSiteVideos, save: useSaveVideo, del: useDeleteVideo, name: (r) => r.title, meta: (r) => [r.duration, `order ${r.sort_order}`].filter(Boolean).join(" · ") },
   ],
   Posts: [
-    { noun: "post", title: "News and events", fields: POST_FIELDS, query: useSitePosts, save: useSavePost, del: useDeletePost, name: (r) => r.title, meta: (r) => `${r.kind === "event" ? "Event" : "News"} · ${formatDate(r.kind === "event" ? r.event_date : r.published_on) || "not yet published"}` },
+    { noun: "post", title: "News and events", aspirants: true, fields: POST_FIELDS, query: useSitePosts, save: useSavePost, del: useDeletePost, name: (r) => r.title, meta: (r) => `${r.kind === "event" ? "Event" : "News"} · ${formatDate(r.kind === "event" ? r.event_date : r.published_on) || "not yet published"}` },
   ],
   Leaders: [
     { noun: "leader", title: "Party leaders", fields: LEADER_FIELDS, query: useSiteLeaders, save: useSaveLeader, del: useDeleteLeader, name: (r) => r.name, meta: (r) => `${r.position} · order ${r.sort_order}` },
@@ -246,7 +247,7 @@ function ConfirmDelete({ section, row, onClose }) {
   );
 }
 
-function SectionList({ section }) {
+export function SectionList({ section }) {
   const rows = section.query();
   const save = section.save();
   const [editing, setEditing] = useState(null);
@@ -289,7 +290,7 @@ function SectionList({ section }) {
       {editing ? (
         <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-6">
           <ItemForm key={editing.row?.id || "new"} section={section} row={editing.row} onDone={() => setEditing(null)} />
-          {section.noun === "post" && editing.row?.kind === "event" ? <EventAspirants key={`aspirants-${editing.row.id}`} postId={editing.row.id} /> : null}
+          {section.aspirants && editing.row?.kind === "event" ? <EventAspirants key={`aspirants-${editing.row.id}`} postId={editing.row.id} /> : null}
         </div>
       ) : null}
       {deleting ? <ConfirmDelete section={section} row={deleting} onClose={() => setDeleting(null)} /> : null}
@@ -337,9 +338,8 @@ const PROFILE_FIELDS = [
 ];
 const NO_PRIORITY = { title: "", text: "" };
 
-function ProfileForm({ candidate, onDone }) {
-  const save = useSaveProfile();
-  const p = candidate.profile;
+/** A candidate page's fields; `save` is the mutation that stores them, sent `extra` as well. */
+export function ProfileForm({ title, profile: p, save, extra = {}, onDone }) {
   const [form, setForm] = useState({ ...p, priorities: [0, 1, 2].map((n) => p.priorities[n] || NO_PRIORITY) });
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
   const setPriority = (n, key) => (e) => setForm({ ...form, priorities: form.priorities.map((x, i) => (i === n ? { ...x, [key]: e.target.value } : x)) });
@@ -349,12 +349,12 @@ function ProfileForm({ candidate, onDone }) {
     if (photoBad) return;
     const body = Object.fromEntries(PROFILE_FIELDS.map(([key]) => [key, form[key].trim()]));
     const priorities = form.priorities.map((x) => ({ title: x.title.trim(), text: x.text.trim() })).filter((x) => x.title);
-    save.mutate({ aspirant_id: candidate.aspirant_id, ...body, bio: form.bio, published: form.published, priorities }, { onSuccess: onDone });
+    save.mutate({ ...extra, ...body, bio: form.bio, published: form.published, priorities }, { onSuccess: onDone });
   };
   return (
     <Card variant="outline" asChild>
       <form onSubmit={submit} noValidate>
-        <h2 className="text-card-title font-bold">Profile of {candidate.name}</h2>
+        <h2 className="text-card-title font-bold">{title}</h2>
         {PROFILE_FIELDS.map(([key, label, max]) => (
           <Field key={key} label={label} hint={key === "photo_url" && photoBad ? "Use an address starting with https://." : undefined}>
             <Input value={form[key]} maxLength={max} onChange={set(key)} aria-invalid={key === "photo_url" && photoBad ? true : undefined} />
@@ -374,7 +374,7 @@ function ProfileForm({ candidate, onDone }) {
         {save.error ? <p role="alert" className="text-small font-semibold text-destructive">{save.error.message}</p> : null}
         <div className="flex flex-wrap gap-2.5">
           <Button type="submit" shape="rounded" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save profile"}</Button>
-          <Button type="button" shape="rounded" variant="quiet" onClick={onDone}>Cancel</Button>
+          {onDone ? <Button type="button" shape="rounded" variant="quiet" onClick={onDone}>Cancel</Button> : null}
         </div>
       </form>
     </Card>
@@ -383,6 +383,7 @@ function ProfileForm({ candidate, onDone }) {
 
 function CandidatesEditor() {
   const list = useSiteCandidates();
+  const saveProfile = useSaveProfile();
   const [editing, setEditing] = useState(null);
   const rows = list.data || [];
   return (
@@ -412,7 +413,7 @@ function CandidatesEditor() {
       </Card>
       {editing ? (
         <div className="min-w-0 flex-[1_1_420px]">
-          <ProfileForm key={editing.aspirant_id} candidate={editing} onDone={() => setEditing(null)} />
+          <ProfileForm key={editing.aspirant_id} title={`Profile of ${editing.name}`} profile={editing.profile} save={saveProfile} extra={{ aspirant_id: editing.aspirant_id }} onDone={() => setEditing(null)} />
         </div>
       ) : null}
     </div>
