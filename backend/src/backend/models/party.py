@@ -1,4 +1,4 @@
-"""The party office: settings, offices, members, aspirants and volunteers."""
+"""The party office: settings, offices, members and aspirants."""
 
 import uuid
 from datetime import UTC, datetime
@@ -24,20 +24,18 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
 from backend.models.enums import (
     AspirantStatus,
-    ContactMethod,
     PartyConsentChannel,
     PartyMemberStatus,
     PartyRequestKind,
     PartyRoleName,
-    Profession,
     Seat,
-    VolunteerStatus,
 )
 
 if TYPE_CHECKING:
     from backend.models.campaign import Campaign
     from backend.models.geography import Constituency, County, RegistrationCentre, Ward
     from backend.models.user import User
+    from backend.models.volunteer import VolunteerProfile
 
 HEX_DIGITS = "'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'"
 
@@ -150,74 +148,6 @@ class PartyRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # A join's new withdraw code, or the code a withdrawal presents.
     code: Mapped[str] = mapped_column(String(32))
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
-
-
-class VolunteerProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A party member's volunteer profile (`campaign_id` NULL), or a campaign's volunteer."""
-
-    __tablename__ = "volunteer_profiles"
-    __table_args__ = (
-        UniqueConstraint("member_id", name="uq_volunteer_profiles_member_id"),
-        # A party row has a member; a campaign row has none.
-        CheckConstraint("(campaign_id IS NULL) = (member_id IS NOT NULL)", name="owner"),
-        CheckConstraint("consent_wording <> ''", name="consent_wording_not_empty"),
-        Index(
-            "uq_volunteer_profiles_party_phone",
-            "phone",
-            unique=True,
-            postgresql_where=text("campaign_id IS NULL"),
-            sqlite_where=text("campaign_id IS NULL"),
-        ),
-        UniqueConstraint("campaign_id", "phone", name="uq_volunteer_profiles_campaign_phone"),
-        Index("ix_volunteer_profiles_campaign_id_status", "campaign_id", "status"),
-    )
-
-    member_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("party_members.id", ondelete="CASCADE"), default=None
-    )
-    campaign_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), default=None
-    )
-    first_name: Mapped[str] = mapped_column(String(75))
-    last_name: Mapped[str] = mapped_column(String(75))
-    phone: Mapped[str] = mapped_column(String(20))
-    email: Mapped[str | None] = mapped_column(String(254), default=None)
-    ward_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("wards.id", ondelete="RESTRICT"), index=True
-    )
-    registration_centre_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("registration_centres.id", ondelete="RESTRICT"), default=None
-    )
-    profession: Mapped[Profession | None] = mapped_column(
-        choice_type(Profession, "profession"), default=None
-    )
-    profession_other: Mapped[str] = mapped_column(String(100), default="")
-    status: Mapped[VolunteerStatus] = mapped_column(
-        choice_type(VolunteerStatus, "volunteer_status"),
-        default=VolunteerStatus.INTERESTED,
-    )
-    # A list of VolunteerArea values.
-    interests: Mapped[list[str]] = mapped_column(JSON, default=list)
-    interest_other: Mapped[str] = mapped_column(String(100), default="")
-    availability_notes: Mapped[str | None] = mapped_column(Text, default=None)
-    preferred_contact: Mapped[ContactMethod] = mapped_column(
-        choice_type(ContactMethod, "contact_method")
-    )
-    consent_wording: Mapped[str] = mapped_column(Text)
-    consent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
-        nullable=False,
-        sort_order=101,
-    )
-
-    member: Mapped[PartyMember | None] = relationship(back_populates="volunteer")
-    ward: Mapped["Ward"] = relationship()
-    registration_centre: Mapped["RegistrationCentre | None"] = relationship()
 
 
 # A member has at most one nomination in these statuses.

@@ -47,7 +47,9 @@ async def test_a_workspace_is_open_exactly_while_its_aspirant_is_approved(
 ) -> None:
     link = f"/api/join/{(await _event(session, world)).signup_code}/"
     aspirant = await _aspirant(session, world)
-    session.add(CandidateProfile(aspirant_id=aspirant.id, published=True))
+    session.add(
+        CandidateProfile(campaign_id=aspirant.campaign_id, aspirant_id=aspirant.id, published=True)
+    )
     await session.commit()
     (card,) = (await client.get("/api/candidates/")).json()
     profile = f"/api/candidates/{card['slug']}/"

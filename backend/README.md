@@ -137,6 +137,12 @@ Campaign workspace access is decided in `services/access.py`: party and
 standalone workspaces are always open; a hosted one is open while its aspirant
 is approved, or when it has none.
 
+A candidate page (`candidate_profiles`) belongs to a campaign, one each; a
+hosted campaign's page also names its aspirant. A campaign's volunteers
+(`models/volunteer.py`, `campaign_id` set) are read, moved, signed up and
+withdrawn through `services/campaign_volunteers.py`; `services/volunteers.py`
+handles the party's own.
+
 ## Rules
 
 - **One campaign per login.** Every route that puts a login on a campaign
@@ -266,10 +272,11 @@ required and at least 32 characters.
 
 ## Known gaps
 
-- `api/routers/campaigns.py` reads the campaign volunteer register through
-  `models.party.VolunteerProfile` and `services/volunteers.py`, so
-  `tests/test_boundaries.py` lists it as an allowed crossing. PD-4 moves the
-  campaign side into `services/campaign_volunteers.py`.
+- The website editor lists every approved aspirant but saves a candidate
+  page only for one with a workspace; it does not mark the others. Saving a
+  page for an aspirant whose campaign already holds a page with no aspirant
+  fails at the database (500), and a page keeps its campaign if the
+  aspirant's link ever changes; neither happens through today's flows.
 - `tests/test_boundaries.py` reads import statements only: a star import,
   `importlib`, or reaching party code through a package attribute
   (`models.party.X`) is not caught, and a new campaign module must be added

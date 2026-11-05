@@ -10,6 +10,7 @@ from backend.models import (
     Aspirant,
     AspirantStatus,
     Branch,
+    Campaign,
     CandidateProfile,
     Constituency,
     County,
@@ -510,7 +511,8 @@ async def _place(session: AsyncSession, seat: Seat, name: str) -> dict | None:
 
 
 async def _seed_candidates(session: AsyncSession, today: date) -> int:
-    """Demo aspirants with published profiles, the first named by the next demo event."""
+    """Demo aspirants with hosted workspaces and published profiles, the first named by the next
+    demo event."""
     if await session.scalar(select(func.count()).select_from(CandidateProfile)):
         return 0
     made = []
@@ -532,11 +534,23 @@ async def _seed_candidates(session: AsyncSession, today: date) -> int:
         )
         session.add(member)
         await session.flush()
-        aspirant = Aspirant(member_id=member.id, seat=seat, status=AspirantStatus.APPROVED, **place)
+        campaign = Campaign(
+            title=f"{name} for {seat.label}", seat=seat, office_level=seat.office_level, **place
+        )
+        session.add(campaign)
+        await session.flush()
+        aspirant = Aspirant(
+            member_id=member.id,
+            seat=seat,
+            status=AspirantStatus.APPROVED,
+            campaign_id=campaign.id,
+            **place,
+        )
         session.add(aspirant)
         await session.flush()
         session.add(
             CandidateProfile(
+                campaign_id=campaign.id,
                 aspirant_id=aspirant.id,
                 photo_url=portrait(photo),
                 slogan=slogan,

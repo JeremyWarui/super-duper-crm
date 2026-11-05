@@ -547,3 +547,54 @@ def test_the_workspace_kinds_migration_makes_every_campaign_hosted_and_guards_th
 
     assert kinds == ["hosted"]
     assert refused == ["p2", "h1", "h2", "p3"]
+
+
+def test_the_candidate_profiles_migration_takes_each_aspirants_campaign() -> None:
+    revisions = revision_modules()
+    last = next(
+        i for i, m in enumerate(revisions) if m.revision == "candidate_profiles_by_campaign"
+    )
+    engine = sa.create_engine("sqlite://")
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            for module in revisions[:last]:
+                module.upgrade()
+        for row in (
+            "INSERT INTO party_members (id, full_name, first_name, phone, ward_id, status, "
+            "consent_wording, consent_channel, consent_at) VALUES ('m1', 'A', 'A', '1', 'w1', "
+            "'approved', 'x', 'web_form', '2026-01-01'), ('m2', 'B', 'B', '2', 'w1', "
+            "'approved', 'x', 'web_form', '2026-01-01')",
+            "INSERT INTO campaigns (id, title, office_level, seat, ward_id, signup_code, "
+            "signups_open, kind) VALUES ('c1', 't', 'ward', 'mca', 'w1', 'c1', 0, 'hosted')",
+            "INSERT INTO aspirants (id, member_id, seat, ward_id, status, campaign_id) VALUES "
+            "('a1', 'm1', 'mca', 'w1', 'approved', 'c1'), "
+            "('a2', 'm2', 'mca', 'w1', 'approved', NULL)",
+            "INSERT INTO candidate_profiles (aspirant_id, priorities) VALUES ('a1', '[]'), "
+            "('a2', '[]')",
+        ):
+            connection.execute(sa.text(row))
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].upgrade()
+        rows = connection.execute(
+            sa.text("SELECT aspirant_id, campaign_id, length(id) FROM candidate_profiles")
+        ).all()
+        connection.execute(
+            sa.text(
+                "INSERT INTO campaigns (id, title, office_level, seat, ward_id, signup_code, "
+                "signups_open, kind) VALUES ('c2', 't', 'ward', 'mca', 'w1', 'c2', 0, 'standalone')"
+            )
+        )
+        connection.execute(
+            sa.text(
+                "INSERT INTO candidate_profiles (id, campaign_id, priorities) "
+                "VALUES ('p2', 'c2', '[]')"
+            )
+        )
+        with (
+            Operations.context(MigrationContext.configure(connection)),
+            pytest.raises(RuntimeError, match="no aspirant"),
+        ):
+            revisions[last].downgrade()
+    engine.dispose()
+
+    assert rows == [("a1", "c1", 32)]

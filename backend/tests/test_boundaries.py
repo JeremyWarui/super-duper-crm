@@ -29,6 +29,7 @@ CAMPAIGN = [
         f"backend/services/{name}.py"
         for name in (
             "campaigns",
+            "campaign_volunteers",
             "targets",
             "strategy",
             "team",
@@ -49,6 +50,7 @@ CAMPAIGN = [
             "supporter",
             "target",
             "payment",
+            "volunteer",
         )
     ),
 ]
@@ -63,9 +65,8 @@ PARTY = (
 ALLOWED = {
     # The hosted rule reads the aspirant's status.
     ("backend/services/access.py", "backend.models.party.Aspirant"),
-    # The campaign volunteer register shares the party volunteers' table and service.
-    ("backend/api/routers/campaigns.py", "backend.models.party.VolunteerProfile"),
-    ("backend/api/routers/campaigns.py", "backend.services.volunteers"),
+    # Type-only: a party volunteer row names its member.
+    ("backend/models/volunteer.py", "backend.models.party.PartyMember"),
 }
 
 

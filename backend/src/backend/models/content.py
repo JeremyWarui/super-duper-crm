@@ -227,13 +227,16 @@ party_post_aspirants = Table(
 )
 
 
-class CandidateProfile(TimestampMixin, Base):
-    """An approved aspirant's page on the website, written by the website editor."""
+class CandidateProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A campaign's candidate page on the website; a hosted campaign's names its aspirant."""
 
     __tablename__ = "candidate_profiles"
 
-    aspirant_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("aspirants.id", ondelete="CASCADE"), primary_key=True
+    campaign_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), unique=True
+    )
+    aspirant_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("aspirants.id", ondelete="CASCADE"), unique=True, default=None
     )
     photo_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
     slogan: Mapped[str] = mapped_column(String(120), default="", server_default="")

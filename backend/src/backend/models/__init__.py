@@ -59,13 +59,13 @@ from backend.models.party import (
     PartyRequest,
     PartyRole,
     PartySettings,
-    VolunteerProfile,
 )
 from backend.models.payment import Payment
 from backend.models.site import SiteSettings
 from backend.models.supporter import Supporter
 from backend.models.target import Target, compute_win_number, unit_key
 from backend.models.user import User
+from backend.models.volunteer import VolunteerProfile
 
 __all__ = [
     "Aspirant",

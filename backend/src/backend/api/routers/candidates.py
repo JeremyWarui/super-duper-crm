@@ -11,6 +11,7 @@ from backend.api.routers.join import _client
 from backend.models import Seat
 from backend.schemas.candidates import CandidateCard, CandidateDetail, CandidateVolunteerCreate
 from backend.schemas.join import JoinDone, Withdrawn
+from backend.services import campaign_volunteers
 from backend.services import candidates as service
 from backend.services.ratelimit import RateLimit
 
@@ -46,7 +47,7 @@ async def withdraw(code: str, request: Request, session: SessionDep) -> Withdraw
     """Take a volunteer off a campaign's list; the answer is the same for any code."""
     if not WITHDRAWALS.allow(_client(request)):
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
-    await service.withdraw(session, code)
+    await campaign_volunteers.withdraw(session, code)
     return Withdrawn(message=WITHDRAWN)
 
 

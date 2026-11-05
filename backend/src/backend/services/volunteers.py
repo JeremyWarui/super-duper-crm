@@ -1,4 +1,4 @@
-"""Volunteer profiles: the move table, officer moves, and the public volunteer requests."""
+"""Party volunteer profiles: officer moves, member-driven moves, and the public requests."""
 
 import secrets
 import uuid
@@ -20,7 +20,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload
-from sqlalchemy.orm.attributes import set_committed_value
 
 from backend.db.session import upsert
 from backend.models import (
@@ -35,68 +34,23 @@ from backend.models import (
     VolunteerStatus,
     Ward,
 )
-from backend.services.audit import record, record_if
+from backend.services.audit import record_if
+from backend.services.campaign_volunteers import (
+    OFFICER_TARGETS,
+    audit,
+    check_move,
+    write_status,
+)
 from backend.services.consent import VOLUNTEER_WORDING
 from backend.services.errors import NotFound, Refused, refuse_own_record
 
 V = VolunteerStatus
-
-VOLUNTEER_MOVES: dict[VolunteerStatus, frozenset[VolunteerStatus]] = {
-    V.INTERESTED: frozenset({V.ACTIVE, V.WITHDRAWN}),
-    V.ACTIVE: frozenset({V.INACTIVE, V.WITHDRAWN}),
-    V.INACTIVE: frozenset({V.ACTIVE, V.WITHDRAWN}),
-    V.WITHDRAWN: frozenset({V.INTERESTED}),
-}
-
-OFFICER_TARGETS = frozenset({V.ACTIVE, V.INACTIVE})
-
-
-def check_move(frm: VolunteerStatus, to: VolunteerStatus) -> None:
-    """Refuse a move the table does not list."""
-    if to not in VOLUNTEER_MOVES[frm]:
-        raise Refused(f"A {frm.label.lower()} volunteer cannot be moved to {to.label.lower()}.")
-
-
-async def _set_status(
-    session: AsyncSession, profile: VolunteerProfile, old: VolunteerStatus, **values
-) -> None:
-    """Write the change only if the row still has the status it was checked against."""
-    changed = await session.execute(
-        update(VolunteerProfile)
-        .where(VolunteerProfile.id == profile.id, VolunteerProfile.status == old)
-        .values(**values)
-        .execution_options(synchronize_session=False)
-    )
-    if changed.rowcount != 1:
-        raise Refused("This volunteer's status changed meanwhile; reload and try again.")
-    for name, value in values.items():
-        set_committed_value(profile, name, value)
 
 
 async def _fresh(session: AsyncSession, where) -> VolunteerProfile | None:
     """The profile matching `where`, read from the database rather than the session."""
     return await session.scalar(
         select(VolunteerProfile).where(where).execution_options(populate_existing=True)
-    )
-
-
-def _audit(
-    session: AsyncSession,
-    profile: VolunteerProfile,
-    action: str,
-    detail: dict,
-    *,
-    actor: User | None = None,
-    actor_name: str = "public",
-) -> None:
-    record(
-        session,
-        actor=actor,
-        actor_name=actor_name,
-        action=action,
-        subject_type="volunteer_profile",
-        subject_id=profile.id,
-        detail=detail,
     )
 
 
@@ -122,8 +76,8 @@ async def set_status(
         )
         if member_status is not PartyMemberStatus.APPROVED:
             raise Refused("Only an approved member can be an active volunteer.")
-    await _set_status(session, profile, old, status=to)
-    _audit(session, profile, "volunteer.status", {"from": old.value, "to": to.value}, actor=actor)
+    await write_status(session, profile, old, status=to)
+    audit(session, profile, "volunteer.status", {"from": old.value, "to": to.value}, actor=actor)
 
 
 def set_notes(
@@ -132,7 +86,7 @@ def set_notes(
     """Replace the officer's availability notes; the audit never holds the text."""
     refuse_own_record(actor, profile.member_id)
     profile.availability_notes = notes
-    _audit(session, profile, "volunteer.notes", {}, actor=actor)
+    audit(session, profile, "volunteer.notes", {}, actor=actor)
 
 
 async def follow_member(
@@ -157,12 +111,12 @@ async def follow_member(
         else:
             return
         try:
-            await _set_status(session, profile, old, status=to, **values)
+            await write_status(session, profile, old, status=to, **values)
         except Refused:
             if attempt:
                 raise
             continue
-        _audit(
+        audit(
             session,
             profile,
             "volunteer.status",
@@ -430,7 +384,7 @@ async def own_update(
         changed = [name for name in OWN_FIELDS if getattr(profile, name) != values[name]]
         for name, value in values.items():
             setattr(profile, name, value)
-        _audit(session, profile, "volunteer.self_update", {"fields": changed}, actor=actor)
+        audit(session, profile, "volunteer.self_update", {"fields": changed}, actor=actor)
         return
     first_name, last_name = split_name(member.full_name)
     renewed = {
@@ -451,9 +405,9 @@ async def own_update(
         await session.flush()
         old = None
     else:
-        await _set_status(session, profile, V.WITHDRAWN, status=V.INTERESTED, **renewed)
+        await write_status(session, profile, V.WITHDRAWN, status=V.INTERESTED, **renewed)
         old = V.WITHDRAWN.value
-    _audit(
+    audit(
         session, profile, "volunteer.status", {"from": old, "to": V.INTERESTED.value}, actor=actor
     )
 
@@ -464,8 +418,8 @@ async def own_stop(session: AsyncSession, member: PartyMember, *, actor: User) -
     if profile is None or profile.status is V.WITHDRAWN:
         return
     old = profile.status
-    await _set_status(session, profile, old, status=V.WITHDRAWN, withdraw_code=None)
-    _audit(
+    await write_status(session, profile, old, status=V.WITHDRAWN, withdraw_code=None)
+    audit(
         session,
         profile,
         "volunteer.status",

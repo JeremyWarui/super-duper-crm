@@ -5,11 +5,13 @@ from datetime import UTC, datetime, time, timedelta
 import httpx
 import pytest
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import (
     Aspirant,
     AspirantStatus,
+    Campaign,
     CandidateProfile,
     OrganisationType,
     PartyRoleName,
@@ -18,13 +20,18 @@ from backend.models import (
 )
 from backend.services.candidates import slug as slug_of
 from tests.conftest import World
-from tests.factories import TEST_TODAY, make_officer
+from tests.factories import TEST_TODAY, make_officer, make_rival_campaign
 
 PROFILE = {"slogan": "Roysambu first", "bio": "Teacher.", "published": True}
 
 
 async def _aspirant(
-    session: AsyncSession, world: World, *, username: str = "ofisa", campaign: bool = True
+    session: AsyncSession,
+    world: World,
+    *,
+    username: str = "ofisa",
+    campaign: Campaign | None = None,
+    workspace: bool = True,
 ) -> Aspirant:
     member_id = (await make_officer(session, world.ward, username=username)).party_member_id
     aspirant = Aspirant(
@@ -32,7 +39,7 @@ async def _aspirant(
         seat=Seat.MP,
         constituency_id=world.constituency.id,
         status=AspirantStatus.APPROVED,
-        campaign_id=world.campaign.id if campaign else None,
+        campaign_id=(campaign or world.campaign).id if workspace else None,
     )
     session.add(aspirant)
     await session.commit()
@@ -52,10 +59,12 @@ async def _slug(client) -> str:
     return card["slug"]
 
 
-async def _page(session: AsyncSession, world: World, *, campaign: bool = True) -> str:
+async def _page(session: AsyncSession, world: World) -> str:
     """A listed candidate page, published without the party console; its slug."""
-    aspirant = await _aspirant(session, world, campaign=campaign)
-    session.add(CandidateProfile(aspirant_id=aspirant.id, **PROFILE))
+    aspirant = await _aspirant(session, world)
+    session.add(
+        CandidateProfile(campaign_id=aspirant.campaign_id, aspirant_id=aspirant.id, **PROFILE)
+    )
     await session.commit()
     await session.refresh(aspirant, ["constituency"])
     return slug_of(aspirant)
@@ -82,7 +91,8 @@ async def test_only_approved_aspirants_with_a_published_profile_are_listed(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
     shown = await _aspirant(session, world, username="shown")
-    draft = await _aspirant(session, world, username="draft", campaign=False)
+    rival = await make_rival_campaign(session, world.ward, owner="drafter")
+    draft = await _aspirant(session, world, username="draft", campaign=rival)
     await _publish(client, admin_headers, shown)
     await _publish(client, admin_headers, draft, published=False)
     draft.status = AspirantStatus.WITHDRAWN
@@ -145,16 +155,38 @@ async def test_the_profile_lists_only_published_upcoming_events_naming_the_aspir
     assert {w["name"] for w in detail["wards"]} == {"Zimmerman", "Githurai"}
 
 
-async def test_the_form_is_closed_without_a_campaign(
+@pytest.mark.party_only
+async def test_a_page_waits_for_the_aspirants_workspace(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
-    slug = await _page(session, world, campaign=False)
+    aspirant = await _aspirant(session, world, workspace=False)
 
-    page = (await client.get(f"/api/candidates/{slug}/")).json()
-    refused = await client.post(f"/api/candidates/{slug}/volunteer/", json=_volunteer(world))
+    refused = await client.put(
+        f"/api/admin/party/candidates/{aspirant.id}/profile/", headers=admin_headers, json=PROFILE
+    )
 
-    assert (page["volunteering_open"], page["wards"]) == (False, [])
     assert refused.status_code == 400
+    assert "workspace" in refused.json()["detail"]
+    assert await session.scalar(select(func.count()).select_from(CandidateProfile)) == 0
+
+
+async def test_a_standalone_campaign_has_a_profile_with_no_aspirant(
+    session: AsyncSession, world: World
+) -> None:
+    session.add(CandidateProfile(campaign_id=world.campaign.id, **PROFILE))
+    await session.commit()
+
+    assert await session.scalar(select(CandidateProfile.aspirant_id)) is None
+
+
+async def test_a_profile_without_a_campaign_fails_at_the_database(
+    session: AsyncSession, world: World
+) -> None:
+    aspirant = await _aspirant(session, world)
+    session.add(CandidateProfile(aspirant_id=aspirant.id, **PROFILE))
+
+    with pytest.raises(IntegrityError):
+        await session.commit()
 
 
 @pytest.mark.parametrize(
