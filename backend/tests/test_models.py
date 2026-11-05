@@ -11,6 +11,7 @@ from backend.models import (
     AspirantStatus,
     Campaign,
     CampaignMember,
+    CampaignMemberArea,
     Mobilizer,
     OfficeLevel,
     OperationalGrain,
@@ -67,6 +68,74 @@ async def test_a_login_on_a_campaign_cannot_change_role(session: AsyncSession) -
     await session.commit()
 
     manager.role = UserRole.MOBILIZER
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
+async def test_the_role_key_refuses_a_member_whose_role_differs_from_its_login(
+    session: AsyncSession,
+) -> None:
+    _, _, ward, _ = await make_geography(session)
+    campaign = await make_campaign(session, ward)
+    coordinator = User(username="otieno", role=UserRole.COORDINATOR)
+    session.add(coordinator)
+    await session.flush()
+
+    session.add(
+        CampaignMember(campaign_id=campaign.id, user_id=coordinator.id, role=UserRole.COMMS)
+    )
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
+@pytest.mark.parametrize("role", [UserRole.CANDIDATE, UserRole.MANAGER])
+async def test_a_campaign_has_one_candidate_and_one_manager(
+    session: AsyncSession, role: UserRole
+) -> None:
+    _, _, ward, _ = await make_geography(session)
+    campaign = await make_campaign(session, ward)
+    first, second = User(username="first", role=role), User(username="second", role=role)
+    session.add_all([first, second])
+    await session.flush()
+    if role is UserRole.MANAGER:
+        session.add(CampaignMember(campaign_id=campaign.id, user_id=first.id, role=role))
+        await session.commit()
+
+    session.add(CampaignMember(campaign_id=campaign.id, user_id=second.id, role=role))
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
+@pytest.mark.parametrize("places", ["both", "neither"])
+async def test_an_area_row_holds_exactly_one_ward_or_centre(
+    session: AsyncSession, places: str
+) -> None:
+    _, _, ward, centre = await make_geography(session)
+    campaign = await make_campaign(session, ward)
+    coordinator = User(username="otieno", role=UserRole.COORDINATOR)
+    session.add(coordinator)
+    await session.flush()
+    member = CampaignMember(
+        campaign_id=campaign.id, user_id=coordinator.id, role=UserRole.COORDINATOR
+    )
+    session.add(member)
+    await session.flush()
+
+    both = places == "both"
+    session.add(
+        CampaignMemberArea(
+            campaign_member_id=member.id,
+            ward_id=ward.id if both else None,
+            registration_centre_id=centre.id if both else None,
+        )
+    )
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
+async def test_a_pending_login_is_never_active(session: AsyncSession) -> None:
+    session.add(User(username="wanjiru", role=UserRole.AGENT, pending=True, is_active=True))
+
     with pytest.raises(IntegrityError):
         await session.commit()
 

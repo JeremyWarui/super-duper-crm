@@ -119,12 +119,13 @@ describe("the fixtures against the contract", () => {
 });
 
 describe("the choice strings the app switches on", () => {
-  it("matches the roles the nav is keyed by", async () => {
+  it("has every role the nav is keyed by", async () => {
     const { default: App } = await import("../src/App");
+    const { NAV, ROLE_LABEL } = await import("../src/pages/campaign/helpers");
     expect(App).toBeTypeOf("function");
-    expect(CONTRACT.enums["user.role"].sort()).toEqual(
-      ["candidate", "manager", "mobilizer"].sort(),
-    );
+    for (const role of [...Object.keys(NAV), ...Object.keys(ROLE_LABEL)]) {
+      expect(CONTRACT.enums["user.role"]).toContain(role);
+    }
   });
 
   it("matches the event status the list checks for", () => {

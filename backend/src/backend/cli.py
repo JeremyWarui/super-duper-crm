@@ -294,7 +294,10 @@ def build_parser() -> argparse.ArgumentParser:
     createuser = command("createuser", _createuser, "add a login")
     needs_user(createuser)
     createuser.add_argument(
-        "-r", "--role", default=UserRole.MANAGER.value, choices=[r.value for r in UserRole]
+        "-r",
+        "--role",
+        default=UserRole.MANAGER.value,
+        choices=[r.value for r in (UserRole.CANDIDATE, UserRole.MANAGER, UserRole.MOBILIZER)],
     )
     createuser.add_argument("-p", "--password", help="prompted for when left out")
     createuser.add_argument("--email", default="")

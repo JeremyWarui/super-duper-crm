@@ -480,6 +480,8 @@ def test_alembic_itself_replaces_the_looked_up_checks_both_ways_on_postgres() ->
         return [
             asyncio.run(run(name, checks("party_roles", "role"))),
             asyncio.run(run(name, checks("campaigns", "office_level"))),
+            asyncio.run(run(name, checks("users", "role"))),
+            asyncio.run(run(name, checks("campaign_members", "role"))),
         ]
 
     asyncio.run(run("postgres", f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
@@ -494,11 +496,13 @@ def test_alembic_itself_replaces_the_looked_up_checks_both_ways_on_postgres() ->
     finally:
         asyncio.run(run("postgres", f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
 
-    assert [len(rows) for rows in head + before] == [1, 1, 1, 1]
-    (roles,), (levels,) = (rows[0] for rows in head)
-    (old_roles,), (old_levels,) = (rows[0] for rows in before)
+    assert [len(rows) for rows in head + before] == [1] * 8
+    (roles,), (levels,), *campaign_roles = (rows[0] for rows in head)
+    (old_roles,), (old_levels,), *old_campaign_roles = (rows[0] for rows in before)
     assert "finance_officer" not in roles and "finance_officer" in old_roles
     assert "national" in levels and "national" not in old_levels
+    assert all("'agent'" in role and "'coordinator'" in role for (role,) in campaign_roles)
+    assert not any("'agent'" in role for (role,) in old_campaign_roles)
     assert again == head
 
 
@@ -598,3 +602,37 @@ def test_the_candidate_profiles_migration_takes_each_aspirants_campaign() -> Non
     engine.dispose()
 
     assert rows == [("a1", "c1", 32)]
+
+
+def test_the_campaign_roles_migration_admits_the_new_roles_and_guards_its_downgrade() -> None:
+    revisions = revision_modules()
+    last = next(i for i, m in enumerate(revisions) if m.revision == "campaign_roles")
+    engine = sa.create_engine("sqlite://")
+    insert = (
+        "INSERT INTO users (id, username, email, first_name, last_name, phone, role, kind, "
+        "password_hash, is_active, is_superuser) "
+        "VALUES (:id, :id, '', '', '', '', :role, 'campaign', '', 1, 0)"
+    )
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            for module in revisions[:last]:
+                module.upgrade()
+        refused = []
+        for role in ("coordinator", "comms", "agent"):
+            try:
+                with connection.begin_nested():
+                    connection.execute(sa.text(insert), {"id": f"old-{role}", "role": role})
+            except sa.exc.IntegrityError:
+                refused.append(role)
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].upgrade()
+        for role in ("coordinator", "comms", "agent"):
+            connection.execute(sa.text(insert), {"id": role, "role": role})
+        with (
+            Operations.context(MigrationContext.configure(connection)),
+            pytest.raises(RuntimeError, match="coordinator, comms or agent"),
+        ):
+            revisions[last].downgrade()
+    engine.dispose()
+
+    assert refused == ["coordinator", "comms", "agent"]

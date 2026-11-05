@@ -65,3 +65,8 @@ async def test_reset_database_refuses_anything_but_postgres(
 
     assert await session.scalar(select(User.username).where(User.username == "jane")) == "jane"
     assert "Postgres only" in capsys.readouterr().err
+
+
+def test_createuser_offers_only_the_roles_the_workspace_serves() -> None:
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(["createuser", "-u", "otieno", "--role", "coordinator"])

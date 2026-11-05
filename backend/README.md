@@ -272,6 +272,11 @@ required and at least 32 characters.
 
 ## Known gaps
 
+- Coordinator, Comms and Agent are stored roles with no screens or
+  permissions yet; `createuser` offers only candidate, manager and mobilizer.
+  Nothing yet enforces that only a coordinator holds `campaign_member_areas`
+  rows. Downgrading `campaign_roles` turns a pending login into a plain
+  inactive one.
 - The website editor lists every approved aspirant but saves a candidate
   page only for one with a workspace; it does not mark the others. Saving a
   page for an aspirant whose campaign already holds a page with no aspirant

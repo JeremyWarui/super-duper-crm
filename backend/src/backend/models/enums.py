@@ -18,7 +18,10 @@ class LabelledStrEnum(StrEnum):
 class UserRole(LabelledStrEnum):
     CANDIDATE = ("candidate", "Candidate")
     MANAGER = ("manager", "Campaign Manager")
+    COORDINATOR = ("coordinator", "Coordinator")
+    COMMS = ("comms", "Comms")
     MOBILIZER = ("mobilizer", "Mobilizer")
+    AGENT = ("agent", "Agent")
 
 
 class UserKind(LabelledStrEnum):

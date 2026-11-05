@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     Uuid,
+    false,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -42,6 +43,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UniqueConstraint("id", "role"),
         UniqueConstraint("id", "kind"),
         CheckConstraint("(kind = 'campaign') = (role IS NOT NULL)", name="kind_matches_role"),
+        CheckConstraint("NOT (pending AND is_active)", name="pending_is_inactive"),
         # The sign-in name; stored lower-cased.
         Index(
             "uq_users_email",
@@ -78,6 +80,8 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     password_hash: Mapped[str] = mapped_column(String(128), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Registered by the person and awaiting approval; inactive until approved.
+    pending: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 

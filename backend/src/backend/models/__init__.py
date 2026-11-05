@@ -51,7 +51,7 @@ from backend.models.geography import (
     RegistrationCentre,
     Ward,
 )
-from backend.models.membership import CampaignMember
+from backend.models.membership import CampaignMember, CampaignMemberArea
 from backend.models.mobilizer import Mobilizer
 from backend.models.party import (
     Aspirant,
@@ -78,6 +78,7 @@ __all__ = [
     "Base",
     "Campaign",
     "CampaignMember",
+    "CampaignMemberArea",
     "Constituency",
     "County",
     "Event",

@@ -1391,7 +1391,10 @@
     "user.role": [
       "candidate",
       "manager",
-      "mobilizer"
+      "coordinator",
+      "comms",
+      "mobilizer",
+      "agent"
     ],
     "campaign.office_level": [
       "ward",
