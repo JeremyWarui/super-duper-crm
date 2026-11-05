@@ -33,7 +33,7 @@ import Settings from "./pages/campaign/Settings";
 import Recruitment from "./pages/campaign/Recruitment";
 
 // Pages built on the UI kit, which render outside the legacy stylesheet.
-const KIT_PAGES = new Set(["website", "settings", "recruitment"]);
+const KIT_PAGES = new Set(["overview", "strategy", "website", "settings", "recruitment"]);
 
 // One page per NAV key.
 const PAGES = {
@@ -89,6 +89,7 @@ function Shell({ campaign, role, where }) {
             tools={<><AreaPicker /><WorkspaceAlerts data={data} role={role} /><WorkspaceHelp /></>}
           />
         )}
+        slotHeaders
         rootLabel="Campaign workspace"
         rootPath="/campaign"
         user={{ name: user?.full_name || user?.username || "", role: ROLE_LABEL[role] }}
@@ -96,7 +97,10 @@ function Shell({ campaign, role, where }) {
       >
         <AppPage crumb={current[1]}>
           {KIT_PAGES.has(page) ? (
-            <Page campaign={campaign} role={role} />
+            <>
+              <Page campaign={campaign} role={role} onModal={setModal} />
+              {modal && <Legacy bare><CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} /></Legacy>}
+            </>
           ) : (
             <Legacy>
               <Page campaign={campaign} role={role} onModal={setModal} />

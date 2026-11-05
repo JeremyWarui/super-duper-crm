@@ -1,10 +1,15 @@
-import { PageTitle } from "../../components/ui";
-import { useStrategy } from "../../api/hooks";
-import { ErrorMsg, Loading } from "./controls";
-import StrategyPanel from "./StrategyPanel";
+import { useStrategy } from "@/api/hooks";
+import StrategyNotes from "./StrategyNotes";
+import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
 export default function Strategy({ campaign }) {
   const strategy = useStrategy(campaign.id);
-  if (strategy.isLoading) return <Loading />; if (strategy.error) return <ErrorMsg error={strategy.error} />;
-  return (<><PageTitle title="Strategy read" sub="Your next moves, computed from your own data." /><StrategyPanel notes={strategy.data.notes} /></>);
+  return (
+    <>
+      <WsHeader context="Plan" title="Strategy" sub="Your next moves, computed from your own data." />
+      {strategy.isLoading && <KitLoading />}
+      {strategy.error && <KitError error={strategy.error} />}
+      {strategy.data && <StrategyNotes notes={strategy.data.notes} wide={false} />}
+    </>
+  );
 }

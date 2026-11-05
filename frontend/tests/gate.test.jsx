@@ -87,7 +87,7 @@ describe("the gate", () => {
     renderApp(<Root />);
 
     expect(
-      await screen.findByText("VOTES TO WIN THE SEAT"),
+      await screen.findByRole("region", { name: "Win number" }),
     ).toBeInTheDocument();
   });
 
