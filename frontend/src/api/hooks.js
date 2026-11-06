@@ -1520,3 +1520,24 @@ export function useChangeSharing(campaignId) {
 }
 
 export const usePartyShared = () => useQuery({ queryKey: ["party-shared"], queryFn: () => api("/party/shared/") });
+
+// The party office's texts to members and volunteers.
+export const usePartyMessages = () => useQuery({ queryKey: ["party-messages"], queryFn: () => api("/party/messages/") });
+
+export const usePartyMessageReach = ({ audience, county, ward }) =>
+  useQuery({
+    queryKey: ["party-messages", "reach", audience, county, ward],
+    queryFn: () => api("/party/messages/preview/", { method: "POST", body: { audience, county, ward } }),
+    placeholderData: (previous) => previous,
+  });
+
+function usePartyMessageAction(mutationFn) {
+  const invalidate = useInvalidator();
+  return useMutation({ mutationFn, onSuccess: () => invalidate("party-messages") });
+}
+
+export const useDraftPartyMessage = () =>
+  usePartyMessageAction(({ audience, county, ward, body }) => api("/party/messages/", { method: "POST", body: { audience, county, ward, body } }));
+export const useSendPartyMessage = () => usePartyMessageAction((id) => api(`/party/messages/${id}/send/`, { method: "POST" }));
+export const useDeclinePartyMessage = () =>
+  usePartyMessageAction(({ id, note }) => api(`/party/messages/${id}/decline/`, { method: "POST", body: { note } }));

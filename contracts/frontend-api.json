@@ -285,7 +285,8 @@
       "registration_number",
       "founded_year",
       "aspirant_steps",
-      "updated_at"
+      "updated_at",
+      "sms_consent_wording"
     ],
     "PUT /api/admin/site/": [
       "name",
@@ -1198,6 +1199,62 @@
       "event_reach",
       "ward_coverage",
       "supporter_counts"
+    ],
+    "GET /api/party/messages/": [
+      "can_send",
+      "messages"
+    ],
+    "POST /api/party/messages/preview/": [
+      "recipients",
+      "opted_out"
+    ],
+    "POST /api/party/messages/": [
+      "id",
+      "body",
+      "audience",
+      "place",
+      "status",
+      "drafted_by",
+      "decided_by",
+      "created_at",
+      "decided_at",
+      "note",
+      "targeted",
+      "recipients",
+      "delivery",
+      "mine"
+    ],
+    "POST /api/party/messages/{message_id}/send/": [
+      "id",
+      "body",
+      "audience",
+      "place",
+      "status",
+      "drafted_by",
+      "decided_by",
+      "created_at",
+      "decided_at",
+      "note",
+      "targeted",
+      "recipients",
+      "delivery",
+      "mine"
+    ],
+    "POST /api/party/messages/{message_id}/decline/": [
+      "id",
+      "body",
+      "audience",
+      "place",
+      "status",
+      "drafted_by",
+      "decided_by",
+      "created_at",
+      "decided_at",
+      "note",
+      "targeted",
+      "recipients",
+      "delivery",
+      "mine"
     ]
   },
   "nested_reads": {
@@ -1623,6 +1680,22 @@
     "GET /api/party/shared/.supporter_counts": [
       "ward",
       "count"
+    ],
+    "GET /api/party/messages/.messages": [
+      "id",
+      "body",
+      "audience",
+      "place",
+      "status",
+      "drafted_by",
+      "decided_by",
+      "created_at",
+      "decided_at",
+      "note",
+      "targeted",
+      "recipients",
+      "delivery",
+      "mine"
     ]
   },
   "writes": {
@@ -1821,7 +1894,8 @@
       "ward",
       "registration_centre",
       "consent_given",
-      "volunteer"
+      "volunteer",
+      "sms_updates"
     ],
     "POST /api/party/withdraw/{code}/": [],
     "POST /api/party/members/{member_id}/status/": [
@@ -2318,6 +2392,21 @@
       "event_reach",
       "ward_coverage",
       "supporter_counts"
+    ],
+    "POST /api/party/messages/preview/": [
+      "audience",
+      "county",
+      "ward"
+    ],
+    "POST /api/party/messages/": [
+      "audience",
+      "county",
+      "ward",
+      "body"
+    ],
+    "POST /api/party/messages/{message_id}/send/": [],
+    "POST /api/party/messages/{message_id}/decline/": [
+      "note"
     ]
   },
   "enums": {

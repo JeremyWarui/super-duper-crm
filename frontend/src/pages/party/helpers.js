@@ -2,6 +2,7 @@
 export const PARTY_ROLES = [
   ["membership_officer", "Membership Officer"],
   ["nominations_officer", "Nominations Officer"],
+  ["comms_officer", "Comms Officer"],
 ];
 
 export const PARTY_ROLE_LABEL = Object.fromEntries(PARTY_ROLES);

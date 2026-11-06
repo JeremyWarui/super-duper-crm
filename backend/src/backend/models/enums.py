@@ -37,6 +37,7 @@ class PartyRoleName(LabelledStrEnum):
 
     MEMBERSHIP_OFFICER = ("membership_officer", "Membership Officer")
     NOMINATIONS_OFFICER = ("nominations_officer", "Nominations Officer")
+    COMMS_OFFICER = ("comms_officer", "Comms Officer")
 
 
 class OfficeLevel(LabelledStrEnum):

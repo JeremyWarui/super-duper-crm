@@ -22,7 +22,7 @@ from backend.models import (
 )
 from backend.schemas.common import ORMModel, WriteModel, plain_text
 from backend.schemas.site import Email
-from backend.services.consent import PARTY_WORDING
+from backend.services.consent import MEMBER_SMS_WORDING, PARTY_WORDING
 
 
 class PartySettingsRead(ORMModel):
@@ -32,6 +32,8 @@ class PartySettingsRead(ORMModel):
     updated_at: datetime
     # The join form's consent label; the server records this same text.
     consent_wording: str = PARTY_WORDING[PartyConsentChannel.WEB_FORM]
+    # The optional tick-box for party updates by SMS; the server records this same text.
+    sms_consent_wording: str = MEMBER_SMS_WORDING
 
 
 class PartySettingsUpdate(WriteModel):
@@ -105,6 +107,8 @@ class PartyJoinCreate(WriteModel):
     ward: uuid.UUID
     registration_centre: uuid.UUID
     consent_given: StrictBool
+    # Party updates by SMS; optional.
+    sms_updates: StrictBool = False
     volunteer: VolunteerPart | None = None
     # A coordinator's recruitment code from `/join-party?r=`; any other value is ignored.
     recruitment: str | None = Field(default=None, max_length=32)

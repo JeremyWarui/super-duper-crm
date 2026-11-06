@@ -10,6 +10,7 @@ import Aspirants from "./Aspirants";
 import Branches from "./Branches";
 import Dashboard from "./Dashboard";
 import Members from "./Members";
+import Messages from "./Messages";
 import Volunteers from "./Volunteers";
 import Website from "./Website";
 import { PARTY_ROLE_LABEL } from "./helpers";
@@ -21,6 +22,7 @@ const PAGES = [
   ["members", "Members", "membership_officer", <Members key="members" />],
   ["volunteers", "Volunteers", "membership_officer", <Volunteers key="volunteers" />],
   ["aspirants", "Aspirants", "nominations_officer", <Aspirants key="aspirants" />],
+  ["messages", "Messages", "comms_officer", <Messages key="messages" />, { kit: true, context: "Reach members", title: "Messages" }],
   ["branches", "Branches", "membership_officer", <Branches key="branches" />, { kit: true, context: "Party structure", title: "Branches" }],
   ["website", "Website", "superuser", <Website key="website" />, { kit: true, context: "Website content", title: "Edit the party website" }],
 ];

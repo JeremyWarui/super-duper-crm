@@ -34,6 +34,35 @@ class CampaignMessage(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     recipients: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class PartyMessage(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A party text to consenting members or volunteers, in a county or ward or everywhere:
+    drafted by the Comms Officer, then sent or declined by the Party Super Admin."""
+
+    __tablename__ = "party_messages"
+
+    body: Mapped[str] = mapped_column(Text)
+    # members or volunteers.
+    audience: Mapped[str] = mapped_column(String(20))
+    county_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("counties.id", ondelete="SET NULL"), default=None
+    )
+    ward_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("wards.id", ondelete="SET NULL"), default=None
+    )
+    # draft, sent or declined.
+    status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
+    drafted_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    decided_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    note: Mapped[str] = mapped_column(Text, default="")
+    targeted: Mapped[int] = mapped_column(Integer, default=0)
+    recipients: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class SmsLog(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """One text to one number, or what would have gone in practice mode.
 
@@ -52,10 +81,13 @@ class SmsLog(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     event_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("events.id", ondelete="SET NULL"), index=True, default=None
     )
+    party_message_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("party_messages.id", ondelete="SET NULL"), index=True, default=None
+    )
     sender_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
     )
-    # message, invite or test.
+    # message, invite, party or test.
     purpose: Mapped[str] = mapped_column(String(20))
     phone: Mapped[str] = mapped_column(String(20), index=True)
     body: Mapped[str] = mapped_column(Text)

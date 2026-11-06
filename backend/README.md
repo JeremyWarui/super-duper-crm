@@ -477,6 +477,22 @@ The counts are worked out on each read and kept nowhere on the party side, so a 
 off shows "Not shared" on the next read. Each change is audited and listed on the page. The
 party workspace and a standalone workspace have no such page (404).
 
+## Party texts to members and volunteers
+
+The Comms Officer, a party office like the others, drafts texts on the party CRM's Messages page
+(`/api/party/messages/`) to members or volunteers, everywhere or in one county or ward, and sees
+how many people the draft reaches. Only the Party Super Admin sends one, and never a draft they
+wrote; a draft is sent or declined once. Sending goes through `services/texting.py`, so every
+number gets an `sms_log` row with `purpose = 'party'` and the message's id, and the page shows
+how delivery went.
+
+- **Members** get a party text only if they ticked the join form's optional "Send me party
+  updates by SMS" box; the wording and time are kept on the member. Members who joined before
+  the box existed, or whom an officer added, are not texted.
+- **Volunteers** get one only while active and only if they chose SMS as their contact.
+- A STOP reply after a party text opts the number out of every text from this installation,
+  party and campaigns alike, because the party is not a campaign.
+
 ## Sign-in links
 
 Nobody is shown a password. A new login gets an emailed invite link (72 hours)
@@ -666,3 +682,9 @@ required and at least 32 characters.
   while the timetable is open; there is no appeal step. The timetable has no IEBC deadline
   check, reduced fees, nomination method, rules PDF, SMS notice or dates-only-move-later rule
   from the mockup.
+- Party texts: a STOP reply after a party text opts the number out of campaign texts too.
+  There is no scheduling, test send, member groups (youth league, branch officials) or SMS
+  credit balance from the Communications mockup.
+- Party texts: a STOP reply after a campaign text opts the number out of that campaign only, so
+  party texts still reach it. The recipient list is worked out again at send time, so the number
+  sent can differ from the count shown when the draft was written.

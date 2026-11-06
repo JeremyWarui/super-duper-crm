@@ -73,6 +73,7 @@ export default function JoinParty() {
   const [constituency, setConstituency] = useState("");
   const [ward, setWard] = useState("");
   const [centre, setCentre] = useState("");
+  const [smsUpdates, setSmsUpdates] = useState(false);
   const [volunteer, setVolunteer] = useState(false);
   const [profession, setProfession] = useState("");
   const [professionOther, setProfessionOther] = useState("");
@@ -115,6 +116,7 @@ export default function JoinParty() {
       ward,
       registration_centre: centre,
       consent_given: true,
+      sms_updates: smsUpdates,
       ...(recruitment && { recruitment: recruitment.slice(0, 32) }),
       ...(volunteer && {
         volunteer: {
@@ -230,6 +232,12 @@ export default function JoinParty() {
               <input type="checkbox" className={TICK} checked={consent} onChange={(e) => setConsent(e.target.checked)} />
               {p.consent_wording}
             </label>
+            {p.sms_consent_wording ? (
+              <label className="flex items-start gap-3 text-[15px] leading-[1.5]">
+                <input type="checkbox" className={TICK} checked={smsUpdates} onChange={(e) => setSmsUpdates(e.target.checked)} />
+                <span>{p.sms_consent_wording} <span className="text-muted-foreground">(optional)</span></span>
+              </label>
+            ) : null}
             {volunteer ? (
               <label className="flex items-start gap-3 text-[15px] leading-[1.5]">
                 <input type="checkbox" className={TICK} checked={volunteerConsent} onChange={(e) => setVolunteerConsent(e.target.checked)} />

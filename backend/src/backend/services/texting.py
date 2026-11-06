@@ -48,6 +48,7 @@ async def send(
     campaign_id: uuid.UUID | None = None,
     message_id: uuid.UUID | None = None,
     event_id: uuid.UUID | None = None,
+    party_message_id: uuid.UUID | None = None,
 ) -> tuple[SendResult, int]:
     """Text these E.164 numbers, leaving out any that opted out; returns the gateway's answer and
     how many were left out. The caller commits."""
@@ -83,6 +84,7 @@ async def send(
             campaign_id=campaign_id,
             message_id=message_id,
             event_id=event_id,
+            party_message_id=party_message_id,
             sender_id=sender.id if sender else None,
             purpose=purpose,
             phone=recipient.phone,

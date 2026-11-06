@@ -20,6 +20,9 @@ PARTY_WORDING: dict[PartyConsentChannel, str] = {
     ),
 }
 
+# The join form's optional tick-box; only members who ticked it get party texts.
+MEMBER_SMS_WORDING = "Send me party updates by SMS. I can reply STOP at any time to stop them."
+
 VOLUNTEER_WORDING = (
     "I agree that the party may contact me about volunteering, by the method I chose."
 )

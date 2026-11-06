@@ -80,7 +80,7 @@ from backend.models.party import (
 from backend.models.payment import Payment, ReconcileDifference, ReconcileRun
 from backend.models.sharing import CampaignSharing
 from backend.models.site import SetupToken, SiteSettings
-from backend.models.sms import CampaignMessage, SmsInbound, SmsLog, SmsOptOut
+from backend.models.sms import CampaignMessage, PartyMessage, SmsInbound, SmsLog, SmsOptOut
 from backend.models.supporter import Supporter
 from backend.models.target import Target, compute_win_number, unit_key
 from backend.models.team import Agent, TeamRegistration
@@ -95,6 +95,7 @@ __all__ = [
     "CampaignSharing",
     "SmsInbound",
     "SmsLog",
+    "PartyMessage",
     "SmsOptOut",
     "ReconcileDifference",
     "ReconcileRun",

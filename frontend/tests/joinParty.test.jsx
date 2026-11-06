@@ -13,7 +13,7 @@ afterEach(() => {
 const PARTY = { name: "Umoja Party", logo_url: "", primary_colour: "#112233", secondary_colour: "#445566", description: "One country.", consent_wording: "Umoja may keep my details.", volunteer_consent_wording: "Umoja may contact me about volunteering." };
 const ROUTES = {
   "GET /site/": PARTY,
-  "GET /party/": { consent_wording: PARTY.consent_wording },
+  "GET /party/": { consent_wording: PARTY.consent_wording, sms_consent_wording: "Send me party updates by SMS." },
   "GET /party/places/": [{ id: "c1", name: "Nairobi" }],
   "GET /party/places/?county=c1": [{ id: "k1", name: "Roysambu" }],
   "GET /party/places/?constituency=k1": [{ id: "w1", name: "Githurai" }],
@@ -123,6 +123,23 @@ describe("applying to join the party", () => {
       ward: "w1",
       registration_centre: "rc1",
       consent_given: true,
+      sms_updates: false,
     });
+  });
+
+  it("sends the SMS updates choice only when the optional box is ticked", async () => {
+    const calls = stubApi(ROUTES);
+    renderApp(<JoinParty />);
+    const user = userEvent.setup();
+    await fillDetails(user);
+    await fillBranch(user);
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    await user.click(screen.getByRole("checkbox", { name: PARTY.consent_wording }));
+    await user.click(screen.getByRole("checkbox", { name: /Send me party updates by SMS/ }));
+    await user.click(screen.getByRole("button", { name: "Join the party" }));
+
+    await screen.findByText(/pending review/);
+    expect(calls.find((c) => c.method === "POST").body.sms_updates).toBe(true);
   });
 });

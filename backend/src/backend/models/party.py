@@ -125,6 +125,9 @@ class PartyMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         choice_type(PartyConsentChannel, "party_consent_channel")
     )
     consent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Party updates by SMS: the wording the member agreed to and when; None if they did not.
+    sms_consent_wording: Mapped[str | None] = mapped_column(Text, default=None)
+    sms_consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
     # The party workspace coordinator whose recruitment link brought the application, and the
     # county of the applicant's ward then.

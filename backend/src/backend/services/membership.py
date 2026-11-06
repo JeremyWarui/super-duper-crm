@@ -30,7 +30,7 @@ from backend.models import (
 from backend.services import aspirants, party_workspace, volunteers
 from backend.services.accounts import clean_email
 from backend.services.audit import record, record_if
-from backend.services.consent import PARTY_WORDING
+from backend.services.consent import MEMBER_SMS_WORDING, PARTY_WORDING
 from backend.services.errors import NotFound, Refused, refuse_own_record
 
 log = logging.getLogger(__name__)
@@ -122,6 +122,7 @@ def request_join(
     registration_centre_id: uuid.UUID,
     volunteer: dict | None = None,
     recruitment: str | None = None,
+    sms_updates: bool = False,
 ) -> tuple[str, str | None]:
     """Queue a public application; returns its withdraw code and the volunteer one, if any.
 
@@ -144,6 +145,7 @@ def request_join(
         "consent_wording": PARTY_WORDING[PartyConsentChannel.WEB_FORM],
         "consent_at": now,
         "recruitment": recruitment,
+        "sms_consent_wording": MEMBER_SMS_WORDING if sms_updates else None,
     }
     volunteer_code = None
     if volunteer is not None:
@@ -207,6 +209,10 @@ async def _apply_join(session: AsyncSession, code: str, p: dict) -> None:
         "consent_channel": PartyConsentChannel.WEB_FORM,
         "consent_wording": p["consent_wording"],
         "consent_at": datetime.fromisoformat(p["consent_at"]),
+        "sms_consent_wording": p.get("sms_consent_wording"),
+        "sms_consent_at": (
+            datetime.fromisoformat(p["consent_at"]) if p.get("sms_consent_wording") else None
+        ),
         "withdraw_code": code,
     }
     found = select(PartyMember.id, PartyMember.status).where(PartyMember.phone == p["phone"])

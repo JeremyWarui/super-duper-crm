@@ -13,6 +13,7 @@ from backend.models import (
     VolunteerProfile,
     VolunteerStatus,
 )
+from backend.services.consent import MEMBER_SMS_WORDING
 from backend.services.membership import process_requests
 from tests.conftest import World
 from tests.factories import TEST_PASSWORD
@@ -263,3 +264,19 @@ async def test_the_place_picker_lists_a_wards_polling_stations(
     centres = (await client.get(f"/api/party/places/?ward={world.centre.ward_id}")).json()
 
     assert centres == [{"id": str(world.centre.id), "name": "Zimmerman Primary"}]
+
+
+async def test_the_sms_tick_box_records_its_wording_and_is_off_unless_ticked(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await client.post("/api/party/join/", json=_application(world, sms_updates=True))
+    await client.post(
+        "/api/party/join/", json=_application(world, phone="0712 000111", email="b@example.com")
+    )
+    await process_requests(session)
+    rows = (await session.execute(select(PartyMember.phone, PartyMember.sms_consent_wording))).all()
+
+    assert sorted(rows) == [
+        ("+254712000111", None),
+        ("+254712345678", MEMBER_SMS_WORDING),
+    ]
