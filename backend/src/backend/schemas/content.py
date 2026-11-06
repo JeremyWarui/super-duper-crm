@@ -10,7 +10,7 @@ from pydantic import AfterValidator, Field, computed_field, field_validator, mod
 
 from backend.models import BranchOffice, PostKind, PostLabel, Seat, TermEnd, TermStart
 from backend.schemas.common import ORMModel, WriteModel, plain_text
-
+from backend.services import rich_text
 
 UPLOADED = re.compile(r"^/api/files/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/$")
 
@@ -50,6 +50,10 @@ Place = Annotated[str, Field(max_length=80), AfterValidator(lambda v: plain_text
 Reference = Annotated[str, Field(max_length=40), AfterValidator(lambda v: plain_text(v).strip())]
 Venue = Annotated[str, Field(max_length=150), AfterValidator(lambda v: plain_text(v).strip())]
 Body = Annotated[str, Field(max_length=20_000), AfterValidator(_text)]
+# A post's text as the editor's HTML, cleaned to the tags `rich_text` keeps.
+RichBody = Annotated[
+    str, Field(max_length=50_000), AfterValidator(lambda v: rich_text.clean(_text(v)))
+]
 
 
 class LeaderRead(ORMModel):
@@ -91,6 +95,9 @@ class PostCounty(ORMModel):
     name: str
 
 
+EXCERPT = 300
+
+
 class _Post(ORMModel):
     id: uuid.UUID
     kind: PostKind
@@ -111,7 +118,14 @@ class _Post(ORMModel):
     @property
     def read_minutes(self) -> int:
         """Minutes to read the body at 200 words a minute, at least one."""
-        return max(1, math.ceil(len(self.body.split()) / 200))
+        return max(1, math.ceil(len(rich_text.text(self.body).split()) / 200))
+
+    @computed_field
+    @property
+    def excerpt(self) -> str:
+        """The body's opening words as plain text, for cards and lists."""
+        words = rich_text.text(self.body).replace("\n", " ")
+        return words if len(words) <= EXCERPT else words[: EXCERPT - 1].rsplit(" ", 1)[0] + "…"
 
 
 class PostRead(_Post):
@@ -129,7 +143,7 @@ class PostAdminRead(_Post):
 class PostCreate(WriteModel):
     kind: PostKind
     title: Line
-    body: Body = ""
+    body: RichBody = ""
     image_url: Image = ""
     event_date: date | None = None
     venue: Venue = ""
@@ -155,7 +169,7 @@ class PostUpdate(WriteModel):
     """Only the fields sent change; a post keeps its kind."""
 
     title: Line | None = None
-    body: Body | None = None
+    body: RichBody | None = None
     image_url: Image | None = None
     event_date: date | None = None
     venue: Venue | None = None

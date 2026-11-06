@@ -250,6 +250,18 @@
   /* Card hover lift (website only) */
   .lift { transition: transform 160ms ease, box-shadow 160ms ease; }
   .lift:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgb(19 32 26 / 0.05), 0 16px 40px rgb(19 32 26 / 0.10); }
+  /* Post text from the editor, in the editor and on the site */
+  .rich-text { display: flex; flex-direction: column; gap: 0.9em; overflow-wrap: anywhere; }
+  .rich-text h2 { margin-top: 0.4em; font-size: 1.45em; font-weight: 800; line-height: 1.25; }
+  .rich-text h3 { margin-top: 0.3em; font-size: 1.2em; font-weight: 700; line-height: 1.3; }
+  .rich-text ul, .rich-text ol { display: flex; flex-direction: column; gap: 0.35em; padding-left: 1.4em; }
+  .rich-text ul { list-style: disc; }
+  .rich-text ol { list-style: decimal; }
+  .rich-text li > p { display: inline; }
+  .rich-text blockquote { border-left: 4px solid var(--accent); padding: 0.1em 0 0.1em 1em; font-style: italic; color: var(--ink); }
+  .rich-text a { color: var(--party-primary); text-decoration: underline; text-underline-offset: 3px; }
+  .rich-text img { max-width: 100%; height: auto; border-radius: var(--radius-photo); }
+  .rich-text img.ProseMirror-selectednode { outline: 3px solid var(--accent); }
 }
 
 /* Respect people who ask for less motion */

@@ -51,6 +51,19 @@ async function openWebsite() {
 }
 
 describe("the website editor", () => {
+  it("saves the post's text as the editor's formatted HTML", async () => {
+    const user = userEvent.setup();
+    const calls = await openWebsite();
+
+    await user.click(screen.getByRole("button", { name: "New post" }));
+    await user.type(screen.getByLabelText("Title"), "Rally next week");
+    await user.click(screen.getByRole("button", { name: "Bold" }));
+    await user.type(screen.getByRole("textbox", { name: "Text" }), "Come early");
+    await user.click(screen.getByRole("button", { name: "Add post" }));
+
+    await waitFor(() => expect(sent(calls, "POST", "/admin/party/posts/")?.body.body).toBe("<p><strong>Come early</strong></p>"));
+  });
+
   it("uploads a chosen image and saves its address on the post", async () => {
     const user = userEvent.setup();
     const url = UPLOADED;

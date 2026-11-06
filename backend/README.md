@@ -254,6 +254,22 @@ everyone else. `site_settings`, `hero_slides`, `party_leaders`,
 `party_documents` and `candidate_profiles` each have a `*_file_id` beside the
 `*_url` they keep as a fallback.
 
+The website editors' image fields upload with a Choose file button and keep the
+file's `/api/files/{id}/` address; image fields accept that address or an
+`https://` one. An aspirant workspace uploads public images at
+`POST /api/workspace/site/images/` (multipart: `file`, `area`) under `site.write`.
+
+## Post text
+
+A post's `body` is HTML from the website editor (Tiptap). On save,
+`services/rich_text.py` keeps only paragraphs, line breaks, two heading levels,
+bold, italic, strikethrough, links (`https:`, `mailto:` or a page on this
+site), bulleted and numbered lists, quotes, and images from `https://` or this
+site's uploads; every other tag, attribute and script is removed. Post reads
+carry `excerpt`, the opening 300 characters as plain text, and `read_minutes`
+counts the words without the tags. The public post page sanitizes the HTML
+again (DOMPurify) before drawing it.
+
 ## Texts to supporters
 
 Every text goes through `services/texting.py`, which leaves out numbers that

@@ -105,6 +105,22 @@ describe("the public site", () => {
     );
   });
 
+  it("draws a post's formatted text and drops anything that could run", async () => {
+    stubApi({
+      ...ROUTES,
+      "GET /party/posts/n1/": post("n1", "news", "Party congress opens", {
+        body: '<h2>What was agreed</h2><p>Delegates voted <strong>yes</strong>.</p><ul><li>Fees fall</li></ul><img src="x" onerror="window.hit=1"><script>window.hit=1</script>',
+        read_minutes: 1,
+      }),
+    });
+    renderApp(<AppRoutes />, { path: "/news/n1" });
+
+    expect(await screen.findByRole("heading", { name: "What was agreed" })).toBeInTheDocument();
+    expect(screen.getByText("yes").tagName).toBe("STRONG");
+    expect(screen.getByRole("listitem")).toHaveTextContent("Fees fall");
+    expect(document.querySelector("article script, article [onerror]")).toBeNull();
+  });
+
   it("shows the Watch row with YouTube's thumbnail and the video's length", async () => {
     stubApi({
       ...ROUTES,

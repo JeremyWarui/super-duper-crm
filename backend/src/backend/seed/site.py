@@ -35,6 +35,7 @@ from backend.models import (
     party_post_aspirants,
 )
 from backend.services.consent import PARTY_WORDING
+from backend.services.rich_text import from_plain
 
 # Official-style portraits from Unsplash (free licence), named by their image path.
 _PORTRAIT = "https://images.unsplash.com/{}?w=600&h=750&fit=crop&crop=faces"
@@ -211,7 +212,7 @@ RESULTS = [
     (Seat.MCA, "Kileleshwa", None, [("Faith Muthoni", 812), ("Ali Hassan", 774)]),
 ]
 
-BODY = (
+BODY = from_plain(
     "This is sample text for the demo website. A real post would carry the full story: "
     "who spoke, what was agreed, and what members can do next."
 )

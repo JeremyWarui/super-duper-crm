@@ -1,11 +1,10 @@
 // /news/:id: one published story or event in full; a statement carries its official record.
 import { Link } from "react-router-dom";
 import { usePublicPost, usePublicPosts } from "@/api/hooks";
+import { RichText } from "@/components/RichText";
 import { Card } from "@/components/ui/card";
 import { Crumbs, RailHead } from "@/components/ui/typography";
 import { Initials, LABELS, Photo, StoryKicker, day } from "./story";
-
-const paragraphs = (text) => text.split(/\n+/).map((p) => p.trim()).filter(Boolean);
 
 function Record({ post }) {
   return (
@@ -90,7 +89,7 @@ export default function Post({ id }) {
             )}
           </div>
           {p.image_url ? <img src={p.image_url} alt="" className="aspect-video w-full rounded-photo object-cover" /> : null}
-          {paragraphs(p.body).map((text, n) => <p key={n} className="text-[18px] leading-[1.75]">{text}</p>)}
+          {p.body ? <RichText html={p.body} className="text-[18px] leading-[1.75]" /> : null}
           {p.label === "statement" && !event ? <Record post={p} /> : null}
         </article>
         <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-[18px]">

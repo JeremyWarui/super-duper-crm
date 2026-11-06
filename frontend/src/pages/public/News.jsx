@@ -19,7 +19,7 @@ function Lead({ lead, beside }) {
         <h2 className="font-display text-[clamp(30px,3.6vw,44px)] leading-[1.08] font-extrabold tracking-[-0.02em]">
           <Link to={`/news/${lead.id}`} className="text-ink no-underline hover:text-primary">{lead.title}</Link>
         </h2>
-        {lead.body ? <p className="line-clamp-2 max-w-[60ch] text-[18px] leading-[1.6] text-text-2">{lead.body}</p> : null}
+        {lead.excerpt ? <p className="line-clamp-2 max-w-[60ch] text-[18px] leading-[1.6] text-text-2">{lead.excerpt}</p> : null}
         <span className="text-small text-muted-foreground">
           {lead.author ? `By ${lead.author} · ` : ""}{day(lead.published_on)} · {lead.read_minutes} min read
         </span>

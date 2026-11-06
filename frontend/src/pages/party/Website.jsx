@@ -37,6 +37,7 @@ import {
   useSiteVideos,
   useUploadImage,
 } from "@/api/hooks";
+import { RichTextEditor } from "@/components/RichText";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -101,7 +102,7 @@ export const POST_FIELDS = [
   { key: "author_photo_url", label: "Author photo (optional)", max: 500, kind: "image", area: "site", show: isNews },
   { key: "reference", label: "Reference (optional)", max: 40, show: isStatement },
   { key: "pdf_url", label: "Signed PDF address (optional)", max: 500, kind: "https", show: isStatement },
-  { key: "body", label: "Text", max: 20000, kind: "area" },
+  { key: "body", label: "Text", kind: "rich", area: "site" },
   { key: "image_url", label: "Image (optional)", max: 500, kind: "image", area: "site" },
 ];
 
@@ -246,6 +247,9 @@ function ItemForm({ section, row, onDone }) {
         {shown.map((f) => {
           const common = { value: form[f.key], onChange: set(f.key), "aria-invalid": tried && errors[f.key] ? true : undefined };
           const hint = (tried && errors[f.key]) || f.hint;
+          if (f.kind === "rich") {
+            return <RichTextEditor key={f.key} label={f.label} hint={hint} value={form[f.key]} upload={section.upload} area={f.area} onChange={(v) => setForm((now) => ({ ...now, [f.key]: v }))} />;
+          }
           if (f.kind === "image") {
             return <ImageField key={f.key} label={f.label} hint={hint} value={form[f.key]} invalid={common["aria-invalid"]} upload={section.upload} area={f.area} onChange={(v) => setForm((now) => ({ ...now, [f.key]: v }))} />;
           }

@@ -448,6 +448,7 @@
       "reference",
       "pdf_url",
       "read_minutes",
+      "excerpt",
       "county"
     ],
     "GET /api/party/posts/{post_id}/": [

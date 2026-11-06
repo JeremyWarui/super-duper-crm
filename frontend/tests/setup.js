@@ -17,6 +17,11 @@ Element.prototype.hasPointerCapture ??= () => false;
 Element.prototype.releasePointerCapture ??= () => {};
 Element.prototype.scrollIntoView ??= () => {};
 
+// jsdom lacks the layout calls the post text editor (ProseMirror) makes on a click.
+document.elementFromPoint ??= () => null;
+Range.prototype.getClientRects ??= () => [];
+Range.prototype.getBoundingClientRect ??= () => new DOMRect();
+
 beforeEach(() => {
   localStorage.clear();
   useAuth.setState({ token: null, user: null });

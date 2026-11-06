@@ -220,7 +220,7 @@ function News({ news }) {
               <span className="text-meta font-extrabold uppercase tracking-[0.1em] text-muted-foreground">{ago(lead.published_on)}</span>
             </span>
             <span className="font-display text-[30px] leading-[1.15] font-extrabold tracking-[-0.01em]">{lead.title}</span>
-            {lead.body ? <span className="line-clamp-2 leading-[1.6] text-muted-foreground">{lead.body}</span> : null}
+            {lead.excerpt ? <span className="line-clamp-2 leading-[1.6] text-muted-foreground">{lead.excerpt}</span> : null}
             <span className="text-small text-muted-foreground">{lead.author ? `By ${lead.author} · ` : ""}{lead.read_minutes} min read</span>
           </Link>
           <div className="flex min-w-0 flex-[2_1_320px] flex-col">

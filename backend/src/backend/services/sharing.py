@@ -30,6 +30,7 @@ from backend.models import (
     Ward,
     WorkspaceKind,
 )
+from backend.services import rich_text
 from backend.services.audit import record
 from backend.services.targets import wards_in_area
 
@@ -107,7 +108,7 @@ def _post(p: PartyPost) -> dict:
     return {
         "id": p.id,
         "title": p.title,
-        "body": p.body,
+        "body": rich_text.text(p.body),
         "event_date": p.event_date,
         "venue": p.venue,
         "published_on": p.published_on,

@@ -1,4 +1,4 @@
-"""Event counties, and the About page's documents, values, organs and counts."""
+"""Post text, event counties, and the About page's documents, values, organs and counts."""
 
 import httpx
 
@@ -61,3 +61,26 @@ async def test_the_about_page_lists_only_published_content(
         assert (values.status_code, organs.status_code) == (404, 404)
     videos = (await client.get("/api/party/videos/")).json()
     assert [(v["title"], v["duration"]) for v in videos] == [("Rally", "4:15")]
+
+
+async def test_post_text_is_kept_as_cleaned_html_with_a_plain_excerpt(
+    client: httpx.AsyncClient, admin_headers: dict
+) -> None:
+    written = (
+        '<h2>Agreed</h2><p onclick="x()">Fees <strong>fall</strong> &amp; rise.</p>'
+        '<script>alert(1)</script><a href="javascript:alert(1)">bad</a>'
+        '<a href="/\\evil.com">far</a>'
+    )
+    post = await client.post(
+        "/api/admin/party/posts/",
+        headers=admin_headers,
+        json={"kind": "news", "title": "Congress", "body": written, "published": True},
+    )
+    [public] = (await client.get("/api/party/posts/?kind=news")).json()
+
+    assert post.status_code == 201
+    assert public["body"] == (
+        "<h2>Agreed</h2><p>Fees <strong>fall</strong> &amp; rise.</p>"
+        '<a rel="noopener noreferrer">bad</a><a rel="noopener noreferrer">far</a>'
+    )
+    assert public["excerpt"] == "Agreed Fees fall & rise. badfar"
