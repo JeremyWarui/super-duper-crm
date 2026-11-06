@@ -50,3 +50,40 @@ class PaymentPaid(WriteModel):
 class PayoutMode(ORMModel):
     mode: str
     moves_money: bool
+
+
+class ReleaseCheckRequest(WriteModel):
+    payments: list[uuid.UUID] = Field(min_length=1, max_length=200)
+
+
+class ReleaseCheck(ORMModel):
+    """Whether the payout balance covers these payments and their fees."""
+
+    mode: str
+    moves_money: bool
+    balance_kes: int
+    amount_kes: int
+    fee_kes: int
+    left_kes: int
+    enough: bool
+
+
+class ReconcileRunRead(ORMModel):
+    created_at: datetime
+    status: str
+    checked: int
+    detail: str
+
+
+class DifferenceRead(ORMModel):
+    payment_id: uuid.UUID | None
+    recipient_name: str
+    reference: str
+    ledger: str
+    provider: str
+    detail: str
+
+
+class Reconciliation(ORMModel):
+    last_run: ReconcileRunRead | None
+    differences: list[DifferenceRead]

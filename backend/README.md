@@ -327,6 +327,15 @@ opens the setup; one with logins keeps its settings.
 
 ### Known gaps
 
+- Payouts: the List Transfers reply shape (`reference`, `status`, `amount`,
+  `transfer_code`, `meta.pageCount`) follows Paystack's API as known, not a
+  fetched copy of its docs; confirm against a live account before relying on
+  reconciliation. Two releases at once can both pass the balance check, and
+  Paystack then refuses the second as a failed transfer. A difference with no
+  payment (a transfer under this app's reference that matches nothing) is
+  recorded but shown on no campaign's page. Fees are fixed in code, so a
+  Paystack price change needs a code change.
+
 - Texts: Messages go to supporters only, not to the team and mobilizers, and
   are sent now, not scheduled; the gateway's credit balance is not shown. The
   footer and part count assume plain GSM text: a message with an emoji or
@@ -488,10 +497,10 @@ a reason. Every schedule, approval, decline and not-sent is audited.
 
 ## Payouts
 
-Releasing a campaign's mobilizer payment (`/api/payments/`) goes through the
-payout provider. The
-default, `practice`, moves no money and marks each release paid under a
-`PRACTICE-` reference. Real M-Pesa transfers through Paystack need:
+Approving a payment to a mobilizer or agent (`/api/payments/`) releases it
+through the payout provider. The default, `practice`, moves no money, marks
+each release paid under a `PRACTICE-` reference, and shows a made-up balance
+of KES 500,000 with no fees. Real M-Pesa transfers through Paystack need:
 
 ```bash
 PAYOUT_PROVIDER=paystack
@@ -499,10 +508,26 @@ PAYSTACK_SECRET_KEY=<paystack-secret-key>
 PAYSTACK_WEBHOOK_SECRET=<whsec-signing-secret>   # blank: legacy x-paystack-signature
 ```
 
-and the Paystack webhook pointed at `/api/payments/paystack/webhook/`. A
-transfer Paystack accepts stays `sending` until `transfer.success`,
-`transfer.failed` or `transfer.reversed` arrives for that attempt's reference
-(`party-<id>-<attempt>` or `pay-<id>-<attempt>`).
+and the Paystack webhook pointed at `/api/payments/paystack/webhook/`.
+
+- **Balance first.** Every release reads the Paystack balance and is refused,
+  before any transfer, when it does not cover the amount and the fee (KES 20
+  up to 1,500, 40 up to 20,000, 60 above, per paystack.com/ke/pricing). The
+  release form shows the balance, the fees and what is left
+  (`POST /api/payments/release-check/`). Money is added in the Paystack
+  dashboard.
+- **The webhook decides.** A transfer Paystack accepts stays `sending` until
+  `transfer.success`, `transfer.failed` or `transfer.reversed` arrives for
+  that attempt's reference (`pay-<id>-<attempt>`). A repeated event changes
+  nothing. A failed or reversed transfer goes back to "To retry" with
+  Paystack's reason, and approving it again sends a new attempt.
+- **Reconciliation.** Once a day (`RECONCILE_HOURS`, 0 turns it off), and on
+  "Check now" on the Payments page, `services/reconcile.py` compares the last
+  30 days of Paystack payments with Paystack's transfer list and records each
+  difference: paid here but not there, paid there but not here, a different
+  amount, an earlier attempt also paid, or a transfer under this app's
+  reference with no payment. It changes no payment; the Candidate and Manager
+  see their campaign's differences and settle them by hand.
 
 ## The models
 

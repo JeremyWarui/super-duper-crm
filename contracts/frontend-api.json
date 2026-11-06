@@ -1089,6 +1089,21 @@
       "phone",
       "status",
       "detail"
+    ],
+    "POST /api/payments/release-check/": [
+      "balance_kes",
+      "amount_kes",
+      "fee_kes",
+      "left_kes",
+      "enough"
+    ],
+    "GET /api/payments/reconciliation/": [
+      "last_run",
+      "differences"
+    ],
+    "POST /api/payments/reconciliation/": [
+      "last_run",
+      "differences"
     ]
   },
   "nested_reads": {
@@ -1426,6 +1441,19 @@
       "recipients",
       "delivery",
       "mine"
+    ],
+    "GET /api/payments/reconciliation/.last_run": [
+      "created_at",
+      "status",
+      "checked",
+      "detail"
+    ],
+    "GET /api/payments/reconciliation/.differences": [
+      "recipient_name",
+      "reference",
+      "ledger",
+      "provider",
+      "detail"
     ]
   },
   "writes": {
@@ -2087,7 +2115,11 @@
     "POST /api/messages/{message_id}/decline/": [
       "note"
     ],
-    "POST /api/messages/{message_id}/send/": []
+    "POST /api/messages/{message_id}/send/": [],
+    "POST /api/payments/release-check/": [
+      "payments"
+    ],
+    "POST /api/payments/reconciliation/": []
   },
   "enums": {
     "user.role": [

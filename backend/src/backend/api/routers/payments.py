@@ -36,8 +36,11 @@ from backend.schemas.payment import (
     PaymentPaid,
     PaymentRead,
     PayoutMode,
+    Reconciliation,
+    ReleaseCheck,
+    ReleaseCheckRequest,
 )
-from backend.services import assignments, payment_routing, payout_flow
+from backend.services import assignments, payment_routing, payout_flow, reconcile
 from backend.services.audit import record
 from backend.services.payout_flow import OPEN
 from backend.services.payouts import get_payout_provider, paystack_signed
@@ -187,6 +190,57 @@ async def payout_mode(user: CurrentUser) -> PayoutMode:
     return PayoutMode(mode=provider.name, moves_money=provider.moves_money)
 
 
+@router.post("/release-check/", response_model=ReleaseCheck)
+async def release_check(payload: ReleaseCheckRequest, session: SessionDep, user: Approver) -> dict:
+    """The payout balance, the fees and what is left after releasing these open payments."""
+    amounts = []
+    for payment_id in dict.fromkeys(payload.payments):
+        payment = await _visible(session, user, payment_id)
+        if payment.status in OPEN:
+            amounts.append(payment.amount_kes)
+    return await payout_flow.cover(get_payout_provider(), amounts)
+
+
+async def _reconciliation(session: SessionDep, campaign: uuid.UUID) -> dict:
+    last = await reconcile.latest(session)
+    rows = await reconcile.differences(session, last.id, campaign) if last else []
+    names = {
+        p.id: p.recipient_name
+        for p in await session.scalars(
+            select(Payment).where(Payment.id.in_([r.payment_id for r in rows if r.payment_id]))
+        )
+    }
+    return {
+        "last_run": last,
+        "differences": [
+            {
+                "payment_id": r.payment_id,
+                "recipient_name": names.get(r.payment_id, ""),
+                "reference": r.reference,
+                "ledger": r.ledger,
+                "provider": r.provider,
+                "detail": r.detail,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.get("/reconciliation/", response_model=Reconciliation)
+async def reconciliation(campaign: uuid.UUID, session: SessionDep, user: Approver) -> dict:
+    """The last comparison with the payout provider, and this campaign's differences in it."""
+    await require_visible_campaign(session, user, campaign)
+    return await _reconciliation(session, campaign)
+
+
+@router.post("/reconciliation/", response_model=Reconciliation)
+async def reconcile_now(campaign: uuid.UUID, session: SessionDep, user: Approver) -> dict:
+    """Compare the ledger with the payout provider now, rather than waiting for the daily run."""
+    await require_visible_campaign(session, user, campaign)
+    await reconcile.run(session)
+    return await _reconciliation(session, campaign)
+
+
 @router.post("/{payment_id}/release/", response_model=PaymentRead)
 async def release_payment(payment_id: uuid.UUID, session: SessionDep, user: Approver) -> Payment:
     """Approve a scheduled or failed payment and send it to the number it was scheduled for."""
@@ -217,7 +271,9 @@ async def release_payment(payment_id: uuid.UUID, session: SessionDep, user: Appr
             f"{payment.recipient_name}'s number changed since this was scheduled; "
             "cancel it and schedule again to pay the new number.",
         )
-    released = await payout_flow.release(session, payment, get_payout_provider(), phone)
+    provider = get_payout_provider()
+    await payout_flow.require_cover(provider, payment.amount_kes)
+    released = await payout_flow.release(session, payment, provider, phone)
     # Recorded once the release has claimed the payment, so a second approver racing it fails
     # before writing an approval.
     released.approved_by_id = user.id

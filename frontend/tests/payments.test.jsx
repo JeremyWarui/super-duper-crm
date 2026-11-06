@@ -13,11 +13,13 @@ const SCHEDULED = {
   recipient_name: "Juma Otieno", recipient_phone: "+254700000001", amount_kes: 1500,
   status: "scheduled", reference: "", paid_at: null, created_at: "2026-10-20T09:00:00Z",
 };
+const NOT_CHECKED = { last_run: null, differences: [] };
+const COVERED = { mode: "practice", moves_money: false, balance_kes: 500000, amount_kes: 1500, fee_kes: 0, left_kes: 498500, enough: true };
 const MOBILIZERS = [{ id: "m1", full_name: "Juma Otieno", ward: "w1", ward_name: "Zimmerman", registration_centre: null, phone: "" }];
 
 async function openPayments(role, routes = {}) {
   signIn(role);
-  const calls = stubApi(dashboardRoutes({ "GET /payments/": [SCHEDULED], "GET /mobilizers/": MOBILIZERS, ...routes }));
+  const calls = stubApi(dashboardRoutes({ "GET /payments/": [SCHEDULED], "GET /mobilizers/": MOBILIZERS, "GET /payments/reconciliation/?campaign=c1": NOT_CHECKED, "POST /payments/release-check/": COVERED, ...routes }));
   renderApp(<App />);
   const user = userEvent.setup();
   await user.click(await screen.findByRole("link", { name: "Payments" }));
@@ -97,7 +99,7 @@ describe("payments", () => {
     await user.click(screen.getAllByRole("button", { name: "Release" }).at(-1));  // the modal's, drawn last
 
     expect(await screen.findByText("Paid · PRACTICE-0A1B2C3D4E")).toBeInTheDocument();
-    expect(calls.filter((c) => c.method === "POST").map((c) => c.path)).toEqual(["/payments/p1/release/"]);
+    expect(calls.filter((c) => c.method === "POST" && c.path !== "/payments/release-check/").map((c) => c.path)).toEqual(["/payments/p1/release/"]);
   });
 
   it("shows the candidate the register without any way to change it", async () => {
@@ -130,6 +132,37 @@ describe("payments", () => {
     await waitFor(() => expect(calls.some((c) => c.path === "/payments/payout-mode/")).toBe(true));
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.queryByText("Practice mode.")).toBeNull();
+  });
+
+  it("shows the balance, fee and what is left, and holds a release the balance does not cover", async () => {
+    const byManager = { ...SCHEDULED, scheduled_by: "u-manager", approver_role: "candidate" };
+    const { user } = await openPayments("candidate", {
+      "GET /payments/": [byManager],
+      "GET /payments/payout-mode/": { mode: "paystack", moves_money: true },
+      "POST /payments/release-check/": { mode: "paystack", moves_money: true, balance_kes: 1500, amount_kes: 1500, fee_kes: 20, left_kes: -20, enough: false },
+    });
+
+    await user.click(screen.getByRole("button", { name: "Approve" }));
+    expect(await screen.findByText("Transfer fees")).toBeInTheDocument();
+    expect(screen.getByText("KES -20")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Release" })).toBeDisabled();
+  });
+
+  it("offers a failed payment for retry and lists differences with the payout provider", async () => {
+    const failed = { ...SCHEDULED, scheduled_by: "u-manager", approver_role: "candidate", status: "failed", failure_reason: "Paystack says the transfer reversed." };
+    await openPayments("candidate", {
+      "GET /payments/": [failed],
+      "GET /payments/reconciliation/?campaign=c1": {
+        last_run: { created_at: "2026-11-06T02:00:00Z", status: "differences", checked: 4, detail: "" },
+        differences: [{ payment_id: "p1", recipient_name: "Juma Otieno", reference: "pay-p1-1", ledger: "paid", provider: "failed", detail: "Marked paid here, but Paystack shows the transfer did not go through." }],
+      },
+    });
+
+    const row = within(screen.getByRole("region", { name: "Payments" })).getByText("Juma Otieno").closest("tr");
+    expect(within(row).getByText("To retry")).toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: "Retry" })).toBeInTheDocument();
+    const differences = await screen.findByRole("region", { name: "Differences with the payout provider" });
+    expect(await within(differences).findByText("Marked paid here, but Paystack shows the transfer did not go through.")).toBeInTheDocument();
   });
 
   it("counts failed payments and ones stuck while sending as needing attention", async () => {

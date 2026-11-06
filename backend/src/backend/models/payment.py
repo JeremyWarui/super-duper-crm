@@ -4,7 +4,17 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Uuid, text
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    Uuid,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
@@ -112,3 +122,44 @@ class Payment(PayoutMixin, UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     event: Mapped["Event | None"] = relationship()
     mobilizer: Mapped["Mobilizer | None"] = relationship()
+
+
+class ReconcileRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """One comparison of the payments ledger with the payout provider's own records.
+
+    `status` is `matched`, `differences`, `failed` (the provider could not be read) or
+    `practice` (the provider keeps no records to compare).
+    """
+
+    __tablename__ = "reconcile_runs"
+
+    provider: Mapped[str] = mapped_column(String(20))
+    status: Mapped[str] = mapped_column(String(20))
+    checked: Mapped[int] = mapped_column(Integer, default=0)
+    detail: Mapped[str] = mapped_column(Text, default="")
+
+    differences: Mapped[list["ReconcileDifference"]] = relationship(
+        back_populates="run", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+
+class ReconcileDifference(UUIDPrimaryKeyMixin, Base):
+    """Where the ledger and the provider disagree about one payment's transfer."""
+
+    __tablename__ = "reconcile_differences"
+
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("reconcile_runs.id", ondelete="CASCADE"), index=True
+    )
+    payment_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("payments.id", ondelete="SET NULL"), index=True, default=None
+    )
+    campaign_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True, default=None
+    )
+    reference: Mapped[str] = mapped_column(String(100), default="")
+    ledger: Mapped[str] = mapped_column(String(100), default="")
+    provider: Mapped[str] = mapped_column(String(100), default="")
+    detail: Mapped[str] = mapped_column(Text, default="")
+
+    run: Mapped["ReconcileRun"] = relationship(back_populates="differences")

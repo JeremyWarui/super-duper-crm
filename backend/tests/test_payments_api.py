@@ -330,6 +330,12 @@ async def test_a_release_without_a_usable_phone_sends_nothing(
 class _Unreachable:
     name, moves_money = "broken", True
 
+    def fee_kes(self, amount_kes: int) -> int:
+        return 0
+
+    async def balance_kes(self) -> int:
+        return 1_000_000
+
     async def send(self, **_: object) -> None:
         raise TimeoutError
 
@@ -360,6 +366,12 @@ class _Confirms:
     """A provider that accepts the transfer and confirms it later."""
 
     name, moves_money = "later", True
+
+    def fee_kes(self, amount_kes: int) -> int:
+        return 0
+
+    async def balance_kes(self) -> int:
+        return 1_000_000
 
     async def send(self, **_: object):
         from backend.models import PaymentStatus

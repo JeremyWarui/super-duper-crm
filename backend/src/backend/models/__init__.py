@@ -76,7 +76,7 @@ from backend.models.party import (
     PartySettings,
     RecruitmentCode,
 )
-from backend.models.payment import Payment
+from backend.models.payment import Payment, ReconcileDifference, ReconcileRun
 from backend.models.site import SetupToken, SiteSettings
 from backend.models.sms import CampaignMessage, SmsInbound, SmsLog, SmsOptOut
 from backend.models.supporter import Supporter
@@ -90,6 +90,8 @@ __all__ = [
     "SmsInbound",
     "SmsLog",
     "SmsOptOut",
+    "ReconcileDifference",
+    "ReconcileRun",
     "FileArea",
     "Aspirant",
     "AspirantStatus",

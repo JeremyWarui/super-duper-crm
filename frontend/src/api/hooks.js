@@ -195,6 +195,29 @@ export const usePayments = (campaignId) =>
 export const usePayoutMode = () =>
   useQuery({ queryKey: ["payoutMode"], queryFn: () => api("/payments/payout-mode/") });
 
+// Whether the payout balance covers these payments and their fees.
+export const useReleaseCheck = (ids) =>
+  useQuery({
+    queryKey: ["payments", "release-check", ids],
+    queryFn: () => api("/payments/release-check/", { method: "POST", body: { payments: ids } }),
+    enabled: ids.length > 0,
+  });
+
+export const useReconciliation = (campaignId, enabled = true) =>
+  useQuery({
+    queryKey: ["payments", "reconciliation", campaignId],
+    queryFn: () => api(`/payments/reconciliation/?campaign=${campaignId}`),
+    enabled: !!campaignId && enabled,
+  });
+
+export function useReconcileNow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (campaignId) => api(`/payments/reconciliation/?campaign=${campaignId}`, { method: "POST" }),
+    onSuccess: (data, campaignId) => qc.setQueryData(["payments", "reconciliation", campaignId], data),
+  });
+}
+
 export function useReleasePayment() {
   const invalidate = useInvalidator();
   return useMutation({

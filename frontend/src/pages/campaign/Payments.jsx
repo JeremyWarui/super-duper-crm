@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { usePayments, usePayoutMode } from "@/api/hooks";
+import { usePayments, usePayoutMode, useReconcileNow, useReconciliation } from "@/api/hooks";
 import { useAuth } from "@/store/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { kes } from "./helpers";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
 const TONE = { scheduled: "warn", sending: "info", paid: "ok", failed: "bad", cancelled: "stone" };
+const LABEL = { scheduled: "Scheduled", sending: "Sending", paid: "Paid", failed: "To retry", cancelled: "Cancelled" };
 const OPEN = ["scheduled", "failed"];  // still to go out: never sent, or a send that failed
 const attention = (p) => p.status === "failed" || (p.status === "sending" && p.stuck);
 // Decision 27: the role routing names approves, and never whoever scheduled it.
@@ -47,7 +48,7 @@ function RowActions({ p, onModal }) {
   if (OPEN.includes(p.status)) {
     return (
       <div className="flex flex-wrap justify-end gap-2">
-        <Button shape="rounded" size="sm" onClick={() => onModal({ type: "payment-release", payments: [p] })}>Approve</Button>
+        <Button shape="rounded" size="sm" onClick={() => onModal({ type: "payment-release", payments: [p] })}>{p.status === "failed" ? "Retry" : "Approve"}</Button>
         <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "payment-paid", payment: p })}>Mark paid</Button>
         <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "payment-decline", payment: p })}>Decline</Button>
       </div>
@@ -112,7 +113,7 @@ export default function Payments({ campaign, role, mine, onModal }) {
                     <TD>{p.event_title || "None"}</TD>
                     <TD numeric className="font-bold">{kes(p.amount_kes)}</TD>
                     <TD>
-                      <Badge tone={TONE[p.status]} className="capitalize">{p.status}</Badge>
+                      <Badge tone={TONE[p.status]}>{LABEL[p.status]}</Badge>
                       {p.failure_reason && (canPay || p.status === "failed") && <div className={`mt-1 text-small ${p.status === "failed" ? "text-bad-foreground" : "text-warn-foreground"}`}>{p.failure_reason}</div>}
                     </TD>
                     <TD className="text-muted-foreground">{p.reference || "None"}</TD>
@@ -123,8 +124,47 @@ export default function Payments({ campaign, role, mine, onModal }) {
               </TBody>
             </Table>
           </Card>
+          {!mine && LEADS.includes(role) && <Differences campaign={campaign} />}
         </>
       )}
     </>
+  );
+}
+
+const LEADS = ["candidate", "manager"];
+
+// Where the payments ledger and the payout provider's own records disagree; a person settles
+// each one, the check changes nothing.
+function Differences({ campaign }) {
+  const found = useReconciliation(campaign.id);
+  const now = useReconcileNow();
+  const run = found.data?.last_run;
+  const rows = found.data?.differences || [];
+  return (
+    <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Differences with the payout provider">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-h3 font-bold">Differences with the payout provider</h2>
+        <Button shape="rounded" size="sm" variant="quiet" disabled={now.isPending} onClick={() => now.mutate(campaign.id)}>{now.isPending ? "Checking…" : "Check now"}</Button>
+      </div>
+      {(found.error || now.error) && <p role="alert" className="font-semibold text-destructive">{(found.error || now.error).message}</p>}
+      <p className="text-small text-muted-foreground">
+        {!run ? "Not checked yet. It runs once a day." : run.status === "practice" ? run.detail : run.status === "failed" ? `The last check failed: ${run.detail}` : `Last checked ${new Date(run.created_at).toLocaleString()}: ${run.checked} payment${run.checked === 1 ? "" : "s"} compared.`}
+      </p>
+      {run && run.status !== "practice" && run.status !== "failed" && (rows.length === 0 ? <p className="font-semibold text-ok-foreground">The ledger matches the provider.</p> : (
+        <Table stack minWidth={640}>
+          <THead><TR><TH>Payee</TH><TH>Here</TH><TH>Provider</TH><TH>What differs</TH></TR></THead>
+          <TBody>
+            {rows.map((d) => (
+              <TR key={d.reference}>
+                <TD><div className="font-semibold">{d.recipient_name || "Unknown"}</div><div className="text-small text-muted-foreground">{d.reference}</div></TD>
+                <TD>{d.ledger}</TD>
+                <TD>{d.provider}</TD>
+                <TD>{d.detail}</TD>
+              </TR>
+            ))}
+          </TBody>
+        </Table>
+      ))}
+    </Card>
   );
 }

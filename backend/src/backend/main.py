@@ -21,7 +21,7 @@ from backend.api.routers import api_router
 from backend.config import get_settings
 from backend.db.session import get_engine, get_sessionmaker
 from backend.models import Base, OrganisationType  # noqa: F401
-from backend.services import membership
+from backend.services import membership, reconcile
 
 log = logging.getLogger(__name__)
 
@@ -46,12 +46,28 @@ async def _apply_party_requests(every: int) -> None:
             log.exception("Applying party requests failed; retrying next run.")
 
 
+async def _reconcile_daily(hours: int) -> None:
+    """Compare the payments ledger with the payout provider every `hours`, the first time five
+    minutes after start."""
+    await asyncio.sleep(300)
+    while True:
+        try:
+            async with get_sessionmaker()() as session:
+                await reconcile.run(session)
+        except Exception:
+            log.exception("Reconciliation failed; retrying next run.")
+        await asyncio.sleep(hours * 3600)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    every = get_settings().party_inbox_seconds
-    task = asyncio.create_task(_apply_party_requests(every)) if every > 0 else None
+    settings = get_settings()
+    every = settings.party_inbox_seconds
+    tasks = [asyncio.create_task(_apply_party_requests(every))] if every > 0 else []
+    if settings.reconcile_hours > 0:
+        tasks.append(asyncio.create_task(_reconcile_daily(settings.reconcile_hours)))
     yield
-    if task is not None:
+    for task in tasks:
         task.cancel()
     await get_engine().dispose()
 

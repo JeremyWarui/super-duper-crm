@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models import Payment, PaymentStatus
 from backend.models.payment import OUTCOME_UNKNOWN, PayoutMixin
 from backend.services.errors import Refused
-from backend.services.payouts import PayoutProvider
+from backend.services.payouts import BalanceUnavailable, PayoutProvider
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +84,36 @@ async def finish(
     await session.commit()
     await session.refresh(row)
     return row
+
+
+async def cover(provider: PayoutProvider, amounts: list[int]) -> dict:
+    """Whether the provider's balance covers these payments and their fees."""
+    try:
+        balance = await provider.balance_kes()
+    except BalanceUnavailable as exc:
+        raise Refused(f"Could not read the payout balance, so nothing was sent: {exc}") from exc
+    amount = sum(amounts)
+    fee = sum(provider.fee_kes(a) for a in amounts)
+    return {
+        "mode": provider.name,
+        "moves_money": provider.moves_money,
+        "balance_kes": balance,
+        "amount_kes": amount,
+        "fee_kes": fee,
+        "left_kes": balance - amount - fee,
+        "enough": balance >= amount + fee,
+    }
+
+
+async def require_cover(provider: PayoutProvider, amount_kes: int) -> None:
+    """Refuse, before any transfer, a payment the balance does not cover with its fee."""
+    check = await cover(provider, [amount_kes])
+    if not check["enough"]:
+        raise Refused(
+            f"The payout balance is KES {check['balance_kes']:,}; this payment needs "
+            f"KES {amount_kes + check['fee_kes']:,} with the fee. Add money in the Paystack "
+            "dashboard, then approve it again."
+        )
 
 
 async def release(
@@ -178,6 +208,13 @@ async def cancel(session: AsyncSession, row: PayoutMixin) -> PayoutMixin:
     return await move(session, row, PaymentStatus.CANCELLED)
 
 
+def _why(data: dict, word: str) -> str:
+    """The reason a transfer did not stand, with the gateway's words when it gave any."""
+    said = str(data.get("gateway_response") or data.get("failures") or "").strip()
+    reason = f"Paystack says the transfer {word}."
+    return f"{reason} {said}"[:200] if said and said != "None" else reason
+
+
 async def apply_transfer_event(session: AsyncSession, event: str, data: dict) -> bool:
     """Land a Paystack transfer webhook on the attempt its reference names; False if none."""
     found = ATTEMPT.match(str(data.get("reference") or ""))
@@ -189,6 +226,14 @@ async def apply_transfer_event(session: AsyncSession, event: str, data: dict) ->
         return False
     attempt = int(found[3])
     code = str(data.get("transfer_code") or "")[:50]
+    if row.attempts == attempt and (
+        (event == "transfer.success" and row.status is PaymentStatus.PAID)
+        or (
+            event in ("transfer.failed", "transfer.reversed") and row.status is PaymentStatus.FAILED
+        )
+    ):
+        # A repeat of the event already applied.
+        return True
     if event == "transfer.success":
         await finish(
             session,
@@ -211,7 +256,7 @@ async def apply_transfer_event(session: AsyncSession, event: str, data: dict) ->
             status=PaymentStatus.FAILED,
             reference=code,
             paid_at=None,
-            failure_reason=f"Paystack says the transfer {word}.",
+            failure_reason=_why(data, word),
         )
     else:
         return False

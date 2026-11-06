@@ -72,6 +72,8 @@ class Settings(BaseSettings):
 
     # Seconds between runs applying public party requests to the register; 0 switches it off.
     party_inbox_seconds: int = 60
+    # How often the payments ledger is compared with the payout provider; 0 turns it off.
+    reconcile_hours: int = 24
 
     # One password for every account the app creates; blank generates one each.
     default_user_password: str = ""
