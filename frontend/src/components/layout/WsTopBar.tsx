@@ -25,7 +25,7 @@ export function WsTopBar({ crumbs, user, onSignOut, onMenu, search, tools }: {
           {crumbs.map((c, i) => (
             <React.Fragment key={i}>
               {i > 0 ? <span aria-hidden>/</span> : null}
-              {c.to ? <Link to={c.to} className="text-muted-foreground no-underline hover:text-ink">{c.label}</Link> : <span className="text-ink">{c.label}</span>}
+              {c.to ? <Link to={c.to} className="inline-flex min-h-11 items-center text-muted-foreground no-underline hover:text-ink md:min-h-0">{c.label}</Link> : <span className="text-ink">{c.label}</span>}
             </React.Fragment>
           ))}
         </nav>

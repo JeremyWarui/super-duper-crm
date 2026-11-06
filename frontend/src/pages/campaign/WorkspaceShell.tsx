@@ -129,7 +129,7 @@ export function WorkspaceSearch({ data, role }: { data: ShellData; role: string 
   }, [needle, data, role]);
   return (
     <div ref={ref} className="relative">
-      <label className="flex h-[42px] items-center gap-2.5 rounded-full bg-[#F4F3EF] px-4">
+      <label className="flex h-[42px] max-sm:h-11 items-center gap-2.5 rounded-full bg-[#F4F3EF] px-4">
         <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         <input
           ref={input}
@@ -174,7 +174,7 @@ export function AreaPicker() {
       <select
         value={area ?? ""}
         onChange={(e) => setArea(e.target.value || null)}
-        className="h-10 max-w-[180px] rounded-full border border-line-control bg-white px-2.5 text-ui font-bold text-ink"
+        className="h-10 max-sm:h-11 max-w-[180px] rounded-full border border-line-control bg-white px-2.5 text-ui font-bold text-ink"
       >
         <option value="">{wards.length === 1 ? wards[0].name : "All wards"}</option>
         {wards.length > 1 ? wards.map((w) => <option key={w.id} value={w.id}>{w.name}</option>) : null}

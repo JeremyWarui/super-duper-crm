@@ -42,7 +42,7 @@ function Coverage({ coverage }) {
       </div>
       {missing.length ? (
         <ul className="flex flex-wrap gap-2">
-          {missing.map((c) => <li key={c.id}><Badge tone="bad">{c.name}<span className="font-semibold opacity-80"> · {c.ward_name}</span></Badge></li>)}
+          {missing.map((c) => <li key={c.id} className="max-w-full"><Badge tone="bad" className="whitespace-normal">{c.name}<span className="font-semibold opacity-80"> · {c.ward_name}</span></Badge></li>)}
           {coverage.more_uncovered > 0 && <li className="text-small text-muted-foreground">and {fmt(coverage.more_uncovered)} more</li>}
         </ul>
       ) : <p className="text-ui font-semibold text-primary">Every centre has an agent.</p>}
