@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "./store/auth";
 import { useCampaigns, useMe } from "./api/hooks";
@@ -18,6 +19,7 @@ import Home from "./pages/public/Home";
 import AspirantHome from "./pages/public/AspirantHome";
 import Volunteer from "./pages/public/Volunteer";
 import { useInstall } from "./app/site";
+import Setup from "./pages/setup/Setup";
 import Leadership from "./pages/public/Leadership";
 import Manifesto from "./pages/public/Manifesto";
 import Results from "./pages/public/Results";
@@ -187,6 +189,17 @@ const home = <Navigate to="/" replace />;
 // Everything else is a signed-in app.
 export function AppRoutes() {
   const install = useInstall();
+  // Latched: a refetch or finishing setup must not swap the wizard out mid-way.
+  const settingUp = useRef(false);
+  if (install.notSetUp) settingUp.current = true;
+  if (settingUp.current) {
+    return (
+      <Routes>
+        <Route path="/setup" element={<Setup />} />
+        <Route path="*" element={<Navigate to="/setup" replace />} />
+      </Routes>
+    );
+  }
   const own = install.aspirant ? ASPIRANT : PARTY;
   const other = install.aspirant ? PARTY : ASPIRANT;
   const taken = new Set(own.map(([path]) => path));
@@ -199,6 +212,7 @@ export function AppRoutes() {
       ];
   return (
     <Routes>
+      <Route path="/setup" element={home} />
       {SHARED.map(([path, element]) => <Route key={path} path={path} element={element()} />)}
       {typed}
       <Route path="/*" element={<Root />} />

@@ -982,6 +982,26 @@
     ],
     "POST /api/assignments/": [
       "id"
+    ],
+    "GET /api/setup/areas/": [
+      "id",
+      "name"
+    ],
+    "POST /api/setup/": [
+      "organisation_type",
+      "superuser",
+      "invites",
+      "services"
+    ],
+    "GET /api/setup/services/": [
+      "key",
+      "label",
+      "mode",
+      "live",
+      "testable"
+    ],
+    "POST /api/setup/services/{key}/test/": [
+      "message"
     ]
   },
   "nested_reads": {
@@ -1225,6 +1245,13 @@
       "id",
       "name",
       "ward_name"
+    ],
+    "POST /api/setup/.services": [
+      "key",
+      "label",
+      "mode",
+      "live",
+      "testable"
     ]
   },
   "writes": {
@@ -1829,7 +1856,19 @@
       "amount_kes"
     ],
     "POST /api/assignments/{assignment_id}/done/": [],
-    "POST /api/assignments/{assignment_id}/cancel/": []
+    "POST /api/assignments/{assignment_id}/cancel/": [],
+    "POST /api/setup/check/": [
+      "token"
+    ],
+    "POST /api/setup/": [
+      "token",
+      "organisation_type",
+      "site",
+      "superuser",
+      "aspirant",
+      "party_workspace"
+    ],
+    "POST /api/setup/services/{key}/test/": []
   },
   "enums": {
     "user.role": [
@@ -1911,7 +1950,8 @@
       "DELETE /api/workspace/site/slides/{item_id}/",
       "DELETE /api/workspace/site/issues/{item_id}/",
       "DELETE /api/workspace/site/documents/{item_id}/",
-      "DELETE /api/workspace/site/videos/{item_id}/"
+      "DELETE /api/workspace/site/videos/{item_id}/",
+      "POST /api/setup/check/"
     ]
   }
 }

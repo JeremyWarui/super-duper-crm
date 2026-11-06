@@ -16,7 +16,7 @@ from starlette.types import Scope
 from backend import __version__
 from backend.api.deps import get_organisation_type
 from backend.api.errors import register_error_handlers
-from backend.api.install import InstallationType
+from backend.api.install import InstallationType, SetupGate
 from backend.api.routers import api_router
 from backend.config import get_settings
 from backend.db.session import get_engine, get_sessionmaker
@@ -68,6 +68,8 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.debug else None,
         openapi_url="/openapi.json" if settings.debug else None,
     )
+    # Inside CORS, so a browser can read the 503 that sends it to /setup.
+    app.add_middleware(SetupGate)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_allow_origins,

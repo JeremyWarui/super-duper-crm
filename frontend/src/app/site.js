@@ -5,5 +5,6 @@ import { useSite } from "../api/hooks";
 export function useInstall() {
   const site = useSite();
   const type = site.data?.organisation_type ?? null;
-  return { type, party: type === "party", aspirant: type === "aspirant", loading: site.isPending };
+  const notSetUp = site.error?.code === "not_set_up";
+  return { type, party: type === "party", aspirant: type === "aspirant", loading: site.isPending, notSetUp };
 }

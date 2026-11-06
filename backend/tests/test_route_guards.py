@@ -31,6 +31,11 @@ PUBLIC_ROUTES = {
     ("GET", "/api/files/{file_id}/"),
     ("POST", "/api/auth/login/"),
     ("POST", "/api/auth/password-reset/"),
+    # First-run setup: a setup token, not a login, opens these.
+    ("GET", "/api/setup/"),
+    ("POST", "/api/setup/"),
+    ("POST", "/api/setup/check/"),
+    ("GET", "/api/setup/areas/"),
     ("GET", "/api/team-signup/{code}/"),
     ("GET", "/api/team-signup/{code}/centres/"),
     ("POST", "/api/team-signup/{code}/"),

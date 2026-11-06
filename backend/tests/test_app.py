@@ -9,6 +9,7 @@ import httpx
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.api.deps import get_organisation_type
 from backend.config import get_settings
 from backend.main import app, create_app
 from backend.models import OrganisationType
@@ -24,6 +25,8 @@ async def _client_with_static(directory: Path) -> AsyncIterator[httpx.AsyncClien
     get_settings.cache_clear()
     try:
         built = create_app()
+        # A set-up installation, so the setup guard lets the API through.
+        built.dependency_overrides[get_organisation_type] = lambda: OrganisationType.PARTY
         transport = httpx.ASGITransport(app=built)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
             yield client

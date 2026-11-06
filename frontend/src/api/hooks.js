@@ -558,7 +558,12 @@ export function useRemoveMember() {
 
 // ---- site and party settings, party offices --------------------------------
 export const useSite = () =>
-  useQuery({ queryKey: ["site"], queryFn: () => api("/site/", { anonymous: true }) });
+  useQuery({
+    queryKey: ["site"],
+    queryFn: () => api("/site/", { anonymous: true }),
+    // Before setup the answer is final: go to /setup at once.
+    retry: (count, error) => error?.code !== "not_set_up" && count < 3,
+  });
 
 // The party-only settings, read only in a party installation; the rest are site settings.
 export const useParty = (enabled = true) =>
@@ -1254,3 +1259,23 @@ export function useUpdateAgent() {
 }
 
 export const exportAgents = (campaignId) => download(`/agents/export/?campaign=${campaignId}`, "agents.csv");
+
+// First-run setup: open before the installation exists; the token rides in a header for reads.
+export const useCheckSetupToken = () =>
+  useMutation({ mutationFn: (token) => api("/setup/check/", { method: "POST", body: { token }, anonymous: true }) });
+
+export const useSetupAreas = (token, level, parent) =>
+  useQuery({
+    queryKey: ["setup-areas", level, parent],
+    enabled: Boolean(token) && (level === "county" || Boolean(parent)),
+    queryFn: () => api(`/setup/areas/?level=${level}&parent=${parent || ""}`, { anonymous: true, headers: { "X-Setup-Token": token } }),
+  });
+
+export const useRunSetup = () =>
+  useMutation({ mutationFn: (body) => api("/setup/", { method: "POST", body, anonymous: true }) });
+
+export const useSetupServices = (enabled) =>
+  useQuery({ queryKey: ["setup-services"], enabled, queryFn: () => api("/setup/services/") });
+
+export const useTestService = () =>
+  useMutation({ mutationFn: (key) => api(`/setup/services/${key}/test/`, { method: "POST" }) });

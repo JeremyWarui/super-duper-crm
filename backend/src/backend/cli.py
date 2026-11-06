@@ -23,7 +23,7 @@ from backend.seed.reference import (
     import_geography,
 )
 from backend.seed.site import seed_branches, seed_home, seed_news, seed_site
-from backend.services import admin
+from backend.services import admin, setup
 from backend.services.accounts import clean_email, new_login, user_with_email
 from backend.services.audit import record
 from backend.services.clock import today
@@ -163,6 +163,13 @@ async def _users(args: argparse.Namespace, session: AsyncSession) -> int:
         print(f"    {user.campaign or 'on no campaign'}")
     if not people:
         print("No users.")
+    return 0
+
+
+async def _setup_token(_: argparse.Namespace, session: AsyncSession) -> int:
+    token = await setup.new_token(session)
+    print(f"Setup token, valid 24 hours and spent on use: {token}")
+    print("Open /setup on the site and paste it in. Any earlier token no longer works.")
     return 0
 
 
@@ -318,6 +325,7 @@ def build_parser() -> argparse.ArgumentParser:
     needs_user(set_email)
     set_email.add_argument("--email", required=True)
 
+    command("setup-token", _setup_token, "print a one-time token that opens the first-run setup")
     reset = command("reset-password", _reset_password, "give a login a new password")
     needs_user(reset)
     reset.add_argument("-p", "--password", help="generated when left out")

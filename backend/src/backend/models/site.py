@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.db.base import Base, choice_type
+from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
 from backend.models.enums import OrganisationType
 from backend.models.party import hex_colour
 
@@ -67,3 +67,13 @@ class SiteSettings(Base):
         default=lambda: datetime.now(UTC),
         nullable=False,
     )
+
+
+class SetupToken(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A one-time token that opens the first-run setup; only its SHA-256 is stored."""
+
+    __tablename__ = "setup_tokens"
+
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

@@ -37,6 +37,21 @@ async def workspace(session: AsyncSession) -> Campaign | None:
     return await session.scalar(select(Campaign).where(Campaign.kind == WorkspaceKind.PARTY))
 
 
+async def build(
+    session: AsyncSession, *, name: str, manager: dict
+) -> tuple[Campaign, SetupSummary, User, str]:
+    """The party workspace, its targets and its first Workspace Manager, without committing."""
+    campaign = Campaign(
+        title=f"{name} workspace"[:150], kind=WorkspaceKind.PARTY, office_level=OfficeLevel.NATIONAL
+    )
+    session.add(campaign)
+    await session.flush()
+    summary = await generate_targets(session, campaign)
+    created, invite = await new_invited_login(session, role=UserRole.MANAGER, **manager)
+    await add_member(session, campaign.id, created)
+    return campaign, summary, created, invite
+
+
 async def create(
     session: AsyncSession, *, actor: User, manager: dict
 ) -> tuple[Campaign, SetupSummary, User, str]:
@@ -45,15 +60,8 @@ async def create(
     if await workspace(session) is not None:
         raise Refused(EXISTS)
     name = (await site.read_settings(session)).name
-    campaign = Campaign(
-        title=f"{name} workspace"[:150], kind=WorkspaceKind.PARTY, office_level=OfficeLevel.NATIONAL
-    )
     try:
-        session.add(campaign)
-        await session.flush()
-        summary = await generate_targets(session, campaign)
-        created, invite = await new_invited_login(session, role=UserRole.MANAGER, **manager)
-        await add_member(session, campaign.id, created)
+        campaign, summary, created, invite = await build(session, name=name, manager=manager)
     except Refused:
         await session.rollback()
         raise

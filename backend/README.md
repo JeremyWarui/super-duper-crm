@@ -270,6 +270,33 @@ AT_SENDER_ID=                 # blank uses the shared short code
 Without it the console provider records the request and reports
 `delivered: false`.
 
+## First-run setup
+
+A new database has no site settings, so every `/api` route except `/api/setup/*` answers
+503 with `code: not_set_up`, and the SPA sends every page to `/setup`. `/health` still answers.
+
+```bash
+uv run alembic upgrade head
+uv run campaign-crm seed            # counties, wards and centres, for an aspirant's seat
+uv run campaign-crm setup-token     # prints a token: valid 24 hours, one use
+```
+
+Open `/setup` and paste the token. The six steps set the organisation type (fixed for good),
+the name, logo link and colours (contrast checked), contacts and privacy notice, the first
+superuser, and then either the aspirant's seat, area, election date and candidate login, or
+optionally the party workspace and its Workspace Manager. `POST /api/setup/` makes all of it
+in one transaction, audited as `setup.completed`; a refused request writes nothing and leaves
+the token unspent. Afterwards the summary lists the email, SMS and payout providers `.env`
+picks, with a test email and text sent to the signed-in superuser.
+
+A database that has never had a login loses the placeholder settings row on migration, so it
+opens the setup; one with logins keeps its settings.
+
+### Known gaps
+
+- The logo is an https link; uploaded logos wait for the site editor to use stored files.
+- Invite emails go out before the setup commits; if the commit then fails, the link is dead.
+
 ## Sign-in links
 
 Nobody is shown a password. A new login gets an emailed invite link (72 hours)

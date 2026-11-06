@@ -661,3 +661,34 @@ def test_the_payment_instructions_move_from_the_party_to_the_site_settings() -> 
     assert site == ["Paybill 1"]
     assert "payment_instructions" not in party
     assert restored == ["Paybill 1"]
+
+
+def test_setup_tokens_drops_the_placeholder_settings_only_where_nobody_signed_up() -> None:
+    revisions = revision_modules()
+    last = next(i for i, m in enumerate(revisions) if m.revision == "setup_tokens")
+    kept = {}
+    for with_a_login in (False, True):
+        engine = sa.create_engine("sqlite://")
+        with engine.begin() as connection:
+            with Operations.context(MigrationContext.configure(connection)):
+                for module in revisions[:last]:
+                    module.upgrade()
+            if with_a_login:
+                required = {
+                    c["name"]: "1"
+                    for c in sa.inspect(connection).get_columns("users")
+                    if not c["nullable"] and c["default"] is None
+                }
+                names = ", ".join(required)
+                marks = ", ".join(f":{n}" for n in required)
+                required["kind"] = "staff"
+                connection.execute(
+                    sa.text(f"INSERT INTO users ({names}) VALUES ({marks})"), required
+                )
+            with Operations.context(MigrationContext.configure(connection)):
+                revisions[last].upgrade()
+            rows = connection.execute(sa.text("SELECT count(*) FROM site_settings")).scalar()
+        engine.dispose()
+        kept[with_a_login] = rows
+
+    assert kept == {False: 0, True: 1}

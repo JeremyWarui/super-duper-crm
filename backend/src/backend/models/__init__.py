@@ -72,7 +72,7 @@ from backend.models.party import (
     RecruitmentCode,
 )
 from backend.models.payment import Payment
-from backend.models.site import SiteSettings
+from backend.models.site import SetupToken, SiteSettings
 from backend.models.supporter import Supporter
 from backend.models.target import Target, compute_win_number, unit_key
 from backend.models.team import Agent, TeamRegistration
@@ -138,6 +138,7 @@ __all__ = [
     "PartyVideo",
     "PrimaryResult",
     "Seat",
+    "SetupToken",
     "SiteSettings",
     "StoredFile",
     "RegistrationCentre",

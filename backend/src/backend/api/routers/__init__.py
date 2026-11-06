@@ -23,6 +23,7 @@ from backend.api.routers import (
     party_volunteers,
     party_workspace,
     payments,
+    setup,
     site,
     strategy,
     supporters,
@@ -35,6 +36,7 @@ from backend.api.routers import (
 
 api_router = APIRouter(prefix="/api")
 for module in (
+    setup,
     auth,
     account,
     admin,

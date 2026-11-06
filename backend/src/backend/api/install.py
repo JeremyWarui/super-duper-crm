@@ -10,6 +10,7 @@ from typing import ClassVar
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute, iter_route_contexts
+from starlette.responses import JSONResponse
 from starlette.routing import Match, compile_path
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -75,4 +76,29 @@ class InstallationType:
             toggled = path[:-1] if path.endswith("/") else f"{path}/"
             if any(p.match(path) or p.match(toggled) for p in self.paths):
                 scope.setdefault("state", {})[KEY] = await installation_type(scope["app"])
+        await self.app(scope, receive, send)
+
+
+NOT_SET_UP = "This installation is not set up yet. Open /setup with a setup token."
+
+
+class SetupGate:
+    """ASGI middleware answering 503 `not_set_up` to every API request but setup's until the
+    installation is set up."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        path = scope.get("path", "")
+        if (
+            scope["type"] == "http"
+            and path.startswith("/api/")
+            and path.rstrip("/") != "/api/setup"
+            and not path.startswith("/api/setup/")
+            and await installation_type(scope["app"]) is None
+        ):
+            response = JSONResponse({"detail": NOT_SET_UP, "code": "not_set_up"}, status_code=503)
+            await response(scope, receive, send)
+            return
         await self.app(scope, receive, send)
