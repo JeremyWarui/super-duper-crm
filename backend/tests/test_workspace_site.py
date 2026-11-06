@@ -1,10 +1,15 @@
 """The website of an aspirant installation, edited from its workspace under `site.write`."""
 
+import io
+from pathlib import Path
+
 import httpx
 import pytest
+from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.config import get_settings
 from backend.models import AuditEvent, OrganisationType, UserRole
 from backend.services.accounts import add_member
 from tests.conftest import World
@@ -163,3 +168,40 @@ async def test_the_news_sign_up_shows_and_records_the_campaigns_wording(
 
     assert shown == recorded == CAMPAIGN_SUBSCRIBE_WORDING
     assert "party" not in (shown + answer.json()["message"]).lower()
+
+
+@pytest.fixture
+def upload_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setenv("UPLOAD_DIR", str(tmp_path))
+    get_settings.cache_clear()
+    yield tmp_path
+    get_settings.cache_clear()
+
+
+async def test_an_uploaded_image_is_served_and_can_be_a_slides_photo(
+    client: httpx.AsyncClient, comms: dict, upload_dir: Path
+) -> None:
+    buffer = io.BytesIO()
+    Image.new("RGB", (600, 300), "steelblue").save(buffer, format="PNG")
+    sent = await client.post(
+        f"{URL}images/",
+        headers=comms,
+        files={"file": ("hero.png", buffer.getvalue(), "image/png")},
+        data={"area": "slides"},
+    )
+    pdf = await client.post(
+        f"{URL}images/",
+        headers=comms,
+        files={"file": ("a.pdf", b"%PDF-1.7\n%%EOF", "application/pdf")},
+        data={"area": "slides"},
+    )
+    url = sent.json()["url"]
+    slide = await client.post(
+        f"{URL}slides/", headers=comms, json={"headline": "Vote Jane", "image_url": url}
+    )
+    served = await client.get(url)
+
+    assert sent.status_code == 201
+    assert pdf.status_code == 400
+    assert (slide.status_code, slide.json()["image_url"]) == (201, url)
+    assert (served.status_code, served.headers["content-type"]) == (200, "image/png")

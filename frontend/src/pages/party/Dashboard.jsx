@@ -102,7 +102,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div>
+    <div className="page-stack">
       <PageTitle title="Dashboard" sub="Totals across the party's registers and campaigns." />
       <Panel pad={18}>
         <div className="filter-grid">
@@ -126,7 +126,7 @@ export default function Dashboard() {
       {!d && !board.error && <LoadingState />}
       {d && (
         <>
-          <div className="kpi-grid">
+          <div className="kpi-grid kpi-grid-five">
             {tiles.map(([label, value]) => (
               <Panel key={label} pad={20} className="kpi">
                 <div className="kpi-label">{label}</div>

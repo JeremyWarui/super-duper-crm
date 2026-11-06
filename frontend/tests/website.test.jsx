@@ -23,7 +23,10 @@ const POST = {
   updated_at: "2026-11-01T00:00:00Z",
 };
 
+const UPLOADED = "/api/files/0b6f1c1e-5a7d-4c1e-9f3a-2d4e6f8a0b1c/";
+
 const ROUTES = {
+  "POST /files/": { status: 201, body: { id: "f1", url: UPLOADED } },
   "GET /site/": { name: "Umoja Party" },
   "GET /admin/party/posts/": [POST],
   "GET /admin/party/leaders/": [],
@@ -48,6 +51,21 @@ async function openWebsite() {
 }
 
 describe("the website editor", () => {
+  it("uploads a chosen image and saves its address on the post", async () => {
+    const user = userEvent.setup();
+    const url = UPLOADED;
+    const calls = await openWebsite();
+
+    await user.click(screen.getByRole("button", { name: "New post" }));
+    await user.type(screen.getByLabelText("Title"), "Rally next week");
+    await user.upload(screen.getByLabelText("Choose a file for Image (optional)"), new File(["png"], "rally.png", { type: "image/png" }));
+    await waitFor(() => expect(screen.getByLabelText("Image (optional)")).toHaveValue(url));
+    await user.click(screen.getByRole("button", { name: "Add post" }));
+
+    expect(sent(calls, "POST", "/files/").body.get("area")).toBe("site");
+    await waitFor(() => expect(sent(calls, "POST", "/admin/party/posts/")?.body.image_url).toBe(url));
+  });
+
   it("adds, publishes and deletes a post through its routes", async () => {
     const user = userEvent.setup();
     const calls = await openWebsite();

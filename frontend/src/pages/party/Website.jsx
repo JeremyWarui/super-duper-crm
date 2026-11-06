@@ -1,6 +1,7 @@
 // The superuser's editor for the public site: slides, issues, posts, leaders, candidates, About content and results.
 // Its lists, item form and profile form also serve an aspirant installation's workspace Website page.
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
+import { ImageUp } from "lucide-react";
 import {
   usePostAspirants,
   useSaveProfile,
@@ -34,6 +35,7 @@ import {
   useSiteSlides,
   useSiteValues,
   useSiteVideos,
+  useUploadImage,
 } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,8 +47,11 @@ import { formatDate } from "@/lib/format";
 import { SEAT_LABEL, SEATS } from "./helpers";
 
 const HTTPS = /^https:\/\/\S+$/;
+const UPLOADED = /^\/api\/files\/[0-9a-f-]{36}\/$/;
+const imageOk = (v) => !v || HTTPS.test(v) || UPLOADED.test(v);
+const IMAGE_HINT = "A JPEG, PNG or WebP up to 5 MB, or an https:// address.";
 const CHECKS = {
-  image: (v) => !v || HTTPS.test(v) || "Use an address starting with https://.",
+  image: (v) => imageOk(v) || "Choose a file, or use an address starting with https://.",
   https: (v) => !v || HTTPS.test(v) || "Use an address starting with https://.",
   link: (v) => !v || HTTPS.test(v) || (/^\/(?!\/)\S*$/.test(v)) || "Use a page on this site such as /join-party, or an https:// address.",
   order: (v) => (/^\d{1,5}$/.test(v) && Number(v) <= 10000) || "Use a whole number from 0 to 10000.",
@@ -61,7 +66,7 @@ export const SLIDE_FIELDS = [
   { key: "line", label: "Supporting text (optional)", max: 300, kind: "area" },
   { key: "button_label", label: "Button label (optional)", max: 40 },
   { key: "button_url", label: "Button link (optional)", max: 500, kind: "link", hint: "A page on this site such as /counties, or an https:// address." },
-  { key: "image_url", label: "Photo address (optional)", max: 500, kind: "image" },
+  { key: "image_url", label: "Photo (optional)", max: 500, kind: "image", area: "slides" },
   ORDER,
 ];
 
@@ -77,7 +82,7 @@ const LEADER_FIELDS = [
   { key: "name", label: "Name", max: 150, required: true },
   { key: "position", label: "Position", max: 150, required: true },
   { key: "bio", label: "Bio (optional)", max: 20000, kind: "area" },
-  { key: "photo_url", label: "Photo address (optional)", max: 500, kind: "image" },
+  { key: "photo_url", label: "Photo (optional)", max: 500, kind: "image", area: "leaders" },
   ORDER,
 ];
 
@@ -93,11 +98,11 @@ export const POST_FIELDS = [
   { key: "county_id", label: "County (optional)", kind: "county", show: isEvent },
   { key: "place", label: "Place (optional)", max: 80, show: isNews, hint: "Shown beside the label, such as National or Nakuru." },
   { key: "author", label: "Author (optional)", max: 150, show: isNews, hint: "For a statement, who issued it, such as Grace Chebet, Secretary General." },
-  { key: "author_photo_url", label: "Author photo address (optional)", max: 500, kind: "image", show: isNews },
+  { key: "author_photo_url", label: "Author photo (optional)", max: 500, kind: "image", area: "site", show: isNews },
   { key: "reference", label: "Reference (optional)", max: 40, show: isStatement },
   { key: "pdf_url", label: "Signed PDF address (optional)", max: 500, kind: "https", show: isStatement },
   { key: "body", label: "Text", max: 20000, kind: "area" },
-  { key: "image_url", label: "Image address (optional)", max: 500, kind: "image" },
+  { key: "image_url", label: "Image (optional)", max: 500, kind: "image", area: "site" },
 ];
 
 const ABOUT_FIELDS = [
@@ -115,7 +120,7 @@ export const DOCUMENT_FIELDS = [
 export const VIDEO_FIELDS = [
   { key: "title", label: "Title", max: 150, required: true },
   { key: "url", label: "Video address", max: 500, kind: "https", required: true, hint: "Such as a YouTube link; the card opens it." },
-  { key: "thumbnail_url", label: "Thumbnail address (optional)", max: 500, kind: "image", hint: "Left empty, a YouTube link shows YouTube's thumbnail." },
+  { key: "thumbnail_url", label: "Thumbnail (optional)", max: 500, kind: "image", area: "site", hint: "Left empty, a YouTube link shows YouTube's thumbnail." },
   { key: "duration", label: "Length (optional)", max: 8, kind: "duration", hint: "Such as 4:15 or 1:02:30." },
   ORDER,
 ];
@@ -128,17 +133,18 @@ const RESULT_FIELDS = [
   { key: "declared_on", label: "Declared on (optional)", kind: "date", hint: "Leave empty while the count goes on." },
 ];
 
+const PARTY_UPLOAD = "/files/";
 const SECTIONS = {
   Homepage: [
-    { noun: "slide", title: "Carousel slides", hint: "Up to 5, rotating every 6 seconds.", fields: SLIDE_FIELDS, query: useSiteSlides, save: useSaveSlide, del: useDeleteSlide, name: (r) => r.headline, meta: (r) => `Order ${r.sort_order}`, max: 5 },
+    { noun: "slide", upload: PARTY_UPLOAD, title: "Carousel slides", hint: "Up to 5, rotating every 6 seconds.", fields: SLIDE_FIELDS, query: useSiteSlides, save: useSaveSlide, del: useDeleteSlide, name: (r) => r.headline, meta: (r) => `Order ${r.sort_order}`, max: 5 },
     { noun: "issue", title: "Agenda issues", hint: "Each opens its own page from the homepage.", fields: ISSUE_FIELDS, query: useSiteIssues, save: useSaveIssue, del: useDeleteIssue, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
-    { noun: "video", title: "Watch videos", hint: "The first three show under News on the homepage.", fields: VIDEO_FIELDS, query: useSiteVideos, save: useSaveVideo, del: useDeleteVideo, name: (r) => r.title, meta: (r) => [r.duration, `order ${r.sort_order}`].filter(Boolean).join(" · ") },
+    { noun: "video", upload: PARTY_UPLOAD, title: "Watch videos", hint: "The first three show under News on the homepage.", fields: VIDEO_FIELDS, query: useSiteVideos, save: useSaveVideo, del: useDeleteVideo, name: (r) => r.title, meta: (r) => [r.duration, `order ${r.sort_order}`].filter(Boolean).join(" · ") },
   ],
   Posts: [
-    { noun: "post", title: "News and events", aspirants: true, fields: POST_FIELDS, query: useSitePosts, save: useSavePost, del: useDeletePost, name: (r) => r.title, meta: (r) => `${r.kind === "event" ? "Event" : "News"} · ${formatDate(r.kind === "event" ? r.event_date : r.published_on) || "not yet published"}` },
+    { noun: "post", upload: PARTY_UPLOAD, title: "News and events", aspirants: true, fields: POST_FIELDS, query: useSitePosts, save: useSavePost, del: useDeletePost, name: (r) => r.title, meta: (r) => `${r.kind === "event" ? "Event" : "News"} · ${formatDate(r.kind === "event" ? r.event_date : r.published_on) || "not yet published"}` },
   ],
   Leaders: [
-    { noun: "leader", title: "Party leaders", fields: LEADER_FIELDS, query: useSiteLeaders, save: useSaveLeader, del: useDeleteLeader, name: (r) => r.name, meta: (r) => `${r.position} · order ${r.sort_order}` },
+    { noun: "leader", upload: PARTY_UPLOAD, title: "Party leaders", fields: LEADER_FIELDS, query: useSiteLeaders, save: useSaveLeader, del: useDeleteLeader, name: (r) => r.name, meta: (r) => `${r.position} · order ${r.sort_order}` },
   ],
   About: [
     { noun: "value", title: "What we believe", hint: "The party's values on the About page.", fields: ABOUT_FIELDS, query: useSiteValues, save: useSaveValue, del: useDeleteValue, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
@@ -188,6 +194,33 @@ function CountySelect(props) {
   );
 }
 
+/** An image address with a file picker that uploads the chosen image and fills the address in. */
+export function ImageField({ label, hint, value, onChange, invalid, upload: path, area }) {
+  const id = useId();
+  const picker = useRef(null);
+  const send = useUploadImage(path);
+  const pick = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) send.mutate({ file, area }, { onSuccess: (stored) => onChange(stored.url) });
+  };
+  const note = send.error?.message || hint || IMAGE_HINT;
+  return (
+    <div className="flex flex-col gap-1.5 text-small font-semibold">
+      <label htmlFor={id}>{label}</label>
+      <div className="flex flex-wrap items-center gap-2">
+        {value && imageOk(value) ? <img src={value} alt="" className="size-11 flex-none rounded-lg border border-line object-cover" /> : null}
+        <Input id={id} className="min-w-0 flex-[1_1_200px]" value={value} maxLength={500} placeholder="https://" aria-invalid={invalid} onChange={(e) => onChange(e.target.value)} />
+        <input ref={picker} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label={`Choose a file for ${label}`} onChange={pick} />
+        <Button type="button" shape="rounded" variant="quiet" disabled={send.isPending || !path} onClick={() => picker.current?.click()}>
+          <ImageUp size={18} aria-hidden />{send.isPending ? "Uploading…" : "Choose file"}
+        </Button>
+      </div>
+      <span role={send.error ? "alert" : undefined} className={send.error ? "font-semibold text-destructive" : "font-normal text-muted-foreground"}>{note}</span>
+    </div>
+  );
+}
+
 function ItemForm({ section, row, onDone }) {
   const save = section.save();
   const [form, setForm] = useState(() => formOf(section.fields, row));
@@ -213,6 +246,9 @@ function ItemForm({ section, row, onDone }) {
         {shown.map((f) => {
           const common = { value: form[f.key], onChange: set(f.key), "aria-invalid": tried && errors[f.key] ? true : undefined };
           const hint = (tried && errors[f.key]) || f.hint;
+          if (f.kind === "image") {
+            return <ImageField key={f.key} label={f.label} hint={hint} value={form[f.key]} invalid={common["aria-invalid"]} upload={section.upload} area={f.area} onChange={(v) => setForm((now) => ({ ...now, [f.key]: v }))} />;
+          }
           return (
             <Field key={f.key} label={f.label} hint={hint}>
               {f.kind === "area" ? <Textarea rows={4} maxLength={f.max} {...common} />
@@ -330,7 +366,6 @@ function EventAspirants({ postId }) {
 }
 
 const PROFILE_FIELDS = [
-  ["photo_url", "Photo address (optional)", 500],
   ["slogan", "Slogan (optional)", 120],
   ["office_address", "Campaign office address (optional)", 300],
   ["office_phone", "Campaign office phone (optional)", 20],
@@ -339,15 +374,15 @@ const PROFILE_FIELDS = [
 const NO_PRIORITY = { title: "", text: "" };
 
 /** A candidate page's fields; `save` is the mutation that stores them, sent `extra` as well. */
-export function ProfileForm({ title, profile: p, save, extra = {}, onDone }) {
+export function ProfileForm({ title, profile: p, save, upload, extra = {}, onDone }) {
   const [form, setForm] = useState({ ...p, priorities: [0, 1, 2].map((n) => p.priorities[n] || NO_PRIORITY) });
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
   const setPriority = (n, key) => (e) => setForm({ ...form, priorities: form.priorities.map((x, i) => (i === n ? { ...x, [key]: e.target.value } : x)) });
-  const photoBad = form.photo_url.trim() && !HTTPS.test(form.photo_url.trim());
+  const photoBad = !imageOk(form.photo_url.trim());
   const submit = (e) => {
     e.preventDefault();
     if (photoBad) return;
-    const body = Object.fromEntries(PROFILE_FIELDS.map(([key]) => [key, form[key].trim()]));
+    const body = { photo_url: form.photo_url.trim(), ...Object.fromEntries(PROFILE_FIELDS.map(([key]) => [key, form[key].trim()])) };
     const priorities = form.priorities.map((x) => ({ title: x.title.trim(), text: x.text.trim() })).filter((x) => x.title);
     save.mutate({ ...extra, ...body, bio: form.bio, published: form.published, priorities }, { onSuccess: onDone });
   };
@@ -355,9 +390,11 @@ export function ProfileForm({ title, profile: p, save, extra = {}, onDone }) {
     <Card variant="outline" asChild>
       <form onSubmit={submit} noValidate>
         <h2 className="text-card-title font-bold">{title}</h2>
+        <ImageField label="Photo (optional)" value={form.photo_url} upload={upload} area="candidates" invalid={photoBad || undefined}
+          hint={photoBad ? "Choose a file, or use an address starting with https://." : undefined} onChange={(v) => setForm((now) => ({ ...now, photo_url: v }))} />
         {PROFILE_FIELDS.map(([key, label, max]) => (
-          <Field key={key} label={label} hint={key === "photo_url" && photoBad ? "Use an address starting with https://." : undefined}>
-            <Input value={form[key]} maxLength={max} onChange={set(key)} aria-invalid={key === "photo_url" && photoBad ? true : undefined} />
+          <Field key={key} label={label}>
+            <Input value={form[key]} maxLength={max} onChange={set(key)} />
           </Field>
         ))}
         <Field label="Biography (optional)"><Textarea rows={5} maxLength={2000} value={form.bio} onChange={set("bio")} /></Field>
@@ -413,7 +450,7 @@ function CandidatesEditor() {
       </Card>
       {editing ? (
         <div className="min-w-0 flex-[1_1_420px]">
-          <ProfileForm key={editing.aspirant_id} title={`Profile of ${editing.name}`} profile={editing.profile} save={saveProfile} extra={{ aspirant_id: editing.aspirant_id }} onDone={() => setEditing(null)} />
+          <ProfileForm key={editing.aspirant_id} title={`Profile of ${editing.name}`} profile={editing.profile} save={saveProfile} upload={PARTY_UPLOAD} extra={{ aspirant_id: editing.aspirant_id }} onDone={() => setEditing(null)} />
         </div>
       ) : null}
     </div>

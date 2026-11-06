@@ -7,12 +7,21 @@ only in an aspirant installation.
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Response, UploadFile, status
 from pydantic import BaseModel
 
 from backend.api.deps import SessionDep, Today, require
 from backend.api.install import AspirantOnlyRoute
-from backend.models import AgendaIssue, HeroSlide, PartyDocument, PartyVideo, PostKind, User
+from backend.api.routers.files import read as file_read
+from backend.models import (
+    AgendaIssue,
+    FileArea,
+    HeroSlide,
+    PartyDocument,
+    PartyVideo,
+    PostKind,
+    User,
+)
 from backend.schemas.candidates import ProfileRead, ProfileWrite
 from backend.schemas.content import (
     DocumentAdminRead,
@@ -31,11 +40,38 @@ from backend.schemas.content import (
     VideoCreate,
     VideoUpdate,
 )
+from backend.schemas.files import FileRead
 from backend.schemas.site import SiteSettingsRead, SiteSettingsUpdate
-from backend.services import campaign_page, content, home, site
+from backend.services import campaign_page, content, files, home, site
+from backend.services.errors import Refused
 
 router = APIRouter(prefix="/workspace/site", tags=["workspace site"], route_class=AspirantOnlyRoute)
 Editor = Annotated[User, Depends(require("site.write"))]
+
+
+@router.post("/images/", response_model=FileRead, status_code=status.HTTP_201_CREATED)
+async def upload_image(
+    file: UploadFile, session: SessionDep, user: Editor, area: Annotated[FileArea, Form()]
+) -> FileRead:
+    """Upload a public JPEG, PNG or WebP image (up to 5 MB) for the site."""
+    raw = await file.read(files.IMAGE_MAX + 1)
+    try:
+        if raw.startswith(b"%PDF-"):
+            raise Refused("Choose a JPEG, PNG or WebP image.")
+        stored = await files.store(
+            session,
+            raw,
+            name=file.filename or "",
+            declared_type=file.content_type,
+            area=area,
+            public=True,
+            actor=user,
+        )
+    except files.TooLarge as error:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, str(error)) from None
+    except Refused as error:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(error)) from None
+    return file_read(stored)
 
 
 @router.get("/settings/", response_model=SiteSettingsRead)

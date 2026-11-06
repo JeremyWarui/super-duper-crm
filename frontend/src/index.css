@@ -507,6 +507,15 @@
   gap: 16px;
 }
 
+.legacy .kpi-grid-five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+/* A page whose panels stack with an even gap. */
+.legacy .page-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
 .legacy .kpi { min-width: 0; }
 
 .legacy .kpi-label {
@@ -1246,7 +1255,8 @@
 
 @media (max-width: 960px) {
   .legacy .overview-grid { grid-template-columns: minmax(0, 1fr); }
-  .legacy .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .legacy .kpi-grid,
+  .legacy .kpi-grid-five { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 860px) {

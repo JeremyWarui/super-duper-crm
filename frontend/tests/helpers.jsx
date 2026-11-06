@@ -22,7 +22,7 @@ export function stubApi(routes) {
     calls.push({
       method,
       path,
-      body: options.body ? JSON.parse(options.body) : null,
+      body: typeof options.body === "string" ? JSON.parse(options.body) : options.body ?? null,
       options,
     });
 

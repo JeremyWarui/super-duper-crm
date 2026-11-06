@@ -43,7 +43,7 @@ function CandidatePage({ campaign }) {
   if (page.error) return <p role="alert" className="text-destructive">{page.error.message}</p>;
   return (
     <div className="flex max-w-[720px] flex-col gap-3">
-      <ProfileForm key={page.dataUpdatedAt} title={`${campaign.candidate_name || campaign.title}: the homepage`} profile={page.data} save={save} />
+      <ProfileForm key={page.dataUpdatedAt} title={`${campaign.candidate_name || campaign.title}: the homepage`} profile={page.data} save={save} upload="/workspace/site/images/" />
       {save.isSuccess ? <p role="status" className="text-small text-muted-foreground">Saved.</p> : null}
     </div>
   );

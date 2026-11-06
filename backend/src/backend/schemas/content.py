@@ -1,6 +1,7 @@
 """The party's leaders and posts, as the public site reads them and the superuser edits them."""
 
 import math
+import re
 import uuid
 from datetime import date, datetime
 from typing import Annotated
@@ -11,10 +12,16 @@ from backend.models import BranchOffice, PostKind, PostLabel, Seat, TermEnd, Ter
 from backend.schemas.common import ORMModel, WriteModel, plain_text
 
 
+UPLOADED = re.compile(r"^/api/files/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/$")
+
+
 def _image(value: str) -> str:
+    """An https:// address, or the address of an image uploaded here."""
     value = plain_text(value).strip()
+    if UPLOADED.match(value):
+        return value
     if value and (not value.startswith("https://") or any(c.isspace() for c in value)):
-        raise ValueError("Use an image address starting with https://.")
+        raise ValueError("Upload an image, or use an address starting with https://.")
     return value
 
 

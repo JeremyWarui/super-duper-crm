@@ -1211,6 +1211,7 @@ function useWsList(kind, queryFn) {
 
 export const WORKSPACE_SECTIONS = {
   posts: {
+    upload: "/workspace/site/images/",
     query: function usePosts() { return useWsList("posts", () => api("/workspace/site/posts/")); },
     save: function useSavePost() {
       return useWorkspaceWrite(({ id, ...body }) =>
@@ -1219,6 +1220,7 @@ export const WORKSPACE_SECTIONS = {
     del: function useDeletePost() { return useWorkspaceWrite((id) => api(`/workspace/site/posts/${id}/`, { method: "DELETE" })); },
   },
   slides: {
+    upload: "/workspace/site/images/",
     query: function useSlides() { return useWsList("slides", () => api("/workspace/site/slides/")); },
     save: function useSaveSlide() {
       return useWorkspaceWrite(({ id, ...body }) =>
@@ -1227,6 +1229,7 @@ export const WORKSPACE_SECTIONS = {
     del: function useDeleteSlide() { return useWorkspaceWrite((id) => api(`/workspace/site/slides/${id}/`, { method: "DELETE" })); },
   },
   issues: {
+    upload: "/workspace/site/images/",
     query: function useIssues() { return useWsList("issues", () => api("/workspace/site/issues/")); },
     save: function useSaveIssue() {
       return useWorkspaceWrite(({ id, ...body }) =>
@@ -1235,6 +1238,7 @@ export const WORKSPACE_SECTIONS = {
     del: function useDeleteIssue() { return useWorkspaceWrite((id) => api(`/workspace/site/issues/${id}/`, { method: "DELETE" })); },
   },
   documents: {
+    upload: "/workspace/site/images/",
     query: function useDocuments() { return useWsList("documents", () => api("/workspace/site/documents/")); },
     save: function useSaveDocument() {
       return useWorkspaceWrite(({ id, ...body }) =>
@@ -1243,6 +1247,7 @@ export const WORKSPACE_SECTIONS = {
     del: function useDeleteDocument() { return useWorkspaceWrite((id) => api(`/workspace/site/documents/${id}/`, { method: "DELETE" })); },
   },
   videos: {
+    upload: "/workspace/site/images/",
     query: function useVideos() { return useWsList("videos", () => api("/workspace/site/videos/")); },
     save: function useSaveVideo() {
       return useWorkspaceWrite(({ id, ...body }) =>
@@ -1441,6 +1446,8 @@ export function useEndTerm() {
 }
 
 export const useUploadMinutes = () => useMutation({ mutationFn: (file) => upload("/party/office/minutes/", file) });
+// A public site image, sent to the party's file store or to an aspirant workspace's.
+export const useUploadImage = (path) => useMutation({ mutationFn: ({ file, area }) => upload(path, file, { area }) });
 
 // Applying to vie: the published timetable, a member's own application, and the officer's side.
 export const useNominationNotice = () =>
