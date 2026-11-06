@@ -14,7 +14,7 @@ export default function Branch() {
   if (branch.isLoading) return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
   if (branch.error) return <div role="alert" className="site-container py-12">{branch.error.message}</div>;
   const b = branch.data;
-  const officials = [["Chairperson", b.chairperson], ["Secretary", b.secretary]].filter(([, name]) => name);
+  const officials = b.officials.map((o) => [o.label, o.name]);
   const wards = b.constituencies.reduce((n, k) => n + k.wards.length, 0);
   return (
     <>
@@ -36,8 +36,8 @@ export default function Branch() {
           <section aria-labelledby="officials-h" className="flex flex-col gap-[18px]">
             <h2 id="officials-h" className="border-t-[3px] border-ink pt-3.5 font-display text-[32px] font-extrabold">Branch officials</h2>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
-              {officials.map(([role, name]) => (
-                <Card key={role} className="gap-0.5 p-3.5">
+              {officials.map(([role, name], i) => (
+                <Card key={`${role}-${i}`} className="gap-0.5 p-3.5">
                   <strong>{name}</strong>
                   <span className="text-ui text-muted-foreground">{role}</span>
                 </Card>

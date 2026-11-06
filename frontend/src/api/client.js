@@ -60,3 +60,22 @@ export async function download(path, filename) {
   link.remove();
   URL.revokeObjectURL(url);
 }
+
+// Sends one file as multipart form data, with the token; answers with the JSON reply.
+export async function upload(path, file) {
+  const token = useAuth.getState().token;
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Token ${token}` } : {},
+    body: form,
+  });
+  if (res.status === 401) {
+    useAuth.getState().expire();
+    throw Object.assign(new Error("Your session expired — please sign in again."), { status: 401 });
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw Object.assign(new Error(data?.detail || "Upload failed."), { status: res.status });
+  return data;
+}

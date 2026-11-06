@@ -21,7 +21,7 @@ const PAGES = [
   ["members", "Members", "membership_officer", <Members key="members" />],
   ["volunteers", "Volunteers", "membership_officer", <Volunteers key="volunteers" />],
   ["aspirants", "Aspirants", "nominations_officer", <Aspirants key="aspirants" />],
-  ["branches", "Branches", "superuser", <Branches key="branches" />, { kit: true, context: "Party structure", title: "Branches" }],
+  ["branches", "Branches", "membership_officer", <Branches key="branches" />, { kit: true, context: "Party structure", title: "Branches" }],
   ["website", "Website", "superuser", <Website key="website" />, { kit: true, context: "Website content", title: "Edit the party website" }],
 ];
 

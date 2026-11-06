@@ -142,16 +142,16 @@ async def delete_party_post(post_id: uuid.UUID, session: SessionDep, admin: Admi
 
 
 @party_router.get("/party/branches/", response_model=list[CountyBranch])
-async def party_branches(session: SessionDep, _: AdminUser):
-    """Every county with its branch, published or not."""
-    return await branches.by_county(session)
+async def party_branches(session: SessionDep, _: AdminUser, today: Today):
+    """Every county with its branch, published or not, and its officials in office."""
+    return await branches.by_county(session, today)
 
 
 @party_router.put("/party/branches/{county_id}/", response_model=BranchAdminRead)
 async def save_party_branch(
-    county_id: uuid.UUID, payload: BranchUpdate, session: SessionDep, admin: AdminUser
+    county_id: uuid.UUID, payload: BranchUpdate, session: SessionDep, admin: AdminUser, today: Today
 ):
-    return await branches.save(session, county_id, payload, actor=admin)
+    return await branches.save(session, county_id, payload, actor=admin, today=today)
 
 
 @party_router.put("/party/", response_model=PartySettingsRead)

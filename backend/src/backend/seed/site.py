@@ -228,8 +228,6 @@ async def seed_branches(session: AsyncSession, today: date) -> int:
         session.add(
             Branch(
                 county_id=county.id,
-                chairperson="Demo chairperson",
-                secretary="Demo secretary",
                 office_address=f"Party office, {county.name}",
                 phone=SETTINGS["contact_phone"],
                 email=f"{slug}@demo.pamoja.test",

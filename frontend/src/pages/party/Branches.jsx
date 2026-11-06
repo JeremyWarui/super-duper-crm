@@ -1,20 +1,40 @@
-// The superuser's county branches: officials, office and next meeting, and whether each is public.
+// County branches: their officials, kept as terms by the Membership Officer, and for the
+// superuser the office, next meeting and whether each branch is public.
 import { useState } from "react";
-import { useAdminBranches, useSaveBranch } from "@/api/hooks";
+import {
+  useAppointOfficial, useBranchOfficials, useEndTerm, useOfficeBranches, usePartyMembers, useSaveBranch, useUploadMinutes,
+} from "@/api/hooks";
+import { useAuth } from "@/store/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, KpiValue } from "@/components/ui/card";
-import { Field, Input } from "@/components/ui/input";
+import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 const FIELDS = [
-  ["chairperson", "Chairperson"],
-  ["secretary", "Secretary"],
   ["office_address", "Office address"],
   ["phone", "Office phone"],
   ["email", "Office email"],
   ["next_meeting_venue", "Next meeting venue"],
 ];
+const OFFICES = [
+  ["chair", "Chairperson"],
+  ["secretary", "Secretary"],
+  ["treasurer", "Treasurer"],
+  ["organising_secretary", "Organising secretary"],
+  ["youth_leader", "Youth leader"],
+  ["women_leader", "Women leader"],
+  ["other", "Other office"],
+];
+const STARTS = [["elected", "Elected at a branch meeting"], ["interim", "Interim appointment"]];
+const ENDS = [["resigned", "Resigned"], ["removed", "Removed"], ["completed", "Term completed"]];
+const END_LABEL = { replaced: "Replaced", resigned: "Resigned", removed: "Removed", completed: "Term completed" };
+
+// The local calendar day, so a date picked near midnight in Nairobi is not yesterday's.
+const today = () => new Date().toLocaleDateString("en-CA");
+const day = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "");
+const holderOf = (branch, office) => branch?.officials?.find((o) => o.office === office)?.name;
 
 const formOf = (branch) => ({
   ...Object.fromEntries(FIELDS.map(([key]) => [key, branch?.[key] ?? ""])),
@@ -32,7 +52,7 @@ function BranchForm({ row, onDone }) {
   };
   return (
     <form onSubmit={submit} className="flex flex-col gap-3.5">
-      <h2 className="text-card-title font-bold">{row.county.name} branch</h2>
+      <h2 className="text-card-title font-bold">Branch office</h2>
       {FIELDS.map(([key, label]) => (
         <Field key={key} label={label}>
           <Input value={form[key]} onChange={set(key)} maxLength={key === "office_address" ? 300 : key === "phone" ? 20 : key === "email" ? 254 : 150} type={key === "email" ? "email" : "text"} />
@@ -54,15 +74,169 @@ function BranchForm({ row, onDone }) {
   );
 }
 
+function EndTerm({ term, onDone }) {
+  const end = useEndTerm();
+  const [form, setForm] = useState({ term_end: today(), end_reason: "resigned" });
+  return (
+    <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); end.mutate({ id: term.id, ...form }, { onSuccess: onDone }); }}>
+      <Field label="Last day"><Input type="date" value={form.term_end} min={term.term_start} onChange={(e) => setForm({ ...form, term_end: e.target.value })} /></Field>
+      <Field label="Why">
+        <NativeSelect value={form.end_reason} onChange={(e) => setForm({ ...form, end_reason: e.target.value })}>
+          {ENDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </NativeSelect>
+      </Field>
+      <Button type="submit" shape="rounded" variant="danger" size="sm" disabled={end.isPending}>End the term</Button>
+      <Button type="button" shape="rounded" variant="ghost" size="sm" onClick={onDone}>Keep</Button>
+      {end.error && <p role="alert" className="w-full text-small font-semibold text-destructive">{end.error.message}</p>}
+    </form>
+  );
+}
+
+function OfficeBox({ label, term, next, onEnd, ending }) {
+  const tag = term?.lapsed ? <Badge tone="bad">Membership lapsed</Badge> : term ? <Badge tone="ok">In office</Badge> : next ? <Badge tone="warn">Starts {day(next.term_start)}</Badge> : <Badge tone="bad">Vacant</Badge>;
+  return (
+    <div className={cn("flex flex-col gap-2 rounded-xl border-[1.5px] p-3.5", term ? "border-line-soft bg-ground-app" : "border-[#F1DE9A] bg-[#FFFBEA]")} role="group" aria-label={label}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-bold">{label}</span>
+        {tag}
+      </div>
+      {term ? (
+        <>
+          <span className="text-ui">
+            <strong>{term.holder_name}</strong> since {day(term.term_start)}{term.term_end ? `, until ${day(term.term_end)}` : ""}
+            {!term.member && <span className="block text-small text-warn-foreground">{term.note || "Not linked to a member."}</span>}
+            {term.lapsed && <span className="block text-small text-bad-foreground">No longer an approved member, so the website no longer names them. End the term and appoint someone.</span>}
+          </span>
+          {ending ? onEnd(term) : <Button shape="rounded" size="sm" variant="quiet" className="self-start" onClick={() => onEnd(term, true)} aria-label={`End the ${label.toLowerCase()}'s term`}>End term</Button>}
+        </>
+      ) : next ? <span className="text-ui">{next.holder_name}</span> : null}
+    </div>
+  );
+}
+
+function Appoint({ county }) {
+  const appoint = useAppointOfficial();
+  const uploadMinutes = useUploadMinutes();
+  const blank = { office: "chair", title: "", member: null, start_reason: "elected", term_start: today(), note: "", minutes: null };
+  const [form, setForm] = useState(blank);
+  const [q, setQ] = useState("");
+  const found = usePartyMembers({ q, status: "approved", county: county.id });
+  const people = q.trim().length >= 2 ? found.data?.items || [] : [];
+  const set = (patch) => setForm((f) => ({ ...f, ...patch }));
+  const pickFile = (e) => {
+    const file = e.target.files?.[0];
+    if (file) uploadMinutes.mutate(file, { onSuccess: (m) => set({ minutes: m }) });
+  };
+  const submit = (e) => {
+    e.preventDefault();
+    appoint.mutate(
+      {
+        county: county.id, office: form.office, title: form.title, member: form.member.id, term_start: form.term_start,
+        start_reason: form.start_reason, note: form.note, minutes_file: form.minutes?.id ?? null,
+      },
+      { onSuccess: () => { setForm(blank); setQ(""); } },
+    );
+  };
+  const ready = form.member && form.term_start && (form.office !== "other" || form.title.trim());
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-3 border-t border-line-soft pt-4" aria-label="Appoint an official">
+      <h3 className="text-card-title font-bold">Appoint</h3>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Office">
+          <NativeSelect value={form.office} onChange={(e) => set({ office: e.target.value })}>
+            {OFFICES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </NativeSelect>
+        </Field>
+        {form.office === "other" && <Field label="Office name"><Input value={form.title} maxLength={80} onChange={(e) => set({ title: e.target.value })} /></Field>}
+        <Field label="Reason">
+          <NativeSelect value={form.start_reason} onChange={(e) => set({ start_reason: e.target.value })}>
+            {STARTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </NativeSelect>
+        </Field>
+        <Field label="Effective from"><Input type="date" value={form.term_start} onChange={(e) => set({ term_start: e.target.value })} /></Field>
+      </div>
+      <Field label="Member" hint={`Approved members in ${county.name}; type two or more letters of a name or phone.`}>
+        <Input value={form.member ? form.member.full_name : q} onChange={(e) => { set({ member: null }); setQ(e.target.value); }} />
+      </Field>
+      {!form.member && people.length > 0 && (
+        <ul className="flex flex-col rounded-lg border border-line-soft" aria-label="Matching members">
+          {people.slice(0, 8).map((m) => (
+            <li key={m.id}>
+              <button type="button" className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 px-3 text-left hover:bg-stone" onClick={() => set({ member: m })}>
+                <span className="font-semibold">{m.full_name}</span>
+                <span className="text-small text-muted-foreground">{m.ward?.name || m.phone}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!form.member && q.trim().length >= 2 && !found.isFetching && people.length === 0 && <p className="text-small text-muted-foreground">No approved member in {county.name} matches.</p>}
+      <label className="flex flex-col gap-1.5 text-small font-semibold">
+        Signed minutes of the meeting
+        <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={pickFile} className="min-h-11 text-ui font-normal" />
+        <span className="font-normal text-muted-foreground">{uploadMinutes.isPending ? "Uploading…" : form.minutes ? `Attached: ${form.minutes.name}` : "A PDF or a photo; kept private to the party office."}</span>
+      </label>
+      {uploadMinutes.error && <p role="alert" className="text-small font-semibold text-destructive">{uploadMinutes.error.message}</p>}
+      <Field label="Note"><Input value={form.note} maxLength={1000} onChange={(e) => set({ note: e.target.value })} /></Field>
+      {appoint.error && <p role="alert" className="text-small font-semibold text-destructive">{appoint.error.message}</p>}
+      <Button type="submit" shape="rounded" className="self-start" disabled={!ready || appoint.isPending || uploadMinutes.isPending}>
+        {appoint.isPending ? "Saving…" : "Appoint"}
+      </Button>
+      <p className="text-small text-muted-foreground">Appointing someone ends the current holder's term the day before. Every change is recorded in the audit trail.</p>
+    </form>
+  );
+}
+
+function Officials({ county }) {
+  const { data, isLoading, error } = useBranchOfficials(county.id);
+  const [ending, setEnding] = useState(null);
+  if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
+  if (error) return <p role="alert" className="font-semibold text-destructive">{error.message}</p>;
+  const others = data.current.filter((t) => t.office === "other");
+  const onEnd = (term, open) => (open ? setEnding(term.id) : <EndTerm term={term} onDone={() => setEnding(null)} />);
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-0.5">
+        <h2 className="text-card-title font-bold">Officials · {county.name} County</h2>
+        <span className="text-small text-muted-foreground">Only approved members hold an office; each has one holder at a time.</span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {OFFICES.filter(([o]) => o !== "other").map(([office, label]) => (
+          <OfficeBox key={office} label={label}
+            term={data.current.find((t) => t.office === office)}
+            next={data.upcoming.find((t) => t.office === office)}
+            ending={ending && data.current.find((t) => t.office === office)?.id === ending} onEnd={onEnd} />
+        ))}
+        {others.map((t) => <OfficeBox key={t.id} label={t.label} term={t} ending={ending === t.id} onEnd={onEnd} />)}
+      </div>
+      <Appoint county={county} />
+      {data.history.length > 0 && (
+        <details className="border-t border-line-soft pt-3">
+          <summary className="min-h-11 cursor-pointer content-center font-bold">Past officials ({data.history.length})</summary>
+          <ul className="mt-2 flex flex-col">
+            {data.history.map((t) => (
+              <li key={t.id} className="flex flex-wrap justify-between gap-2 border-t border-line-soft py-2 text-ui">
+                <span><strong>{t.holder_name}</strong>, {t.label}</span>
+                <span className="text-muted-foreground">{day(t.term_start)} to {day(t.term_end)} · {END_LABEL[t.end_reason] || "Ended"}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
 export default function Branches() {
-  const rows = useAdminBranches();
+  const rows = useOfficeBranches();
+  const superuser = useAuth((s) => s.user?.is_superuser);
   const [open, setOpen] = useState(null);
   if (rows.isLoading) return <p className="text-muted-foreground">Loading…</p>;
   if (rows.error) return <p role="alert">{rows.error.message}</p>;
   const list = rows.data;
   const withBranch = list.filter((r) => r.branch);
   const published = withBranch.filter((r) => r.branch.published).length;
-  const chaired = withBranch.filter((r) => r.branch.chairperson).length;
+  const chaired = withBranch.filter((r) => holderOf(r.branch, "chair")).length;
   const current = list.find((r) => r.county.id === open);
 
   return (
@@ -70,12 +244,12 @@ export default function Branches() {
       <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-4">
         <Card variant="tile"><span className="text-ui font-semibold text-muted-foreground">County branches</span><KpiValue>{withBranch.length} / {list.length}</KpiValue><span className="text-small text-muted-foreground">set up</span></Card>
         <Card variant="tile"><span className="text-ui font-semibold text-muted-foreground">On the website</span><KpiValue>{published}</KpiValue><span className="text-small text-muted-foreground">published</span></Card>
-        <Card variant="tile"><span className="text-ui font-semibold text-muted-foreground">Chairpersons</span><KpiValue>{chaired}</KpiValue><span className="text-small text-muted-foreground">named</span></Card>
+        <Card variant="tile"><span className="text-ui font-semibold text-muted-foreground">Chairpersons</span><KpiValue>{chaired}</KpiValue><span className="text-small text-muted-foreground">in office</span></Card>
       </section>
       <div className="flex flex-wrap items-start gap-6">
         <Card variant="outline" className="min-w-0 flex-[3_1_520px] gap-3.5">
           <h2 className="text-card-title font-bold">County branches</h2>
-          <Table minWidth={640}>
+          <Table stack minWidth={640}>
             <THead>
               <TR><TH>County</TH><TH>Chairperson</TH><TH>Secretary</TH><TH>Next meeting</TH><TH>Status</TH></TR>
             </THead>
@@ -83,9 +257,9 @@ export default function Branches() {
               {list.map((r) => (
                 <TR key={r.county.id} selected={r.county.id === open}>
                   <TD><RowButton onClick={() => setOpen(r.county.id)}>{r.county.name}</RowButton></TD>
-                  <TD>{r.branch?.chairperson || "—"}</TD>
-                  <TD>{r.branch?.secretary || "—"}</TD>
-                  <TD>{r.branch?.next_meeting_on || "—"}</TD>
+                  <TD>{holderOf(r.branch, "chair") || "Vacant"}</TD>
+                  <TD>{holderOf(r.branch, "secretary") || "Vacant"}</TD>
+                  <TD>{r.branch?.next_meeting_on || "None set"}</TD>
                   <TD>
                     {r.branch ? (
                       <Badge tone={r.branch.published ? "ok" : "warn"}>{r.branch.published ? "Published" : "Draft"}</Badge>
@@ -99,9 +273,16 @@ export default function Branches() {
           </Table>
         </Card>
         {current ? (
-          <Card variant="outline" className="flex-[2_1_320px]">
-            <BranchForm key={current.county.id} row={current} onDone={() => setOpen(null)} />
-          </Card>
+          <div className="flex min-w-0 flex-[2_1_380px] flex-col gap-4">
+            <Card variant="outline" role="region" aria-label="Officials">
+              <Officials key={current.county.id} county={current.county} />
+            </Card>
+            {superuser && (
+              <Card variant="outline">
+                <BranchForm key={current.county.id} row={current} onDone={() => setOpen(null)} />
+              </Card>
+            )}
+          </div>
         ) : null}
       </div>
     </>

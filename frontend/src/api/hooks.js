@@ -10,7 +10,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { api, download } from "./client";
+import { api, download, upload } from "./client";
 import { useAuth } from "../store/auth";
 
 // ---- Queries --------------------------------------------------------------
@@ -775,9 +775,6 @@ export const usePublicBranch = (countyId) =>
     queryFn: () => api(`/party/branches/${countyId}/`, { anonymous: true }),
   });
 
-export const useAdminBranches = () =>
-  useQuery({ queryKey: ["admin-branches"], queryFn: () => api("/admin/party/branches/") });
-
 export function useSaveBranch() {
   const qc = useQueryClient();
   return useMutation({
@@ -785,6 +782,7 @@ export function useSaveBranch() {
       api(`/admin/party/branches/${county}/`, { method: "PUT", body: payload }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-branches"] });
+      qc.invalidateQueries({ queryKey: ["office-branches"] });
       qc.invalidateQueries({ queryKey: ["public-branches"] });
     },
   });
@@ -1329,3 +1327,38 @@ export function useTestSend() {
         : api("/admin/test/payout/", { method: "POST", body: { phone } }),
   });
 }
+
+// The party office's branches, for the Membership Officer and the superuser.
+export const useOfficeBranches = () =>
+  useQuery({ queryKey: ["office-branches"], queryFn: () => api("/party/office/branches/") });
+
+// Branch officials: terms in each county branch office.
+export const useBranchOfficials = (countyId) =>
+  useQuery({
+    queryKey: ["branch-officials", countyId],
+    enabled: Boolean(countyId),
+    queryFn: () => api(`/party/office/branches/${countyId}/officials/`),
+  });
+
+function useOfficialsChanged() {
+  const qc = useQueryClient();
+  return () => ["branch-officials", "office-branches", "admin-branches", "public-branches"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+}
+
+export function useAppointOfficial() {
+  const changed = useOfficialsChanged();
+  return useMutation({
+    mutationFn: ({ county, ...body }) => api(`/party/office/branches/${county}/officials/`, { method: "POST", body }),
+    onSuccess: changed,
+  });
+}
+
+export function useEndTerm() {
+  const changed = useOfficialsChanged();
+  return useMutation({
+    mutationFn: ({ id, ...body }) => api(`/party/office/officials/${id}/end/`, { method: "POST", body }),
+    onSuccess: changed,
+  });
+}
+
+export const useUploadMinutes = () => useMutation({ mutationFn: (file) => upload("/party/office/minutes/", file) });

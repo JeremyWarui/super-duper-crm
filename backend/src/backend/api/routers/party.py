@@ -12,6 +12,7 @@ from backend.api.install import PartyOnlyRoute
 from backend.api.routers.join import _client
 from backend.models import (
     AgendaIssue,
+    Branch,
     Constituency,
     County,
     HeroSlide,
@@ -107,15 +108,15 @@ async def leaders(session: SessionDep):
 
 
 @party_router.get("/branches/", response_model=list[BranchRead])
-async def party_branches(session: SessionDep):
+async def party_branches(session: SessionDep, today: Today):
     """The published county branches, by county name."""
-    return await branches.published(session)
+    return await branches.published(session, today)
 
 
 @party_router.get("/branches/{county_id}/", response_model=BranchDetail)
-async def party_branch(county_id: uuid.UUID, session: SessionDep):
+async def party_branch(county_id: uuid.UUID, session: SessionDep, today: Today):
     """A published branch, with its county's constituencies and wards."""
-    return await branches.published_detail(session, county_id)
+    return await branches.published_detail(session, county_id, today)
 
 
 @router.get("/posts/", response_model=list[PostRead])
@@ -350,5 +351,7 @@ async def stats(session: SessionDep) -> PartyStats:
             .select_from(PartyMember)
             .where(PartyMember.status == PartyMemberStatus.APPROVED)
         ),
-        branches=len(await branches.published(session)),
+        branches=await session.scalar(
+            select(func.count()).select_from(Branch).where(Branch.published.is_(True))
+        ),
     )

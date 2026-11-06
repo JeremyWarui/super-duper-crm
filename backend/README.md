@@ -366,6 +366,27 @@ uv run campaign-crm export --out records.zip
   `pg_restore --clean` in one transaction, moves the current uploads aside to
   `uploads.before-restore-<time>`, and puts the archive's in place. Restart the app after.
 
+## Branch officials
+
+Each county branch's officials are terms in `branch_officials`: an office (chairperson,
+secretary, treasurer, organising secretary, youth leader, women leader, or a named other
+office), the approved party member holding it, the first and last day, why it began and
+ended, and optionally the signed minutes as a private upload. The Membership Officer and the
+superuser keep them from the party CRM's Branches page; the superuser also edits the branch's
+office, next meeting and whether it is published.
+
+- Only an approved member can be appointed. Appointing someone ends the office's current term
+  the day before the new one starts, so an office has one holder at a time; a term already
+  starting on or after that date has to be ended first. "Other" offices may run side by side.
+- A term ends early as resigned, removed or completed; the office is vacant from the next day.
+- The public branch pages and the home page name only the officials in office today.
+- The chairperson and secretary text that branches used to hold became terms on migration,
+  linked to the one approved member with that name, or kept as the name with a note.
+- Every appointment, ending and minutes upload is audited.
+
+The officials mockup sends changes to HQ for approval. Here the people editing are HQ (the
+Membership Officer and the superuser), so changes apply at once and the audit trail records them.
+
 ## Sign-in links
 
 Nobody is shown a password. A new login gets an emailed invite link (72 hours)

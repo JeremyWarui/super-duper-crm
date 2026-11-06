@@ -246,3 +246,29 @@ class FileArea(LabelledStrEnum):
     LEADERS = ("leaders", "Party leaders")
     DOCUMENTS = ("documents", "Documents")
     CANDIDATES = ("candidates", "Candidate pages")
+    MINUTES = ("minutes", "Branch meeting minutes")
+
+
+class BranchOffice(LabelledStrEnum):
+    """An office on a county branch, in the order the branch lists them."""
+
+    CHAIR = ("chair", "Chairperson")
+    SECRETARY = ("secretary", "Secretary")
+    TREASURER = ("treasurer", "Treasurer")
+    ORGANISING_SECRETARY = ("organising_secretary", "Organising secretary")
+    YOUTH_LEADER = ("youth_leader", "Youth leader")
+    WOMEN_LEADER = ("women_leader", "Women leader")
+    OTHER = ("other", "Other office")
+
+
+class TermStart(LabelledStrEnum):
+    ELECTED = ("elected", "Elected at a branch meeting")
+    INTERIM = ("interim", "Interim appointment")
+    RECORDED = ("recorded", "Recorded before terms were kept")
+
+
+class TermEnd(LabelledStrEnum):
+    REPLACED = ("replaced", "Replaced")
+    RESIGNED = ("resigned", "Resigned")
+    REMOVED = ("removed", "Removed")
+    COMPLETED = ("completed", "Term completed")

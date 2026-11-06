@@ -19,11 +19,12 @@ from sqlalchemy import (
     Uuid,
     false,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
-from backend.models.enums import PostKind, PostLabel, Seat
+from backend.models.enums import BranchOffice, PostKind, PostLabel, Seat, TermEnd, TermStart
 from backend.models.geography import County
 
 
@@ -103,15 +104,14 @@ class Subscriber(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 class Branch(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A county's party branch: its officials, office and next meeting, public once published."""
+    """A county's party branch: its office and next meeting, public once published; its officials
+    are `BranchOfficial` rows."""
 
     __tablename__ = "branches"
 
     county_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("counties.id", ondelete="CASCADE"), unique=True
     )
-    chairperson: Mapped[str] = mapped_column(String(150), default="", server_default="")
-    secretary: Mapped[str] = mapped_column(String(150), default="", server_default="")
     office_address: Mapped[str] = mapped_column(String(300), default="", server_default="")
     phone: Mapped[str] = mapped_column(String(20), default="", server_default="")
     email: Mapped[str] = mapped_column(String(254), default="", server_default="")
@@ -121,6 +121,52 @@ class Branch(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     updated_at: Mapped[datetime] = _updated_at()
 
     county: Mapped["County"] = relationship(lazy="raise")
+
+
+class BranchOfficial(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A term in a branch office. Current while it has begun and has not ended.
+
+    `holder_name` is kept as it was at appointment, so history reads the same after a member
+    leaves; a row with no member was carried over from the old free-text fields.
+    """
+
+    __tablename__ = "branch_officials"
+    __table_args__ = (
+        CheckConstraint("term_end IS NULL OR term_end >= term_start", name="term_in_order"),
+        # One open-ended term per office; terms with an end date are checked in the service.
+        Index(
+            "uq_branch_officials_open_term",
+            "branch_id",
+            "office",
+            unique=True,
+            postgresql_where=text("term_end IS NULL AND office <> 'other'"),
+            sqlite_where=text("term_end IS NULL AND office <> 'other'"),
+        ),
+    )
+
+    branch_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("branches.id", ondelete="CASCADE"), index=True
+    )
+    member_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("party_members.id", ondelete="SET NULL"), default=None, index=True
+    )
+    office: Mapped[BranchOffice] = mapped_column(choice_type(BranchOffice, "branch_office", 30))
+    # The office's name when it is "other".
+    title: Mapped[str] = mapped_column(String(80), default="", server_default="")
+    holder_name: Mapped[str] = mapped_column(String(150))
+    term_start: Mapped[date] = mapped_column(Date)
+    term_end: Mapped[date | None] = mapped_column(Date, default=None)
+    start_reason: Mapped[TermStart] = mapped_column(choice_type(TermStart, "term_start_reason"))
+    end_reason: Mapped[TermEnd | None] = mapped_column(
+        choice_type(TermEnd, "term_end_reason"), default=None
+    )
+    minutes_file_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
+    )
+    note: Mapped[str] = mapped_column(Text, default="", server_default="")
+    appointed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
 
 
 class HeroSlide(UUIDPrimaryKeyMixin, TimestampMixin, Base):

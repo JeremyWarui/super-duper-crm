@@ -14,8 +14,6 @@ from tests.conftest import World
 pytestmark = pytest.mark.party_only
 
 BRANCH = {
-    "chairperson": "Wanjiru Kamau",
-    "secretary": "Otieno Ouma",
     "office_address": "Moi Avenue, Nairobi",
     "phone": "0700 111222",
     "email": "nairobi@example.com",
@@ -33,7 +31,7 @@ async def test_only_the_superuser_writes_a_branch(
 
     assert refused.status_code == 403
     assert saved.status_code == 200, saved.text
-    assert saved.json()["chairperson"] == "Wanjiru Kamau"
+    assert saved.json()["office_address"] == "Moi Avenue, Nairobi"
 
 
 async def test_an_unpublished_branch_is_not_public(

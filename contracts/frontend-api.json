@@ -558,25 +558,23 @@
     ],
     "GET /api/party/branches/": [
       "county",
-      "chairperson"
+      "officials"
     ],
     "GET /api/party/branches/{county_id}/": [
       "county",
-      "chairperson",
-      "secretary",
       "office_address",
       "phone",
       "email",
       "next_meeting_on",
       "next_meeting_venue",
-      "constituencies"
+      "constituencies",
+      "officials"
     ],
-    "GET /api/admin/party/branches/": [
+    "GET /api/party/office/branches/": [
       "county",
       "branch"
     ],
     "PUT /api/admin/party/branches/{county_id}/": [
-      "chairperson",
       "published"
     ],
     "GET /api/party/slides/": [
@@ -1059,6 +1057,17 @@
     ],
     "POST /api/admin/test/payout/": [
       "message"
+    ],
+    "GET /api/party/office/branches/{county_id}/officials/": [
+      "current",
+      "upcoming",
+      "history"
+    ],
+    "POST /api/party/office/branches/{county_id}/officials/": [
+      "id"
+    ],
+    "POST /api/party/office/officials/{official_id}/end/": [
+      "id"
     ]
   },
   "nested_reads": {
@@ -1239,15 +1248,14 @@
       "name",
       "wards"
     ],
-    "GET /api/admin/party/branches/.branch": [
-      "chairperson",
-      "secretary",
+    "GET /api/party/office/branches/.branch": [
       "office_address",
       "phone",
       "email",
       "next_meeting_on",
       "next_meeting_venue",
-      "published"
+      "published",
+      "officials"
     ],
     "GET /api/party/posts/.county": [
       "id",
@@ -1333,6 +1341,52 @@
       "path",
       "free_bytes",
       "total_bytes"
+    ],
+    "GET /api/party/branches/.officials": [
+      "office",
+      "label",
+      "name"
+    ],
+    "GET /api/party/branches/{county_id}/.officials": [
+      "office",
+      "label",
+      "name"
+    ],
+    "GET /api/party/office/branches/{county_id}/officials/.current": [
+      "id",
+      "office",
+      "label",
+      "member",
+      "holder_name",
+      "term_start",
+      "term_end",
+      "end_reason",
+      "note",
+      "lapsed"
+    ],
+    "GET /api/party/office/branches/{county_id}/officials/.upcoming": [
+      "id",
+      "office",
+      "label",
+      "member",
+      "holder_name",
+      "term_start",
+      "term_end",
+      "end_reason",
+      "note",
+      "lapsed"
+    ],
+    "GET /api/party/office/branches/{county_id}/officials/.history": [
+      "id",
+      "office",
+      "label",
+      "member",
+      "holder_name",
+      "term_start",
+      "term_end",
+      "end_reason",
+      "note",
+      "lapsed"
     ]
   },
   "writes": {
@@ -1632,8 +1686,6 @@
     "POST /api/account/volunteer/stop/": [],
     "POST /api/account/leave/": [],
     "PUT /api/admin/party/branches/{county_id}/": [
-      "chairperson",
-      "secretary",
       "office_address",
       "phone",
       "email",
@@ -1968,6 +2020,19 @@
     ],
     "POST /api/admin/test/payout/": [
       "phone"
+    ],
+    "POST /api/party/office/branches/{county_id}/officials/": [
+      "office",
+      "title",
+      "member",
+      "term_start",
+      "start_reason",
+      "note",
+      "minutes_file"
+    ],
+    "POST /api/party/office/officials/{official_id}/end/": [
+      "term_end",
+      "end_reason"
     ]
   },
   "enums": {

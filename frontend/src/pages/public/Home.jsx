@@ -294,8 +294,9 @@ function Branches() {
             <>
               <h3 className="text-h3 font-bold">{b.county.name} branch</h3>
               <div className="flex flex-col gap-2 text-body">
-                {b.chairperson ? <span><strong>Chairperson:</strong> {b.chairperson}</span> : null}
-                {b.secretary ? <span><strong>Secretary:</strong> {b.secretary}</span> : null}
+                {b.officials.filter((o) => o.office === "chair" || o.office === "secretary").map((o) => (
+                  <span key={o.office}><strong>{o.label}:</strong> {o.name}</span>
+                ))}
                 {b.office_address ? <span><strong>Office:</strong> {[b.office_address, b.phone].filter(Boolean).join(" · ")}</span> : null}
                 {b.next_meeting_on ? <span><strong>Next branch meeting:</strong> {ago(b.next_meeting_on)}{b.next_meeting_venue ? `, ${b.next_meeting_venue}` : ""}</span> : null}
               </div>

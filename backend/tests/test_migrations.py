@@ -692,3 +692,72 @@ def test_setup_tokens_drops_the_placeholder_settings_only_where_nobody_signed_up
         kept[with_a_login] = rows
 
     assert kept == {False: 0, True: 1}
+
+
+def _insert_row(connection, table: str, **values) -> None:
+    """A row with `values`, and a placeholder in every other required column."""
+    required = {
+        c["name"]: "1"
+        for c in sa.inspect(connection).get_columns(table)
+        if not c["nullable"] and c["default"] is None
+    }
+    row = {**required, **values}
+    names = ", ".join(row)
+    marks = ", ".join(f":{n}" for n in row)
+    connection.execute(sa.text(f"INSERT INTO {table} ({names}) VALUES ({marks})"), row)
+
+
+def test_branch_officials_link_the_old_names_to_members_or_keep_them_as_a_note() -> None:
+    revisions = revision_modules()
+    last = next(i for i, m in enumerate(revisions) if m.revision == "branch_officials")
+    engine = sa.create_engine("sqlite://")
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            for module in revisions[:last]:
+                module.upgrade()
+        _insert_row(connection, "counties", id="c1", name="Nairobi", code="47")
+        _insert_row(connection, "constituencies", id="k1", county_id="c1", name="R", code="1")
+        _insert_row(connection, "wards", id="w1", constituency_id="k1", name="W", code="1")
+        _insert_row(
+            connection,
+            "party_members",
+            id="m1",
+            full_name="Wanjiru Kamau",
+            phone="+254700000001",
+            ward_id="w1",
+            status="approved",
+            consent_channel="officer_entry",
+        )
+        _insert_row(
+            connection,
+            "branches",
+            id="b1",
+            county_id="c1",
+            chairperson=" wanjiru kamau ",
+            secretary="Nobody Known",
+            updated_at="2026-03-01 10:00:00",
+        )
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].upgrade()
+        rows = connection.execute(
+            sa.text(
+                "SELECT office, member_id, holder_name, term_start, note FROM branch_officials "
+                "ORDER BY office"
+            )
+        ).all()
+        with Operations.context(MigrationContext.configure(connection)):
+            revisions[last].downgrade()
+        back = connection.execute(sa.text("SELECT chairperson, secretary FROM branches")).one()
+    engine.dispose()
+
+    chair, secretary = rows
+    assert (chair.office, chair.member_id, chair.holder_name, str(chair.term_start)) == (
+        "chair",
+        "m1",
+        "wanjiru kamau",
+        "2026-03-01",
+    )
+    assert chair.note == ""
+    assert (secretary.member_id, secretary.holder_name) == (None, "Nobody Known")
+    assert "no single approved member" in secretary.note
+    assert tuple(back) == ("wanjiru kamau", "Nobody Known")

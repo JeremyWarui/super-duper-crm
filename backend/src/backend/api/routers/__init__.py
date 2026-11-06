@@ -9,6 +9,7 @@ from backend.api.routers import (
     aspirant_site,
     assignments,
     auth,
+    branch_officials,
     campaigns,
     candidates,
     console_ops,
@@ -38,6 +39,7 @@ from backend.api.routers import (
 api_router = APIRouter(prefix="/api")
 for module in (
     setup,
+    branch_officials,
     auth,
     account,
     admin,

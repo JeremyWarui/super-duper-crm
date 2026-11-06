@@ -7,7 +7,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, Field, computed_field, field_validator, model_validator
 
-from backend.models import PostKind, PostLabel, Seat
+from backend.models import BranchOffice, PostKind, PostLabel, Seat, TermEnd, TermStart
 from backend.schemas.common import ORMModel, WriteModel, plain_text
 
 
@@ -174,12 +174,19 @@ class BranchCounty(ORMModel):
     name: str
 
 
+class PublicOfficial(ORMModel):
+    """An official in office, as the website names them."""
+
+    office: BranchOffice
+    label: str
+    name: str
+
+
 class BranchRead(ORMModel):
-    """A published branch as the public site shows it."""
+    """A published branch as the public site shows it, with its officials in office today."""
 
     county: BranchCounty
-    chairperson: str
-    secretary: str
+    officials: list[PublicOfficial]
     office_address: str
     phone: str
     email: str
@@ -219,8 +226,6 @@ class CountyBranch(ORMModel):
 class BranchUpdate(WriteModel):
     """The whole branch; the request replaces every field."""
 
-    chairperson: Venue = ""
-    secretary: Venue = ""
     office_address: Annotated[
         str, Field(max_length=300), AfterValidator(lambda v: plain_text(v).strip())
     ] = ""
@@ -470,3 +475,70 @@ class VideoUpdate(WriteModel):
     duration: Duration | None = None
     sort_order: Order | None = None
     published: bool | None = None
+
+
+class OfficialAppoint(WriteModel):
+    """A term for an approved member; `title` names an office of kind "other"."""
+
+    office: BranchOffice
+    title: Annotated[str, Field(max_length=80), AfterValidator(lambda v: plain_text(v).strip())] = (
+        ""
+    )
+    member: uuid.UUID
+    term_start: date
+    term_end: date | None = None
+    start_reason: TermStart = TermStart.ELECTED
+    minutes_file: uuid.UUID | None = None
+    note: Annotated[
+        str, Field(max_length=1000), AfterValidator(lambda v: plain_text(v).strip())
+    ] = ""
+
+    @model_validator(mode="after")
+    def _whole(self) -> "OfficialAppoint":
+        if self.office is BranchOffice.OTHER and not self.title:
+            raise ValueError("Name the office.")
+        if self.term_end is not None and self.term_end < self.term_start:
+            raise ValueError("A term cannot end before it starts.")
+        if self.start_reason is TermStart.RECORDED:
+            raise ValueError("A new term is elected or an interim appointment.")
+        return self
+
+
+class OfficialEnd(WriteModel):
+    term_end: date
+    end_reason: TermEnd
+
+    @field_validator("end_reason")
+    @classmethod
+    def _not_replaced(cls, value: TermEnd) -> TermEnd:
+        if value is TermEnd.REPLACED:
+            raise ValueError("Appoint the new holder instead; that ends this term.")
+        return value
+
+
+class OfficialRead(ORMModel):
+    id: uuid.UUID
+    office: BranchOffice
+    label: str
+    title: str
+    member: uuid.UUID | None = Field(validation_alias="member_id")
+    holder_name: str
+    term_start: date
+    term_end: date | None
+    start_reason: TermStart
+    end_reason: TermEnd | None
+    has_minutes: bool
+    note: str
+    # The holder is no longer an approved member; the website no longer names them.
+    lapsed: bool = False
+
+
+class OfficialsRead(ORMModel):
+    current: list[OfficialRead]
+    upcoming: list[OfficialRead]
+    history: list[OfficialRead]
+
+
+class MinutesRead(ORMModel):
+    id: uuid.UUID
+    name: str

@@ -4,6 +4,8 @@ import { usePublicBranches } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import PageHead from "./PageHead";
 
+const chairOf = (b) => b.officials.find((o) => o.office === "chair")?.name;
+
 export default function Branches() {
   const branches = usePublicBranches();
   const list = branches.data || [];
@@ -17,7 +19,7 @@ export default function Branches() {
           <Card key={b.county.id} asChild interactive>
             <Link to={`/counties/${b.county.id}`}>
               <span className="font-display text-card-title font-extrabold">{b.county.name}</span>
-              {b.chairperson ? <span className="text-ui text-muted-foreground">Chair: {b.chairperson}</span> : null}
+              {chairOf(b) ? <span className="text-ui text-muted-foreground">Chair: {chairOf(b)}</span> : null}
             </Link>
           </Card>
         ))}

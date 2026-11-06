@@ -6,7 +6,7 @@ const labels = (user) => partyNav(user).map((n) => n.label);
 
 describe("the party CRM sidebar", () => {
   it("gives each office exactly its pages", () => {
-    expect(labels({ party_roles: ["membership_officer"] })).toEqual(["Members", "Volunteers"]);
+    expect(labels({ party_roles: ["membership_officer"] })).toEqual(["Members", "Volunteers", "Branches"]);
     expect(labels({ party_roles: ["nominations_officer"] })).toEqual(["Aspirants"]);
   });
 
