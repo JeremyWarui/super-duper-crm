@@ -119,7 +119,7 @@ function Toggle({ label, checked, disabled, onClick }) {
   return (
     <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled} onClick={onClick}
       className={cn("flex h-7 w-[50px] shrink-0 rounded-full p-[3px] transition-colors disabled:cursor-not-allowed",
-        checked ? "justify-end bg-primary" : "justify-start bg-stone", disabled && !checked && "bg-line")}>
+        checked ? "justify-end bg-primary" : "justify-start bg-muted-foreground", disabled && !checked && "bg-line")}>
       <span className="size-[22px] rounded-full bg-white" />
     </button>
   );
