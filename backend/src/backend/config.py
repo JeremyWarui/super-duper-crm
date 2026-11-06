@@ -65,6 +65,11 @@ class Settings(BaseSettings):
     # Where uploaded files are kept; created on first upload.
     upload_dir: str = "uploads"
 
+    # Where `campaign-crm backup` writes its archives; 14 daily and 8 weekly are kept.
+    backup_dir: str = "backups"
+    # The folder holding pg_dump and pg_restore; blank finds them on PATH.
+    pg_bin_dir: str = ""
+
     # Seconds between runs applying public party requests to the register; 0 switches it off.
     party_inbox_seconds: int = 60
 

@@ -1,7 +1,7 @@
 """The audit trail: events are added inside the caller's transaction and never changed."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 
 from sqlalchemy import Boolean, insert, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,10 +71,25 @@ async def events(
     *,
     subject_type: str | None = None,
     subject_id: uuid.UUID | None = None,
+    action: str | None = None,
+    actor: str | None = None,
+    since: date | None = None,
+    until: date | None = None,
     limit: int = 100,
 ) -> list[AuditEvent]:
-    """The newest events first, optionally for one subject."""
+    """The newest events first, optionally for one subject; `action` matches its start (so
+    "import" finds every import), `actor` part of the name, and the dates are inclusive."""
     query = select(AuditEvent).order_by(AuditEvent.created_at.desc(), AuditEvent.id).limit(limit)
+    if action:
+        query = query.where(AuditEvent.action.startswith(action, autoescape=True))
+    if actor:
+        query = query.where(AuditEvent.actor_name.icontains(actor, autoescape=True))
+    if since is not None:
+        query = query.where(AuditEvent.created_at >= datetime.combine(since, time.min, UTC))
+    if until is not None:
+        query = query.where(
+            AuditEvent.created_at < datetime.combine(until + timedelta(days=1), time.min, UTC)
+        )
     if subject_type is not None:
         query = query.where(AuditEvent.subject_type == subject_type)
     if subject_id is not None:

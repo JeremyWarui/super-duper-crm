@@ -335,6 +335,37 @@ uv run campaign-crm import-register docs/handover/samples/register.csv
 - A register file may set numbers on retired areas.
 - Codes are not unique in the database; the seed loads them unique, and imports match on them.
 
+## Operating the installation
+
+The console (`/console`, superusers only) has **Health**, **Audit** and **Export** tabs beside
+the campaign, login, party and area tabs.
+
+- **Health:** version and migration state, whether the database answers and its size, the
+  organisation type, each outside service from `.env` (configured, or "not configured" and
+  running in practice mode), the last backup, and free disk space for uploads and backups. A
+  test SMS goes to any number; a practice payout of KES 1 runs only while payouts are in
+  practice mode, never where they move real money.
+- **Audit:** the audit trail, newest first, filtered by the start of the action (`import`
+  finds every import), part of the person's name, and a date range. Read-only.
+- **Export:** every table as JSON and CSV in one zip, with `manifest.json` listing the row
+  counts. Sign-in tokens, invite and setup links, and password hashes are left out. Each
+  export is audited.
+
+```bash
+uv run campaign-crm backup        # pg_dump + uploads -> BACKUP_DIR/backup-<UTC time>.tar.gz
+uv run campaign-crm restore backups/backup-20261106-135543.tar.gz --yes-erase-current-data
+uv run campaign-crm export --out records.zip
+```
+
+- `backup` needs `pg_dump` (set `PG_BIN_DIR` when it is not on PATH, e.g.
+  `C:/Program Files/PostgreSQL/18/bin`). It records each run in `backup_runs`, and keeps the
+  newest archive of each of the 14 latest days and each of the 8 latest weeks. Run it nightly
+  from cron, then copy `BACKUP_DIR` off the server:
+  `15 2 * * * cd /srv/app/backend && uv run campaign-crm backup && rsync -a backups/ offsite:backups/`.
+- `restore` refuses without `--yes-erase-current-data`. It restores the database with
+  `pg_restore --clean` in one transaction, moves the current uploads aside to
+  `uploads.before-restore-<time>`, and puts the archive's in place. Restart the app after.
+
 ## Sign-in links
 
 Nobody is shown a password. A new login gets an emailed invite link (72 hours)

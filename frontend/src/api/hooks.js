@@ -1306,3 +1306,26 @@ export function useRefreshTargets() {
     onSuccess: () => invalidate("targets", "strategy"),
   });
 }
+
+// The console's Health, Audit and Export tabs.
+export const useHealth = () =>
+  useQuery({ queryKey: ["admin", "health"], queryFn: () => api("/admin/health/") });
+
+export const useBackups = () =>
+  useQuery({ queryKey: ["admin", "backups"], queryFn: () => api("/admin/backups/") });
+
+export const useAuditTrail = ({ action, actor, since, until }) =>
+  useQuery({
+    queryKey: ["admin", "audit", action, actor, since, until],
+    queryFn: () =>
+      api(`/admin/audit/?action=${encodeURIComponent(action)}&actor=${encodeURIComponent(actor)}&since=${since}&until=${until}&limit=200`),
+  });
+
+export function useTestSend() {
+  return useMutation({
+    mutationFn: ({ kind, phone }) =>
+      kind === "sms"
+        ? api("/admin/test/sms/", { method: "POST", body: { phone } })
+        : api("/admin/test/payout/", { method: "POST", body: { phone } }),
+  });
+}

@@ -11,6 +11,7 @@ from pathlib import Path
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.api.deps import get_organisation_type
 from backend.db.session import get_engine, get_sessionmaker
 from backend.models import County, UserRole
 from backend.seed.demo import seed_demo
@@ -23,7 +24,7 @@ from backend.seed.reference import (
     import_geography,
 )
 from backend.seed.site import seed_branches, seed_home, seed_news, seed_site
-from backend.services import admin, imports, setup
+from backend.services import admin, imports, ops, setup
 from backend.services.accounts import clean_email, new_login, user_with_email
 from backend.services.audit import record
 from backend.services.clock import today
@@ -163,6 +164,37 @@ async def _users(args: argparse.Namespace, session: AsyncSession) -> int:
         print(f"    {user.campaign or 'on no campaign'}")
     if not people:
         print("No users.")
+    return 0
+
+
+async def _backup(_: argparse.Namespace, session: AsyncSession) -> int:
+    run = await ops.backup(session)
+    if run.status != "ok":
+        print(f"Backup failed: {run.detail}", file=sys.stderr)
+        return 1
+    print(f"Backed up to {run.path} ({run.size:,} bytes). {run.detail}".strip())
+    return 0
+
+
+async def _restore(args: argparse.Namespace, _: AsyncSession) -> int:
+    try:
+        print(
+            await asyncio.to_thread(
+                ops.restore, Path(args.file), confirmed=args.yes_erase_current_data
+            )
+        )
+    except Refused as refused:
+        print(refused, file=sys.stderr)
+        return 1
+    return 0
+
+
+async def _export(args: argparse.Namespace, session: AsyncSession) -> int:
+    kind = await get_organisation_type(session)
+    name, data = await ops.export_archive(session, actor=None, organisation_type=kind)
+    out = Path(args.out or name)
+    out.write_bytes(data)
+    print(f"Exported to {out.resolve()} ({len(data):,} bytes).")
     return 0
 
 
@@ -353,6 +385,16 @@ def build_parser() -> argparse.ArgumentParser:
     set_email.add_argument("--email", required=True)
 
     command("setup-token", _setup_token, "print a one-time token that opens the first-run setup")
+    command(
+        "backup", _backup, "dump the database and uploads into BACKUP_DIR; keeps 14 daily, 8 weekly"
+    )
+    restore = command("restore", _restore, "replace the database and uploads with a backup")
+    restore.add_argument("file", help="a backup-*.tar.gz archive")
+    restore.add_argument(
+        "--yes-erase-current-data", action="store_true", help="required: it erases today's data"
+    )
+    export = command("export", _export, "write every table as JSON and CSV in one zip")
+    export.add_argument("--out", help="where to write it; default export-<time>.zip here")
     for name, help_text in (
         ("import-boundaries", "upsert counties, constituencies, wards and centres from a CSV"),
         ("import-register", "update registered voters and county turnout from a CSV"),

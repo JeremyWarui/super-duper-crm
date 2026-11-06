@@ -1,8 +1,9 @@
-"""Reference data imports and the change each one made."""
+"""Reference data imports and the change each one made, and backups of the installation."""
 
 import uuid
+from datetime import datetime
 
-from sqlalchemy import JSON, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -41,3 +42,15 @@ class ImportChange(UUIDPrimaryKeyMixin, Base):
     detail: Mapped[str] = mapped_column(Text, default="")
 
     run: Mapped["ImportRun"] = relationship(back_populates="changes")
+
+
+class BackupRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """One `campaign-crm backup`: the archive it wrote, or why it failed."""
+
+    __tablename__ = "backup_runs"
+
+    status: Mapped[str] = mapped_column(String(20))
+    path: Mapped[str] = mapped_column(String(500), default="")
+    size: Mapped[int] = mapped_column(BigInteger, default=0)
+    detail: Mapped[str] = mapped_column(Text, default="")
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

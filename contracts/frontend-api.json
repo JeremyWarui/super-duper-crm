@@ -1027,6 +1027,38 @@
     "POST /api/targets/refresh/": [
       "units",
       "win_number"
+    ],
+    "GET /api/admin/health/": [
+      "version",
+      "migration",
+      "database",
+      "organisation_type",
+      "services",
+      "last_backup",
+      "disks"
+    ],
+    "GET /api/admin/backups/": [
+      "id",
+      "status",
+      "path",
+      "size",
+      "detail",
+      "created_at",
+      "finished_at"
+    ],
+    "GET /api/admin/audit/": [
+      "id",
+      "created_at",
+      "actor_name",
+      "action",
+      "subject_type",
+      "detail"
+    ],
+    "POST /api/admin/test/sms/": [
+      "message"
+    ],
+    "POST /api/admin/test/payout/": [
+      "message"
     ]
   },
   "nested_reads": {
@@ -1289,6 +1321,18 @@
       "code",
       "change",
       "detail"
+    ],
+    "GET /api/admin/health/.services": [
+      "key",
+      "label",
+      "mode",
+      "configured"
+    ],
+    "GET /api/admin/health/.disks": [
+      "label",
+      "path",
+      "free_bytes",
+      "total_bytes"
     ]
   },
   "writes": {
@@ -1918,6 +1962,12 @@
     ],
     "POST /api/targets/refresh/": [
       "campaign"
+    ],
+    "POST /api/admin/test/sms/": [
+      "phone"
+    ],
+    "POST /api/admin/test/payout/": [
+      "phone"
     ]
   },
   "enums": {

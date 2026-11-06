@@ -9,3 +9,6 @@ ui-kit/docs/screenshots/
 
 # Uploaded files (UPLOAD_DIR)
 backend/uploads/
+backend/uploads.before-restore-*/
+backend/backups/
+backend/export-*.zip

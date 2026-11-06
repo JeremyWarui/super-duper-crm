@@ -35,6 +35,9 @@ import {
 import Onboarding from "./Onboarding";
 import { PartyShell } from "../pages/party/Portal";
 import Legacy from "./Legacy";
+import AuditTrail from "./console/AuditTrail";
+import ExportPanel from "./console/ExportPanel";
+import Health from "./console/Health";
 import ReferenceData from "./console/ReferenceData";
 
 const Card = (props) => (
@@ -1046,6 +1049,9 @@ export default function Admin() {
             ["users", `Logins (${everyone.length})`],
             ["party", "Party"],
             ["areas", "Areas and register"],
+            ["health", "Health"],
+            ["audit", "Audit"],
+            ["export", "Export"],
           ].map(([key, label]) => (
             <button
               key={key}
@@ -1083,6 +1089,9 @@ export default function Admin() {
         )}
         {tab === "party" && <PartySettings />}
         {tab === "areas" && <ReferenceData />}
+        {tab === "health" && <Health />}
+        {tab === "audit" && <AuditTrail />}
+        {tab === "export" && <ExportPanel />}
 
         {tab === "users" && (
           <Card>

@@ -60,7 +60,7 @@ from backend.models.geography import (
     RegistrationCentre,
     Ward,
 )
-from backend.models.imports import ImportChange, ImportRun
+from backend.models.imports import BackupRun, ImportChange, ImportRun
 from backend.models.login import EmailLog, LoginInvite
 from backend.models.membership import CampaignMember, CampaignMemberArea
 from backend.models.mobilizer import Mobilizer
@@ -139,6 +139,7 @@ __all__ = [
     "PartyVideo",
     "PrimaryResult",
     "Seat",
+    "BackupRun",
     "ImportChange",
     "ImportRun",
     "SetupToken",

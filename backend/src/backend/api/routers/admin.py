@@ -1,7 +1,8 @@
 """The admin console: every campaign and login on the deployment, for a superuser only."""
 
 import uuid
-from typing import Annotated
+from datetime import date
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query, Response, status
 from sqlalchemy import select
@@ -338,11 +339,22 @@ async def audit_events(
     _: AdminUser,
     subject_type: str | None = None,
     subject_id: uuid.UUID | None = None,
+    action: Annotated[str | None, Query(max_length=60)] = None,
+    actor: Annotated[str | None, Query(max_length=150)] = None,
+    since: date | Literal[""] = "",
+    until: date | Literal[""] = "",
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> list[AuditEventRead]:
-    """The audit trail, newest first."""
+    """The audit trail, newest first, filtered by action, who did it and when."""
     return await audit.events(
-        session, subject_type=subject_type, subject_id=subject_id, limit=limit
+        session,
+        subject_type=subject_type,
+        subject_id=subject_id,
+        action=action,
+        actor=actor,
+        since=since or None,
+        until=until or None,
+        limit=limit,
     )
 
 

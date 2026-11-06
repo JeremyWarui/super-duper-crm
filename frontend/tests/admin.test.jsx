@@ -288,3 +288,56 @@ describe("reference data imports", () => {
     await vi.waitFor(() => expect(posts().at(-1).body.dry_run).toBe(false));
   });
 });
+
+describe("the console's health and audit", () => {
+  const HEALTH = {
+    version: "0.1.0",
+    migration: { current: "backup_runs", head: "backup_runs", up_to_date: true },
+    database: { reachable: true, detail: "", size_bytes: 52428800 },
+    organisation_type: "party",
+    services: [
+      { key: "email", label: "Email", mode: "practice", configured: false },
+      { key: "sms", label: "SMS", mode: "console", configured: false },
+    ],
+    last_backup: null,
+    disks: [{ label: "Uploads", path: "/srv/uploads", free_bytes: 10737418240, total_bytes: 21474836480 }],
+  };
+
+  it("shows a service with no key as not configured, and runs a practice payout", async () => {
+    signInAsAdmin();
+    const calls = stubApi(adminRoutes({
+      "GET /admin/health/": HEALTH,
+      "GET /admin/backups/": [],
+      "POST /admin/test/payout/": { message: "Practice payout paid under PRACTICE-1; no money moved." },
+    }));
+    renderApp(<Admin />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Health" }));
+    const services = await screen.findByRole("region", { name: "Outside services" });
+    expect(within(services).getAllByText("Not configured")).toHaveLength(2);
+    expect(screen.getByText(/Last backup:/)).toHaveTextContent("never");
+
+    await user.type(within(services).getByRole("textbox", { name: /Make a practice payout/ }), "0712345678");
+    await user.click(within(services).getByRole("button", { name: "Make a practice payout" }));
+
+    expect(await within(services).findByText(/no money moved/)).toBeInTheDocument();
+    expect(calls.find((c) => c.path === "/admin/test/payout/").body).toEqual({ phone: "0712345678" });
+  });
+
+  it("filters the audit trail by action and who", async () => {
+    signInAsAdmin();
+    const calls = stubApi(adminRoutes({
+      "GET /admin/audit/": [{ id: "a1", created_at: "2026-11-06T10:00:00Z", actor_name: "root", action: "import.boundaries", subject_type: "import_run", detail: { rows: 133 } }],
+    }));
+    renderApp(<Admin />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Audit" }));
+    await user.type(screen.getByRole("textbox", { name: /Action/ }), "import");
+    await user.type(screen.getByRole("textbox", { name: "Who" }), "root");
+
+    expect(await screen.findByText("import.boundaries")).toBeInTheDocument();
+    await vi.waitFor(() => expect(calls.at(-1).path).toBe("/admin/audit/?action=import&actor=root&since=&until=&limit=200"));
+  });
+});
