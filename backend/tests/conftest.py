@@ -60,7 +60,7 @@ if TYPE_CHECKING:
 @pytest.fixture(autouse=True)
 def fresh_rate_limits() -> None:
     """Each test starts with the public pages' allowances unused and an empty outbox."""
-    from backend.api.routers import auth, candidates, join, party
+    from backend.api.routers import auth, candidates, join, party, team_signup
     from backend.services.email import PracticeEmailProvider
 
     PracticeEmailProvider.outbox.clear()
@@ -69,6 +69,7 @@ def fresh_rate_limits() -> None:
     auth.RESETS_PER_CLIENT._hits.clear()
     auth.RESETS_PER_ADDRESS._hits.clear()
     auth.CLAIMS._hits.clear()
+    team_signup.SIGNUPS._hits.clear()
     candidates.SIGNUPS._hits.clear()
     candidates.WITHDRAWALS._hits.clear()
     join.SIGNUPS._hits.clear()

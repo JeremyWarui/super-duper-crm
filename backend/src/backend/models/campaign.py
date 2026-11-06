@@ -87,6 +87,10 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         String(24), unique=True, default=lambda: secrets.token_urlsafe(9)
     )
     signups_open: Mapped[bool] = mapped_column(Boolean, default=False)
+    # The team sign-up link mobilizers and agents register through; replacing it retires the old.
+    team_code: Mapped[str] = mapped_column(
+        String(24), unique=True, default=lambda: secrets.token_urlsafe(9)
+    )
 
     # The member whose role is candidate; read-only.
     candidate: Mapped[User | None] = relationship(

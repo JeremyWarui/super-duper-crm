@@ -16,11 +16,11 @@ export const holderOf = (mobilizers, unit) =>
 
 export const kes = (n) => `KES ${fmt(n)}`;
 
-const ALL_FIELD = { label: "Field", items: [["events", "Events"], ["mobilizers", "Mobilizers"], ["supporters", "Supporters"], ["volunteers", "Volunteers"]] };
+const ALL_FIELD = { label: "Field", items: [["events", "Events"], ["mobilizers", "Mobilizers"], ["agents", "Agents"], ["supporters", "Supporters"], ["volunteers", "Volunteers"]] };
 const LEAD = [
   { label: "Plan", items: [["overview", "Overview"], ["strategy", "Strategy"], ["targets", "Targets"], ["units", "Wards"]] },
   ALL_FIELD,
-  { label: "People", items: [["team", "Team"]] },
+  { label: "People", items: [["team", "Team"], ["signups", "Sign-ups"]] },
   { label: "Money", items: [["payments", "Payments"]] },
 ];
 const OWN_WORK = (items) => [{ label: "My work", items }];
@@ -32,11 +32,12 @@ export const NAV = {
   coordinator: [
     { label: "Plan", items: [["overview", "Overview"], ["strategy", "Strategy"], ["units", "Wards"]] },
     ALL_FIELD,
+    { label: "People", items: [["signups", "Sign-ups"]] },
     { label: "Money", items: [["payments", "Payments"]] },
   ],
   comms: [{ label: "Field", items: [["events", "Events"]] }],
   mobilizer: OWN_WORK([["myevents", "My events"], ["register", "Register supporter"], ["mysupporters", "My supporters"], ["mypayments", "My payments"]]),
-  agent: OWN_WORK([["myevents", "My events"], ["mypayments", "My payments"]]),
+  agent: OWN_WORK([["mycentre", "My centre"], ["myevents", "My events"], ["mypayments", "My payments"]]),
 };
 
 const SITE_WRITERS = ["candidate", "manager", "comms"];

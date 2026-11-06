@@ -21,7 +21,7 @@ async function open(role = "manager", routes = {}) {
   signIn(role);
   const calls = stubApi(dashboardRoutes(routes));
   const rendered = renderApp(<App />);
-  const landing = { mobilizer: "My events", agent: "My events", comms: "Events" }[role] ?? "Overview";
+  const landing = { mobilizer: "My events", agent: "My centre", comms: "Events" }[role] ?? "Overview";
   await screen.findByRole("link", { name: landing });
   await waitFor(() => expect(screen.queryByText("Loading…")).toBeNull());
   return { calls, ...rendered };
@@ -37,8 +37,8 @@ const groups = () =>
 
 const LEAD = {
   Plan: ["Overview", "Strategy", "Targets", "Wards"],
-  Field: ["Events", "Mobilizers", "Supporters", "Volunteers"],
-  People: ["Team"],
+  Field: ["Events", "Mobilizers", "Agents", "Supporters", "Volunteers"],
+  People: ["Team", "Sign-ups"],
   Money: ["Payments"],
 };
 
@@ -49,11 +49,11 @@ describe("what each role is shown", () => {
     [
       "coordinator",
       "Coordinator",
-      { Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, Money: ["Payments"] },
+      { Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, People: ["Sign-ups"], Money: ["Payments"] },
     ],
     ["comms", "Comms officer", { Field: ["Events"] }],
     ["mobilizer", "Mobilizer", { "My work": ["My events", "Register supporter", "My supporters", "My payments"] }],
-    ["agent", "Agent", { "My work": ["My events", "My payments"] }],
+    ["agent", "Agent", { "My work": ["My centre", "My events", "My payments"] }],
   ])("gives a %s exactly their groups", async (role, label, expected) => {
     await open(role);
 

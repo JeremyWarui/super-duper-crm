@@ -30,6 +30,7 @@ import Post from "./pages/public/Post";
 import JoinParty from "./pages/public/JoinParty";
 import ForgotPassword from "./pages/public/ForgotPassword";
 import SetPassword from "./pages/public/SetPassword";
+import TeamSignup from "./pages/public/TeamSignup";
 import Contribute from "./pages/public/Contribute";
 import Privacy from "./pages/public/Privacy";
 import Unsubscribe from "./pages/public/Unsubscribe";
@@ -151,6 +152,7 @@ const SHARED = [
   ["/forgot-password", () => page(<ForgotPassword />)],
   ["/invite/:token", () => page(<SetPassword />)],
   ["/reset/:token", () => page(<SetPassword />)],
+  ["/team/:code", () => page(<TeamSignup />)],
   ["/account", () => <SignedInOnly><AccountPage /></SignedInOnly>],
   ["/join/:code", () => <Legacy><JoinPage /></Legacy>],
   ["/withdraw/:code", () => <Legacy><WithdrawPage /></Legacy>],

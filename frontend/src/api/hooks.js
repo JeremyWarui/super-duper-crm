@@ -1165,3 +1165,64 @@ export function useReplaceRecruitment() {
     onSuccess: (data) => qc.setQueryData(["recruitment"], data),
   });
 }
+
+// ---- team sign-up and agents ------------------------------------------------
+// The public page behind a workspace's team link.
+export const useTeamSignup = (code) =>
+  useQuery({ queryKey: ["team-signup", code], queryFn: () => api(`/team-signup/${code}/`, { anonymous: true }), retry: false });
+
+export const useSignupCentres = (code, ward) =>
+  useQuery({
+    queryKey: ["team-signup-centres", code, ward],
+    queryFn: () => api(`/team-signup/${code}/centres/?ward=${ward}`, { anonymous: true }),
+    enabled: !!ward,
+  });
+
+export const useSubmitSignup = (code) =>
+  useMutation({ mutationFn: (body) => api(`/team-signup/${code}/`, { method: "POST", body, anonymous: true }) });
+
+// Sign-ups the caller may decide, in one status.
+export const useRegistrations = (campaignId, status) =>
+  useQuery({
+    queryKey: ["registrations", campaignId, status],
+    queryFn: () => api(`/campaigns/${campaignId}/registrations/?status=${status}`),
+    enabled: !!campaignId,
+  });
+
+export function useDecideRegistration() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ campaign, id, decision, reason }) =>
+      decision === "reject"
+        ? api(`/campaigns/${campaign}/registrations/${id}/reject/`, { method: "POST", body: { reason } })
+        : api(`/campaigns/${campaign}/registrations/${id}/approve/`, { method: "POST" }),
+    onSuccess: () => invalidate("registrations", "team", "mobilizers", "agents", "agent-coverage"),
+  });
+}
+
+export const useTeamLink = (campaignId) =>
+  useQuery({ queryKey: ["team-link", campaignId], queryFn: () => api(`/campaigns/${campaignId}/team-link/`), enabled: !!campaignId });
+
+export function useReplaceTeamLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (campaignId) => api(`/campaigns/${campaignId}/team-link/`, { method: "POST" }),
+    onSuccess: (data, campaignId) => qc.setQueryData(["team-link", campaignId], data),
+  });
+}
+
+export const useAgents = (campaignId) =>
+  useQuery({ queryKey: ["agents", campaignId], queryFn: () => api(`/agents/?campaign=${campaignId}`), enabled: !!campaignId });
+
+export const useAgentCoverage = (campaignId) =>
+  useQuery({ queryKey: ["agent-coverage", campaignId], queryFn: () => api(`/agents/coverage/?campaign=${campaignId}`), enabled: !!campaignId });
+
+export function useUpdateAgent() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, ...body }) => api(`/agents/${id}/`, { method: "PATCH", body }),
+    onSuccess: () => invalidate("agents", "agent-coverage"),
+  });
+}
+
+export const exportAgents = (campaignId) => download(`/agents/export/?campaign=${campaignId}`, "agents.csv");

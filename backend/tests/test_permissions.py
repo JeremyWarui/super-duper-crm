@@ -29,6 +29,10 @@ TABLE = {
     "targets.write": {C, M},
     "team.manager": {C},
     "team.write": {C, M},
+    "team.approve": {C, M, CO},
+    "team.id_read": {C, M, MO, AG},
+    "agents.read": {C, M, CO, AG},
+    "agents.write": {C, M, CO},
     "mobilizers.read": {C, M, CO, MO},
     "mobilizers.write": {C, M, CO},
     "supporters.read": {C, M, CO, MO},
@@ -42,6 +46,7 @@ TABLE = {
     "site.write": {C, M, CM},
     "volunteers.read": {C, M, CO},
     "volunteers.write": {C, M, CO},
+    "export": {C, M},
 }
 NOBODY = str(uuid.UUID(int=1))
 
@@ -55,6 +60,10 @@ def _route(action: str, campaign: uuid.UUID, event: uuid.UUID) -> tuple[str, str
         "targets.write": ("POST", "/api/targets/", {}),
         "team.manager": ("POST", f"/api/campaigns/{campaign}/team/manager/", {}),
         "team.write": ("GET", f"/api/campaigns/{campaign}/team/", None),
+        "team.approve": ("GET", f"/api/campaigns/{campaign}/registrations/", None),
+        "agents.read": ("GET", f"/api/agents/?campaign={campaign}", None),
+        "agents.write": ("PATCH", f"/api/agents/{NOBODY}/", {}),
+        "export": ("GET", f"/api/agents/export/?campaign={campaign}", None),
         "mobilizers.read": ("GET", f"/api/mobilizers/?campaign={campaign}", None),
         "mobilizers.write": ("POST", "/api/mobilizers/", {}),
         "supporters.read": ("GET", "/api/supporters/", None),
@@ -116,6 +125,8 @@ async def test_every_role_reaches_exactly_the_routes_the_map_gives_it(
         action: roles
         for action, roles in TABLE.items()
         if action != "site.write" or organisation_type is OrganisationType.ASPIRANT
+        # A field rule, not a route: tested in test_team_signup_api.py.
+        if action != "team.id_read"
     }
     allowed = {}
     for action in table:

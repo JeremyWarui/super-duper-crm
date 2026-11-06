@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from backend.api.routers import (
     account,
     admin,
+    agents,
     aspirant_site,
     auth,
     campaigns,
@@ -26,6 +27,7 @@ from backend.api.routers import (
     supporters,
     targets,
     team,
+    team_signup,
     users,
     workspace_site,
 )
@@ -54,6 +56,8 @@ for module in (
     supporters,
     strategy,
     team,
+    team_signup,
+    agents,
     users,
     workspace_site,
     aspirant_site,

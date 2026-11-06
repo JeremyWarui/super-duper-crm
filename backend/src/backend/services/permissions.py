@@ -29,6 +29,10 @@ MAP: dict[str, dict[UserRole, Reach]] = {
     "targets.write": {R.CANDIDATE: ALL, R.MANAGER: ALL},
     "team.manager": {R.CANDIDATE: ALL},
     "team.write": {R.CANDIDATE: ALL, R.MANAGER: ALL},
+    "team.approve": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
+    "team.id_read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.MOBILIZER: OWN, R.AGENT: OWN},
+    "agents.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA, R.AGENT: OWN},
+    "agents.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
     "mobilizers.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA, R.MOBILIZER: OWN},
     "mobilizers.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
     "supporters.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA, R.MOBILIZER: OWN},
@@ -57,11 +61,13 @@ MAP: dict[str, dict[UserRole, Reach]] = {
     "site.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COMMS: ALL},
     "volunteers.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
     "volunteers.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
+    "export": {R.CANDIDATE: ALL, R.MANAGER: ALL},
 }
 
 REFUSALS = {
     "team.manager": "Only the aspirant adds or replaces the campaign manager.",
     "team.write": "Only a candidate or a campaign manager may add or remove people.",
+    "team.approve": "Only the candidate, the manager or a coordinator decides team sign-ups.",
     "mobilizers.write": "Only the candidate, the manager or a coordinator may change mobilizers.",
     "supporters.read": "The supporter register is for the campaign team.",
     "supporters.write": "The supporter register is for the campaign team.",

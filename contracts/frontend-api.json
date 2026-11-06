@@ -904,6 +904,66 @@
     "POST /api/party/workspace/recruitment/": [
       "code",
       "by_status"
+    ],
+    "GET /api/team-signup/{code}/": [
+      "campaign_title",
+      "seat_label",
+      "open",
+      "consent_wording",
+      "mobilizer_place",
+      "wards"
+    ],
+    "GET /api/team-signup/{code}/centres/": [
+      "id",
+      "name"
+    ],
+    "POST /api/team-signup/{code}/": [
+      "message"
+    ],
+    "GET /api/campaigns/{campaign_id}/registrations/": [
+      "id",
+      "role",
+      "full_name",
+      "phone",
+      "email",
+      "id_number",
+      "ward_name",
+      "centre_name",
+      "status",
+      "reason",
+      "created_at"
+    ],
+    "POST /api/campaigns/{campaign_id}/registrations/{registration_id}/approve/": [
+      "invite",
+      "placed"
+    ],
+    "POST /api/campaigns/{campaign_id}/registrations/{registration_id}/reject/": [
+      "status"
+    ],
+    "GET /api/campaigns/{campaign_id}/team-link/": [
+      "code"
+    ],
+    "POST /api/campaigns/{campaign_id}/team-link/": [
+      "code"
+    ],
+    "GET /api/agents/": [
+      "id",
+      "full_name",
+      "phone",
+      "id_number",
+      "centre_name",
+      "ward_name",
+      "status",
+      "training_date"
+    ],
+    "GET /api/agents/coverage/": [
+      "centres",
+      "covered",
+      "uncovered",
+      "more_uncovered"
+    ],
+    "PATCH /api/agents/{agent_id}/": [
+      "id"
     ]
   },
   "nested_reads": {
@@ -1137,6 +1197,16 @@
     "GET /api/site/candidate/.priorities": [
       "title",
       "text"
+    ],
+    "GET /api/team-signup/{code}/.wards": [
+      "id",
+      "name",
+      "county_name"
+    ],
+    "GET /api/agents/coverage/.uncovered": [
+      "id",
+      "name",
+      "ward_name"
     ]
   },
   "writes": {
@@ -1710,7 +1780,27 @@
       "office_email",
       "published"
     ],
-    "POST /api/party/workspace/recruitment/": []
+    "POST /api/party/workspace/recruitment/": [],
+    "POST /api/team-signup/{code}/": [
+      "role",
+      "first_name",
+      "last_name",
+      "phone",
+      "email",
+      "id_number",
+      "ward",
+      "registration_centre",
+      "consent_given"
+    ],
+    "POST /api/campaigns/{campaign_id}/registrations/{registration_id}/approve/": [],
+    "POST /api/campaigns/{campaign_id}/registrations/{registration_id}/reject/": [
+      "reason"
+    ],
+    "POST /api/campaigns/{campaign_id}/team-link/": [],
+    "PATCH /api/agents/{agent_id}/": [
+      "status",
+      "training_date"
+    ]
   },
   "enums": {
     "user.role": [

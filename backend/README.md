@@ -301,6 +301,20 @@ PUBLIC_URL=https://your-app.example.com
 `campaign-crm reset-password` still sets a password directly, for the operator
 locked out of the superuser login.
 
+## Team sign-up and agents
+
+Each workspace has a team link, `/team/<code>` (`campaigns.team_code`), with a
+QR code on the Sign-ups page. A mobilizer picks a ward (a centre in an MCA race),
+an agent a registration centre, and both give name, phone, email and ID number
+with consent. That makes a `team_registrations` row and a pending login that
+cannot sign in. The candidate, the manager, or a coordinator in whose area the
+place lies approves it (the login is activated, the person joins as a mobilizer
+or an `agents` row, and an invite link is emailed) or rejects it with a reason
+(the login is deleted and the ID number blanked). Phone and ID number are unique
+per workspace among sign-ups not rejected. ID numbers reach only the candidate,
+the manager and the person themselves; `GET /api/agents/export/` gives the
+candidate and manager a CSV per centre for appointment letters.
+
 ## Payouts
 
 Releasing a campaign's mobilizer payment (`/api/payments/`) goes through the

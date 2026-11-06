@@ -89,6 +89,28 @@ class OperationalGrain(StrEnum):
     WARD = "ward"
 
 
+class FieldRole(LabelledStrEnum):
+    """The roles a person may sign themselves up for on a workspace's team link."""
+
+    MOBILIZER = ("mobilizer", "Mobilizer")
+    AGENT = ("agent", "Agent")
+
+
+class RegistrationStatus(LabelledStrEnum):
+    PENDING = ("pending", "Waiting for a decision")
+    APPROVED = ("approved", "Approved")
+    REJECTED = ("rejected", "Not approved")
+
+
+class AgentStatus(LabelledStrEnum):
+    """How far a polling agent has come before polling day."""
+
+    APPLIED = ("applied", "Applied")
+    VETTED = ("vetted", "Vetted")
+    TRAINED = ("trained", "Trained")
+    READY = ("ready", "Ready")
+
+
 class LinkPurpose(StrEnum):
     """What a one-time sign-in link does."""
 

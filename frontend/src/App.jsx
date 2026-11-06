@@ -31,9 +31,12 @@ import Volunteers from "./pages/campaign/Volunteers";
 import Website from "./pages/campaign/Website";
 import Settings from "./pages/campaign/Settings";
 import Recruitment from "./pages/campaign/Recruitment";
+import Signups from "./pages/campaign/Signups";
+import Agents from "./pages/campaign/Agents";
+import MyCentre from "./pages/campaign/MyCentre";
 
 // Pages built on the UI kit, which render outside the legacy stylesheet.
-const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "mobilizers", "supporters", "mysupporters", "payments", "mypayments", "website", "settings", "recruitment"]);
+const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "mobilizers", "supporters", "mysupporters", "payments", "mypayments", "signups", "agents", "mycentre", "website", "settings", "recruitment"]);
 
 // One page per NAV key.
 const PAGES = {
@@ -50,6 +53,9 @@ const PAGES = {
   website: Website,
   settings: Settings,
   recruitment: Recruitment,
+  signups: Signups,
+  agents: Agents,
+  mycentre: MyCentre,
   register: Register,
   myevents: (props) => <Events {...props} mine />,
   mysupporters: (props) => <Supporters {...props} mine />,
