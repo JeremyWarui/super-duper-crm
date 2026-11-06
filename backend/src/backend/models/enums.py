@@ -247,6 +247,7 @@ class FileArea(LabelledStrEnum):
     DOCUMENTS = ("documents", "Documents")
     CANDIDATES = ("candidates", "Candidate pages")
     MINUTES = ("minutes", "Branch meeting minutes")
+    NOMINATIONS = ("nominations", "Nomination documents")
 
 
 class BranchOffice(LabelledStrEnum):

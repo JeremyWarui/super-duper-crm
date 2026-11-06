@@ -136,3 +136,30 @@ describe("the member's account", () => {
     expect(calls.some((c) => c.method === "POST" && c.path === "/account/leave/")).toBe(true);
   });
 });
+
+describe("applying to vie", () => {
+  const NOTICE = { title: "Nominations 2027", opens_on: "2026-10-25", closes_on: "2026-11-10", requirements: "", open: true, seats: [] };
+  const APPLICATION = {
+    id: "as1", seat: "mca", area: "Zimmerman", status: "draft", status_reason: null, fee_kes: 5000, fee_paid: false,
+    declared_at: null, from_window: true, documents: [],
+  };
+
+  it("starts an application for the chosen seat and holds submission until the fee is marked paid", async () => {
+    const user = userEvent.setup();
+    signInAs({});
+    const calls = stubApi(routes({
+      "GET /party/nominations/mine/": { window: NOTICE, choices: [{ seat: "mca", fee_kes: 5000, area: "Zimmerman" }, { seat: "mp", fee_kes: 0, area: "Roysambu" }], application: null },
+      "POST /party/nominations/mine/": { status: 201, body: { window: NOTICE, choices: [], application: APPLICATION } },
+    }));
+    renderApp(<AppRoutes />, { path: "/account" });
+
+    await user.click(await screen.findByRole("tab", { name: "My nomination" }));
+    await user.click(await screen.findByRole("radio", { name: /Member of County Assembly|MCA/ }));
+    await user.click(screen.getByRole("button", { name: "Start application" }));
+    await user.click(await screen.findByRole("checkbox", { name: /I confirm the information/ }));
+
+    expect(calls.find((c) => c.method === "POST").body).toEqual({ seat: "mca" });
+    expect(screen.getByText(/KES 5,000/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Submit application" })).toBeDisabled();
+  });
+});

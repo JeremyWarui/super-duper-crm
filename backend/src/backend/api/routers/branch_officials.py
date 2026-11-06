@@ -105,7 +105,7 @@ async def minutes(
     official_id: uuid.UUID, session: SessionDep, _: MembershipOfficer
 ) -> FileResponse:
     stored = await service.minutes_of(session, official_id)
-    path = files.path_of(stored, None)
+    path = files.path_of(stored, files.width_for(stored, None))
     if not path.is_file():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "The minutes file is missing.")
     return FileResponse(

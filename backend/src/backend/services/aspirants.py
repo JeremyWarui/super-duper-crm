@@ -44,6 +44,8 @@ READ_OPTIONS = (
     selectinload(Aspirant.county),
     selectinload(Aspirant.constituency),
     selectinload(Aspirant.ward),
+    selectinload(Aspirant.documents),
+    selectinload(Aspirant.window),
 )
 
 
@@ -114,6 +116,8 @@ async def move(
     old = aspirant.status
     if to not in MOVES[old]:
         raise Refused(f"A {old.label.lower()} nomination cannot be moved to {to.label.lower()}.")
+    if aspirant.window_id is not None and old is A.DRAFT and to is A.SUBMITTED:
+        raise Refused("The member submits their own application, with its declaration.")
     if to in NEEDS_REASON and not (reason and reason.strip()):
         raise Refused(f"Moving a nomination to {to.label.lower()} needs a reason.")
     if to is A.APPROVED:

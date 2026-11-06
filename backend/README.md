@@ -437,6 +437,29 @@ office, next meeting and whether it is published.
 The officials mockup sends changes to HQ for approval. Here the people editing are HQ (the
 Membership Officer and the superuser), so changes apply at once and the audit trail records them.
 
+## Applying to vie
+
+A nominations timetable (`nomination_windows`) has a title, the days applications open and
+close, the requirements, and the seats on offer with each seat's fee in KES. The Nominations
+Officer or the superuser drafts and edits it on the Aspirants page; only the superuser publishes
+it, and never a timetable they drafted or last changed. A published timetable cannot change, cannot have closed
+already, and cannot overlap another published one. The public Vie page shows the current or next
+published timetable (`GET /api/party/nominations/current/`).
+
+A member applies from their account's "My nomination" tab (`/api/party/nominations/mine/`):
+
+- Only an approved member applies, only while the timetable is open, only for a seat it offers,
+  and only with no other live nomination. The area is their own ward, its constituency or its
+  county, by seat.
+- The application starts as a draft. The member attaches documents (PDF or photo, private
+  uploads), and the nominations office marks the fee paid with its M-Pesa or bank reference.
+  The member submits it with the declaration only once any fee is marked paid and before the
+  timetable closes.
+- An officer cannot move a member's draft to submitted, and cannot decide their own
+  application. Approval is always an officer's decision on the Aspirants page; nothing is
+  approved automatically.
+- The member withdraws a draft or submitted application. Every step is audited.
+
 ## Sign-in links
 
 Nobody is shown a password. A new login gets an emailed invite link (72 hours)
@@ -621,3 +644,8 @@ required and at least 32 characters.
 - Code that prints a campaign's seat (`api/routers/campaigns.py`,
   `api/routers/targets.py`, `services/admin.py`) assumes one is set. A party
   workspace has none; PD-7 creates the first.
+- Applying to vie: a member's area comes from their ward, with no way to vie elsewhere. A
+  rejected or withdrawn application drops out of their account, and they may apply again
+  while the timetable is open; there is no appeal step. The timetable has no IEBC deadline
+  check, reduced fees, nomination method, rules PDF, SMS notice or dates-only-move-later rule
+  from the mockup.

@@ -2,14 +2,20 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isEmail } from "../../lib/email";
+import { useAuth } from "../../store/auth";
 import {
   useAspirant,
   useAspirants,
   useCandidates,
   useCreateWorkspace,
+  useDraftNominationWindow,
+  useMarkNominationFeePaid,
   useMoveAspirant,
   useNominate,
+  useNominationWindows,
   usePartyPlaces,
+  usePublishNominationWindow,
+  useReviseNominationWindow,
 } from "../../api/hooks";
 import {
   Badge,
@@ -231,6 +237,7 @@ function Detail({ row, onClose }) {
         {a.status_reason && <div className="muted">Reason: {a.status_reason}</div>}
         <div className="muted">Workspace: {a.campaign_id ? "created" : "none yet"}</div>
       </div>
+      {a.window_title && <Application a={a} />}
       {detail.error && <ErrorState error={detail.error} />}
       {actions.length > 0 && (
         <>
@@ -260,6 +267,115 @@ function Detail({ row, onClose }) {
       )}
       {move.isError && <div className="form-error">{move.error.message}</div>}
       {a.status === "approved" && !a.campaign_id && <Workspace aspirant={a} onDone={setLogins} />}
+    </Modal>
+  );
+}
+
+// A member's own application: what they declared, attached and paid, for vetting.
+function Application({ a }) {
+  const pay = useMarkNominationFeePaid();
+  const [reference, setReference] = useState("");
+  return (
+    <div className="modal-text" aria-label="Application">
+      <div className="muted">Applied in: {a.window_title}</div>
+      <div className="muted">Declaration: {a.declared_at ? `signed ${day(a.declared_at)}` : "not yet"}</div>
+      <div className="muted">
+        Fee: {a.fee_kes ? `KES ${a.fee_kes.toLocaleString("en-KE")} · ${a.fee_paid_at ? `paid, ref ${a.fee_reference}` : "not paid"}` : "none"}
+      </div>
+      <div className="muted">Documents: {a.documents.length === 0 ? "none" : ""}</div>
+      {a.documents.map((d) => (
+        <a key={d.id} href={`/api/party/nominations/applications/${a.id}/documents/${d.id}/`} target="_blank" rel="noreferrer">{d.label}</a>
+      ))}
+      {a.fee_kes > 0 && !a.fee_paid_at && a.status === "draft" && (
+        <div className="flex gap-2">
+          <input aria-label="Fee reference" className="app-field" placeholder="M-Pesa or bank reference" maxLength={50} value={reference} onChange={(e) => setReference(e.target.value)} />
+          <Button disabled={pay.isPending || reference.trim().length < 3} onClick={() => pay.mutate({ id: a.id, reference: reference.trim() })}>Mark fee paid</Button>
+        </div>
+      )}
+      {pay.isError && <div className="form-error">{pay.error.message}</div>}
+    </div>
+  );
+}
+
+// The nominations timetable: the officer drafts it, the Super Admin (not the drafter) publishes it.
+function Timetable() {
+  const windows = useNominationWindows();
+  const publish = usePublishNominationWindow();
+  const superuser = useAuth((st) => st.user?.is_superuser);
+  const [editing, setEditing] = useState(null);
+  if (windows.isLoading) return null;
+  if (windows.error) return <ErrorState error={windows.error} />;
+  return (
+    <Panel>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="strong">Nominations timetable</div>
+        <Button onClick={() => setEditing({})}>Draft a timetable</Button>
+      </div>
+      <div className="modal-text" aria-label="Timetables">
+        {windows.data.length === 0 && <div className="muted">No timetable yet. Members can apply only inside a published one.</div>}
+        {windows.data.map((w) => (
+          <div key={w.id} className="flex flex-wrap items-center gap-2">
+            <span className="strong">{w.title}</span>
+            <span className="muted">{day(w.opens_on)} – {day(w.closes_on)}</span>
+            <span className="muted">{w.seats.map((x) => `${SEAT_LABEL[x.seat]} ${x.fee_kes ? `KES ${x.fee_kes.toLocaleString("en-KE")}` : "no fee"}`).join(" · ")}</span>
+            <Badge text={w.status === "published" ? "Published" : "Draft"} tone={w.status === "published" ? "ok" : "warn"} />
+            {w.status === "draft" && <Button onClick={() => setEditing(w)}>Edit</Button>}
+            {w.status === "draft" && superuser && !w.mine && (
+              <Button primary disabled={publish.isPending} onClick={() => publish.mutate(w.id)}>Publish</Button>
+            )}
+            {w.status === "draft" && w.mine && <span className="muted">Someone else publishes it.</span>}
+          </div>
+        ))}
+      </div>
+      {publish.isError && <div className="form-error">{publish.error.message}</div>}
+      {editing && <TimetableForm window={editing} onClose={() => setEditing(null)} />}
+    </Panel>
+  );
+}
+
+function TimetableForm({ window: w, onClose }) {
+  const draft = useDraftNominationWindow();
+  const revise = useReviseNominationWindow();
+  const save = w.id ? revise : draft;
+  const fees = Object.fromEntries((w.seats || []).map((x) => [x.seat, String(x.fee_kes)]));
+  const [form, setForm] = useState({ title: w.title || "", opens_on: w.opens_on || "", closes_on: w.closes_on || "", requirements: w.requirements || "" });
+  const [seats, setSeats] = useState(fees);
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const chosen = Object.entries(seats).map(([seat, fee]) => ({ seat, fee_kes: Number(fee) || 0 }));
+  const ready = form.title.trim() && form.opens_on && form.closes_on && form.closes_on >= form.opens_on && chosen.length > 0;
+  const submit = () => {
+    const body = { ...form, seats: chosen };
+    save.mutate(w.id ? { id: w.id, body } : body, { onSuccess: onClose });
+  };
+  return (
+    <Modal title={w.id ? "Edit timetable" : "Draft a timetable"} sub="A draft stays private until the Super Admin publishes it." onClose={onClose}>
+      <input aria-label="Title" className="app-field" placeholder="e.g. Nominations 2027" maxLength={150} value={form.title} onChange={set("title")} />
+      <div className="flex flex-wrap gap-2">
+        <label className="muted">Opens <input aria-label="Opens" type="date" className="app-field" value={form.opens_on} onChange={set("opens_on")} /></label>
+        <label className="muted">Closes <input aria-label="Closes" type="date" className="app-field" value={form.closes_on} onChange={set("closes_on")} /></label>
+      </div>
+      <fieldset className="modal-text">
+        <legend className="strong">Seats and nomination fees (KES)</legend>
+        {SEATS.map(([value, label]) => (
+          <div key={value} className="flex items-center gap-2">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={value in seats}
+                onChange={(e) => { const next = { ...seats }; if (e.target.checked) next[value] = "0"; else delete next[value]; setSeats(next); }} />
+              {label}
+            </label>
+            {value in seats && (
+              <input aria-label={`${label} fee`} type="number" min={0} className="app-field" value={seats[value]}
+                onChange={(e) => setSeats({ ...seats, [value]: e.target.value })} />
+            )}
+          </div>
+        ))}
+      </fieldset>
+      <textarea aria-label="Requirements" className="app-field" rows={4} maxLength={5000} placeholder="Requirements aspirants must meet" value={form.requirements} onChange={set("requirements")} />
+      {save.isError && <div className="form-error">{save.error.message}</div>}
+      <div className="flex justify-end gap-2 form-actions">
+        <Button onClick={onClose}>Cancel</Button>
+        <Button primary disabled={!ready || save.isPending} onClick={submit}>{save.isPending ? "Saving…" : "Save draft"}</Button>
+      </div>
     </Modal>
   );
 }
@@ -301,6 +417,7 @@ export default function Aspirants() {
         sub={`${total} nominations`}
         action={<Button primary onClick={() => setNominating(true)}>Nominate a member</Button>}
       />
+      <Timetable />
       <div className="flex flex-wrap gap-2 chip-row">
         <select aria-label="Status" className="app-field filter-field" value={status}
           onChange={(e) => { setStatus(e.target.value); setOffset(0); }}>

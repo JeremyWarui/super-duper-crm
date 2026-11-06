@@ -71,6 +71,8 @@ PUBLIC_ROUTES = {
     ("POST", "/api/candidates/{slug}/volunteer/"),
     ("POST", "/api/candidates/volunteer/withdraw/{code}/"),
     ("POST", "/api/payments/paystack/webhook/"),
+    # The published nomination timetable, for the public Vie page.
+    ("GET", "/api/party/nominations/current/"),
     # Africa's Talking's callbacks; the secret in the path is the check.
     ("POST", "/api/sms/{secret}/delivery/"),
     ("POST", "/api/sms/{secret}/inbound/"),
@@ -101,6 +103,13 @@ SIGNED_IN_ONLY = {
     ("PUT", "/api/account/volunteer/"),
     ("POST", "/api/account/volunteer/stop/"),
     ("POST", "/api/account/leave/"),
+    # A member's own application to vie.
+    ("GET", "/api/party/nominations/mine/"),
+    ("POST", "/api/party/nominations/mine/"),
+    ("POST", "/api/party/nominations/mine/documents/"),
+    ("DELETE", "/api/party/nominations/mine/documents/{document_id}/"),
+    ("POST", "/api/party/nominations/mine/submit/"),
+    ("POST", "/api/party/nominations/mine/withdraw/"),
 }
 
 

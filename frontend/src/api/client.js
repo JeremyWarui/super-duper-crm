@@ -62,10 +62,11 @@ export async function download(path, filename) {
 }
 
 // Sends one file as multipart form data, with the token; answers with the JSON reply.
-export async function upload(path, file) {
+export async function upload(path, file, fields = {}) {
   const token = useAuth.getState().token;
   const form = new FormData();
   form.append("file", file);
+  for (const [name, value] of Object.entries(fields)) form.append(name, value);
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: token ? { Authorization: `Token ${token}` } : {},

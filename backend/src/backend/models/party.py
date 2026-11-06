@@ -35,6 +35,7 @@ from backend.models.enums import (
 if TYPE_CHECKING:
     from backend.models.campaign import Campaign
     from backend.models.geography import Constituency, County, RegistrationCentre, Ward
+    from backend.models.nominations import AspirantDocument, NominationWindow
     from backend.models.user import User
     from backend.models.volunteer import VolunteerProfile
 
@@ -236,6 +237,17 @@ class Aspirant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
     )
+    # A member's own application: the window it was made in, and what it declared and paid.
+    window_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("nomination_windows.id", ondelete="SET NULL"), default=None
+    )
+    fee_kes: Mapped[int] = mapped_column(Integer, default=0)
+    fee_paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    fee_reference: Mapped[str] = mapped_column(String(50), default="")
+    fee_marked_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    declared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -246,6 +258,10 @@ class Aspirant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
     member: Mapped[PartyMember] = relationship()
+    window: Mapped["NominationWindow | None"] = relationship()
+    documents: Mapped[list["AspirantDocument"]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True, order_by="AspirantDocument.created_at"
+    )
     county: Mapped["County | None"] = relationship()
     constituency: Mapped["Constituency | None"] = relationship()
     ward: Mapped["Ward | None"] = relationship()

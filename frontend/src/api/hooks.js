@@ -1441,3 +1441,64 @@ export function useEndTerm() {
 }
 
 export const useUploadMinutes = () => useMutation({ mutationFn: (file) => upload("/party/office/minutes/", file) });
+
+// Applying to vie: the published timetable, a member's own application, and the officer's side.
+export const useNominationNotice = () =>
+  useQuery({ queryKey: ["nominations", "current"], queryFn: () => api("/party/nominations/current/") });
+
+export const useMyNomination = () =>
+  useQuery({ queryKey: ["nominations", "mine"], queryFn: () => api("/party/nominations/mine/") });
+
+function useMine(mutationFn) {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn, onSuccess: (data) => data && qc.setQueryData(["nominations", "mine"], data) });
+}
+
+export const useApplyToVie = () => useMine((seat) => api("/party/nominations/mine/", { method: "POST", body: { seat } }));
+export const useAttachNominationDocument = () =>
+  useMine(({ file, label }) => upload("/party/nominations/mine/documents/", file, { label }));
+export function useDetachNominationDocument() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (id) => api(`/party/nominations/mine/documents/${id}/`, { method: "DELETE" }),
+    onSuccess: () => invalidate("nominations"),
+  });
+}
+export const useSubmitNomination = () =>
+  useMine(() => api("/party/nominations/mine/submit/", { method: "POST", body: { declaration: true } }));
+export const useWithdrawNomination = () => useMine(() => api("/party/nominations/mine/withdraw/", { method: "POST" }));
+
+export const useNominationWindows = () =>
+  useQuery({ queryKey: ["nominations", "windows"], queryFn: () => api("/party/nominations/windows/") });
+
+export function useDraftNominationWindow() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (body) => api("/party/nominations/windows/", { method: "POST", body }),
+    onSuccess: () => invalidate("nominations"),
+  });
+}
+
+export function useReviseNominationWindow() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, body }) => api(`/party/nominations/windows/${id}/`, { method: "PUT", body }),
+    onSuccess: () => invalidate("nominations"),
+  });
+}
+
+export function usePublishNominationWindow() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (id) => api(`/party/nominations/windows/${id}/publish/`, { method: "POST" }),
+    onSuccess: () => invalidate("nominations"),
+  });
+}
+
+export function useMarkNominationFeePaid() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, reference }) => api(`/party/nominations/applications/${id}/fee/`, { method: "POST", body: { reference } }),
+    onSuccess: () => invalidate("aspirants"),
+  });
+}

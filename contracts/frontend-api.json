@@ -1104,6 +1104,79 @@
     "POST /api/payments/reconciliation/": [
       "last_run",
       "differences"
+    ],
+    "GET /api/party/nominations/current/": [
+      "title",
+      "opens_on",
+      "closes_on",
+      "requirements",
+      "open",
+      "seats"
+    ],
+    "GET /api/party/nominations/windows/": [
+      "id",
+      "title",
+      "opens_on",
+      "closes_on",
+      "requirements",
+      "status",
+      "seats",
+      "mine"
+    ],
+    "POST /api/party/nominations/windows/": [
+      "id",
+      "title",
+      "opens_on",
+      "closes_on",
+      "requirements",
+      "status",
+      "seats",
+      "mine"
+    ],
+    "PUT /api/party/nominations/windows/{window_id}/": [
+      "id",
+      "title",
+      "opens_on",
+      "closes_on",
+      "requirements",
+      "status",
+      "seats",
+      "mine"
+    ],
+    "POST /api/party/nominations/windows/{window_id}/publish/": [
+      "id",
+      "title",
+      "opens_on",
+      "closes_on",
+      "requirements",
+      "status",
+      "seats",
+      "mine"
+    ],
+    "POST /api/party/nominations/applications/{aspirant_id}/fee/": [
+      "id",
+      "fee_paid_at",
+      "fee_reference"
+    ],
+    "GET /api/party/nominations/mine/": [
+      "window",
+      "choices",
+      "application"
+    ],
+    "POST /api/party/nominations/mine/": [
+      "window",
+      "choices",
+      "application"
+    ],
+    "POST /api/party/nominations/mine/submit/": [
+      "window",
+      "choices",
+      "application"
+    ],
+    "POST /api/party/nominations/mine/withdraw/": [
+      "window",
+      "choices",
+      "application"
     ]
   },
   "nested_reads": {
@@ -1454,6 +1527,40 @@
       "ledger",
       "provider",
       "detail"
+    ],
+    "GET /api/party/nominations/current/.seats": [
+      "seat",
+      "fee_kes"
+    ],
+    "GET /api/party/nominations/windows/.seats": [
+      "seat",
+      "fee_kes"
+    ],
+    "GET /api/party/nominations/mine/.window": [
+      "title",
+      "opens_on",
+      "closes_on",
+      "open"
+    ],
+    "GET /api/party/nominations/mine/.choices": [
+      "seat",
+      "fee_kes",
+      "area"
+    ],
+    "GET /api/party/nominations/mine/.application": [
+      "id",
+      "seat",
+      "area",
+      "status",
+      "fee_kes",
+      "fee_paid",
+      "declared_at",
+      "from_window",
+      "documents"
+    ],
+    "GET /api/party/aspirants/{aspirant_id}/.documents": [
+      "id",
+      "label"
     ]
   },
   "writes": {
@@ -2119,7 +2226,32 @@
     "POST /api/payments/release-check/": [
       "payments"
     ],
-    "POST /api/payments/reconciliation/": []
+    "POST /api/payments/reconciliation/": [],
+    "POST /api/party/nominations/windows/": [
+      "title",
+      "opens_on",
+      "closes_on",
+      "requirements",
+      "seats"
+    ],
+    "PUT /api/party/nominations/windows/{window_id}/": [
+      "title",
+      "opens_on",
+      "closes_on",
+      "requirements",
+      "seats"
+    ],
+    "POST /api/party/nominations/windows/{window_id}/publish/": [],
+    "POST /api/party/nominations/applications/{aspirant_id}/fee/": [
+      "reference"
+    ],
+    "POST /api/party/nominations/mine/": [
+      "seat"
+    ],
+    "POST /api/party/nominations/mine/submit/": [
+      "declaration"
+    ],
+    "POST /api/party/nominations/mine/withdraw/": []
   },
   "enums": {
     "user.role": [
@@ -2203,7 +2335,8 @@
       "DELETE /api/workspace/site/documents/{item_id}/",
       "DELETE /api/workspace/site/videos/{item_id}/",
       "POST /api/setup/check/",
-      "DELETE /api/messages/{message_id}/"
+      "DELETE /api/messages/{message_id}/",
+      "DELETE /api/party/nominations/mine/documents/{document_id}/"
     ]
   }
 }

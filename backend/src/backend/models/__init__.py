@@ -68,6 +68,7 @@ from backend.models.imports import BackupRun, ImportChange, ImportRun
 from backend.models.login import EmailLog, LoginInvite
 from backend.models.membership import CampaignMember, CampaignMemberArea
 from backend.models.mobilizer import Mobilizer
+from backend.models.nominations import AspirantDocument, NominationSeat, NominationWindow
 from backend.models.party import (
     Aspirant,
     PartyMember,
@@ -86,7 +87,10 @@ from backend.models.user import User
 from backend.models.volunteer import VolunteerProfile
 
 __all__ = [
+    "AspirantDocument",
     "CampaignMessage",
+    "NominationSeat",
+    "NominationWindow",
     "SmsInbound",
     "SmsLog",
     "SmsOptOut",

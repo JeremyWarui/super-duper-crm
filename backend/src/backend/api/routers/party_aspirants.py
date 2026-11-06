@@ -16,6 +16,7 @@ from backend.schemas.aspirants import (
     AspirantPage,
     AspirantRead,
     CandidateRead,
+    DocumentRead,
     WorkspaceCreate,
     WorkspaceCreated,
 )
@@ -40,6 +41,12 @@ def _read(row: Aspirant) -> AspirantRead:
         decided_at=row.decided_at,
         campaign_id=row.campaign_id,
         created_at=row.created_at,
+        window_title=row.window.title if row.window else None,
+        fee_kes=row.fee_kes,
+        fee_paid_at=row.fee_paid_at,
+        fee_reference=row.fee_reference,
+        declared_at=row.declared_at,
+        documents=[DocumentRead(id=d.id, label=d.label) for d in row.documents],
     )
 
 

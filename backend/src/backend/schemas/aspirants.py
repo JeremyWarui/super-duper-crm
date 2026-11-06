@@ -42,6 +42,18 @@ class AspirantRead(ORMModel):
     decided_at: datetime | None
     campaign_id: uuid.UUID | None
     created_at: datetime
+    # A member's own application; blank for an officer's nomination.
+    window_title: str | None = None
+    fee_kes: int = 0
+    fee_paid_at: datetime | None = None
+    fee_reference: str = ""
+    declared_at: datetime | None = None
+    documents: list["DocumentRead"] = []
+
+
+class DocumentRead(BaseModel):
+    id: uuid.UUID
+    label: str
 
 
 class AspirantPage(BaseModel):

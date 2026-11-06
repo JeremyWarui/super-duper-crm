@@ -1,7 +1,10 @@
 // /account: a member's card, volunteering, party events, and data & privacy.
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAccount, useChangeVolunteering, useLeaveParty, useSite, usePublicPosts, useStopVolunteering } from "@/api/hooks";
+import {
+  useAccount, useApplyToVie, useAttachNominationDocument, useChangeVolunteering, useDetachNominationDocument, useLeaveParty,
+  useMyNomination, useSite, usePublicPosts, useStopVolunteering, useSubmitNomination, useWithdrawNomination,
+} from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,6 +18,7 @@ import {
   CONTACT_METHODS,
   PROFESSIONS,
   PROFESSION_LABEL,
+  SEAT_LABEL,
   VOLUNTEER_STATUS_LABEL,
 } from "../party/helpers";
 
@@ -233,6 +237,122 @@ function DataAndPrivacy({ account, party }) {
   );
 }
 
+const ASPIRANT_STATUS = { draft: ["Not submitted", "warn"], submitted: ["With the vetting team", "info"], approved: ["Approved aspirant", "ok"], suspended: ["Suspended", "bad"] };
+const shortDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const kesOf = (n) => `KES ${n.toLocaleString("en-KE")}`;
+
+// Applying to vie: pick a seat open in the window, attach documents, have the fee marked paid,
+// then declare and submit. The nominations office vets it.
+function MyNomination() {
+  const mine = useMyNomination();
+  if (mine.isLoading) return <p className="text-muted-foreground">Loading…</p>;
+  if (mine.error) return <p role="alert">{mine.error.message}</p>;
+  const { window: notice, choices, application } = mine.data;
+  if (application) return <Application application={application} notice={notice} />;
+  if (choices.length) return <Choose notice={notice} choices={choices} />;
+  return (
+    <Card className="gap-2 p-6">
+      <h2 className="font-display text-card-title font-extrabold">Vie for a seat</h2>
+      <p className="text-muted-foreground">
+        {notice && !notice.open ? `Applications for ${notice.title} open on ${shortDay(notice.opens_on)}.` : "No nominations are open now. The timetable is published on the Vie with us page."}
+      </p>
+    </Card>
+  );
+}
+
+function Choose({ notice, choices }) {
+  const apply = useApplyToVie();
+  const [seat, setSeat] = useState(choices[0].seat);
+  return (
+    <Card className="gap-4 p-6" role="region" aria-label="Apply for nomination">
+      <div>
+        <h2 className="font-display text-card-title font-extrabold">Apply for nomination</h2>
+        <p className="text-muted-foreground">{notice.title} · applications close {shortDay(notice.closes_on)}</p>
+      </div>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1 font-semibold">Which seat are you vying for?</legend>
+        {choices.map((c) => (
+          <label key={c.seat} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-4 py-2 ${seat === c.seat ? "border-primary bg-primary-tint" : "border-line"}`}>
+            <input type="radio" name="seat" value={c.seat} checked={seat === c.seat} onChange={() => setSeat(c.seat)} />
+            <span className="flex-1"><strong>{SEAT_LABEL[c.seat]}</strong> <span className="text-muted-foreground">· {c.area}</span></span>
+            <span className="text-small tabular-nums">{c.fee_kes ? kesOf(c.fee_kes) : "No fee"}</span>
+          </label>
+        ))}
+      </fieldset>
+      <p className="text-small text-muted-foreground">You vie in your own registered area.</p>
+      {apply.error && <p role="alert" className="font-semibold text-destructive">{apply.error.message}</p>}
+      <Button className="self-start" disabled={apply.isPending} onClick={() => apply.mutate(seat)}>{apply.isPending ? "Starting…" : "Start application"}</Button>
+    </Card>
+  );
+}
+
+function Application({ application: a, notice }) {
+  const attach = useAttachNominationDocument();
+  const detach = useDetachNominationDocument();
+  const submit = useSubmitNomination();
+  const withdraw = useWithdrawNomination();
+  const [label, setLabel] = useState("");
+  const [file, setFile] = useState(null);
+  const [declared, setDeclared] = useState(false);
+  const [statusLabel, tone] = ASPIRANT_STATUS[a.status] || [a.status, "stone"];
+  const draft = a.status === "draft" && a.from_window;
+  const failed = attach.error || detach.error || submit.error || withdraw.error;
+  const feeDue = a.fee_kes > 0 && !a.fee_paid;
+  return (
+    <Card className="gap-5 p-6" role="region" aria-label="My nomination">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="font-display text-card-title font-extrabold">{SEAT_LABEL[a.seat]} · {a.area}</h2>
+        <Badge tone={tone}>{statusLabel}</Badge>
+      </div>
+      {failed && <p role="alert" className="font-semibold text-destructive">{failed.message}</p>}
+      {a.status === "submitted" && <p>Submitted. The nominations office vets your application and will contact you.</p>}
+      {a.status === "approved" && <p>You are an approved aspirant. The party office will set up your campaign workspace.</p>}
+      {(a.documents.length > 0 || draft) && (
+        <div className="flex flex-col gap-2">
+          <h3 className="font-bold">Documents</h3>
+          {a.documents.length === 0 && <p className="text-muted-foreground">None yet. Add your ID, voter's card and anything the requirements ask for.</p>}
+          <ul className="flex flex-col gap-1">
+            {a.documents.map((d) => (
+              <li key={d.id} className="flex items-center justify-between gap-3 border-b border-line py-2">
+                <span>{d.label}</span>
+                {draft && <Button size="sm" variant="quiet" disabled={detach.isPending} onClick={() => detach.mutate(d.id)} aria-label={`Remove ${d.label}`}>Remove</Button>}
+              </li>
+            ))}
+          </ul>
+          {draft && (
+            <div className="flex flex-wrap items-end gap-3">
+              <Field label="Document" className="min-w-0 flex-[1_1_200px]"><Input value={label} maxLength={100} placeholder="e.g. National ID" onChange={(e) => setLabel(e.target.value)} /></Field>
+              <Field label="File (PDF or photo)" className="min-w-0 flex-[1_1_200px]"><input type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} /></Field>
+              <Button variant="quiet" disabled={!label.trim() || !file || attach.isPending} onClick={() => attach.mutate({ file, label: label.trim() }, { onSuccess: () => { setLabel(""); setFile(null); } })}>{attach.isPending ? "Uploading…" : "Add document"}</Button>
+            </div>
+          )}
+        </div>
+      )}
+      {a.fee_kes > 0 && (
+        <div className="flex flex-col gap-1">
+          <h3 className="font-bold">Nomination fee</h3>
+          <p>{kesOf(a.fee_kes)} · {a.fee_paid ? "Paid" : "Not paid yet. Pay it as the party's instructions say; the nominations office marks it paid."}</p>
+        </div>
+      )}
+      {draft && (
+        <>
+          <label className="flex items-start gap-3">
+            <input type="checkbox" className="mt-1" checked={declared} onChange={(e) => setDeclared(e.target.checked)} />
+            <span>I confirm the information and documents are true, I meet the requirements for this seat, and I will abide by the party's nomination rules and the outcome of the process.</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={!declared || feeDue || submit.isPending} onClick={() => submit.mutate()}>{submit.isPending ? "Submitting…" : "Submit application"}</Button>
+            <Button variant="quiet" disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Withdraw</Button>
+          </div>
+          {feeDue && <p className="text-small text-muted-foreground">You can submit once the fee is marked paid.</p>}
+        </>
+      )}
+      {a.status === "submitted" && a.from_window && <Button variant="quiet" className="self-start" disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Withdraw application</Button>}
+      {notice && draft && <p className="text-small text-muted-foreground">Applications close {shortDay(notice.closes_on)}.</p>}
+    </Card>
+  );
+}
+
 export default function Account() {
   const account = useAccount();
   const party = useSite().data;
@@ -247,10 +367,12 @@ export default function Account() {
         <TabsList aria-label="Account sections" className="flex-nowrap overflow-x-auto border-b border-line whitespace-nowrap">
           <TabsTrigger value="volunteering">Volunteering</TabsTrigger>
           <TabsTrigger value="events">Party events</TabsTrigger>
+          <TabsTrigger value="nomination">My nomination</TabsTrigger>
           <TabsTrigger value="data">My data &amp; privacy</TabsTrigger>
         </TabsList>
         <TabsContent value="volunteering"><Volunteering account={a} wording={party?.volunteer_consent_wording} /></TabsContent>
         <TabsContent value="events"><PartyEvents /></TabsContent>
+        <TabsContent value="nomination"><MyNomination /></TabsContent>
         <TabsContent value="data"><DataAndPrivacy account={a} party={party} /></TabsContent>
       </Tabs>
     </div>
