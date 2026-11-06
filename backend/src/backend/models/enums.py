@@ -111,6 +111,18 @@ class AgentStatus(LabelledStrEnum):
     READY = ("ready", "Ready")
 
 
+class AssignmentKind(LabelledStrEnum):
+    EVENT = ("event", "Event")
+    WARD_WORK = ("ward_work", "Ward work")
+    ACTIVITY = ("activity", "Activity")
+
+
+class AssignmentStatus(LabelledStrEnum):
+    ASSIGNED = ("assigned", "Assigned")
+    DONE = ("done", "Done")
+    CANCELLED = ("cancelled", "Cancelled")
+
+
 class LinkPurpose(StrEnum):
     """What a one-time sign-in link does."""
 

@@ -8,7 +8,7 @@ from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, St
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
-from backend.models.enums import PaymentStatus
+from backend.models.enums import PaymentStatus, UserRole
 
 if TYPE_CHECKING:
     from backend.models.event import Event
@@ -70,6 +70,14 @@ class Payment(PayoutMixin, UUIDPrimaryKeyMixin, TimestampMixin, Base):
             postgresql_where=text("status <> 'cancelled'"),
             sqlite_where=text("status <> 'cancelled'"),
         ),
+        # One live payment per assignment.
+        Index(
+            "uq_payments_assignment",
+            "assignment_id",
+            unique=True,
+            postgresql_where=text("status <> 'cancelled'"),
+            sqlite_where=text("status <> 'cancelled'"),
+        ),
     )
 
     campaign_id: Mapped[uuid.UUID] = mapped_column(
@@ -81,7 +89,26 @@ class Payment(PayoutMixin, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     mobilizer_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("mobilizers.id", ondelete="SET NULL"), default=None, index=True
     )
+    # What it pays for, as it stood when scheduled: the event's title or the assignment's label.
     event_title: Mapped[str] = mapped_column(String(150), default="")
+    # The done assignment it pays; None only on payments made before assignments existed.
+    assignment_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("assignments.id", ondelete="SET NULL"), default=None, index=True
+    )
+    # The payee when it is an agent; a mobilizer payee is `mobilizer_id`.
+    agent_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("agents.id", ondelete="SET NULL"), default=None, index=True
+    )
+    scheduled_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    # The role that approves and releases it (decision 27); None means the manager.
+    approver_role: Mapped[UserRole | None] = mapped_column(
+        choice_type(UserRole, "approver_role"), default=None
+    )
+    approved_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
 
     event: Mapped["Event | None"] = relationship()
     mobilizer: Mapped["Mobilizer | None"] = relationship()

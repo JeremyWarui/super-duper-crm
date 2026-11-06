@@ -16,7 +16,7 @@ export const holderOf = (mobilizers, unit) =>
 
 export const kes = (n) => `KES ${fmt(n)}`;
 
-const ALL_FIELD = { label: "Field", items: [["events", "Events"], ["mobilizers", "Mobilizers"], ["agents", "Agents"], ["supporters", "Supporters"], ["volunteers", "Volunteers"]] };
+const ALL_FIELD = { label: "Field", items: [["events", "Events"], ["mobilizers", "Mobilizers"], ["agents", "Agents"], ["assignments", "Assignments"], ["supporters", "Supporters"], ["volunteers", "Volunteers"]] };
 const LEAD = [
   { label: "Plan", items: [["overview", "Overview"], ["strategy", "Strategy"], ["targets", "Targets"], ["units", "Wards"]] },
   ALL_FIELD,

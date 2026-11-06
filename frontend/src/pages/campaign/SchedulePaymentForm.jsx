@@ -1,39 +1,33 @@
 import { useState } from "react";
 import { Modal } from "../../components/ui";
-import { useEvents, useMobilizers, useSchedulePayment } from "../../api/hooks";
+import { useAssignments, usePayments, useSchedulePayment } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
+import { kes } from "./helpers";
 
-export default function SchedulePaymentForm({ campaignId, onClose }) {
+const APPROVER = { coordinator: "the campaign manager", manager: "the candidate" };
+
+// Pays one done assignment, for its amount, to its mobilizer or agent.
+export default function SchedulePaymentForm({ campaignId, role, onClose }) {
   const schedule = useSchedulePayment();
-  const events = (useEvents(campaignId).data || []).filter((e) => e.status !== "cancelled");
-  const mobilizers = useMobilizers(campaignId).data || [];
-  const [eventId, setEventId] = useState("");
-  const [picked, setPicked] = useState(null);  // null until the mobilizer box is changed
-  const [amount, setAmount] = useState("");
-  const event = events.find((e) => e.id === eventId);
-  const mobilizer = picked ?? event?.mobilizer ?? "";
-  const ok = event && mobilizer && Number.isInteger(Number(amount)) && Number(amount) > 0;
-  const save = () => schedule.mutate({ campaign: campaignId, event: eventId, mobilizer, amount_kes: Number(amount) }, { onSuccess: onClose });
+  const done = useAssignments(campaignId, "done").data || [];
+  const paid = new Set((usePayments(campaignId).data || []).filter((p) => p.status !== "cancelled").map((p) => p.assignment));
+  const open = done.filter((a) => !paid.has(a.id));
+  const [picked, setPicked] = useState("");
+  const work = open.find((a) => a.id === picked);
+  const then = APPROVER[role] ? ` It then waits for ${APPROVER[role]} to approve it.` : "";
   return (
-    <Modal title="Schedule payment" sub="Paid per event, to the mobilizer who ran it." onClose={onClose}>
-      <Label>Event</Label>
-      <select aria-label="Event" className="app-field" value={eventId} onChange={(e) => { setEventId(e.target.value); setPicked(null); }}>
-        <option value="">Pick an event</option>
-        {events.map((e) => <option key={e.id} value={e.id}>{e.title || e.ward_name}</option>)}
+    <Modal title="Schedule payment" sub={`For work marked done.${then}`} onClose={onClose}>
+      <Label>Work done</Label>
+      <select aria-label="Work done" className="app-field" value={picked} onChange={(e) => setPicked(e.target.value)}>
+        <option value="">{open.length ? "Pick the work" : "No done work waits for payment"}</option>
+        {open.map((a) => <option key={a.id} value={a.id}>{a.label} · {a.member_name} · {kes(a.amount_kes)}</option>)}
       </select>
-      <div className="field-gap" /><Label>Mobilizer</Label>
-      <select aria-label="Mobilizer" className="app-field" value={mobilizer} onChange={(e) => setPicked(e.target.value)}>
-        <option value="">Pick a mobilizer</option>
-        {mobilizers.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-      </select>
-      <div className="field-gap" /><Label>Amount (KES)</Label>
-      <input aria-label="Amount" type="number" min={1} step={1} className="app-field" value={amount} onChange={(e) => setAmount(e.target.value)} />
+      {work && <div className="page-note">{kes(work.amount_kes)} to {work.member_name}.</div>}
       {schedule.error && <div className="form-error">{schedule.error.message}</div>}
       <div className="flex justify-end gap-2 form-actions">
         <Btn onClick={onClose}>Cancel</Btn>
-        <PrimaryBtn disabled={!ok || schedule.isPending} onClick={save}>{schedule.isPending ? "Saving…" : "Schedule"}</PrimaryBtn>
+        <PrimaryBtn disabled={!work || schedule.isPending} onClick={() => schedule.mutate({ assignment: work.id }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule"}</PrimaryBtn>
       </div>
     </Modal>
   );
 }
-

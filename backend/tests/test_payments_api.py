@@ -1,104 +1,293 @@
-"""Payments to mobilizers: scheduled per event, then paid or cancelled, and who sees them."""
+"""Payments to mobilizers and agents: only for done assignments, once each, routed to an approver
+who never scheduled them, then paid, declined or settled by hand."""
+
+import uuid
 
 import httpx
+import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Event, EventStatus, Mobilizer
+from backend.models import (
+    Agent,
+    Assignment,
+    AssignmentKind,
+    AssignmentStatus,
+    AuditEvent,
+    CampaignMemberArea,
+    Event,
+    EventStatus,
+    Mobilizer,
+    UserRole,
+    WorkspaceKind,
+)
+from backend.services.accounts import add_member
 from tests.conftest import World
+from tests.factories import auth, make_user, sign_in
 
 
-async def _event(session: AsyncSession, world: World, mobilizer: Mobilizer) -> Event:
+async def _work(
+    session: AsyncSession,
+    world: World,
+    mobilizer: Mobilizer | None = None,
+    *,
+    agent: Agent | None = None,
+    status: AssignmentStatus = AssignmentStatus.DONE,
+    amount: int = 1500,
+) -> Assignment:
+    """An event in Zimmerman and its assignment to a mobilizer (the world's by default)."""
+    if agent is None and mobilizer is None:
+        mobilizer = world.mobilizer
     event = Event(
         campaign_id=world.campaign.id,
         ward_id=world.ward.id,
-        mobilizer_id=mobilizer.id,
+        mobilizer_id=mobilizer.id if mobilizer else None,
         title="Zimmerman town hall",
         status=EventStatus.DONE,
     )
     session.add(event)
+    await session.flush()
+    work = Assignment(
+        campaign_id=world.campaign.id,
+        mobilizer_id=mobilizer.id if mobilizer else None,
+        agent_id=agent.id if agent else None,
+        kind=AssignmentKind.EVENT,
+        event_id=event.id,
+        ward_id=world.ward.id,
+        amount_kes=amount,
+        status=status,
+    )
+    session.add(work)
     await session.commit()
-    return event
+    return work
 
 
-def _payment(world: World, event: Event, **overrides) -> dict:
-    return {
-        "campaign": str(world.campaign.id),
-        "event": str(event.id),
-        "amount_kes": 1500,
-        **overrides,
-    }
+def _pay(work: Assignment) -> dict:
+    return {"assignment": str(work.id)}
 
 
-async def test_a_payment_goes_to_the_event_s_mobilizer_and_is_final_once_paid(
+async def _schedule(client: httpx.AsyncClient, world: World, work: Assignment, head=None) -> dict:
+    made = await client.post(
+        "/api/payments/", headers=head or world.headers("manager"), json=_pay(work)
+    )
+    assert made.status_code == 201, made.text
+    return made.json()
+
+
+async def _coordinator(session: AsyncSession, client: httpx.AsyncClient, world: World) -> dict:
+    """A coordinator whose area is Zimmerman, signed in."""
+    user = await make_user(session, username="otieno", role=UserRole.COORDINATOR)
+    member = await add_member(session, world.campaign.id, user)
+    session.add(CampaignMemberArea(campaign_member_id=member.id, ward_id=world.ward.id))
+    await session.commit()
+    return auth(await sign_in(client, "otieno"))
+
+
+async def test_a_done_assignment_is_paid_its_amount_once_and_final_once_paid(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    head = world.headers("manager")
-    event = await _event(session, world, world.mobilizer)
+    work = await _work(session, world, amount=2500)
 
-    scheduled = (
-        await client.post("/api/payments/", headers=head, json=_payment(world, event))
-    ).json()
+    scheduled = await _schedule(client, world, work)
+    twice = await client.post("/api/payments/", headers=world.headers("manager"), json=_pay(work))
     paid = await client.post(
-        f"/api/payments/{scheduled['id']}/paid/", headers=head, json={"reference": "QX12AB34"}
+        f"/api/payments/{scheduled['id']}/paid/",
+        headers=world.headers("candidate"),
+        json={"reference": "QX12AB34"},
     )
-    again = await client.post(f"/api/payments/{scheduled['id']}/cancel/", headers=head)
+    again = await client.post(
+        f"/api/payments/{scheduled['id']}/decline/",
+        headers=world.headers("candidate"),
+        json={"reason": "Too late"},
+    )
 
-    assert (scheduled["mobilizer"], scheduled["recipient_name"], scheduled["status"]) == (
+    assert (scheduled["mobilizer"], scheduled["amount_kes"], scheduled["approver_role"]) == (
         str(world.mobilizer.id),
-        "Juma Otieno",
-        "scheduled",
+        2500,
+        "candidate",
     )
+    assert twice.status_code == 400
     assert (paid.json()["status"], paid.json()["reference"]) == ("paid", "QX12AB34")
     assert again.status_code == 400
 
 
-async def test_the_candidate_reads_and_a_mobilizer_sees_only_their_own(
+async def test_no_payment_without_a_done_assignment(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    other = Mobilizer(
-        campaign_id=world.campaign.id, ward_id=world.other_ward.id, full_name="Akinyi"
+    open_work = await _work(session, world, status=AssignmentStatus.ASSIGNED)
+
+    refused = await client.post(
+        "/api/payments/", headers=world.headers("manager"), json=_pay(open_work)
     )
-    session.add(other)
+    unknown = await client.post(
+        "/api/payments/", headers=world.headers("manager"), json={"assignment": str(uuid.uuid4())}
+    )
+
+    assert refused.status_code == 400
+    assert refused.json()["detail"] == "Only an assignment marked done can be paid."
+    assert unknown.status_code == 400
+
+
+async def test_the_scheduler_never_approves_their_own_payment(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    work = await _work(session, world)
+    made = await _schedule(client, world, work)
+
+    own = await client.post(
+        f"/api/payments/{made['id']}/paid/",
+        headers=world.headers("manager"),
+        json={"reference": "QX1"},
+    )
+
+    assert own.status_code == 403
+    assert own.json()["detail"] == "You scheduled this payment, so someone else approves it."
+
+
+async def test_a_coordinator_s_payment_needs_the_manager_and_a_manager_s_the_candidate(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    head = await _coordinator(session, client, world)
+    by_coordinator = await _schedule(client, world, await _work(session, world), head)
+    by_manager = await _schedule(client, world, await _work(session, world))
+
+    candidate_on_coordinators = await client.post(
+        f"/api/payments/{by_coordinator['id']}/paid/",
+        headers=world.headers("candidate"),
+        json={"reference": "A1"},
+    )
+    manager_on_coordinators = await client.post(
+        f"/api/payments/{by_coordinator['id']}/paid/",
+        headers=world.headers("manager"),
+        json={"reference": "A1"},
+    )
+    candidate_on_managers = await client.post(
+        f"/api/payments/{by_manager['id']}/paid/",
+        headers=world.headers("candidate"),
+        json={"reference": "A2"},
+    )
+
+    assert (by_coordinator["approver_role"], by_manager["approver_role"]) == (
+        "manager",
+        "candidate",
+    )
+    assert candidate_on_coordinators.status_code == 403
+    assert manager_on_coordinators.json()["status"] == "paid"
+    assert candidate_on_managers.json()["status"] == "paid"
+
+
+@pytest.mark.party_only
+async def test_the_party_workspace_manager_cannot_schedule(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    from backend.models import OfficeLevel
+
+    world.campaign.kind = WorkspaceKind.PARTY
+    world.campaign.office_level = OfficeLevel.NATIONAL
+    world.campaign.constituency_id = None
+    world.campaign.seat = None
     await session.commit()
-    for mobilizer in (world.mobilizer, other):
-        event = await _event(session, world, mobilizer)
-        made = await client.post(
-            "/api/payments/", headers=world.headers("manager"), json=_payment(world, event)
-        )
-        assert made.status_code == 201, made.text
+    work = await _work(session, world)
 
-    candidate_reads = await client.get("/api/payments/", headers=world.headers("candidate"))
-    candidate_writes = await client.post(
-        "/api/payments/", headers=world.headers("candidate"), json=_payment(world, event)
-    )
-    own = (await client.get("/api/payments/", headers=world.headers("mobilizer"))).json()
+    refused = await client.post("/api/payments/", headers=world.headers("manager"), json=_pay(work))
 
-    assert len(candidate_reads.json()) == 2
-    assert candidate_writes.status_code == 403
-    assert [p["recipient_name"] for p in own] == ["Juma Otieno"]
+    assert refused.status_code == 400
+    assert "coordinators schedule payments" in refused.json()["detail"]
 
 
-async def test_an_event_is_not_paid_twice_to_the_same_mobilizer(
+async def test_a_payee_is_always_a_mobilizer_or_agent_of_the_workspace(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    head = world.headers("manager")
-    event = await _event(session, world, world.mobilizer)
+    from backend.models import Campaign, OfficeLevel
 
-    first = await client.post("/api/payments/", headers=head, json=_payment(world, event))
-    second = await client.post("/api/payments/", headers=head, json=_payment(world, event))
+    elsewhere = Campaign(
+        title="Elsewhere",
+        office_level=OfficeLevel.CONSTITUENCY,
+        constituency_id=world.constituency.id,
+    )
+    session.add(elsewhere)
+    await session.flush()
+    stranger = Mobilizer(campaign_id=elsewhere.id, ward_id=world.ward.id, full_name="Stranger")
+    session.add(stranger)
+    await session.commit()
+    event = Event(campaign_id=world.campaign.id, ward_id=world.ward.id, title="Rally")
+    session.add(event)
+    await session.commit()
 
-    assert (first.status_code, second.status_code) == (201, 400)
+    refused = await client.post(
+        "/api/assignments/",
+        headers=world.headers("manager"),
+        json={
+            "campaign": str(world.campaign.id),
+            "mobilizer": str(stranger.id),
+            "kind": "event",
+            "event": str(event.id),
+            "amount_kes": 1000,
+        },
+    )
+
+    assert refused.status_code == 400
+    assert refused.json()["detail"] == "No such mobilizer on this campaign."
+
+
+async def test_an_agent_is_paid_and_sees_only_their_own_payment(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    agent_user = await make_user(session, username="wekesa", role=UserRole.AGENT)
+    await add_member(session, world.campaign.id, agent_user)
+    agent = Agent(
+        campaign_id=world.campaign.id,
+        user_id=agent_user.id,
+        ward_id=world.ward.id,
+        registration_centre_id=world.centre.id,
+    )
+    session.add(agent)
+    await session.commit()
+    await _schedule(client, world, await _work(session, world, agent=agent))
+    await _schedule(client, world, await _work(session, world))
+
+    own = (await client.get("/api/payments/", headers=auth(await sign_in(client, "wekesa")))).json()
+
+    assert [(p["agent"], p["mobilizer"]) for p in own] == [(str(agent.id), None)]
+
+
+async def test_every_schedule_approval_and_decline_is_audited(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    paid = await _schedule(client, world, await _work(session, world))
+    declined = await _schedule(client, world, await _work(session, world))
+    await client.post(
+        f"/api/payments/{paid['id']}/paid/",
+        headers=world.headers("candidate"),
+        json={"reference": "QX9"},
+    )
+    await client.post(
+        f"/api/payments/{declined['id']}/decline/",
+        headers=world.headers("candidate"),
+        json={"reason": "Not done properly"},
+    )
+
+    actions = (
+        await session.scalars(select(AuditEvent.action).where(AuditEvent.subject_type == "payment"))
+    ).all()
+
+    assert sorted(actions) == [
+        "payment.decline",
+        "payment.mark_paid",
+        "payment.schedule",
+        "payment.schedule",
+    ]
 
 
 async def test_a_blank_reference_does_not_mark_a_payment_paid(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    head = world.headers("manager")
-    event = await _event(session, world, world.mobilizer)
-    made = (await client.post("/api/payments/", headers=head, json=_payment(world, event))).json()
+    made = await _schedule(client, world, await _work(session, world))
 
     blank = await client.post(
-        f"/api/payments/{made['id']}/paid/", headers=head, json={"reference": "   "}
+        f"/api/payments/{made['id']}/paid/",
+        headers=world.headers("candidate"),
+        json={"reference": "   "},
     )
 
     assert blank.status_code == 400
@@ -107,10 +296,9 @@ async def test_a_blank_reference_does_not_mark_a_payment_paid(
 async def test_a_release_in_practice_mode_pays_once_under_a_practice_reference(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    head = world.headers("manager")
     world.mobilizer.phone = "0712 345678"
-    event = await _event(session, world, world.mobilizer)
-    made = (await client.post("/api/payments/", headers=head, json=_payment(world, event))).json()
+    made = await _schedule(client, world, await _work(session, world))
+    head = world.headers("candidate")
 
     released = await client.post(f"/api/payments/{made['id']}/release/", headers=head)
     again = await client.post(f"/api/payments/{made['id']}/release/", headers=head)
@@ -128,12 +316,12 @@ async def test_a_release_in_practice_mode_pays_once_under_a_practice_reference(
 async def test_a_release_without_a_usable_phone_sends_nothing(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    head = world.headers("manager")
-    event = await _event(session, world, world.mobilizer)
-    made = (await client.post("/api/payments/", headers=head, json=_payment(world, event))).json()
+    made = await _schedule(client, world, await _work(session, world))
 
-    released = await client.post(f"/api/payments/{made['id']}/release/", headers=head)
-    listed = (await client.get("/api/payments/", headers=head)).json()
+    released = await client.post(
+        f"/api/payments/{made['id']}/release/", headers=world.headers("candidate")
+    )
+    listed = (await client.get("/api/payments/", headers=world.headers("manager"))).json()
 
     assert released.status_code == 400
     assert [p["status"] for p in listed] == ["scheduled"]
@@ -151,11 +339,10 @@ async def test_an_unknown_outcome_waits_for_a_person_instead_of_paying_twice(
 ) -> None:
     from backend.api.routers import payments
 
-    head = world.headers("manager")
     world.mobilizer.phone = "0712 345678"
-    event = await _event(session, world, world.mobilizer)
-    made = (await client.post("/api/payments/", headers=head, json=_payment(world, event))).json()
+    made = await _schedule(client, world, await _work(session, world))
     monkeypatch.setattr(payments, "get_payout_provider", _Unreachable)
+    head = world.headers("candidate")
 
     stuck = (await client.post(f"/api/payments/{made['id']}/release/", headers=head)).json()
     retried = await client.post(f"/api/payments/{made['id']}/release/", headers=head)
@@ -186,11 +373,10 @@ async def test_a_send_still_in_flight_cannot_be_settled_by_hand(
 ) -> None:
     from backend.api.routers import payments
 
-    head = world.headers("manager")
     world.mobilizer.phone = "0712 345678"
-    event = await _event(session, world, world.mobilizer)
-    made = (await client.post("/api/payments/", headers=head, json=_payment(world, event))).json()
+    made = await _schedule(client, world, await _work(session, world))
     monkeypatch.setattr(payments, "get_payout_provider", _Confirms)
+    head = world.headers("candidate")
 
     sent = (await client.post(f"/api/payments/{made['id']}/release/", headers=head)).json()
     not_sent = await client.post(f"/api/payments/{made['id']}/not-sent/", headers=head)

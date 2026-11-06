@@ -50,7 +50,7 @@ function Coverage({ coverage }) {
   );
 }
 
-export default function Agents({ campaign, role }) {
+export default function Agents({ campaign, role, onModal }) {
   const agents = useAgents(campaign.id);
   const coverage = useAgentCoverage(campaign.id);
   const update = useUpdateAgent();
@@ -70,7 +70,7 @@ export default function Agents({ campaign, role }) {
             <h2 className="text-card-title font-bold">Everyone</h2>
             {update.error && <p role="alert" className="font-semibold text-destructive">{update.error.message}</p>}
             <Table minWidth={720}>
-              <THead><TR><TH>Agent</TH><TH>Centre</TH>{ids && <TH>ID number</TH>}<TH>Status</TH><TH>Training date</TH></TR></THead>
+              <THead><TR><TH>Agent</TH><TH>Centre</TH>{ids && <TH>ID number</TH>}<TH>Status</TH><TH>Training date</TH><TH className="relative"><span className="sr-only">Assign</span></TH></TR></THead>
               <TBody>
                 {rows.map((a) => (
                   <TR key={a.id}>
@@ -85,9 +85,10 @@ export default function Agents({ campaign, role }) {
                     <TD>
                       <Input type="date" aria-label={`Training date of ${a.full_name}`} value={a.training_date || ""} onChange={(e) => update.mutate({ id: a.id, training_date: e.target.value || null })} />
                     </TD>
+                    <TD align="right"><Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "assign-work", member: { role: "agent", id: a.id } })} aria-label={`Assign work to ${a.full_name}`}>Assign work</Button></TD>
                   </TR>
                 ))}
-                {rows.length === 0 && <TR><TD colSpan={5} className="text-muted-foreground">No agents yet. Share the team link from Sign-ups.</TD></TR>}
+                {rows.length === 0 && <TR><TD colSpan={6} className="text-muted-foreground">No agents yet. Share the team link from Sign-ups.</TD></TR>}
               </TBody>
             </Table>
           </Card>

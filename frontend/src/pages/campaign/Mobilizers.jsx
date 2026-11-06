@@ -63,7 +63,12 @@ export default function Mobilizers({ campaign, onModal }) {
                     </TD>
                     <TD className={placeOf(m) ? undefined : "text-muted-foreground"}>{placeOf(m) || `No ${noun} yet`}</TD>
                     <TD className="text-muted-foreground tabular-nums">{m.phone || "None"}</TD>
-                    <TD align="right"><Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "mobilizer", mobilizer: m })}>Edit</Button></TD>
+                    <TD align="right">
+                      <div className="flex justify-end gap-2">
+                        <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "assign-work", member: { role: "mobilizer", id: m.id } })} aria-label={`Assign work to ${m.full_name}`}>Assign work</Button>
+                        <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "mobilizer", mobilizer: m })}>Edit</Button>
+                      </div>
+                    </TD>
                   </TR>
                 ))}
                 {people.length === 0 && <TR><TD colSpan={4} className="text-muted-foreground">No mobilizers yet.</TD></TR>}

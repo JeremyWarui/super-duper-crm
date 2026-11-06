@@ -315,6 +315,19 @@ per workspace among sign-ups not rejected. ID numbers reach only the candidate,
 the manager and the person themselves; `GET /api/agents/export/` gives the
 candidate and manager a CSV per centre for appointment letters.
 
+## Assignments and payment approval
+
+Mobilizers and agents are paid only for work assigned to them and marked done
+(`/api/assignments/`): an event, ward work, or an activity with a description,
+each carrying its amount and its ward (and centre), so a coordinator's area
+covers it. A payment is scheduled against one done assignment, for its amount,
+once (`uq_payments_assignment`). Whoever schedules never approves
+(`services/payment_routing.py`): a coordinator's payment waits for the manager,
+a manager's for the candidate; in the party workspace only coordinators
+schedule and the Workspace Manager approves. Approving releases it through the
+payout provider; the approver can also mark it paid by hand or decline it with
+a reason. Every schedule, approval, decline and not-sent is audited.
+
 ## Payouts
 
 Releasing a campaign's mobilizer payment (`/api/payments/`) goes through the

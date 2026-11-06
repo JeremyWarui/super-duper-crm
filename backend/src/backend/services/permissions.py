@@ -54,7 +54,16 @@ MAP: dict[str, dict[UserRole, Reach]] = {
         R.AGENT: OWN,
     },
     "payments.schedule": {R.MANAGER: ALL, R.COORDINATOR: AREA},
-    "payments.approve": {R.MANAGER: ALL},
+    # Which of them approves a given payment: services/payment_routing.py (decision 27).
+    "payments.approve": {R.CANDIDATE: ALL, R.MANAGER: ALL},
+    "assignments.read": {
+        R.CANDIDATE: ALL,
+        R.MANAGER: ALL,
+        R.COORDINATOR: AREA,
+        R.MOBILIZER: OWN,
+        R.AGENT: OWN,
+    },
+    "assignments.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
     # Really sending, not a dry run; a Mobilizer texts their own ward.
     "sms.send": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.MOBILIZER: OWN},
     # Aspirant installations: the website and its settings.

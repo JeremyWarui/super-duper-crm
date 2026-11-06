@@ -41,7 +41,9 @@ TABLE = {
     "events.write": {C, M, CO, MO},
     "payments.read": {C, M, CO, MO, AG},
     "payments.schedule": {M, CO},
-    "payments.approve": {M},
+    "payments.approve": {C, M},
+    "assignments.read": {C, M, CO, MO, AG},
+    "assignments.write": {C, M, CO},
     "sms.send": {C, M, MO},
     "site.write": {C, M, CM},
     "volunteers.read": {C, M, CO},
@@ -73,6 +75,8 @@ def _route(action: str, campaign: uuid.UUID, event: uuid.UUID) -> tuple[str, str
         "payments.read": ("GET", "/api/payments/", None),
         "payments.schedule": ("POST", "/api/payments/", {}),
         "payments.approve": ("POST", f"/api/payments/{NOBODY}/release/", None),
+        "assignments.read": ("GET", f"/api/assignments/?campaign={campaign}", None),
+        "assignments.write": ("POST", "/api/assignments/", {}),
         "sms.send": ("POST", f"/api/events/{event}/invite/", {"message": "Rally at 4"}),
         "site.write": ("GET", "/api/workspace/site/posts/", None),
         "volunteers.read": ("GET", f"/api/campaigns/{campaign}/volunteers/", None),
@@ -191,7 +195,7 @@ async def test_a_payment_a_coordinator_schedules_needs_the_manager_to_release_it
 ) -> None:
     from datetime import UTC, datetime
 
-    from backend.models import Event, EventStatus
+    from backend.models import Assignment, AssignmentKind, AssignmentStatus, Event, EventStatus
 
     event = Event(
         campaign_id=world.campaign.id,
@@ -203,12 +207,21 @@ async def test_a_payment_a_coordinator_schedules_needs_the_manager_to_release_it
     )
     world.mobilizer.phone = "0712345678"
     session.add(event)
+    await session.flush()
+    work = Assignment(
+        campaign_id=world.campaign.id,
+        mobilizer_id=world.mobilizer.id,
+        kind=AssignmentKind.EVENT,
+        event_id=event.id,
+        ward_id=world.ward.id,
+        amount_kes=500,
+        status=AssignmentStatus.DONE,
+    )
+    session.add(work)
     await session.commit()
 
     scheduled = await client.post(
-        "/api/payments/",
-        headers=everyone[CO],
-        json={"campaign": str(world.campaign.id), "event": str(event.id), "amount_kes": 500},
+        "/api/payments/", headers=everyone[CO], json={"assignment": str(work.id)}
     )
     url = f"/api/payments/{scheduled.json()['id']}/release/"
     by_coordinator = await client.post(url, headers=everyone[CO])
@@ -286,7 +299,14 @@ async def test_a_coordinator_cannot_credit_or_pay_a_mobilizer_outside_their_area
 ) -> None:
     from datetime import UTC, datetime
 
-    from backend.models import Event, EventStatus, Mobilizer
+    from backend.models import (
+        Assignment,
+        AssignmentKind,
+        AssignmentStatus,
+        Event,
+        EventStatus,
+        Mobilizer,
+    )
 
     outside = Mobilizer(
         campaign_id=world.campaign.id,
@@ -302,10 +322,25 @@ async def test_a_coordinator_cannot_credit_or_pay_a_mobilizer_outside_their_area
         scheduled_date=datetime(2027, 1, 1, tzinfo=UTC),
     )
     session.add_all([outside, event])
+    await session.flush()
+    outside_work = Assignment(
+        campaign_id=world.campaign.id,
+        mobilizer_id=outside.id,
+        kind=AssignmentKind.WARD_WORK,
+        ward_id=world.other_ward.id,
+        amount_kes=500,
+        status=AssignmentStatus.DONE,
+    )
+    session.add(outside_work)
     await session.commit()
     campaign, ward = str(world.campaign.id), str(world.ward.id)
+    if route == "payment":
+        answer = await client.post(
+            "/api/payments/", headers=everyone[CO], json={"assignment": str(outside_work.id)}
+        )
+        assert (answer.status_code, answer.json()["detail"]) == (403, "That is outside your area.")
+        return
     path, body = {
-        "payment": ("/api/payments/", {"event": str(event.id), "amount_kes": 500}),
         "event": ("/api/events/", {"ward": ward, "title": "Walk"}),
         "supporter": (
             "/api/supporters/",

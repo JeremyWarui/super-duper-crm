@@ -6,6 +6,7 @@ import { FilterPills } from "@/components/ui/tabs";
 import { formatNumber as fmt } from "@/lib/format";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
+const ASSIGNERS = ["candidate", "manager", "coordinator"];
 const WHEN = { Upcoming: (e) => e.status !== "done", Past: (e) => e.status === "done" };
 const dayOf = (e) => (e.scheduled_date ? new Date(e.scheduled_date) : null);
 
@@ -18,7 +19,7 @@ function Figure({ label, value }) {
   );
 }
 
-function EventCard({ event: e, onRecord, onInvite, onQr }) {
+function EventCard({ event: e, onRecord, onInvite, onQr, onAssign }) {
   const done = e.status === "done";
   const day = dayOf(e);
   const rate = e.number_attended > 0 ? ` (${Math.round((e.signups / e.number_attended) * 100)}%)` : "";
@@ -48,11 +49,12 @@ function EventCard({ event: e, onRecord, onInvite, onQr }) {
         <Figure label="Signed up" value={`${fmt(e.signups)}${rate}`} />
         <Badge tone={done ? "ok" : "warn"}>{done ? "Done" : "Planned"}</Badge>
       </div>
-      {(onRecord || onInvite || onQr) && (
+      {(onRecord || onInvite || onQr || onAssign) && (
         <div className="flex w-full flex-wrap gap-2 border-t border-line-soft pt-3">
           {!done && onRecord && <Button shape="rounded" size="sm" onClick={() => onRecord(e)}>Record</Button>}
           {onInvite && <Button shape="rounded" size="sm" variant="quiet" onClick={() => onInvite(e)}>Invite</Button>}
           {onQr && e.signup_code && <Button shape="rounded" size="sm" variant="quiet" onClick={() => onQr(e)}>{e.signups_open ? "Sign-up QR" : "Closed"}</Button>}
+          {onAssign && e.status !== "cancelled" && <Button shape="rounded" size="sm" variant="quiet" onClick={() => onAssign(e)} aria-label={`Assign ${e.title}`}>Assign</Button>}
         </div>
       )}
     </article>
@@ -81,7 +83,8 @@ export default function Events({ campaign, role, onModal, mine }) {
             <EventCard key={e.id} event={e}
               onRecord={acts ? (ev) => onModal({ type: "record", event: ev }) : undefined}
               onInvite={acts ? (ev) => onModal({ type: "invite", event: ev }) : undefined}
-              onQr={acts ? (ev) => onModal({ type: "qr", event: ev }) : undefined} />
+              onQr={acts ? (ev) => onModal({ type: "qr", event: ev }) : undefined}
+              onAssign={ASSIGNERS.includes(role) && !mine ? (ev) => onModal({ type: "assign-work", event: ev }) : undefined} />
           ))}
           {rows.length === 0 && <p className="text-muted-foreground">{when === "Upcoming" ? "Nothing planned yet." : "No past events yet."}</p>}
         </section>

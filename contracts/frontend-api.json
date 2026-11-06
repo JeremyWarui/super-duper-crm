@@ -198,7 +198,11 @@
       "created_at",
       "provider",
       "failure_reason",
-      "stuck"
+      "stuck",
+      "assignment",
+      "agent",
+      "scheduled_by",
+      "approver_role"
     ],
     "GET /api/payments/payout-mode/": [
       "mode",
@@ -964,6 +968,20 @@
     ],
     "PATCH /api/agents/{agent_id}/": [
       "id"
+    ],
+    "GET /api/assignments/": [
+      "id",
+      "kind",
+      "label",
+      "member_name",
+      "member_role",
+      "ward_name",
+      "centre_name",
+      "amount_kes",
+      "status"
+    ],
+    "POST /api/assignments/": [
+      "id"
     ]
   },
   "nested_reads": {
@@ -1306,15 +1324,11 @@
       "title"
     ],
     "POST /api/payments/": [
-      "campaign",
-      "event",
-      "mobilizer",
-      "amount_kes"
+      "assignment"
     ],
     "POST /api/payments/{payment_id}/paid/": [
       "reference"
     ],
-    "POST /api/payments/{payment_id}/cancel/": [],
     "POST /api/payments/{payment_id}/release/": [],
     "POST /api/payments/{payment_id}/not-sent/": [],
     "POST /api/join/{code}/": [
@@ -1800,7 +1814,22 @@
     "PATCH /api/agents/{agent_id}/": [
       "status",
       "training_date"
-    ]
+    ],
+    "POST /api/payments/{payment_id}/decline/": [
+      "reason"
+    ],
+    "POST /api/assignments/": [
+      "campaign",
+      "mobilizer",
+      "agent",
+      "kind",
+      "event",
+      "ward",
+      "description",
+      "amount_kes"
+    ],
+    "POST /api/assignments/{assignment_id}/done/": [],
+    "POST /api/assignments/{assignment_id}/cancel/": []
   },
   "enums": {
     "user.role": [

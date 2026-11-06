@@ -12,7 +12,8 @@ import QrModal from "./QrModal";
 import CampaignLinkModal from "./CampaignLinkModal";
 import SchedulePaymentForm from "./SchedulePaymentForm";
 import MarkPaidForm from "./MarkPaidForm";
-import CancelPaymentForm from "./CancelPaymentForm";
+import DeclinePaymentForm from "./DeclinePaymentForm";
+import AssignForm from "./AssignForm";
 import ReleaseForm from "./ReleaseForm";
 import NotSentForm from "./NotSentForm";
 
@@ -33,9 +34,10 @@ export default function CampaignModal({ modal, campaign, role, onClose }) {
       {modal?.type === "event" && <ScheduleEventForm campaignId={campaignId} wardOptions={wardOptions} byCentre={byCentre} onClose={onClose} />}
       {modal?.type === "record" && <RecordForm event={modal.event} onClose={onClose} />}
       {modal?.type === "invite" && <InviteForm event={modal.event} onClose={onClose} />}
-      {modal?.type === "payment-schedule" && <SchedulePaymentForm campaignId={campaignId} onClose={onClose} />}
+      {modal?.type === "payment-schedule" && <SchedulePaymentForm campaignId={campaignId} role={role} onClose={onClose} />}
       {modal?.type === "payment-paid" && <MarkPaidForm payment={modal.payment} onClose={onClose} />}
-      {modal?.type === "payment-cancel" && <CancelPaymentForm payment={modal.payment} onClose={onClose} />}
+      {modal?.type === "payment-decline" && <DeclinePaymentForm payment={modal.payment} onClose={onClose} />}
+      {modal?.type === "assign-work" && <AssignForm campaignId={campaignId} event={modal.event} member={modal.member} onClose={onClose} />}
       {modal?.type === "payment-release" && <ReleaseForm payments={modal.payments} onClose={onClose} />}
       {modal?.type === "payment-notsent" && <NotSentForm payment={modal.payment} onClose={onClose} />}
       {modal?.type === "link" && <CampaignLinkModal campaign={campaign} onClose={onClose} />}

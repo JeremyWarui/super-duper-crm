@@ -1,6 +1,7 @@
 """Every model, imported here so `Base.metadata` holds the full schema."""
 
 from backend.db.base import Base
+from backend.models.assignment import Assignment
 from backend.models.audit import AuditEvent
 from backend.models.auth_token import AuthToken
 from backend.models.campaign import Campaign
@@ -22,6 +23,8 @@ from backend.models.content import (
 from backend.models.enums import (
     AgentStatus,
     AspirantStatus,
+    AssignmentKind,
+    AssignmentStatus,
     ConsentChannel,
     ContactMethod,
     EventStatus,
@@ -100,6 +103,9 @@ __all__ = [
     "ContactMethod",
     "Profession",
     "Agent",
+    "Assignment",
+    "AssignmentKind",
+    "AssignmentStatus",
     "AgentStatus",
     "EmailLog",
     "FieldRole",

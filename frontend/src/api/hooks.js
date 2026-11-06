@@ -228,11 +228,39 @@ export function useMarkPaid() {
   });
 }
 
-export function useCancelPayment() {
+// Refuses a payment with a reason; its assignment can be paid by a new one.
+export function useDeclinePayment() {
   const invalidate = useInvalidator();
   return useMutation({
-    mutationFn: ({ id }) => api(`/payments/${id}/cancel/`, { method: "POST" }),
+    mutationFn: ({ id, reason }) => api(`/payments/${id}/decline/`, { method: "POST", body: { reason } }),
     onSettled: () => invalidate("payments"),  // a refused change may mean the row moved on
+  });
+}
+
+// ---- assignments ------------------------------------------------------------
+export const useAssignments = (campaignId, status) =>
+  useQuery({
+    queryKey: ["assignments", campaignId, status],
+    queryFn: () => api(`/assignments/?campaign=${campaignId}${status ? `&status=${status}` : ""}`),
+    enabled: !!campaignId,
+  });
+
+export function useCreateAssignment() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (body) => api("/assignments/", { method: "POST", body }),
+    onSuccess: () => invalidate("assignments"),
+  });
+}
+
+export function useSettleAssignment() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, outcome }) =>
+      outcome === "done"
+        ? api(`/assignments/${id}/done/`, { method: "POST" })
+        : api(`/assignments/${id}/cancel/`, { method: "POST" }),
+    onSettled: () => invalidate("assignments"),
   });
 }
 

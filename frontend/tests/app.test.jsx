@@ -37,7 +37,7 @@ const groups = () =>
 
 const LEAD = {
   Plan: ["Overview", "Strategy", "Targets", "Wards"],
-  Field: ["Events", "Mobilizers", "Agents", "Supporters", "Volunteers"],
+  Field: ["Events", "Mobilizers", "Agents", "Assignments", "Supporters", "Volunteers"],
   People: ["Team", "Sign-ups"],
   Money: ["Payments"],
 };
