@@ -460,6 +460,23 @@ A member applies from their account's "My nomination" tab (`/api/party/nominatio
   approved automatically.
 - The member withdraws a draft or submitted application. Every step is audited.
 
+## Shared counts with the party
+
+The party never reads a campaign's supporters, except counts the campaign has chosen to share.
+A hosted workspace's "Party feed" page (`/api/party-feed/?campaign=`, for the Candidate, the
+Manager and Comms) shows the party's published events and statements for the campaign's county
+or the whole country, and the party's approved members counted per ward of the seat. Its three
+switches, all off until the Candidate turns one on (`sharing.write`), decide what the
+superuser's dashboard reads from `/api/party/shared/`:
+
+- **Event reach**: done events, and the numbers reached and attended.
+- **Ward coverage**: how many wards of the seat have a mobilizer, ward by ward.
+- **Supporter counts by ward**: numbers only.
+
+The counts are worked out on each read and kept nowhere on the party side, so a switch turned
+off shows "Not shared" on the next read. Each change is audited and listed on the page. The
+party workspace and a standalone workspace have no such page (404).
+
 ## Sign-in links
 
 Nobody is shown a password. A new login gets an emailed invite link (72 hours)

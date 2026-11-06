@@ -30,6 +30,9 @@ const ROUTES = {
   "GET /party/places/": [{ id: "c1", name: "Nakuru" }],
   "GET /party/aspirants/": { total: 0, items: [] },
   "GET /party/dashboard/": BOARD,
+  "GET /party/shared/": [
+    { id: "s1", title: "Jane for Roysambu", seat: "mp", event_reach: null, ward_coverage: null, supporter_counts: [{ ward_id: "w1", ward: "Zimmerman", count: 12 }] },
+  ],
 };
 
 function openDashboard() {
@@ -64,5 +67,13 @@ describe("the party dashboard", () => {
     await waitFor(() =>
       expect(calls.map((c) => c.path)).toContain("/party/dashboard/?county=c1&seat=mp"),
     );
+  });
+
+  it("shows each campaign's shared counts, and Not shared where a switch is off", async () => {
+    openDashboard();
+
+    const row = (await screen.findByText("Jane for Roysambu")).closest("tr");
+    expect(row).toHaveTextContent("12 · Zimmerman 12");
+    expect(row.textContent.match(/Not shared/g)).toHaveLength(2);
   });
 });

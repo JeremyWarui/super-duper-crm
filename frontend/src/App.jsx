@@ -36,6 +36,7 @@ import Agents from "./pages/campaign/Agents";
 import MyCentre from "./pages/campaign/MyCentre";
 import Assignments from "./pages/campaign/Assignments";
 import Messages from "./pages/campaign/Messages";
+import PartyFeed from "./pages/campaign/PartyFeed";
 import FieldTabs from "./pages/campaign/FieldTabs";
 import { useMedia } from "./lib/useMedia";
 
@@ -65,6 +66,7 @@ const PAGES = {
   mycentre: MyCentre,
   assignments: Assignments,
   messages: Messages,
+  party: PartyFeed,
   register: Register,
   myevents: (props) => <Events {...props} mine />,
   mysupporters: (props) => <Supporters {...props} mine />,
@@ -140,7 +142,7 @@ export default function App() {
   if (campaigns.isLoading) return <Legacy><Loading /></Legacy>;
   if (campaigns.error) return <Legacy><ErrorMsg error={campaigns.error} /></Legacy>;
   if (!campaign) return <Legacy><div className="not-on-campaign">You are not on a campaign yet.</div></Legacy>;
-  const where = { aspirant: install.aspirant, partyWorkspace: campaign.kind === "party" };
+  const where = { aspirant: install.aspirant, partyWorkspace: campaign.kind === "party", hosted: campaign.kind === "hosted" };
   const pages = pagesOf(role, where);
 
   return (

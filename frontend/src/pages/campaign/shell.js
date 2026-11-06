@@ -2,7 +2,7 @@
 // and what needs the role now.
 import { createContext, useContext, useMemo } from "react";
 import {
-  Banknote, CalendarDays, ClipboardCheck, ClipboardList, Crosshair, Globe, HandHeart, Heart, LayoutDashboard, Map, MapPin, MessageCircle, QrCode,
+  Banknote, CalendarDays, Flag, ClipboardCheck, ClipboardList, Crosshair, Globe, HandHeart, Heart, LayoutDashboard, Map, MapPin, MessageCircle, QrCode,
   Settings, ShieldCheck, Target, UserPlus, UserRoundCog, Users,
 } from "lucide-react";
 import { useEvents, useMobilizers, useStrategy, useSupporters, useTargets } from "../../api/hooks";
@@ -31,6 +31,7 @@ export const ICONS = {
   mycentre: MapPin,
   assignments: ClipboardList,
   messages: MessageCircle,
+  party: Flag,
 };
 
 /** The data the shell reads for this role; a query the role may not make is never sent. */

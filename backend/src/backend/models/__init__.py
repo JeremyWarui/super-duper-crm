@@ -78,6 +78,7 @@ from backend.models.party import (
     RecruitmentCode,
 )
 from backend.models.payment import Payment, ReconcileDifference, ReconcileRun
+from backend.models.sharing import CampaignSharing
 from backend.models.site import SetupToken, SiteSettings
 from backend.models.sms import CampaignMessage, SmsInbound, SmsLog, SmsOptOut
 from backend.models.supporter import Supporter
@@ -91,6 +92,7 @@ __all__ = [
     "CampaignMessage",
     "NominationSeat",
     "NominationWindow",
+    "CampaignSharing",
     "SmsInbound",
     "SmsLog",
     "SmsOptOut",

@@ -1,6 +1,6 @@
 // The superuser's party-wide totals, filtered by place, seat, aspirant and dates.
 import { useState } from "react";
-import { useAspirants, usePartyDashboard, usePartyPlaces } from "../../api/hooks";
+import { useAspirants, usePartyDashboard, usePartyPlaces, usePartyShared } from "../../api/hooks";
 import { Button, ErrorState, Field, LoadingState, PageTitle, Panel } from "../../components/ui";
 import { formatDate, formatNumber } from "../../lib/format";
 import { AREA_LABEL, SEAT_LABEL, SEATS } from "./helpers";
@@ -30,6 +30,45 @@ function Counts({ title, head, rows }) {
               <tr key={key}><td>{label}</td><td className="num figure">{formatNumber(count)}</td></tr>
             ))}
             {rows.length === 0 && <tr><td colSpan={2} className="empty-row">None.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
+  );
+}
+
+const NOT_SHARED = <span className="muted">Not shared</span>;
+const wardList = (rows) => rows.map((w) => `${w.ward} ${formatNumber(w.count)}`).join(" · ");
+
+// The counts each hosted campaign has chosen to share; read fresh, so a switch turned off shows
+// "Not shared" on the next load.
+function Shared() {
+  const shared = usePartyShared();
+  if (shared.error) return <ErrorState error={shared.error} />;
+  const rows = shared.data || [];
+  return (
+    <Panel pad={0}>
+      <div className="card-head"><div className="card-title">Shared by campaigns</div></div>
+      <div className="table-scroll">
+        <table className="table" aria-label="Shared by campaigns">
+          <thead><tr><th>Campaign</th><th>Event reach</th><th>Ward coverage</th><th>Supporters by ward</th></tr></thead>
+          <tbody>
+            {rows.map((c) => {
+              const supporters = c.supporter_counts;
+              return (
+                <tr key={c.id}>
+                  <td className="strong">{c.title}{c.seat && <div className="muted">{SEAT_LABEL[c.seat]}</div>}</td>
+                  <td>{c.event_reach ? `${formatNumber(c.event_reach.events)} events · ${formatNumber(c.event_reach.reached)} reached · ${formatNumber(c.event_reach.attended)} attended` : NOT_SHARED}</td>
+                  <td>{c.ward_coverage ? `${formatNumber(c.ward_coverage.covered.length)} of ${formatNumber(c.ward_coverage.wards)} wards have mobilizers` : NOT_SHARED}</td>
+                  <td>
+                    {supporters
+                      ? `${formatNumber(supporters.reduce((n, w) => n + w.count, 0))}${supporters.length ? ` · ${wardList(supporters)}` : ""}`
+                      : NOT_SHARED}
+                  </td>
+                </tr>
+              );
+            })}
+            {shared.isSuccess && rows.length === 0 && <tr><td colSpan={4} className="empty-row">No nominee workspaces yet.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -125,6 +164,7 @@ export default function Dashboard() {
               rows={d.volunteers_by_interest.map((r) => [r.interest, AREA_LABEL[r.interest] || r.interest, r.count])}
             />
           </div>
+          <Shared />
         </>
       )}
     </div>

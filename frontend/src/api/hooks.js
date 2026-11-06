@@ -1502,3 +1502,21 @@ export function useMarkNominationFeePaid() {
     onSuccess: () => invalidate("aspirants"),
   });
 }
+
+// A hosted workspace's party feed and what it shares; the party's view of those counts.
+export const usePartyFeed = (campaignId) =>
+  useQuery({
+    queryKey: ["party-feed", campaignId],
+    queryFn: () => api(`/party-feed/?campaign=${campaignId}`),
+    enabled: !!campaignId,
+  });
+
+export function useChangeSharing(campaignId) {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (body) => api(`/party-feed/sharing/?campaign=${campaignId}`, { method: "PUT", body }),
+    onSuccess: () => invalidate("party-feed"),
+  });
+}
+
+export const usePartyShared = () => useQuery({ queryKey: ["party-shared"], queryFn: () => api("/party/shared/") });

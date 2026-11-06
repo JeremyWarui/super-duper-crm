@@ -73,6 +73,9 @@ MAP: dict[str, dict[UserRole, Reach]] = {
     "volunteers.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
     "volunteers.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
     "export": {R.CANDIDATE: ALL, R.MANAGER: ALL},
+    # A hosted workspace's "From the party" page, and the counts it shares with the party.
+    "party.feed": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COMMS: ALL},
+    "sharing.write": {R.CANDIDATE: ALL},
 }
 
 REFUSALS = {
@@ -83,6 +86,7 @@ REFUSALS = {
     "supporters.read": "The supporter register is for the campaign team.",
     "supporters.write": "The supporter register is for the campaign team.",
     "sms.send": "Only the candidate or the campaign manager sends texts.",
+    "sharing.write": "Only the candidate decides what the campaign shares with the party.",
 }
 
 

@@ -52,9 +52,18 @@ from backend.schemas.party import (
     PartySubscribed,
     PartyWithdrawn,
 )
+from backend.schemas.sharing import SharedCampaign
 from backend.schemas.site import EMAIL
 from backend.security import hash_password
-from backend.services import branches, content, dashboard, home, membership, subscribers
+from backend.services import (
+    branches,
+    content,
+    dashboard,
+    home,
+    membership,
+    sharing,
+    subscribers,
+)
 from backend.services import party as service
 from backend.services.accounts import clean_email
 from backend.services.ratelimit import RateLimit
@@ -158,6 +167,12 @@ async def party_dashboard(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "The start date is after the end date.")
     filters = dashboard.Filters(county, constituency, ward, seat, aspirant, start, end)
     return await dashboard.dashboard(session, filters, today)
+
+
+@party_router.get("/shared/", response_model=list[SharedCampaign])
+async def shared_counts(session: SessionDep, _: AdminUser) -> list[dict]:
+    """What each hosted campaign shares with the party: counts only, null where it shares none."""
+    return await sharing.shared(session)
 
 
 @router.get("/places/", response_model=list[PartyPlace])

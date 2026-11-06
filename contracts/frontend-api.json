@@ -1177,6 +1177,27 @@
       "window",
       "choices",
       "application"
+    ],
+    "GET /api/party-feed/": [
+      "events",
+      "notices",
+      "members_by_ward",
+      "sharing",
+      "can_change",
+      "history"
+    ],
+    "PUT /api/party-feed/sharing/": [
+      "event_reach",
+      "ward_coverage",
+      "supporter_counts"
+    ],
+    "GET /api/party/shared/": [
+      "id",
+      "title",
+      "seat",
+      "event_reach",
+      "ward_coverage",
+      "supporter_counts"
     ]
   },
   "nested_reads": {
@@ -1561,6 +1582,47 @@
     "GET /api/party/aspirants/{aspirant_id}/.documents": [
       "id",
       "label"
+    ],
+    "GET /api/party-feed/.events": [
+      "id",
+      "title",
+      "body",
+      "event_date",
+      "venue"
+    ],
+    "GET /api/party-feed/.notices": [
+      "id",
+      "title",
+      "body",
+      "published_on"
+    ],
+    "GET /api/party-feed/.members_by_ward": [
+      "ward",
+      "count"
+    ],
+    "GET /api/party-feed/.sharing": [
+      "event_reach",
+      "ward_coverage",
+      "supporter_counts"
+    ],
+    "GET /api/party-feed/.history": [
+      "at",
+      "by",
+      "switch",
+      "on"
+    ],
+    "GET /api/party/shared/.event_reach": [
+      "events",
+      "reached",
+      "attended"
+    ],
+    "GET /api/party/shared/.ward_coverage": [
+      "wards",
+      "covered"
+    ],
+    "GET /api/party/shared/.supporter_counts": [
+      "ward",
+      "count"
     ]
   },
   "writes": {
@@ -2251,7 +2313,12 @@
     "POST /api/party/nominations/mine/submit/": [
       "declaration"
     ],
-    "POST /api/party/nominations/mine/withdraw/": []
+    "POST /api/party/nominations/mine/withdraw/": [],
+    "PUT /api/party-feed/sharing/": [
+      "event_reach",
+      "ward_coverage",
+      "supporter_counts"
+    ]
   },
   "enums": {
     "user.role": [
