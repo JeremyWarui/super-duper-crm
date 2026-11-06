@@ -1002,6 +1002,31 @@
     ],
     "POST /api/setup/services/{key}/test/": [
       "message"
+    ],
+    "POST /api/admin/imports/boundaries/": [
+      "kind",
+      "rows",
+      "applied",
+      "counts",
+      "changes"
+    ],
+    "POST /api/admin/imports/register/": [
+      "kind",
+      "rows",
+      "applied",
+      "counts",
+      "changes"
+    ],
+    "GET /api/admin/imports/": [
+      "id",
+      "kind",
+      "filename",
+      "counts",
+      "created_at"
+    ],
+    "POST /api/targets/refresh/": [
+      "units",
+      "win_number"
     ]
   },
   "nested_reads": {
@@ -1252,6 +1277,18 @@
       "mode",
       "live",
       "testable"
+    ],
+    "POST /api/admin/imports/boundaries/.changes": [
+      "level",
+      "code",
+      "change",
+      "detail"
+    ],
+    "POST /api/admin/imports/register/.changes": [
+      "level",
+      "code",
+      "change",
+      "detail"
     ]
   },
   "writes": {
@@ -1868,7 +1905,20 @@
       "aspirant",
       "party_workspace"
     ],
-    "POST /api/setup/services/{key}/test/": []
+    "POST /api/setup/services/{key}/test/": [],
+    "POST /api/admin/imports/boundaries/": [
+      "filename",
+      "csv",
+      "dry_run"
+    ],
+    "POST /api/admin/imports/register/": [
+      "filename",
+      "csv",
+      "dry_run"
+    ],
+    "POST /api/targets/refresh/": [
+      "campaign"
+    ]
   },
   "enums": {
     "user.role": [

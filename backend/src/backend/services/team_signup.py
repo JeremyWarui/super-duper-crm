@@ -73,7 +73,7 @@ async def centres_of(session: AsyncSession, campaign: Campaign, ward_id: uuid.UU
         raise Refused("That ward is not one this campaign works.")
     found = await session.scalars(
         select(RegistrationCentre)
-        .where(RegistrationCentre.ward_id == ward_id)
+        .where(RegistrationCentre.ward_id == ward_id, RegistrationCentre.retired.is_(False))
         .order_by(RegistrationCentre.name)
     )
     return list(found)

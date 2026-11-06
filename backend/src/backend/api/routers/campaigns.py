@@ -20,7 +20,7 @@ from backend.models import Campaign, User, VolunteerProfile, VolunteerStatus, Wo
 from backend.schemas.campaign import CampaignRead, CampaignSignups, EventSignups, SetupSummary
 from backend.schemas.candidates import CampaignVolunteerRead, CampaignVolunteerUpdate
 from backend.services import campaign_volunteers, site
-from backend.services.targets import generate_targets
+from backend.services.targets import refresh_targets
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 # The campaign-wide sign-up link reaches the whole register.
@@ -99,12 +99,9 @@ async def set_signups(
 async def regenerate_targets(
     campaign_id: uuid.UUID, session: SessionDep, user: TargetsWriter
 ) -> SetupSummary:
-    """Rebuild the targets after new centres or wards are loaded."""
-    summary = await generate_targets(
-        session, await require_visible_campaign(session, user, campaign_id)
-    )
-    await session.commit()
-    return summary
+    """Rebuild the targets after new centres or wards are loaded, as Refresh targets does."""
+    campaign = await require_visible_campaign(session, user, campaign_id)
+    return await refresh_targets(session, campaign, actor=user)
 
 
 @router.get("/{campaign_id}/volunteers/", response_model=list[CampaignVolunteerRead])

@@ -4,7 +4,7 @@ targets built on them; re-running updates in place."""
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -15,10 +15,12 @@ from backend.models import (
     OperationalGrain,
     RegistrationCentre,
     Target,
+    User,
     Ward,
     unit_key,
 )
 from backend.schemas.campaign import SetupSummary
+from backend.services.audit import record
 
 WITH_COUNTY = selectinload(Ward.constituency).selectinload(Constituency.county)
 
@@ -52,14 +54,18 @@ async def wards_in_area(session: AsyncSession, campaign: Campaign) -> list[Ward]
             select(Ward).where(Ward.id == campaign.ward_id).options(WITH_COUNTY)
         )
         return [ward] if ward is not None else []
-    statement = _in_area(select(Ward).options(WITH_COUNTY), campaign)
+    statement = _in_area(select(Ward).where(Ward.retired.is_(False)).options(WITH_COUNTY), campaign)
     if statement is None:
         return []
     return list((await session.scalars(statement.order_by(Ward.name))).all())
 
 
-async def generate_targets(session: AsyncSession, campaign: Campaign) -> SetupSummary:
+async def generate_targets(
+    session: AsyncSession, campaign: Campaign, *, keep_turnout: bool = False
+) -> SetupSummary:
     """Create or refresh a target per ward, or per centre for a ward race; committed votes stay.
+
+    With `keep_turnout`, a target keeps the turnout set on it; new ones take the county's.
 
     Flushes; the caller commits.
     """
@@ -78,7 +84,7 @@ async def generate_targets(session: AsyncSession, campaign: Campaign) -> SetupSu
         centres = (
             await session.scalars(
                 select(RegistrationCentre)
-                .where(RegistrationCentre.ward_id == ward.id)
+                .where(RegistrationCentre.ward_id == ward.id, RegistrationCentre.retired.is_(False))
                 .order_by(RegistrationCentre.name)
             )
             if ward is not None
@@ -98,10 +104,12 @@ async def generate_targets(session: AsyncSession, campaign: Campaign) -> SetupSu
             session.add(target)
         target.ward = ward
         target.registration_centre = centre
+        target.take_register()
         turnout: Decimal | None = ward.constituency.county.turnout_2022_pct
-        target.projected_turnout_pct = turnout
+        if not keep_turnout or target.projected_turnout_pct is None:
+            target.projected_turnout_pct = turnout
         target.recompute_win_number()
-        total_registered += (centre or ward).registered_voters or 0
+        total_registered += target.registered_voters or 0
         win_number += target.votes_needed or 0
 
     await session.flush()
@@ -112,3 +120,35 @@ async def generate_targets(session: AsyncSession, campaign: Campaign) -> SetupSu
         win_number=win_number,
         note=note,
     )
+
+
+async def refresh_targets(
+    session: AsyncSession, campaign: Campaign, *, actor: User
+) -> SetupSummary:
+    """Recompute every win number from the current register, adding units new since the last
+    refresh; turnouts and votes committed stay. Imports never do this on their own."""
+    summary = await generate_targets(session, campaign, keep_turnout=True)
+    # Every target the campaign has, so one left on a retired unit still counts.
+    units, registered, needed = (
+        await session.execute(
+            select(
+                func.count(Target.id),
+                func.coalesce(func.sum(Target.registered_voters), 0),
+                func.coalesce(func.sum(Target.votes_needed), 0),
+            ).where(Target.campaign_id == campaign.id)
+        )
+    ).one()
+    summary = summary.model_copy(
+        update={"units": units, "total_registered": registered, "win_number": needed}
+    )
+    record(
+        session,
+        actor=actor,
+        action="targets.refresh",
+        subject_type="campaign",
+        subject_id=campaign.id,
+        campaign_id=campaign.id,
+        detail={"units": summary.units, "win_number": summary.win_number},
+    )
+    await session.commit()
+    return summary

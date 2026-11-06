@@ -257,3 +257,7 @@ class EventInviteResult(ORMModel):
     rejected: list[InviteRecipient]
     detail: str
     number_reached: int
+
+
+class TargetRefresh(WriteModel):
+    campaign: uuid.UUID

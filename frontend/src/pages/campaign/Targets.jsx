@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useTargets, useUpdateTarget } from "@/api/hooks";
+import { useRefreshTargets, useTargets, useUpdateTarget } from "@/api/hooks";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
@@ -83,8 +84,17 @@ function Totals({ rows, turnoutOf, neededOf }) {
   );
 }
 
-export default function Targets({ campaign }) {
+export default function Targets({ campaign, role }) {
   const { data, isLoading, error } = useTargets(campaign.id);
+  const refresh = useRefreshTargets();
+  // Win numbers follow a new voter register only when someone who runs the campaign asks.
+  const refreshes = role === "candidate" || role === "manager";
+  const action = refreshes ? (
+    <Button shape="rounded" variant="quiet" disabled={refresh.isPending} onClick={() => refresh.mutate(campaign.id)}
+      title="Recompute every win number from the latest voter register; turnouts and committed votes stay.">
+      {refresh.isPending ? "Refreshing…" : "Refresh targets"}
+    </Button>
+  ) : null;
   const noun = campaign.operational_grain === "centre" ? "centre" : "ward";
   const [drafts, setDrafts] = useState({});  // turnout per target id, until its save settles
   const onDraft = useCallback((id, pct) => setDrafts((d) => ({ ...d, [id]: pct })), []);
@@ -99,7 +109,9 @@ export default function Targets({ campaign }) {
   const neededOf = (t) => (t.id in drafts ? winNumber(t.registered_voters, drafts[t.id]) : t.votes_needed);
   return (
     <>
-      <WsHeader context="Plan" title="Targets" sub={`Set the expected turnout in each ${noun}. The win number is half the projected votes cast, plus one.`} />
+      <WsHeader context="Plan" title="Targets" sub={`Set the expected turnout in each ${noun}. The win number is half the projected votes cast, plus one.`} actions={action} />
+      {refresh.isSuccess && <p role="status" className="font-semibold text-primary">Refreshed from the latest register: {fmt(refresh.data.units)} {noun}s, win number {fmt(refresh.data.win_number)}.</p>}
+      {refresh.error && <p role="alert" className="font-semibold text-destructive">{refresh.error.message}</p>}
       {isLoading && <KitLoading />}
       {error && <KitError error={error} />}
       {data && (

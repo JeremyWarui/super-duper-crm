@@ -20,7 +20,14 @@ from backend.api.scope import (
     scoped,
 )
 from backend.models import OperationalGrain, RegistrationCentre, Target, User, Ward
-from backend.schemas.campaign import TargetCreate, TargetRead, TargetUpdate
+from backend.schemas.campaign import (
+    SetupSummary,
+    TargetCreate,
+    TargetRead,
+    TargetRefresh,
+    TargetUpdate,
+)
+from backend.services.targets import refresh_targets
 
 router = APIRouter(prefix="/targets", tags=["targets"])
 
@@ -39,6 +46,17 @@ async def list_targets(
     return await all_rows(
         session, statement.join(Ward, Target.ward_id == Ward.id).order_by(Ward.name)
     )
+
+
+@router.post("/refresh/", response_model=SetupSummary)
+async def refresh(
+    payload: TargetRefresh,
+    session: SessionDep,
+    user: Annotated[User, Depends(require("targets.write", whole=True))],
+) -> SetupSummary:
+    """Recompute the campaign's targets from the current voter register."""
+    campaign = await require_visible_campaign(session, user, payload.campaign)
+    return await refresh_targets(session, campaign, actor=user)
 
 
 @router.post("/", response_model=TargetRead, status_code=status.HTTP_201_CREATED)
@@ -79,7 +97,7 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, "That unit already has a target."
         ) from None
-    return await _saved(session, target)
+    return await _saved(session, target, new=True)
 
 
 @router.patch("/{target_id}/", response_model=TargetRead)
@@ -103,14 +121,17 @@ async def delete_target(target_id: uuid.UUID, session: SessionDep, user: Writer)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-async def _saved(session: SessionDep, target: Target) -> Target:
-    """Recompute the win number, commit, and read the target back."""
+async def _saved(session: SessionDep, target: Target, *, new: bool = False) -> Target:
+    """Recompute the win number, commit, and read the target back; a new target takes the
+    current register, an existing one keeps the one it was refreshed on."""
     await session.flush()
     target.ward = await session.get(Ward, target.ward_id)
     if target.registration_centre_id is not None:
         target.registration_centre = await session.get(
             RegistrationCentre, target.registration_centre_id
         )
+    if new:
+        target.take_register()
     target.recompute_win_number()
     await session.commit()
     return await load(session, Target, target.id, LOADED)

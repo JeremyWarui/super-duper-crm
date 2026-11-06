@@ -56,11 +56,11 @@
 
 /* Gives the pages inside .legacy the browser's own defaults back from under
    Tailwind's base styles. Images and SVG keep their size and paint attributes,
-   which `revert` would drop. */
-.legacy :where(*:not(svg, svg *, img)),
-.legacy :where(*:not(svg, svg *))::before,
-.legacy :where(*:not(svg, svg *))::after,
-.legacy :where(*)::placeholder {
+   which `revert` would drop. A `.kit` island inside keeps the UI kit's styles. */
+.legacy :where(*:not(svg, svg *, img, .kit, .kit *)),
+.legacy :where(*:not(svg, svg *, .kit, .kit *))::before,
+.legacy :where(*:not(svg, svg *, .kit, .kit *))::after,
+.legacy :where(*:not(.kit *))::placeholder {
   all: revert;
 }
 

@@ -297,6 +297,44 @@ opens the setup; one with logins keeps its settings.
 - The logo is an https link; uploaded logos wait for the site editor to use stored files.
 - Invite emails go out before the setup commits; if the commit then fails, the link is dead.
 
+## Reference data imports
+
+Boundary reviews and new voter registers load from CSV, from the server or the console's
+"Areas and register" tab. Samples covering Lamu County are in `docs/handover/samples/`; on a
+freshly seeded database both report "no changes".
+
+```bash
+uv run campaign-crm import-boundaries docs/handover/samples/boundaries.csv --dry-run
+uv run campaign-crm import-register docs/handover/samples/register.csv
+```
+
+- **Boundaries** (`county_code, county_name, constituency_code, constituency_name, ward_code,
+  ward_name, centre_code, centre_name`): one row per centre, or per ward with the centre columns
+  blank. Counties, constituencies and wards match by their code, a centre by its ward's code
+  and its own. Names change, wards and constituencies move, new areas are created. A file covers
+  whole counties: a constituency or ward it leaves out of a county it names is retired, and so
+  is a centre left out of a ward it lists centres for. Nothing is deleted; a retired area keeps
+  everything that refers to it, is hidden from pickers and from new targets, and comes back if a
+  later file names it again.
+- **Register** (`county_code, ward_code, centre_code, registered_voters, turnout_pct`): a county
+  row sets its voters and turnout, a ward row its voters, a ward and centre row the centre's.
+- Every row is checked first; one bad row and nothing is written. `--dry-run` (or "Check file")
+  reports every change and writes nothing. A real run is audited (`import.boundaries`,
+  `import.register`) and keeps one `import_changes` row per change under its `import_runs` row.
+- Each target stores the registered voters its win number was worked out on, so an import
+  changes no figure on the Targets, Strategy or Overview pages. A candidate or manager presses
+  **Refresh targets** (`POST /api/targets/refresh/`) to take the current register: every win
+  number is recomputed, new units get targets, and each target keeps its turnout and committed
+  votes. Turnouts are the campaign's own estimates; an imported county turnout is the starting
+  turnout for targets created after it.
+
+### Known gaps
+
+- A boundary file covers whole counties; a file listing one ward retires the rest of its
+  county. The check step shows every retirement before anything is written.
+- A register file may set numbers on retired areas.
+- Codes are not unique in the database; the seed loads them unique, and imports match on them.
+
 ## Sign-in links
 
 Nobody is shown a password. A new login gets an emailed invite link (72 hours)

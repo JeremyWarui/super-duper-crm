@@ -21,7 +21,9 @@ router = APIRouter(tags=["geography"], dependencies=[Depends(get_current_user)])
 
 @router.get("/counties/", response_model=list[CountyRead])
 async def list_counties(session: SessionDep) -> list[County]:
-    return await all_rows(session, select(County).order_by(County.name))
+    return await all_rows(
+        session, select(County).where(County.retired.is_(False)).order_by(County.name)
+    )
 
 
 @router.get("/counties/{county_id}/", response_model=CountyRead)
@@ -37,7 +39,10 @@ async def list_constituencies(
     session: SessionDep, county: uuid.UUID | None = None
 ) -> list[Constituency]:
     statement = (
-        select(Constituency).options(selectinload(Constituency.county)).order_by(Constituency.name)
+        select(Constituency)
+        .where(Constituency.retired.is_(False))
+        .options(selectinload(Constituency.county))
+        .order_by(Constituency.name)
     )
     if county is not None:
         statement = statement.where(Constituency.county_id == county)
@@ -52,7 +57,12 @@ async def list_wards(
     county: uuid.UUID | None = None,
 ) -> list[Ward]:
     """Every ward, or those in one constituency or county."""
-    statement = select(Ward).options(selectinload(Ward.constituency)).order_by(Ward.name)
+    statement = (
+        select(Ward)
+        .where(Ward.retired.is_(False))
+        .options(selectinload(Ward.constituency))
+        .order_by(Ward.name)
+    )
     if constituency is not None:
         statement = statement.where(Ward.constituency_id == constituency)
     if county is not None:
@@ -69,6 +79,7 @@ async def list_centres(
 ) -> list[RegistrationCentre]:
     statement = (
         select(RegistrationCentre)
+        .where(RegistrationCentre.retired.is_(False))
         .options(selectinload(RegistrationCentre.ward))
         .order_by(RegistrationCentre.name)
     )

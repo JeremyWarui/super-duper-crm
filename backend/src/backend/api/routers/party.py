@@ -171,17 +171,23 @@ async def places(
     if ward is not None:
         statement = (
             select(RegistrationCentre)
-            .where(RegistrationCentre.ward_id == ward)
+            .where(RegistrationCentre.ward_id == ward, RegistrationCentre.retired.is_(False))
             .order_by(RegistrationCentre.name)
         )
     elif constituency is not None:
-        statement = select(Ward).where(Ward.constituency_id == constituency).order_by(Ward.name)
+        statement = (
+            select(Ward)
+            .where(Ward.constituency_id == constituency, Ward.retired.is_(False))
+            .order_by(Ward.name)
+        )
     elif county is not None:
         statement = (
-            select(Constituency).where(Constituency.county_id == county).order_by(Constituency.name)
+            select(Constituency)
+            .where(Constituency.county_id == county, Constituency.retired.is_(False))
+            .order_by(Constituency.name)
         )
     else:
-        statement = select(County).order_by(County.name)
+        statement = select(County).where(County.retired.is_(False)).order_by(County.name)
     return list(await session.scalars(statement))
 
 

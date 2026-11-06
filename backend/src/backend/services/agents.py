@@ -118,7 +118,11 @@ async def update(
 
 def _centres(campaign: Campaign, area: Area | None) -> Select | None:
     """The registration centres in the seat, and in `area` when given."""
-    statement = select(RegistrationCentre).join(Ward, Ward.id == RegistrationCentre.ward_id)
+    statement = (
+        select(RegistrationCentre)
+        .join(Ward, Ward.id == RegistrationCentre.ward_id)
+        .where(RegistrationCentre.retired.is_(False))
+    )
     if campaign.office_level is OfficeLevel.WARD:
         statement = statement.where(Ward.id == campaign.ward_id)
     else:

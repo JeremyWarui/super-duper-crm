@@ -1279,3 +1279,30 @@ export const useSetupServices = (enabled) =>
 
 export const useTestService = () =>
   useMutation({ mutationFn: (key) => api(`/setup/services/${key}/test/`, { method: "POST" }) });
+
+// Reference data imports from the console; a dry run reports the changes and writes nothing.
+export const useImportRuns = () =>
+  useQuery({ queryKey: ["admin", "imports"], queryFn: () => api("/admin/imports/") });
+
+export function useRunImport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ kind, filename, csv, dry_run }) => {
+      const body = { filename, csv, dry_run };
+      return kind === "boundaries"
+        ? api("/admin/imports/boundaries/", { method: "POST", body })
+        : api("/admin/imports/register/", { method: "POST", body });
+    },
+    onSuccess: (report) => {
+      if (report.applied) qc.invalidateQueries();
+    },
+  });
+}
+
+export function useRefreshTargets() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (campaignId) => api("/targets/refresh/", { method: "POST", body: { campaign: campaignId } }),
+    onSuccess: () => invalidate("targets", "strategy"),
+  });
+}

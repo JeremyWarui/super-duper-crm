@@ -4,12 +4,14 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Query, Response, status
+from sqlalchemy import select
 
 from backend.api.deps import AdminUser, SessionDep, Today
 from backend.api.install import PartyOnlyRoute
 from backend.models import (
     AgendaIssue,
     HeroSlide,
+    ImportRun,
     PartyDocument,
     PartyOrgan,
     PartyRoleName,
@@ -65,10 +67,11 @@ from backend.schemas.content import (
     VideoCreate,
     VideoUpdate,
 )
+from backend.schemas.imports import SHOWN_CHANGES, ImportReportRead, ImportRunRead, ImportUpload
 from backend.schemas.party import PartySettingsRead, PartySettingsUpdate
 from backend.schemas.site import SiteSettingsRead, SiteSettingsUpdate
 from backend.services import admin as service
-from backend.services import audit, branches, candidates, content, home
+from backend.services import audit, branches, candidates, content, home, imports
 from backend.services import party as party_service
 from backend.services import site as site_service
 from backend.services.errors import Refused
@@ -536,3 +539,39 @@ async def set_post_aspirants(
     """The approved aspirants an event names; it shows on each one's profile."""
     ids = await candidates.set_post_aspirants(session, post_id, payload.aspirant_ids, actor=admin)
     return PostAspirants(aspirant_ids=ids)
+
+
+@router.post("/imports/boundaries/", response_model=ImportReportRead)
+async def import_boundaries(
+    payload: ImportUpload, session: SessionDep, admin: AdminUser
+) -> ImportReportRead:
+    report = await imports.import_boundaries(
+        session, payload.csv, filename=payload.filename, actor=admin, dry_run=payload.dry_run
+    )
+    return _report(report)
+
+
+@router.post("/imports/register/", response_model=ImportReportRead)
+async def import_register(
+    payload: ImportUpload, session: SessionDep, admin: AdminUser
+) -> ImportReportRead:
+    report = await imports.import_register(
+        session, payload.csv, filename=payload.filename, actor=admin, dry_run=payload.dry_run
+    )
+    return _report(report)
+
+
+@router.get("/imports/", response_model=list[ImportRunRead])
+async def import_runs(session: SessionDep, _: AdminUser) -> list[ImportRun]:
+    runs = await session.scalars(select(ImportRun).order_by(ImportRun.created_at.desc()).limit(20))
+    return list(runs)
+
+
+def _report(report: imports.ImportReport) -> ImportReportRead:
+    return ImportReportRead(
+        kind=report.kind,
+        rows=report.rows,
+        applied=report.applied,
+        counts=report.counts,
+        changes=[vars(c) for c in report.changes[:SHOWN_CHANGES]],
+    )

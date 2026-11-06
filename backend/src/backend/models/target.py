@@ -79,6 +79,8 @@ class Target(UUIDPrimaryKeyMixin, Base):
     )
 
     projected_turnout_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), default=None)
+    # The register the win number was worked out on; a register import leaves it until refresh.
+    registered_voters: Mapped[int | None] = mapped_column(Integer, default=None)
     votes_needed: Mapped[int | None] = mapped_column(Integer, default=None)
     votes_committed: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -91,15 +93,16 @@ class Target(UUIDPrimaryKeyMixin, Base):
     def __str__(self) -> str:
         return f"{self.ward.name}: need {self.votes_needed or '-'}"
 
-    @property
-    def registered_voters(self) -> int | None:
-        """Voters on the centre's roll, or the ward's for a ward target; needs it loaded."""
+    def take_register(self) -> int | None:
+        """Copy in the centre's roll, or the ward's for a ward target; needs it loaded."""
         if self.registration_centre_id is not None:
             require_loaded(self, "registration_centre")
-            centre = self.registration_centre
-            return centre.registered_voters if centre is not None else None
-        require_loaded(self, "ward")
-        return self.ward.registered_voters if self.ward is not None else None
+            unit = self.registration_centre
+        else:
+            require_loaded(self, "ward")
+            unit = self.ward
+        self.registered_voters = unit.registered_voters if unit is not None else None
+        return self.registered_voters
 
     def recompute_win_number(self) -> int | None:
         """Recalculate `votes_needed`. Saved when the session is committed."""

@@ -94,7 +94,7 @@ async def areas(
         "constituency": (Constituency, Constituency.county_id),
         "ward": (Ward, Ward.constituency_id),
     }[level]
-    query = select(model.id, model.name).order_by(model.name)
+    query = select(model.id, model.name).where(model.retired.is_(False)).order_by(model.name)
     if parent_column is not None:
         if parent is None:
             raise Refused(

@@ -23,7 +23,7 @@ from backend.seed.reference import (
     import_geography,
 )
 from backend.seed.site import seed_branches, seed_home, seed_news, seed_site
-from backend.services import admin, setup
+from backend.services import admin, imports, setup
 from backend.services.accounts import clean_email, new_login, user_with_email
 from backend.services.audit import record
 from backend.services.clock import today
@@ -163,6 +163,33 @@ async def _users(args: argparse.Namespace, session: AsyncSession) -> int:
         print(f"    {user.campaign or 'on no campaign'}")
     if not people:
         print("No users.")
+    return 0
+
+
+async def _import(args: argparse.Namespace, session: AsyncSession) -> int:
+    path = Path(args.file)
+    boundaries = args.command == "import-boundaries"
+    run = imports.import_boundaries if boundaries else imports.import_register
+    try:
+        report = await run(
+            session,
+            path.read_text(encoding="utf-8-sig"),
+            filename=path.name,
+            actor=None,
+            dry_run=args.dry_run,
+        )
+    except imports.ImportRefused as refused:
+        print("Nothing was imported. Fix these lines and run it again:", file=sys.stderr)
+        for line in refused.errors:
+            print(f"  {line}", file=sys.stderr)
+        return 1
+    for change in report.changes:
+        print(f"  {change.change:9} {change.level:12} {change.code:14} {change.detail}")
+    counts = ", ".join(f"{n} {kind}" for kind, n in sorted(report.counts.items())) or "no changes"
+    done = "Would change" if args.dry_run else "Changed"
+    print(f"{done}: {counts} ({report.rows} rows read).")
+    if report.kind == "register" and report.changes and not args.dry_run:
+        print("Targets keep their numbers until a manager presses Refresh targets.")
     return 0
 
 
@@ -326,6 +353,13 @@ def build_parser() -> argparse.ArgumentParser:
     set_email.add_argument("--email", required=True)
 
     command("setup-token", _setup_token, "print a one-time token that opens the first-run setup")
+    for name, help_text in (
+        ("import-boundaries", "upsert counties, constituencies, wards and centres from a CSV"),
+        ("import-register", "update registered voters and county turnout from a CSV"),
+    ):
+        sub = command(name, _import, help_text)
+        sub.add_argument("file", help="the CSV file; see docs/handover/samples")
+        sub.add_argument("--dry-run", action="store_true", help="report the changes, write nothing")
     reset = command("reset-password", _reset_password, "give a login a new password")
     needs_user(reset)
     reset.add_argument("-p", "--password", help="generated when left out")

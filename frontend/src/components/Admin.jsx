@@ -35,6 +35,7 @@ import {
 import Onboarding from "./Onboarding";
 import { PartyShell } from "../pages/party/Portal";
 import Legacy from "./Legacy";
+import ReferenceData from "./console/ReferenceData";
 
 const Card = (props) => (
   <Panel
@@ -1044,6 +1045,7 @@ export default function Admin() {
             ["campaigns", `Campaigns (${campaigns.length})`],
             ["users", `Logins (${everyone.length})`],
             ["party", "Party"],
+            ["areas", "Areas and register"],
           ].map(([key, label]) => (
             <button
               key={key}
@@ -1080,6 +1082,7 @@ export default function Admin() {
           </div>
         )}
         {tab === "party" && <PartySettings />}
+        {tab === "areas" && <ReferenceData />}
 
         {tab === "users" && (
           <Card>

@@ -4,7 +4,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, Numeric, String, Uuid
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, Numeric, String, Uuid, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, UUIDPrimaryKeyMixin
@@ -33,6 +33,8 @@ class County(UUIDPrimaryKeyMixin, Base):
     code: Mapped[str] = mapped_column(String(10), default="")
     registered_voters: Mapped[int | None] = mapped_column(Integer, default=None)
     turnout_2022_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), default=None)
+    # Left out of a boundary import: kept for what refers to it, hidden from pickers.
+    retired: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
 
     constituencies: Mapped[list["Constituency"]] = relationship(
         back_populates="county",
@@ -53,6 +55,8 @@ class Constituency(UUIDPrimaryKeyMixin, Base):
     )
     name: Mapped[str] = mapped_column(String(100), index=True)
     code: Mapped[str] = mapped_column(String(10), default="")
+    # Left out of a boundary import: kept for what refers to it, hidden from pickers.
+    retired: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
 
     county: Mapped["County"] = relationship(back_populates="constituencies")
     wards: Mapped[list["Ward"]] = relationship(
@@ -76,6 +80,8 @@ class Ward(UUIDPrimaryKeyMixin, Base):
     name: Mapped[str] = mapped_column(String(100), index=True)
     code: Mapped[str] = mapped_column(String(10), default="")
     registered_voters: Mapped[int | None] = mapped_column(Integer, default=None)
+    # Left out of a boundary import: kept for what refers to it, hidden from pickers.
+    retired: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
 
     constituency: Mapped["Constituency"] = relationship(back_populates="wards")
     centres: Mapped[list["RegistrationCentre"]] = relationship(
@@ -109,6 +115,8 @@ class RegistrationCentre(UUIDPrimaryKeyMixin, Base):
     code: Mapped[str] = mapped_column(String(30), default="")
     name: Mapped[str] = mapped_column(String(200))
     registered_voters: Mapped[int | None] = mapped_column(Integer, default=None)
+    # Left out of a boundary import: kept for what refers to it, hidden from pickers.
+    retired: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
 
     ward: Mapped["Ward"] = relationship(back_populates="centres")
     targets: Mapped[list["Target"]] = relationship(

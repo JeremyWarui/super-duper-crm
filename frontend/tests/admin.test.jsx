@@ -256,3 +256,35 @@ describe("creating a campaign from the console", () => {
     });
   });
 });
+
+describe("reference data imports", () => {
+  it("checks a boundary file, shows what it would change, then imports it", async () => {
+    signInAsAdmin();
+    const report = (applied) => ({
+      kind: "boundaries", rows: 2, applied, counts: { renamed: 1, retired: 1 },
+      changes: [
+        { level: "ward", code: "1391", change: "renamed", detail: "Githurai -> Githurai West" },
+        { level: "ward", code: "1393", change: "retired", detail: "Zimmerman" },
+      ],
+    });
+    const calls = stubApi(adminRoutes({ "GET /admin/imports/": [], "POST /admin/imports/boundaries/": report(false) }));
+    renderApp(<Admin />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Areas and register" }));
+    const card = screen.getByRole("region", { name: "Boundaries" });
+    const csv = "county_code,county_name\n47,Nairobi City\n";
+    await user.upload(within(card).getByLabelText("CSV file"), new File([csv], "nairobi.csv", { type: "text/csv" }));
+    const checkFile = within(card).getByRole("button", { name: "Check file" });
+    await vi.waitFor(() => expect(checkFile).toBeEnabled());
+    await user.click(checkFile);
+
+    expect(await within(card).findByText(/This file would make: 1 renamed, 1 retired/)).toBeInTheDocument();
+    expect(within(card).getByText("Zimmerman")).toBeInTheDocument();
+    const posts = () => calls.filter((c) => c.path === "/admin/imports/boundaries/");
+    expect(posts()[0].body).toEqual({ filename: "nairobi.csv", csv, dry_run: true });
+
+    await user.click(within(card).getByRole("button", { name: "Import boundaries" }));
+    await vi.waitFor(() => expect(posts().at(-1).body.dry_run).toBe(false));
+  });
+});
