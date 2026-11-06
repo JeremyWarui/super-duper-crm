@@ -353,7 +353,6 @@
   color: var(--color-primary);
 }
 
-.legacy .chip-capitalize { text-transform: capitalize; }
 
 .legacy .chip-row { margin: 8px 0 12px; }
 
@@ -412,7 +411,6 @@
 
 .legacy .table td.strong,
 .legacy .table td > .strong { white-space: nowrap; }
-.legacy .actions-cell { text-align: right; white-space: nowrap; }
 
 .legacy .empty-row {
   color: var(--color-text-muted);

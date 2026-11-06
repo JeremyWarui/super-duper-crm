@@ -43,7 +43,7 @@ import { useMedia } from "./lib/useMedia";
 // Roles that work from a phone get a tab bar there.
 const FIELD_ROLES = ["mobilizer", "agent"];
 
-const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "mobilizers", "supporters", "mysupporters", "payments", "mypayments", "signups", "agents", "mycentre", "assignments", "messages", "register", "website", "settings", "recruitment"]);
+const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "mobilizers", "supporters", "mysupporters", "payments", "mypayments", "team", "volunteers", "signups", "agents", "mycentre", "assignments", "messages", "register", "website", "settings", "recruitment"]);
 
 // One page per NAV key.
 const PAGES = {

@@ -1,12 +1,19 @@
-// The manager's list of the volunteers the candidate's website page signed up for this campaign.
+// The volunteers who signed up for this campaign on the candidate's website page; the candidate,
+// the manager and coordinators in their area mark each active or inactive.
 import { useState } from "react";
-import { Badge, Chip, PageTitle } from "../../components/ui";
-import { useCampaignVolunteers, useUpdateCampaignVolunteer } from "../../api/hooks";
+import { useCampaignVolunteers, useUpdateCampaignVolunteer } from "@/api/hooks";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { FilterPills } from "@/components/ui/tabs";
 import { AREA_LABEL, CONTACT_LABEL, PROFESSION_LABEL } from "../party/helpers";
-import { Card, ErrorMsg, Loading } from "./controls";
+import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
-const TONE = { interested: "warn", active: "good", inactive: "bad" };
-const FILTERS = ["all", "interested", "active", "inactive"];
+const TONE = { interested: "warn", active: "ok", inactive: "bad" };
+const LABEL = { interested: "Interested", active: "Active", inactive: "Inactive" };
+const FILTERS = { All: null, Interested: "interested", Active: "active", Inactive: "inactive" };
 
 function helps(v) {
   return v.interests.map((a) => (a === "other" ? v.interest_other : AREA_LABEL[a])).filter(Boolean).join(", ");
@@ -15,47 +22,68 @@ function helps(v) {
 export default function Volunteers({ campaign }) {
   const { data, isLoading, error } = useCampaignVolunteers(campaign.id);
   const update = useUpdateCampaignVolunteer(campaign.id);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("All");
   const [q, setQ] = useState("");
-  if (isLoading) return <Loading />;
-  if (error) return <ErrorMsg error={error} />;
   const all = data || [];
   const needle = q.trim().toLowerCase();
-  const shown = all.filter((v) => (filter === "all" || v.status === filter) && (!needle || `${v.first_name} ${v.last_name} ${v.phone} ${v.ward.name}`.toLowerCase().includes(needle)));
+  const shown = all.filter((v) => (!FILTERS[filter] || v.status === FILTERS[filter]) && (!needle || `${v.first_name} ${v.last_name} ${v.phone} ${v.ward.name}`.toLowerCase().includes(needle)));
+  const count = (s) => all.filter((v) => v.status === s).length;
+  const tiles = [
+    ["Signed up", String(all.length), "on the candidate's website page"],
+    ["Interested", String(count("interested")), "waiting for a first call"],
+    ["Active", String(count("active")), "helping now"],
+  ];
   return (
     <>
-      <PageTitle title="Volunteers" sub={`${all.length} signed up on the candidate's website page`} />
-      <div className="flex gap-1 chip-row">
-        {FILTERS.map((f) => <Chip key={f} on={filter === f} onClick={() => setFilter(f)} className="chip-capitalize tap">{f}</Chip>)}
-        <input type="search" aria-label="Search volunteers" placeholder="Name, phone or ward" className="app-field tap" value={q} onChange={(e) => setQ(e.target.value)} />
-      </div>
-      <Card pad={0}><div className="table-scroll">
-        <table className="table">
-          <thead><tr><th>Name</th><th>Phone</th><th>Ward</th><th>Helps with</th><th>Profession</th><th>Contact by</th><th>Status</th><th /></tr></thead>
-          <tbody>
-            {shown.map((v) => (
-              <tr key={v.id}>
-                <td className="strong">{v.first_name} {v.last_name}</td>
-                <td className="muted">{v.phone}</td>
-                <td>{v.ward.name}{v.registration_centre ? <div className="muted">{v.registration_centre.name}</div> : null}</td>
-                <td>{helps(v)}</td>
-                <td className="muted">{v.profession === "other" ? v.profession_other : PROFESSION_LABEL[v.profession] || "—"}</td>
-                <td className="muted">{CONTACT_LABEL[v.preferred_contact]}</td>
-                <td><Badge text={v.status} tone={TONE[v.status]} /></td>
-                <td>
-                  {v.status !== "active" ? (
-                    <button type="button" className="link-button tap" disabled={update.isPending} onClick={() => update.mutate({ id: v.id, status: "active" })}>Make active</button>
-                  ) : (
-                    <button type="button" className="link-button tap" disabled={update.isPending} onClick={() => update.mutate({ id: v.id, status: "inactive" })}>Make inactive</button>
-                  )}
-                </td>
-              </tr>
+      <WsHeader context="Field" title="Volunteers" sub="People who offered to help on the candidate's website page." />
+      {isLoading && <KitLoading />}
+      {error && <KitError error={error} />}
+      {data && (
+        <>
+          <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
+            {tiles.map(([label, value, note]) => (
+              <Card key={label} variant="tile">
+                <span className="text-ui text-muted-foreground">{label}</span>
+                <span className="font-display text-[28px] leading-tight font-extrabold tabular-nums">{value}</span>
+                <span className="text-small text-muted-foreground">{note}</span>
+              </Card>
             ))}
-            {update.isError && <tr><td colSpan={8} className="form-error">{update.error.message}</td></tr>}
-            {shown.length === 0 && <tr><td colSpan={8} className="empty-row">None yet. Volunteers sign up on the candidate's page on the party website.</td></tr>}
-          </tbody>
-        </table>
-      </div></Card>
+          </section>
+          <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Volunteers">
+            <div className="flex flex-wrap items-center gap-3">
+              <FilterPills label="Status" options={Object.keys(FILTERS)} value={filter} onChange={setFilter} />
+              <Input type="search" aria-label="Search volunteers" placeholder="Name, phone or ward" className="max-w-xs" value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+            {update.isError && <p role="alert" className="font-semibold text-destructive">{update.error.message}</p>}
+            <Table stack minWidth={900}>
+              <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Ward</TH><TH>Helps with</TH><TH>Profession</TH><TH>Contact by</TH><TH>Status</TH><TH className="relative"><span className="sr-only">Actions</span></TH></TR></THead>
+              <TBody>
+                {shown.map((v) => {
+                  const name = `${v.first_name} ${v.last_name}`;
+                  const next = v.status === "active" ? "inactive" : "active";
+                  return (
+                    <TR key={v.id}>
+                      <TD className="font-semibold">{name}</TD>
+                      <TD className="text-muted-foreground">{v.phone}</TD>
+                      <TD>{v.ward.name}{v.registration_centre && <div className="text-small text-muted-foreground">{v.registration_centre.name}</div>}</TD>
+                      <TD>{helps(v) || "None given"}</TD>
+                      <TD className="text-muted-foreground">{v.profession === "other" ? v.profession_other : PROFESSION_LABEL[v.profession] || "None given"}</TD>
+                      <TD className="text-muted-foreground">{CONTACT_LABEL[v.preferred_contact]}</TD>
+                      <TD><Badge tone={TONE[v.status]}>{LABEL[v.status]}</Badge></TD>
+                      <TD align="right">
+                        <Button shape="rounded" size="sm" variant="quiet" disabled={update.isPending} onClick={() => update.mutate({ id: v.id, status: next })}>
+                          {next === "active" ? "Make active" : "Make inactive"}
+                        </Button>
+                      </TD>
+                    </TR>
+                  );
+                })}
+                {shown.length === 0 && <TR><TD colSpan={8} className="text-muted-foreground">{all.length ? "Nobody matches." : "None yet. Volunteers sign up on the candidate's page on the party website."}</TD></TR>}
+              </TBody>
+            </Table>
+          </Card>
+        </>
+      )}
     </>
   );
 }

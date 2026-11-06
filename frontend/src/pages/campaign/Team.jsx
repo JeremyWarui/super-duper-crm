@@ -1,39 +1,92 @@
-import { PageTitle } from "../../components/ui";
-import { useTeam } from "../../api/hooks";
-import { Btn, Card, ErrorMsg, Loading } from "./controls";
-import { ROLE_LABEL } from "./helpers";
-
 // Everyone with a login on the campaign; the candidate and manager add coordinators and comms,
 // and set each coordinator's area. Only the candidate adds or replaces the manager.
+import { useState } from "react";
+import { useTeam } from "@/api/hooks";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { FilterPills } from "@/components/ui/tabs";
+import { ROLE_LABEL } from "./helpers";
+import WsHeader, { KitError, KitLoading } from "./WsHeader";
+
+const ORDER = ["candidate", "manager", "coordinator", "comms", "mobilizer", "agent"];
+const TONE = { candidate: "ink", manager: "primary", coordinator: "tint", comms: "info", mobilizer: "stone", agent: "stone" };
+const VIEWS = {
+  Everyone: () => true,
+  Leads: (p) => p.role === "candidate" || p.role === "manager",
+  Coordinators: (p) => p.role === "coordinator",
+  Comms: (p) => p.role === "comms",
+  Field: (p) => p.role === "mobilizer" || p.role === "agent",
+};
+
 export default function Team({ campaign, role, onModal }) {
   const { data, isLoading, error } = useTeam(campaign.id);
-  if (isLoading) return <Loading />; if (error) return <ErrorMsg error={error} />;
-  const people = data || [];
+  const [view, setView] = useState("Everyone");
+  const people = [...(data || [])].sort((a, b) => ORDER.indexOf(a.role) - ORDER.indexOf(b.role) || (a.full_name || a.username).localeCompare(b.full_name || b.username));
   const manager = people.find((p) => p.role === "manager");
+  const shown = people.filter(VIEWS[view]);
+  const count = (r) => people.filter((p) => p.role === r).length;
   const actions = (
-    <div className="flex flex-wrap gap-2">
-      <Btn onClick={() => onModal({ type: "staff", role: "coordinator" })}>Add coordinator</Btn>
-      <Btn onClick={() => onModal({ type: "staff", role: "comms" })}>Add comms officer</Btn>
-      {role === "candidate" && <Btn primary onClick={() => onModal({ type: "manager", sitting: manager })}>{manager ? "Replace manager" : "Add manager"}</Btn>}
-    </div>
+    <>
+      <Button shape="rounded" variant="quiet" onClick={() => onModal({ type: "staff", role: "coordinator" })}>Add coordinator</Button>
+      <Button shape="rounded" variant="quiet" onClick={() => onModal({ type: "staff", role: "comms" })}>Add comms officer</Button>
+      {role === "candidate" && <Button shape="rounded" onClick={() => onModal({ type: "manager", sitting: manager })}>{manager ? "Replace manager" : "Add manager"}</Button>}
+    </>
   );
+  const tiles = [
+    ["Manager", manager ? "In place" : "None yet", manager ? "runs the day-to-day" : "the candidate adds one"],
+    ["Coordinators", String(count("coordinator")), "each limited to their area"],
+    ["Comms officers", String(count("comms")), "events, messages and the website"],
+    ["Field team", String(count("mobilizer") + count("agent")), "mobilizers and agents"],
+  ];
   return (
     <>
-      <PageTitle title="Team" sub="Everyone with a login on this campaign." action={actions} />
-      <Card pad={0}><div className="table-scroll">
-        <table className="table">
-          <thead><tr><th>Name</th><th>Username</th><th>Role</th><th/></tr></thead>
-          <tbody>{people.map((p) => (
-            <tr key={p.id}>
-              <td className="strong">{p.full_name || p.username}</td>
-              <td className="muted">{p.username}</td>
-              <td>{ROLE_LABEL[p.role]}{!p.is_active && <span className="muted"> · turned off</span>}</td>
-              <td className="actions-cell">{p.role === "coordinator" && <Btn onClick={() => onModal({ type: "area", person: p })} aria-label={`Area for ${p.full_name || p.username}`}>Area</Btn>}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div></Card>
-      {!manager && role === "candidate" && <div className="page-note">This campaign has no manager yet. Add one to run the day-to-day.</div>}
+      <WsHeader context="People" title="Team" sub="Everyone with a login on this campaign." actions={actions} />
+      {isLoading && <KitLoading />}
+      {error && <KitError error={error} />}
+      {data && (
+        <>
+          <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
+            {tiles.map(([label, value, note]) => (
+              <Card key={label} variant="tile">
+                <span className="text-ui text-muted-foreground">{label}</span>
+                <span className="truncate font-display text-[24px] leading-tight font-extrabold tabular-nums">{value}</span>
+                <span className="text-small text-muted-foreground">{note}</span>
+              </Card>
+            ))}
+          </section>
+          {!manager && role === "candidate" && (
+            <div role="note" className="rounded-lg border border-[#F2D98A] bg-warn px-4 py-3 text-ui text-warn-foreground">
+              This campaign has no manager yet. Add one to run the day-to-day.
+            </div>
+          )}
+          <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Team">
+            <FilterPills label="Role" options={Object.keys(VIEWS)} value={view} onChange={setView} />
+            <Table stack minWidth={560}>
+              <THead><TR><TH>Name</TH><TH>Username</TH><TH>Role</TH><TH className="relative"><span className="sr-only">Actions</span></TH></TR></THead>
+              <TBody>
+                {shown.map((p) => (
+                  <TR key={p.id}>
+                    <TD className="font-semibold">{p.full_name || p.username}</TD>
+                    <TD className="text-muted-foreground">{p.username}</TD>
+                    <TD>
+                      <Badge tone={TONE[p.role]}>{ROLE_LABEL[p.role]}</Badge>
+                      {!p.is_active && <span className="ml-2 text-small text-muted-foreground">turned off</span>}
+                    </TD>
+                    <TD align="right">
+                      {p.role === "coordinator" && (
+                        <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "area", person: p })} aria-label={`Area for ${p.full_name || p.username}`}>Area</Button>
+                      )}
+                    </TD>
+                  </TR>
+                ))}
+                {shown.length === 0 && <TR><TD colSpan={4} className="text-muted-foreground">Nobody here yet.</TD></TR>}
+              </TBody>
+            </Table>
+          </Card>
+        </>
+      )}
     </>
   );
 }
