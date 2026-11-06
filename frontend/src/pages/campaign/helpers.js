@@ -22,7 +22,7 @@ const LEAD = [
   { label: "Plan", items: [["overview", "Overview"], ["strategy", "Strategy"], ["targets", "Targets"], ["units", "Wards"]] },
   ALL_FIELD,
   REACH_OUT,
-  { label: "People", items: [["team", "Team"], ["signups", "Sign-ups"]] },
+  { label: "People", items: [["team", "Team"], ["signups", "Sign-ups"], ["privacy", "Personal data"]] },
   { label: "Money", items: [["payments", "Payments"]] },
 ];
 const OWN_WORK = (items) => [{ label: "My work", items }];

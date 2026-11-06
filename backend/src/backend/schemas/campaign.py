@@ -14,7 +14,7 @@ from backend.models.enums import (
     SupportLevel,
     WorkspaceKind,
 )
-from backend.schemas.common import ORMModel, WriteModel
+from backend.schemas.common import Erasable, ORMModel, WriteModel
 
 
 class CampaignRead(ORMModel):
@@ -34,6 +34,8 @@ class CampaignRead(ORMModel):
     election_date: date | None
     operational_grain: OperationalGrain
     created_at: datetime
+    # Closed after the election: the workspace is read-only.
+    closed_at: datetime | None = None
 
     @field_validator("seat", mode="before")
     @classmethod
@@ -183,7 +185,7 @@ class EventRecord(WriteModel):
         return value
 
 
-class SupporterRead(ORMModel):
+class SupporterRead(Erasable, ORMModel):
     id: uuid.UUID
     campaign: uuid.UUID = Field(validation_alias="campaign_id")
     ward: uuid.UUID | None = Field(default=None, validation_alias="ward_id")

@@ -42,7 +42,9 @@
       "candidate_name",
       "candidate_username",
       "seat",
-      "area_name"
+      "area_name",
+      "kind",
+      "closed_at"
     ],
     "GET /api/targets/": [
       "id",
@@ -83,7 +85,8 @@
       "full_name",
       "phone",
       "support_level",
-      "consent_given"
+      "consent_given",
+      "erased_at"
     ],
     "GET /api/strategy/": [
       "win_number",
@@ -359,7 +362,8 @@
       "decided_at",
       "consent_channel",
       "consent_wording",
-      "consent_at"
+      "consent_at",
+      "erased_at"
     ],
     "POST /api/party/members/{member_id}/status/": [
       "id",
@@ -754,7 +758,8 @@
       "status",
       "interests",
       "interest_other",
-      "preferred_contact"
+      "preferred_contact",
+      "erased_at"
     ],
     "GET /api/party/search/": [
       "kind",
@@ -1256,6 +1261,69 @@
       "recipients",
       "delivery",
       "mine"
+    ],
+    "GET /api/campaigns/{campaign_id}/data/requests/": [
+      "id",
+      "kind",
+      "requester_name",
+      "requester_contact",
+      "details",
+      "received_on",
+      "due_on",
+      "status",
+      "answer",
+      "answered_at",
+      "overdue"
+    ],
+    "GET /api/party/data-requests/": [
+      "id",
+      "kind",
+      "requester_name",
+      "requester_contact",
+      "details",
+      "received_on",
+      "due_on",
+      "status",
+      "answer",
+      "answered_at",
+      "overdue"
+    ],
+    "GET /api/campaigns/{campaign_id}/data/left-team/": [
+      "id",
+      "full_name",
+      "role",
+      "status",
+      "created_at"
+    ],
+    "GET /api/campaigns/{campaign_id}/data/supporters/{supporter_id}/withdrawal/": [
+      "url",
+      "can_text"
+    ],
+    "GET /api/campaigns/{campaign_id}/data/close/": [
+      "closed_at",
+      "retention_months",
+      "erase_from",
+      "supporters_erased_at",
+      "supporters",
+      "erased"
+    ],
+    "POST /api/party/volunteers/{volunteer_id}/erase/": [
+      "id",
+      "full_name",
+      "phone",
+      "ward",
+      "constituency",
+      "county",
+      "registration_centre",
+      "profession",
+      "profession_other",
+      "status",
+      "interests",
+      "interest_other",
+      "preferred_contact",
+      "availability_notes",
+      "member_status",
+      "erased_at"
     ]
   },
   "nested_reads": {
@@ -1381,7 +1449,8 @@
       "interest_other",
       "preferred_contact",
       "availability_notes",
-      "member_status"
+      "member_status",
+      "erased_at"
     ],
     "GET /api/party/aspirants/.items": [
       "id",
@@ -2408,7 +2477,38 @@
     "POST /api/party/messages/{message_id}/send/": [],
     "POST /api/party/messages/{message_id}/decline/": [
       "note"
-    ]
+    ],
+    "POST /api/campaigns/{campaign_id}/data/requests/": [
+      "kind",
+      "requester_name",
+      "requester_contact",
+      "details",
+      "received_on"
+    ],
+    "POST /api/party/data-requests/": [
+      "kind",
+      "requester_name",
+      "requester_contact",
+      "details",
+      "received_on"
+    ],
+    "PATCH /api/campaigns/{campaign_id}/data/requests/{request_id}/": [
+      "answer",
+      "due_on",
+      "status"
+    ],
+    "PATCH /api/party/data-requests/{request_id}/": [
+      "answer",
+      "due_on",
+      "status"
+    ],
+    "PUT /api/campaigns/{campaign_id}/data/retention/": [
+      "retention_months"
+    ],
+    "POST /api/campaigns/{campaign_id}/data/close/": [],
+    "POST /api/campaigns/{campaign_id}/data/erase-supporters/": [],
+    "POST /api/party/members/{member_id}/erase/": [],
+    "POST /api/party/volunteers/{volunteer_id}/erase/": []
   },
   "enums": {
     "user.role": [
@@ -2493,7 +2593,11 @@
       "DELETE /api/workspace/site/videos/{item_id}/",
       "POST /api/setup/check/",
       "DELETE /api/messages/{message_id}/",
-      "DELETE /api/party/nominations/mine/documents/{document_id}/"
+      "DELETE /api/party/nominations/mine/documents/{document_id}/",
+      "POST /api/campaigns/{campaign_id}/data/supporters/{supporter_id}/erase/",
+      "POST /api/campaigns/{campaign_id}/data/volunteers/{volunteer_id}/erase/",
+      "POST /api/campaigns/{campaign_id}/data/registrations/{registration_id}/erase/",
+      "POST /api/campaigns/{campaign_id}/data/supporters/{supporter_id}/withdrawal/"
     ]
   }
 }

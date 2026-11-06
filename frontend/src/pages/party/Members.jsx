@@ -1,8 +1,10 @@
-// The membership officer's register: filter, page through, open a member, move their status.
+// The membership officer's register: filter, page through, open a member, move their status, and
+// erase a withdrawn or rejected member's details on request.
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   exportPartyMembers,
+  useEraseMember,
   useMoveMember,
   usePartyMember,
   usePartyMembers,
@@ -15,6 +17,30 @@ const PAGE_SIZE = 50;
 
 const place = (m) => [m.ward.name, m.constituency.name, m.county.name].join(" / ");
 const day = (iso) => (iso ? new Date(iso).toLocaleDateString() : "—");
+const ERASABLE = ["withdrawn", "rejected"];
+
+function Erase({ member }) {
+  const erase = useEraseMember();
+  const [asking, setAsking] = useState(false);
+  if (member.erased_at) return <div className="muted">Details erased on {day(member.erased_at)}.</div>;
+  if (!ERASABLE.includes(member.status)) return null;
+  return (
+    <>
+      <div className="flex justify-end gap-2 form-actions">
+        {asking ? (
+          <>
+            <span className="muted">Erase their name, phone, email and account for good?</span>
+            <Button tone="danger" disabled={erase.isPending} onClick={() => erase.mutate(member.id)}>Yes, erase</Button>
+            <Button onClick={() => setAsking(false)}>Cancel</Button>
+          </>
+        ) : (
+          <Button tone="danger" onClick={() => setAsking(true)}>Erase their details</Button>
+        )}
+      </div>
+      {erase.isError && <div className="form-error">{erase.error.message}</div>}
+    </>
+  );
+}
 
 function PlaceFilter({ label, value, onChange, places, disabled }) {
   return (
@@ -36,7 +62,7 @@ function Detail({ row, onClose }) {
   const move = useMoveMember();
   const [reason, setReason] = useState("");
   const m = detail.data || row;
-  const actions = MOVES[m.status] || [];
+  const actions = m.erased_at ? [] : MOVES[m.status] || [];
 
   return (
     <Modal title={m.full_name} sub={place(m)} onClose={onClose}>
@@ -81,6 +107,7 @@ function Detail({ row, onClose }) {
         </>
       )}
       {move.isError && <div className="form-error">{move.error.message}</div>}
+      {detail.data && <Erase member={m} />}
     </Modal>
   );
 }

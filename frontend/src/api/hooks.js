@@ -1548,3 +1548,75 @@ export const useDraftPartyMessage = () =>
 export const useSendPartyMessage = () => usePartyMessageAction((id) => api(`/party/messages/${id}/send/`, { method: "POST" }));
 export const useDeclinePartyMessage = () =>
   usePartyMessageAction(({ id, note }) => api(`/party/messages/${id}/decline/`, { method: "POST", body: { note } }));
+
+// ---- personal data: requests, erasure, withdrawal links, closing ------------
+// `campaignId` undefined is the party's own requests (Membership Officer).
+export const useDataRequests = (campaignId) =>
+  useQuery({
+    queryKey: ["data-requests", campaignId ?? "party"],
+    queryFn: () => (campaignId ? api(`/campaigns/${campaignId}/data/requests/`) : api("/party/data-requests/")),
+  });
+
+function useDataWrite(mutationFn, ...keys) {
+  const invalidate = useInvalidator();
+  return useMutation({ mutationFn, onSuccess: () => invalidate(...keys) });
+}
+
+export const useLogDataRequest = (campaignId) =>
+  useDataWrite(
+    (body) =>
+      campaignId
+        ? api(`/campaigns/${campaignId}/data/requests/`, { method: "POST", body })
+        : api("/party/data-requests/", { method: "POST", body }),
+    "data-requests",
+  );
+
+export const useUpdateDataRequest = (campaignId) =>
+  useDataWrite(
+    ({ id, ...body }) =>
+      campaignId
+        ? api(`/campaigns/${campaignId}/data/requests/${id}/`, { method: "PATCH", body })
+        : api(`/party/data-requests/${id}/`, { method: "PATCH", body }),
+    "data-requests",
+  );
+
+export const useLeftTeam = (campaignId) =>
+  useQuery({ queryKey: ["left-team", campaignId], queryFn: () => api(`/campaigns/${campaignId}/data/left-team/`), enabled: !!campaignId });
+
+const ERASE = {
+  supporters: (campaignId, id) => api(`/campaigns/${campaignId}/data/supporters/${id}/erase/`, { method: "POST" }),
+  volunteers: (campaignId, id) => api(`/campaigns/${campaignId}/data/volunteers/${id}/erase/`, { method: "POST" }),
+  registrations: (campaignId, id) => api(`/campaigns/${campaignId}/data/registrations/${id}/erase/`, { method: "POST" }),
+};
+
+// kind is supporters, volunteers or registrations.
+export const useErase = (campaignId, kind) =>
+  useDataWrite((id) => ERASE[kind](campaignId, id), "supporters", "campaign-volunteers", "left-team", "data-close");
+
+export const useWithdrawalLink = (campaignId, supporterId) =>
+  useQuery({
+    queryKey: ["withdrawal-link", supporterId],
+    queryFn: () => api(`/campaigns/${campaignId}/data/supporters/${supporterId}/withdrawal/`),
+    enabled: !!supporterId,
+  });
+
+export const useTextWithdrawalLink = (campaignId) =>
+  useMutation({ mutationFn: (id) => api(`/campaigns/${campaignId}/data/supporters/${id}/withdrawal/`, { method: "POST" }) });
+
+export const useCloseState = (campaignId) =>
+  useQuery({ queryKey: ["data-close", campaignId], queryFn: () => api(`/campaigns/${campaignId}/data/close/`), enabled: !!campaignId });
+
+export const useSetRetention = (campaignId) =>
+  useDataWrite((retention_months) => api(`/campaigns/${campaignId}/data/retention/`, { method: "PUT", body: { retention_months } }), "data-close");
+
+export const useCloseCampaign = (campaignId) =>
+  useDataWrite(() => api(`/campaigns/${campaignId}/data/close/`, { method: "POST" }), "data-close", "campaigns");
+
+export const useEraseSupporters = (campaignId) =>
+  useDataWrite(() => api(`/campaigns/${campaignId}/data/erase-supporters/`, { method: "POST" }), "data-close", "supporters");
+
+export const useEraseMember = () =>
+  useDataWrite((id) => api(`/party/members/${id}/erase/`, { method: "POST" }), "party-members", "party-member", "party-volunteers");
+
+export const useErasePartyVolunteer = () =>
+  useDataWrite((id) => api(`/party/volunteers/${id}/erase/`, { method: "POST" }), "party-volunteers");

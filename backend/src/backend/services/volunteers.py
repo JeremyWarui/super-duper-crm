@@ -85,6 +85,8 @@ def set_notes(
 ) -> None:
     """Replace the officer's availability notes; the audit never holds the text."""
     refuse_own_record(actor, profile.member_id)
+    if profile.erased_at is not None:
+        raise Refused("This person's details were erased.")
     profile.availability_notes = notes
     audit(session, profile, "volunteer.notes", {}, actor=actor)
 
@@ -196,7 +198,9 @@ async def apply_part(
                 literal(applies, Boolean)
             ),
         )
-        .on_conflict_do_update(index_elements=["member_id"], set_={**values, "status": revived})
+        .on_conflict_do_update(
+            index_elements=["member_id"], set_={**values, "status": revived, "erased_at": None}
+        )
     )
     to = V.INTERESTED if old is None or old.status is V.WITHDRAWN else old.status
     await record_if(
@@ -398,6 +402,7 @@ async def own_update(
         "consent_wording": VOLUNTEER_WORDING,
         "consent_at": datetime.now(UTC),
         "withdraw_code": secrets.token_urlsafe(18),
+        "erased_at": None,
     }
     if profile is None:
         profile = VolunteerProfile(member_id=member.id, status=V.INTERESTED, **renewed)

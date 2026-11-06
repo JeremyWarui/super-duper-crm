@@ -509,6 +509,45 @@ how delivery went.
 - A STOP reply after a party text opts the number out of every text from this installation,
   party and campaigns alike, because the party is not a campaign.
 
+## Personal data
+
+`services/privacy.py` holds the work a buyer owes the people on its registers under the Data
+Protection Act 2019.
+
+- **Erasing on request** blanks a row's personal fields and keeps the row, so ward counts,
+  support levels and totals stay right. The name becomes "Erased", phone numbers, emails, ID
+  numbers, notes and withdrawal codes are cleared (a unique phone or ID number becomes a `~`
+  placeholder that no real number matches), the number is blanked on the row's past texts in
+  `sms_log`, and a login left behind with no campaign is emptied and switched off. One audit row
+  per erasure names only the row, the officer and the time. An erased row cannot be erased again
+  or edited.
+  - In a workspace the Candidate or Manager erases any supporter, a withdrawn volunteer, or the
+    sign-up of a mobilizer or agent who was turned down or has left the team (its ID number
+    included): `/api/campaigns/<id>/data/...`.
+  - In the party the Membership Officer erases a withdrawn or rejected member (with their
+    volunteer profile and account) or a withdrawn volunteer profile.
+- **Every supporter has a withdrawal code.** One a mobilizer registers gets it texted through
+  `services/texting.py` (`purpose = 'withdrawal_link'`); the Supporters page shows the link and
+  can text it again. The `data_protection` migration gives a code to every supporter who had none.
+- **Data requests** (access, correction, erasure) are logged per workspace and for the party,
+  due 7 days after receipt for access and 14 for correction or erasure (Data Protection
+  (General) Regulations 2021, regulations 9, 10 and 12); the officer can move the date. Marking
+  one answered needs a note of how.
+- **Closing a campaign** (the Candidate, never the party workspace) makes it read-only: every
+  write by its team is refused except sign-out and the data routes, and its public sign-up and
+  team links stop taking people. After the retention period (default 6 months, set before
+  closing) the Candidate can erase every supporter's personal data in one action. Nothing is
+  erased on a timer.
+
+### Known gaps
+
+- Payments keep the payee's name and number, as financial records. A party member's past
+  aspirant applications and audit rows written before this ticket are not blanked.
+- The party member and volunteer CSV exports list erased rows with the placeholder number.
+- The due dates follow the regulations as published; have counsel confirm them for the buyer.
+- A superuser's admin routes are not held by a closed campaign's read-only rule. Replies kept in
+  `sms_inbound` and the bodies of past texts are not blanked on erasure.
+
 ## Sign-in links
 
 Nobody is shown a password. A new login gets an emailed invite link (72 hours)

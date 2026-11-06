@@ -274,3 +274,14 @@ class TermEnd(LabelledStrEnum):
     RESIGNED = ("resigned", "Resigned")
     REMOVED = ("removed", "Removed")
     COMPLETED = ("completed", "Term completed")
+
+
+class DataRequestKind(LabelledStrEnum):
+    ACCESS = ("access", "Access to their data")
+    CORRECTION = ("correction", "Correction")
+    ERASURE = ("erasure", "Erasure")
+
+
+class DataRequestStatus(LabelledStrEnum):
+    OPEN = ("open", "Open")
+    DONE = ("done", "Answered")

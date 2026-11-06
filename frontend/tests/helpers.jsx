@@ -119,6 +119,8 @@ export const CAMPAIGN = {
   election_date: "2027-08-10",
   operational_grain: "ward",
   created_at: "2026-01-01T00:00:00Z",
+  kind: "standalone",
+  closed_at: null,
 };
 
 export const STRATEGY = {

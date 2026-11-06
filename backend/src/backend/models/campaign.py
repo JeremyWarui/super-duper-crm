@@ -2,10 +2,22 @@
 
 import secrets
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, Index, String, Uuid, and_, text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Uuid,
+    and_,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import (
@@ -90,6 +102,17 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # The team sign-up link mobilizers and agents register through; replacing it retires the old.
     team_code: Mapped[str] = mapped_column(
         String(24), unique=True, default=lambda: secrets.token_urlsafe(9)
+    )
+
+    # Closed after the election: read-only from then on.
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    closed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    # Months after closing before supporter personal data may be erased.
+    retention_months: Mapped[int] = mapped_column(Integer, default=6, server_default=text("6"))
+    supporters_erased_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
     )
 
     # The member whose role is candidate; read-only.

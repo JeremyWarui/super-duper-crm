@@ -2,6 +2,7 @@
 
 import unicodedata
 import uuid
+from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -11,6 +12,7 @@ from pydantic import (
     Field,
     StringConstraints,
     field_validator,
+    model_validator,
 )
 
 # Control, invisible formatting (zero-width, direction overrides), surrogate, private, unassigned,
@@ -45,6 +47,18 @@ CampaignTitle = Annotated[
 
 class ORMModel(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, extra="forbid")
+
+
+class Erasable(BaseModel):
+    """A row whose personal fields can be erased; an erased row shows no phone."""
+
+    erased_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def _no_phone(self):  # type: ignore[no-untyped-def]
+        if self.erased_at is not None and hasattr(self, "phone"):
+            self.phone = ""
+        return self
 
 
 class WriteModel(BaseModel):

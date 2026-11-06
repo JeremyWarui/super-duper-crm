@@ -52,6 +52,8 @@ TABLE = {
     "export": {C, M},
     "party.feed": {C, M, CM},
     "sharing.write": {C},
+    "data.manage": {C, M},
+    "campaign.close": {C},
 }
 NOBODY = str(uuid.UUID(int=1))
 
@@ -87,6 +89,8 @@ def _route(action: str, campaign: uuid.UUID, event: uuid.UUID) -> tuple[str, str
         "volunteers.write": ("PATCH", f"/api/campaigns/{campaign}/volunteers/{NOBODY}/", {}),
         "party.feed": ("GET", f"/api/party-feed/?campaign={campaign}", None),
         "sharing.write": ("PUT", f"/api/party-feed/sharing/?campaign={campaign}", {}),
+        "data.manage": ("GET", f"/api/campaigns/{campaign}/data/requests/", None),
+        "campaign.close": ("PUT", f"/api/campaigns/{campaign}/data/retention/", {}),
     }[action]
 
 

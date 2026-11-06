@@ -1,9 +1,10 @@
 """Someone who signed up for a campaign, and where they stand."""
 
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, Index, String, Text, Uuid, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
@@ -65,6 +66,8 @@ class Supporter(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     # The private code a self-signed supporter withdraws with; None for anyone else.
     withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
+    # Personal fields blanked on request; the row stays for counts.
+    erased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     campaign: Mapped["Campaign"] = relationship(back_populates="supporters")
     ward: Mapped["Ward | None"] = relationship(back_populates="supporters")

@@ -134,6 +134,8 @@ async def update_volunteer(
         area is not None and not area.holds(profile.ward_id, profile.registration_centre_id)
     ):
         raise NotFound("No such volunteer.")
+    if profile.erased_at is not None:
+        raise Refused("This person's details were erased.")
     if payload.status is not None:
         to = VolunteerStatus(payload.status)
         if to not in OFFICER_TARGETS:
@@ -163,6 +165,8 @@ async def sign_up(
 
     Returns a withdrawal code either way, a working one only for a new volunteer.
     """
+    if campaign.closed_at is not None:
+        raise Refused("This campaign has closed.")
     phone = normalise_phone(payload.phone)
     if phone is None:
         raise Refused("Enter a Kenyan mobile number, like 0712 345678.")

@@ -20,7 +20,7 @@ from backend.models import (
     Profession,
     VolunteerArea,
 )
-from backend.schemas.common import ORMModel, WriteModel, plain_text
+from backend.schemas.common import Erasable, ORMModel, WriteModel, plain_text
 from backend.schemas.site import Email
 from backend.services.consent import MEMBER_SMS_WORDING, PARTY_WORDING
 
@@ -157,7 +157,7 @@ class MemberPlace(ORMModel):
     name: str
 
 
-class MemberRead(ORMModel):
+class MemberRead(Erasable, ORMModel):
     """A register row as the officer's list shows it."""
 
     id: uuid.UUID

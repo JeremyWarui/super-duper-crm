@@ -1,6 +1,7 @@
 """Email sign-in, member logins made from joins, and the member's own account."""
 
 import uuid
+from datetime import UTC, datetime
 
 import httpx
 import pytest
@@ -187,8 +188,13 @@ async def test_a_member_volunteers_changes_stops_and_stays_a_member(
         select(VolunteerProfile).execution_options(populate_existing=True)
     )
     stopped_status, stopped_code = profile.status, profile.withdraw_code
+    # An officer erases the withdrawn profile; volunteering again is fresh consent.
+    profile.erased_at = datetime.now(UTC)
+    await session.commit()
     again = await client.put("/api/account/volunteer/", json=part, headers=auth(token))
-    profiles = (await session.scalars(select(VolunteerProfile))).all()
+    profiles = (
+        await session.scalars(select(VolunteerProfile).execution_options(populate_existing=True))
+    ).all()
     await session.refresh(member)
 
     assert joined.json()["volunteer"]["status"] == "interested"
@@ -200,6 +206,7 @@ async def test_a_member_volunteers_changes_stops_and_stays_a_member(
     )
     assert stopped.json()["volunteer"] is None
     assert (again.json()["volunteer"]["status"], len(profiles)) == ("interested", 1)
+    assert profiles[0].erased_at is None
     assert member.status is PartyMemberStatus.APPROVED
 
 

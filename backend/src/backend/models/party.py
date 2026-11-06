@@ -129,6 +129,8 @@ class PartyMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     sms_consent_wording: Mapped[str | None] = mapped_column(Text, default=None)
     sms_consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
+    # Personal fields blanked on request; the row stays for counts.
+    erased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     # The party workspace coordinator whose recruitment link brought the application, and the
     # county of the applicant's ward then.
     recruited_by_id: Mapped[uuid.UUID | None] = mapped_column(

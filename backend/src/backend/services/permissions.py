@@ -76,6 +76,10 @@ MAP: dict[str, dict[UserRole, Reach]] = {
     # A hosted workspace's "From the party" page, and the counts it shares with the party.
     "party.feed": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COMMS: ALL},
     "sharing.write": {R.CANDIDATE: ALL},
+    # Data requests, erasure on request, and the withdrawal links of supporters.
+    "data.manage": {R.CANDIDATE: ALL, R.MANAGER: ALL},
+    # Closing the campaign after the election, and erasing its supporters after retention.
+    "campaign.close": {R.CANDIDATE: ALL},
 }
 
 REFUSALS = {
@@ -87,6 +91,8 @@ REFUSALS = {
     "supporters.write": "The supporter register is for the campaign team.",
     "sms.send": "Only the candidate or the campaign manager sends texts.",
     "sharing.write": "Only the candidate decides what the campaign shares with the party.",
+    "data.manage": "Only the candidate or the campaign manager handles personal data requests.",
+    "campaign.close": "Only the candidate closes the campaign.",
 }
 
 

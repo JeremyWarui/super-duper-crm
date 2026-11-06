@@ -6,6 +6,7 @@ import { ConsoleTools } from "@/components/layout/ConsoleTools";
 import { useAuth } from "../../store/auth";
 import { homeOf } from "../../lib/home";
 import Legacy from "../../components/Legacy";
+import DataRequests from "../../components/DataRequests";
 import Aspirants from "./Aspirants";
 import Branches from "./Branches";
 import Dashboard from "./Dashboard";
@@ -21,6 +22,7 @@ const PAGES = [
   ["dashboard", "Dashboard", "superuser", <Dashboard key="dashboard" />],
   ["members", "Members", "membership_officer", <Members key="members" />],
   ["volunteers", "Volunteers", "membership_officer", <Volunteers key="volunteers" />],
+  ["data-requests", "Data requests", "membership_officer", <DataRequests key="data-requests" />, { kit: true, context: "Personal data", title: "Data requests" }],
   ["aspirants", "Aspirants", "nominations_officer", <Aspirants key="aspirants" />],
   ["messages", "Messages", "comms_officer", <Messages key="messages" />, { kit: true, context: "Reach members", title: "Messages" }],
   ["branches", "Branches", "membership_officer", <Branches key="branches" />, { kit: true, context: "Party structure", title: "Branches" }],

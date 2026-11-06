@@ -1,9 +1,10 @@
 """Request dependencies: the session, the signed-in caller, and role guards."""
 
+import re
 from datetime import date
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -75,7 +76,11 @@ async def get_organisation_type(session: SessionDep) -> OrganisationType | None:
         return None
 
 
-async def get_current_user(user: SignedInUser, session: SessionDep) -> User:
+# What a closed campaign's team may still change: their sign-out, and the data protection work.
+OPEN_WHEN_CLOSED = re.compile(r"^/api/(auth/|campaigns/[0-9a-f-]+/data/)")
+
+
+async def get_current_user(user: SignedInUser, session: SessionDep, request: Request) -> User:
     """The signed-in caller, refused while their campaign is closed (`services/access.py`).
 
     A member login is refused: it opens only the member account.
@@ -87,6 +92,12 @@ async def get_current_user(user: SignedInUser, session: SessionDep) -> User:
     found = await access.login_access(session, user.id)
     if not found.open:
         raise CampaignClosed(found.reason)
+    if (
+        found.read_only
+        and request.method not in ("GET", "HEAD", "OPTIONS")
+        and not OPEN_WHEN_CLOSED.match(request.url.path)
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, found.reason)
     return user
 
 

@@ -27,6 +27,7 @@ from backend.schemas.campaign import (
     SupporterPlace,
     SupporterRead,
 )
+from backend.services import privacy
 from backend.services.consent import WORDING, ConsentChannel
 from backend.services.sms import normalise_phone
 
@@ -96,8 +97,12 @@ async def register_supporter(
         consent_given=payload.consent_given,
         consent_channel=ConsentChannel.MOBILIZER,
         consent_wording=WORDING[ConsentChannel.MOBILIZER],
+        withdraw_code=privacy.new_code(),
     )
     session.add(supporter)
+    await session.flush()
+    if phone:
+        await privacy.text_withdrawal(session, supporter, campaign, actor=user)
     await session.commit()
     return supporter
 
@@ -110,6 +115,7 @@ async def place_supporter(
     supporter = await require_visible(
         session, user, Supporter, supporter_id, "supporter", "supporters.write"
     )
+    privacy.refuse_erased(supporter)
     campaign = await require_visible_campaign(session, user, supporter.campaign_id)
     if campaign.operational_grain is not OperationalGrain.CENTRE:
         raise HTTPException(

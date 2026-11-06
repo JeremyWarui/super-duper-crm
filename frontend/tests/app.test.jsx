@@ -40,7 +40,7 @@ const LEAD = {
   Plan: ["Overview", "Strategy", "Targets", "Wards"],
   Field: ["Events", "Mobilizers", "Agents", "Assignments", "Supporters", "Volunteers"],
   "Reach out": ["Messages"],
-  People: ["Team", "Sign-ups"],
+  People: ["Team", "Sign-ups", "Personal data"],
   Money: ["Payments"],
 };
 

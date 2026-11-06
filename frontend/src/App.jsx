@@ -37,6 +37,8 @@ import MyCentre from "./pages/campaign/MyCentre";
 import Assignments from "./pages/campaign/Assignments";
 import Messages from "./pages/campaign/Messages";
 import PartyFeed from "./pages/campaign/PartyFeed";
+import Privacy from "./pages/campaign/Privacy";
+import ClosedNote from "./pages/campaign/ClosedNote";
 import FieldTabs from "./pages/campaign/FieldTabs";
 import { useMedia } from "./lib/useMedia";
 
@@ -44,7 +46,7 @@ import { useMedia } from "./lib/useMedia";
 // Roles that work from a phone get a tab bar there.
 const FIELD_ROLES = ["mobilizer", "agent"];
 
-export const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "mobilizers", "supporters", "mysupporters", "payments", "mypayments", "team", "volunteers", "signups", "agents", "mycentre", "assignments", "messages", "register", "website", "settings", "recruitment", "party"]);
+export const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "mobilizers", "supporters", "mysupporters", "payments", "mypayments", "team", "volunteers", "signups", "agents", "mycentre", "assignments", "messages", "register", "website", "settings", "recruitment", "party", "privacy"]);
 
 // One page per NAV key.
 const PAGES = {
@@ -67,6 +69,7 @@ const PAGES = {
   assignments: Assignments,
   messages: Messages,
   party: PartyFeed,
+  privacy: Privacy,
   register: Register,
   myevents: (props) => <Events {...props} mine />,
   mysupporters: (props) => <Supporters {...props} mine />,
@@ -114,6 +117,7 @@ function Shell({ campaign, role, where }) {
         onSignOut={logout}
       >
         <AppPage crumb={current[1]}>
+          {campaign.closed_at && <ClosedNote />}
           {KIT_PAGES.has(page) ? (
             <>
               <Page campaign={campaign} role={role} onModal={setModal} />

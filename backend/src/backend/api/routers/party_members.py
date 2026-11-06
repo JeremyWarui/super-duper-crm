@@ -13,7 +13,7 @@ from backend.api.install import PartyOnlyRoute
 from backend.models import PartyMember, PartyMemberStatus
 from backend.schemas.common import plain_text
 from backend.schemas.party import MemberDetail, MemberMove, MemberPage, MemberRead
-from backend.services import membership
+from backend.services import membership, privacy
 from backend.services.audit import record
 from backend.services.membership import MemberFilters
 
@@ -142,6 +142,17 @@ async def move_member(
     await membership.process_requests(session)
     member = await membership.get_member(session, member_id)
     await membership.move(session, member, payload.status, actor=user, reason=payload.reason)
+    await session.commit()
+    member = await membership.get_member(session, member_id)
+    return _read(member, MemberDetail, await membership.with_logins(session, [member.id]))
+
+
+@router.post("/{member_id}/erase/", response_model=MemberDetail)
+async def erase_member(member_id: uuid.UUID, user: MembershipOfficer, session: SessionDep):
+    """Blank a withdrawn or rejected member's personal details on their request."""
+    await membership.process_requests(session)
+    member = await membership.get_member(session, member_id)
+    await privacy.erase_member(session, member, actor=user)
     await session.commit()
     member = await membership.get_member(session, member_id)
     return _read(member, MemberDetail, await membership.with_logins(session, [member.id]))

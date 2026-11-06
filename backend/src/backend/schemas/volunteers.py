@@ -14,6 +14,9 @@ from backend.schemas.party import MemberPlace
 class VolunteerRead(ORMModel):
     """A volunteer row as the officer's list shows it."""
 
+    # The volunteer profile's own details were erased; the member's stay while they are one.
+    erased_at: datetime | None = None
+
     id: uuid.UUID
     member_id: uuid.UUID
     full_name: str

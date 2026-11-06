@@ -1,7 +1,9 @@
-// The membership officer's volunteer register: filter, page through, open a volunteer, set their status and notes.
+// The membership officer's volunteer register: filter, page through, open a volunteer, set their
+// status and notes, and erase a withdrawn volunteer's profile on request.
 import { useState } from "react";
 import {
   exportPartyVolunteers,
+  useErasePartyVolunteer,
   usePartyPlaces,
   usePartyVolunteers,
   useUpdateVolunteer,
@@ -43,8 +45,10 @@ function PlaceFilter({ label, value, onChange, places, disabled }) {
 
 function Detail({ row, onClose }) {
   const update = useUpdateVolunteer();
+  const erase = useErasePartyVolunteer();
+  const [asking, setAsking] = useState(false);
   const [notes, setNotes] = useState(row.availability_notes || "");
-  const v = update.data || row;
+  const v = erase.data || update.data || row;
   const canActivate = (v.status === "interested" || v.status === "inactive") && v.member_status === "approved";
   const save = (body) => update.mutate({ id: v.id, ...body });
 
@@ -59,26 +63,46 @@ function Detail({ row, onClose }) {
         <div className="muted">Preferred contact: {CONTACT_LABEL[v.preferred_contact] || v.preferred_contact}</div>
         <div className="muted">Membership: {STATUS_LABEL[v.member_status]}</div>
       </div>
-      <textarea
-        aria-label="Availability notes"
-        className="app-field"
-        placeholder="Availability notes"
-        maxLength={2000}
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-      />
-      <div className="flex justify-end gap-2 form-actions">
-        <Button disabled={update.isPending} onClick={() => save({ availability_notes: notes.trim() || null })}>
-          Save notes
-        </Button>
-        {canActivate && (
-          <Button primary disabled={update.isPending} onClick={() => save({ status: "active" })}>Activate</Button>
-        )}
-        {v.status === "active" && (
-          <Button disabled={update.isPending} onClick={() => save({ status: "inactive" })}>Deactivate</Button>
-        )}
-      </div>
+      {v.erased_at ? (
+        <div className="muted">Volunteer details erased on {new Date(v.erased_at).toLocaleDateString()}.</div>
+      ) : (
+        <>
+          <textarea
+            aria-label="Availability notes"
+            className="app-field"
+            placeholder="Availability notes"
+            maxLength={2000}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+          <div className="flex justify-end gap-2 form-actions">
+            <Button disabled={update.isPending} onClick={() => save({ availability_notes: notes.trim() || null })}>
+              Save notes
+            </Button>
+            {canActivate && (
+              <Button primary disabled={update.isPending} onClick={() => save({ status: "active" })}>Activate</Button>
+            )}
+            {v.status === "active" && (
+              <Button disabled={update.isPending} onClick={() => save({ status: "inactive" })}>Deactivate</Button>
+            )}
+          </div>
+          {v.status === "withdrawn" && (
+            <div className="flex justify-end gap-2 form-actions">
+              {asking ? (
+                <>
+                  <span className="muted">Erase their volunteer details for good? Their membership stays.</span>
+                  <Button tone="danger" disabled={erase.isPending} onClick={() => erase.mutate(v.id)}>Yes, erase</Button>
+                  <Button onClick={() => setAsking(false)}>Cancel</Button>
+                </>
+              ) : (
+                <Button tone="danger" onClick={() => setAsking(true)}>Erase volunteer details</Button>
+              )}
+            </div>
+          )}
+        </>
+      )}
       {update.isError && <div className="form-error">{update.error.message}</div>}
+      {erase.isError && <div className="form-error">{erase.error.message}</div>}
     </Modal>
   );
 }

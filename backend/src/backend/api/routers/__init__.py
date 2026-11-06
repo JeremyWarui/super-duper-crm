@@ -29,6 +29,7 @@ from backend.api.routers import (
     party_volunteers,
     party_workspace,
     payments,
+    privacy,
     setup,
     site,
     sms_callbacks,
@@ -79,9 +80,11 @@ for module in (
     users,
     workspace_site,
     aspirant_site,
+    privacy,
 ):
     api_router.include_router(module.router)
 for module in (admin, candidates, party):
     api_router.include_router(module.party_router)
+api_router.include_router(privacy.office_router)
 
 __all__ = ["api_router"]

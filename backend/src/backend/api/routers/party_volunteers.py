@@ -13,7 +13,7 @@ from backend.api.install import PartyOnlyRoute
 from backend.models import VolunteerArea, VolunteerProfile, VolunteerStatus
 from backend.schemas.common import plain_text
 from backend.schemas.volunteers import VolunteerPage, VolunteerRead, VolunteerUpdate
-from backend.services import membership, volunteers
+from backend.services import membership, privacy, volunteers
 from backend.services.audit import record
 from backend.services.volunteers import VolunteerFilters
 
@@ -89,6 +89,7 @@ def _read(row: VolunteerProfile) -> VolunteerRead:
         availability_notes=row.availability_notes,
         member_status=member.status,
         created_at=row.created_at,
+        erased_at=row.erased_at,
     )
 
 
@@ -162,5 +163,17 @@ async def update_volunteer(
         await volunteers.set_status(session, profile, VolunteerStatus(payload.status), actor=user)
     if "availability_notes" in payload.model_fields_set:
         volunteers.set_notes(session, profile, payload.availability_notes, actor=user)
+    await session.commit()
+    return _read(await volunteers.get_volunteer(session, volunteer_id))
+
+
+@router.post("/{volunteer_id}/erase/", response_model=VolunteerRead)
+async def erase_volunteer(
+    volunteer_id: uuid.UUID, user: MembershipOfficer, session: SessionDep
+) -> VolunteerRead:
+    """Blank a withdrawn volunteer profile; the membership is left as it is."""
+    await membership.process_requests(session)
+    profile = await volunteers.get_volunteer(session, volunteer_id)
+    await privacy.erase_volunteer(session, profile, actor=user)
     await session.commit()
     return _read(await volunteers.get_volunteer(session, volunteer_id))

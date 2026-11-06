@@ -29,6 +29,8 @@ from backend.models.enums import (
     BranchOffice,
     ConsentChannel,
     ContactMethod,
+    DataRequestKind,
+    DataRequestStatus,
     EventStatus,
     FieldRole,
     FileArea,
@@ -78,6 +80,7 @@ from backend.models.party import (
     RecruitmentCode,
 )
 from backend.models.payment import Payment, ReconcileDifference, ReconcileRun
+from backend.models.privacy import DataRequest
 from backend.models.sharing import CampaignSharing
 from backend.models.site import SetupToken, SiteSettings
 from backend.models.sms import CampaignMessage, PartyMessage, SmsInbound, SmsLog, SmsOptOut
@@ -88,6 +91,9 @@ from backend.models.user import User
 from backend.models.volunteer import VolunteerProfile
 
 __all__ = [
+    "DataRequest",
+    "DataRequestKind",
+    "DataRequestStatus",
     "AspirantDocument",
     "CampaignMessage",
     "NominationSeat",

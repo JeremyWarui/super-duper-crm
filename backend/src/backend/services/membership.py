@@ -83,6 +83,8 @@ async def move(
 ) -> None:
     """An officer's status move, audited; the caller commits."""
     refuse_own_record(actor, member.id)
+    if member.erased_at is not None:
+        raise Refused("This person's details were erased.")
     old = member.status
     if to is S.PENDING:
         raise Refused("Only the person re-applying puts a member back to pending.")

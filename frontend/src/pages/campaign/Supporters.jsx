@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { useCentres, usePlaceSupporter, useSupporters, useTargets } from "@/api/hooks";
+import { useCentres, useErase, usePlaceSupporter, useSupporters, useTargets, useTextWithdrawalLink, useWithdrawalLink } from "@/api/hooks";
+import EraseButton from "@/components/EraseButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatNumber as fmt } from "@/lib/format";
@@ -10,6 +12,30 @@ import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
 const LEVELS = { All: null, Supporter: "supporter", Undecided: "undecided", Opposed: "opposed" };
 const TONE = { supporter: "ok", undecided: "warn", opposed: "bad" };
+const KEEPERS = ["candidate", "manager"];
+
+// A supporter's private withdrawal link, to read out or text to them.
+function WithdrawalLink({ campaign, supporter, onClose }) {
+  const link = useWithdrawalLink(campaign.id, supporter.id);
+  const text = useTextWithdrawalLink(campaign.id);
+  return (
+    <div role="region" aria-label={`Withdrawal link for ${supporter.full_name}`} className="grid gap-2 rounded-lg border border-line bg-muted p-3">
+      <p className="text-ui font-semibold">Withdrawal link for {supporter.full_name}</p>
+      <p className="text-small text-muted-foreground">Opening it removes their details from the register for good.</p>
+      {link.error ? <p role="alert" className="text-destructive">{link.error.message}</p> : null}
+      {link.data ? <Input readOnly aria-label="Withdrawal link" value={link.data.url} onFocus={(e) => e.target.select()} /> : null}
+      <div className="flex flex-wrap items-center gap-2">
+        {link.data?.can_text && !campaign.closed_at ? (
+          <Button size="sm" shape="rounded" disabled={text.isPending || text.isSuccess} onClick={() => text.mutate(supporter.id)}>
+            {text.isSuccess ? "Texted" : text.isPending ? "Texting…" : "Text it to them"}
+          </Button>
+        ) : null}
+        <Button size="sm" shape="rounded" variant="ghost" onClick={onClose}>Close</Button>
+      </div>
+      {text.error ? <p role="alert" className="text-destructive">{text.error.message}</p> : null}
+    </div>
+  );
+}
 
 function Summary({ all }) {
   const count = (level) => all.filter((s) => s.support_level === level).length;
@@ -27,7 +53,7 @@ function Summary({ all }) {
 }
 
 // The supporter register, private to the campaign team; in an MCA race each one sits at a centre.
-export default function Supporters({ campaign, mine, onModal }) {
+export default function Supporters({ campaign, role, mine, onModal }) {
   const centreWard = campaign.operational_grain === "centre" ? campaign.ward : null;
   const { data, isLoading, error } = useSupporters(campaign.id);
   const targetsQuery = useTargets(campaign.id);
@@ -37,6 +63,9 @@ export default function Supporters({ campaign, mine, onModal }) {
   const centres = allCentres.filter((c) => targeted.has(c.id));
   const centreName = (id) => allCentres.find((c) => c.id === id)?.name;
   const place = usePlaceSupporter();
+  const erase = useErase(campaign.id, "supporters");
+  const keeper = !mine && KEEPERS.includes(role);
+  const [linkFor, setLinkFor] = useState(null);
   const [filter, setFilter] = useState("All");
   const all = data || [];
   const shown = LEVELS[filter] ? all.filter((s) => s.support_level === LEVELS[filter]) : all;
@@ -52,7 +81,7 @@ export default function Supporters({ campaign, mine, onModal }) {
           <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Supporter list">
             <FilterPills label="Support" options={Object.keys(LEVELS)} value={filter} onChange={setFilter} />
             <Table stack minWidth={560}>
-              <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Support</TH>{showCentre && <TH>Centre</TH>}<TH>Consent</TH></TR></THead>
+              <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Support</TH>{showCentre && <TH>Centre</TH>}<TH>Consent</TH>{keeper && <TH><span className="sr-only">Personal data</span></TH>}</TR></THead>
               <TBody>
                 {shown.map((s) => (
                   <TR key={s.id}>
@@ -68,13 +97,25 @@ export default function Supporters({ campaign, mine, onModal }) {
                         </select>
                       )}</TD>
                     )}
-                    <TD>{s.consent_given ? <Badge tone="ok">Given</Badge> : <Badge tone="bad">Missing</Badge>}</TD>
+                    <TD>{s.erased_at ? <Badge tone="stone">Erased</Badge> : s.consent_given ? <Badge tone="ok">Given</Badge> : <Badge tone="bad">Missing</Badge>}</TD>
+                    {keeper && (
+                      <TD align="right">
+                        {!s.erased_at && (
+                          <span className="inline-flex flex-wrap justify-end gap-2">
+                            <Button size="sm" shape="rounded" variant="quiet" onClick={() => setLinkFor(s)}>Withdrawal link</Button>
+                            <EraseButton name={s.full_name} pending={erase.isPending} onErase={(done) => erase.mutate(s.id, { onSuccess: () => { done(); setLinkFor(null); } })} />
+                          </span>
+                        )}
+                      </TD>
+                    )}
                   </TR>
                 ))}
-                {shown.length === 0 && <TR><TD colSpan={5} className="text-muted-foreground">None yet.</TD></TR>}
+                {shown.length === 0 && <TR><TD colSpan={6} className="text-muted-foreground">None yet.</TD></TR>}
               </TBody>
             </Table>
             {place.isError && <p role="alert" className="font-semibold text-destructive">{place.error.message}</p>}
+            {erase.isError && <p role="alert" className="font-semibold text-destructive">{erase.error.message}</p>}
+            {linkFor && <WithdrawalLink key={linkFor.id} campaign={campaign} supporter={linkFor} onClose={() => setLinkFor(null)} />}
           </Card>
         </>
       )}

@@ -81,6 +81,8 @@ class VolunteerProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     consent_wording: Mapped[str] = mapped_column(Text)
     consent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
+    # Personal fields blanked on request; the row stays for counts.
+    erased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

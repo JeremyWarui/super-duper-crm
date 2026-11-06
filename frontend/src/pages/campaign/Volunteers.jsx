@@ -1,7 +1,9 @@
 // The volunteers who signed up for this campaign on the candidate's website page; the candidate,
-// the manager and coordinators in their area mark each active or inactive.
+// the manager and coordinators in their area mark each active or inactive; the candidate or the
+// manager erases a withdrawn volunteer's details on request.
 import { useState } from "react";
-import { useCampaignVolunteers, useUpdateCampaignVolunteer } from "@/api/hooks";
+import { useCampaignVolunteers, useErase, useUpdateCampaignVolunteer } from "@/api/hooks";
+import EraseButton from "@/components/EraseButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,17 +13,19 @@ import { FilterPills } from "@/components/ui/tabs";
 import { AREA_LABEL, CONTACT_LABEL, PROFESSION_LABEL } from "../party/helpers";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
-const TONE = { interested: "warn", active: "ok", inactive: "bad" };
-const LABEL = { interested: "Interested", active: "Active", inactive: "Inactive" };
+const TONE = { interested: "warn", active: "ok", inactive: "bad", withdrawn: "stone" };
+const LABEL = { interested: "Interested", active: "Active", inactive: "Inactive", withdrawn: "Withdrawn" };
+const ERASERS = ["candidate", "manager"];
 const FILTERS = { All: null, Interested: "interested", Active: "active", Inactive: "inactive" };
 
 function helps(v) {
   return v.interests.map((a) => (a === "other" ? v.interest_other : AREA_LABEL[a])).filter(Boolean).join(", ");
 }
 
-export default function Volunteers({ campaign }) {
+export default function Volunteers({ campaign, role }) {
   const { data, isLoading, error } = useCampaignVolunteers(campaign.id);
   const update = useUpdateCampaignVolunteer(campaign.id);
+  const erase = useErase(campaign.id, "volunteers");
   const [filter, setFilter] = useState("All");
   const [q, setQ] = useState("");
   const all = data || [];
@@ -55,11 +59,12 @@ export default function Volunteers({ campaign }) {
               <Input type="search" aria-label="Search volunteers" placeholder="Name, phone or ward" className="max-w-xs" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             {update.isError && <p role="alert" className="font-semibold text-destructive">{update.error.message}</p>}
+            {erase.isError && <p role="alert" className="font-semibold text-destructive">{erase.error.message}</p>}
             <Table stack minWidth={900}>
               <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Ward</TH><TH>Helps with</TH><TH>Profession</TH><TH>Contact by</TH><TH>Status</TH><TH className="relative"><span className="sr-only">Actions</span></TH></TR></THead>
               <TBody>
                 {shown.map((v) => {
-                  const name = `${v.first_name} ${v.last_name}`;
+                  const name = `${v.first_name} ${v.last_name}`.trim();
                   const next = v.status === "active" ? "inactive" : "active";
                   return (
                     <TR key={v.id}>
@@ -69,11 +74,15 @@ export default function Volunteers({ campaign }) {
                       <TD>{helps(v) || "None given"}</TD>
                       <TD className="text-muted-foreground">{v.profession === "other" ? v.profession_other : PROFESSION_LABEL[v.profession] || "None given"}</TD>
                       <TD className="text-muted-foreground">{CONTACT_LABEL[v.preferred_contact]}</TD>
-                      <TD><Badge tone={TONE[v.status]}>{LABEL[v.status]}</Badge></TD>
+                      <TD><Badge tone={v.erased_at ? "stone" : TONE[v.status]}>{v.erased_at ? "Erased" : LABEL[v.status]}</Badge></TD>
                       <TD align="right">
-                        <Button shape="rounded" size="sm" variant="quiet" disabled={update.isPending} onClick={() => update.mutate({ id: v.id, status: next })}>
-                          {next === "active" ? "Make active" : "Make inactive"}
-                        </Button>
+                        {v.status !== "withdrawn" ? (
+                          <Button shape="rounded" size="sm" variant="quiet" disabled={update.isPending} onClick={() => update.mutate({ id: v.id, status: next })}>
+                            {next === "active" ? "Make active" : "Make inactive"}
+                          </Button>
+                        ) : !v.erased_at && ERASERS.includes(role) ? (
+                          <EraseButton name={name} pending={erase.isPending} onErase={(done) => erase.mutate(v.id, { onSuccess: done })} />
+                        ) : null}
                       </TD>
                     </TR>
                   );

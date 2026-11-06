@@ -69,6 +69,8 @@ class TeamRegistration(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     reason: Mapped[str] = mapped_column(Text, default="")
+    # Personal fields and the ID number blanked on request, once the person is off the team.
+    erased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     ward: Mapped[Ward | None] = relationship()
     registration_centre: Mapped[RegistrationCentre | None] = relationship()
