@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { isEmail } from "../../lib/email";
-import { Modal, PasswordModal } from "../../components/ui";
+import { InviteModal, Modal } from "../../components/ui";
 import { useAddMobilizer, useCreateUser, useUpdateMobilizer } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
 import { holderOf } from "./helpers";
@@ -46,9 +46,9 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
 
   if (made) {
     return (
-      <PasswordModal title="Mobilizer added" password={made.password} onClose={onClose}>
-        <b>{made.username}</b> can now sign in{made.place ? <> and work {made.place}.</> : <>. Assign them a {unitWord} from the Overview.</>}
-      </PasswordModal>
+      <InviteModal title="Mobilizer added" invite={made.invite} username={made.username} onClose={onClose}>
+        {made.place ? <>They work {made.place}.</> : <>Assign them a {unitWord} from the Wards page.</>}
+      </InviteModal>
     );
   }
 

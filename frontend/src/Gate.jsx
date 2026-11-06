@@ -28,6 +28,8 @@ import Vie from "./pages/public/Vie";
 import News from "./pages/public/News";
 import Post from "./pages/public/Post";
 import JoinParty from "./pages/public/JoinParty";
+import ForgotPassword from "./pages/public/ForgotPassword";
+import SetPassword from "./pages/public/SetPassword";
 import Contribute from "./pages/public/Contribute";
 import Privacy from "./pages/public/Privacy";
 import Unsubscribe from "./pages/public/Unsubscribe";
@@ -146,6 +148,9 @@ const SHARED = [
   ["/unsubscribe/:code", () => page(<Unsubscribe />)],
   ["/signin", () => <SignInPage />],
   ["/signin/where", () => <SignedInOnly><Chooser /></SignedInOnly>],
+  ["/forgot-password", () => page(<ForgotPassword />)],
+  ["/invite/:token", () => page(<SetPassword />)],
+  ["/reset/:token", () => page(<SetPassword />)],
   ["/account", () => <SignedInOnly><AccountPage /></SignedInOnly>],
   ["/join/:code", () => <Legacy><JoinPage /></Legacy>],
   ["/withdraw/:code", () => <Legacy><WithdrawPage /></Legacy>],

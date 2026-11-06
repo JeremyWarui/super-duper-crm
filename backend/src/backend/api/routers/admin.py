@@ -32,7 +32,6 @@ from backend.schemas.admin import (
     Overview,
     PartyMemberLink,
     PartyRoleGrant,
-    PasswordReset,
     PasswordResult,
 )
 from backend.schemas.audit import AuditEventRead
@@ -178,7 +177,7 @@ async def list_campaigns(session: SessionDep, _: AdminUser) -> list[AdminCampaig
 async def create_campaign(
     payload: AdminCampaignCreate, session: SessionDep, admin: AdminUser
 ) -> AdminCampaignCreated:
-    """Create a campaign with its aspirant's and manager's logins; passwords are shown once."""
+    """Create a campaign with its aspirant's and manager's logins, each sent an invite link."""
     created, summary, logins = await service.create_campaign(
         session,
         actor=admin,
@@ -195,9 +194,9 @@ async def create_campaign(
                 username=login.username,
                 full_name=login.full_name,
                 role=login.role,
-                password=password,
+                invite=invite,
             )
-            for login, password in logins
+            for login, invite in logins
         ],
     )
 
@@ -262,8 +261,8 @@ async def list_users(
 async def create_user(
     payload: AdminUserCreate, session: SessionDep, admin: AdminUser
 ) -> AdminUserCreated:
-    """Create a login; its password is shown once."""
-    created, password = await service.create_user(
+    """Create a login and send it an invite link."""
+    created, invite = await service.create_user(
         session,
         actor=admin,
         **payload.model_dump(exclude={"campaign", "ward", "registration_centre"}),
@@ -276,19 +275,17 @@ async def create_user(
         username=created.username,
         full_name=created.full_name,
         role=created.role,
-        password=password,
+        invite=invite,
     )
 
 
 @router.post("/users/{user_id}/reset-password/", response_model=PasswordResult)
 async def reset_password(
-    user_id: uuid.UUID, payload: PasswordReset, session: SessionDep, admin: AdminUser
+    user_id: uuid.UUID, session: SessionDep, admin: AdminUser
 ) -> PasswordResult:
-    """Hand out a new password; the login's session is signed out."""
-    password = await service.reset_password(session, user_id, payload.password, actor=admin)
-    return PasswordResult(
-        username=(await service.user(session, user_id)).username, password=password
-    )
+    """Send the login a link to choose a new password."""
+    sent = await service.reset_password(session, user_id, actor=admin)
+    return PasswordResult(username=(await service.user(session, user_id)).username, sent=sent)
 
 
 @router.post("/users/{user_id}/active/", response_model=AdminUserRead)

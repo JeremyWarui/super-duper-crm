@@ -36,9 +36,9 @@ async def list_team(campaign_id: uuid.UUID, session: SessionDep, user: TeamWrite
 async def set_manager(
     campaign_id: uuid.UUID, payload: ManagerCreate, session: SessionDep, user: Aspirant
 ) -> ManagerCreated:
-    """Add the campaign's manager, or replace the one it has; the password is shown once."""
+    """Add the campaign's manager, or replace the one it has, and send them an invite link."""
     campaign = await require_visible_campaign(session, user, campaign_id)
-    created, password, replaced = await team.set_manager(
+    created, invite, replaced = await team.set_manager(
         session,
         campaign,
         payload.model_dump(exclude={"replace"}),
@@ -49,7 +49,7 @@ async def set_manager(
         id=created.id,
         username=created.username,
         full_name=created.full_name,
-        password=password,
+        invite=invite,
         replaced=replaced,
     )
 
@@ -58,16 +58,16 @@ async def set_manager(
 async def add_staff(
     campaign_id: uuid.UUID, payload: StaffCreate, session: SessionDep, user: TeamWriter
 ) -> StaffCreated:
-    """Add a coordinator or comms officer; the password is shown once."""
+    """Add a coordinator or comms officer and send them an invite link."""
     campaign = await require_visible_campaign(session, user, campaign_id)
-    created, password = await team.add_staff(
+    created, invite = await team.add_staff(
         session, campaign, payload.role, payload.model_dump(exclude={"role"}), actor=user
     )
     return StaffCreated(
         id=created.id,
         username=created.username,
         full_name=created.full_name,
-        password=password,
+        invite=invite,
         role=created.role,
     )
 

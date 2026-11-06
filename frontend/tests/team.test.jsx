@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
-import { CAMPAIGN, dashboardRoutes, fakeSecret, renderApp, signIn, stubApi } from "./helpers";
+import { CAMPAIGN, dashboardRoutes, renderApp, signIn, stubApi } from "./helpers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -25,10 +25,9 @@ async function openTeam(role, routes = {}) {
 }
 
 describe("the team page", () => {
-  it("lets the aspirant replace the manager and keeps the new password on screen", async () => {
-    const password = fakeSecret();
+  it("lets the aspirant replace the manager, who is emailed an invite", async () => {
     const { calls, user } = await openTeam("candidate", {
-      "POST /campaigns/c1/team/manager/": { id: "u4", username: "wanjiru", full_name: "Wanjiru Kamau", password, replaced: "amina" },
+      "POST /campaigns/c1/team/manager/": { id: "u4", username: "wanjiru", full_name: "Wanjiru Kamau", invite: "email", replaced: "amina" },
     });
 
     await user.click(screen.getByRole("button", { name: "Replace manager" }));
@@ -37,7 +36,7 @@ describe("the team page", () => {
     await user.type(screen.getByRole("textbox", { name: "Email" }), "wanjiru@example.com");
     await user.click(screen.getAllByRole("button", { name: "Replace manager" }).at(-1));
 
-    expect(await screen.findByText(password)).toBeTruthy();
+    expect(await screen.findByText("We emailed wanjiru a link to choose their password.")).toBeTruthy();
     expect(screen.getByText(/amina is off the campaign/)).toBeTruthy();
     expect(calls.find((c) => c.method === "POST").body).toEqual({
       username: "wanjiru", first_name: "Wanjiru", last_name: "Kamau", phone: "", email: "wanjiru@example.com", replace: true,
@@ -47,7 +46,7 @@ describe("the team page", () => {
   it("offers the aspirant Add manager when there is none, and adds without replacing", async () => {
     const { calls, user } = await openTeam("candidate", {
       "GET /campaigns/c1/team/": [TEAM[0], TEAM[2], { ...TEAM[1], role: "mobilizer", username: "amina2" }],
-      "POST /campaigns/c1/team/manager/": { id: "u4", username: "wanjiru", full_name: "Wanjiru Kamau", password: fakeSecret(), replaced: null },
+      "POST /campaigns/c1/team/manager/": { id: "u4", username: "wanjiru", full_name: "Wanjiru Kamau", invite: "email", replaced: null },
     });
 
     await user.click(screen.getByRole("button", { name: "Add manager" }));
@@ -72,7 +71,7 @@ describe("the team page", () => {
     const coordinator = { id: "u5", username: "otieno", full_name: "Otieno Ouma", role: "coordinator", phone: "", is_active: true };
     const { calls, user } = await openTeam("manager", {
       "GET /campaigns/c1/team/": [...TEAM, coordinator],
-      "POST /campaigns/c1/team/": { id: "u5", username: "otieno", full_name: "Otieno Ouma", password: fakeSecret(), role: "coordinator" },
+      "POST /campaigns/c1/team/": { id: "u5", username: "otieno", full_name: "Otieno Ouma", invite: "email", role: "coordinator" },
       "GET /campaigns/c1/team/u5/area/": { wards: ["w1"], registration_centres: [] },
       "PUT /campaigns/c1/team/u5/area/": { wards: ["w1", "w2"], registration_centres: [] },
     });

@@ -3,11 +3,16 @@
 import uuid
 from datetime import date
 
-from pydantic import Field
-
 from backend.models.enums import PartyMemberStatus, PartyRoleName, Seat, UserRole
 from backend.schemas.campaign import SetupSummary
-from backend.schemas.common import CampaignTitle, LoginDetails, NewLogin, ORMModel, WriteModel
+from backend.schemas.common import (
+    CampaignTitle,
+    Invite,
+    LoginDetails,
+    NewLogin,
+    ORMModel,
+    WriteModel,
+)
 
 
 class Totals(ORMModel):
@@ -92,17 +97,11 @@ class Overview(ORMModel):
     campaigns: list[AdminCampaignRead]
 
 
-class PasswordReset(WriteModel):
-    """Blank generates one."""
-
-    password: str | None = Field(default=None, min_length=8, max_length=128)
-
-
 class PasswordResult(ORMModel):
-    """`password` is shown this once."""
+    """How the reset link went out."""
 
     username: str
-    password: str
+    sent: Invite
 
 
 class ActiveSet(WriteModel):
@@ -145,7 +144,7 @@ class AdminCampaignCreate(WriteModel):
 
 
 class AdminCampaignCreated(ORMModel):
-    """`logins` carry passwords shown this once."""
+    """`logins` say how each invite link went out."""
 
     campaign: AdminCampaignRead
     setup: SetupSummary

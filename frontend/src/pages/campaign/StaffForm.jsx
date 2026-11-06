@@ -1,4 +1,4 @@
-import { Modal, PasswordModal } from "../../components/ui";
+import { InviteModal, Modal } from "../../components/ui";
 import { useAddStaff } from "../../api/hooks";
 import { Btn, PrimaryBtn } from "./controls";
 import { ROLE_LABEL } from "./helpers";
@@ -18,9 +18,9 @@ export default function StaffForm({ campaignId, role, onClose }) {
 
   if (made) {
     return (
-      <PasswordModal title={`${label} added`} password={made.password} onClose={onClose}>
-        <b>{made.username}</b> can now sign in.{role === "coordinator" && " Set their area next: until then they see no wards."}
-      </PasswordModal>
+      <InviteModal title={`${label} added`} invite={made.invite} username={made.username} onClose={onClose}>
+        {role === "coordinator" && "Set their area next: until then they see no wards."}
+      </InviteModal>
     );
   }
 

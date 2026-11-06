@@ -168,7 +168,7 @@ async def _users(args: argparse.Namespace, session: AsyncSession) -> int:
 
 async def _reset_password(args: argparse.Namespace, session: AsyncSession) -> int:
     user = await admin.user_by_name(session, args.username)
-    password = await admin.reset_password(session, user.id, args.password, actor=None)
+    password = await admin.set_password(session, user.id, args.password)
     print(f"{args.username} signs in with: {password}")
     print("Shown once, and every other session is signed out.")
     return 0

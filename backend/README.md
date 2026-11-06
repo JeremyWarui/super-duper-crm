@@ -270,6 +270,37 @@ AT_SENDER_ID=                 # blank uses the shared short code
 Without it the console provider records the request and reports
 `delivered: false`.
 
+## Sign-in links
+
+Nobody is shown a password. A new login gets an emailed invite link (72 hours)
+to choose its own; "Forgot your password?" on the sign-in page emails a reset
+link (1 hour), and so does the console's Send reset link. A link works once,
+only its SHA-256 is stored (`login_invites`), and using it signs the login out
+everywhere else. A login with no email gets no link: add one with
+`campaign-crm set-email`, then send a reset link. The reset request answers
+the same for any address and is limited to 5 an hour per device and 3 per
+address.
+
+Every email is recorded in `email_log`, with the link's token replaced by
+`[removed]`. The default `EMAIL_PROVIDER=practice` sends nothing and writes the
+whole email, link included, to the backend's log: in development, copy the
+link from the terminal running the API.
+
+Real email needs:
+
+```bash
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587                 # 465 for TLS from the start
+SMTP_USER=<smtp-user>
+SMTP_PASSWORD=<smtp-password>
+SMTP_FROM=Campaign <noreply@example.com>
+PUBLIC_URL=https://your-app.example.com
+```
+
+`campaign-crm reset-password` still sets a password directly, for the operator
+locked out of the superuser login.
+
 ## Payouts
 
 Releasing a campaign's mobilizer payment (`/api/payments/`) goes through the

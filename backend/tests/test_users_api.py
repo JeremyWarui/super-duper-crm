@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Mobilizer, User, UserRole
 from tests.conftest import World
-from tests.factories import auth, make_user, sign_in
+from tests.factories import auth, claim_link, make_user, sign_in
 
 
 def _mobilizer(world: World, **overrides) -> dict:
@@ -40,13 +40,13 @@ async def test_the_manager_or_candidate_adds_a_mobilizer_who_then_works_their_wa
     created = response.json()
     assert created["role"] == "mobilizer"
     assert created["ward_name"] == "Githurai"
-    assert len(created["password"]) >= 12
+    assert created["invite"] == "email"
     profile = await session.get(Mobilizer, uuid.UUID(created["mobilizer"]))
     assert (profile.ward_id, profile.full_name) == (world.other_ward.id, "Wanjiku Njeri")
     stored = await session.scalar(select(User).where(User.username == "wanjiku"))
-    assert created["password"] not in stored.password_hash
+    assert stored.last_login_at is None
 
-    head = auth(await sign_in(client, "wanjiku", created["password"]))
+    head = auth(await claim_link(client, session, "wanjiku@example.test"))
     listed = (await client.get("/api/campaigns/", headers=head)).json()
     assert [c["id"] for c in listed] == [str(world.campaign.id)]
     wards = (await client.get("/api/wards/", headers=head)).json()

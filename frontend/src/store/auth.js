@@ -28,6 +28,9 @@ export const useAuth = create(
         return data.user;
       },
 
+      // Takes the session a sign-in link opened.
+      adopt: ({ token, user }) => set({ token, user }),
+
       logout: () => set({ token: null, user: null }),
     }),
     { name: "campaign-auth" }

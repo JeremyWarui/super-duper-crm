@@ -59,10 +59,16 @@ if TYPE_CHECKING:
 
 @pytest.fixture(autouse=True)
 def fresh_rate_limits() -> None:
-    """Each test starts with the public pages' allowances unused."""
+    """Each test starts with the public pages' allowances unused and an empty outbox."""
     from backend.api.routers import auth, candidates, join, party
+    from backend.services.email import PracticeEmailProvider
+
+    PracticeEmailProvider.outbox.clear()
 
     auth.TRIES._hits.clear()
+    auth.RESETS_PER_CLIENT._hits.clear()
+    auth.RESETS_PER_ADDRESS._hits.clear()
+    auth.CLAIMS._hits.clear()
     candidates.SIGNUPS._hits.clear()
     candidates.WITHDRAWALS._hits.clear()
     join.SIGNUPS._hits.clear()
@@ -113,14 +119,19 @@ async def app_client(
 ) -> AsyncIterator[httpx.AsyncClient]:
     """The real app as this type of installation, serving every request from this session."""
     from backend.api.deps import get_organisation_type, get_today
-    from backend.db.session import get_session
+    from backend.db.session import get_session, get_session_factory
     from backend.main import app
     from tests.factories import TEST_TODAY
 
     async def _use_it() -> AsyncIterator[AsyncSession]:
         yield session
 
+    @asynccontextmanager
+    async def _open_it() -> AsyncIterator[AsyncSession]:
+        yield session
+
     app.dependency_overrides[get_session] = _use_it
+    app.dependency_overrides[get_session_factory] = lambda: _open_it
     app.dependency_overrides[get_today] = lambda: TEST_TODAY
     app.dependency_overrides[get_organisation_type] = lambda: organisation_type
     transport = httpx.ASGITransport(app=app)

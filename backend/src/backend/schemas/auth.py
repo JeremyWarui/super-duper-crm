@@ -4,7 +4,7 @@ import uuid
 
 from pydantic import Field, field_validator
 
-from backend.models.enums import PartyRoleName, UserKind, UserRole
+from backend.models.enums import LinkPurpose, PartyRoleName, UserKind, UserRole
 from backend.schemas.common import ORMModel, WriteModel
 
 
@@ -36,3 +36,23 @@ class LoginUser(ORMModel):
 class LoginResponse(ORMModel):
     token: str
     user: LoginUser
+
+
+class ResetSent(ORMModel):
+    detail: str
+
+
+class ResetRequest(WriteModel):
+    email: str = Field(min_length=1, max_length=254)
+
+
+class LinkRead(ORMModel):
+    """What a live sign-in link is for, and whose login it sets."""
+
+    purpose: LinkPurpose
+    username: str
+    email: str
+
+
+class LinkClaim(WriteModel):
+    password: str = Field(min_length=8, max_length=128)

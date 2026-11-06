@@ -19,7 +19,7 @@ import {
   Modal,
   PageTitle,
   Panel,
-  PasswordModal,
+  InviteModal,
 } from "../../components/ui";
 import {
   ASPIRANT_MOVES,
@@ -213,13 +213,12 @@ function Detail({ row, onClose }) {
   if (logins?.length) {
     const [first, ...rest] = logins;
     return (
-      <PasswordModal
-        title={`Login for ${first.username}`}
-        password={first.password}
+      <InviteModal
+        title={first.role === "candidate" ? "The aspirant's login" : "The campaign manager's login"}
+        invite={first.invite}
+        username={first.username}
         onClose={() => setLogins(rest.length ? rest : null)}
-      >
-        {first.role === "candidate" ? "The aspirant's login." : "The campaign manager's login."}
-      </PasswordModal>
+      />
     );
   }
 

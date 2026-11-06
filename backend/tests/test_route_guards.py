@@ -30,6 +30,9 @@ PUBLIC_ROUTES = {
     # A public file; a private one answers 404 unless a superuser asks.
     ("GET", "/api/files/{file_id}/"),
     ("POST", "/api/auth/login/"),
+    ("POST", "/api/auth/password-reset/"),
+    ("GET", "/api/auth/links/{token}/"),
+    ("POST", "/api/auth/links/{token}/"),
     ("GET", "/api/join/{code}/"),
     ("POST", "/api/join/{code}/"),
     ("POST", "/api/join/withdraw/{code}/"),

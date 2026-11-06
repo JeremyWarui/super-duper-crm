@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from backend.models import UserRole
 from tests.conftest import app_client, enforce_foreign_keys, upgrade_head
-from tests.factories import auth, make_geography, make_user, members_of, sign_in
+from tests.factories import auth, claim_link, make_geography, make_user, members_of, sign_in
 
 
 @pytest.fixture
@@ -64,6 +64,6 @@ async def test_the_superuser_sets_a_campaign_up_that_its_aspirant_and_manager_wo
         "otieno": "manager",
     }
     for login in body["logins"]:
-        head = auth(await sign_in(client, login["username"], login["password"]))
+        head = auth(await claim_link(client, session, f"{login['username']}@example.test"))
         listed = (await client.get("/api/campaigns/", headers=head)).json()
         assert [c["title"] for c in listed] == ["Wanjiku for Parklands"]

@@ -381,6 +381,27 @@ export function useSetArea() {
   });
 }
 
+// ---- sign-in links ---------------------------------------------------------
+// The same answer whether or not the address has a login.
+export const useRequestReset = () =>
+  useMutation({
+    mutationFn: (email) => api("/auth/password-reset/", { method: "POST", body: { email }, anonymous: true }),
+  });
+
+// What a sign-in link is for and whose login it sets; an error when it is spent.
+export const useLink = (token) =>
+  useQuery({
+    queryKey: ["link", token],
+    queryFn: () => api(`/auth/links/${token}/`, { anonymous: true }),
+    retry: false,
+  });
+
+// Sets the password through the link; resolves to the session it opens.
+export const useClaimLink = (token) =>
+  useMutation({
+    mutationFn: (password) => api(`/auth/links/${token}/`, { method: "POST", body: { password }, anonymous: true }),
+  });
+
 // ---- admin console --------------------------------------------------------
 // Only a superuser may call these; every route checks the flag again itself.
 export const useAdminOverview = () =>
@@ -432,20 +453,15 @@ function useAdminInvalidator() {
   return () => qc.invalidateQueries({ queryKey: ["admin"] });
 }
 
-// Every callback runs on whoever owns the hook, and is handed the id it was
-// about. The password comes back once, so it must not be delivered through a
-// per-call callback: React Query drops those when the calling component
-// unmounts, and a row unmounts whenever the list refetches or the filter
-// changes. A shared mutation also only remembers its latest call, so the caller
+// Emails the login a reset link. Every callback runs on whoever owns the hook,
+// and is handed the id it was about: React Query drops per-call callbacks when
+// the calling component unmounts, and a row unmounts whenever the list
+// refetches or the filter changes. A shared mutation also only remembers its latest call, so the caller
 // has to key what it keeps by id rather than read `error` or `isPending` here.
 export function useResetPassword({ onPassword, onFailed, onDone } = {}) {
   const invalidate = useAdminInvalidator();
   return useMutation({
-    mutationFn: ({ id, password }) =>
-      api(`/admin/users/${id}/reset-password/`, {
-        method: "POST",
-        body: { password: password || null },
-      }),
+    mutationFn: ({ id }) => api(`/admin/users/${id}/reset-password/`, { method: "POST" }),
     onSuccess: (data, variables) => {
       onPassword?.(data, variables);
       return invalidate();

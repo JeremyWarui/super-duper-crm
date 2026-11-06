@@ -79,6 +79,17 @@ class Settings(BaseSettings):
     at_sandbox: bool = False
     sms_provider: Literal["console", "africastalking"] = "console"
 
+    # Where people open the app; sign-in links in emails and texts start with it.
+    public_url: str = "http://localhost:5173"
+
+    # "practice" records each email in email_log and sends nothing.
+    email_provider: Literal["practice", "smtp"] = "practice"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+
     # Webhook signing secret (whsec_...) from the Paystack dashboard; blank checks the
     # older x-paystack-signature header against the secret key instead.
     paystack_webhook_secret: str = ""
@@ -91,6 +102,13 @@ class Settings(BaseSettings):
     def _paystack_needs_a_key(cls, value: str, info: ValidationInfo) -> str:
         if value == "paystack" and not info.data.get("paystack_secret_key"):
             raise ValueError("PAYOUT_PROVIDER=paystack needs PAYSTACK_SECRET_KEY.")
+        return value
+
+    @field_validator("email_provider", mode="after")
+    @classmethod
+    def _smtp_needs_a_server(cls, value: str, info: ValidationInfo) -> str:
+        if value == "smtp" and not (info.data.get("smtp_host") and info.data.get("smtp_from")):
+            raise ValueError("EMAIL_PROVIDER=smtp needs SMTP_HOST and SMTP_FROM.")
         return value
 
     @field_validator("sms_provider", mode="after")

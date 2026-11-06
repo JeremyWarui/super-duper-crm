@@ -26,6 +26,7 @@ from backend.models.enums import (
     EventStatus,
     FileArea,
     LabelledStrEnum,
+    LinkPurpose,
     OfficeLevel,
     OperationalGrain,
     OrganisationType,
@@ -53,6 +54,7 @@ from backend.models.geography import (
     RegistrationCentre,
     Ward,
 )
+from backend.models.login import EmailLog, LoginInvite
 from backend.models.membership import CampaignMember, CampaignMemberArea
 from backend.models.mobilizer import Mobilizer
 from backend.models.party import (
@@ -93,6 +95,9 @@ __all__ = [
     "ConsentChannel",
     "ContactMethod",
     "Profession",
+    "EmailLog",
+    "LinkPurpose",
+    "LoginInvite",
     "OperationalGrain",
     "OrganisationType",
     "PartyConsentChannel",

@@ -159,13 +159,16 @@ export function Modal({ title, sub, onClose, locked, children }) {
 }
 
 // A password shown once; a click on the backdrop leaves it open.
-export const PasswordModal = ({ title, password, onClose, children }) => (
-  <Modal title={title} sub="Write the password down now. It is shown once." onClose={onClose} locked>
-    <div className="modal-text">{children}</div>
-    <div className="secret-box">
-      <div className="meta">Password</div>
-      <div className="secret-value">{password}</div>
-    </div>
+// What happened to a new login's emailed invite, or a reset link: "email" or "none".
+export const linkNote = (sent, username) =>
+  sent === "email"
+    ? `We emailed ${username} a link to choose their password.`
+    : `${username} has no email, so no link could be sent. Add an email to their login, then send a reset link from the console.`;
+
+// Shown after a login is made: the invite went out by email, or could not.
+export const InviteModal = ({ title, invite, username, onClose, children }) => (
+  <Modal title={title} sub={linkNote(invite, username)} onClose={onClose}>
+    {children && <div className="modal-text">{children}</div>}
     <div className="flex justify-end gap-2 form-actions"><Button primary onClick={onClose}>Done</Button></div>
   </Modal>
 );

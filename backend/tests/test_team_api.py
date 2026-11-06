@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import AuthToken, CampaignMember, RegistrationCentre, User, UserRole
 from tests.conftest import World
-from tests.factories import auth, make_campaign, make_user, sign_in
+from tests.factories import auth, claim_link, make_campaign, make_user, sign_in
 
 
 def _team(world: World, *rest: str) -> str:
@@ -69,7 +69,8 @@ async def test_replacing_the_manager_signs_the_old_one_out_and_off_the_campaign(
     assert (
         await client.get("/api/campaigns/", headers=world.headers("manager"))
     ).status_code == 401
-    head = auth(await sign_in(client, "wanjiru", made["password"]))
+    assert made["invite"] == "email"
+    head = auth(await claim_link(client, session, "wanjiru@example.test"))
     assert [c["id"] for c in (await client.get("/api/campaigns/", headers=head)).json()] == [
         str(world.campaign.id)
     ]

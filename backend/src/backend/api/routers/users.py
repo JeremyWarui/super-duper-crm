@@ -15,8 +15,9 @@ from backend.api.scope import (
 )
 from backend.models import Mobilizer, User, UserRole, Ward
 from backend.schemas.user import UserCreate, UserCreated
-from backend.services.accounts import add_mobilizer, new_login
+from backend.services.accounts import add_mobilizer
 from backend.services.audit import record
+from backend.services.login_links import new_invited_login
 
 router = APIRouter(prefix="/users", tags=["users"])
 Writer = Annotated[User, Depends(require("mobilizers.write"))]
@@ -26,7 +27,7 @@ Writer = Annotated[User, Depends(require("mobilizers.write"))]
 async def create_user(payload: UserCreate, session: SessionDep, user: Writer) -> UserCreated:
     """Create a mobilizer's login on the caller's campaign, on a free ward or none.
 
-    The password is shown once.
+    The login is sent an invite link.
     """
     campaign = await require_visible_campaign(session, user, payload.campaign)
     ward = await session.get(Ward, payload.ward) if payload.ward is not None else None
@@ -37,7 +38,7 @@ async def create_user(payload: UserCreate, session: SessionDep, user: Writer) ->
         session, user, "mobilizers.write", payload.ward, payload.registration_centre
     )
 
-    created, password = await new_login(
+    created, invite = await new_invited_login(
         session,
         username=payload.username,
         role=UserRole.MOBILIZER,
@@ -65,7 +66,7 @@ async def create_user(payload: UserCreate, session: SessionDep, user: Writer) ->
         full_name=created.full_name,
         role=created.role,
         phone=created.phone,
-        password=password,
+        invite=invite,
         mobilizer=mobilizer.id,
         ward_name=ward.name if ward is not None else None,
     )

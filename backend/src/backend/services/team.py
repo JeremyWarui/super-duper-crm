@@ -15,9 +15,10 @@ from backend.models import (
     User,
     UserRole,
 )
-from backend.services.accounts import add_member, new_login
+from backend.services.accounts import add_member
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
+from backend.services.login_links import new_invited_login
 from backend.services.targets import ward_in_area
 
 ORDER = {role: rank for rank, role in enumerate(UserRole)}
@@ -46,17 +47,17 @@ async def manager_of(session: AsyncSession, campaign_id: uuid.UUID) -> User | No
 async def set_manager(
     session: AsyncSession, campaign: Campaign, details: dict, *, replace: bool, actor: User | None
 ) -> tuple[User, str, str | None]:
-    """Give a campaign a new manager login, shown with its password once.
+    """Give a campaign a new manager login and send it an invite link.
 
     With `replace` the sitting manager is taken off the campaign, turned off and signed out.
-    Returns the new login, its password and the replaced manager's username.
+    Returns the new login, how its invite went out and the replaced manager's username.
     """
     sitting = await manager_of(session, campaign.id)
     replaced = sitting.username if sitting is not None else None
     if sitting is not None and not replace:
         raise Refused(f"{campaign.title} already has a manager, {replaced}. Replace them instead.")
     try:
-        created, password = await new_login(session, role=UserRole.MANAGER, **details)
+        created, invite = await new_invited_login(session, role=UserRole.MANAGER, **details)
         if sitting is not None:
             await session.execute(
                 delete(CampaignMember).where(
@@ -79,17 +80,17 @@ async def set_manager(
         detail={"replaced_user_id": str(sitting.id) if sitting is not None else None},
     )
     await session.commit()
-    return created, password, replaced
+    return created, invite, replaced
 
 
 async def add_staff(
     session: AsyncSession, campaign: Campaign, role: UserRole, details: dict, *, actor: User
 ) -> tuple[User, str]:
-    """Give a campaign a coordinator or comms login, shown with its password once."""
+    """Give a campaign a coordinator or comms login and send it an invite link."""
     if role not in STAFF:
         raise Refused("Only a coordinator or a comms officer is added here.")
     try:
-        created, password = await new_login(session, role=role, **details)
+        created, invite = await new_invited_login(session, role=role, **details)
         await add_member(session, campaign.id, created)
     except Refused:
         await session.rollback()
@@ -104,7 +105,7 @@ async def add_staff(
         detail={"role": role.value},
     )
     await session.commit()
-    return created, password
+    return created, invite
 
 
 async def _member(

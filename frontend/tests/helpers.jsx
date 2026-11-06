@@ -237,7 +237,7 @@ export const CREATED_USER = {
   full_name: "Wanjiku Njeri",
   role: "mobilizer",
   phone: "+254700333444",
-  password: fakeSecret(),
+  invite: "email",
   mobilizer: "m9",
   ward_name: "Githurai",
 };
@@ -448,7 +448,6 @@ export function volunteerRoutes(overrides = {}) {
 }
 
 // ---- nominations -----------------------------------------------------------
-export const WORKSPACE_SECRET = fakeSecret();
 
 export const ASPIRANT = {
   id: "as1",
@@ -472,7 +471,7 @@ export function aspirantRoutes(overrides = {}) {
     "POST /party/aspirants/as1/workspace/": {
       aspirant: { ...ASPIRANT, campaign_id: "c9" },
       setup: {},
-      logins: [{ id: "u9", username: "achieng", full_name: "", role: "candidate", password: WORKSPACE_SECRET }],
+      logins: [{ id: "u9", username: "achieng", full_name: "", role: "candidate", invite: "email" }],
     },
     ...overrides,
   };

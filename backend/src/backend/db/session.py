@@ -1,7 +1,8 @@
 """Async engine and session factory."""
 
 import ssl
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
+from contextlib import AbstractAsyncContextManager
 from functools import lru_cache
 
 import certifi
@@ -56,6 +57,11 @@ def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
         expire_on_commit=False,
         autoflush=False,
     )
+
+
+def get_session_factory() -> Callable[[], AbstractAsyncContextManager[AsyncSession]]:
+    """FastAPI dependency: opens sessions for work that runs after the response is sent."""
+    return get_sessionmaker()
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:

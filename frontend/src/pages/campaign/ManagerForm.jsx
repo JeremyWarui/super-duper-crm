@@ -1,4 +1,4 @@
-import { Modal, PasswordModal } from "../../components/ui";
+import { InviteModal, Modal } from "../../components/ui";
 import { useSetManager } from "../../api/hooks";
 import { Btn, PrimaryBtn } from "./controls";
 import LoginFields, { useLoginFields } from "./LoginFields";
@@ -11,9 +11,9 @@ export default function ManagerForm({ campaignId, sitting, onClose }) {
 
   if (made) {
     return (
-      <PasswordModal title="Manager added" password={made.password} onClose={onClose}>
-        <b>{made.username}</b> can now sign in and run this campaign.{made.replaced && <> {made.replaced} is off the campaign and can no longer sign in.</>}
-      </PasswordModal>
+      <InviteModal title="Manager added" invite={made.invite} username={made.username} onClose={onClose}>
+        {made.replaced && <>{made.replaced} is off the campaign and can no longer sign in.</>}
+      </InviteModal>
     );
   }
 

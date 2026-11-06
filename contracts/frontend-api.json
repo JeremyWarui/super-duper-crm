@@ -6,6 +6,18 @@
       "token",
       "user"
     ],
+    "POST /api/auth/password-reset/": [
+      "detail"
+    ],
+    "GET /api/auth/links/{token}/": [
+      "purpose",
+      "username",
+      "email"
+    ],
+    "POST /api/auth/links/{token}/": [
+      "token",
+      "user"
+    ],
     "GET /api/counties/": [
       "id",
       "name"
@@ -100,7 +112,7 @@
       "username",
       "full_name",
       "role",
-      "password",
+      "invite",
       "mobilizer",
       "ward_name"
     ],
@@ -124,7 +136,7 @@
     ],
     "POST /api/admin/users/{user_id}/reset-password/": [
       "username",
-      "password"
+      "sent"
     ],
     "POST /api/admin/users/{user_id}/active/": [
       "id",
@@ -157,7 +169,7 @@
       "username",
       "full_name",
       "role",
-      "password"
+      "invite"
     ],
     "PATCH /api/admin/campaigns/{campaign_id}/": [
       "id",
@@ -215,12 +227,12 @@
     ],
     "POST /api/campaigns/{campaign_id}/team/manager/": [
       "username",
-      "password",
+      "invite",
       "replaced"
     ],
     "POST /api/campaigns/{campaign_id}/team/": [
       "username",
-      "password"
+      "invite"
     ],
     "GET /api/campaigns/{campaign_id}/team/{user_id}/area/": [
       "wards",
@@ -905,6 +917,16 @@
       "kind",
       "member_account"
     ],
+    "POST /api/auth/links/{token}/.user": [
+      "id",
+      "username",
+      "full_name",
+      "role",
+      "is_superuser",
+      "party_roles",
+      "kind",
+      "member_account"
+    ],
     "GET /api/strategy/.units": [
       "unit",
       "ward",
@@ -975,7 +997,7 @@
       "username",
       "full_name",
       "role",
-      "password"
+      "invite"
     ],
     "GET /api/join/{code}/.places": [
       "id",
@@ -1021,7 +1043,7 @@
     "POST /api/party/aspirants/{aspirant_id}/workspace/.logins": [
       "username",
       "role",
-      "password"
+      "invite"
     ],
     "GET /api/party/dashboard/.volunteers_by_county": [
       "county_id",
@@ -1122,6 +1144,12 @@
       "email",
       "password"
     ],
+    "POST /api/auth/password-reset/": [
+      "email"
+    ],
+    "POST /api/auth/links/{token}/": [
+      "password"
+    ],
     "POST /api/mobilizers/": [
       "campaign",
       "ward",
@@ -1179,9 +1207,7 @@
       "ward",
       "registration_centre"
     ],
-    "POST /api/admin/users/{user_id}/reset-password/": [
-      "password"
-    ],
+    "POST /api/admin/users/{user_id}/reset-password/": [],
     "POST /api/admin/users/{user_id}/active/": [
       "active"
     ],

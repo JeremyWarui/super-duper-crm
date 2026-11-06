@@ -12,7 +12,6 @@ import {
   ADMIN_USERS,
   TEST_TOKEN,
   dashboardRoutes,
-  fakeSecret,
   renderApp,
   signIn,
   stubApi,
@@ -76,33 +75,26 @@ describe("who reaches the console", () => {
 });
 
 describe("what the console can repair", () => {
-  it("resets a password and shows it once", async () => {
+  it("emails a login a reset link and says it went", async () => {
     const user = userEvent.setup();
     signInAsAdmin();
-    const issued = fakeSecret();
     const calls = stubApi(
       adminRoutes({
-        "POST /admin/users/u-jane/reset-password/": {
-          username: "jane",
-          password: issued,
-        },
+        "POST /admin/users/u-jane/reset-password/": { username: "jane", sent: "email" },
       }),
     );
     renderApp(<Admin />);
 
     await user.click(await screen.findByRole("button", { name: /Logins/ }));
     const rows = await screen.findAllByRole("button", {
-      name: "Reset password",
+      name: "Send reset link",
     });
     await user.click(rows[1]);
     await user.click(await screen.findByRole("button", { name: "Yes" }));
 
-    expect(await screen.findByText(issued)).toBeInTheDocument();
-    expect(
-      screen.getByText(/shown once, never fetchable again/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Link emailed")).toBeInTheDocument();
     const posted = calls.find((c) => c.path.includes("reset-password"));
-    expect(posted.method).toBe("POST");
+    expect([posted.method, posted.body ?? null]).toEqual(["POST", null]);
   });
 });
 
@@ -146,10 +138,9 @@ describe("creating a login from the console", () => {
     );
   }
 
-  it("creates a manager on a campaign and shows the password once", async () => {
+  it("creates a manager on a campaign and says their invite was emailed", async () => {
     const user = userEvent.setup();
     signInAsAdmin();
-    const issued = fakeSecret();
     const calls = stubApi(
       adminRoutes({
         "POST /admin/users/": {
@@ -157,7 +148,7 @@ describe("creating a login from the console", () => {
           username: "newmgr",
           full_name: "New Manager",
           role: "manager",
-          password: issued,
+          invite: "email",
         },
       }),
     );
@@ -169,7 +160,7 @@ describe("creating a login from the console", () => {
     await user.selectOptions(screen.getByLabelText(/Campaign/), "c1");
     await user.click(screen.getByRole("button", { name: "Create the login" }));
 
-    expect(await screen.findByText(issued)).toBeInTheDocument();
+    expect(await screen.findByText("Link emailed")).toBeInTheDocument();
     // GET /admin/users/ shares the path, so the method has to be matched too.
     const posted = calls.find(
       (c) => c.path === "/admin/users/" && c.method === "POST",
@@ -181,7 +172,7 @@ describe("creating a login from the console", () => {
 });
 
 describe("creating a campaign from the console", () => {
-  function campaignRoutes(passwords) {
+  function campaignRoutes() {
     return adminRoutes({
       "GET /counties/": [{ id: "cty1", name: "Nairobi City" }],
       "GET /constituencies/": [{ id: "k1", name: "Roysambu" }],
@@ -203,14 +194,14 @@ describe("creating a campaign from the console", () => {
             username: "wanjiku",
             full_name: "",
             role: "candidate",
-            password: passwords[0],
+            invite: "email",
           },
           {
             id: "u2",
             username: "otieno",
             full_name: "",
             role: "manager",
-            password: passwords[1],
+            invite: "none",
           },
         ],
       },
@@ -243,11 +234,10 @@ describe("creating a campaign from the console", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
   }
 
-  it("creates the aspirant's and manager's logins with it and keeps both passwords", async () => {
+  it("creates the aspirant's and manager's logins with it and says how each invite went", async () => {
     const user = userEvent.setup();
     signInAsAdmin();
-    const passwords = [fakeSecret(), fakeSecret()];
-    const calls = stubApi(campaignRoutes(passwords));
+    const calls = stubApi(campaignRoutes());
     renderApp(<Admin />);
 
     await walkToReview(user);
@@ -255,8 +245,8 @@ describe("creating a campaign from the console", () => {
       await screen.findByRole("button", { name: "Create campaign" }),
     );
 
-    expect(await screen.findByText(passwords[0])).toBeInTheDocument();
-    expect(screen.getByText(passwords[1])).toBeInTheDocument();
+    expect(await screen.findByText("Link emailed")).toBeInTheDocument();
+    expect(screen.getByText("No email: nothing sent")).toBeInTheDocument();
     const posted = calls.find((c) => c.path === "/admin/campaigns/");
     expect(posted.body).toMatchObject({
       seat: "mp",
@@ -264,30 +254,5 @@ describe("creating a campaign from the console", () => {
       aspirant: { username: "wanjiku" },
       manager: { username: "otieno" },
     });
-
-    // Back on the console the passwords stay until it is closed.
-    await user.click(
-      screen.getByRole("button", { name: "Back to the console" }),
-    );
-    expect(await screen.findByText(passwords[1])).toBeInTheDocument();
-  });
-
-  it("keeps the passwords on screen when the console fails to reload after the create", async () => {
-    const user = userEvent.setup();
-    signInAsAdmin();
-    const passwords = [fakeSecret(), fakeSecret()];
-    const routes = campaignRoutes(passwords);
-    stubApi(routes);
-    renderApp(<Admin />);
-
-    await walkToReview(user);
-    routes["GET /admin/overview/"] = { status: 500, body: { detail: "down" } };
-    await user.click(
-      await screen.findByRole("button", { name: "Create campaign" }),
-    );
-
-    expect(await screen.findByText(passwords[0])).toBeInTheDocument();
-    expect(screen.getByText(passwords[1])).toBeInTheDocument();
-    expect(screen.queryByText("down")).not.toBeInTheDocument();
   });
 });

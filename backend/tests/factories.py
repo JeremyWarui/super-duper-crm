@@ -1,5 +1,6 @@
 """Object builders, so each test spells out only what it cares about."""
 
+import re
 import secrets
 import uuid
 import zlib
@@ -190,6 +191,23 @@ async def sign_in(client, username: str, password: str = TEST_PASSWORD) -> str:
     """A token for the login, signing in with `username`'s test email or an email given."""
     email = username if "@" in username else email_of(username)
     response = await client.post("/api/auth/login/", json={"email": email, "password": password})
+    assert response.status_code == 200, response.text
+    return response.json()["token"]
+
+
+async def link_token(session, email: str) -> str:
+    """The token in the last sign-in link emailed to `email`, from the practice outbox."""
+    from backend.services.email import PracticeEmailProvider
+
+    bodies = [body for to, _, body in PracticeEmailProvider.outbox if to == email]
+    assert bodies, f"no email to {email}"
+    return re.search(r"/(?:invite|reset)/([\w-]+)", bodies[-1]).group(1)
+
+
+async def claim_link(client, session, email: str, password: str = TEST_PASSWORD) -> str:
+    """Choose `password` through the last link emailed to `email`; the token it signs in with."""
+    token = await link_token(session, email)
+    response = await client.post(f"/api/auth/links/{token}/", json={"password": password})
     assert response.status_code == 200, response.text
     return response.json()["token"]
 

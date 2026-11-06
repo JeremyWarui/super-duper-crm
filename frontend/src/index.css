@@ -595,21 +595,6 @@
 
 .legacy .modal-text { font-size: var(--text-base); line-height: 1.6; }
 
-.legacy .secret-box {
-  margin-top: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-muted);
-}
-
-.legacy .secret-value {
-  margin-top: 2px;
-  font-family: var(--font-mono);
-  font-size: var(--text-md);
-  user-select: all;
-}
-
 .legacy .field-gap { height: 14px; }
 
 /* Two form fields side by side, one above the other on a phone. */
@@ -860,7 +845,6 @@
 .legacy .admin-handout-row + .admin-handout-row { border-top: 1px solid var(--color-warning-border); }
 .legacy .admin-handout-cell { padding: 8px 0; }
 .legacy .admin-handout-username { font-weight: 600; }
-.legacy .admin-handout-password { font-family: var(--font-mono); text-align: right; }
 
 .legacy .admin-campaign-meta,
 .legacy .admin-campaign-counts { font-size: var(--text-sm); }
@@ -1023,7 +1007,6 @@
 
 .legacy .onboarding-box-title { font-size: var(--text-base); font-weight: 600; }
 .legacy .onboarding-box-count { color: var(--color-text-muted); font-size: var(--text-sm); }
-.legacy .onboarding-box-note { color: var(--color-warning); font-size: var(--text-sm); }
 .legacy .onboarding-login-note { margin-left: 8px; font-size: var(--text-xs); }
 
 .legacy .onboarding-box-message {
@@ -1053,7 +1036,6 @@
 
 .legacy .onboarding-login-row { padding: 10px 14px; }
 .legacy .onboarding-login-name { font-size: var(--text-base); font-weight: 600; }
-.legacy .onboarding-login-password { font-family: var(--font-mono); font-size: var(--text-sm); }
 
 .legacy .onboarding-cancel {
   padding: 4px 10px;

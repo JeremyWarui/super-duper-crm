@@ -12,6 +12,7 @@ from backend.models import (
     Campaign,
     CampaignMember,
     Event,
+    LinkPurpose,
     Mobilizer,
     PartyMember,
     PartyMemberStatus,
@@ -35,10 +36,11 @@ from backend.schemas.admin import (
 from backend.schemas.campaign import SetupSummary
 from backend.security import hash_password, new_password
 from backend.services.accounts import add_member as join
-from backend.services.accounts import add_mobilizer, new_login, user_named
+from backend.services.accounts import add_mobilizer, user_named
 from backend.services.audit import record
 from backend.services.campaigns import build_campaign
 from backend.services.errors import NotFound, Refused
+from backend.services.login_links import new_invited_login, send_link
 from backend.services.strategy import read_strategy
 from backend.services.targets import ward_in_area, wards_in_area
 
@@ -213,23 +215,33 @@ async def user_by_name(session: AsyncSession, username: str) -> User:
     return found
 
 
-async def reset_password(
-    session: AsyncSession,
-    user_id: uuid.UUID,
-    password: str | None,
-    *,
-    actor: User | None,
-) -> str:
-    """Give a login a new password and sign out its session."""
+async def set_password(session: AsyncSession, user_id: uuid.UUID, password: str | None) -> str:
+    """Give a login a password and sign out its session; for the operator's command line only."""
     login = await _user(session, user_id)
-    if not login.is_active:
-        raise Refused(
-            f"{login.username} is disabled, so a new password would not sign them in. "
-            "Enable the login first."
-        )
     chosen = password or new_password()
     login.password_hash = hash_password(chosen)
     await session.execute(delete(AuthToken).where(AuthToken.user_id == login.id))
+    record(
+        session, actor=None, action="user.set_password", subject_type="user", subject_id=login.id
+    )
+    await session.commit()
+    return chosen
+
+
+async def reset_password(session: AsyncSession, user_id: uuid.UUID, *, actor: User) -> str:
+    """Send a login a link to choose a new password; returns how it went out.
+
+    Nobody else sets or sees the password. The login keeps working until the link is used.
+    """
+    login = await _user(session, user_id)
+    if not login.is_active:
+        raise Refused(
+            f"{login.username} is disabled, so a reset link would not sign them in. "
+            "Enable the login first."
+        )
+    sent = await send_link(session, login, LinkPurpose.RESET)
+    if sent == "none":
+        raise Refused(f"{login.username} has no email to send a reset link to.")
     record(
         session,
         actor=actor,
@@ -238,7 +250,7 @@ async def reset_password(
         subject_id=login.id,
     )
     await session.commit()
-    return chosen
+    return sent
 
 
 async def set_active(
@@ -407,10 +419,10 @@ async def build_workspace(
     if manager is not None and manager["username"] == aspirant["username"]:
         raise Refused("The aspirant and the manager need different usernames.")
     created, summary = await build_campaign(session, **campaign_fields)
-    logins = [await new_login(session, role=UserRole.CANDIDATE, **aspirant)]
+    logins = [await new_invited_login(session, role=UserRole.CANDIDATE, **aspirant)]
     logins[0][0].party_member_id = party_member_id
     if manager is not None:
-        logins.append(await new_login(session, role=UserRole.MANAGER, **manager))
+        logins.append(await new_invited_login(session, role=UserRole.MANAGER, **manager))
     for login, _ in logins:
         await join(session, created.id, login)
     return created, summary, logins
@@ -462,7 +474,7 @@ async def create_user(
     ward_id: uuid.UUID | None = None,
     centre_id: uuid.UUID | None = None,
 ) -> tuple[User, str]:
-    """Create a login, on a campaign when one is named; returns it and its password.
+    """Create a login, on a campaign when one is named; returns it and how its invite went out.
 
     A `role` of None makes a staff login, which stays off every campaign.
     """
@@ -486,7 +498,7 @@ async def create_user(
         raise Refused("An aspirant gets their login with their campaign: use New campaign.")
 
     try:
-        created, password = await new_login(
+        created, invite = await new_invited_login(
             session,
             username=username,
             role=role,
@@ -512,7 +524,7 @@ async def create_user(
         detail={"role": role.value if role else None},
     )
     await session.commit()
-    return created, password
+    return created, invite
 
 
 async def grant_party_role(

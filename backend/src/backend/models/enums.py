@@ -89,6 +89,13 @@ class OperationalGrain(StrEnum):
     WARD = "ward"
 
 
+class LinkPurpose(StrEnum):
+    """What a one-time sign-in link does."""
+
+    INVITE = "invite"
+    RESET = "reset"
+
+
 class ConsentChannel(StrEnum):
     """Where a supporter gave consent."""
 

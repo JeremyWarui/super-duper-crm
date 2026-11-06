@@ -8,7 +8,6 @@ import {
   ADMIN_TOTALS,
   ADMIN_USERS,
   TEST_TOKEN,
-  WORKSPACE_SECRET,
   aspirantRoutes,
   dashboardRoutes,
   renderApp,
@@ -49,7 +48,7 @@ describe("the aspirants page", () => {
     }
   });
 
-  it("creates an approved aspirant's workspace and shows the password once", async () => {
+  it("creates an approved aspirant's workspace and says their invite was emailed", async () => {
     const user = userEvent.setup();
     signInAsParty(["nominations_officer"]);
     const calls = stubApi(aspirantRoutes({ "GET /campaigns/": [] }));
@@ -60,7 +59,7 @@ describe("the aspirants page", () => {
     await user.type(screen.getByLabelText("Aspirant's email"), "achieng@example.com");
     await user.click(screen.getByRole("button", { name: "Create workspace" }));
 
-    expect(await screen.findByText(WORKSPACE_SECRET)).toBeInTheDocument();
+    expect(await screen.findByText("We emailed achieng a link to choose their password.")).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST")).toMatchObject({
       path: "/party/aspirants/as1/workspace/",
       body: { candidate: { username: "achieng", email: "achieng@example.com" } },

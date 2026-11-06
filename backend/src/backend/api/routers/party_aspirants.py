@@ -131,7 +131,7 @@ async def move_aspirant(
 async def create_workspace(
     aspirant_id: uuid.UUID, payload: WorkspaceCreate, user: NominationsOfficer, session: SessionDep
 ) -> WorkspaceCreated:
-    """An approved aspirant's campaign on their seat and area; passwords are shown once."""
+    """An approved aspirant's campaign on their seat and area; its logins are sent invite links."""
     await membership.process_requests(session)
     aspirant = await aspirants.get_aspirant(session, aspirant_id)
     _, summary, logins = await aspirants.create_workspace(
@@ -152,8 +152,8 @@ async def create_workspace(
                 username=login.username,
                 full_name=login.full_name,
                 role=login.role,
-                password=password,
+                invite=invite,
             )
-            for login, password in logins
+            for login, invite in logins
         ],
     )

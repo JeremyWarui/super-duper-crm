@@ -5,7 +5,7 @@ import uuid
 from pydantic import BaseModel
 
 from backend.models.enums import PartyMemberStatus
-from backend.schemas.common import LoginDetails
+from backend.schemas.common import Invite, LoginDetails
 
 
 class PartyWorkspaceRead(BaseModel):
@@ -21,13 +21,13 @@ class PartyWorkspaceCreate(BaseModel):
 
 
 class PartyWorkspaceCreated(BaseModel):
-    """`password` is the Workspace Manager's, shown this once."""
+    """`invite` says how the Workspace Manager's invite link went out."""
 
     id: uuid.UUID
     title: str
     units: int
     username: str
-    password: str
+    invite: Invite
 
 
 class AreaMember(BaseModel):

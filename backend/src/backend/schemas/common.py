@@ -2,7 +2,7 @@
 
 import unicodedata
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import (
     AfterValidator,
@@ -68,10 +68,14 @@ class LoginDetails(WriteModel):
         return plain_text(value)
 
 
+# How a login's sign-in link went out; "none" when it has no email.
+Invite = Literal["email", "none"]
+
+
 class NewLogin(ORMModel):
-    """A login just created; `password` is shown this once."""
+    """A login just created, and how its invite link went out."""
 
     id: uuid.UUID
     username: str
     full_name: str
-    password: str
+    invite: Invite

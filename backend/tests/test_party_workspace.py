@@ -28,7 +28,7 @@ from backend.models import (
 from backend.services.accounts import add_member
 from backend.services.membership import process_requests
 from tests.conftest import World
-from tests.factories import TEST_PASSWORD, auth, make_user, sign_in, site_settings
+from tests.factories import TEST_PASSWORD, auth, claim_link, make_user, sign_in, site_settings
 
 pytestmark = pytest.mark.party_only
 
@@ -38,8 +38,8 @@ URL = "/api/party/workspace/"
 async def _workspace(
     session: AsyncSession, client: httpx.AsyncClient, admin_headers: dict
 ) -> tuple[Campaign, str]:
-    """The party workspace, and the password its Workspace Manager (wm@example.com) signs in
-    with."""
+    """The party workspace, and the password its Workspace Manager (wm@example.com) chose
+    through their invite link."""
     session.add(site_settings(name="Umoja Party"))
     await session.commit()
     created = await client.post(
@@ -49,7 +49,9 @@ async def _workspace(
     )
     assert created.status_code == 201, created.text
     campaign = await session.get(Campaign, uuid.UUID(created.json()["id"]))
-    return campaign, created.json()["password"]
+    assert created.json()["invite"] == "email"
+    await claim_link(client, session, "wm@example.com")
+    return campaign, TEST_PASSWORD
 
 
 async def _coordinator(

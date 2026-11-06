@@ -23,6 +23,8 @@ from tests.conftest import World
 from tests.factories import (
     TEST_PASSWORD,
     auth,
+    claim_link,
+    email_of,
     fresh_password,
     sign_in,
 )
@@ -64,24 +66,20 @@ async def test_no_campaign_role_reads_the_console(
         assert response.json()["detail"] == "This is not yours to see."
 
 
-async def test_a_reset_hands_back_a_working_password_and_signs_the_old_session_out(
-    client: httpx.AsyncClient, world: World, admin_headers: dict
+async def test_a_reset_emails_a_link_and_using_it_signs_the_old_session_out(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
     before = world.headers("candidate")
     chosen = fresh_password()
 
-    generated = await client.post(
-        f"/api/admin/users/{world.candidate.id}/reset-password/", headers=admin_headers, json={}
+    sent = await client.post(
+        f"/api/admin/users/{world.candidate.id}/reset-password/", headers=admin_headers
     )
-    picked = await client.post(
-        f"/api/admin/users/{world.candidate.id}/reset-password/",
-        headers=admin_headers,
-        json={"password": chosen},
-    )
+    still_in = (await client.get("/api/campaigns/", headers=before)).status_code
+    await claim_link(client, session, email_of("jane"), chosen)
 
-    assert generated.json()["username"] == "jane"
-    assert len(generated.json()["password"]) >= 12
-    assert picked.json()["password"] == chosen
+    assert sent.json() == {"username": "jane", "sent": "email"}
+    assert still_in == 200
     assert (await client.get("/api/campaigns/", headers=before)).status_code == 401
     assert await sign_in(client, "jane", chosen)
 
@@ -206,8 +204,9 @@ async def test_the_console_creates_a_campaign_whose_aspirant_and_manager_see_onl
         ("wanjiku", "candidate"),
         ("otieno", "manager"),
     ]
+    assert [login["invite"] for login in body["logins"]] == ["email", "email"]
     for login in body["logins"]:
-        head = auth(await sign_in(client, login["username"], login["password"]))
+        head = auth(await claim_link(client, session, email_of(login["username"])))
         seen = (await client.get("/api/campaigns/", headers=head)).json()
         assert [c["id"] for c in seen] == [body["campaign"]["id"]]
 

@@ -25,7 +25,7 @@ class ManagerCreate(LoginDetails):
 
 
 class ManagerCreated(NewLogin):
-    """`password` is shown this once; `replaced` names the manager taken off."""
+    """`replaced` names the manager taken off."""
 
     replaced: str | None = None
 
@@ -35,8 +35,6 @@ class StaffCreate(LoginDetails):
 
 
 class StaffCreated(NewLogin):
-    """`password` is shown this once."""
-
     role: UserRole
 
 

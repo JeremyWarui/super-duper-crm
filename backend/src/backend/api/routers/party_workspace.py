@@ -54,8 +54,8 @@ async def read_workspace(session: SessionDep, _: AdminUser) -> PartyWorkspaceRea
 async def create_workspace(
     payload: PartyWorkspaceCreate, session: SessionDep, user: AdminUser
 ) -> PartyWorkspaceCreated:
-    """Create the party workspace and its Workspace Manager; the password is shown once."""
-    campaign, summary, manager, password = await party_workspace.create(
+    """Create the party workspace and its Workspace Manager, who is sent an invite link."""
+    campaign, summary, manager, invite = await party_workspace.create(
         session, actor=user, manager=payload.manager.model_dump()
     )
     return PartyWorkspaceCreated(
@@ -63,7 +63,7 @@ async def create_workspace(
         title=campaign.title,
         units=summary.units,
         username=manager.username,
-        password=password,
+        invite=invite,
     )
 
 

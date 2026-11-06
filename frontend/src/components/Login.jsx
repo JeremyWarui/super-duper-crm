@@ -101,6 +101,7 @@ export default function Login() {
             {error ? <p role="alert" className="text-ui font-semibold text-destructive">{error}</p> : null}
             <Button type="submit" size="lg" disabled={busy || !ready}>{busy ? "Signing in…" : "Sign in"}</Button>
           </form>
+          <Link to="/forgot-password" className="self-start font-bold">Forgot your password?</Link>
           <div className="flex flex-col gap-1.5 border-t border-line-2 pt-5 text-body text-muted-foreground">
             <span>Not a member yet? <Link to="/join-party" className="font-bold">Join the party</Link></span>
             <span>Campaign team without a login? Ask whoever runs your campaign.</span>

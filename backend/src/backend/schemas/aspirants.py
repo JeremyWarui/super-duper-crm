@@ -77,7 +77,7 @@ class WorkspaceCreate(WriteModel):
 
 
 class WorkspaceCreated(BaseModel):
-    """`logins` carry passwords shown this once."""
+    """`logins` say how each invite link went out."""
 
     aspirant: AspirantRead
     setup: SetupSummary

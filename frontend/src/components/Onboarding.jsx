@@ -225,18 +225,15 @@ function NewLogin({ login }) {
       <div className="onboarding-box-head">
         <span className="onboarding-display onboarding-login-name">
           {login.full_name || login.username}
-          {ROLE_NAME[login.role] || ""} signs in with
-        </span>
-        <span className="onboarding-box-note onboarding-login-note">
-          shown once
+          {ROLE_NAME[login.role] || ""}
         </span>
       </div>
       <div className="flex items-center justify-between gap-2 onboarding-login-row">
         <span className="onboarding-login-name">
           {login.username}
         </span>
-        <span className="onboarding-login-password">
-          {login.password}
+        <span className="onboarding-login-note">
+          {login.invite === "email" ? "Link emailed" : "No email: nothing sent"}
         </span>
       </div>
     </div>

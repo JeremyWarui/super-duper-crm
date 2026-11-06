@@ -99,18 +99,17 @@ function Stat({ label, value }) {
   );
 }
 
-// Passwords come back once. Nothing re-fetches them, so they live here until
-// the console is closed.
+// Which sign-in links went out this visit, kept until the console is closed.
 function Handout({ shown }) {
   if (!shown.length) return null;
   return (
     <Card className="admin-card-handout">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="admin-display admin-handout-heading">
-          Write these down now
+          Sign-in links
         </div>
         <span className="admin-handout-note">
-          shown once, never fetchable again
+          each person chooses their own password
         </span>
       </div>
       <table className="admin-handout-table">
@@ -123,8 +122,8 @@ function Handout({ shown }) {
               <td className="admin-handout-cell admin-handout-username">
                 {p.username}
               </td>
-              <td className="admin-handout-cell admin-handout-password">
-                {p.password}
+              <td className="admin-handout-cell">
+                {(p.sent ?? p.invite) === "email" ? "Link emailed" : "No email: nothing sent"}
               </td>
             </tr>
           ))}
@@ -522,7 +521,7 @@ function NewLogin({ campaigns, create }) {
             : "A mobilizer works one ward, and sees only that ward."
           : "Leave the campaign blank to create the login now and place it later."}{" "}
         An aspirant gets their login with their campaign, from New campaign.{" "}
-        Their password is shown once, above. Write it down.
+        They are emailed a link to choose their password.
       </div>
 
       {create.error && (
@@ -685,12 +684,10 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
         </div>
         <div className="flex flex-wrap gap-2">
           <Danger
-            label="Reset password"
-            question={`Reset ${user.username}'s password? They are signed out.`}
+            label="Send reset link"
+            question={`Email ${user.username} a link to choose a new password?`}
             busy={resetting}
-            // Resetting your own password ends your own session before the new
-            // one reaches the screen, so the console refuses; the server does
-            // too. Use the CLI: campaign-crm reset-password.
+            // Your own password: use Forgot password on the sign-in page.
             disabled={isMe || resetting}
             onConfirm={() => onReset(user.id)}
           />
@@ -950,9 +947,9 @@ export default function Admin() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [handouts, setHandouts] = useState([]);
-  // Owned here, not in the row: a row unmounts on every refetch and would take
-  // the one-time password with it. One mutation serves every row, and it only
-  // remembers its latest call, so what each row shows is kept by id.
+  // Owned here, not in the row: a row unmounts on every refetch. One mutation
+  // serves every row, and it only remembers its latest call, so what each row
+  // shows is kept by id.
   const [failed, setFailed] = useState({});
   const [running, setRunning] = useState(() => new Set());
   const forget = (id) => setFailed(({ [id]: _gone, ...rest }) => rest);

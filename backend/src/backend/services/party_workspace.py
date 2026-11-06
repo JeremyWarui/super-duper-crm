@@ -22,9 +22,10 @@ from backend.models import (
 )
 from backend.schemas.campaign import SetupSummary
 from backend.services import site
-from backend.services.accounts import add_member, new_login
+from backend.services.accounts import add_member
 from backend.services.audit import record
 from backend.services.errors import Refused
+from backend.services.login_links import new_invited_login
 from backend.services.permissions import Area
 from backend.services.targets import generate_targets
 
@@ -40,7 +41,7 @@ async def create(
     session: AsyncSession, *, actor: User, manager: dict
 ) -> tuple[Campaign, SetupSummary, User, str]:
     """Create the party workspace, a ward target across the country, and its first Workspace
-    Manager login, shown with its password once."""
+    Manager login, which is sent an invite link."""
     if await workspace(session) is not None:
         raise Refused(EXISTS)
     name = (await site.read_settings(session)).name
@@ -51,7 +52,7 @@ async def create(
         session.add(campaign)
         await session.flush()
         summary = await generate_targets(session, campaign)
-        created, password = await new_login(session, role=UserRole.MANAGER, **manager)
+        created, invite = await new_invited_login(session, role=UserRole.MANAGER, **manager)
         await add_member(session, campaign.id, created)
     except Refused:
         await session.rollback()
@@ -69,7 +70,7 @@ async def create(
         detail={"units": summary.units},
     )
     await session.commit()
-    return campaign, summary, created, password
+    return campaign, summary, created, invite
 
 
 async def coordinator(session: AsyncSession, user: User) -> CampaignMember | None:
