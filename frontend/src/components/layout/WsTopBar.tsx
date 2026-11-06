@@ -18,7 +18,7 @@ export function WsTopBar({ crumbs, user, onSignOut, onMenu, search, tools }: {
   return (
     <div className="border-b border-black/[0.06] bg-white">
       <div className="box-border flex min-h-16 flex-wrap items-center gap-x-5 gap-y-2.5 px-4 py-2.5 md:px-app">
-        <button type="button" onClick={onMenu} aria-label="Open menu" className="flex size-[42px] cursor-pointer items-center justify-center rounded-full hover:bg-stone md:hidden">
+        <button type="button" onClick={onMenu} aria-label="Open menu" className="flex size-11 cursor-pointer items-center justify-center rounded-full hover:bg-stone md:hidden">
           <Menu className="size-5" />
         </button>
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-ui font-semibold text-muted-foreground">

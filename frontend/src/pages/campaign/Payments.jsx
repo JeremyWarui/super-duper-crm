@@ -46,7 +46,7 @@ function Summary({ rows }) {
 function RowActions({ p, onModal }) {
   if (OPEN.includes(p.status)) {
     return (
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button shape="rounded" size="sm" onClick={() => onModal({ type: "payment-release", payments: [p] })}>Approve</Button>
         <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "payment-paid", payment: p })}>Mark paid</Button>
         <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "payment-decline", payment: p })}>Decline</Button>
@@ -100,7 +100,7 @@ export default function Payments({ campaign, role, mine, onModal }) {
           <Summary rows={rows} />
           <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Payments">
             {!mine && <FilterPills label="Status" options={Object.keys(VIEWS)} value={view} onChange={setView} />}
-            <Table minWidth={mine ? 560 : 760}>
+            <Table stack minWidth={mine ? 560 : 760}>
               <THead><TR>
                 <TH>Date</TH>{!mine && <TH>Payee</TH>}<TH>For</TH><TH align="right">Amount</TH><TH>Status</TH><TH>Reference</TH>{showActions && <TH className="relative"><span className="sr-only">Actions</span></TH>}
               </TR></THead>

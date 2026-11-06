@@ -183,6 +183,20 @@ billed at, filters by where people stand, and previews the recipients before
 sending. It says plainly when nothing was sent, which is the case until there
 is an Africa's Talking subscription.
 
+## Field screens on a phone
+
+Mobilizers and agents get a tab bar at the bottom of the screen below 768px (`pages/campaign/FieldTabs.tsx`). My events leads with the next event and a reached/attended counter (`AttendanceCard.jsx`).
+
+Register supporter and the attendance counter keep what is typed in `localStorage` (`lib/draft.js`, keys `draft:<user>:<form>`) until it is sent. With no network the entry stays and Try again resends it. Signing out removes every draft; an expired session keeps them for the same person.
+
+Kit tables take `stack`: below 640px each row becomes a card, with each cell labelled by its column heading, so nothing is wider than the screen.
+
+### Known gaps
+
+- If the server saves a supporter but the reply is lost, Try again posts again and the server refuses the duplicate phone.
+- A request that hangs, instead of failing, shows "Saving…" until the page is reloaded.
+- No full offline sync: drafts live on the one device only.
+
 ## The contract
 
 `../contracts/frontend-api.json` lists every field this app reads and sends.

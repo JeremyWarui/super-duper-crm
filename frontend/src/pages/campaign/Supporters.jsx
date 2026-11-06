@@ -51,7 +51,7 @@ export default function Supporters({ campaign, mine, onModal }) {
           <Summary all={all} />
           <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Supporter list">
             <FilterPills label="Support" options={Object.keys(LEVELS)} value={filter} onChange={setFilter} />
-            <Table minWidth={560}>
+            <Table stack minWidth={560}>
               <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Support</TH>{showCentre && <TH>Centre</TH>}<TH>Consent</TH></TR></THead>
               <TBody>
                 {shown.map((s) => (
@@ -62,7 +62,7 @@ export default function Supporters({ campaign, mine, onModal }) {
                     {showCentre && (
                       <TD>{targeted.has(s.registration_centre) ? centreName(s.registration_centre) || "Unknown centre" : (
                         <select aria-label={`Centre for ${s.full_name}`} value="" disabled={place.isPending} onChange={(e) => place.mutate({ id: s.id, registration_centre: e.target.value })}
-                          className="h-10 rounded-[10px] border-[1.5px] border-line-control bg-white px-2.5 text-ui">
+                          className="h-10 max-w-full rounded-[10px] border-[1.5px] border-line-control bg-white px-2.5 text-ui max-sm:h-11">
                           <option value="">{s.registration_centre ? `${centreName(s.registration_centre) || "Centre"} has no target` : "Needs a centre"}</option>
                           {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>

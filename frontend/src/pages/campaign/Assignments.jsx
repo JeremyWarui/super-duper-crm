@@ -30,7 +30,7 @@ export default function Assignments({ campaign, onModal }) {
         {rows.isLoading && <KitLoading />}
         {rows.error && <KitError error={rows.error} />}
         {rows.data && (
-          <Table minWidth={720}>
+          <Table stack minWidth={720}>
             <THead><TR><TH>Work</TH><TH>Who</TH><TH>Where</TH><TH align="right">Amount</TH><TH>Status</TH>{open && <TH className="relative"><span className="sr-only">Actions</span></TH>}</TR></THead>
             <TBody>
               {list.map((a) => (

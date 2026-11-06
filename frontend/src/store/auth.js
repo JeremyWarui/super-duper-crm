@@ -8,6 +8,14 @@ import { persist } from "zustand/middleware";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
+export function clearDrafts() {
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith("draft:")).forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // Storage blocked: nothing was kept.
+  }
+}
+
 export const useAuth = create(
   persist(
     (set) => ({
@@ -31,7 +39,14 @@ export const useAuth = create(
       // Takes the session a sign-in link opened.
       adopt: ({ token, user }) => set({ token, user }),
 
-      logout: () => set({ token: null, user: null }),
+      // Drafts can hold supporters' names and phones; a shared phone must not keep them.
+      logout: () => {
+        clearDrafts();
+        set({ token: null, user: null });
+      },
+
+      // An expired session keeps drafts: the same person signs back in to send them.
+      expire: () => set({ token: null, user: null }),
     }),
     { name: "campaign-auth" }
   )

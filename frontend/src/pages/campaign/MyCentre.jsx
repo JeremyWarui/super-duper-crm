@@ -55,7 +55,7 @@ export default function MyCentre({ campaign }) {
           <Card variant="outline" className="gap-2">
             <h2 className="text-card-title font-bold">Your details</h2>
             <p className="text-ui">{me.full_name} · <span className="tabular-nums">{me.phone}</span>{me.id_number ? <> · ID {me.id_number}</> : null}</p>
-            <Link to="/campaign/mypayments" className="self-start font-bold">My payments</Link>
+            <Link to="/campaign/mypayments" className="inline-flex min-h-11 items-center self-start font-bold">My payments</Link>
           </Card>
         </div>
       )}

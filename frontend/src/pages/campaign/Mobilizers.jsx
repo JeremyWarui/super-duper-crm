@@ -50,7 +50,7 @@ export default function Mobilizers({ campaign, onModal }) {
           {units.length > 0 && <Coverage units={units} mobilizers={people} noun={noun} />}
           <Card variant="outline" className="min-w-0 gap-3">
             <h2 className="text-card-title font-bold">Everyone</h2>
-            <Table minWidth={560}>
+            <Table stack minWidth={560}>
               <THead><TR><TH>Name</TH><TH>{byCentre ? "Centre" : "Ward"}</TH><TH>Phone</TH><TH /></TR></THead>
               <TBody>
                 {people.map((m) => (

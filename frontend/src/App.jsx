@@ -35,9 +35,14 @@ import Signups from "./pages/campaign/Signups";
 import Agents from "./pages/campaign/Agents";
 import MyCentre from "./pages/campaign/MyCentre";
 import Assignments from "./pages/campaign/Assignments";
+import FieldTabs from "./pages/campaign/FieldTabs";
+import { useMedia } from "./lib/useMedia";
 
 // Pages built on the UI kit, which render outside the legacy stylesheet.
-const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "mobilizers", "supporters", "mysupporters", "payments", "mypayments", "signups", "agents", "mycentre", "assignments", "website", "settings", "recruitment"]);
+// Roles that work from a phone get a tab bar there.
+const FIELD_ROLES = ["mobilizer", "agent"];
+
+const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "mobilizers", "supporters", "mysupporters", "payments", "mypayments", "signups", "agents", "mycentre", "assignments", "register", "website", "settings", "recruitment"]);
 
 // One page per NAV key.
 const PAGES = {
@@ -72,6 +77,7 @@ function Shell({ campaign, role, where }) {
   const [area, setArea] = useState(null);
   const { page } = useParams();
   const data = useShellData(campaign, role);
+  const phone = useMedia("(max-width: 767px)");
   const areaValue = useMemo(() => ({ area, setArea, wards: data.wards }), [area, data.wards]);
   const pages = pagesOf(role, where);
   const current = pages.find(([key]) => key === page);
@@ -116,6 +122,7 @@ function Shell({ campaign, role, where }) {
             </Legacy>
           )}
         </AppPage>
+        {phone && FIELD_ROLES.includes(role) && <FieldTabs items={groups.flatMap((g) => g.items)} />}
       </AppLayout>
     </AreaContext.Provider>
   );

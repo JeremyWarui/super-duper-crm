@@ -41,7 +41,7 @@ function Targets({ units, mobilizers, noun }) {
   return (
     <Card variant="outline" className="min-w-0 flex-[3_1_460px] gap-3" role="region" aria-labelledby="targets-h">
       <h2 id="targets-h" className="text-card-title font-bold">{title}</h2>
-      <Table minWidth={620}>
+      <Table stack minWidth={620}>
         <THead><TR>
           <TH>{noun === "centre" ? "Centre" : "Ward"}</TH><TH align="right">Win number</TH><TH align="right">Committed</TH>
           <TH align="right">Events</TH><TH>Mobilizer</TH><TH>Status</TH>

@@ -20,8 +20,8 @@ export async function api(path, { method = "GET", body, anonymous = false } = {}
   });
 
   if (res.status === 401) {
-    useAuth.getState().logout();
-    throw new Error("Your session expired — please sign in again.");
+    useAuth.getState().expire();
+    throw Object.assign(new Error("Your session expired — please sign in again."), { status: 401 });
   }
 
   const data = res.status === 204 ? null : await res.json().catch(() => null);
@@ -43,8 +43,8 @@ export async function download(path, filename) {
     headers: token ? { Authorization: `Token ${token}` } : {},
   });
   if (res.status === 401) {
-    useAuth.getState().logout();
-    throw new Error("Your session expired — please sign in again.");
+    useAuth.getState().expire();
+    throw Object.assign(new Error("Your session expired — please sign in again."), { status: 401 });
   }
   if (!res.ok) {
     const data = await res.json().catch(() => null);

@@ -1,11 +1,42 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-/** Data tables as in Members, Targets, Supporters, Tally. Wraps in a horizontal scroller for phones. */
-export function Table({ className, minWidth = 600, ...props }: React.TableHTMLAttributes<HTMLTableElement> & { minWidth?: number }) {
+// Below 640px a stacked table drops its header and shows each row as a card, each cell
+// labelled with its column's heading.
+const STACK = [
+  'max-sm:block max-sm:[&_thead]:hidden max-sm:[&_tbody]:block',
+  'max-sm:[&_tr]:flex max-sm:[&_tr]:flex-col max-sm:[&_tr]:gap-1 max-sm:[&_tr]:border-b max-sm:[&_tr]:border-line-soft max-sm:[&_tr]:py-3',
+  'max-sm:[&_td]:flex max-sm:[&_td]:min-w-0 max-sm:[&_td]:flex-wrap max-sm:[&_td]:items-center max-sm:[&_td]:justify-between max-sm:[&_td]:gap-x-3 max-sm:[&_td]:border-0 max-sm:[&_td]:p-0 max-sm:[&_td]:text-left',
+  'max-sm:[&_td:first-child]:text-[16px] max-sm:[&_td:empty]:hidden',
+].join(' ')
+
+/**
+ * Data tables as in Members, Targets, Supporters, Tally. Wraps in a horizontal scroller for phones;
+ * `stack` instead turns each row into a card on phones, so nothing is wider than the screen.
+ */
+export function Table({ className, minWidth = 600, stack = false, style, ...props }: React.TableHTMLAttributes<HTMLTableElement> & { minWidth?: number; stack?: boolean }) {
+  const ref = React.useRef<HTMLTableElement>(null)
+  React.useLayoutEffect(() => {
+    const table = ref.current
+    if (!stack || !table) return
+    const heads = [...table.querySelectorAll('thead th')].map((th) => th.textContent?.trim() || '')
+    table.querySelectorAll('tbody tr').forEach((tr) => {
+      ;[...tr.children].forEach((td, i) => {
+        const label = i > 0 && !td.hasAttribute('colspan') ? heads[i] : ''
+        if (label) td.setAttribute('data-label', label)
+        else td.removeAttribute('data-label')
+      })
+    })
+  })
   return (
-    <div className="overflow-x-auto">
-      <table data-slot="table" style={{ minWidth }} className={cn('w-full border-collapse text-body', className)} {...props} />
+    <div className={stack ? 'sm:overflow-x-auto' : 'overflow-x-auto'}>
+      <table
+        ref={ref}
+        data-slot="table"
+        style={{ ...style, ['--table-min' as string]: `${minWidth}px` }}
+        className={cn('w-full border-collapse text-body', stack ? cn('sm:min-w-(--table-min)', STACK) : 'min-w-(--table-min)', className)}
+        {...props}
+      />
     </div>
   )
 }
@@ -22,7 +53,7 @@ export function TH({ className, align, ...props }: React.ThHTMLAttributes<HTMLTa
   return <th scope="col" className={cn('px-3 py-2.5 text-left text-small font-semibold text-muted-foreground border-b border-line', align === 'right' && 'text-right', className)} {...props} />
 }
 export function TD({ className, align, numeric, ...props }: React.TdHTMLAttributes<HTMLTableCellElement> & { numeric?: boolean }) {
-  return <td className={cn('p-3 border-b border-line-soft', (align === 'right' || numeric) && 'text-right', numeric && 'tabular-nums', className)} {...props} />
+  return <td className={cn('p-3 border-b border-line-soft max-sm:[&[data-label]]:before:content-[attr(data-label)] max-sm:[&[data-label]]:before:text-small max-sm:[&[data-label]]:before:font-semibold max-sm:[&[data-label]]:before:text-muted-foreground', (align === 'right' || numeric) && 'text-right', numeric && 'tabular-nums', className)} {...props} />
 }
 /** Row name that opens a detail panel: bold, underlined with a soft line */
 export function RowButton({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {

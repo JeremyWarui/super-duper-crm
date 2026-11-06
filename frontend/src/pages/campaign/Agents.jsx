@@ -69,7 +69,7 @@ export default function Agents({ campaign, role, onModal }) {
           <Card variant="outline" className="min-w-0 gap-3">
             <h2 className="text-card-title font-bold">Everyone</h2>
             {update.error && <p role="alert" className="font-semibold text-destructive">{update.error.message}</p>}
-            <Table minWidth={720}>
+            <Table stack minWidth={720}>
               <THead><TR><TH>Agent</TH><TH>Centre</TH>{ids && <TH>ID number</TH>}<TH>Status</TH><TH>Training date</TH><TH className="relative"><span className="sr-only">Assign</span></TH></TR></THead>
               <TBody>
                 {rows.map((a) => (

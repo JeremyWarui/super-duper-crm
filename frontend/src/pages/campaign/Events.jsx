@@ -4,9 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatNumber as fmt } from "@/lib/format";
+import AttendanceCard from "./AttendanceCard";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
 const ASSIGNERS = ["candidate", "manager", "coordinator"];
+const RECORDERS = ["manager", "coordinator", "mobilizer"];
 const WHEN = { Upcoming: (e) => e.status !== "done", Past: (e) => e.status === "done" };
 const dayOf = (e) => (e.scheduled_date ? new Date(e.scheduled_date) : null);
 
@@ -61,11 +63,52 @@ function EventCard({ event: e, onRecord, onInvite, onQr, onAssign }) {
   );
 }
 
+const dayLabel = (e) => {
+  const day = dayOf(e);
+  if (!day) return "No date yet";
+  const today = new Date().toDateString() === day.toDateString();
+  const time = day.getHours() || day.getMinutes() ? ` · ${day.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : "";
+  return `${today ? "Today" : day.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}${time}`;
+};
+
+// The field view: the event to count now, with the rest coming up below it.
+function MyUpcoming({ rows, records }) {
+  const [activeId, setActiveId] = useState(null);
+  const active = rows.find((e) => e.id === activeId) || rows[0];
+  if (!active) return <p className="text-muted-foreground">Nothing planned yet.</p>;
+  const rest = rows.filter((e) => e !== active);
+  return (
+    <div className="flex max-w-[560px] flex-col gap-3.5">
+      <section aria-label="Next event" className="flex flex-col gap-3.5 rounded-[18px] border border-line bg-card p-[18px]">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-meta font-bold tracking-[0.08em] text-primary uppercase">{dayLabel(active)}</span>
+          <h2 className="text-[19px] font-bold">{active.title}</h2>
+          <span className="text-ui text-muted-foreground">{[active.venue, active.ward_name].filter(Boolean).join(" · ") || "No venue yet"}</span>
+        </div>
+        {records && <AttendanceCard key={active.id} event={active} />}
+      </section>
+      {rest.length > 0 && (
+        <section aria-label="Coming up" className="flex flex-col gap-1 rounded-[18px] border border-line bg-card p-[18px]">
+          <h2 className="text-[16px] font-bold">Coming up</h2>
+          <ul className="flex flex-col">
+            {rest.map((e) => (
+              <li key={e.id} className="flex items-center justify-between gap-3 border-t border-line-soft py-2 first:border-t-0">
+                <span className="min-w-0"><span className="block font-semibold">{e.title}</span><span className="text-small text-muted-foreground">{dayLabel(e)}</span></span>
+                {records && <Button shape="rounded" size="sm" variant="quiet" aria-label={`Count ${e.title}`} onClick={() => { setActiveId(e.id); window.scrollTo?.({ top: 0 }); }}>Count</Button>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
 // Rallies and meetings: what is coming up, and what each past one reached and signed up.
 export default function Events({ campaign, role, onModal, mine }) {
   const events = useEvents(campaign.id);
   const [when, setWhen] = useState("Upcoming");
-  const acts = role !== "candidate";
+  const acts = RECORDERS.includes(role);
   const rows = (events.data || []).filter(WHEN[when]).sort((a, b) => {
     const [x, y] = [dayOf(a)?.getTime() ?? Infinity, dayOf(b)?.getTime() ?? Infinity];
     return when === "Upcoming" ? x - y : y - x;
@@ -77,7 +120,8 @@ export default function Events({ campaign, role, onModal, mine }) {
       <FilterPills label="When" options={Object.keys(WHEN)} value={when} onChange={setWhen} />
       {events.isLoading && <KitLoading />}
       {events.error && <KitError error={events.error} />}
-      {events.data && (
+      {events.data && mine && when === "Upcoming" && <MyUpcoming rows={rows} records={acts} />}
+      {events.data && !(mine && when === "Upcoming") && (
         <section aria-label="Event list" className="flex flex-col gap-3">
           {rows.map((e) => (
             <EventCard key={e.id} event={e}

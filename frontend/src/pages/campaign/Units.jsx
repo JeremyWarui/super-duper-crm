@@ -52,7 +52,7 @@ export default function Units({ campaign, role, onModal }) {
             <h2 id="units-h" className="text-card-title font-bold">{noun} targets</h2>
             <FilterPills label="Sort by" options={Object.keys(SORTS)} value={sortKey} onChange={setSortKey} />
           </div>
-          <Table minWidth={680}>
+          <Table stack minWidth={680}>
             <THead><TR>
               <TH>{noun}</TH><TH align="right">Win number</TH><TH>Progress</TH><TH align="right">Events</TH><TH>Mobilizer</TH>
             </TR></THead>

@@ -96,7 +96,7 @@ export default function Signups({ campaign, role }) {
         {rows.isLoading && <KitLoading />}
         {rows.error && <KitError error={rows.error} />}
         {rows.data && (
-          <Table minWidth={760}>
+          <Table stack minWidth={760}>
             <THead><TR>
               <TH>Name</TH><TH>Role</TH><TH>Ward or centre</TH><TH>Contact</TH>{ids && <TH>ID number</TH>}<TH>Signed up</TH>
               {waiting ? <TH><span className="sr-only">Decision</span></TH> : <TH>{view === "Not approved" ? "Reason" : ""}</TH>}

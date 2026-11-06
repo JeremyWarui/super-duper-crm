@@ -65,7 +65,7 @@ export function FilterPills<T extends string>({ options, value, onChange, label 
           type="button"
           aria-pressed={o === value}
           onClick={() => onChange(o)}
-          className={cn('min-h-10 cursor-pointer rounded-full px-4 text-ui font-bold', o === value ? 'bg-primary text-primary-foreground' : 'text-ink')}
+          className={cn('min-h-10 cursor-pointer rounded-full px-4 text-ui font-bold max-sm:min-h-11', o === value ? 'bg-primary text-primary-foreground' : 'text-ink')}
         >
           {o}
         </button>
