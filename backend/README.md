@@ -254,21 +254,54 @@ everyone else. `site_settings`, `hero_slides`, `party_leaders`,
 `party_documents` and `candidate_profiles` each have a `*_file_id` beside the
 `*_url` they keep as a fallback.
 
-## Invitations
+## Texts to supporters
 
-`POST /api/events/{id}/invite/` texts an event's supporters, normalised to E.164
-and deduplicated, and sets `number_reached` on a real delivery. `dry_run` works
-out the recipients and cost without sending. Sending needs:
+Every text goes through `services/texting.py`, which leaves out numbers that
+opted out and writes one `sms_log` row per number: `practice` (nothing sent),
+`sent` (the gateway took it), then `delivered` or `failed` from the delivery
+report, with the gateway's reason. Texts to supporters end with "Reply STOP to
+opt out." and go only to supporters with `consent_given` and a usable number.
+
+- **Messages** (`/api/messages/`, the workspace's Messages page): the
+  Candidate, Manager, Coordinators and the Comms officer draft (`sms.draft`);
+  only the Candidate or Manager sends (`sms.send`), either their own text at
+  once or a draft by approving it. A draft goes to the wards picked, or every
+  ward the drafter reaches, and always only inside the drafter's area as it is
+  when the draft is approved. A draft is sent or declined once. The sender
+  sees each message's delivery log.
+- **Event invitations**: `POST /api/events/{id}/invite/` texts an event's
+  consenting supporters, sets `number_reached` on a real delivery, and logs
+  each number against the event. `dry_run` works out the recipients and cost
+  and is open to anyone who may change the event; sending is `sms.send`.
+- **STOP**: a reply starting STOP (or STOPALL, UNSUBSCRIBE, END, QUIT, CANCEL,
+  ACHA) opts the number out of the campaign that last texted it, or the whole
+  installation if none has. A number on the gateway's own opt-out list is
+  handled the same way. Each incoming text is kept once per gateway id.
+- **Callbacks**: Africa's Talking does not sign its callbacks, so each URL
+  carries `SMS_CALLBACK_SECRET`; a wrong or missing secret gets 404. Set these
+  in its dashboard, rate limited to 6,000 a minute per client:
+
+  ```
+  https://<api host>/api/sms/<secret>/delivery/   delivery reports
+  https://<api host>/api/sms/<secret>/inbound/    incoming messages
+  https://<api host>/api/sms/<secret>/opt-out/    bulk SMS opt-out
+  ```
+
+  A repeated report changes nothing, and a report after `delivered` or
+  `failed` is ignored.
+
+Sending for real needs:
 
 ```bash
 SMS_PROVIDER=africastalking
 AT_USERNAME=your-username     # or "sandbox"
 AT_API_KEY=<africas-talking-api-key>
 AT_SENDER_ID=                 # blank uses the shared short code
+SMS_CALLBACK_SECRET=<long random string>
 ```
 
-Without it the console provider records the request and reports
-`delivered: false`.
+The console's Health tab shows the SMS mode, and its test button (and the
+setup wizard's) sends a logged test text.
 
 ## First-run setup
 
@@ -293,6 +326,14 @@ A database that has never had a login loses the placeholder settings row on migr
 opens the setup; one with logins keeps its settings.
 
 ### Known gaps
+
+- Texts: Messages go to supporters only, not to the team and mobilizers, and
+  are sent now, not scheduled; the gateway's credit balance is not shown. The
+  footer and part count assume plain GSM text: a message with an emoji or
+  other Unicode is billed in shorter parts than the page shows. STOP from a
+  number no campaign has texted opts it out of every campaign. An opt-out
+  cannot be undone from the app. A send is made while the approval holds its
+  row, so a gateway that hangs holds it for up to 30 seconds.
 
 - The logo is an https link; uploaded logos wait for the site editor to use stored files.
 - Invite emails go out before the setup commits; if the commit then fails, the link is dead.
@@ -515,11 +556,11 @@ required and at least 32 characters.
   Team page. Downgrading `campaign_roles` turns a pending login into a plain
   inactive one.
 - The map holds only the actions a route serves today; `team.approve`,
-  `agents.*`, `team.id_read`, `assignments.write`, `sms.*`, `sharing.write`,
+  `agents.*`, `team.id_read`, `assignments.write`, `sharing.write`,
   `site.write` and `export` arrive with their routes. Payment release stays
   with the Manager until approval routing (PD-37).
-- Two rows differ from section 0.2 by decision: a Mobilizer reads targets
-  and sends event invites in their own ward. `mobilizers.read` is not a row
+- One row differs from section 0.2 by decision: a Mobilizer reads targets
+  in their own ward. `mobilizers.read` is not a row
   there; it keeps who reads the mobilizer list as before, plus coordinators
   in their area. A coordinator cannot set a mobilizer to no ward, as a place
   with no ward is outside every area.

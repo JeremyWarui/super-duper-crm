@@ -32,6 +32,7 @@ from backend.schemas.campaign import (
     EventSignups,
     InviteRecipient,
 )
+from backend.services import texting
 from backend.services.permissions import reach, refusal
 from backend.services.sms import Recipient, SendResult, get_sms_provider, normalise_all
 
@@ -146,13 +147,15 @@ def _not_sent(message: str, accepted: list[Recipient], detail: str) -> SendResul
 async def invite_to_event(
     event_id: uuid.UUID, payload: EventInvite, session: SessionDep, user: Writer
 ) -> EventInviteResult:
-    """Text the event's supporters and set `number_reached`; a dry run sends nothing and is
-    open to anyone who may change the event."""
+    """Text the event's consenting supporters and set `number_reached`; a dry run sends nothing
+    and is open to anyone who may change the event."""
     if not payload.dry_run and reach(user, "sms.send") is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, refusal(user, "sms.send"))
     event = await require_visible(session, user, Event, event_id, "event", "events.write", LOADED)
 
-    statement = select(Supporter).where(Supporter.campaign_id == event.campaign_id)
+    statement = select(Supporter).where(
+        Supporter.campaign_id == event.campaign_id, Supporter.consent_given.is_(True)
+    )
     if not payload.whole_campaign:
         statement = statement.where(Supporter.ward_id == event.ward_id)
     if payload.support_levels:
@@ -163,20 +166,32 @@ async def invite_to_event(
 
     supporters = await all_rows(session, statement)
     numbers, unusable = normalise_all([s.phone for s in supporters])
+    text = payload.message.strip() + texting.FOOTER
 
     if payload.dry_run:
-        would = [Recipient(phone=n, status="would send") for n in numbers]
-        result = _not_sent(payload.message, would, "Nothing was sent: this was a dry run.")
+        blocked = await texting.opted_out(session, event.campaign_id, numbers)
+        would = [Recipient(phone=n, status="would send") for n in numbers if n not in blocked]
+        result = _not_sent(text, would, "Nothing was sent: this was a dry run.")
+        left_out = len(blocked)
     elif not numbers:
-        result = _not_sent(
-            payload.message, [], "Nobody on this register has a usable phone number."
-        )
+        result = _not_sent(text, [], "Nobody on this register has a usable phone number.")
+        left_out = 0
     else:
-        result = await get_sms_provider().send(numbers, payload.message)
-
-    if result.delivered and not payload.dry_run:
-        event.number_reached = len(result.accepted)
+        result, left_out = await texting.send(
+            session,
+            numbers,
+            text,
+            purpose="invite",
+            sender=user,
+            campaign_id=event.campaign_id,
+            event_id=event.id,
+        )
+        if result.delivered:
+            event.number_reached = len(result.accepted)
         await session.commit()
+
+    def shown(r: Recipient) -> InviteRecipient:
+        return InviteRecipient(phone=r.phone, status=r.status, detail=r.detail)
 
     return EventInviteResult(
         provider=result.provider,
@@ -186,8 +201,9 @@ async def invite_to_event(
         parts=result.parts,
         supporters_matched=len(supporters),
         requested=result.requested,
-        accepted=[InviteRecipient(**vars(r)) for r in result.accepted],
-        rejected=[InviteRecipient(**vars(r)) for r in [*result.rejected, *unusable]],
+        opted_out=left_out,
+        accepted=[shown(r) for r in result.accepted],
+        rejected=[shown(r) for r in [*result.rejected, *unusable]],
         detail=result.detail,
         number_reached=event.number_reached,
     )

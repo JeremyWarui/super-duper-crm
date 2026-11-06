@@ -221,6 +221,7 @@ export const INVITE_RESULT = {
   message: "Town hall this Saturday.",
   parts: 1,
   supporters_matched: 3,
+  opted_out: 0,
   requested: 2,
   accepted: [{ phone: "+254712345678", status: "skipped", detail: "" }],
   rejected: [

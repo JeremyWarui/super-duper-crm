@@ -17,9 +17,11 @@ export const holderOf = (mobilizers, unit) =>
 export const kes = (n) => `KES ${fmt(n)}`;
 
 const ALL_FIELD = { label: "Field", items: [["events", "Events"], ["mobilizers", "Mobilizers"], ["agents", "Agents"], ["assignments", "Assignments"], ["supporters", "Supporters"], ["volunteers", "Volunteers"]] };
+const REACH_OUT = { label: "Reach out", items: [["messages", "Messages"]] };
 const LEAD = [
   { label: "Plan", items: [["overview", "Overview"], ["strategy", "Strategy"], ["targets", "Targets"], ["units", "Wards"]] },
   ALL_FIELD,
+  REACH_OUT,
   { label: "People", items: [["team", "Team"], ["signups", "Sign-ups"]] },
   { label: "Money", items: [["payments", "Payments"]] },
 ];
@@ -32,10 +34,11 @@ export const NAV = {
   coordinator: [
     { label: "Plan", items: [["overview", "Overview"], ["strategy", "Strategy"], ["units", "Wards"]] },
     ALL_FIELD,
+    REACH_OUT,
     { label: "People", items: [["signups", "Sign-ups"]] },
     { label: "Money", items: [["payments", "Payments"]] },
   ],
-  comms: [{ label: "Field", items: [["events", "Events"]] }],
+  comms: [{ label: "Field", items: [["events", "Events"]] }, REACH_OUT],
   mobilizer: OWN_WORK([["myevents", "My events"], ["register", "Register supporter"], ["mysupporters", "My supporters"], ["mypayments", "My payments"]]),
   agent: OWN_WORK([["mycentre", "My centre"], ["myevents", "My events"], ["mypayments", "My payments"]]),
 };
@@ -71,7 +74,7 @@ export const ROLE_NOTE = {
   candidate: "Full access to your campaign.",
   manager: "Full access to this campaign.",
   coordinator: "Limited to your area.",
-  comms: "Events and the website.",
+  comms: "Events, messages and the website.",
   mobilizer: "Your own ward.",
   agent: "Your centre and assignments.",
 };

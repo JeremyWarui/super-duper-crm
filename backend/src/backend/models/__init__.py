@@ -78,6 +78,7 @@ from backend.models.party import (
 )
 from backend.models.payment import Payment
 from backend.models.site import SetupToken, SiteSettings
+from backend.models.sms import CampaignMessage, SmsInbound, SmsLog, SmsOptOut
 from backend.models.supporter import Supporter
 from backend.models.target import Target, compute_win_number, unit_key
 from backend.models.team import Agent, TeamRegistration
@@ -85,6 +86,10 @@ from backend.models.user import User
 from backend.models.volunteer import VolunteerProfile
 
 __all__ = [
+    "CampaignMessage",
+    "SmsInbound",
+    "SmsLog",
+    "SmsOptOut",
     "FileArea",
     "Aspirant",
     "AspirantStatus",

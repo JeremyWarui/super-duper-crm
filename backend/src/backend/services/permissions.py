@@ -64,8 +64,10 @@ MAP: dict[str, dict[UserRole, Reach]] = {
         R.AGENT: OWN,
     },
     "assignments.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
-    # Really sending, not a dry run; a Mobilizer texts their own ward.
-    "sms.send": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.MOBILIZER: OWN},
+    # Writing a text to supporters; a Coordinator's reaches only their area.
+    "sms.draft": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA, R.COMMS: ALL},
+    # Really texting: approving a draft, or an event invitation that is not a dry run.
+    "sms.send": {R.CANDIDATE: ALL, R.MANAGER: ALL},
     # Aspirant installations: the website and its settings.
     "site.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COMMS: ALL},
     "volunteers.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
@@ -80,6 +82,7 @@ REFUSALS = {
     "mobilizers.write": "Only the candidate, the manager or a coordinator may change mobilizers.",
     "supporters.read": "The supporter register is for the campaign team.",
     "supporters.write": "The supporter register is for the campaign team.",
+    "sms.send": "Only the candidate or the campaign manager sends texts.",
 }
 
 

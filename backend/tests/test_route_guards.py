@@ -71,6 +71,10 @@ PUBLIC_ROUTES = {
     ("POST", "/api/candidates/{slug}/volunteer/"),
     ("POST", "/api/candidates/volunteer/withdraw/{code}/"),
     ("POST", "/api/payments/paystack/webhook/"),
+    # Africa's Talking's callbacks; the secret in the path is the check.
+    ("POST", "/api/sms/{secret}/delivery/"),
+    ("POST", "/api/sms/{secret}/inbound/"),
+    ("POST", "/api/sms/{secret}/opt-out/"),
     ("GET", "/health"),
 }
 

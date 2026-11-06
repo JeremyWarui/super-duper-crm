@@ -22,13 +22,13 @@ from backend.models import (
     WorkspaceKind,
 )
 from backend.schemas.setup import Area, ServiceState, SetupRequest, SetupResult
-from backend.services import party_workspace
+from backend.services import party_workspace, texting
 from backend.services.accounts import new_login
 from backend.services.admin import build_workspace
 from backend.services.audit import record
 from backend.services.email import send_email
 from backend.services.errors import Forbidden, Refused
-from backend.services.sms import get_sms_provider, normalise_phone
+from backend.services.sms import normalise_phone
 
 TOKEN_LIFE = timedelta(hours=24)
 DONE = "This installation is already set up."
@@ -227,7 +227,9 @@ async def test_service(session: AsyncSession, key: str, user: User) -> str:
         phone = normalise_phone(user.phone)
         if phone is None:
             raise Refused("Your login has no phone number to text.")
-        result = await get_sms_provider().send([phone], "Test text from your campaign platform.")
+        result, _ = await texting.send(
+            session, [phone], texting.TEST_TEXT, purpose="test", sender=user
+        )
         record(
             session,
             actor=user,

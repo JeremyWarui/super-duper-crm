@@ -253,6 +253,62 @@ export function useCreateAssignment() {
   });
 }
 
+// Texts to supporters: drafts, approval and the delivery log.
+export const useMessages = (campaignId) =>
+  useQuery({
+    queryKey: ["messages", campaignId],
+    queryFn: () => api(`/messages/?campaign=${campaignId}`),
+    enabled: !!campaignId,
+  });
+
+// Who a message to these wards would reach now; the wording does not change it.
+export const useMessageReach = (campaignId, wards) =>
+  useQuery({
+    queryKey: ["messages", "reach", campaignId, wards],
+    queryFn: () => api("/messages/preview/", { method: "POST", body: { campaign: campaignId, wards, body: "-" } }),
+    enabled: !!campaignId,
+    placeholderData: (previous) => previous,
+  });
+
+export function useDraftMessage() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (body) => api("/messages/", { method: "POST", body }),
+    onSuccess: () => invalidate("messages"),
+  });
+}
+
+export function useSendMessage() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (id) => api(`/messages/${id}/send/`, { method: "POST" }),
+    onSuccess: () => invalidate("messages"),
+  });
+}
+
+export function useDeclineMessage() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, note }) => api(`/messages/${id}/decline/`, { method: "POST", body: { note } }),
+    onSuccess: () => invalidate("messages"),
+  });
+}
+
+export function useDeleteMessage() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (id) => api(`/messages/${id}/`, { method: "DELETE" }),
+    onSuccess: () => invalidate("messages"),
+  });
+}
+
+export const useMessageLog = (id) =>
+  useQuery({
+    queryKey: ["messages", "log", id],
+    queryFn: () => api(`/messages/${id}/log/`),
+    enabled: !!id,
+  });
+
 export function useSettleAssignment() {
   const invalidate = useInvalidator();
   return useMutation({

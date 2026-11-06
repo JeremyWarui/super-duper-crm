@@ -102,6 +102,7 @@
       "parts",
       "supporters_matched",
       "requested",
+      "opted_out",
       "accepted",
       "rejected",
       "detail",
@@ -1068,6 +1069,26 @@
     ],
     "POST /api/party/office/officials/{official_id}/end/": [
       "id"
+    ],
+    "GET /api/messages/": [
+      "sender_id",
+      "provider",
+      "can_send",
+      "wards",
+      "messages"
+    ],
+    "POST /api/messages/preview/": [
+      "recipients",
+      "opted_out",
+      "no_number"
+    ],
+    "POST /api/messages/": [
+      "recipients"
+    ],
+    "GET /api/messages/{message_id}/log/": [
+      "phone",
+      "status",
+      "detail"
     ]
   },
   "nested_reads": {
@@ -1387,6 +1408,24 @@
       "end_reason",
       "note",
       "lapsed"
+    ],
+    "GET /api/messages/.wards": [
+      "id",
+      "name"
+    ],
+    "GET /api/messages/.messages": [
+      "id",
+      "body",
+      "ward_names",
+      "status",
+      "drafted_by",
+      "decided_by",
+      "created_at",
+      "decided_at",
+      "note",
+      "recipients",
+      "delivery",
+      "mine"
     ]
   },
   "writes": {
@@ -2033,7 +2072,22 @@
     "POST /api/party/office/officials/{official_id}/end/": [
       "term_end",
       "end_reason"
-    ]
+    ],
+    "POST /api/messages/": [
+      "campaign",
+      "body",
+      "wards",
+      "send"
+    ],
+    "POST /api/messages/preview/": [
+      "campaign",
+      "wards",
+      "body"
+    ],
+    "POST /api/messages/{message_id}/decline/": [
+      "note"
+    ],
+    "POST /api/messages/{message_id}/send/": []
   },
   "enums": {
     "user.role": [
@@ -2116,7 +2170,8 @@
       "DELETE /api/workspace/site/issues/{item_id}/",
       "DELETE /api/workspace/site/documents/{item_id}/",
       "DELETE /api/workspace/site/videos/{item_id}/",
-      "POST /api/setup/check/"
+      "POST /api/setup/check/",
+      "DELETE /api/messages/{message_id}/"
     ]
   }
 }

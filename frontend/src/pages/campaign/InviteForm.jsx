@@ -2,19 +2,24 @@ import { useState } from "react";
 import { formatNumber as fmt } from "../../lib/format";
 import { Badge, Chip, Modal } from "../../components/ui";
 import { useInviteToEvent } from "../../api/hooks";
+import { useAuth } from "../../store/auth";
+import { FOOTER, partsOf } from "../../lib/sms";
 import { Btn, Label, PrimaryBtn } from "./controls";
 
 const LEVELS = [["supporter", "Supporters"], ["undecided", "Undecided"], ["opposed", "Opposed"]];
-const SMS_PART = 160;
+// Who may really text; anyone else who changes the event can preview.
+const SENDERS = ["candidate", "manager"];
 
 export default function InviteForm({ event, onClose }) {
   const invite = useInviteToEvent();
+  const canSend = SENDERS.includes(useAuth((s) => s.user?.role));
   const [message, setMessage] = useState(`${event.title}${event.venue ? ` at ${event.venue}` : ""}. Come through.`);
   const [levels, setLevels] = useState(["supporter", "undecided"]);
   const [wholeCampaign, setWholeCampaign] = useState(false);
   const [result, setResult] = useState(null);
 
-  const parts = message.length === 0 ? 0 : Math.floor((message.length - 1) / SMS_PART) + 1;
+  const text = message.trim() + FOOTER;
+  const parts = partsOf(text);
   const ok = message.trim().length > 0 && !invite.isPending;
   const toggle = (key) => setLevels((L) => (L.includes(key) ? L.filter((k) => k !== key) : [...L, key]));
   const send = (dry) =>
@@ -26,8 +31,8 @@ export default function InviteForm({ event, onClose }) {
   return (
     <Modal title="Invite supporters" sub={`${event.title} · ${wholeCampaign ? "whole campaign" : event.ward_name}`} onClose={onClose}>
       <Label>Message</Label>
-      <textarea className="textarea app-field" value={message} onChange={(e) => { setMessage(e.target.value); setResult(null); }} />
-      <div className="field-hint">{message.length} characters · {parts} SMS part{parts === 1 ? "" : "s"} per person</div>
+      <textarea className="textarea app-field" maxLength={895} value={message} onChange={(e) => { setMessage(e.target.value); setResult(null); }} />
+      <div className="field-hint">{text.length} characters · {parts} SMS part{parts === 1 ? "" : "s"} per person · "Reply STOP to opt out" is added</div>
 
       <div className="field-gap" /><Label>Send to</Label>
       <div className="flex flex-wrap gap-1 chip-row">
@@ -40,13 +45,14 @@ export default function InviteForm({ event, onClose }) {
         Everyone on the campaign, not just {event.ward_name}
       </label>
 
+      {!canSend && <div className="field-hint">Only the candidate or the campaign manager sends texts.</div>}
       {result && <InviteResult result={result} />}
       {invite.isError && <div className="form-error">{invite.error.message}</div>}
 
       <div className="flex justify-end gap-2 form-actions">
         <Btn onClick={onClose}>Close</Btn>
         <Btn onClick={() => send(true)} disabled={!ok}>{invite.isPending ? "Working…" : "Preview"}</Btn>
-        <PrimaryBtn disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</PrimaryBtn>
+        {canSend && <PrimaryBtn disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</PrimaryBtn>}
       </div>
     </Modal>
   );
@@ -64,6 +70,7 @@ function InviteResult({ result }) {
         {fmt(result.supporters_matched)} supporter{result.supporters_matched === 1 ? "" : "s"} matched ·
         {" "}{fmt(result.requested)} usable number{result.requested === 1 ? "" : "s"} ·
         {" "}{result.parts} part{result.parts === 1 ? "" : "s"} each
+        {result.opted_out > 0 && <> · {fmt(result.opted_out)} opted out, left out</>}
       </div>
       {result.rejected.length > 0 && (
         <div className="result-bad">

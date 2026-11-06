@@ -25,11 +25,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend import __version__
 from backend.config import get_settings
 from backend.models import BackupRun, Base, OrganisationType, User
+from backend.services import texting
 from backend.services.audit import record
 from backend.services.errors import Refused
 from backend.services.payouts import get_payout_provider
 from backend.services.setup import services
-from backend.services.sms import get_sms_provider, normalise_phone
+from backend.services.sms import normalise_phone
 
 ALEMBIC_DIR = Path(__file__).resolve().parents[3] / "alembic"
 # Sign-in secrets: an export is for records and moving providers, and must not open accounts.
@@ -360,7 +361,9 @@ async def test_sms(session: AsyncSession, phone: str, *, actor: User) -> str:
     number = normalise_phone(phone)
     if number is None:
         raise Refused("That is not a phone number.")
-    result = await get_sms_provider().send([number], "Test text from your campaign platform.")
+    result, _ = await texting.send(
+        session, [number], texting.TEST_TEXT, purpose="test", sender=actor
+    )
     record(
         session,
         actor=actor,

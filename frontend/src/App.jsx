@@ -35,6 +35,7 @@ import Signups from "./pages/campaign/Signups";
 import Agents from "./pages/campaign/Agents";
 import MyCentre from "./pages/campaign/MyCentre";
 import Assignments from "./pages/campaign/Assignments";
+import Messages from "./pages/campaign/Messages";
 import FieldTabs from "./pages/campaign/FieldTabs";
 import { useMedia } from "./lib/useMedia";
 
@@ -42,7 +43,7 @@ import { useMedia } from "./lib/useMedia";
 // Roles that work from a phone get a tab bar there.
 const FIELD_ROLES = ["mobilizer", "agent"];
 
-const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "mobilizers", "supporters", "mysupporters", "payments", "mypayments", "signups", "agents", "mycentre", "assignments", "register", "website", "settings", "recruitment"]);
+const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "mobilizers", "supporters", "mysupporters", "payments", "mypayments", "signups", "agents", "mycentre", "assignments", "messages", "register", "website", "settings", "recruitment"]);
 
 // One page per NAV key.
 const PAGES = {
@@ -63,6 +64,7 @@ const PAGES = {
   agents: Agents,
   mycentre: MyCentre,
   assignments: Assignments,
+  messages: Messages,
   register: Register,
   myevents: (props) => <Events {...props} mine />,
   mysupporters: (props) => <Supporters {...props} mine />,

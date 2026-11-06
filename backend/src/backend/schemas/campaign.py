@@ -230,7 +230,8 @@ class SupporterCreate(WriteModel):
 class EventInvite(WriteModel):
     """Who to invite, and what to say."""
 
-    message: str = Field(min_length=1, max_length=918)  # six SMS parts
+    # Six SMS parts with the opt-out line added.
+    message: str = Field(min_length=1, max_length=895)
     # Blank invites everyone in the event's ward.
     support_levels: list[SupportLevel] = Field(default_factory=list)
     whole_campaign: bool = False
@@ -253,6 +254,8 @@ class EventInviteResult(ORMModel):
     parts: int
     supporters_matched: int
     requested: int
+    # Numbers left out because they asked this campaign for no texts.
+    opted_out: int
     accepted: list[InviteRecipient]
     rejected: list[InviteRecipient]
     detail: str

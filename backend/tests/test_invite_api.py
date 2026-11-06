@@ -2,10 +2,12 @@
 
 import httpx
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Event, Supporter, SupportLevel
+from backend.models import Event, SmsLog, SmsOptOut, Supporter, SupportLevel
 from backend.services.sms import Recipient, SendResult
+from backend.services.texting import FOOTER
 from tests.conftest import World
 
 
@@ -20,7 +22,9 @@ async def _event(session: AsyncSession, world: World, *, ward=None) -> Event:
     return event
 
 
-async def _supporters(session: AsyncSession, world: World, rows: list[tuple]) -> None:
+async def _supporters(
+    session: AsyncSession, world: World, rows: list[tuple], consent: bool = True
+) -> None:
     for full_name, phone, level, ward in rows:
         session.add(
             Supporter(
@@ -29,7 +33,7 @@ async def _supporters(session: AsyncSession, world: World, rows: list[tuple]) ->
                 full_name=full_name,
                 phone=phone,
                 support_level=level,
-                consent_given=True,
+                consent_given=consent,
             )
         )
     await session.commit()
@@ -50,7 +54,9 @@ class DeliveringProvider:
             delivered=True,
             message=message,
             requested=len(recipients),
-            accepted=[Recipient(phone=n, status="Success") for n in recipients],
+            accepted=[
+                Recipient(phone=n, status="Success", message_id=f"ATXid_{n}") for n in recipients
+            ],
             detail="Sent",
         )
 
@@ -58,7 +64,7 @@ class DeliveringProvider:
 @pytest.fixture
 def gateway(monkeypatch: pytest.MonkeyPatch) -> DeliveringProvider:
     provider = DeliveringProvider()
-    monkeypatch.setattr("backend.api.routers.events.get_sms_provider", lambda *a, **k: provider)
+    monkeypatch.setattr("backend.services.texting.get_sms_provider", lambda *a, **k: provider)
     return provider
 
 
@@ -108,7 +114,7 @@ async def test_it_goes_to_the_supporters_in_the_event_s_ward(
     ).json()
 
     assert body["supporters_matched"] == 1
-    assert gateway.calls == [(["+254712345678"], "Rally Saturday")]
+    assert gateway.calls == [(["+254712345678"], "Rally Saturday" + FOOTER)]
 
 
 async def test_a_delivered_invitation_sets_the_number_reached(
@@ -161,3 +167,35 @@ async def test_a_dry_run_works_out_the_recipients_and_sends_nothing(
     assert gateway.calls == []
     await session.refresh(event)
     assert event.number_reached == 0
+
+
+async def test_it_skips_opted_out_and_unconsented_numbers_and_logs_who_was_texted(
+    client: httpx.AsyncClient, session, world: World, gateway: DeliveringProvider
+) -> None:
+    event = await _event(session, world)
+    await _supporters(
+        session,
+        world,
+        [
+            ("Texted", "0712345678", SupportLevel.SUPPORTER, world.ward),
+            ("Said stop", "0722000000", SupportLevel.SUPPORTER, world.ward),
+        ],
+    )
+    await _supporters(
+        session, world, [("No consent", "0733000000", SupportLevel.SUPPORTER, world.ward)], False
+    )
+    session.add(SmsOptOut(phone="+254722000000", campaign_id=world.campaign.id, source="stop"))
+    await session.commit()
+
+    body = (
+        await client.post(
+            f"/api/events/{event.id}/invite/",
+            headers=world.headers("manager"),
+            json={"message": "Rally Saturday"},
+        )
+    ).json()
+    logged = (await session.scalars(select(SmsLog).where(SmsLog.event_id == event.id))).all()
+
+    assert body["opted_out"] == 1
+    assert [numbers for numbers, _ in gateway.calls] == [["+254712345678"]]
+    assert [(r.phone, r.status, r.purpose) for r in logged] == [("+254712345678", "sent", "invite")]

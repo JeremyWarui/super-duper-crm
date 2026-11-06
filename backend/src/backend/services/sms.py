@@ -12,8 +12,18 @@ logger = logging.getLogger(__name__)
 DEFAULT_COUNTRY_CODE = "254"
 NATIONAL_NUMBER_LENGTH = 9
 
-# Billed per part, per recipient.
+# Billed per part, per recipient; a long text is split into parts of 153.
 SMS_PART_LENGTH = 160
+SMS_LONG_PART_LENGTH = 153
+
+
+def parts_of(message: str) -> int:
+    """How many parts each recipient is billed for this text."""
+    if not message:
+        return 0
+    if len(message) <= SMS_PART_LENGTH:
+        return 1
+    return (len(message) - 1) // SMS_LONG_PART_LENGTH + 1
 
 
 @dataclass(frozen=True)
@@ -23,6 +33,8 @@ class Recipient:
     phone: str
     status: str
     detail: str = ""
+    # The gateway's id for this text, which its delivery reports quote.
+    message_id: str = ""
 
 
 @dataclass
@@ -40,9 +52,7 @@ class SendResult:
     @property
     def parts(self) -> int:
         """Parts each recipient is billed."""
-        if not self.message:
-            return 0
-        return (len(self.message) - 1) // SMS_PART_LENGTH + 1
+        return parts_of(self.message)
 
 
 class SMSProvider(Protocol):
@@ -138,7 +148,14 @@ class AfricasTalkingSMSProvider:
     SANDBOX_URL = "https://api.sandbox.africastalking.com/version1/messaging"
     TIMEOUT_SECONDS = 30.0
 
-    def __init__(self, username: str, api_key: str, sender_id: str = "", sandbox: bool = False):
+    def __init__(
+        self,
+        username: str,
+        api_key: str,
+        sender_id: str = "",
+        sandbox: bool = False,
+        transport=None,
+    ):
         if not username or not api_key:
             raise ValueError(
                 "Africa's Talking needs AT_USERNAME and AT_API_KEY. "
@@ -147,6 +164,7 @@ class AfricasTalkingSMSProvider:
         self.username = username
         self.api_key = api_key
         self.sender_id = sender_id
+        self.transport = transport
         # Their sandbox only answers to the username "sandbox".
         self.url = self.SANDBOX_URL if sandbox or username == "sandbox" else self.LIVE_URL
 
@@ -172,6 +190,7 @@ class AfricasTalkingSMSProvider:
                 phone=entry.get("number", ""),
                 status=entry.get("status", "unknown"),
                 detail=str(entry.get("statusCode", "")),
+                message_id=str(entry.get("messageId") or ""),
             )
             (accepted if record.status == "Success" else rejected).append(record)
 
@@ -189,7 +208,9 @@ class AfricasTalkingSMSProvider:
         import httpx
 
         data, headers = self.build_request(recipients, message)
-        async with httpx.AsyncClient(timeout=self.TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(
+            timeout=self.TIMEOUT_SECONDS, transport=self.transport
+        ) as client:
             response = await client.post(self.url, data=data, headers=headers)
             response.raise_for_status()
             return self.parse_response(response.json(), message, len(recipients))

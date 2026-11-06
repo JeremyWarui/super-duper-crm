@@ -1,0 +1,52 @@
+{
+  "_comment": "Africa's Talking replies in the shapes its SMS docs show: a bulk send, a delivery report, an incoming text and a gateway opt-out (the last three are form posts).",
+  "send": {
+    "SMSMessageData": {
+      "Message": "Sent to 1/2 Total Cost: KES 0.8000",
+      "Recipients": [
+        {
+          "statusCode": 101,
+          "number": "+254712345678",
+          "status": "Success",
+          "cost": "KES 0.8000",
+          "messageId": "ATXid_5b2a8d1c0f3e4a6b9c7d"
+        },
+        {
+          "statusCode": 406,
+          "number": "+254722000000",
+          "status": "UserInBlacklist",
+          "cost": "0",
+          "messageId": "None"
+        }
+      ]
+    }
+  },
+  "delivery_success": {
+    "id": "ATXid_5b2a8d1c0f3e4a6b9c7d",
+    "status": "Success",
+    "phoneNumber": "+254712345678",
+    "networkCode": "63902",
+    "retryCount": "0"
+  },
+  "delivery_failed": {
+    "id": "ATXid_5b2a8d1c0f3e4a6b9c7d",
+    "status": "Failed",
+    "phoneNumber": "+254712345678",
+    "networkCode": "63902",
+    "failureReason": "DeliveryFailure",
+    "retryCount": "1"
+  },
+  "inbound_stop": {
+    "date": "2026-11-01 10:15:02",
+    "from": "+254712345678",
+    "id": "8c3a1b0e-7f62-4c1d-9a55-2e9f1d6b4c11",
+    "linkId": "",
+    "text": "STOP",
+    "to": "22384",
+    "networkCode": "63902"
+  },
+  "gateway_opt_out": {
+    "senderId": "PAMOJA",
+    "phoneNumber": "+254733000000"
+  }
+}

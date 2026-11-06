@@ -10,7 +10,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AuditEvent, Base, User
+from backend.models import AuditEvent, Base, SmsLog, User
 from backend.services import ops
 from backend.services.errors import Refused
 from tests.conftest import World
@@ -96,6 +96,18 @@ async def test_a_practice_payout_moves_no_money(
 
     assert answer.status_code == 200, answer.text
     assert "no money moved" in answer.json()["message"]
+
+
+async def test_a_practice_test_text_is_logged_and_not_sent(
+    client: httpx.AsyncClient, session: AsyncSession, admin_headers: dict
+) -> None:
+    answer = await client.post(
+        "/api/admin/test/sms/", json={"phone": "0712345678"}, headers=admin_headers
+    )
+    logged = (await session.execute(select(SmsLog.phone, SmsLog.purpose, SmsLog.status))).all()
+
+    assert answer.status_code == 200, answer.text
+    assert logged == [("+254712345678", "test", "practice")]
 
 
 def test_pruning_never_touches_a_file_the_backup_did_not_write(tmp_path: Path) -> None:

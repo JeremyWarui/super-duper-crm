@@ -83,6 +83,9 @@ class Settings(BaseSettings):
     at_sender_id: str = ""
     at_sandbox: bool = False
     sms_provider: Literal["console", "africastalking"] = "console"
+    # The secret part of the delivery-report and inbound-text URLs given to Africa's Talking,
+    # which does not sign its callbacks; blank turns the callbacks off.
+    sms_callback_secret: str = ""
 
     # Where people open the app; sign-in links in emails and texts start with it.
     public_url: str = "http://localhost:5173"
