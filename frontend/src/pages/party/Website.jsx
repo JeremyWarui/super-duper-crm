@@ -54,7 +54,7 @@ const IMAGE_HINT = "A JPEG, PNG or WebP up to 5 MB, or an https:// address.";
 const CHECKS = {
   image: (v) => imageOk(v) || "Choose a file, or use an address starting with https://.",
   https: (v) => !v || HTTPS.test(v) || "Use an address starting with https://.",
-  link: (v) => !v || HTTPS.test(v) || (/^\/(?!\/)\S*$/.test(v)) || "Use a page on this site such as /join-party, or an https:// address.",
+  link: (v, f) => !v || HTTPS.test(v) || (/^\/(?!\/)\S*$/.test(v)) || `Use a page on this site such as ${f.example || "/join-party"}, or an https:// address.`,
   order: (v) => (/^\d{1,5}$/.test(v) && Number(v) <= 10000) || "Use a whole number from 0 to 10000.",
   duration: (v) => !v || /^(\d{1,2}:)?\d{1,2}:\d{2}$/.test(v) || "Use minutes and seconds, such as 4:15.",
   count: (v) => /^\d{1,8}$/.test(v) && Number(v) <= 10000000 || "Use a whole number of votes.",
@@ -167,7 +167,7 @@ function problems(fields, form) {
     const v = form[f.key].trim();
     if (f.required && !v) out[f.key] = `${f.label} is needed.`;
     else if (CHECKS[f.kind]) {
-      const ok = CHECKS[f.kind](v);
+      const ok = CHECKS[f.kind](v, f);
       if (ok !== true) out[f.key] = ok;
     }
   }

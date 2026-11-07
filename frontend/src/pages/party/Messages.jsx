@@ -55,7 +55,7 @@ function Compose() {
   const counties = usePartyPlaces().data || [];
   const constituencies = usePartyPlaces({ county, enabled: !!county }).data || [];
   const wards = usePartyPlaces({ constituency, enabled: !!constituency }).data || [];
-  const place = { audience, county: county || null, ward: ward || null };
+  const place = { audience, county: county || null, constituency: constituency || null, ward: ward || null };
   const reach = usePartyMessageReach(place);
   const save = useDraftPartyMessage();
   const text = body.trim() + FOOTER;

@@ -111,6 +111,15 @@ The manager's payments wait for you. Coordinator payments go to the manager, not
 
 When **Practice mode** shows at the top of the page, no money moves.
 
+### Plan and record events
+
+1. Open **Events** and press **Schedule event**. Fill **Event title**, **Ward** (and
+   **Registration centre** in an MCA race), **Venue** and **Date**, then press **Schedule
+   event**.
+2. After the event press **Record**, fill the numbers, then **Save & mark done**.
+3. **Invite** texts supporters about the event. **Sign-up QR** shows a code people scan to
+   sign up as supporters; **Close sign-ups** there stops it.
+
 ### Supporters and personal data
 
 1. **Supporters** lists the register. Press **Sign-up link** to share a QR code and link
@@ -146,7 +155,5 @@ whoever runs your installation) can send a reset link to someone else.
 
 ## Notes to confirm
 
-- **Events** shows no **Schedule event** or **Record** button to the Candidate, although the
-  permission table allows it. The manager and coordinators do this.
 - The menu item reads **Wards** even in an MCA race, where the page title says **Centre
   performance**.

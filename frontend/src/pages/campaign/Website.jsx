@@ -20,17 +20,22 @@ import {
 
 const section = (kind, rest) => ({ ...WORKSPACE_SECTIONS[kind], ...rest });
 
+const CAMPAIGN_SLIDE_FIELDS = SLIDE_FIELDS.map((f) =>
+  f.key === "button_url" ? { ...f, example: "/volunteer", hint: "A page on this site such as /volunteer, or an https:// address." } : f,
+);
+const CAMPAIGN_DOCUMENT_FIELDS = DOCUMENT_FIELDS.map((f) => (f.key === "title" ? { ...f, hint: "Such as Campaign plan (PDF)." } : f));
+
 const SECTIONS = {
   News: [
     section("posts", { noun: "post", title: "News and events", fields: POST_FIELDS, name: (r) => r.title, meta: (r) => `${r.kind === "event" ? "Event" : "News"} · ${formatDate(r.kind === "event" ? r.event_date : r.published_on) || "not yet published"}` }),
   ],
   Homepage: [
-    section("slides", { noun: "slide", title: "Carousel slides", hint: "Up to 5, rotating every 6 seconds.", fields: SLIDE_FIELDS, name: (r) => r.headline, meta: (r) => `Order ${r.sort_order}`, max: 5 }),
+    section("slides", { noun: "slide", title: "Carousel slides", hint: "Up to 5, rotating every 6 seconds.", fields: CAMPAIGN_SLIDE_FIELDS, name: (r) => r.headline, meta: (r) => `Order ${r.sort_order}`, max: 5 }),
     section("issues", { noun: "issue", title: "Agenda issues", hint: "What the campaign stands for, each on its own page.", fields: ISSUE_FIELDS, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` }),
   ],
   Media: [
     section("videos", { noun: "video", title: "Videos", fields: VIDEO_FIELDS, name: (r) => r.title, meta: (r) => [r.duration, `order ${r.sort_order}`].filter(Boolean).join(" · ") }),
-    section("documents", { noun: "document", title: "Documents", fields: DOCUMENT_FIELDS, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` }),
+    section("documents", { noun: "document", title: "Documents", fields: CAMPAIGN_DOCUMENT_FIELDS, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` }),
   ],
 };
 

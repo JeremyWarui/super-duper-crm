@@ -25,7 +25,9 @@ from backend.models import (
     Ward,
     WorkspaceKind,
 )
+from backend.services import privacy
 from backend.services.accounts import add_member
+from backend.services.errors import Refused
 from backend.services.membership import process_requests
 from tests.conftest import World
 from tests.factories import TEST_PASSWORD, auth, claim_link, make_user, sign_in, site_settings
@@ -284,3 +286,19 @@ async def test_an_unknown_retired_or_turned_off_code_still_accepts_the_applicati
         None,
         None,
     )
+
+
+async def test_the_party_workspace_is_never_closed(
+    session: AsyncSession, client: httpx.AsyncClient, world: World, admin_headers: dict
+) -> None:
+    campaign, password = await _workspace(session, client, admin_headers)
+    manager = auth(await sign_in(client, "wm@example.com", password))
+
+    by_manager = await client.post(f"/api/campaigns/{campaign.id}/data/close/", headers=manager)
+    await session.refresh(campaign)
+    actor = await session.scalar(select(User).where(User.username == "wm-amani"))
+
+    assert by_manager.status_code == 403
+    with pytest.raises(Refused, match="never closed"):
+        privacy.close(session, campaign, actor=actor)
+    assert campaign.closed_at is None

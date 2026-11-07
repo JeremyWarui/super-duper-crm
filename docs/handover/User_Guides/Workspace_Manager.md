@@ -35,7 +35,9 @@ emails a link that works for an hour.
 
 Each coordinator in this workspace gets a **Recruitment** page with their own link to the
 **Join the Party** form and a QR code. People who apply through it are counted to that
-coordinator. Membership Officers still approve every application in the Party CRM.
+coordinator. Membership Officers still approve every application in the Party CRM. Coordinators
+also get a read-only **Party members** page listing the party members in their area, with no
+export.
 
 ## How to
 
@@ -58,12 +60,5 @@ Workspace Manager, ask the Party Super Admin.
 
 ## Notes to confirm
 
-- The Party Super Admin opens the party workspace and names its first Workspace Manager in
-  the first-run setup (the box **Open the party workspace now, with its first Workspace
-  Manager**). The setup screen says it can be opened
-  later from the console, but no console button for this was found in the code. Confirm how a
-  party workspace is opened after setup.
 - No screen was found for replacing the Workspace Manager (**Add manager** is for a
   candidate, and this workspace has none). Confirm the route with the Party Super Admin.
-- The design gives coordinators in this workspace a read-only view of the party member
-  register for their area. The server supports it, but no menu item opens it yet.

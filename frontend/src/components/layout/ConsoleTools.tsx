@@ -2,6 +2,8 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, CircleHelp, Search } from 'lucide-react'
 import { useSite, usePartyNotifications, usePartySearch } from '@/api/hooks'
+import { useInstall } from '@/app/site'
+import { useCopy } from '@/copy'
 
 /** An open/closed panel that Escape or a click outside closes. */
 function usePanel() {
@@ -104,9 +106,10 @@ function Notifications() {
   )
 }
 
-/** Who to contact at the party office. */
+/** Who to contact at the office. */
 function Help() {
   const { open, setOpen, ref } = usePanel()
+  const copy = useCopy()
   const party = (useSite().data || {}) as { contact_phone?: string; contact_email?: string }
   return (
     <div ref={ref} className="relative">
@@ -116,22 +119,23 @@ function Help() {
       {open ? (
         <div id="party-help" className={PANEL}>
           <span className="px-3 pt-2 text-ui font-bold">Need help?</span>
-          <span className="px-3 pb-1 text-meta text-muted-foreground">The party office can reset a password, change your office, or explain a page.</span>
+          <span className="px-3 pb-1 text-meta text-muted-foreground">{copy.help}</span>
           {party.contact_phone ? <a href={`tel:${party.contact_phone}`} className={ROW}><span className="text-ui font-semibold">Call {party.contact_phone}</span></a> : null}
           {party.contact_email ? <a href={`mailto:${party.contact_email}`} className={ROW}><span className="text-ui font-semibold">Email {party.contact_email}</span></a> : null}
-          {!party.contact_phone && !party.contact_email ? <span className="px-3 pb-2 text-meta text-muted-foreground">The party office has not added its contacts yet.</span> : null}
+          {!party.contact_phone && !party.contact_email ? <span className="px-3 pb-2 text-meta text-muted-foreground">{copy.helpNoContacts}</span> : null}
         </div>
       ) : null}
     </div>
   )
 }
 
-/** The party console's top bar tools: search, notifications and help. */
+/** The console's top bar tools: help, and in a party installation search and notifications. */
 export function ConsoleTools() {
+  const { aspirant } = useInstall()
   return (
     <>
-      <PartySearch />
-      <Notifications />
+      {aspirant ? null : <PartySearch />}
+      {aspirant ? null : <Notifications />}
       <Help />
     </>
   )

@@ -7,6 +7,8 @@ import { BASE } from "@/api/client";
 import { Logo } from "@/components/layout/Logo";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
+import { useInstall } from "@/app/site";
+import { useCopy } from "@/copy";
 import { useAuth } from "../store/auth";
 
 // Feather's eye and eye-off, drawn at the size of the field's text.
@@ -107,6 +109,9 @@ function GoogleButton() {
 export default function Login() {
   const login = useAuth((s) => s.login);
   const google = useSignInOptions().data?.google;
+  const copy = useCopy();
+  // The words differ by installation, so they wait until it is known which this is.
+  const { loading } = useInstall();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -137,7 +142,7 @@ export default function Login() {
         <Logo size="md" onPrimary />
         <div className="flex max-w-[440px] flex-col gap-5">
           <h1 className="font-display text-[clamp(36px,4vw,56px)] leading-[1.02] font-extrabold tracking-[-0.02em]">The team behind the movement.</h1>
-          <p className="text-lead text-[#CFE0D5]">Members, candidate teams, mobilizers and party staff sign in here. One account, routed to the right place.</p>
+          {loading ? null : <p className="text-lead text-[#CFE0D5]">{copy.signInLead}</p>}
         </div>
         <Link to="/" className="font-bold text-accent hover:text-accent">← Back to public site</Link>
       </aside>
@@ -145,7 +150,7 @@ export default function Login() {
         <div className="flex w-full max-w-[420px] flex-col gap-7">
           <div className="flex flex-col gap-2">
             <h2 className="font-display text-[34px] font-extrabold tracking-[-0.02em]">Sign in</h2>
-            <p className="text-muted-foreground">Use the email and password of your party account.</p>
+            {loading ? null : <p className="text-muted-foreground">{copy.signInAccount}</p>}
           </div>
           <form onSubmit={submit} className="flex flex-col gap-[18px]" noValidate>
             <Field label="Email">
@@ -177,7 +182,7 @@ export default function Login() {
           ) : null}
           <Link to="/forgot-password" className="self-start font-bold">Forgot your password?</Link>
           <div className="flex flex-col gap-1.5 border-t border-line-2 pt-5 text-body text-muted-foreground">
-            <span>Not a member yet? <Link to="/join-party" className="font-bold">Join the party</Link></span>
+            {loading ? null : <span>{copy.signInJoinAsk} <Link to={copy.join.to} className="font-bold">{copy.join.label}</Link></span>}
             <span>Campaign team without a login? Ask whoever runs your campaign.</span>
           </div>
         </div>

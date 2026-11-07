@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import (
+    Constituency,
     ContactMethod,
     PartyConsentChannel,
     PartyMember,
@@ -22,6 +23,7 @@ from backend.models import (
     SmsLog,
     VolunteerProfile,
     VolunteerStatus,
+    Ward,
 )
 from backend.services.consent import MEMBER_SMS_WORDING, PARTY_WORDING, VOLUNTEER_WORDING
 from tests.conftest import World
@@ -174,3 +176,44 @@ async def test_stop_after_a_party_text_opts_the_number_out_of_party_texts(
 
     assert stop.json()["action"] == "opted_out"
     assert preview.json() == {"recipients": 0, "opted_out": 1}
+
+
+async def test_a_constituency_limits_the_count_and_the_recipients_and_names_the_place(
+    client: httpx.AsyncClient,
+    session: AsyncSession,
+    world: World,
+    comms: dict,
+    admin_headers: dict,
+) -> None:
+    kasarani = Constituency(county_id=world.county.id, name="Kasarani", code="999")
+    session.add(kasarani)
+    await session.flush()
+    elsewhere = Ward(constituency_id=kasarani.id, name="Mwiki", code="9991")
+    session.add(elsewhere)
+    await session.flush()
+    outside = _member(world, "+254712000009", sms=True)
+    outside.ward_id = elsewhere.id
+    session.add_all([_member(world, STOPPER, sms=True), outside])
+    await session.commit()
+    place = {"audience": "members", "constituency": str(world.constituency.id)}
+
+    whole_county = await client.post(
+        f"{MESSAGES}preview/",
+        json={"audience": "members", "county": str(world.county.id)},
+        headers=comms,
+    )
+    counted = await client.post(f"{MESSAGES}preview/", json=place, headers=comms)
+    wrong_ward = await client.post(
+        f"{MESSAGES}preview/", json={**place, "ward": str(elsewhere.id)}, headers=comms
+    )
+    drafted = await client.post(MESSAGES, json={**place, "body": "Meet Saturday."}, headers=comms)
+    sent = await client.post(f"{MESSAGES}{drafted.json()['id']}/send/", headers=admin_headers)
+    logged = list(await session.scalars(select(SmsLog.phone)))
+
+    assert whole_county.json()["recipients"] == 2
+    assert counted.json()["recipients"] == 1
+    assert wrong_ward.status_code == 400
+    assert drafted.json()["targeted"] == 1
+    assert drafted.json()["place"] == world.constituency.name
+    assert sent.json()["recipients"] == 1
+    assert logged == [STOPPER]

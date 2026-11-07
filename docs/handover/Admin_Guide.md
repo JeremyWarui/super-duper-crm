@@ -246,7 +246,15 @@ work. It has no candidate. Its manager (the Workspace Manager, or national
 coordinator) holds the manager's powers. Its coordinators also get a
 **Recruitment** page with their own link and QR code to the Join the Party form, and
 a count of the applicants it brought. Membership officers still decide each
-application.
+application. They also get a **Party members** page: a read-only list of the party
+members in their area, with no export, where every opening is recorded in the audit
+trail.
+
+If setup did not open it, open it from the console: on the **Campaigns** tab press
+**Open the party workspace**, fill the first Workspace Manager's **Username**, names,
+**Email** and **Phone**, and press **Open it**. They are emailed a link to choose a
+password. The button is shown only on a party copy, and only while there is no party
+workspace.
 
 ---
 
@@ -668,14 +676,11 @@ the IT person's job. It needs keys in the server's settings file and a restart. 
 These points could not be checked against the screens and should be confirmed on a
 running copy:
 
-1. The party copy's setup screen says the party workspace "can be opened later from
-   the console", but no button for it was found in the console. If it was not opened
-   at setup, ask the IT person.
-2. Replacing the Workspace Manager in the party workspace: the Team page offers
+1. Replacing the Workspace Manager in the party workspace: the Team page offers
    **Add manager** and **Replace manager** only to a candidate, and the party
    workspace has none.
-3. In an aspirant copy, the console **Party** tab still shows **Open aspirants**. The
+2. In an aspirant copy, the console **Party** tab still shows **Open aspirants**. The
    party pages do not exist in an aspirant copy, so this button is expected to lead
    nowhere useful.
-4. Whether the console's **New campaign** is limited to one workspace in an aspirant
+3. Whether the console's **New campaign** is limited to one workspace in an aspirant
    copy.

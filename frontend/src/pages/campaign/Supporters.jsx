@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
+import { useCopy } from "@/copy";
 import { formatNumber as fmt } from "@/lib/format";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
@@ -54,6 +55,7 @@ function Summary({ all }) {
 
 // The supporter register, private to the campaign team; in an MCA race each one sits at a centre.
 export default function Supporters({ campaign, role, mine, onModal }) {
+  const copy = useCopy();
   const centreWard = campaign.operational_grain === "centre" ? campaign.ward : null;
   const { data, isLoading, error } = useSupporters(campaign.id);
   const targetsQuery = useTargets(campaign.id);
@@ -69,10 +71,10 @@ export default function Supporters({ campaign, role, mine, onModal }) {
   const [filter, setFilter] = useState("All");
   const all = data || [];
   const shown = LEVELS[filter] ? all.filter((s) => s.support_level === LEVELS[filter]) : all;
-  const action = mine ? null : <Button shape="rounded" onClick={() => onModal({ type: "link" })}>Sign-up link</Button>;
+  const action = keeper ? <Button shape="rounded" onClick={() => onModal({ type: "link" })}>Sign-up link</Button> : null;
   return (
     <>
-      <WsHeader context={mine ? "My work" : "Field"} title={mine ? "My supporters" : "Supporters"} sub="Private to your campaign team. Never shared with the party." actions={action} />
+      <WsHeader context={mine ? "My work" : "Field"} title={mine ? "My supporters" : "Supporters"} sub={copy.supportersSub} actions={action} />
       {isLoading && <KitLoading />}
       {error && <KitError error={error} />}
       {data && (

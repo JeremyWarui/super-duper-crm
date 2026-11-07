@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
 import { AppRoutes } from "../src/Gate";
-import { CAMPAIGN, dashboardRoutes, renderApp, signIn, stubApi } from "./helpers";
+import { useAuth } from "../src/store/auth";
+import { ADMIN_CAMPAIGN, ADMIN_TOTALS, ADMIN_USERS, CAMPAIGN, TEST_TOKEN, dashboardRoutes, renderApp, signIn, stubApi } from "./helpers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -86,6 +87,7 @@ describe("an aspirant installation's website", () => {
     ["/privacy", "Privacy notice", "We keep your data safe."],
     ["/news", "News", null],
     ["/events", /Events/, null],
+    ["/signin", "The team behind the movement.", "Use the email and password of your campaign account."],
   ])("never says party on %s", async (path, heading, loaded) => {
     const text = await textOf(path, heading, loaded);
 
@@ -116,6 +118,93 @@ describe("an aspirant installation's website", () => {
 
     await waitFor(() => expect(calls.find((c) => c.method === "POST")?.path).toBe("/site/volunteer/"));
     expect(await screen.findByText(/\/volunteer\/withdraw\/abc/)).toBeInTheDocument();
+  });
+});
+
+describe("an aspirant installation when signed in", () => {
+  const CONSOLE = {
+    ...ROUTES,
+    "GET /admin/overview/": { totals: ADMIN_TOTALS, campaigns: [ADMIN_CAMPAIGN] },
+    // A staff login among them, the row a party installation offers offices on.
+    "GET /admin/users/": ADMIN_USERS.map((u) => ({ ...u, party_roles: [], party_member: null })),
+    "GET /admin/audit/": [{ id: "a1", created_at: "2026-11-01T08:00:00+00:00", actor_name: "root", action: "party.post.create", detail: {} }],
+    "GET /admin/backups/": [],
+    "GET /admin/health/": {
+      version: "0.1.0",
+      migration: { current: "x", head: "x", up_to_date: true },
+      database: { reachable: true, detail: "", size_bytes: 1 },
+      organisation_type: "aspirant",
+      services: [],
+      last_backup: null,
+      disks: [],
+    },
+  };
+
+  function signInAsSuperuser() {
+    useAuth.setState({
+      token: TEST_TOKEN,
+      user: { id: "root", username: "root", full_name: "The Operator", role: "manager", is_superuser: true, party_roles: [] },
+    });
+  }
+
+  it("sends the superuser from /party to the console", async () => {
+    signInAsSuperuser();
+    stubApi(CONSOLE);
+    renderApp(<AppRoutes />, { path: "/party/aspirants" });
+
+    expect(await screen.findByRole("button", { name: /Campaigns \(/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Aspirants" })).toBeNull();
+  });
+
+  it("never says party in the console and calls no party-only route", async () => {
+    signInAsSuperuser();
+    const calls = stubApi(CONSOLE);
+    renderApp(<AppRoutes />, { path: "/console" });
+    const user = userEvent.setup();
+
+    const logins = await screen.findByRole("button", { name: /Logins/ });
+    expect(screen.getByRole("navigation", { name: "Campaign admin" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Console" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Members" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Notifications/ })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/party/i);
+
+    await user.click(logins);
+    await user.click(await screen.findByRole("button", { name: "Add a login" }));
+    await screen.findByText("wafula");
+    expect(document.body.textContent).not.toMatch(/party/i);
+
+    await user.click(screen.getByRole("button", { name: "Site settings" }));
+    await screen.findByRole("button", { name: "Save the site settings" });
+    await user.click(screen.getByRole("button", { name: "Help" }));
+    expect(document.body.textContent).not.toMatch(/party/i);
+
+    await user.click(screen.getByRole("button", { name: "Audit" }));
+    expect(await screen.findByText("site.post.create")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/party/i);
+
+    await user.click(screen.getByRole("button", { name: "Health" }));
+    await screen.findByText("aspirant");
+    expect(document.body.textContent).not.toMatch(/party/i);
+
+    await user.click(screen.getByRole("button", { name: "Export" }));
+    expect(document.body.textContent).not.toMatch(/party/i);
+
+    const shared = /^\/party\/(posts|places|slides|issues|documents|videos|subscribe|unsubscribe)\b/;
+    expect(calls.filter((c) => /party/.test(c.path) && !shared.test(c.path))).toEqual([]);
+  });
+
+  it.each([
+    ["supporters", "Supporters"],
+    ["volunteers", "Volunteers"],
+  ])("never says party on the workspace's %s page", async (page, heading) => {
+    signIn("manager");
+    stubApi(dashboardRoutes({ ...ROUTES, "GET /campaigns/c1/volunteers/": [] }));
+    renderApp(<App />, { path: `/campaign/${page}` });
+
+    await screen.findByRole("heading", { name: heading });
+    await screen.findByText(page === "volunteers" ? /None yet/ : /Private to your campaign team/);
+    expect(document.body.textContent).not.toMatch(/party/i);
   });
 });
 
@@ -166,5 +255,25 @@ describe("the party workspace's recruitment page", () => {
     expect(await screen.findByText(/\/join-party\?r=Zx9$/)).toBeInTheDocument();
     expect(screen.getByTitle("Recruitment link QR code")).toBeInTheDocument();
     expect(screen.getByText("Waiting for a decision").nextSibling.textContent).toBe("4");
+  });
+
+  it("gives a coordinator a read-only list of the members in their area, with no export", async () => {
+    signIn("coordinator");
+    const member = { id: "pm1", full_name: "Achieng Otieno", phone: "+254712345678", status: "approved", ward: "w1", ward_name: "Zimmerman", registration_centre: null, registration_centre_name: "" };
+    stubApi(
+      dashboardRoutes({
+        "GET /site/": { name: "Umoja Party", organisation_type: "party" },
+        "GET /campaigns/": [{ ...CAMPAIGN, kind: "party", seat: "National", area_name: "" }],
+        "GET /party/workspace/members/": { total: 1, page: 1, page_size: 50, members: [member] },
+      }),
+    );
+    renderApp(<App />, { path: "/campaign/members" });
+
+    const list = await screen.findByRole("region", { name: "Party members" });
+    expect(await within(list).findByText("Achieng Otieno")).toBeInTheDocument();
+    expect(within(list).getByText("Approved")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Party members" })).toBeInTheDocument();
+    expect(within(list).queryAllByRole("button")).toEqual([]);
+    expect(screen.queryByRole("button", { name: /export/i })).toBeNull();
   });
 });

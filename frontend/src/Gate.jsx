@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "./store/auth";
 import { useCampaigns, useMe } from "./api/hooks";
-import { landingOf } from "./lib/home";
+import { homeOf, landingOf } from "./lib/home";
 import Login from "./components/Login";
 import Admin from "./components/Admin";
 import NoCampaign from "./components/NoCampaign";
@@ -73,16 +73,19 @@ function SignedIn() {
 }
 
 // A superuser runs the deployment rather than a campaign, so they get the
-// console at /console instead of the campaign gate, and the party portal under /party.
+// console at /console instead of the campaign gate, and in a party installation the party
+// portal under /party. Both wait until the installation's type is known.
 function Inside() {
   useMe();
+  const install = useInstall();
   const isSuperuser = useAuth((s) => s.user?.is_superuser);
   const isMember = useAuth((s) => s.user?.kind === "member");
   const { pathname } = useLocation();
   // A member login opens only its own account.
   if (isMember) return <Navigate to="/account" replace />;
   if (isSuperuser) {
-    if (pathname.startsWith("/party")) return <Portal />;
+    if (install.loading) return null;
+    if (pathname.startsWith("/party")) return install.aspirant ? <Navigate to="/console" replace /> : <Portal />;
     if (pathname.startsWith("/console")) return <Admin />;
     return <Navigate to="/console" replace />;
   }
@@ -107,6 +110,14 @@ function SignInPage() {
 function SignedInOnly({ children }) {
   const token = useAuth((s) => s.token);
   return token ? children : <Navigate to="/signin" replace />;
+}
+
+/** The chooser offers a member's account beside the work, which only a party installation has. */
+function ChooserPage() {
+  const install = useInstall();
+  const user = useAuth((s) => s.user);
+  if (install.loading) return null;
+  return install.aspirant ? <Navigate to={homeOf(user)} replace /> : <Chooser />;
 }
 
 function AccountPage() {
@@ -154,7 +165,7 @@ const SHARED = [
   ["/privacy", () => page(<Privacy />)],
   ["/unsubscribe/:code", () => page(<Unsubscribe />)],
   ["/signin", () => <SignInPage />],
-  ["/signin/where", () => <SignedInOnly><Chooser /></SignedInOnly>],
+  ["/signin/where", () => <SignedInOnly><ChooserPage /></SignedInOnly>],
   ["/forgot-password", () => page(<ForgotPassword />)],
   ["/invite/:token", () => page(<SetPassword />)],
   ["/reset/:token", () => page(<SetPassword />)],

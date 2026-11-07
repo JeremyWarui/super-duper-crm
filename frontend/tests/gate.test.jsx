@@ -15,6 +15,7 @@ import {
 } from "./helpers";
 
 const SIGN_IN_LINE = "Use the email and password of your party account.";
+const PARTY_SITE = { "GET /site/": { organisation_type: "party", name: "Umoja Party" } };
 
 function Where() {
   return <div data-testid="where">{useLocation().pathname}</div>;
@@ -25,11 +26,11 @@ afterEach(() => {
 });
 
 describe("the gate", () => {
-  it("asks a signed-out visitor to sign in", () => {
-    stubApi({});
+  it("asks a signed-out visitor to sign in", async () => {
+    stubApi(PARTY_SITE);
     renderApp(<Root />);
 
-    expect(screen.getByText(SIGN_IN_LINE)).toBeInTheDocument();
+    expect(await screen.findByText(SIGN_IN_LINE)).toBeInTheDocument();
   });
 
   it.each([false, true])("shows the public home at /, signed in: %s", async (signedIn) => {
@@ -55,11 +56,11 @@ describe("the gate", () => {
     expect(screen.getByTestId("where")).toHaveTextContent(home);
   });
 
-  it("sends a signed-out visit to /console to /signin", () => {
-    stubApi({});
+  it("sends a signed-out visit to /console to /signin", async () => {
+    stubApi(PARTY_SITE);
     renderApp(<><AppRoutes /><Where /></>, { path: "/console" });
 
-    expect(screen.getByText(SIGN_IN_LINE)).toBeInTheDocument();
+    expect(await screen.findByText(SIGN_IN_LINE)).toBeInTheDocument();
     expect(screen.getByTestId("where")).toHaveTextContent("/signin");
   });
 

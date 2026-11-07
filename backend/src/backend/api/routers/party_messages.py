@@ -38,7 +38,9 @@ async def list_messages(session: SessionDep, user: CommsOfficer) -> dict:
 
 @router.post("/preview/", response_model=PartyReach)
 async def preview(payload: Audiences, session: SessionDep, _: CommsOfficer) -> dict:
-    return await party_messages.preview(session, payload.audience, payload.county, payload.ward)
+    return await party_messages.preview(
+        session, payload.audience, payload.county, payload.constituency, payload.ward
+    )
 
 
 @router.post("/", response_model=PartyMessageRead, status_code=status.HTTP_201_CREATED)
@@ -48,6 +50,7 @@ async def draft(payload: PartyMessageDraft, session: SessionDep, user: CommsOffi
         body=payload.body,
         audience=payload.audience,
         county_id=payload.county,
+        constituency_id=payload.constituency,
         ward_id=payload.ward,
         actor=user,
     )

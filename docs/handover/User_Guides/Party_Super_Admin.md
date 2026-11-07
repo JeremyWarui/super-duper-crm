@@ -112,13 +112,17 @@ whether each was emailed.
 1. On a campaign's card press **Add somebody**, choose the login, and press **Put them on**.
 2. **Take off** then **Yes** removes someone from that campaign.
 
+### Open the party workspace (Console, Campaigns tab)
+
+If you did not open it during first-run setup:
+
+1. Press **Open the party workspace**. The button shows only while there is no party workspace.
+2. Fill the first Workspace Manager's **Username** and **Email**, and their **First name**,
+   **Last name** and **Phone**.
+3. Press **Open it**. **Sign-in links** at the top of the console says whether their link was
+   emailed.
+
 ## Who to ask for help
 
 You are the last stop for logins and passwords. For the server, backups, email and SMS keys,
 ask the IT person who runs the installation.
-
-## Notes to confirm
-
-- The first-run setup offers **Open the party workspace now, with its first Workspace
-  Manager**, and says it can be opened later from the console. No console button for opening
-  the party workspace was found in the code.

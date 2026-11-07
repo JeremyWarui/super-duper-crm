@@ -23,9 +23,11 @@ from backend.models import (
     VolunteerProfile,
     VolunteerStatus,
 )
-from backend.models.enums import PartyConsentChannel, PartyRoleName
+from backend.models.enums import PartyConsentChannel, PartyRoleName, UserRole
+from backend.services.accounts import add_member
+from backend.services.admin import remove_member
 from tests.conftest import World
-from tests.factories import auth, make_officer, sign_in
+from tests.factories import auth, make_officer, make_user, sign_in
 
 PHONE = "+254711000111"
 
@@ -176,6 +178,51 @@ async def test_a_hand_registered_supporter_is_texted_a_working_withdrawal_link(
     assert link.json()["url"].endswith(f"/withdraw/{supporter.withdraw_code}")
     assert gone.status_code == 200
     assert await session.get(Supporter, supporter.id) is None
+
+
+async def test_someone_is_erased_only_once_they_have_left_the_team(
+    session: AsyncSession, client: httpx.AsyncClient, world: World
+) -> None:
+    agent = await make_user(session, username="akinyi", role=UserRole.AGENT)
+    await add_member(session, world.campaign.id, agent)
+    registration = TeamRegistration(
+        campaign_id=world.campaign.id,
+        user_id=agent.id,
+        role=FieldRole.AGENT,
+        first_name="Akinyi",
+        last_name="Odhiambo",
+        phone="+254711000333",
+        email="akinyi@example.com",
+        id_number="12345678",
+        ward_id=world.ward.id,
+        consent_wording="I agree.",
+        consent_version="1",
+        status=RegistrationStatus.APPROVED,
+    )
+    session.add(registration)
+    await session.commit()
+    agent_id, campaign_id = agent.id, world.campaign.id
+    head = world.headers("manager")
+    base = f"/api/campaigns/{campaign_id}/data"
+    erase = f"{base}/registrations/{registration.id}/erase/"
+
+    on_team = (await client.get(f"{base}/left-team/", headers=head)).json()
+    refused = await client.post(erase, headers=head)
+    await remove_member(session, campaign_id, agent_id, actor=None)
+    await session.commit()
+    left = (await client.get(f"{base}/left-team/", headers=head)).json()
+    erased = await client.post(erase, headers=head)
+    await session.refresh(registration)
+    await session.refresh(agent)
+
+    assert on_team == []
+    assert refused.status_code == 400
+    assert [row["id"] for row in left] == [str(registration.id)]
+    assert erased.status_code == 204
+    assert (registration.first_name, registration.email) == ("Erased", "")
+    assert registration.id_number != "12345678"
+    assert (agent.is_active, agent.email) == (False, "")
+    assert (await client.get(f"{base}/left-team/", headers=head)).json() == []
 
 
 async def test_closing_a_campaign_makes_it_read_only_for_every_role(

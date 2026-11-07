@@ -24,6 +24,17 @@ const PARTY = {
   contributeLead: "Your contribution funds the party's work in every county. Contributions are declared as the law requires.",
   noInstructions: "The party has not added how to give yet.",
   organisation: "the party",
+  signInLead: "Members, candidate teams, mobilizers and party staff sign in here. One account, routed to the right place.",
+  signInAccount: "Use the email and password of your party account.",
+  signInJoinAsk: "Not a member yet?",
+  consoleRoot: "Party CRM",
+  superAdmin: "Party super admin",
+  settingsTab: "Party",
+  help: "The party office can reset a password, change your office, or explain a page.",
+  helpNoContacts: "The party office has not added its contacts yet.",
+  supportersSub: "Private to your campaign team. Never shared with the party.",
+  volunteersNone: "None yet. Volunteers sign up on the candidate's page on the party website.",
+  linkPlaceholder: "https:// or /join-party",
 };
 
 const ASPIRANT = {
@@ -45,6 +56,17 @@ const ASPIRANT = {
   contributeLead: "Your contribution funds the campaign's work on the ground. Contributions are declared as the law requires.",
   noInstructions: "The campaign has not added how to give yet.",
   organisation: "the campaign",
+  signInLead: "The campaign team and mobilizers sign in here. One account, routed to the right place.",
+  signInAccount: "Use the email and password of your campaign account.",
+  signInJoinAsk: "Want to help?",
+  consoleRoot: "Campaign admin",
+  superAdmin: "Super admin",
+  settingsTab: "Site settings",
+  help: "The campaign office can reset a password, change your access, or explain a page.",
+  helpNoContacts: "The campaign office has not added its contacts yet.",
+  supportersSub: "Private to your campaign team.",
+  volunteersNone: "None yet. Volunteers sign up on the campaign website.",
+  linkPlaceholder: "https:// or /volunteer",
 };
 
 /** The words for this installation; a party's until the site settings say otherwise. */

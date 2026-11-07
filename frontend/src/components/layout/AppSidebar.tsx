@@ -33,10 +33,12 @@ function Items({ items, dark }: { items: NavItem[]; dark: boolean }) {
  * tone="dark": the party console, a flat list on ink.
  * tone="light": a campaign workspace, with a brand, a card, grouped items with icons and a footer.
  */
-export function AppSidebar({ items = [], groups, tone = 'dark', title, subtitle, eyebrow, home, open, brand, card, footer }: {
+export function AppSidebar({ items = [], groups, tone = 'dark', label, title, subtitle, eyebrow, home, open, brand, card, footer }: {
   items?: NavItem[]
   groups?: NavGroup[]
   tone?: 'dark' | 'light'
+  /** The dark sidebar's name for screen readers. */
+  label?: string
   title?: string
   subtitle?: string
   eyebrow?: string
@@ -49,7 +51,7 @@ export function AppSidebar({ items = [], groups, tone = 'dark', title, subtitle,
   const dark = tone === 'dark'
   return (
     <nav
-      aria-label={dark ? 'Party CRM' : 'Workspace'}
+      aria-label={dark ? label : 'Workspace'}
       className={cn(
         'box-border flex-col gap-[18px] px-3.5 py-[22px] fixed inset-y-0 left-0 z-50 w-[280px] overflow-y-auto md:sticky md:top-0 md:z-auto md:flex md:h-dvh md:w-sidebar md:shrink-0',
         open ? 'flex' : 'hidden',

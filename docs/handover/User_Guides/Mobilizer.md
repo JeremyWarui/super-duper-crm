@@ -84,9 +84,10 @@ network you see **Not sent: no network.** and a **Try again** button.
 
 ### Show the sign-up QR at an event
 
-1. On **My events** switch to **Past**.
-2. On the event card tap **Sign-up QR**. People scan it to sign up as supporters. If the
-   button reads **Closed**, the manager has closed sign-ups for that event.
+1. On **My events** find the event: the next one is at the top, the rest are under **Coming
+   up**, and finished ones are under **Past**.
+2. Tap **Sign-up QR**. People scan it to sign up as supporters. If the button reads **Closed**,
+   sign-ups for that event have been closed.
 3. **Copy link** or **Share on WhatsApp** sends the link instead. **Print** prints the code.
 
 ### See your supporters
@@ -108,8 +109,5 @@ campaign manager decides your ward and your paid work.
 
 ## Notes to confirm
 
-- In **My events**, the **Upcoming** view shows only the counting card, so **Sign-up QR** and
-  **Invite** appear only on **Past** event cards. Confirm whether mobilizers need the QR code
-  before an event; until then, ask your coordinator to show it from **Events**.
-- **Invite** lets a mobilizer **Preview** an invitation but not send it; only the candidate or
-  the manager sends texts.
+- **Invite** appears only on **Past** event cards, and lets a mobilizer **Preview** an
+  invitation but not send it; only the candidate or the manager sends texts.

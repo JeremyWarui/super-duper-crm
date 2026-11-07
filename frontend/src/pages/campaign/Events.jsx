@@ -8,7 +8,7 @@ import AttendanceCard from "./AttendanceCard";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
 const ASSIGNERS = ["candidate", "manager", "coordinator"];
-const RECORDERS = ["manager", "coordinator", "mobilizer"];
+const RECORDERS = ["candidate", "manager", "coordinator", "mobilizer"];
 const WHEN = { Upcoming: (e) => e.status !== "done", Past: (e) => e.status === "done" };
 const dayOf = (e) => (e.scheduled_date ? new Date(e.scheduled_date) : null);
 
@@ -72,7 +72,7 @@ const dayLabel = (e) => {
 };
 
 // The field view: the event to count now, with the rest coming up below it.
-function MyUpcoming({ rows, records }) {
+function MyUpcoming({ rows, records, onQr }) {
   const [activeId, setActiveId] = useState(null);
   const active = rows.find((e) => e.id === activeId) || rows[0];
   if (!active) return <p className="text-muted-foreground">Nothing planned yet.</p>;
@@ -86,6 +86,7 @@ function MyUpcoming({ rows, records }) {
           <span className="text-ui text-muted-foreground">{[active.venue, active.ward_name].filter(Boolean).join(" · ") || "No venue yet"}</span>
         </div>
         {records && <AttendanceCard key={active.id} event={active} />}
+        {records && active.signup_code && <Button shape="rounded" size="sm" variant="quiet" className="self-start" onClick={() => onQr(active)}>{active.signups_open ? "Sign-up QR" : "Closed"}</Button>}
       </section>
       {rest.length > 0 && (
         <section aria-label="Coming up" className="flex flex-col gap-1 rounded-[18px] border border-line bg-card p-[18px]">
@@ -94,7 +95,12 @@ function MyUpcoming({ rows, records }) {
             {rest.map((e) => (
               <li key={e.id} className="flex items-center justify-between gap-3 border-t border-line-soft py-2 first:border-t-0">
                 <span className="min-w-0"><span className="block font-semibold">{e.title}</span><span className="text-small text-muted-foreground">{dayLabel(e)}</span></span>
-                {records && <Button shape="rounded" size="sm" variant="quiet" aria-label={`Count ${e.title}`} onClick={() => { setActiveId(e.id); window.scrollTo?.({ top: 0 }); }}>Count</Button>}
+                {records && (
+                  <span className="flex flex-none flex-wrap justify-end gap-2">
+                    {e.signup_code && <Button shape="rounded" size="sm" variant="quiet" aria-label={`Sign-up QR for ${e.title}`} onClick={() => onQr(e)}>{e.signups_open ? "Sign-up QR" : "Closed"}</Button>}
+                    <Button shape="rounded" size="sm" variant="quiet" aria-label={`Count ${e.title}`} onClick={() => { setActiveId(e.id); window.scrollTo?.({ top: 0 }); }}>Count</Button>
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -120,7 +126,7 @@ export default function Events({ campaign, role, onModal, mine }) {
       <FilterPills label="When" options={Object.keys(WHEN)} value={when} onChange={setWhen} />
       {events.isLoading && <KitLoading />}
       {events.error && <KitError error={events.error} />}
-      {events.data && mine && when === "Upcoming" && <MyUpcoming rows={rows} records={acts} />}
+      {events.data && mine && when === "Upcoming" && <MyUpcoming rows={rows} records={acts} onQr={(ev) => onModal({ type: "qr", event: ev })} />}
       {events.data && !(mine && when === "Upcoming") && (
         <section aria-label="Event list" className="flex flex-col gap-3">
           {rows.map((e) => (

@@ -53,6 +53,7 @@ describe("who reaches the console", () => {
     stubApi({
       ...adminRoutes(),
       ...dashboardRoutes({ "GET /campaigns/": [] }),
+      "GET /site/": { organisation_type: "party", name: "Umoja Party" },
     });
     renderApp(<Root />);
 
@@ -71,6 +72,41 @@ describe("who reaches the console", () => {
       await screen.findByRole("region", { name: "Win number" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Console" })).toBeNull();
+  });
+});
+
+describe("opening the party workspace", () => {
+  it("is offered on a party copy only until it exists, and names its first manager", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    const workspace = { id: null, title: "", managers: [] };
+    const calls = stubApi(adminRoutes({
+      "GET /site/": { name: "Umoja Party", organisation_type: "party" },
+      "GET /party/workspace/": workspace,
+      "POST /party/workspace/": { status: 201, body: { id: "w1", title: "Umoja Party", units: 2, username: "wm-amani", invite: "email" } },
+    }));
+    const first = renderApp(<Admin />);
+
+    await user.click(await screen.findByRole("button", { name: "Open the party workspace" }));
+    await user.type(screen.getByRole("textbox", { name: "Username" }), "WM-Amani");
+    await user.type(screen.getByRole("textbox", { name: "Email" }), "wm@example.com");
+    workspace.id = "w1";
+    await user.click(screen.getByRole("button", { name: "Open it" }));
+
+    expect(await screen.findByText("Link emailed")).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST" && c.path === "/party/workspace/").body).toEqual({
+      manager: { username: "wm-amani", first_name: "", last_name: "", email: "wm@example.com", phone: "" },
+    });
+    await vi.waitFor(() => expect(screen.queryByRole("button", { name: "Open it" })).toBeNull());
+    expect(screen.queryByRole("button", { name: "Open the party workspace" })).toBeNull();
+    first.unmount();
+
+    const aspirant = stubApi(adminRoutes({ "GET /site/": { name: "Jane", organisation_type: "aspirant" } }));
+    renderApp(<Admin />);
+    await screen.findByRole("button", { name: "New campaign" });
+    await vi.waitFor(() => expect(aspirant.some((c) => c.path === "/site/")).toBe(true));
+    expect(aspirant.some((c) => c.path === "/party/workspace/")).toBe(false);
+    expect(screen.queryByRole("button", { name: "Open the party workspace" })).toBeNull();
   });
 });
 

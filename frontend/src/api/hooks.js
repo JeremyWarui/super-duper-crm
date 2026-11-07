@@ -1277,7 +1277,29 @@ export const useWorkspaceCandidatePage = () =>
 export const useSaveWorkspaceCandidatePage = () =>
   useWorkspaceWrite((body) => api("/workspace/site/candidate/", { method: "PUT", body }));
 
-// ---- the party workspace: a coordinator's recruitment link -----------------
+// ---- the party workspace: opening it, and its coordinators' members and link
+// `id` is null until the workspace is opened.
+export const usePartyWorkspace = (enabled) =>
+  useQuery({ queryKey: ["admin", "party-workspace"], queryFn: () => api("/party/workspace/"), enabled });
+
+export function useOpenPartyWorkspace({ onInvite } = {}) {
+  const invalidate = useAdminInvalidator();
+  return useMutation({
+    mutationFn: ({ manager }) => api("/party/workspace/", { method: "POST", body: { manager } }),
+    onSuccess: (data) => {
+      onInvite?.(data);
+      return invalidate();
+    },
+  });
+}
+
+export const useAreaMembers = (page) =>
+  useQuery({
+    queryKey: ["area-members", page],
+    queryFn: () => api(`/party/workspace/members/?page=${page}`),
+    placeholderData: keepPreviousData,
+  });
+
 export const useRecruitment = () =>
   useQuery({ queryKey: ["recruitment"], queryFn: () => api("/party/workspace/recruitment/") });
 
@@ -1539,10 +1561,10 @@ export const usePartyShared = () => useQuery({ queryKey: ["party-shared"], query
 // The party office's texts to members and volunteers.
 export const usePartyMessages = () => useQuery({ queryKey: ["party-messages"], queryFn: () => api("/party/messages/") });
 
-export const usePartyMessageReach = ({ audience, county, ward }) =>
+export const usePartyMessageReach = ({ audience, county, constituency, ward }) =>
   useQuery({
-    queryKey: ["party-messages", "reach", audience, county, ward],
-    queryFn: () => api("/party/messages/preview/", { method: "POST", body: { audience, county, ward } }),
+    queryKey: ["party-messages", "reach", audience, county, constituency, ward],
+    queryFn: () => api("/party/messages/preview/", { method: "POST", body: { audience, county, constituency, ward } }),
     placeholderData: (previous) => previous,
   });
 
@@ -1552,7 +1574,7 @@ function usePartyMessageAction(mutationFn) {
 }
 
 export const useDraftPartyMessage = () =>
-  usePartyMessageAction(({ audience, county, ward, body }) => api("/party/messages/", { method: "POST", body: { audience, county, ward, body } }));
+  usePartyMessageAction(({ audience, county, constituency, ward, body }) => api("/party/messages/", { method: "POST", body: { audience, county, constituency, ward, body } }));
 export const useSendPartyMessage = () => usePartyMessageAction((id) => api(`/party/messages/${id}/send/`, { method: "POST" }));
 export const useDeclinePartyMessage = () =>
   usePartyMessageAction(({ id, note }) => api(`/party/messages/${id}/decline/`, { method: "POST", body: { note } }));

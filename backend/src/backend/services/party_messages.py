@@ -38,7 +38,12 @@ def text_of(body: str) -> str:
     return body.strip() + texting.FOOTER
 
 
-def _who(audience: str, county_id: uuid.UUID | None, ward_id: uuid.UUID | None):
+def _who(
+    audience: str,
+    county_id: uuid.UUID | None,
+    constituency_id: uuid.UUID | None,
+    ward_id: uuid.UUID | None,
+):
     if audience == "members":
         model = PartyMember
         statement = select(PartyMember.phone).where(
@@ -54,6 +59,10 @@ def _who(audience: str, county_id: uuid.UUID | None, ward_id: uuid.UUID | None):
         )
     if ward_id is not None:
         statement = statement.where(model.ward_id == ward_id)
+    elif constituency_id is not None:
+        statement = statement.join(Ward, Ward.id == model.ward_id).where(
+            Ward.constituency_id == constituency_id
+        )
     elif county_id is not None:
         statement = (
             statement.join(Ward, Ward.id == model.ward_id)
@@ -64,33 +73,56 @@ def _who(audience: str, county_id: uuid.UUID | None, ward_id: uuid.UUID | None):
 
 
 async def recipients(
-    session: AsyncSession, audience: str, county_id: uuid.UUID | None, ward_id: uuid.UUID | None
+    session: AsyncSession,
+    audience: str,
+    county_id: uuid.UUID | None,
+    constituency_id: uuid.UUID | None,
+    ward_id: uuid.UUID | None,
 ) -> tuple[list[str], int]:
     """The numbers a message goes to now, and how many opted out."""
-    numbers, _ = normalise_all(list(await session.scalars(_who(audience, county_id, ward_id))))
+    numbers, _ = normalise_all(
+        list(await session.scalars(_who(audience, county_id, constituency_id, ward_id)))
+    )
     blocked = await texting.opted_out(session, None, numbers)
     return [n for n in numbers if n not in blocked], len(blocked)
 
 
 async def _check_place(
-    session: AsyncSession, county_id: uuid.UUID | None, ward_id: uuid.UUID | None
+    session: AsyncSession,
+    county_id: uuid.UUID | None,
+    constituency_id: uuid.UUID | None,
+    ward_id: uuid.UUID | None,
 ) -> None:
+    if constituency_id is not None:
+        county = await session.scalar(
+            select(Constituency.county_id).where(Constituency.id == constituency_id)
+        )
+        if county is None or (county_id is not None and county != county_id):
+            raise Refused("That constituency is not in the county chosen.")
     if ward_id is None:
         return
-    county = await session.scalar(
-        select(Constituency.county_id)
-        .join(Ward, Ward.constituency_id == Constituency.id)
-        .where(Ward.id == ward_id)
-    )
-    if county is None or (county_id is not None and county != county_id):
+    found = (
+        await session.execute(
+            select(Ward.constituency_id, Constituency.county_id)
+            .join(Constituency, Constituency.id == Ward.constituency_id)
+            .where(Ward.id == ward_id)
+        )
+    ).first()
+    if found is None or (county_id is not None and found.county_id != county_id):
         raise Refused("That ward is not in the county chosen.")
+    if constituency_id is not None and found.constituency_id != constituency_id:
+        raise Refused("That ward is not in the constituency chosen.")
 
 
 async def preview(
-    session: AsyncSession, audience: str, county_id: uuid.UUID | None, ward_id: uuid.UUID | None
+    session: AsyncSession,
+    audience: str,
+    county_id: uuid.UUID | None,
+    constituency_id: uuid.UUID | None,
+    ward_id: uuid.UUID | None,
 ) -> dict:
-    await _check_place(session, county_id, ward_id)
-    numbers, blocked = await recipients(session, audience, county_id, ward_id)
+    await _check_place(session, county_id, constituency_id, ward_id)
+    numbers, blocked = await recipients(session, audience, county_id, constituency_id, ward_id)
     return {"recipients": len(numbers), "opted_out": blocked}
 
 
@@ -100,15 +132,17 @@ async def draft(
     body: str,
     audience: str,
     county_id: uuid.UUID | None,
+    constituency_id: uuid.UUID | None,
     ward_id: uuid.UUID | None,
     actor: User,
 ) -> PartyMessage:
-    await _check_place(session, county_id, ward_id)
-    numbers, _ = await recipients(session, audience, county_id, ward_id)
+    await _check_place(session, county_id, constituency_id, ward_id)
+    numbers, _ = await recipients(session, audience, county_id, constituency_id, ward_id)
     message = PartyMessage(
         body=body.strip(),
         audience=audience,
         county_id=county_id,
+        constituency_id=constituency_id,
         ward_id=ward_id,
         drafted_by_id=actor.id,
         targeted=len(numbers),
@@ -155,7 +189,9 @@ async def _decide(
 async def send(session: AsyncSession, message: PartyMessage, *, actor: User) -> PartyMessage:
     """Approve a draft and text it to whoever its audience holds now."""
     await _decide(session, message, "sent", actor)
-    numbers, _ = await recipients(session, message.audience, message.county_id, message.ward_id)
+    numbers, _ = await recipients(
+        session, message.audience, message.county_id, message.constituency_id, message.ward_id
+    )
     result, _ = await texting.send(
         session,
         numbers,
@@ -214,9 +250,19 @@ async def listing(session: AsyncSession, me: uuid.UUID) -> list[dict]:
         for u in await session.scalars(select(User).where(User.id.in_(people - {None})))
     }
     wards = {m.ward_id for m in messages} - {None}
+    constituencies = {m.constituency_id for m in messages} - {None}
     counties = {m.county_id for m in messages} - {None}
     ward_names = dict(
         (await session.execute(select(Ward.id, Ward.name).where(Ward.id.in_(wards)))).all()
+    )
+    constituency_names = dict(
+        (
+            await session.execute(
+                select(Constituency.id, Constituency.name).where(
+                    Constituency.id.in_(constituencies)
+                )
+            )
+        ).all()
     )
     county_names = dict(
         (await session.execute(select(County.id, County.name).where(County.id.in_(counties)))).all()
@@ -226,7 +272,10 @@ async def listing(session: AsyncSession, me: uuid.UUID) -> list[dict]:
             "id": m.id,
             "body": m.body,
             "audience": m.audience,
-            "place": ward_names.get(m.ward_id) or county_names.get(m.county_id) or "Everywhere",
+            "place": ward_names.get(m.ward_id)
+            or constituency_names.get(m.constituency_id)
+            or county_names.get(m.county_id)
+            or "Everywhere",
             "status": m.status,
             "drafted_by": names.get(m.drafted_by_id, ""),
             "decided_by": names.get(m.decided_by_id, ""),

@@ -2,13 +2,15 @@
 its fee and documents, and vetting that only an officer, never the applicant, decides."""
 
 import io
+import uuid
 
 import httpx
 import pytest
 from PIL import Image
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import PartyMember, PartyMemberStatus, PartyRoleName
+from backend.models import Campaign, PartyMember, PartyMemberStatus, PartyRoleName, Seat, User
 from tests.conftest import World
 from tests.factories import auth, make_officer, sign_in
 
@@ -201,3 +203,37 @@ async def test_an_officer_cannot_vet_their_own_application(
     )
 
     assert own.status_code == 403
+
+
+async def test_a_members_application_walks_through_vetting_and_approval_to_a_workspace(
+    client: httpx.AsyncClient,
+    session: AsyncSession,
+    world: World,
+    officer: dict,
+    member: dict,
+    admin_headers: dict,
+) -> None:
+    await _published(client, officer, admin_headers)
+    applied = await client.post(MINE, json={"seat": "mca"}, headers=member)
+    aspirant = applied.json()["application"]["id"]
+    status_url = f"/api/party/aspirants/{aspirant}/status/"
+    workspace_url = f"/api/party/aspirants/{aspirant}/workspace/"
+    logins = {"candidate": {"username": "mgombea"}, "manager": {"username": "mgombea-mgr"}}
+
+    too_soon = await client.post(workspace_url, json=logins, headers=officer)
+    submitted = await client.post(f"{MINE}submit/", json={"declaration": True}, headers=member)
+    vetting = await client.get(f"/api/party/aspirants/{aspirant}/", headers=officer)
+    approved = await client.post(status_url, json={"status": "approved"}, headers=officer)
+    made = await client.post(workspace_url, json=logins, headers=officer)
+    mine = await client.get(MINE, headers=member)
+
+    assert too_soon.status_code == 400
+    assert submitted.json()["application"]["status"] == "submitted"
+    assert vetting.json()["status"] == "submitted"
+    assert approved.json()["status"] == "approved"
+    assert made.status_code == 201, made.text
+    assert mine.json()["application"]["status"] == "approved"
+    campaign = await session.get(Campaign, uuid.UUID(made.json()["aspirant"]["campaign_id"]))
+    assert (campaign.seat, campaign.ward_id) == (Seat.MCA, world.ward.id)
+    candidate = await session.scalar(select(User).where(User.username == "mgombea"))
+    assert str(candidate.party_member_id) == vetting.json()["member"]["id"]

@@ -8,6 +8,7 @@ import { Bold, Heading2, Heading3, ImageUp, Italic, Link2, List, ListOrdered, Qu
 import { useUploadImage } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useCopy } from "@/copy";
 import { cn } from "@/lib/utils";
 
 // The tags the backend keeps (services/rich_text.py); anything else is dropped before it shows.
@@ -46,6 +47,7 @@ export function RichTextEditor({ label, hint, value, onChange, upload, area }) {
   const id = useId();
   const picker = useRef(null);
   const send = useUploadImage(upload);
+  const copy = useCopy();
   const [linking, setLinking] = useState(null);
   const editor = useEditor({
     extensions,
@@ -118,7 +120,7 @@ export function RichTextEditor({ label, hint, value, onChange, upload, area }) {
         </div>
         {linking !== null ? (
           <div className="flex flex-wrap items-center gap-2 border-b border-line px-2 py-2">
-            <Input aria-label="Link address" className="min-w-0 flex-[1_1_220px]" placeholder="https:// or /join-party" value={linking} autoFocus
+            <Input aria-label="Link address" className="min-w-0 flex-[1_1_220px]" placeholder={copy.linkPlaceholder} value={linking} autoFocus
               onChange={(e) => setLinking(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && linkOk) { e.preventDefault(); applyLink(); } }} />
             <Button type="button" size="sm" shape="rounded" disabled={!linkOk} onClick={applyLink}>Apply link</Button>
             {on?.link ? <Button type="button" size="sm" shape="rounded" variant="quiet" onClick={removeLink}>Remove link</Button> : null}

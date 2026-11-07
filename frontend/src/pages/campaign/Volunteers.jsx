@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
+import { useCopy } from "@/copy";
 import { AREA_LABEL, CONTACT_LABEL, PROFESSION_LABEL } from "../party/helpers";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
@@ -23,6 +24,7 @@ function helps(v) {
 }
 
 export default function Volunteers({ campaign, role }) {
+  const copy = useCopy();
   const { data, isLoading, error } = useCampaignVolunteers(campaign.id);
   const update = useUpdateCampaignVolunteer(campaign.id);
   const erase = useErase(campaign.id, "volunteers");
@@ -87,7 +89,7 @@ export default function Volunteers({ campaign, role }) {
                     </TR>
                   );
                 })}
-                {shown.length === 0 && <TR><TD colSpan={8} className="text-muted-foreground">{all.length ? "Nobody matches." : "None yet. Volunteers sign up on the candidate's page on the party website."}</TD></TR>}
+                {shown.length === 0 && <TR><TD colSpan={8} className="text-muted-foreground">{all.length ? "Nobody matches." : copy.volunteersNone}</TD></TR>}
               </TBody>
             </Table>
           </Card>

@@ -90,6 +90,7 @@ describe("the console's member link", () => {
     const user = userEvent.setup();
     signInAsAdmin();
     const calls = stubApi({
+      "GET /site/": { organisation_type: "party", name: "Umoja Party" },
       "GET /admin/overview/": { totals: ADMIN_TOTALS, campaigns: [] },
       "GET /admin/users/": ADMIN_USERS,
       "GET /party/members/": {

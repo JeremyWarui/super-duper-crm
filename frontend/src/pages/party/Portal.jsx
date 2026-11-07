@@ -3,6 +3,8 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppPage } from "@/components/layout/AppPage";
 import { ConsoleTools } from "@/components/layout/ConsoleTools";
+import { useInstall } from "@/app/site";
+import { useCopy } from "@/copy";
 import { useAuth } from "../../store/auth";
 import { homeOf } from "../../lib/home";
 import Legacy from "../../components/Legacy";
@@ -29,18 +31,22 @@ const PAGES = [
   ["website", "Website", "superuser", <Website key="website" />, { kit: true, context: "Website content", title: "Edit the party website" }],
 ];
 
-/** The party CRM's sidebar for a login: the pages its offices open, and the console for the superuser. */
-export function partyNav(user) {
+/**
+ * The sidebar for a login: the pages its offices open, and the console for the superuser.
+ * An aspirant installation has no party pages.
+ */
+export function partyNav(user, { aspirant = false } = {}) {
   const roles = user?.party_roles || [];
+  const pages = aspirant ? [] : PAGES.filter(([, , office]) => user?.is_superuser || roles.includes(office));
   return [
-    ...PAGES.filter(([, , office]) => user?.is_superuser || roles.includes(office)).map(([key, label]) => ({ label, to: `/party/${key}` })),
+    ...pages.map(([key, label]) => ({ label, to: `/party/${key}` })),
     ...(user?.is_superuser ? [{ label: "Console", to: "/console" }] : []),
   ];
 }
 
-export function officeOf(user) {
+function officeOf(user, superAdmin) {
   return user?.is_superuser
-    ? "Party super admin"
+    ? superAdmin
     : (user?.party_roles || []).map((r) => PARTY_ROLE_LABEL[r] || r).join(", ");
 }
 
@@ -48,14 +54,17 @@ export function officeOf(user) {
 export function PartyShell({ crumb, page, children }) {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
+  const { aspirant } = useInstall();
+  const copy = useCopy();
+  const office = officeOf(user, copy.superAdmin);
   return (
     <AppLayout
       tone="dark"
-      nav={partyNav(user)}
-      rootLabel="Party CRM"
+      nav={partyNav(user, { aspirant })}
+      rootLabel={copy.consoleRoot}
       rootPath={homeOf(user)}
-      subtitle={officeOf(user)}
-      user={{ name: user?.full_name || user?.username || "", role: officeOf(user) }}
+      subtitle={office}
+      user={{ name: user?.full_name || user?.username || "", role: office }}
       onSignOut={logout}
       tools={<ConsoleTools />}
       slotHeaders

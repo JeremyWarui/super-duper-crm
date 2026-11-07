@@ -114,6 +114,17 @@ describe("signing up on the campaign's own link", () => {
   });
 });
 
+describe("who is offered the campaign's sign-up link", () => {
+  it("is not a coordinator, whom the server would refuse", async () => {
+    signIn("coordinator");
+    stubApi(dashboardRoutes());
+    renderApp(<App />, { path: "/campaign/supporters" });
+
+    await screen.findByRole("region", { name: "Supporter list" });
+    expect(screen.queryByRole("button", { name: "Sign-up link" })).toBeNull();
+  });
+});
+
 describe("withdrawing", () => {
   it("removes the person's details with their private link", async () => {
     const calls = stubApi({ "POST /join/withdraw/private-code/": { message: "Done. If your details were on this campaign's register, they are gone now." } });

@@ -11,6 +11,7 @@ from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import Select, false, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from backend.config import get_settings
 from backend.models import (
@@ -94,7 +95,9 @@ async def _forget_login(session: AsyncSession, user_id: uuid.UUID | None) -> Non
     """Blank a login left behind by someone erased; a login still on a campaign is kept."""
     if user_id is None:
         return
-    user = await session.get(User, user_id)
+    user = await session.scalar(
+        select(User).where(User.id == user_id).options(selectinload(User.party_roles))
+    )
     if user is None or user.is_superuser or user.party_roles:
         return
     if await session.scalar(select(CampaignMember.id).where(CampaignMember.user_id == user_id)):

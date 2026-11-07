@@ -71,7 +71,7 @@ export function AppLayout({ tone, nav = [], groups, brand, card, footer, topBar,
     <Ctx.Provider value={ctx}>
       <div className="app-shell flex min-h-dvh flex-col md:flex-row">
         {menu ? <button aria-label="Close menu" onClick={() => setMenu(false)} className="fixed inset-0 z-40 bg-ink/40 md:hidden" /> : null}
-        <AppSidebar items={nav} groups={groups} tone={tone} eyebrow={eyebrow} title={title} subtitle={subtitle} home={rootPath} open={menu} brand={brand} card={card} footer={footer} />
+        <AppSidebar items={nav} groups={groups} tone={tone} label={rootLabel} eyebrow={eyebrow} title={title} subtitle={subtitle} home={rootPath} open={menu} brand={brand} card={card} footer={footer} />
         {children}
       </div>
     </Ctx.Provider>

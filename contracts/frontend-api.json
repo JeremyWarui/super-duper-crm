@@ -907,6 +907,19 @@
       "office_email",
       "published"
     ],
+    "GET /api/party/workspace/": [
+      "id"
+    ],
+    "POST /api/party/workspace/": [
+      "username",
+      "invite"
+    ],
+    "GET /api/party/workspace/members/": [
+      "total",
+      "page",
+      "page_size",
+      "members"
+    ],
     "GET /api/party/workspace/recruitment/": [
       "code",
       "by_status"
@@ -1758,6 +1771,14 @@
       "ward",
       "count"
     ],
+    "GET /api/party/workspace/members/.members": [
+      "id",
+      "full_name",
+      "phone",
+      "status",
+      "ward_name",
+      "registration_centre_name"
+    ],
     "GET /api/party/messages/.messages": [
       "id",
       "body",
@@ -2341,6 +2362,16 @@
       "office_email",
       "published"
     ],
+    "POST /api/party/workspace/": [
+      "manager"
+    ],
+    "POST /api/party/workspace/.manager": [
+      "username",
+      "first_name",
+      "last_name",
+      "phone",
+      "email"
+    ],
     "POST /api/party/workspace/recruitment/": [],
     "POST /api/team-signup/{code}/": [
       "role",
@@ -2473,11 +2504,13 @@
     "POST /api/party/messages/preview/": [
       "audience",
       "county",
+      "constituency",
       "ward"
     ],
     "POST /api/party/messages/": [
       "audience",
       "county",
+      "constituency",
       "ward",
       "body"
     ],

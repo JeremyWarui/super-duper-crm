@@ -59,9 +59,3 @@ not sent.
 
 Press **Help** at the top. It lists the party office's phone and email. The Party Super Admin
 approves your messages, and can reset a password or change your office.
-
-## Notes to confirm
-
-- The message is aimed by **County** and **Ward** only. Picking a **Constituency** without a
-  ward still sends to the whole county. Check the recipient count before you press **Send for
-  approval**.

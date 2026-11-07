@@ -32,7 +32,7 @@ Press your name at the top right, then **Sign out**.
 - **Reach out:** Messages
 - **People:** Sign-ups
 - **Money:** Payments
-- **Recruit:** Recruitment, only in the party's own workspace
+- **Recruit:** Recruitment and Party members, only in the party's own workspace
 
 **Your access** at the bottom of the menu shows **Coordinator** and names your wards
 ("Limited to ..."). If you see no wards at all, your area is not set yet: ask the manager.
@@ -110,15 +110,13 @@ call, or **Make inactive**.
 3. **Applicants through your link** counts applicants by status. Membership Officers still
    decide each application.
 
+### See the party members in your area (party workspace only)
+
+Open **Party members**. It lists the name, phone, ward, polling station and status of each
+party member living in your area. You can read it but not change or export it, and each time
+you open it, it is recorded.
+
 ## Who to ask for help
 
 Press **Help** at the top: it lists the campaign's phone and email. Your manager sets your
 area. For a password reset for someone else, ask the superuser.
-
-## Notes to confirm
-
-- **Supporters** shows a **Sign-up link** button, but the server lets only the candidate and
-  the manager open the campaign-wide sign-up link. A coordinator who presses it gets a refusal.
-  Use an event's **Sign-up QR** instead.
-- The design gives coordinators in the party workspace a read-only list of party members in
-  their area. No menu item for it was found.

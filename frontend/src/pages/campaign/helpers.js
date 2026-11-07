@@ -49,15 +49,15 @@ const FEED_READERS = ["candidate", "manager", "comms"];
 
 /**
  * A role's menu where it works: an aspirant installation adds the Website and Settings pages for
- * those who edit the site; the party workspace adds Recruitment for its coordinators; a hosted
- * workspace adds the party feed.
+ * those who edit the site; the party workspace adds Recruitment and Party members for its
+ * coordinators; a hosted workspace adds the party feed.
  */
 export function navFor(role, { aspirant = false, partyWorkspace = false, hosted = false } = {}) {
-  const feed = hosted && FEED_READERS.includes(role);
+  const feed = hosted && !aspirant && FEED_READERS.includes(role);
   const groups = (NAV[role] || []).map((g) => (feed && g === REACH_OUT ? { ...g, items: [...g.items, ["party", "Party feed"]] } : g));
   const extra = [];
   if (aspirant && SITE_WRITERS.includes(role)) extra.push({ label: "Website", items: [["website", "Website"], ["settings", "Settings"]] });
-  if (partyWorkspace && role === "coordinator") extra.push({ label: "Recruit", items: [["recruitment", "Recruitment"]] });
+  if (partyWorkspace && role === "coordinator") extra.push({ label: "Recruit", items: [["recruitment", "Recruitment"], ["members", "Party members"]] });
   return [...groups, ...extra];
 }
 

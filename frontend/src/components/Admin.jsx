@@ -14,9 +14,11 @@ import {
   useDeleteCampaign,
   useGrantPartyRole,
   useLinkPartyMember,
+  useOpenPartyWorkspace,
   useParty,
   useSite,
   usePartyMembers,
+  usePartyWorkspace,
   useRevokePartyRole,
   useSaveSettings,
   useRenameCampaign,
@@ -24,6 +26,8 @@ import {
   useResetPassword,
   useSetActive,
 } from "../api/hooks";
+import { useInstall } from "../app/site";
+import { useCopy } from "../copy";
 import { useAuth } from "../store/auth";
 import { formatNumber as fmt } from "../lib/format";
 import {
@@ -340,6 +344,7 @@ const Field = ({ label, children }) => (
 );
 
 function NewLogin({ campaigns, create }) {
+  const { aspirant } = useInstall();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(BLANK);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
@@ -409,7 +414,7 @@ function NewLogin({ campaigns, create }) {
               set({ role: e.target.value, campaign: "", ward: "" })
             }
           >
-            {ROLES.map(([value, label]) => (
+            {ROLES.filter(([value]) => !aspirant || value !== "staff").map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
@@ -551,6 +556,72 @@ function NewLogin({ campaigns, create }) {
   );
 }
 
+const NO_MANAGER = { username: "", first_name: "", last_name: "", email: "", phone: "" };
+const MANAGER_FIELDS = [
+  ["username", "Username", "text"],
+  ["first_name", "First name", "text"],
+  ["last_name", "Last name", "text"],
+  ["email", "Email", "email"],
+  ["phone", "Phone", "text"],
+];
+
+// A party copy's own workspace when setup did not open it; gone once it exists.
+function OpenPartyWorkspace({ onInvite }) {
+  const { party } = useInstall();
+  const workspace = usePartyWorkspace(party);
+  const open = useOpenPartyWorkspace({ onInvite });
+  const [asking, setAsking] = useState(false);
+  const [form, setForm] = useState(NO_MANAGER);
+  if (!workspace.data || workspace.data.id) return null;
+  if (!asking)
+    return (
+      <div className="admin-section-action">
+        <Btn onClick={() => setAsking(true)}>Open the party workspace</Btn>
+      </div>
+    );
+  const name = form.username.trim();
+  const ready = name.length >= 3 && name.length <= 150 && USERNAME.test(name) && isEmail(form.email);
+  const submit = () =>
+    open.mutate({
+      manager: {
+        username: name.toLowerCase(),
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+      },
+    });
+  return (
+    <Card className="admin-card-new-login">
+      <div className="admin-display admin-form-heading">Open the party workspace</div>
+      <div className="flex flex-wrap gap-2">
+        {MANAGER_FIELDS.map(([key, label, type]) => (
+          <Field key={key} label={label}>
+            <input
+              type={type}
+              className="admin-field admin-field-wide"
+              value={form[key]}
+              onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+            />
+          </Field>
+        ))}
+      </div>
+      <div className="admin-form-help">
+        The party's own national workspace, with every ward as a target. This person is its first
+        Workspace Manager and is emailed a link to choose their password. There is only one party
+        workspace.
+      </div>
+      {open.error && <div className="admin-error">{open.error.message}</div>}
+      <div className="flex flex-wrap gap-2 admin-form-actions">
+        <Btn disabled={!ready || open.isPending} onClick={submit}>
+          {open.isPending ? "Opening…" : "Open it"}
+        </Btn>
+        <Btn onClick={() => setAsking(false)}>Cancel</Btn>
+      </div>
+    </Card>
+  );
+}
+
 // The party member a login belongs to; an office holder must be linked to an approved one.
 function MemberLink({ user, onLinked }) {
   const link = useLinkPartyMember();
@@ -603,6 +674,7 @@ function MemberLink({ user, onLinked }) {
 }
 
 function UserRow({ user, me, onReset, resetting, resetError }) {
+  const { aspirant } = useInstall();
   const active = useSetActive();
   const grant = useGrantPartyRole();
   const revoke = useRevokePartyRole();
@@ -652,7 +724,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
             {user.last_login_at ? user.last_login_at.slice(0, 10) : "never"} ·{" "}
             {user.campaign || "on no campaign"}
           </div>
-          <div className="admin-user-meta">
+          {!aspirant && <div className="admin-user-meta">
             {staff
               ? offered.length > 0 && (
                   <span className="flex flex-wrap items-center gap-2">
@@ -683,8 +755,8 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
                   </span>
                 )
               : "Party offices go only to staff logins with no campaign role."}
-          </div>
-          {staff && <MemberLink user={user} onLinked={() => grant.reset()} />}
+          </div>}
+          {staff && !aspirant && <MemberLink user={user} onLinked={() => grant.reset()} />}
         </div>
         <div className="flex flex-wrap gap-2">
           <Danger
@@ -912,7 +984,7 @@ function PartySettings() {
   const isParty = site.data?.organisation_type === "party";
   const party = useParty(isParty);
   if (site.isPending || (isParty && party.isPending))
-    return <LoadingState className="admin-loading" message="Loading the party settings…" />;
+    return <LoadingState className="admin-loading" message={site.data?.organisation_type === "aspirant" ? "Loading the site settings…" : "Loading the party settings…"} />;
   const failed = [site, ...(isParty ? [party] : [])].find((q) => q.error);
   if (failed)
     return (
@@ -944,6 +1016,8 @@ function Shell({ children }) {
 
 export default function Admin() {
   const me = useAuth((s) => s.user);
+  const { aspirant } = useInstall();
+  const copy = useCopy();
   const overview = useAdminOverview();
   const [roleFilter, setRoleFilter] = useState("");
   const users = useAdminUsers(roleFilter);
@@ -1047,7 +1121,7 @@ export default function Admin() {
           {[
             ["campaigns", `Campaigns (${campaigns.length})`],
             ["users", `Logins (${everyone.length})`],
-            ["party", "Party"],
+            ["party", copy.settingsTab],
             ["areas", "Areas and register"],
             ["health", "Health"],
             ["audit", "Audit"],
@@ -1068,6 +1142,7 @@ export default function Admin() {
             <Btn onClick={() => setCreating(true)}>New campaign</Btn>
           </div>
         )}
+        {tab === "campaigns" && <OpenPartyWorkspace onInvite={handOut} />}
 
         {tab === "campaigns" &&
           (campaigns.length === 0 ? (
@@ -1082,7 +1157,7 @@ export default function Admin() {
             ))
           ))}
 
-        {tab === "party" && (
+        {tab === "party" && !aspirant && (
           <div className="admin-section-action">
             <Btn onClick={() => navigate("/party/aspirants")}>Open aspirants</Btn>
           </div>

@@ -1,10 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
 import { TBody, TD, TH, THead, TR, Table } from "../src/components/ui/table";
 import { useAuth } from "../src/store/auth";
-import { dashboardRoutes, renderApp, signIn, stubApi } from "./helpers";
+import { EVENTS, dashboardRoutes, renderApp, signIn, stubApi } from "./helpers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -94,6 +94,39 @@ describe("counting an event from My events", () => {
     await user.click(screen.getByRole("button", { name: "Save attendance" }));
 
     await waitFor(() => expect(posts(calls, "/events/e1/record/").at(-1)?.body).toEqual({ number_reached: 3, number_attended: 1 }));
+  });
+});
+
+describe("the sign-up QR before an event", () => {
+  it("is on a mobilizer's upcoming events, with no Invite, and shows without a way to close it", async () => {
+    signIn("mobilizer");
+    stubField({ "GET /events/": [EVENTS[0], { ...EVENTS[0], id: "e2", title: "Githurai rally", signup_code: "githurai" }] });
+    const user = userEvent.setup();
+    renderApp(<App />, { path: "/campaign/myevents" });
+
+    const next = await screen.findByRole("region", { name: "Next event" });
+    expect(within(next).queryByRole("button", { name: "Invite" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Sign-up QR for Githurai rally" })).toBeInTheDocument();
+    await user.click(within(next).getByRole("button", { name: "Sign-up QR" }));
+
+    expect(await screen.findByText(/\/join\/zimmerman-hall$/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Close sign-ups" })).toBeNull();
+  });
+});
+
+describe("the candidate on Events", () => {
+  it("can schedule, record, invite and close an event's sign-ups", async () => {
+    signIn("candidate");
+    stubField({});
+    const user = userEvent.setup();
+    renderApp(<App />, { path: "/campaign/events" });
+
+    expect(await screen.findByRole("button", { name: "Schedule event" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Record" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Invite" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Sign-up QR" }));
+
+    expect(await screen.findByRole("button", { name: "Close sign-ups" })).toBeInTheDocument();
   });
 });
 

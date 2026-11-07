@@ -35,8 +35,8 @@ class CampaignMessage(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 class PartyMessage(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A party text to consenting members or volunteers, in a county or ward or everywhere:
-    drafted by the Comms Officer, then sent or declined by the Party Super Admin."""
+    """A party text to consenting members or volunteers, in a county, constituency or ward or
+    everywhere: drafted by the Comms Officer, then sent or declined by the Party Super Admin."""
 
     __tablename__ = "party_messages"
 
@@ -45,6 +45,9 @@ class PartyMessage(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     audience: Mapped[str] = mapped_column(String(20))
     county_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("counties.id", ondelete="SET NULL"), default=None
+    )
+    constituency_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("constituencies.id", ondelete="SET NULL"), default=None
     )
     ward_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("wards.id", ondelete="SET NULL"), default=None

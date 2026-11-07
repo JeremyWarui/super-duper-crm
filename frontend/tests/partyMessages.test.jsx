@@ -39,9 +39,30 @@ describe("party messages", () => {
     await user.click(screen.getByRole("button", { name: "Send for approval" }));
 
     await vi.waitFor(() => expect(calls.find((c) => c.path === "/party/messages/" && c.method === "POST")?.body).toEqual({
-      audience: "volunteers", county: null, ward: null, body: "Volunteer training on Sunday.",
+      audience: "volunteers", county: null, constituency: null, ward: null, body: "Volunteer training on Sunday.",
     }));
     expect(screen.queryByRole("button", { name: "Approve and send" })).toBeNull();
+  });
+
+  it("counts and drafts for the constituency picked, not the whole county", async () => {
+    const user = userEvent.setup();
+    signInAsParty(["comms_officer"]);
+    const calls = stubApi(routes({
+      "GET /party/places/?county=c1": [{ id: "k1", name: "Roysambu" }],
+      "GET /party/messages/": { can_send: false, messages: [] },
+      "POST /party/messages/": { status: 201, body: { ...DRAFT, id: "pm2", mine: true } },
+    }));
+    renderApp(<Root />, { path: "/party/messages" });
+
+    await screen.findByText(/40 recipients/);
+    await user.selectOptions(await screen.findByRole("combobox", { name: "County" }), await screen.findByRole("option", { name: "Nairobi" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Constituency" }), await screen.findByRole("option", { name: "Roysambu" }));
+    await user.type(screen.getByRole("textbox", { name: /Message/ }), "Meeting on Saturday.");
+    await user.click(screen.getByRole("button", { name: "Send for approval" }));
+
+    const place = { audience: "members", county: "c1", constituency: "k1", ward: null };
+    await vi.waitFor(() => expect(calls.find((c) => c.path === "/party/messages/" && c.method === "POST")?.body).toEqual({ ...place, body: "Meeting on Saturday." }));
+    expect(calls.filter((c) => c.path === "/party/messages/preview/").at(-1).body).toEqual(place);
   });
 
   it("gives the Super Admin Approve on someone else's draft but not on their own", async () => {

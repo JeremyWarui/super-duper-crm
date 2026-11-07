@@ -41,7 +41,7 @@ export default function CampaignModal({ modal, campaign, role, onClose }) {
       {modal?.type === "payment-release" && <ReleaseForm payments={modal.payments} onClose={onClose} />}
       {modal?.type === "payment-notsent" && <NotSentForm payment={modal.payment} onClose={onClose} />}
       {modal?.type === "link" && <CampaignLinkModal campaign={campaign} onClose={onClose} />}
-      {modal?.type === "qr" && <QrModal event={modal.event} canClose={role === "manager"} onClose={onClose} />}
+      {modal?.type === "qr" && <QrModal event={modal.event} canClose={role === "manager" || role === "candidate"} onClose={onClose} />}
     </>
   );
 }

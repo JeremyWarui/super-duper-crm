@@ -15,6 +15,7 @@ Audience = Literal["members", "volunteers"]
 class Audiences(WriteModel):
     audience: Audience
     county: uuid.UUID | None = None
+    constituency: uuid.UUID | None = None
     ward: uuid.UUID | None = None
 
 

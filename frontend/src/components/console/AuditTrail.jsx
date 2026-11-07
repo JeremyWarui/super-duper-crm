@@ -1,6 +1,7 @@
 // The console's Audit tab: who did what and when, read-only.
 import { useState } from "react";
 import { useAuditTrail } from "@/api/hooks";
+import { useInstall } from "@/app/site";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
@@ -10,6 +11,7 @@ const LIMIT = 200;
 const detail = (d) => Object.entries(d || {}).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(", ");
 
 export default function AuditTrail() {
+  const { aspirant } = useInstall();
   const [filters, setFilters] = useState(BLANK);
   const set = (key) => (e) => setFilters((f) => ({ ...f, [key]: e.target.value }));
   const { data = [], isFetching, error } = useAuditTrail(filters);
@@ -36,7 +38,7 @@ export default function AuditTrail() {
               <TR key={e.id}>
                 <TD className="whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</TD>
                 <TD>{e.actor_name || "System"}</TD>
-                <TD className="font-semibold">{e.action}</TD>
+                <TD className="font-semibold">{aspirant ? e.action.replace(/^party\./, "site.") : e.action}</TD>
                 <TD className="break-words text-muted-foreground">{detail(e.detail)}</TD>
               </TR>
             ))}

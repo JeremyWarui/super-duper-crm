@@ -31,6 +31,18 @@ async def test_health_reports_a_missing_sms_key_as_not_configured(
     assert body["organisation_type"] == "party"
 
 
+async def test_with_no_keys_every_outside_service_is_not_configured_and_email_is_only_logged(
+    client: httpx.AsyncClient, admin_headers: dict
+) -> None:
+    health = await client.get("/api/admin/health/", headers=admin_headers)
+    emailed = await client.post("/api/setup/services/email/test/", headers=admin_headers)
+
+    services = health.json()["services"]
+    assert {s["key"] for s in services} == {"email", "sms", "payouts", "google"}
+    assert [s["key"] for s in services if s["configured"]] == []
+    assert emailed.json()["message"] == "Logged in practice mode; nothing was sent."
+
+
 async def test_the_export_holds_every_table_but_sign_in_secrets(
     client: httpx.AsyncClient, admin_headers: dict, world: World, session: AsyncSession
 ) -> None:
