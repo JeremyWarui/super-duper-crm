@@ -1,0 +1,109 @@
+# The whole installation on one server: the database, the app, HTTPS in front, and a nightly
+# backup. Run from this folder: `docker compose up -d --build`. Settings come from ./.env
+# (copy .env.example); docs/handover/IT_Operations.md walks through it.
+
+name: campaign-crm
+
+# Built once, by the app service; migrate and backup run the same image.
+x-app: &app
+  image: campaign-crm-app:local
+  pull_policy: never
+  env_file: .env
+  environment:
+    DB_HOST: db
+    DB_PORT: "5432"
+    PUBLIC_URL: https://${DOMAIN:?set DOMAIN in .env}
+  volumes:
+    - uploads:/app/uploads
+    - backups:/backups
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:17@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f
+    environment:
+      POSTGRES_USER: ${DB_USER:?set DB_USER in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    shm_size: 128mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Brings the schema up to date, then exits; the app starts only after it succeeds.
+  migrate:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    healthcheck:
+      disable: true
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    <<: *app
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    pull_policy: build
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      PUBLIC_URL: https://${DOMAIN:?set DOMAIN in .env}
+      # Only Caddy can reach the app, and Caddy overwrites the forwarded headers.
+      FORWARDED_ALLOW_IPS: "*"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # `campaign-crm backup` every night at BACKUP_HOUR_UTC; it keeps 14 daily and 8 weekly archives
+  # in the backups volume.
+  backup:
+    <<: *app
+    entrypoint: ["sh", "/deploy/nightly-backup.sh"]
+    command: []
+    # A small init passes `docker compose down` on to the script, so it stops at once.
+    init: true
+    healthcheck:
+      disable: true
+    volumes:
+      - uploads:/app/uploads
+      - backups:/backups
+      - ./nightly-backup.sh:/deploy/nightly-backup.sh:ro
+    depends_on:
+      app:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2@sha256:ce773ec7a742ce15ee6bf2bb5f65882b9e2a4487b10733e6f1484f86e6b5d8bc
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy:/etc/caddy:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  uploads:
+  backups:
+  caddy-data:
+  caddy-config:

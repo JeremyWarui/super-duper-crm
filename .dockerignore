@@ -19,3 +19,8 @@
 backend/tests
 backend/evals
 frontend/tests
+# Local data never goes into the image.
+backend/uploads
+backend/uploads.before-restore-*
+backend/backups
+backend/export-*.zip

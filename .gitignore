@@ -12,3 +12,6 @@ backend/uploads/
 backend/uploads.before-restore-*/
 backend/backups/
 backend/export-*.zip
+
+# The installation's own settings; deploy/.env.example is the template.
+deploy/.env

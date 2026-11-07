@@ -1,0 +1,10 @@
+# HTTPS for the site: Caddy gets and renews the certificate for DOMAIN by itself, as long as
+# DOMAIN points at this server and ports 80 and 443 are open.
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:8080
+}

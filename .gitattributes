@@ -1,2 +1,5 @@
 # Hooks run under sh, which fails on a carriage return.
 .githooks/* text eol=lf
+# Run inside Linux containers.
+deploy/*.sh text eol=lf
+deploy/caddy/Caddyfile text eol=lf
