@@ -83,6 +83,24 @@ class AspirantStatus(LabelledStrEnum):
     SUSPENDED = ("suspended", "Suspended")
 
 
+class PayInPurpose(LabelledStrEnum):
+    NOMINATION_FEE = ("nomination_fee", "Nomination fee")
+    CONTRIBUTION = ("contribution", "Contribution")
+
+
+class PayInMethod(LabelledStrEnum):
+    STK = ("stk", "M-Pesa prompt")
+    MANUAL = ("manual", "M-Pesa code")
+
+
+class PayInStatus(LabelledStrEnum):
+    PENDING = ("pending", "Waiting for the phone")
+    PAID = ("paid", "Paid")
+    TO_CONFIRM = ("to_confirm", "To confirm")
+    FAILED = ("failed", "Failed")
+    REJECTED = ("rejected", "Rejected")
+
+
 class OperationalGrain(StrEnum):
     """The unit a campaign organizes on."""
 

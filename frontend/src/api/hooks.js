@@ -1659,3 +1659,55 @@ export const useEraseMember = () =>
 
 export const useErasePartyVolunteer = () =>
   useDataWrite((id) => api(`/party/volunteers/${id}/erase/`, { method: "POST" }), "party-volunteers");
+
+// ---- paying in by M-Pesa: the dialog's options, a contribution, a member's fee, and a
+// payment's status while the dialog waits.
+export const usePayOptions = () =>
+  useQuery({ queryKey: ["pay-options"], queryFn: () => api("/pay/options/", { anonymous: true }) });
+
+export const useContribute = () =>
+  useMutation({ mutationFn: (body) => api("/pay/contribution/", { method: "POST", body, anonymous: true }) });
+
+export function usePayFee() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: (body) => api("/party/nominations/mine/pay/", { method: "POST", body }),
+    onSuccess: () => invalidate("nominations"),
+  });
+}
+
+/** Polls every 3 seconds while the payment waits for the phone. */
+export const usePayment = (reference) =>
+  useQuery({
+    queryKey: ["payment-in", reference],
+    queryFn: () => api(`/pay/${reference}/`, { anonymous: true }),
+    enabled: !!reference,
+    refetchInterval: (query) => (query.state.data?.status === "pending" ? 3000 : false),
+  });
+
+// The office's list of money paid in: a workspace's (`campaignId`) or, without one, the party's.
+export const usePaymentsIn = (campaignId, status) =>
+  useQuery({
+    queryKey: ["payments-in", campaignId || "party", status],
+    queryFn: () =>
+      campaignId
+        ? api(`/campaigns/${campaignId}/payments-in/?status=${status}`)
+        : api(`/party/payments-in/?status=${status}`),
+  });
+
+export function useDecidePaymentIn(campaignId) {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ id, reason }) => {
+      if (campaignId) {
+        return reason === undefined
+          ? api(`/campaigns/${campaignId}/payments-in/${id}/confirm/`, { method: "POST" })
+          : api(`/campaigns/${campaignId}/payments-in/${id}/reject/`, { method: "POST", body: { reason } });
+      }
+      return reason === undefined
+        ? api(`/party/payments-in/${id}/confirm/`, { method: "POST" })
+        : api(`/party/payments-in/${id}/reject/`, { method: "POST", body: { reason } });
+    },
+    onSuccess: () => invalidate("payments-in", "nominations", "aspirants", "aspirant"),
+  });
+}

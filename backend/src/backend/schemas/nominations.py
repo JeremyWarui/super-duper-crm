@@ -71,6 +71,8 @@ class MyApplication(BaseModel):
     status_reason: str | None
     fee_kes: int
     fee_paid: bool
+    # A code the member reported, waiting for the office to confirm it.
+    fee_waiting: bool = False
     declared_at: datetime | None
     from_window: bool
     documents: list[DocumentRead]

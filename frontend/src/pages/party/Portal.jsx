@@ -13,6 +13,7 @@ import Aspirants from "./Aspirants";
 import Branches from "./Branches";
 import Dashboard from "./Dashboard";
 import Members from "./Members";
+import PaymentsIn from "./PaymentsIn";
 import Messages from "./Messages";
 import Volunteers from "./Volunteers";
 import Website from "./Website";
@@ -26,6 +27,7 @@ const PAGES = [
   ["volunteers", "Volunteers", "membership_officer", <Volunteers key="volunteers" />],
   ["data-requests", "Data requests", "membership_officer", <DataRequests key="data-requests" />, { kit: true, context: "Personal data", title: "Data requests" }],
   ["aspirants", "Aspirants", "nominations_officer", <Aspirants key="aspirants" />],
+  ["payments-in", "Payments in", "nominations_officer", <PaymentsIn key="payments-in" />, { kit: true, context: "Money", title: "Payments in" }],
   ["messages", "Messages", "comms_officer", <Messages key="messages" />, { kit: true, context: "Reach members", title: "Messages" }],
   ["branches", "Branches", "membership_officer", <Branches key="branches" />, { kit: true, context: "Party structure", title: "Branches" }],
   ["website", "Website", "superuser", <Website key="website" />, { kit: true, context: "Website content", title: "Edit the party website" }],

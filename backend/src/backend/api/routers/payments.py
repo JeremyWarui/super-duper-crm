@@ -40,7 +40,7 @@ from backend.schemas.payment import (
     ReleaseCheck,
     ReleaseCheckRequest,
 )
-from backend.services import assignments, payment_routing, payout_flow, reconcile
+from backend.services import assignments, payment_routing, payments_in, payout_flow, reconcile
 from backend.services.audit import record
 from backend.services.payout_flow import OPEN
 from backend.services.payouts import get_payout_provider, paystack_signed
@@ -315,7 +315,8 @@ async def decline_payment(
 
 @router.post("/paystack/webhook/")
 async def paystack_webhook(request: Request, session: SessionDep) -> dict[str, bool]:
-    """Paystack's word on a campaign payment's transfer; signed or refused."""
+    """Paystack's word on a payment out (a transfer) or a payment in (a charge); signed or
+    refused."""
     raw = await request.body()
     if not paystack_signed(raw, {k.lower(): v for k, v in request.headers.items()}):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Bad signature.")
@@ -326,7 +327,10 @@ async def paystack_webhook(request: Request, session: SessionDep) -> dict[str, b
         return {"applied": False}
     if not isinstance(data, dict):
         return {"applied": False}
-    applied = await payout_flow.apply_transfer_event(session, event, data)
+    if event.startswith("charge."):
+        applied = await payments_in.apply_charge_event(session, event, data)
+    else:
+        applied = await payout_flow.apply_transfer_event(session, event, data)
     if not applied:
         logger.info("paystack webhook %s for %s not applied", event, data.get("reference"))
     return {"applied": applied}

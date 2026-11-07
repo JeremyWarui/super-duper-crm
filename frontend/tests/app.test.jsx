@@ -41,7 +41,7 @@ const LEAD = {
   Field: ["Events", "Mobilizers", "Agents", "Assignments", "Supporters", "Volunteers"],
   "Reach out": ["Messages"],
   People: ["Team", "Sign-ups", "Personal data"],
-  Money: ["Payments"],
+  Money: ["Payments", "Contributions"],
 };
 
 describe("what each role is shown", () => {

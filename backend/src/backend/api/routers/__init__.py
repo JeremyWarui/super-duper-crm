@@ -28,7 +28,9 @@ from backend.api.routers import (
     party_nominations,
     party_volunteers,
     party_workspace,
+    pay,
     payments,
+    payments_in,
     privacy,
     setup,
     site,
@@ -67,7 +69,9 @@ for module in (
     party_nominations,
     party_volunteers,
     events,
+    pay,
     payments,
+    payments_in,
     supporters,
     messages,
     party_feed,
@@ -83,7 +87,7 @@ for module in (
     privacy,
 ):
     api_router.include_router(module.router)
-for module in (admin, candidates, party):
+for module in (admin, candidates, party, payments_in):
     api_router.include_router(module.party_router)
 api_router.include_router(privacy.office_router)
 

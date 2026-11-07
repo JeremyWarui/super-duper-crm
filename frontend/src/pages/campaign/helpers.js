@@ -23,7 +23,7 @@ const LEAD = [
   ALL_FIELD,
   REACH_OUT,
   { label: "People", items: [["team", "Team"], ["signups", "Sign-ups"], ["privacy", "Personal data"]] },
-  { label: "Money", items: [["payments", "Payments"]] },
+  { label: "Money", items: [["payments", "Payments"], ["contributions", "Contributions"]] },
 ];
 const OWN_WORK = (items) => [{ label: "My work", items }];
 

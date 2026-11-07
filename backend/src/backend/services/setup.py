@@ -198,6 +198,13 @@ def services() -> list[ServiceState]:
             testable=False,
         ),
         ServiceState(
+            key="payins",
+            label="Payments in (M-Pesa)",
+            mode=settings.payin_provider,
+            live=settings.payin_provider == "paystack",
+            testable=False,
+        ),
+        ServiceState(
             key="google",
             label="Google sign-in",
             mode="google" if oidc.configured() else "off",

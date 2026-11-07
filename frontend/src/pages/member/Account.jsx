@@ -5,6 +5,7 @@ import {
   useAccount, useApplyToVie, useAttachNominationDocument, useChangeVolunteering, useDetachNominationDocument, useLeaveParty,
   useMyNomination, useSite, usePublicPosts, useStopVolunteering, useSubmitNomination, useWithdrawNomination,
 } from "@/api/hooks";
+import PayDialog from "@/components/PayDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -294,6 +295,7 @@ function Application({ application: a, notice }) {
   const [label, setLabel] = useState("");
   const [file, setFile] = useState(null);
   const [declared, setDeclared] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [statusLabel, tone] = ASPIRANT_STATUS[a.status] || [a.status, "stone"];
   const draft = a.status === "draft" && a.from_window;
   const failed = attach.error || detach.error || submit.error || withdraw.error;
@@ -331,7 +333,12 @@ function Application({ application: a, notice }) {
       {a.fee_kes > 0 && (
         <div className="flex flex-col gap-1">
           <h3 className="font-bold">Nomination fee</h3>
-          <p>{kesOf(a.fee_kes)} · {a.fee_paid ? "Paid" : "Not paid yet. Pay it as the party's instructions say; the nominations office marks it paid."}</p>
+          <p>
+            {kesOf(a.fee_kes)} ·{" "}
+            {a.fee_paid ? "Paid" : a.fee_waiting ? "Your M-Pesa code is with the nominations office to confirm." : "Not paid yet."}
+          </p>
+          {draft && feeDue && !a.fee_waiting ? <Button className="self-start" onClick={() => setPaying(true)}>Pay with M-Pesa</Button> : null}
+          {paying ? <PayDialog title="Pay the nomination fee" fee={a.fee_kes} onClose={() => setPaying(false)} /> : null}
         </div>
       )}
       {draft && (
@@ -344,7 +351,7 @@ function Application({ application: a, notice }) {
             <Button disabled={!declared || feeDue || submit.isPending} onClick={() => submit.mutate()}>{submit.isPending ? "Submitting…" : "Submit application"}</Button>
             <Button variant="quiet" disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Withdraw</Button>
           </div>
-          {feeDue && <p className="text-small text-muted-foreground">You can submit once the fee is marked paid.</p>}
+          {feeDue && <p className="text-small text-muted-foreground">You can submit once the fee is paid.</p>}
         </>
       )}
       {a.status === "submitted" && a.from_window && <Button variant="quiet" className="self-start" disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Withdraw application</Button>}

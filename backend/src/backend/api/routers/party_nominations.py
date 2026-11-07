@@ -5,11 +5,13 @@ import uuid
 
 from fastapi import APIRouter, Form, HTTPException, Response, UploadFile, status
 from fastapi.responses import FileResponse
+from sqlalchemy import select
 
 from backend.api.deps import AdminUser, NominationsOfficer, SessionDep, SignedInUser, Today
 from backend.api.install import PartyOnlyRoute
 from backend.api.routers.account import AccountMember
 from backend.api.routers.party_aspirants import _read as read_aspirant
+from backend.api.routers.pay import read as read_payment
 from backend.models import (
     Aspirant,
     Constituency,
@@ -17,6 +19,9 @@ from backend.models import (
     FileArea,
     NominationWindow,
     PartyMember,
+    PayInPurpose,
+    PayInStatus,
+    PaymentIn,
     Ward,
 )
 from backend.schemas.aspirants import AspirantRead, DocumentRead
@@ -32,7 +37,8 @@ from backend.schemas.nominations import (
     WindowRead,
     WindowWrite,
 )
-from backend.services import aspirants, files, nominations
+from backend.schemas.payments_in import PayFee, PaymentInRead
+from backend.services import aspirants, files, nominations, payments_in, site
 from backend.services.errors import Refused
 
 router = APIRouter(prefix="/party/nominations", tags=["party"], route_class=PartyOnlyRoute)
@@ -157,6 +163,11 @@ def _place(aspirant: Aspirant) -> str:
 async def _mine(session: SessionDep, member: PartyMember, today) -> MyNomination:
     row = await nominations.current(session, today)
     aspirant = await nominations.mine(session, member)
+    waiting = aspirant is not None and await session.scalar(
+        select(PaymentIn.id).where(
+            PaymentIn.aspirant_id == aspirant.id, PaymentIn.status == PayInStatus.TO_CONFIRM
+        )
+    )
     choices = []
     if aspirant is None and nominations.is_open(row, today) and member.ward_id is not None:
         choices = [
@@ -178,6 +189,7 @@ async def _mine(session: SessionDep, member: PartyMember, today) -> MyNomination
             status_reason=aspirant.status_reason,
             fee_kes=aspirant.fee_kes,
             fee_paid=aspirant.fee_paid_at is not None,
+            fee_waiting=bool(waiting),
             declared_at=aspirant.declared_at,
             from_window=aspirant.window_id is not None,
             documents=[DocumentRead(id=d.id, label=d.label) for d in aspirant.documents],
@@ -197,6 +209,30 @@ async def apply(
     """Start an application for a seat open now, in the member's own area."""
     await nominations.apply(session, member, payload.seat, actor=user, today=today)
     return await _mine(session, member, today)
+
+
+@router.post("/mine/pay/", response_model=PaymentInRead, status_code=status.HTTP_201_CREATED)
+async def pay_fee(
+    payload: PayFee, member: AccountMember, user: SignedInUser, session: SessionDep
+) -> PaymentInRead:
+    """Pay the member's own nomination fee: a prompt to their phone, or a code they paid with."""
+    aspirant = await nominations.mine(session, member)
+    if aspirant is None:
+        raise Refused("Start an application first.")
+    row = await payments_in.start(
+        session,
+        site=await site.read_settings(session),
+        purpose=PayInPurpose.NOMINATION_FEE,
+        method=payload.method,
+        amount_kes=aspirant.fee_kes,
+        name=member.full_name,
+        phone=payload.phone,
+        email=member.email or "",
+        mpesa_code=payload.mpesa_code,
+        aspirant=aspirant,
+        actor=user,
+    )
+    return read_payment(row)
 
 
 @router.post("/mine/documents/", response_model=MyNomination, status_code=status.HTTP_201_CREATED)

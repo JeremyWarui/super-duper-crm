@@ -27,6 +27,9 @@ PUBLIC_ROUTES = {
     # An aspirant installation's homepage and its volunteer form.
     ("GET", "/api/site/candidate/"),
     ("POST", "/api/site/volunteer/"),
+    ("GET", "/api/pay/options/"),
+    ("POST", "/api/pay/contribution/"),
+    ("GET", "/api/pay/{reference}/"),
     # A public file; a private one answers 404 unless a superuser asks.
     ("GET", "/api/files/{file_id}/"),
     ("POST", "/api/auth/login/"),
@@ -110,6 +113,7 @@ SIGNED_IN_ONLY = {
     # A member's own application to vie.
     ("GET", "/api/party/nominations/mine/"),
     ("POST", "/api/party/nominations/mine/"),
+    ("POST", "/api/party/nominations/mine/pay/"),
     ("POST", "/api/party/nominations/mine/documents/"),
     ("DELETE", "/api/party/nominations/mine/documents/{document_id}/"),
     ("POST", "/api/party/nominations/mine/submit/"),

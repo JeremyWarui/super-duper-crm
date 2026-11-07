@@ -59,6 +59,9 @@ class SiteSettingsRead(ORMModel):
     privacy_notice: str
     privacy_notice_version: str
     payment_instructions: str
+    mpesa_paybill: str = ""
+    mpesa_account: str = ""
+    mpesa_till: str = ""
     updated_at: datetime
     # The forms' consent labels; the server records these same texts.
     volunteer_consent_wording: str = VOLUNTEER_WORDING
@@ -90,6 +93,9 @@ class SiteSettingsUpdate(WriteModel):
     privacy_notice: str = Field(default="", max_length=20000)
     privacy_notice_version: str = Field(default="1", min_length=1, max_length=20)
     payment_instructions: str = Field(default="", max_length=2000)
+    mpesa_paybill: str = Field(default="", pattern=r"^(\d{5,7})?$")
+    mpesa_account: str = Field(default="", max_length=20)
+    mpesa_till: str = Field(default="", pattern=r"^(\d{5,7})?$")
 
     @model_validator(mode="after")
     def _plain(self) -> "SiteSettingsUpdate":
@@ -102,8 +108,11 @@ class SiteSettingsUpdate(WriteModel):
             "contact_email",
             "contact_phone",
             "privacy_notice_version",
+            "mpesa_account",
         ):
             plain_text(getattr(self, name))
+        if self.mpesa_paybill and self.mpesa_till:
+            raise ValueError("Give a Paybill or a Till, not both.")
         # Buttons put white text on the primary colour and ink text on the secondary.
         if contrast(self.primary_colour, WHITE) < MIN_CONTRAST:
             raise ValueError("The primary colour is too light for white text; pick a darker one.")

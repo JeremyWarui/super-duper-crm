@@ -876,6 +876,9 @@ const partyForm = (party) => ({
       "aspirant_steps",
       "privacy_notice",
       "payment_instructions",
+      "mpesa_paybill",
+      "mpesa_account",
+      "mpesa_till",
     ].map((key) => [key, party[key] ?? ""]),
   ),
   links: Object.entries(party.social_links || {}),
@@ -979,9 +982,26 @@ function PartyForm({ party, isParty }) {
           className="admin-field admin-field-wide admin-field-area"
           value={form.payment_instructions}
           onChange={(e) => set({ payment_instructions: e.target.value })}
-          placeholder="M-Pesa paybill 123456, account: your name"
+          placeholder="Bank details, or how to give in person"
         />
       </Field>
+      <div className="flex flex-wrap gap-2">
+        {[
+          ["mpesa_paybill", "M-Pesa Paybill", "e.g. 123456"],
+          ["mpesa_account", "Paybill account", "e.g. DONATE"],
+          ["mpesa_till", "or M-Pesa Till", "e.g. 654321"],
+        ].map(([key, label, hint]) => (
+          <Field key={key} label={label}>
+            <input
+              className="admin-field"
+              value={form[key]}
+              placeholder={hint}
+              onChange={(e) => set({ [key]: e.target.value.trim() })}
+            />
+          </Field>
+        ))}
+      </div>
+      <div className="admin-form-help">The Contribute page and the nomination fee offer these to pay by code. Give a Paybill or a Till, not both.</div>
       <div className="admin-form-spacer" />
       <Field label="Privacy notice">
         <textarea

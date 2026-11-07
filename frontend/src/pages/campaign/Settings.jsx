@@ -15,6 +15,9 @@ const LINES = [
   ["contact_phone", "Contact phone", 20],
   ["address", "Address", 300],
   ["privacy_notice_version", "Privacy notice version", 20],
+  ["mpesa_paybill", "M-Pesa Paybill number (leave blank for a Till)", 7],
+  ["mpesa_account", "Paybill account number", 20],
+  ["mpesa_till", "M-Pesa Till number (leave blank for a Paybill)", 7],
 ];
 const COLOURS = [
   ["primary_colour", "Primary colour", "Buttons and links; white text sits on it."],

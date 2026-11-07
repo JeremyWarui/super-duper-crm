@@ -115,6 +115,17 @@ The manager's payments wait for you. Coordinator payments go to the manager, not
 
 When **Practice mode** shows at the top of the page, no money moves.
 
+### Confirm contributions
+
+Visitors give on your website by M-Pesa. A payer who paid your Paybill or Till types their
+M-Pesa code, and it waits for you.
+
+1. Open **Money > Contributions**. **To confirm** lists the codes waiting.
+2. Find the code on your M-Pesa statement for the same amount, then press **Confirm**.
+3. If it is not there, press **Reject**, type why, and press **Reject**.
+
+Payments made through the phone prompt arrive already **Paid**.
+
 ### Plan and record events
 
 1. Open **Events** and press **Schedule event**. Fill **Event title**, **Ward** (and

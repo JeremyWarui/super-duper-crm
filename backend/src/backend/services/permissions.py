@@ -80,6 +80,8 @@ MAP: dict[str, dict[UserRole, Reach]] = {
     "data.manage": {R.CANDIDATE: ALL, R.MANAGER: ALL},
     # Closing the campaign after the election, and erasing its supporters after retention.
     "campaign.close": {R.CANDIDATE: ALL},
+    # Contributions paid in from the website, and confirming the M-Pesa codes payers report.
+    "contributions.read": {R.CANDIDATE: ALL, R.MANAGER: ALL},
 }
 
 REFUSALS = {
@@ -93,6 +95,7 @@ REFUSALS = {
     "sharing.write": "Only the candidate decides what the campaign shares with the party.",
     "data.manage": "Only the candidate or the campaign manager handles personal data requests.",
     "campaign.close": "Only the candidate closes the campaign.",
+    "contributions.read": "Only the candidate or the campaign manager sees contributions.",
 }
 
 

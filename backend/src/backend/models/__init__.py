@@ -43,6 +43,9 @@ from backend.models.enums import (
     PartyMemberStatus,
     PartyRequestKind,
     PartyRoleName,
+    PayInMethod,
+    PayInPurpose,
+    PayInStatus,
     PaymentStatus,
     PostKind,
     PostLabel,
@@ -79,6 +82,7 @@ from backend.models.party import (
     PartySettings,
     RecruitmentCode,
 )
+from backend.models.payin import PaymentIn
 from backend.models.payment import Payment, ReconcileDifference, ReconcileRun
 from backend.models.privacy import DataRequest
 from backend.models.sharing import CampaignSharing
@@ -101,6 +105,10 @@ __all__ = [
     "CampaignSharing",
     "SmsInbound",
     "SmsLog",
+    "PaymentIn",
+    "PayInMethod",
+    "PayInPurpose",
+    "PayInStatus",
     "PartyMessage",
     "SmsOptOut",
     "ReconcileDifference",

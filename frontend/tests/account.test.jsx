@@ -162,4 +162,24 @@ describe("applying to vie", () => {
     expect(screen.getByText(/KES 5,000/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Submit application" })).toBeDisabled();
   });
+
+  it("pays the fee with an M-Pesa prompt to the member's phone", async () => {
+    const user = userEvent.setup();
+    signInAs({});
+    const calls = stubApi(routes({
+      "GET /party/nominations/mine/": { window: NOTICE, choices: [], application: APPLICATION },
+      "GET /pay/options/": { prompt: true, practice: false, paybill: "", account: "", till: "", instructions: "" },
+      "POST /party/nominations/mine/pay/": { status: 201, body: { reference: "pin-1", status: "pending", amount_kes: 5000 } },
+      "GET /pay/pin-1/": { reference: "pin-1", status: "paid", amount_kes: 5000, reason: "", practice: false },
+    }));
+    renderApp(<AppRoutes />, { path: "/account" });
+
+    await user.click(await screen.findByRole("tab", { name: "My nomination" }));
+    await user.click(await screen.findByRole("button", { name: "Pay with M-Pesa" }));
+    await user.type(screen.getByRole("textbox", { name: "M-Pesa phone number" }), "0712345678");
+    await user.click(screen.getByRole("button", { name: "Pay KES 5,000" }));
+
+    expect(await screen.findByText("Thank you, it is paid")).toBeInTheDocument();
+    expect(calls.find((c) => c.path === "/party/nominations/mine/pay/").body).toEqual({ method: "stk", phone: "0712345678" });
+  });
 });

@@ -693,6 +693,25 @@ Replies of STOP opt the number out.
    **Send a test SMS**. It answers `Sent to <number>.` and the text arrives. In practice mode it
    says the text was recorded instead of sent.
 
+### Payments in (Paystack, M-Pesa prompts)
+
+Contributions and nomination fees can be paid by an M-Pesa prompt to the payer's phone, through
+Paystack's Charge API (`mobile_money` with provider `mpesa`). Paying by Paybill or Till code
+works without Paystack.
+
+Checked against Paystack's documentation:
+<https://paystack.com/docs/payments/payment-channels/>,
+<https://paystack.com/docs/api/charge/>, <https://paystack.com/docs/payments/webhooks/>.
+
+1. Use the same Paystack account, keys and webhook as payouts (below). The one webhook address
+   takes both transfer and charge events.
+2. In `.env`: `PAYIN_PROVIDER=paystack` with `PAYSTACK_SECRET_KEY` set.
+3. Set the site's contact email: Paystack needs an email with every prompt, and a payer who
+   leaves theirs blank is sent under the site's.
+4. A prompt is marked paid only by a signed `charge.success` webhook, or by Paystack's
+   `GET /charge/:reference` check when the box has waited 15 seconds, and only when the amount
+   and currency (KES) match. A mismatch shows as **Failed** with the reason.
+
 ### Payouts (Paystack, M-Pesa transfers)
 
 Approved payments to mobilizers and agents are sent as M-Pesa transfers from your Paystack

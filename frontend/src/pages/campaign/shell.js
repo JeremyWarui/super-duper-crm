@@ -19,6 +19,7 @@ export const ICONS = {
   volunteers: HandHeart,
   team: UserRoundCog,
   payments: Banknote,
+  contributions: Banknote,
   myevents: CalendarDays,
   register: UserPlus,
   mysupporters: Heart,

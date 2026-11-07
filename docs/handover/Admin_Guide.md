@@ -546,6 +546,31 @@ Until the IT person connects a live payout account, the **Payments** page shows
 PRACTICE reference." Everything else works exactly as it will when live, so you can
 train the team on it safely.
 
+### Money paid in by M-Pesa
+
+Visitors give on the **Contribute** page (and the **Chip in** amounts on an aspirant's
+homepage), and members pay a nomination fee from **My nomination**. Both open the same box:
+
+- **Send a prompt to my phone**: an M-Pesa prompt arrives; the payer enters their PIN and the
+  box says **Thank you, it is paid**. In practice mode it says "Practice mode: no money moved".
+- **I paid by Paybill** (or **Till**): the box shows the number, the account and the amount;
+  the payer pays on their phone and types the M-Pesa code from the confirmation text.
+
+Set the Paybill and its account number, or a Till, under the console's **Party** (or **Site
+settings**) tab, or the workspace's **Settings** page. Give one, not both.
+
+A code waits as **To confirm** until someone checks it against the M-Pesa statement:
+
+| Where | Who | What |
+|---|---|---|
+| Workspace **Money > Contributions** | Candidate, Campaign Manager | the campaign's contributions |
+| Party CRM **Payments in** | Nominations Officer | members' nomination fees |
+| Party CRM **Payments in** | Party Super Admin | fees and party contributions |
+
+Press **Confirm** when the code is on the statement for that amount; confirming a fee marks it
+paid on the application. Otherwise press **Reject**, give the reason and press **Reject**.
+Nobody confirms their own fee.
+
 ---
 
 ## 8. Messages (SMS)

@@ -310,7 +310,10 @@
       "privacy_notice",
       "privacy_notice_version",
       "about_headline",
-      "payment_instructions"
+      "payment_instructions",
+      "mpesa_paybill",
+      "mpesa_account",
+      "mpesa_till"
     ],
     "PUT /api/admin/party/": [
       "updated_at",
@@ -866,7 +869,10 @@
       "privacy_notice",
       "privacy_notice_version",
       "about_headline",
-      "payment_instructions"
+      "payment_instructions",
+      "mpesa_paybill",
+      "mpesa_account",
+      "mpesa_till"
     ],
     "PUT /api/workspace/site/settings/": [
       "name",
@@ -886,7 +892,10 @@
       "privacy_notice",
       "privacy_notice_version",
       "about_headline",
-      "payment_instructions"
+      "payment_instructions",
+      "mpesa_paybill",
+      "mpesa_account",
+      "mpesa_till"
     ],
     "GET /api/workspace/site/candidate/": [
       "photo_url",
@@ -1350,6 +1359,59 @@
     "POST /api/auth/google/finish/": [
       "token",
       "user"
+    ],
+    "GET /api/pay/options/": [
+      "prompt",
+      "practice",
+      "paybill",
+      "account",
+      "till"
+    ],
+    "POST /api/pay/contribution/": [
+      "reference"
+    ],
+    "POST /api/party/nominations/mine/pay/": [
+      "reference"
+    ],
+    "GET /api/pay/{reference}/": [
+      "status",
+      "amount_kes",
+      "reason",
+      "practice"
+    ],
+    "GET /api/campaigns/{campaign_id}/payments-in/": [
+      "id",
+      "purpose",
+      "status",
+      "amount_kes",
+      "reason",
+      "payer_name",
+      "payer_phone",
+      "mpesa_code",
+      "created_at"
+    ],
+    "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/confirm/": [
+      "status"
+    ],
+    "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/reject/": [
+      "status"
+    ],
+    "GET /api/party/payments-in/": [
+      "id",
+      "purpose",
+      "status",
+      "amount_kes",
+      "reason",
+      "payer_name",
+      "payer_phone",
+      "mpesa_code",
+      "created_at"
+    ],
+    "POST /api/party/payments-in/{payment_id}/confirm/": [
+      "status"
+    ],
+    "POST /api/party/payments-in/{payment_id}/reject/": [
+      "status"
     ]
   },
   "nested_reads": {
@@ -1716,7 +1778,8 @@
       "fee_paid",
       "declared_at",
       "from_window",
-      "documents"
+      "documents",
+      "fee_waiting"
     ],
     "GET /api/party/aspirants/{aspirant_id}/.documents": [
       "id",
@@ -1944,7 +2007,10 @@
       "privacy_notice",
       "privacy_notice_version",
       "about_headline",
-      "payment_instructions"
+      "payment_instructions",
+      "mpesa_paybill",
+      "mpesa_account",
+      "mpesa_till"
     ],
     "PUT /api/admin/party/": [
       "registration_number",
@@ -2321,7 +2387,10 @@
       "privacy_notice",
       "privacy_notice_version",
       "about_headline",
-      "payment_instructions"
+      "payment_instructions",
+      "mpesa_paybill",
+      "mpesa_account",
+      "mpesa_till"
     ],
     "PUT /api/workspace/site/candidate/": [
       "photo_url",
@@ -2533,7 +2602,28 @@
     "POST /api/auth/google/finish/": [
       "handoff",
       "bind"
-    ]
+    ],
+    "POST /api/pay/contribution/": [
+      "method",
+      "phone",
+      "mpesa_code",
+      "amount_kes",
+      "name",
+      "email"
+    ],
+    "POST /api/party/nominations/mine/pay/": [
+      "method",
+      "phone",
+      "mpesa_code"
+    ],
+    "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/reject/": [
+      "reason"
+    ],
+    "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/confirm/": [],
+    "POST /api/party/payments-in/{payment_id}/reject/": [
+      "reason"
+    ],
+    "POST /api/party/payments-in/{payment_id}/confirm/": []
   },
   "enums": {
     "user.role": [

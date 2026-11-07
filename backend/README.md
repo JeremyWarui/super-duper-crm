@@ -366,6 +366,13 @@ opens the setup; one with logins keeps its settings.
 - Invite emails go out before the setup commits; if the commit then fails, the link is dead.
 - Restore is proven against a backup this version made; a backup from an older version
   (an earlier migration head) has not been restored in a test.
+- Payments in: Paystack does not document the `charge.success` payload beyond the fields
+  read here (reference, status, amount, currency); `receipt_number` is taken when present.
+  No receipt is emailed or texted. Marking a fee paid by hand leaves a code the member
+  reported still waiting on Payments in, to reject. Contributions are listed but not part of
+  any declaration export.
+- A visitor can send an M-Pesa prompt to any phone number; the owner must still enter their
+  PIN, and each device is limited to 10 payment starts an hour.
 
 ## Reference data imports
 

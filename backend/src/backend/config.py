@@ -106,6 +106,9 @@ class Settings(BaseSettings):
     paystack_secret_key: str = ""
     # "practice" moves no money; "paystack" sends M-Pesa transfers for party and campaign payments.
     payout_provider: Literal["practice", "paystack"] = "practice"
+    # "practice" marks an M-Pesa prompt paid at once and takes no money; "paystack" sends a real
+    # prompt to the payer's phone. Paying by Paybill or Till code works in both.
+    payin_provider: Literal["practice", "paystack"] = "practice"
 
     # Google sign-in; blank hides the button. The OAuth client's redirect URI is
     # PUBLIC_URL followed by /api/auth/google/callback/.
@@ -117,6 +120,13 @@ class Settings(BaseSettings):
     def _paystack_needs_a_key(cls, value: str, info: ValidationInfo) -> str:
         if value == "paystack" and not info.data.get("paystack_secret_key"):
             raise ValueError("PAYOUT_PROVIDER=paystack needs PAYSTACK_SECRET_KEY.")
+        return value
+
+    @field_validator("payin_provider", mode="after")
+    @classmethod
+    def _payins_need_a_key(cls, value: str, info: ValidationInfo) -> str:
+        if value == "paystack" and not info.data.get("paystack_secret_key"):
+            raise ValueError("PAYIN_PROVIDER=paystack needs PAYSTACK_SECRET_KEY.")
         return value
 
     @field_validator("email_provider", mode="after")
