@@ -40,7 +40,7 @@ describe("the nominations timetable", () => {
     }));
     renderApp(<Root />, { path: "/party/aspirants" });
 
-    expect(await screen.findByText("Someone else publishes it.")).toBeInTheDocument();
+    expect(await screen.findByText("The Party Super Admin publishes it.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Publish" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Draft a timetable" }));
     await user.type(screen.getByLabelText("Title"), "By-election 2027");
@@ -55,6 +55,18 @@ describe("the nominations timetable", () => {
     expect(calls.find((c) => c.method === "POST").body).toMatchObject({
       title: "By-election 2027", opens_on: "2027-02-01", closes_on: "2027-02-14", seats: [{ fee_kes: 2000 }],
     });
+  });
+
+  it("tells a Super Admin who drafted a timetable how it gets published", async () => {
+    useAuth.setState({
+      token: TEST_TOKEN,
+      user: { id: "root", username: "root", full_name: "The Operator", role: "manager", is_superuser: true, party_roles: [] },
+    });
+    stubApi(aspirantRoutes({ "GET /party/nominations/windows/": [{ ...WINDOW, mine: true }] }));
+    renderApp(<Root />, { path: "/party/aspirants" });
+
+    expect(await screen.findByText(/A Nominations Officer opens Edit and saves it, then you publish/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Publish" })).toBeNull();
   });
 
   it("gives the Super Admin Publish on someone else's draft", async () => {

@@ -183,6 +183,20 @@ describe("changing a login's email", () => {
 });
 
 describe("party offices", () => {
+  it("offers no office on a member's own login and says where one goes", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    const member = { ...USERS[3], id: "u-grace", username: "member-1f2e", kind: "member", party_member: { id: "m1", full_name: "Grace W", status: "approved" } };
+    stubApi(adminRoutes({ "GET /admin/users/": [...USERS, member] }));
+    renderApp(<Admin />);
+
+    await user.click(await screen.findByRole("button", { name: /Logins/ }));
+
+    expect(await screen.findByText(/A member's own login/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Party office for member-1f2e")).toBeNull();
+    expect(screen.getByLabelText("Party office for wafula")).toBeInTheDocument();
+  });
+
   it("grants Membership Officer to a staff login and shows the office", async () => {
     const user = userEvent.setup();
     signInAsAdmin();

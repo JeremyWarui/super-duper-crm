@@ -7,6 +7,7 @@ import Root from "../src/Gate";
 import {
   ADMIN_TOTALS,
   ADMIN_USERS,
+  ASPIRANT,
   TEST_TOKEN,
   aspirantRoutes,
   dashboardRoutes,
@@ -64,6 +65,36 @@ describe("the aspirants page", () => {
       path: "/party/aspirants/as1/workspace/",
       body: { candidate: { username: "achieng", email: "achieng@example.com" } },
     });
+  });
+});
+
+describe("an application's fee", () => {
+  it("shows the fee as paid in the open dialog once it is marked", async () => {
+    const user = userEvent.setup();
+    signInAsParty(["nominations_officer"]);
+    const applied = {
+      ...ASPIRANT, status: "draft", window_title: "Nominations 2027", declared_at: null,
+      fee_kes: 50000, fee_paid_at: null, fee_reference: "", documents: [],
+    };
+    const routes = aspirantRoutes({
+      "GET /campaigns/": [],
+      "GET /party/aspirants/": { total: 1, items: [applied] },
+      "GET /party/aspirants/as1/": applied,
+    });
+    stubApi(routes);
+    renderApp(<Root />, { path: "/party/aspirants" });
+
+    await user.click(await screen.findByRole("button", { name: "Achieng Otieno" }));
+    expect(await screen.findByText(/not paid/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Fee reference"), "SKL7Q2M9XA");
+    const paid = { ...applied, fee_paid_at: "2026-11-07T10:00:00Z", fee_reference: "SKL7Q2M9XA" };
+    routes["POST /party/nominations/applications/as1/fee/"] = paid;
+    routes["GET /party/aspirants/as1/"] = paid;
+    routes["GET /party/aspirants/"] = { total: 1, items: [paid] };
+    await user.click(screen.getByRole("button", { name: "Mark fee paid" }));
+
+    expect(await screen.findByText(/paid, ref SKL7Q2M9XA/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Mark fee paid" })).toBeNull();
   });
 });
 

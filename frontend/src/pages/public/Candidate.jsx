@@ -1,10 +1,11 @@
-// /candidates/:slug: one candidate's profile, the party events naming them, and the "Support" form.
+// /candidates/:slug: one candidate's profile, the party events naming them, and the "Support" dialog.
 // CandidateView is the page body, which an aspirant installation's homepage shows as well.
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCandidateVolunteer, usePartyPlaces, usePublicCandidate } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
 import { AREAS, CONTACT_METHODS, PROFESSIONS, SEATS } from "@/pages/party/helpers";
@@ -16,7 +17,8 @@ const TABS = ["About", "Priorities", "Events"];
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PILL = "flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-line-control bg-white px-3.5 text-small font-semibold has-[:checked]:border-primary has-[:checked]:bg-primary-tint";
 
-export function SupportForm({ c, send, withdrawPath }) {
+/** The volunteer form; `bare` drops its card and heading, for use inside a dialog. */
+export function SupportForm({ c, send, withdrawPath, bare = false }) {
   const first = c.name.split(/\s+/)[0];
   const [f, setF] = useState({ first_name: "", last_name: "", email: "", phone: "", ward: "", registration_centre: "", profession: "", profession_other: "", areas: [], area_other: "", preferred_contact: "", consent_given: false });
   const centres = usePartyPlaces({ ward: f.ward, enabled: !!f.ward }).data || [];
@@ -33,43 +35,59 @@ export function SupportForm({ c, send, withdrawPath }) {
   };
   if (send.isSuccess) {
     const link = `${window.location.origin}${withdrawPath}${send.data.withdraw_code}`;
-    return (
-      <Card className="gap-3 p-6">
-        <h2 className="text-[20px] font-bold">Thank you</h2>
+    const thanks = (
+      <>
         <p role="status" className="text-text-2">{send.data.message}</p>
         <p className="text-small text-muted-foreground">Keep this link: it takes your details off the campaign's list. <a href={link} className="break-all font-semibold">{link}</a></p>
+      </>
+    );
+    return bare ? <div className="flex flex-col gap-3">{thanks}</div> : (
+      <Card className="gap-3 p-6">
+        <h2 className="text-[20px] font-bold">Thank you</h2>
+        {thanks}
       </Card>
     );
   }
-  return (
-    <Card asChild className="gap-3.5 p-6">
-      <form onSubmit={submit} noValidate>
-        <h2 className="text-[20px] font-bold">Support {first}</h2>
-        <div className="grid grid-cols-2 gap-3">
+  const form = (
+      <form onSubmit={submit} noValidate className="flex flex-col gap-3.5">
+        {bare ? null : <h2 className="text-[20px] font-bold">Support {first}</h2>}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="First name"><Input value={f.first_name} onChange={set("first_name")} autoComplete="given-name" /></Field>
           <Field label="Last name"><Input value={f.last_name} onChange={set("last_name")} autoComplete="family-name" /></Field>
         </div>
-        <Field label="Email"><Input type="email" value={f.email} onChange={set("email")} autoComplete="email" /></Field>
-        <Field label="Phone"><Input value={f.phone} onChange={set("phone")} inputMode="tel" autoComplete="tel" placeholder="07XX XXX XXX" /></Field>
-        <Field label="Ward">
+        <div className={`grid grid-cols-1 gap-3 ${bare ? "sm:grid-cols-3" : ""}`}>
+          <Field label="Email"><Input type="email" value={f.email} onChange={set("email")} autoComplete="email" /></Field>
+          <Field label="Phone"><Input value={f.phone} onChange={set("phone")} inputMode="tel" autoComplete="tel" placeholder="07XX XXX XXX" /></Field>
+          <Field label="Preferred contact">
+          <NativeSelect value={f.preferred_contact} onChange={set("preferred_contact")}>
+            <option value="">Pick a contact method</option>
+            {CONTACT_METHODS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </NativeSelect>
+        </Field>
+        </div>
+        <div className={`grid grid-cols-1 gap-3 ${bare ? "sm:grid-cols-2" : ""}`}>
+          <Field label="Ward">
           <NativeSelect value={f.ward} onChange={(e) => setF({ ...f, ward: e.target.value, registration_centre: "" })}>
             <option value="">Pick your ward</option>
             {c.wards.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
           </NativeSelect>
         </Field>
-        <Field label="Polling station">
+          <Field label="Polling station">
           <NativeSelect value={f.registration_centre} onChange={set("registration_centre")} disabled={!f.ward}>
             <option value="">Pick your polling station</option>
             {centres.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
           </NativeSelect>
         </Field>
-        <Field label="Profession">
+        </div>
+        <div className={`grid grid-cols-1 gap-3 ${bare ? "sm:grid-cols-2" : ""}`}>
+          <Field label="Profession">
           <NativeSelect value={f.profession} onChange={set("profession")}>
             <option value="">Pick your profession</option>
             {PROFESSIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </NativeSelect>
         </Field>
-        {f.profession === "other" ? <Field label="Your profession"><Input value={f.profession_other} maxLength={100} onChange={set("profession_other")} /></Field> : null}
+          {f.profession === "other" ? <Field label="Your profession"><Input value={f.profession_other} maxLength={100} onChange={set("profession_other")} /></Field> : null}
+        </div>
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-small font-semibold">How would you like to help?</legend>
           <div className="flex flex-wrap gap-2">
@@ -79,21 +97,16 @@ export function SupportForm({ c, send, withdrawPath }) {
           </div>
         </fieldset>
         {f.areas.includes("other") ? <Field label="Other ways to help"><Input value={f.area_other} maxLength={100} onChange={set("area_other")} /></Field> : null}
-        <Field label="Preferred contact">
-          <NativeSelect value={f.preferred_contact} onChange={set("preferred_contact")}>
-            <option value="">Pick a contact method</option>
-            {CONTACT_METHODS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </NativeSelect>
-        </Field>
         <label className="flex items-start gap-2.5 text-small leading-[1.5] text-muted-foreground">
           <input type="checkbox" className="mt-0.5 size-[18px] flex-none accent-primary" checked={f.consent_given} onChange={(e) => setF({ ...f, consent_given: e.target.checked })} />
           {c.consent_wording}
         </label>
         {send.error ? <p role="alert" className="text-small font-semibold text-destructive">{send.error.message}</p> : null}
+        {!ok ? <p className="text-small text-muted-foreground">Fill in every field, tick at least one way to help and agree above to send this.</p> : null}
         <Button type="submit" disabled={!ok || send.isPending}>{send.isPending ? "Sending…" : "I'll volunteer"}</Button>
       </form>
-    </Card>
   );
+  return bare ? form : <Card className="p-6">{form}</Card>;
 }
 
 export default function Candidate({ slug }) {
@@ -120,6 +133,7 @@ export default function Candidate({ slug }) {
  */
 export function CandidateView({ c, send, withdrawPath, crumbs, note, events = false }) {
   const [tab, setTab] = useState("About");
+  const [volunteering, setVolunteering] = useState(false);
   const tabs = events ? TABS : TABS.filter((t) => t !== "Events");
   const first = c.name.split(/\s+/)[0];
   const where = [c.area, c.county].filter((v, i, all) => v && all.indexOf(v) === i).join(", ");
@@ -136,7 +150,7 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
               <h1 className="font-display text-[clamp(40px,5vw,64px)] leading-none font-extrabold tracking-[-0.03em]">{c.name}</h1>
               <p className="text-[19px] text-[#CFE0D5]">{where}{c.slogan ? ` · "${c.slogan}"` : ""}</p>
               <div className="flex flex-wrap gap-3 pt-1">
-                {c.volunteering_open ? <Button asChild variant="accent"><a href="#support">Volunteer for this campaign</a></Button> : null}
+                {c.volunteering_open ? <Button variant="accent" onClick={() => setVolunteering(true)}>Volunteer for this campaign</Button> : null}
                 {events && c.events.length ? <Button asChild variant="onDark"><a href="#events" onClick={() => setTab("Events")}>Meet the candidate</a></Button> : null}
               </div>
             </div>
@@ -184,7 +198,13 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
           ) : null}
         </div>
         <aside id="support" className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
-          {c.volunteering_open ? <SupportForm c={c} send={send} withdrawPath={withdrawPath} /> : null}
+          {c.volunteering_open ? (
+            <Card className="gap-3 p-6">
+              <h2 className="text-[20px] font-bold">Support {first}</h2>
+              <p className="text-text-2">Give a few hours at events, door to door or online. The campaign team will contact you.</p>
+              <Button onClick={() => setVolunteering(true)}>Volunteer for {first}</Button>
+            </Card>
+          ) : null}
           {c.office_address || contact ? (
             <Card variant="ink" className="gap-2 text-[15px]">
               <h2 className="mb-1 text-[18px] font-bold">Campaign office</h2>
@@ -195,6 +215,16 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
           {note ? <p className="text-small text-muted-foreground">{note}</p> : null}
         </aside>
       </div>
+      {volunteering ? (
+        <Dialog
+          title={send.isSuccess ? "Thank you" : `Volunteer for ${first}`}
+          description={send.isSuccess ? null : "Your details go to the campaign only."}
+          onClose={() => setVolunteering(false)}
+          className="w-[min(760px,calc(100vw-32px))]"
+        >
+          <SupportForm c={c} send={send} withdrawPath={withdrawPath} bare />
+        </Dialog>
+      ) : null}
     </>
   );
 }

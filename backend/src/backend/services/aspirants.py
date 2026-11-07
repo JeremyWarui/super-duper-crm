@@ -297,6 +297,16 @@ def default_title(aspirant: Aspirant) -> str:
     return f"{aspirant.member.full_name} for {aspirant.seat.label}"[:TITLE_LENGTH]
 
 
+def named_after_member(candidate: dict, member: PartyMember) -> dict:
+    """The candidate login's details, named as the member is when no name was given."""
+    if (candidate.get("first_name") or "").strip() or (candidate.get("last_name") or "").strip():
+        return candidate
+    first = (member.first_name or "").strip() or member.full_name.split()[0]
+    rest = member.full_name.strip()
+    last = rest[len(first) :].strip() if rest.startswith(first) else " ".join(rest.split()[1:])
+    return {**candidate, "first_name": first[:150], "last_name": last[:150]}
+
+
 async def create_workspace(
     session: AsyncSession,
     aspirant: Aspirant,
@@ -320,7 +330,7 @@ async def create_workspace(
     try:
         campaign, summary, logins = await admin.build_workspace(
             session,
-            aspirant=candidate,
+            aspirant=named_after_member(candidate, aspirant.member),
             manager=manager,
             party_member_id=aspirant.member_id,
             title=title or default_title(aspirant),

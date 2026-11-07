@@ -67,6 +67,30 @@ async def test_a_manager_login_cannot_be_given_a_party_role(
     assert set(actions) == {"user.party_member", "party_role.grant"}
 
 
+async def test_a_member_s_own_login_is_refused_an_office_with_a_plain_reason(
+    client: httpx.AsyncClient,
+    session: AsyncSession,
+    world: World,
+    admin_headers: dict[str, str],
+):
+    member_id = (await make_officer(session, world.ward, username="kin")).party_member_id
+    own = await make_user(session, username="member-own", role=None)
+    own.kind, own.party_member_id = UserKind.MEMBER, member_id
+    await session.commit()
+
+    refused = await client.post(
+        f"/api/admin/users/{own.id}/party-roles/",
+        json={"role": "nominations_officer"},
+        headers=admin_headers,
+    )
+    listed = await client.get("/api/admin/users/", headers=admin_headers)
+
+    assert refused.status_code == 400
+    assert "member's own login" in refused.json()["detail"]
+    kinds = {u["username"]: u["kind"] for u in listed.json()}
+    assert (kinds["member-own"], kinds["kin"]) == ("member", "staff")
+
+
 async def test_the_database_refuses_a_party_office_on_a_campaign_login(
     session: AsyncSession, world: World
 ):

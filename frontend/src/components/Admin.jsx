@@ -695,7 +695,8 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
   const revoke = useRevokePartyRole();
   const [office, setOffice] = useState("");
   const isMe = user.id === me;
-  const staff = !user.role && !user.is_superuser;
+  const staff = user.kind === "staff" && !user.is_superuser;
+  const memberLogin = user.kind === "member";
   const offered = PARTY_ROLES.filter(
     ([value]) => !user.party_roles?.includes(value),
   );
@@ -807,6 +808,8 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
                     </Btn>
                   </span>
                 )
+              : memberLogin
+              ? "A member's own login. A party office goes on a staff login linked to this member."
               : "Party offices go only to staff logins with no campaign role."}
           </div>}
           {staff && !aspirant && <MemberLink user={user} onLinked={() => grant.reset()} />}

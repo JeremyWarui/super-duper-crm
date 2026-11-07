@@ -170,6 +170,7 @@ async def test_the_workspace_takes_the_aspirants_seat_and_area_and_links_the_log
     assert (campaign.seat, campaign.ward_id) == (Seat.MCA, world.ward.id)
     login = await session.scalar(select(User).where(User.username == "wanjiru"))
     assert (login.role, login.party_member_id) == (UserRole.CANDIDATE, member.id)
+    assert login.full_name == member.full_name
     assert all(row["invite"] in ("email", "none") for row in made.json()["logins"])
 
 

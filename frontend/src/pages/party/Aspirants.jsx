@@ -323,7 +323,13 @@ function Timetable() {
             {w.status === "draft" && superuser && !w.mine && (
               <Button primary disabled={publish.isPending} onClick={() => publish.mutate(w.id)}>Publish</Button>
             )}
-            {w.status === "draft" && w.mine && <span className="muted">Someone else publishes it.</span>}
+            {w.status === "draft" && w.mine && (
+              <span className="muted">
+                {superuser
+                  ? "You drafted it, so you cannot publish it. A Nominations Officer opens Edit and saves it, then you publish. Give that office in the console, on a staff login linked to an approved member."
+                  : "The Party Super Admin publishes it."}
+              </span>
+            )}
           </div>
         ))}
       </div>

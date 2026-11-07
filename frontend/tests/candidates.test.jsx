@@ -51,6 +51,7 @@ describe("candidates on the website", () => {
   it("offers only the seat's wards, and hides the form when volunteering is closed", async () => {
     stubApi(PUBLIC);
     const first = renderApp(<AppRoutes />, { path: `/candidates/${CARD.slug}` });
+    await userEvent.click(await screen.findByRole("button", { name: "Volunteer for Brian" }));
     const ward = await screen.findByRole("combobox", { name: "Ward" });
     const wards = within(ward).getAllByRole("option").map((o) => o.textContent);
     first.unmount();
@@ -60,7 +61,7 @@ describe("candidates on the website", () => {
     await screen.findByRole("heading", { name: "Brian Ochieng" });
 
     expect(wards).toEqual(["Pick your ward", "Parklands", "Kangemi"]);
-    expect(screen.queryByRole("button", { name: "I'll volunteer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Volunteer for Brian" })).toBeNull();
   });
 
   it("sends the volunteer form only once every field is filled", async () => {
@@ -70,6 +71,8 @@ describe("candidates on the website", () => {
       [`POST /candidates/${CARD.slug}/volunteer/`]: { message: "Thank you.", withdraw_code: "x" },
     });
     renderApp(<AppRoutes />, { path: `/candidates/${CARD.slug}` });
+    await userEvent.click(await screen.findByRole("button", { name: "Volunteer for this campaign" }));
+    expect(screen.getByRole("dialog", { name: "Volunteer for Brian" })).toBeInTheDocument();
     const send = await screen.findByRole("button", { name: "I'll volunteer" });
     const steps = [
       () => userEvent.type(screen.getByRole("textbox", { name: "First name" }), "Wanjiku"),

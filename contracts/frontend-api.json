@@ -131,6 +131,7 @@
       "email",
       "phone",
       "role",
+      "kind",
       "is_active",
       "is_superuser",
       "last_login_at",

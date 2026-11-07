@@ -325,6 +325,7 @@ export const ADMIN_ORPHAN = {
 export const ADMIN_USERS = [
   {
     id: "u-amina",
+    kind: "campaign",
     username: "amina",
     full_name: "Amina K",
     email: "amina@example.com",
@@ -339,6 +340,7 @@ export const ADMIN_USERS = [
   },
   {
     id: "u-jane",
+    kind: "campaign",
     username: "jane",
     full_name: "Jane W",
     email: "",
@@ -353,6 +355,7 @@ export const ADMIN_USERS = [
   },
   {
     id: "root",
+    kind: "staff",
     username: "root",
     full_name: "The Operator",
     email: "",
@@ -367,6 +370,7 @@ export const ADMIN_USERS = [
   },
   {
     id: "u-wafula",
+    kind: "staff",
     username: "wafula",
     full_name: "Wafula O",
     email: "",

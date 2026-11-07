@@ -4,7 +4,7 @@ import uuid
 
 from pydantic import Field, field_validator
 
-from backend.models.enums import PartyMemberStatus, PartyRoleName, UserRole
+from backend.models.enums import PartyMemberStatus, PartyRoleName, UserKind, UserRole
 from backend.schemas.common import (
     CampaignTitle,
     Invite,
@@ -85,6 +85,7 @@ class AdminUserRead(ORMModel):
     email: str
     phone: str
     role: UserRole | None
+    kind: UserKind
     is_active: bool
     is_superuser: bool
     last_login_at: str | None

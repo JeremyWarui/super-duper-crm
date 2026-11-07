@@ -1545,7 +1545,7 @@ export function useMarkNominationFeePaid() {
   const invalidate = useInvalidator();
   return useMutation({
     mutationFn: ({ id, reference }) => api(`/party/nominations/applications/${id}/fee/`, { method: "POST", body: { reference } }),
-    onSuccess: () => invalidate("aspirants"),
+    onSuccess: () => invalidate("aspirants", "aspirant"),
   });
 }
 

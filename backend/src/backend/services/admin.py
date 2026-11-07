@@ -22,6 +22,7 @@ from backend.models import (
     Supporter,
     Target,
     User,
+    UserKind,
     UserRole,
     Ward,
 )
@@ -190,6 +191,7 @@ async def users(
             email=login.email,
             phone=login.phone,
             role=login.role,
+            kind=login.kind,
             is_active=login.is_active,
             is_superuser=login.is_superuser,
             last_login_at=login.last_login_at.isoformat() if login.last_login_at else None,
@@ -527,6 +529,11 @@ async def grant_party_role(
         raise Refused(
             f"{login.username} works on a campaign, and a login is campaign or party, not both. "
             "Create a staff login for the party office."
+        )
+    if login.kind is UserKind.MEMBER:
+        raise Refused(
+            f"{login.username} is a member's own login. Create a staff login, link it to "
+            "their membership, and give the office to that."
         )
     if any(held.role is role for held in login.party_roles):
         raise Refused(f"{login.username} is already a {role.label}.")
