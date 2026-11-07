@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bell, CircleHelp, Search } from "lucide-react";
 import { useSite } from "../../api/hooks";
-import { formatNumber } from "../../lib/format";
+import { formatNumber, initials } from "../../lib/format";
+import { usePanel } from "../../lib/usePanel";
 import { ROLE_LABEL, ROLE_NOTE, pagesOf } from "./helpers";
 import { useWorkspaceArea, workspaceAlerts } from "./shell";
 
@@ -13,8 +14,6 @@ type Row = { id: string; [field: string]: any };
 type Hit = { key: string; to: string; kind: string; label: string; detail: string };
 type ShellData = { wards: Ward[]; strategy?: any; events: Row[]; supporters: Row[]; mobilizers: Row[] };
 type Campaign = { title: string; candidate_name: string; seat: string; area_name: string; election_date: string | null };
-
-const initials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
 export function WorkspaceBrand({ name }: { name?: string }) {
   return (
@@ -76,20 +75,6 @@ export function AccessFooter({ role, wards }: { role: string; wards: Ward[] }) {
   );
 }
 
-function usePanel() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
-  }, [open]);
-  return { open, setOpen, ref };
-}
-
 const PANEL = "absolute right-0 z-50 mt-2 flex w-[min(92vw,380px)] flex-col gap-1 rounded-photo border border-line bg-white p-2 shadow-pop";
 const ICON_BUTTON = "relative flex size-11 cursor-pointer items-center justify-center rounded-full hover:bg-stone";
 const ROW = "flex min-h-11 flex-col justify-center rounded-lg px-3 py-1.5 text-ink no-underline hover:bg-stone";
@@ -97,18 +82,14 @@ const ROW = "flex min-h-11 flex-col justify-center rounded-lg px-3 py-1.5 text-i
 /** Search the wards, events, supporters and mobilizers the role reads; Ctrl K or Cmd K focuses it. */
 export function WorkspaceSearch({ data, role }: { data: ShellData; role: string }) {
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const { open, setOpen, ref } = usePanel();
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); input.current?.focus(); }
-      if (e.key === "Escape") setOpen(false);
     };
-    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
     document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onDown);
-    return () => { document.removeEventListener("keydown", onKey); document.removeEventListener("mousedown", onDown); };
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
   const needle = q.trim().toLowerCase();
   const hits = useMemo(() => {

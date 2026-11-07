@@ -5,8 +5,7 @@ import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { holderOf, useUnits } from "./helpers";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
-
-const initials = (name) => name.split(/\s+/).filter((w) => /^\p{L}/u.test(w)).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+import { initials } from "@/lib/format";
 
 // How many targeted units have a mobilizer, naming the ones that have none.
 function Coverage({ units, mobilizers, noun }) {

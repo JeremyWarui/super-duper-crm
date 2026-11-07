@@ -8,9 +8,9 @@ import { Card } from "@/components/ui/card";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
 import { AREAS, CONTACT_METHODS, PROFESSIONS } from "../party/helpers";
+import { isEmail } from "../../lib/email";
 
 const STEPS = ["Your details", "Your branch", "Consent"];
-const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const TICK = "mt-0.5 size-5 flex-none accent-primary";
 const PILL = "flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-line-control px-4 font-semibold has-[:checked]:border-primary has-[:checked]:bg-primary-tint";
 
@@ -88,7 +88,7 @@ export default function JoinParty() {
   const centres = usePartyPlaces({ ward, enabled: !!ward });
 
   const detailsOk =
-    firstName.trim() && surname.trim() && phone.trim() && EMAIL.test(email.trim()) && password.length >= 8;
+    firstName.trim() && surname.trim() && phone.trim() && isEmail(email) && password.length >= 8;
   const volunteerOk =
     !volunteer ||
     (profession &&

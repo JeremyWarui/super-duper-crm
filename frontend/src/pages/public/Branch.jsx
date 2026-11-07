@@ -4,8 +4,9 @@ import { usePublicBranch, usePublicPosts } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
+import { day } from "./story";
 
-const day = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
+const dayWithWeekday = (iso) => day(iso, { weekday: "short", day: "numeric", month: "long", year: "numeric" });
 
 export default function Branch() {
   const { id } = useParams();
@@ -53,7 +54,7 @@ export default function Branch() {
                 {events.slice(0, 3).map((e) => (
                   <Link key={e.id} to={`/news/${e.id}`} className="flex flex-col gap-0.5 border-t border-line-soft py-3 text-ink no-underline hover:text-primary">
                     <strong>{e.title}</strong>
-                    <span className="text-ui text-muted-foreground">{day(e.event_date)}{e.venue ? ` · ${e.venue}` : ""}</span>
+                    <span className="text-ui text-muted-foreground">{dayWithWeekday(e.event_date)}{e.venue ? ` · ${e.venue}` : ""}</span>
                   </Link>
                 ))}
                 <Link to={`/events?county=${id}`} className="text-ui font-bold">All events in {b.county.name} →</Link>
@@ -61,7 +62,7 @@ export default function Branch() {
             ) : null}
             <h2 className={events.length ? "pt-4 text-[22px] font-bold" : "text-[22px] font-bold"}>Next meeting</h2>
             {b.next_meeting_on ? (
-              <p className="text-body"><strong>{day(b.next_meeting_on)}</strong>{b.next_meeting_venue ? ` · ${b.next_meeting_venue}` : ""}</p>
+              <p className="text-body"><strong>{dayWithWeekday(b.next_meeting_on)}</strong>{b.next_meeting_venue ? ` · ${b.next_meeting_venue}` : ""}</p>
             ) : (
               <p className="text-body text-muted-foreground">No meeting is set yet.</p>
             )}

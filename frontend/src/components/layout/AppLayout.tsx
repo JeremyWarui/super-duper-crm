@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useLocation } from 'react-router-dom'
 import { AppSidebar, type NavGroup, type NavItem } from './AppSidebar'
+import { initials } from '@/lib/format'
 
 export type AppContext = {
   rootLabel: string
@@ -23,8 +24,6 @@ export type TopBarProps = {
 
 const Ctx = React.createContext<AppContext | null>(null)
 export const useAppShell = () => React.useContext(Ctx) as AppContext
-
-const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
 
 /**
  * Shell for signed-in apps. `.app-shell` switches the ground to #F7F7F5 and cards to bordered style.
@@ -64,7 +63,7 @@ export function AppLayout({ tone, nav = [], groups, brand, card, footer, topBar,
   }, [menu])
   const ctx: AppContext = {
     rootLabel, rootPath, onSignOut, tools, slotHeaders, topBar,
-    user: { ...user, initials: initialsOf(user.name) },
+    user: { ...user, initials: initials(user.name) },
     openMenu: () => setMenu(true),
   }
   return (

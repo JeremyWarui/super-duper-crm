@@ -4,21 +4,8 @@ import { Bell, CircleHelp, Search } from 'lucide-react'
 import { useSite, usePartyNotifications, usePartySearch } from '@/api/hooks'
 import { useInstall } from '@/app/site'
 import { useCopy } from '@/copy'
-
-/** An open/closed panel that Escape or a click outside closes. */
-function usePanel() {
-  const [open, setOpen] = React.useState(false)
-  const ref = React.useRef<HTMLDivElement>(null)
-  React.useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
-  }, [open])
-  return { open, setOpen, ref }
-}
+import { plural } from '@/lib/format'
+import { usePanel } from '@/lib/usePanel'
 
 const PANEL = 'absolute right-0 z-50 mt-2 flex w-[min(92vw,380px)] flex-col gap-1 rounded-photo border border-line bg-white p-2 shadow-pop'
 const ICON_BUTTON = 'relative flex size-11 cursor-pointer items-center justify-center rounded-full hover:bg-stone'
@@ -74,7 +61,6 @@ function PartySearch() {
   )
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 const NOTES: Record<string, { text: (n: number) => string; to: string }> = {
   pending_members: { text: (n) => `${plural(n, 'membership application', 'membership applications')} to verify`, to: '/party/members?status=pending' },
   submitted_aspirants: { text: (n) => `${plural(n, 'nomination', 'nominations')} submitted for vetting`, to: '/party/aspirants?status=submitted' },

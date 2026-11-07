@@ -4,6 +4,7 @@
 // Shown only to a superuser; every route it calls checks the flag again.
 import React, { useState } from "react";
 import { isEmail } from "../lib/email";
+import { isUsername } from "../lib/username";
 import { useNavigate } from "react-router-dom";
 import { PARTY_ROLES, PARTY_ROLE_LABEL } from "../pages/party/helpers";
 import {
@@ -326,9 +327,6 @@ const BLANK = {
   centre: "",
 };
 
-// The server takes `^[A-Za-z0-9._-]+$`, 3 to 150 characters.
-const USERNAME = /^[A-Za-z0-9._-]+$/;
-
 const ROLES = [
   ["manager", "Campaign manager"],
   ["mobilizer", "Mobilizer"],
@@ -356,9 +354,7 @@ function NewLogin({ campaigns, create }) {
   const byCentre = centres.length > 0;
   const name = form.username.trim();
   const ready =
-    name.length >= 3 &&
-    name.length <= 150 &&
-    USERNAME.test(name) &&
+    isUsername(name) &&
     isEmail(form.email) &&
     (!isMobilizer || (form.campaign && form.ward));
 
@@ -592,7 +588,7 @@ function OpenPartyWorkspace({ onInvite }) {
       </div>
     );
   const name = form.username.trim();
-  const ready = name.length >= 3 && name.length <= 150 && USERNAME.test(name) && isEmail(form.email);
+  const ready = isUsername(name) && isEmail(form.email);
   const submit = () =>
     open.mutate({
       manager: {

@@ -16,3 +16,13 @@ export function formatDate(value) {
   const [year, month, day] = iso.split("-").map(Number);
   return `${day} ${MONTHS[month - 1]} ${year}`;
 }
+
+/** An amount in shillings, as "KES 1,500". */
+export const formatKES = (value) => `KES ${Number(value || 0).toLocaleString("en-KE")}`;
+
+/** A count with the word that fits it: "1 recipient", "1,200 recipients". */
+export const plural = (n, one, many = `${one}s`) => `${formatNumber(n)} ${n === 1 ? one : many}`;
+
+/** Up to two capitals from the words of a name that start with a letter: "Amina (Mama) Kariuki" is "AK". */
+export const initials = (name) =>
+  (name || "").split(/\s+/).filter((w) => /^\p{L}/u.test(w)).slice(0, 2).map((w) => w[0]).join("").toUpperCase();

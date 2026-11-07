@@ -1,19 +1,11 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import { Menu } from 'lucide-react'
+import { usePanel } from '@/lib/usePanel'
 
 /** The signed-in person's chip; it opens a small panel with Sign out. Escape or a click outside closes it. */
 export function UserMenu({ user, onSignOut }: { user: { initials: string; name: string; role: string }; onSignOut: () => void }) {
-  const [open, setOpen] = React.useState(false)
-  const ref = React.useRef<HTMLDivElement>(null)
-  React.useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
-  }, [open])
+  const { open, setOpen, ref } = usePanel()
   return (
     <div ref={ref} className="relative">
       <button type="button" aria-expanded={open} aria-controls="user-menu" onClick={() => setOpen(!open)} className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-full bg-stone py-1 pr-3 pl-1">

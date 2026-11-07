@@ -11,6 +11,7 @@ import { Card, KpiValue } from "@/components/ui/card";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { formatDate, nairobiDate } from "../../lib/format";
 
 const FIELDS = [
   ["office_address", "Office address"],
@@ -31,9 +32,6 @@ const STARTS = [["elected", "Elected at a branch meeting"], ["interim", "Interim
 const ENDS = [["resigned", "Resigned"], ["removed", "Removed"], ["completed", "Term completed"]];
 const END_LABEL = { replaced: "Replaced", resigned: "Resigned", removed: "Removed", completed: "Term completed" };
 
-// The local calendar day, so a date picked near midnight in Nairobi is not yesterday's.
-const today = () => new Date().toLocaleDateString("en-CA");
-const day = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "");
 const holderOf = (branch, office) => branch?.officials?.find((o) => o.office === office)?.name;
 
 const formOf = (branch) => ({
@@ -76,7 +74,7 @@ function BranchForm({ row, onDone }) {
 
 function EndTerm({ term, onDone }) {
   const end = useEndTerm();
-  const [form, setForm] = useState({ term_end: today(), end_reason: "resigned" });
+  const [form, setForm] = useState({ term_end: nairobiDate(), end_reason: "resigned" });
   return (
     <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); end.mutate({ id: term.id, ...form }, { onSuccess: onDone }); }}>
       <Field label="Last day"><Input type="date" value={form.term_end} min={term.term_start} onChange={(e) => setForm({ ...form, term_end: e.target.value })} /></Field>
@@ -93,7 +91,7 @@ function EndTerm({ term, onDone }) {
 }
 
 function OfficeBox({ label, term, next, onEnd, ending }) {
-  const tag = term?.lapsed ? <Badge tone="bad">Membership lapsed</Badge> : term ? <Badge tone="ok">In office</Badge> : next ? <Badge tone="warn">Starts {day(next.term_start)}</Badge> : <Badge tone="bad">Vacant</Badge>;
+  const tag = term?.lapsed ? <Badge tone="bad">Membership lapsed</Badge> : term ? <Badge tone="ok">In office</Badge> : next ? <Badge tone="warn">Starts {formatDate(next.term_start)}</Badge> : <Badge tone="bad">Vacant</Badge>;
   return (
     <div className={cn("flex flex-col gap-2 rounded-xl border-[1.5px] p-3.5", term ? "border-line-soft bg-ground-app" : "border-[#F1DE9A] bg-[#FFFBEA]")} role="group" aria-label={label}>
       <div className="flex items-center justify-between gap-2">
@@ -103,7 +101,7 @@ function OfficeBox({ label, term, next, onEnd, ending }) {
       {term ? (
         <>
           <span className="text-ui">
-            <strong>{term.holder_name}</strong> since {day(term.term_start)}{term.term_end ? `, until ${day(term.term_end)}` : ""}
+            <strong>{term.holder_name}</strong> since {formatDate(term.term_start)}{term.term_end ? `, until ${formatDate(term.term_end)}` : ""}
             {!term.member && <span className="block text-small text-warn-foreground">{term.note || "Not linked to a member."}</span>}
             {term.lapsed && <span className="block text-small text-bad-foreground">No longer an approved member, so the website no longer names them. End the term and appoint someone.</span>}
           </span>
@@ -117,7 +115,7 @@ function OfficeBox({ label, term, next, onEnd, ending }) {
 function Appoint({ county }) {
   const appoint = useAppointOfficial();
   const uploadMinutes = useUploadMinutes();
-  const blank = { office: "chair", title: "", member: null, start_reason: "elected", term_start: today(), note: "", minutes: null };
+  const blank = { office: "chair", title: "", member: null, start_reason: "elected", term_start: nairobiDate(), note: "", minutes: null };
   const [form, setForm] = useState(blank);
   const [q, setQ] = useState("");
   const found = usePartyMembers({ q, status: "approved", county: county.id });
@@ -217,7 +215,7 @@ function Officials({ county }) {
             {data.history.map((t) => (
               <li key={t.id} className="flex flex-wrap justify-between gap-2 border-t border-line-soft py-2 text-ui">
                 <span><strong>{t.holder_name}</strong>, {t.label}</span>
-                <span className="text-muted-foreground">{day(t.term_start)} to {day(t.term_end)} · {END_LABEL[t.end_reason] || "Ended"}</span>
+                <span className="text-muted-foreground">{formatDate(t.term_start)} to {formatDate(t.term_end)} · {END_LABEL[t.end_reason] || "Ended"}</span>
               </li>
             ))}
           </ul>

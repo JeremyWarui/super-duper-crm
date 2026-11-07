@@ -5,10 +5,10 @@ import { useContribute, usePayFee, usePayment, usePayOptions } from "@/api/hooks
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
+import { formatKES } from "../lib/format";
 
 const AMOUNTS = [200, 500, 1000, 2500, 5000];
 const CODE = /^[A-Z0-9]{10}$/;
-const kes = (n) => `KES ${Number(n).toLocaleString("en-KE")}`;
 const PILL = "min-h-11 cursor-pointer rounded-full border-[1.5px] px-4 text-ui font-bold";
 
 function Choice({ active, onClick, children }) {
@@ -23,8 +23,8 @@ function Choice({ active, onClick, children }) {
 function PaybillSteps({ options, amount }) {
   const paybill = options.paybill;
   const rows = paybill
-    ? [["Paybill", paybill], ["Account", options.account || "Your phone number"], ["Amount", kes(amount)]]
-    : [["Till", options.till], ["Amount", kes(amount)]];
+    ? [["Paybill", paybill], ["Account", options.account || "Your phone number"], ["Amount", formatKES(amount)]]
+    : [["Till", options.till], ["Amount", formatKES(amount)]];
   return (
     <div className="flex flex-col gap-3 rounded-card bg-stone p-4">
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
@@ -50,7 +50,7 @@ function Status({ reference, onRetry, onDone }) {
     return (
       <div role="status" className="flex flex-col gap-2">
         <p className="font-display text-[20px] font-extrabold">Check your phone</p>
-        <p className="text-text-2">Enter your M-Pesa PIN on the prompt to pay {kes(p.amount_kes)}. This page updates by itself.</p>
+        <p className="text-text-2">Enter your M-Pesa PIN on the prompt to pay {formatKES(p.amount_kes)}. This page updates by itself.</p>
       </div>
     );
   }
@@ -60,7 +60,7 @@ function Status({ reference, onRetry, onDone }) {
         <p className="font-display text-[20px] font-extrabold">{p.status === "paid" ? "Thank you, it is paid" : "Thank you, we have your code"}</p>
         <p className="text-text-2">
           {p.status === "paid"
-            ? `${kes(p.amount_kes)} received.`
+            ? `${formatKES(p.amount_kes)} received.`
             : "The office checks it against the M-Pesa statement and confirms it, usually within a day."}
         </p>
         {p.practice ? <p className="text-small text-muted-foreground">Practice mode: no money moved.</p> : null}
@@ -107,7 +107,7 @@ export default function PayDialog({ title, fee, amount: preset, phone: knownPhon
   const retry = () => { send.reset(); setReference(null); };
 
   return (
-    <Dialog title={title} description={fee ? `Nomination fee: ${kes(fee)}` : "Pay by M-Pesa. Every shilling is recorded for the declaration the law requires."} onClose={onClose} className="w-[min(640px,calc(100vw-32px))]">
+    <Dialog title={title} description={fee ? `Nomination fee: ${formatKES(fee)}` : "Pay by M-Pesa. Every shilling is recorded for the declaration the law requires."} onClose={onClose} className="w-[min(640px,calc(100vw-32px))]">
       {!options ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : reference ? (
@@ -118,7 +118,7 @@ export default function PayDialog({ title, fee, amount: preset, phone: knownPhon
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-2 text-small font-semibold">Amount</legend>
               <div className="flex flex-wrap gap-2">
-                {AMOUNTS.map((a) => <Choice key={a} active={Number(amount) === a} onClick={() => setAmount(a)}>{kes(a)}</Choice>)}
+                {AMOUNTS.map((a) => <Choice key={a} active={Number(amount) === a} onClick={() => setAmount(a)}>{formatKES(a)}</Choice>)}
               </div>
               <Field label="Or another amount (KES)"><Input type="number" min={10} inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
             </fieldset>
@@ -141,12 +141,12 @@ export default function PayDialog({ title, fee, amount: preset, phone: knownPhon
             </>
           ) : (
             <p className="text-small text-muted-foreground">
-              {options.practice ? "Practice mode: no prompt goes out and no money moves." : `You will get an M-Pesa prompt for ${kes(amount)}. Enter your PIN to pay.`}
+              {options.practice ? "Practice mode: no prompt goes out and no money moves." : `You will get an M-Pesa prompt for ${formatKES(amount)}. Enter your PIN to pay.`}
             </p>
           )}
           {send.error ? <p role="alert" className="text-small font-semibold text-destructive">{send.error.message}</p> : null}
           <Button type="submit" disabled={!ready || send.isPending}>
-            {send.isPending ? "Sending…" : method === "manual" ? "Send my code" : `Pay ${kes(amount)}`}
+            {send.isPending ? "Sending…" : method === "manual" ? "Send my code" : `Pay ${formatKES(amount)}`}
           </Button>
         </form>
       )}

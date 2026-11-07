@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Modal } from "../../components/ui";
 import { useAssignments, usePayments, useSchedulePayment } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
-import { kes } from "./helpers";
+import { formatKES } from "../../lib/format";
 
 const APPROVER = { coordinator: "the campaign manager", manager: "the candidate" };
 
@@ -20,9 +20,9 @@ export default function SchedulePaymentForm({ campaignId, role, onClose }) {
       <Label>Work done</Label>
       <select aria-label="Work done" className="app-field" value={picked} onChange={(e) => setPicked(e.target.value)}>
         <option value="">{open.length ? "Pick the work" : "No done work waits for payment"}</option>
-        {open.map((a) => <option key={a.id} value={a.id}>{a.label} · {a.member_name} · {kes(a.amount_kes)}</option>)}
+        {open.map((a) => <option key={a.id} value={a.id}>{a.label} · {a.member_name} · {formatKES(a.amount_kes)}</option>)}
       </select>
-      {work && <div className="page-note">{kes(work.amount_kes)} to {work.member_name}.</div>}
+      {work && <div className="page-note">{formatKES(work.amount_kes)} to {work.member_name}.</div>}
       {schedule.error && <div className="form-error">{schedule.error.message}</div>}
       <div className="flex justify-end gap-2 form-actions">
         <Btn onClick={onClose}>Cancel</Btn>

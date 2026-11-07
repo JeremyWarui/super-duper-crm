@@ -7,9 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
 
 import { SEAT_LABEL } from "../party/helpers";
+import { formatKES } from "../../lib/format";
+import { day } from "./story";
 
-const day = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-const kes = (n) => `KES ${n.toLocaleString("en-KE")}`;
 
 // The published nominations timetable: open now, or the next to open.
 function Timetable() {
@@ -27,7 +27,7 @@ function Timetable() {
           <thead><tr className="text-small text-muted-foreground"><th className="py-1 font-semibold">Seat</th><th className="py-1 text-right font-semibold">Nomination fee</th></tr></thead>
           <tbody>
             {notice.seats.map((s) => (
-              <tr key={s.seat} className="border-t border-line"><td className="py-2 font-semibold">{SEAT_LABEL[s.seat]}</td><td className="py-2 text-right tabular-nums">{s.fee_kes ? kes(s.fee_kes) : "No fee"}</td></tr>
+              <tr key={s.seat} className="border-t border-line"><td className="py-2 font-semibold">{SEAT_LABEL[s.seat]}</td><td className="py-2 text-right tabular-nums">{s.fee_kes ? formatKES(s.fee_kes) : "No fee"}</td></tr>
             ))}
           </tbody>
         </table>

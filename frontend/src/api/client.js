@@ -3,8 +3,14 @@
 // turns DRF error payloads into a readable message, and logs you out on a 401.
 
 import { useAuth } from "../store/auth";
+import { BASE } from "./base";
 
-export const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+/** Signs the user out and throws when the server no longer accepts the token. */
+function expireOn401(res) {
+  if (res.status !== 401) return;
+  useAuth.getState().expire();
+  throw Object.assign(new Error("Your session expired — please sign in again."), { status: 401 });
+}
 
 // `anonymous` leaves the token off, for the public pages anyone can open.
 export async function api(path, { method = "GET", body, anonymous = false, headers = {} } = {}) {
@@ -20,10 +26,7 @@ export async function api(path, { method = "GET", body, anonymous = false, heade
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  if (res.status === 401) {
-    useAuth.getState().expire();
-    throw Object.assign(new Error("Your session expired — please sign in again."), { status: 401 });
-  }
+  expireOn401(res);
 
   const data = res.status === 204 ? null : await res.json().catch(() => null);
 
@@ -43,10 +46,7 @@ export async function download(path, filename) {
   const res = await fetch(`${BASE}${path}`, {
     headers: token ? { Authorization: `Token ${token}` } : {},
   });
-  if (res.status === 401) {
-    useAuth.getState().expire();
-    throw Object.assign(new Error("Your session expired — please sign in again."), { status: 401 });
-  }
+  expireOn401(res);
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     throw new Error(data?.detail || "Download failed.");
@@ -72,10 +72,7 @@ export async function upload(path, file, fields = {}) {
     headers: token ? { Authorization: `Token ${token}` } : {},
     body: form,
   });
-  if (res.status === 401) {
-    useAuth.getState().expire();
-    throw Object.assign(new Error("Your session expired — please sign in again."), { status: 401 });
-  }
+  expireOn401(res);
   const data = await res.json().catch(() => null);
   if (!res.ok) throw Object.assign(new Error(data?.detail || "Upload failed."), { status: res.status });
   return data;

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import { kes } from "./helpers";
+import { formatKES } from "../../lib/format";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
 const TONE = { scheduled: "warn", sending: "info", paid: "ok", failed: "bad", cancelled: "stone" };
@@ -27,9 +27,9 @@ function Summary({ rows }) {
   const sum = (status) => rows.filter((p) => p.status === status).reduce((s, p) => s + p.amount_kes, 0);
   const scheduled = rows.filter((p) => p.status === "scheduled").length;
   const tiles = [
-    ["Scheduled", kes(sum("scheduled")), `${scheduled} ready to release`],
+    ["Scheduled", formatKES(sum("scheduled")), `${scheduled} ready to release`],
     ["Needs attention", String(rows.filter(attention).length), "failed, or stuck while sending"],
-    ["Paid", kes(sum("paid")), "this campaign so far"],
+    ["Paid", formatKES(sum("paid")), "this campaign so far"],
   ];
   return (
     <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
@@ -111,7 +111,7 @@ export default function Payments({ campaign, role, mine, onModal }) {
                     <TD className="text-muted-foreground">{new Date(p.paid_at || p.created_at).toLocaleDateString()}</TD>
                     {!mine && <TD><div className="font-semibold">{p.recipient_name}</div><div className="text-small text-muted-foreground">{p.recipient_phone || "No phone"}</div></TD>}
                     <TD>{p.event_title || "None"}</TD>
-                    <TD numeric className="font-bold">{kes(p.amount_kes)}</TD>
+                    <TD numeric className="font-bold">{formatKES(p.amount_kes)}</TD>
                     <TD>
                       <Badge tone={TONE[p.status]}>{LABEL[p.status]}</Badge>
                       {p.failure_reason && (canPay || p.status === "failed") && <div className={`mt-1 text-small ${p.status === "failed" ? "text-bad-foreground" : "text-warn-foreground"}`}>{p.failure_reason}</div>}

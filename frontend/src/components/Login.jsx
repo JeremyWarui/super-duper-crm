@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { finishGoogle, useSignInOptions } from "@/api/hooks";
-import { BASE } from "@/api/client";
+import { BASE } from "@/api/base";
 import { Logo } from "@/components/layout/Logo";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";

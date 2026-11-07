@@ -11,12 +11,12 @@ import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
 import { AREAS, CONTACT_METHODS, PROFESSIONS, SEAT_LABEL, SEATS } from "@/pages/party/helpers";
 import { Photo, day } from "./story";
+import { isEmail } from "../../lib/email";
 
 /** The seat an aspirant is vying for, as their badge says it. */
 export const vying = (seat) => `Vying for ${SEAT_LABEL[seat]}`;
 const SEAT_NAME = Object.fromEntries(SEATS.map(([value, label]) => [value, label]));
 const TABS = ["About", "Priorities", "Events"];
-const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PILL = "flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-line-control bg-white px-3.5 text-small font-semibold has-[:checked]:border-primary has-[:checked]:bg-primary-tint";
 
 export const VOLUNTEER_NOTE = "Your details go to the campaign only.";
@@ -31,7 +31,7 @@ export function SupportForm({ c, send, withdrawPath }) {
   const set = (key) => (e) => setF({ ...f, [key]: e.target.value });
   const toggle = (v) => setF({ ...f, areas: f.areas.includes(v) ? f.areas.filter((a) => a !== v) : [...f.areas, v] });
   const ok =
-    f.first_name.trim() && f.last_name.trim() && EMAIL.test(f.email.trim()) && f.phone.trim() && f.ward && f.registration_centre &&
+    f.first_name.trim() && f.last_name.trim() && isEmail(f.email) && f.phone.trim() && f.ward && f.registration_centre &&
     f.profession && (f.profession !== "other" || f.profession_other.trim()) && f.areas.length && (!f.areas.includes("other") || f.area_other.trim()) &&
     f.preferred_contact && f.consent_given;
   const submit = (e) => {

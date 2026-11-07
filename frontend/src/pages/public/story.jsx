@@ -1,5 +1,6 @@
 // Pieces shared by the news, article and events pages.
 import { Badge } from "@/components/ui/badge";
+import { initials } from "@/lib/format";
 
 export const LABELS = { statement: "Statement", news: "News", opinion: "Opinion" };
 
@@ -13,7 +14,7 @@ export function Photo({ url, className = "" }) {
 
 export function Initials({ name, url, className = "" }) {
   if (url) return <img src={url} alt="" className={`rounded-full object-cover ${className}`} />;
-  const letters = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("");
+  const letters = initials(name);
   return <span aria-hidden className={`flex items-center justify-center rounded-full bg-primary-tint font-extrabold text-primary ${className}`}>{letters}</span>;
 }
 

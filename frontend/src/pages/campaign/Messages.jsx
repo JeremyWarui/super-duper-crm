@@ -8,14 +8,11 @@ import { Card } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { useDraft } from "@/lib/draft";
-import { formatDate, formatNumber as fmt } from "@/lib/format";
-import { FOOTER, partsOf } from "@/lib/sms";
+import { formatDate, formatNumber as fmt, plural } from "@/lib/format";
+import { DELIVERY_STATUS, FOOTER, partsOf } from "@/lib/sms";
 import { cn } from "@/lib/utils";
 import SendError from "./SendError";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
-
-const plural = (n, one, many = `${one}s`) => `${fmt(n)} ${n === 1 ? one : many}`;
-const STATUS = { delivered: ["Delivered", "ok"], sent: ["Waiting", "info"], failed: ["Failed", "bad"], practice: ["Practice", "stone"] };
 
 export default function Messages({ campaign }) {
   const page = useMessages(campaign.id);
@@ -183,7 +180,7 @@ function History({ data }) {
             <div><Badge tone="stone">Declined</Badge>{m.note && <span className="ml-2 text-small">{m.note}</span>}</div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              {Object.entries(STATUS).map(([key, [label, tone]]) => m.delivery[key] > 0 && <Badge key={key} tone={tone}>{label} {fmt(m.delivery[key])}</Badge>)}
+              {Object.entries(DELIVERY_STATUS).map(([key, [label, tone]]) => m.delivery[key] > 0 && <Badge key={key} tone={tone}>{label} {fmt(m.delivery[key])}</Badge>)}
               {data.can_send && (
                 <Button shape="rounded" size="sm" variant="quiet" aria-expanded={open === m.id} onClick={() => setOpen(open === m.id ? null : m.id)}>
                   {open === m.id ? "Hide delivery log" : "Delivery log"}
@@ -209,7 +206,7 @@ function DeliveryLog({ id }) {
         {log.data.map((r) => (
           <TR key={r.phone}>
             <TD>{r.phone}</TD>
-            <TD><Badge tone={(STATUS[r.status] || ["", "stone"])[1]}>{(STATUS[r.status] || [r.status])[0]}</Badge></TD>
+            <TD><Badge tone={(DELIVERY_STATUS[r.status] || ["", "stone"])[1]}>{(DELIVERY_STATUS[r.status] || [r.status])[0]}</Badge></TD>
             <TD className="text-muted-foreground">{r.detail || "None"}</TD>
           </TR>
         ))}

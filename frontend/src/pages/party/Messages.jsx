@@ -6,17 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
-import { formatDate, formatNumber as fmt } from "@/lib/format";
-import { FOOTER, partsOf } from "@/lib/sms";
+import { formatDate, formatNumber as fmt, plural } from "@/lib/format";
+import { DELIVERY_STATUS, FOOTER, partsOf } from "@/lib/sms";
 import { cn } from "@/lib/utils";
 
-const plural = (n, one, many = `${one}s`) => `${fmt(n)} ${n === 1 ? one : many}`;
 const AUDIENCES = [
   ["members", "Members", "members who ticked SMS updates when they joined"],
   ["volunteers", "Volunteers", "active volunteers who chose SMS as their contact"],
 ];
 const WHO = Object.fromEntries(AUDIENCES.map(([k, l]) => [k, l.toLowerCase()]));
-const STATUS = { delivered: ["Delivered", "ok"], sent: ["Waiting", "info"], failed: ["Failed", "bad"], practice: ["Practice", "stone"] };
 
 export default function Messages() {
   const page = usePartyMessages();
@@ -157,7 +155,7 @@ function History({ data }) {
             <div><Badge tone="stone">Declined</Badge>{m.note && <span className="ml-2 text-small">{m.note}</span>}</div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {Object.entries(STATUS).map(([key, [label, tone]]) => m.delivery[key] > 0 && <Badge key={key} tone={tone}>{label} {fmt(m.delivery[key])}</Badge>)}
+              {Object.entries(DELIVERY_STATUS).map(([key, [label, tone]]) => m.delivery[key] > 0 && <Badge key={key} tone={tone}>{label} {fmt(m.delivery[key])}</Badge>)}
             </div>
           )}
         </article>

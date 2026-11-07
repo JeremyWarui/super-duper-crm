@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useAgents, useAssignments } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { kes } from "./helpers";
+import { formatKES } from "../../lib/format";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
 const STEPS = [["applied", "Applied"], ["vetted", "Vetted"], ["trained", "Trained"], ["ready", "Ready"]];
@@ -45,7 +45,7 @@ export default function MyCentre({ campaign }) {
               <ul className="flex flex-col">
                 {work.map((a) => (
                   <li key={a.id} className="flex items-center justify-between gap-3 border-t border-line-soft py-2">
-                    <span><span className="font-semibold">{a.label}</span><span className="block text-small text-muted-foreground">{kes(a.amount_kes)}</span></span>
+                    <span><span className="font-semibold">{a.label}</span><span className="block text-small text-muted-foreground">{formatKES(a.amount_kes)}</span></span>
                     <Badge tone={a.status === "done" ? "ok" : a.status === "cancelled" ? "stone" : "warn"}>{a.status === "done" ? "Done" : a.status === "cancelled" ? "Cancelled" : "To do"}</Badge>
                   </li>
                 ))}

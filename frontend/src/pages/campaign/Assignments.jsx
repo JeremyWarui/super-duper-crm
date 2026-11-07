@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import { kes } from "./helpers";
+import { formatKES } from "../../lib/format";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
 const VIEWS = { "To mark done": "assigned", Done: "done", Cancelled: "cancelled" };
@@ -38,7 +38,7 @@ export default function Assignments({ campaign, onModal }) {
                   <TD><div className="font-semibold">{a.label}</div><div className="text-small text-muted-foreground">{KIND[a.kind]}</div></TD>
                   <TD>{a.member_name}<div className="text-small text-muted-foreground">{a.member_role === "agent" ? "Agent" : "Mobilizer"}</div></TD>
                   <TD>{a.centre_name || a.ward_name || "None"}{a.centre_name && <div className="text-small text-muted-foreground">{a.ward_name}</div>}</TD>
-                  <TD numeric className="font-bold">{kes(a.amount_kes)}</TD>
+                  <TD numeric className="font-bold">{formatKES(a.amount_kes)}</TD>
                   <TD><Badge tone={TONE[a.status]}>{a.status === "assigned" ? "Assigned" : a.status === "done" ? "Done" : "Cancelled"}</Badge></TD>
                   {open && (
                     <TD align="right">

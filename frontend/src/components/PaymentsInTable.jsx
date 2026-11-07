@@ -8,12 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
+import { formatKES } from "../lib/format";
 
 const LABEL = { pending: "Waiting for the phone", paid: "Paid", to_confirm: "To confirm", failed: "Failed", rejected: "Rejected" };
 const TONE = { pending: "stone", paid: "ok", to_confirm: "warn", failed: "bad", rejected: "bad" };
 const PURPOSE = { contribution: "Contribution", nomination_fee: "Nomination fee" };
 const FILTERS = { "To confirm": "to_confirm", Paid: "paid", All: "" };
-const kes = (n) => `KES ${Number(n).toLocaleString("en-KE")}`;
 const day = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 /** A workspace's list with `campaignId`; the party's without. */
@@ -29,7 +29,7 @@ export default function PaymentsInTable({ campaignId }) {
     <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Payments in">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <FilterPills label="Show" options={Object.keys(FILTERS)} value={view} onChange={setView} />
-        {view !== "To confirm" && rows.length ? <span className="text-ui text-muted-foreground">Paid in this list: {kes(total)}</span> : null}
+        {view !== "To confirm" && rows.length ? <span className="text-ui text-muted-foreground">Paid in this list: {formatKES(total)}</span> : null}
       </div>
       {list.error ? <p role="alert" className="text-destructive">{list.error.message}</p> : null}
       {decide.error ? <p role="alert" className="font-semibold text-destructive">{decide.error.message}</p> : null}
@@ -41,7 +41,7 @@ export default function PaymentsInTable({ campaignId }) {
               <TD>{day(r.created_at)}</TD>
               <TD><div className="font-semibold">{r.payer_name}</div><div className="text-small text-muted-foreground">{r.payer_phone}</div></TD>
               <TD>{PURPOSE[r.purpose]}</TD>
-              <TD align="right" className="tabular-nums">{kes(r.amount_kes)}</TD>
+              <TD align="right" className="tabular-nums">{formatKES(r.amount_kes)}</TD>
               <TD className="font-mono">{r.mpesa_code || "—"}</TD>
               <TD><Badge tone={TONE[r.status]}>{LABEL[r.status]}</Badge>{r.reason ? <div className="text-small text-muted-foreground">{r.reason}</div> : null}</TD>
               <TD align="right">

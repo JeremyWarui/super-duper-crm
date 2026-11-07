@@ -10,12 +10,12 @@ import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { INK, MIN_CONTRAST, WHITE, contrast, isHex } from "@/lib/contrast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
+import { isEmail } from "../../lib/email";
+import { isUsername } from "../../lib/username";
 
 const STEPS = ["Type", "Name and colours", "Contacts", "First superuser", "Workspace", "Check and finish"];
 const SEATS = [["mca", "MCA", "ward"], ["mp", "MP", "constituency"], ["governor", "Governor", "county"], ["senator", "Senator", "county"], ["women_rep", "Women Rep", "county"]];
 const LEVELS = ["county", "constituency", "ward"];
-const USERNAME = /^[A-Za-z0-9._-]{3,150}$/;
-const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 const BLANK = {
   organisation_type: "",
@@ -27,7 +27,7 @@ const BLANK = {
   manager: { username: "", email: "", first_name: "", last_name: "" },
 };
 
-const loginOk = (l) => USERNAME.test(l.username) && EMAIL.test(l.email);
+const loginOk = (l) => isUsername(l.username) && isEmail(l.email);
 
 /** Why a step can't go on yet, or null when it can. */
 function blocker(step, f) {
@@ -41,11 +41,11 @@ function blocker(step, f) {
     if (contrast(s, INK) < MIN_CONTRAST) return "The secondary colour is too dark for dark text; pick a lighter one.";
     return null;
   }
-  if (step === 2) return f.site.contact_email && !EMAIL.test(f.site.contact_email) ? "That contact email doesn't look right." : null;
+  if (step === 2) return f.site.contact_email && !isEmail(f.site.contact_email) ? "That contact email doesn't look right." : null;
   if (step === 3) {
     const u = f.superuser;
-    if (!USERNAME.test(u.username)) return "A username of 3 or more letters, digits, dots, dashes or underscores.";
-    if (!EMAIL.test(u.email)) return "An email to sign in with.";
+    if (!isUsername(u.username)) return "A username of 3 or more letters, digits, dots, dashes or underscores.";
+    if (!isEmail(u.email)) return "An email to sign in with.";
     if (u.password.length < 8) return "A password of at least 8 characters.";
     return u.password === f.confirm ? null : "The two passwords differ.";
   }

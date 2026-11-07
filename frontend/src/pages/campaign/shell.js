@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useEvents, useMobilizers, useStrategy, useSupporters, useTargets } from "../../api/hooks";
 import { pagesOf, reads } from "./helpers";
+import { nairobiDate } from "../../lib/format";
 
 export const ICONS = {
   overview: LayoutDashboard,
@@ -60,8 +61,6 @@ export function useShellData(campaign, role) {
 export const AreaContext = createContext({ area: null, setArea: () => {}, wards: [] });
 export const useWorkspaceArea = () => useContext(AreaContext);
 
-const today = () => new Date().toISOString().slice(0, 10);
-
 /** What needs the role now: wards with no mobilizer, and past events not yet recorded. */
 export function workspaceAlerts(data, role) {
   const pages = new Set(pagesOf(role).map(([key]) => key));
@@ -71,7 +70,7 @@ export function workspaceAlerts(data, role) {
     out.push({ key: "unstaffed", text: empty.length === 1 ? `${empty[0].unit} has no mobilizer` : `${empty.length} wards have no mobilizer`, to: "/campaign/mobilizers" });
   }
   const eventsPage = pages.has("events") ? "events" : pages.has("myevents") && role === "mobilizer" ? "myevents" : null;
-  const unrecorded = data.events.filter((e) => e.status === "planned" && e.scheduled_date && e.scheduled_date.slice(0, 10) < today());
+  const unrecorded = data.events.filter((e) => e.status === "planned" && e.scheduled_date && e.scheduled_date.slice(0, 10) < nairobiDate());
   if (unrecorded.length && eventsPage && role !== "comms") {
     out.push({ key: "unrecorded", text: unrecorded.length === 1 ? `Record attendance: ${unrecorded[0].title}` : `${unrecorded.length} past events need their attendance recorded`, to: `/campaign/${eventsPage}` });
   }

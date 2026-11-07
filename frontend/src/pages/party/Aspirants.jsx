@@ -36,9 +36,9 @@ import {
   SEAT_LABEL,
   SEATS,
 } from "./helpers";
+import { formatDate, formatKES } from "../../lib/format";
 
 const PAGE_SIZE = 50;
-const day = (iso) => (iso ? new Date(iso).toLocaleDateString() : "—");
 
 function Select({ label, value, onChange, options, disabled, blank }) {
   return (
@@ -236,8 +236,8 @@ function Detail({ row, onClose }) {
     <Modal title={a.member.full_name} sub={`${SEAT_LABEL[a.seat]} · ${a.area.name}`} onClose={onClose}>
       <div className="modal-text">
         <div><Badge text={ASPIRANT_STATUS_LABEL[a.status]} tone={ASPIRANT_STATUS_TONE[a.status]} /></div>
-        <div className="muted">Nominated: {day(a.created_at)}</div>
-        <div className="muted">Decided: {day(a.decided_at)}</div>
+        <div className="muted">Nominated: {formatDate(a.created_at)}</div>
+        <div className="muted">Decided: {formatDate(a.decided_at)}</div>
         {a.status_reason && <div className="muted">Reason: {a.status_reason}</div>}
         <div className="muted">Workspace: {a.campaign_id ? "created" : "none yet"}</div>
       </div>
@@ -282,9 +282,9 @@ function Application({ a }) {
   return (
     <div className="modal-text" aria-label="Application">
       <div className="muted">Applied in: {a.window_title}</div>
-      <div className="muted">Declaration: {a.declared_at ? `signed ${day(a.declared_at)}` : "not yet"}</div>
+      <div className="muted">Declaration: {a.declared_at ? `signed ${formatDate(a.declared_at)}` : "not yet"}</div>
       <div className="muted">
-        Fee: {a.fee_kes ? `KES ${a.fee_kes.toLocaleString("en-KE")} · ${a.fee_paid_at ? `paid, ref ${a.fee_reference}` : "not paid"}` : "none"}
+        Fee: {a.fee_kes ? `${formatKES(a.fee_kes)} · ${a.fee_paid_at ? `paid, ref ${a.fee_reference}` : "not paid"}` : "none"}
       </div>
       <div className="muted">Documents: {a.documents.length === 0 ? "none" : ""}</div>
       {a.documents.map((d) => (
@@ -320,8 +320,8 @@ function Timetable() {
         {windows.data.map((w) => (
           <div key={w.id} className="flex flex-wrap items-center gap-2">
             <span className="strong">{w.title}</span>
-            <span className="muted">{day(w.opens_on)} – {day(w.closes_on)}</span>
-            <span className="muted">{w.seats.map((x) => `${SEAT_LABEL[x.seat]} ${x.fee_kes ? `KES ${x.fee_kes.toLocaleString("en-KE")}` : "no fee"}`).join(" · ")}</span>
+            <span className="muted">{formatDate(w.opens_on)} – {formatDate(w.closes_on)}</span>
+            <span className="muted">{w.seats.map((x) => `${SEAT_LABEL[x.seat]} ${x.fee_kes ? formatKES(x.fee_kes) : "no fee"}`).join(" · ")}</span>
             <Badge text={w.status === "published" ? "Published" : "Draft"} tone={w.status === "published" ? "ok" : "warn"} />
             {w.status === "draft" && <Button onClick={() => setEditing(w)}>Edit</Button>}
             {w.status === "draft" && superuser && !w.mine && (

@@ -1,6 +1,5 @@
 // What the campaign pages share: the nav per role, small helpers and the unit lists.
 import { useMemo } from "react";
-import { formatNumber as fmt } from "../../lib/format";
 import { useTargets } from "../../api/hooks";
 
 // A tone is one of good, warn, bad or neutral; index.css colours each.
@@ -14,7 +13,6 @@ export function statusOf(progress) {
 export const holderOf = (mobilizers, unit) =>
   mobilizers.find((m) => m.ward === unit.ward && (m.registration_centre ?? null) === (unit.registration_centre ?? null));
 
-export const kes = (n) => `KES ${fmt(n)}`;
 
 const ALL_FIELD = { label: "Field", items: [["events", "Events"], ["mobilizers", "Mobilizers"], ["agents", "Agents"], ["assignments", "Assignments"], ["supporters", "Supporters"], ["volunteers", "Volunteers"]] };
 const REACH_OUT = { label: "Reach out", items: [["messages", "Messages"]] };

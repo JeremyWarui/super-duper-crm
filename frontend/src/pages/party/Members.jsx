@@ -12,17 +12,17 @@ import {
 } from "../../api/hooks";
 import { Badge, Button, ErrorState, LoadingState, Modal, PageTitle, Panel } from "../../components/ui";
 import { MOVES, STATUS_LABEL, STATUS_TONE } from "./helpers";
+import { formatDate } from "../../lib/format";
 
 const PAGE_SIZE = 50;
 
 const place = (m) => [m.ward.name, m.constituency.name, m.county.name].join(" / ");
-const day = (iso) => (iso ? new Date(iso).toLocaleDateString() : "—");
 const ERASABLE = ["withdrawn", "rejected"];
 
 function Erase({ member }) {
   const erase = useEraseMember();
   const [asking, setAsking] = useState(false);
-  if (member.erased_at) return <div className="muted">Details erased on {day(member.erased_at)}.</div>;
+  if (member.erased_at) return <div className="muted">Details erased on {formatDate(member.erased_at)}.</div>;
   if (!ERASABLE.includes(member.status)) return null;
   return (
     <>
@@ -70,12 +70,12 @@ function Detail({ row, onClose }) {
         <div><Badge text={STATUS_LABEL[m.status]} tone={STATUS_TONE[m.status]} /></div>
         <div className="muted">Phone: {m.phone}</div>
         <div className="muted">Email: {m.email || "—"}</div>
-        <div className="muted">Applied: {day(m.created_at)}</div>
+        <div className="muted">Applied: {formatDate(m.created_at)}</div>
         {detail.data && (
           <>
-            <div className="muted">Decided: {day(m.decided_at)}</div>
+            <div className="muted">Decided: {formatDate(m.decided_at)}</div>
             {m.status_reason && <div className="muted">Reason: {m.status_reason}</div>}
-            <div className="muted">Consent ({m.consent_channel}, {day(m.consent_at)}): {m.consent_wording}</div>
+            <div className="muted">Consent ({m.consent_channel}, {formatDate(m.consent_at)}): {m.consent_wording}</div>
           </>
         )}
       </div>
@@ -195,7 +195,7 @@ export default function Members() {
                   <td className="muted">{m.phone}</td>
                   <td className="muted">{place(m)}</td>
                   <td><Badge text={STATUS_LABEL[m.status]} tone={STATUS_TONE[m.status]} /></td>
-                  <td className="muted">{day(m.created_at)}</td>
+                  <td className="muted">{formatDate(m.created_at)}</td>
                 </tr>
               ))}
               {items.length === 0 && <tr><td colSpan={5} className="empty-row">No members match.</td></tr>}

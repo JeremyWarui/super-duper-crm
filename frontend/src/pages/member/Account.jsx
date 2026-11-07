@@ -22,10 +22,10 @@ import {
   SEAT_LABEL,
   VOLUNTEER_STATUS_LABEL,
 } from "../party/helpers";
+import { formatDate, formatKES } from "../../lib/format";
 
 const MEMBER_STATUS = { approved: ["Active member", "ok"], pending: ["Application pending", "warn"], suspended: ["Suspended", "bad"] };
 const monthYear = (iso) => new Date(iso).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-const day = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const place = (a) => [a.ward?.name, a.county?.name].filter(Boolean).join(", ");
 
 function MemberCard({ account }) {
@@ -172,7 +172,7 @@ function PartyEvents() {
             <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <span className="flex flex-col">
                 <Link to={`/news/${e.id}`} className="font-bold">{e.title}</Link>
-                <span className="text-small text-muted-foreground">{[day(e.event_date), e.venue].filter(Boolean).join(" · ")}</span>
+                <span className="text-small text-muted-foreground">{[formatDate(e.event_date), e.venue].filter(Boolean).join(" · ")}</span>
               </span>
             </li>
           ))}
@@ -208,13 +208,13 @@ function DataAndPrivacy({ account, party }) {
         <div className="flex flex-col gap-1">
           <span className="font-bold">Membership</span>
           <span className="text-small text-muted-foreground">{account.consent_wording}</span>
-          <span className="text-meta text-muted-foreground">Given {day(account.consent_at)}</span>
+          <span className="text-meta text-muted-foreground">Given {formatDate(account.consent_at)}</span>
         </div>
         {account.volunteer ? (
           <div className="flex flex-col gap-1">
             <span className="font-bold">Volunteer contact</span>
             <span className="text-small text-muted-foreground">{account.volunteer.consent_wording}</span>
-            <span className="text-meta text-muted-foreground">Given {day(account.volunteer.consent_at)}</span>
+            <span className="text-meta text-muted-foreground">Given {formatDate(account.volunteer.consent_at)}</span>
           </div>
         ) : null}
         {stop.error || leave.error ? <p role="alert" className="text-small font-semibold text-destructive">{(stop.error || leave.error).message}</p> : null}
@@ -239,8 +239,6 @@ function DataAndPrivacy({ account, party }) {
 }
 
 const ASPIRANT_STATUS = { draft: ["Not submitted", "warn"], submitted: ["With the vetting team", "info"], approved: ["Approved aspirant", "ok"], suspended: ["Suspended", "bad"] };
-const shortDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-const kesOf = (n) => `KES ${n.toLocaleString("en-KE")}`;
 
 // Applying to vie: pick a seat open in the window, attach documents, have the fee marked paid,
 // then declare and submit. The nominations office vets it.
@@ -255,7 +253,7 @@ function MyNomination() {
     <Card className="gap-2 p-6">
       <h2 className="font-display text-card-title font-extrabold">Vie for a seat</h2>
       <p className="text-muted-foreground">
-        {notice && !notice.open ? `Applications for ${notice.title} open on ${shortDay(notice.opens_on)}.` : "No nominations are open now. The timetable is published on the Vie with us page."}
+        {notice && !notice.open ? `Applications for ${notice.title} open on ${formatDate(notice.opens_on)}.` : "No nominations are open now. The timetable is published on the Vie with us page."}
       </p>
     </Card>
   );
@@ -268,7 +266,7 @@ function Choose({ notice, choices }) {
     <Card className="gap-4 p-6" role="region" aria-label="Apply for nomination">
       <div>
         <h2 className="font-display text-card-title font-extrabold">Apply for nomination</h2>
-        <p className="text-muted-foreground">{notice.title} · applications close {shortDay(notice.closes_on)}</p>
+        <p className="text-muted-foreground">{notice.title} · applications close {formatDate(notice.closes_on)}</p>
       </div>
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 font-semibold">Which seat are you vying for?</legend>
@@ -276,7 +274,7 @@ function Choose({ notice, choices }) {
           <label key={c.seat} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-4 py-2 ${seat === c.seat ? "border-primary bg-primary-tint" : "border-line"}`}>
             <input type="radio" name="seat" value={c.seat} checked={seat === c.seat} onChange={() => setSeat(c.seat)} />
             <span className="flex-1"><strong>{SEAT_LABEL[c.seat]}</strong> <span className="text-muted-foreground">· {c.area}</span></span>
-            <span className="text-small tabular-nums">{c.fee_kes ? kesOf(c.fee_kes) : "No fee"}</span>
+            <span className="text-small tabular-nums">{c.fee_kes ? formatKES(c.fee_kes) : "No fee"}</span>
           </label>
         ))}
       </fieldset>
@@ -334,7 +332,7 @@ function Application({ application: a, notice }) {
         <div className="flex flex-col gap-1">
           <h3 className="font-bold">Nomination fee</h3>
           <p>
-            {kesOf(a.fee_kes)} ·{" "}
+            {formatKES(a.fee_kes)} ·{" "}
             {a.fee_paid ? "Paid" : a.fee_waiting ? "Your M-Pesa code is with the nominations office to confirm." : "Not paid yet."}
           </p>
           {draft && feeDue && !a.fee_waiting ? <Button className="self-start" onClick={() => setPaying(true)}>Pay with M-Pesa</Button> : null}
@@ -355,7 +353,7 @@ function Application({ application: a, notice }) {
         </>
       )}
       {a.status === "submitted" && a.from_window && <Button variant="quiet" className="self-start" disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Withdraw application</Button>}
-      {notice && draft && <p className="text-small text-muted-foreground">Applications close {shortDay(notice.closes_on)}.</p>}
+      {notice && draft && <p className="text-small text-muted-foreground">Applications close {formatDate(notice.closes_on)}.</p>}
     </Card>
   );
 }
