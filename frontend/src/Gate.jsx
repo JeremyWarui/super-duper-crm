@@ -45,10 +45,14 @@ import Security from "./pages/account/Security";
 import WithdrawParty from "./pages/public/WithdrawParty";
 import WithdrawVolunteer from "./pages/public/WithdrawVolunteer";
 
-/** Drop every cached read when the signed-in user changes, so nobody sees the last user's data. */
+/** Drop every cached read when the signed-in user changes, so nobody sees the last user's data.
+
+A new token for the same user, as when 2-step is turned on, keeps them.
+*/
 export function forgetOnSwitch(queryClient) {
   return useAuth.subscribe((state, prev) => {
-    if (state.token !== prev.token) queryClient.clear();
+    const sameUser = state.token && prev.token && state.user?.id === prev.user?.id;
+    if (state.token !== prev.token && !sameUser) queryClient.clear();
   });
 }
 

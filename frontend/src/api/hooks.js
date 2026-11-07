@@ -530,7 +530,15 @@ function useTwoStepChange(mutationFn) {
 }
 
 export const useStartTwoStep = () => useTwoStepChange(() => api("/auth/two-step/start/", { method: "POST" }));
-export const useConfirmTwoStep = () => useTwoStepChange((code) => api("/auth/two-step/confirm/", { method: "POST", body: { code } }));
+// Turning it on hands back this session's new token; it is taken before anything refetches,
+// since the old one no longer works.
+export const useConfirmTwoStep = () =>
+  useTwoStepChange(async (code) => {
+    const result = await api("/auth/two-step/confirm/", { method: "POST", body: { code } });
+    const { user } = useAuth.getState();
+    useAuth.setState({ token: result.token, user: user && { ...user, two_step_on: true, two_step_needed: false } });
+    return result;
+  });
 export const useRenewRecoveryCodes = () => useTwoStepChange((code) => api("/auth/two-step/recovery-codes/", { method: "POST", body: { code } }));
 export const useTurnOffTwoStep = () => useTwoStepChange((code) => api("/auth/two-step/off/", { method: "POST", body: { code } }));
 

@@ -8,6 +8,7 @@ import Root, { AppRoutes, forgetOnSwitch } from "../src/Gate";
 import {
   CAMPAIGN,
   dashboardRoutes,
+  fakeSecret,
   renderApp,
   signIn,
   stubApi,
@@ -109,5 +110,22 @@ describe("the gate", () => {
     stop();
 
     expect(queryClient.getQueryData(["campaigns"])).toBeUndefined();
+  });
+
+  it("keeps cached reads when the same user gets a new token", async () => {
+    signIn("manager");
+    stubApi(
+      dashboardRoutes({
+        "GET /campaigns/": [{ ...CAMPAIGN, candidate_name: "Kimani Njoroge" }],
+      }),
+    );
+    const { queryClient } = renderApp(<Root />);
+    const stop = forgetOnSwitch(queryClient);
+    await screen.findAllByText("Kimani Njoroge");
+
+    act(() => useAuth.setState({ token: fakeSecret() }));
+    stop();
+
+    expect(queryClient.getQueryData(["campaigns"])).toBeDefined();
   });
 });

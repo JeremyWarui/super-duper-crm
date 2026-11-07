@@ -61,6 +61,19 @@ describe("the sign-in screen", () => {
   });
 });
 
+describe("too many tries", () => {
+  it("says so, rather than blaming the password", async () => {
+    const user = userEvent.setup();
+    stubLogin(429, { detail: "Too many tries; try later." });
+    const { container } = renderApp(<Login />);
+
+    await user.type(container.querySelectorAll("input")[0], "amina@example.com");
+    await user.type(container.querySelectorAll("input")[1], `${PASSWORD}{Enter}`);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Too many tries; try later.");
+  });
+});
+
 describe("signing up", () => {
   it("is not offered: logins are handed out, not taken", () => {
     stubLogin(200, OK);

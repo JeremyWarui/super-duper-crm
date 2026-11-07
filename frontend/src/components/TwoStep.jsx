@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
-import { useAuth } from "@/store/auth";
 
 const grouped = (secret) => secret.match(/.{1,4}/g).join(" ");
 
@@ -16,7 +15,7 @@ function Problem({ error }) {
 }
 
 /** One code field and its button. */
-function CodeForm({ label, busyLabel, action, onDone, autoFocus }) {
+function CodeForm({ label, busyLabel, action, onDone, autoFocus, recovery = true }) {
   const [code, setCode] = useState("");
   const submit = (e) => {
     e.preventDefault();
@@ -24,7 +23,7 @@ function CodeForm({ label, busyLabel, action, onDone, autoFocus }) {
   };
   return (
     <form onSubmit={submit} className="flex flex-col gap-3" noValidate>
-      <Field label="Code from your app" hint="Six digits; a recovery code works too.">
+      <Field label="Code from your app" hint={recovery ? "Six digits; a recovery code works too." : "The six digits your app shows now."}>
         <Input inputMode="numeric" autoComplete="one-time-code" autoFocus={autoFocus} value={code} onChange={(e) => setCode(e.target.value)} className="max-w-[220px]" />
       </Field>
       <Problem error={action.error} />
@@ -84,7 +83,7 @@ function SetUp({ onCodes }) {
           <code className="font-mono text-ui font-bold tracking-wide" aria-label="Setup key">{grouped(secret)}</code>
         </span>
       </div>
-      <CodeForm label="Turn on" busyLabel="Checking…" action={confirm} onDone={onCodes} autoFocus />
+      <CodeForm label="Turn on" busyLabel="Checking…" action={confirm} onDone={onCodes} autoFocus recovery={false} />
     </div>
   );
 }
@@ -96,12 +95,9 @@ export default function TwoStep() {
   const [codes, setCodes] = useState(null);
   const [panel, setPanel] = useState(null);
 
-  // Turning it on hands back this session's new token, now marked as past 2-step.
-  const passed = ({ codes: fresh, token }) => {
+  const passed = ({ codes: fresh }) => {
     setCodes(fresh);
     setPanel(null);
-    const { user, token: current } = useAuth.getState();
-    if (user) useAuth.setState({ token: token || current, user: { ...user, two_step_on: true, two_step_needed: false } });
   };
 
   if (status.isLoading) return <p className="text-muted-foreground">Checking…</p>;

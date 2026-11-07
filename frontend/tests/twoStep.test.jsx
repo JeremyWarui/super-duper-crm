@@ -3,10 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Login from "../src/components/Login";
-import TwoStep from "../src/components/TwoStep";
-import Root from "../src/Gate";
+import Security from "../src/pages/account/Security";
+import Root, { forgetOnSwitch } from "../src/Gate";
 import { useAuth } from "../src/store/auth";
-import { fakeSecret, renderApp, signIn, stubApi } from "./helpers";
+import { TEST_TOKEN, fakeSecret, renderApp, signIn, stubApi } from "./helpers";
 
 const PASSWORD = fakeSecret();
 const SIGNED = { token: fakeSecret(), user: { id: "u1", username: "root", full_name: "Root", role: null, is_superuser: true, party_roles: [] } };
@@ -82,7 +82,15 @@ describe("a login that needs 2-step", () => {
       "POST /auth/two-step/start/": { secret: key, uri: `otpauth://totp/x?secret=${key}` },
       "POST /auth/two-step/confirm/": { codes, token: passedToken },
     });
-    renderApp(<TwoStep />);
+    // The old token stops working the moment 2-step is on, as on the server.
+    const answer = fetch;
+    vi.stubGlobal("fetch", async (url, options = {}) =>
+      String(url).endsWith("/auth/me/") && options.headers?.Authorization === `Token ${TEST_TOKEN}` && calls.some((c) => c.path === "/auth/two-step/confirm/")
+        ? { ok: false, status: 401, json: async () => ({ detail: "Invalid token." }) }
+        : answer(url, options));
+    // The app's own rule for a token change runs here too.
+    const { queryClient } = renderApp(<Security />);
+    const stop = forgetOnSwitch(queryClient);
 
     await user.click(await screen.findByRole("button", { name: "Set up 2-step sign-in" }));
     expect(await screen.findByTitle("QR code for your authenticator app")).toBeInTheDocument();
@@ -94,5 +102,6 @@ describe("a login that needs 2-step", () => {
     expect(shown).toHaveTextContent(codes[9]);
     expect(calls.find((c) => c.path === "/auth/two-step/confirm/").body).toEqual({ code: "654321" });
     expect(useAuth.getState()).toMatchObject({ token: passedToken, user: { two_step_needed: false } });
+    stop();
   });
 });

@@ -31,7 +31,7 @@ export const useAuth = create(
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const error = new Error(data?.non_field_errors?.[0] || "Wrong email or password.");
+          const error = new Error(data?.non_field_errors?.[0] || data?.detail || "Wrong email or password.");
           throw Object.assign(error, { codeRequired: !!data?.code_required });
         }
         set({ token: data.token, user: data.user });
