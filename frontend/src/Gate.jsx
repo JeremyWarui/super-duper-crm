@@ -5,8 +5,7 @@ import { useCampaigns, useMe } from "./api/hooks";
 import { homeOf, landingOf } from "./lib/home";
 import Login from "./components/Login";
 import Admin from "./components/Admin";
-import NoCampaign from "./components/NoCampaign";
-import CampaignClosed from "./components/CampaignClosed";
+import SignedInNotice, { NoCampaign } from "./components/SignedInNotice";
 import App from "./App";
 import Portal from "./pages/party/Portal";
 import Join from "./components/Join";
@@ -68,7 +67,7 @@ function SignedIn() {
   // A staff login is never on a campaign, so it needs no campaign list to be routed.
   if (staff && partyRoles?.length) return <Portal />;
   if (campaigns.error?.code === "campaign_suspended") {
-    return <Legacy><CampaignClosed message={campaigns.error.message} /></Legacy>;
+    return <Legacy><SignedInNotice title={campaigns.error.message} rest=". Your campaign's data is kept, and the campaign opens again if the party reinstates its aspirant." /></Legacy>;
   }
   if (campaigns.isSuccess && campaigns.data.length === 0) {
     return partyRoles?.length ? <Portal /> : <Legacy><NoCampaign /></Legacy>;

@@ -1,30 +1,18 @@
 // The public page a volunteer's private link opens: stop volunteer contact, keep the membership.
 import { useSite, useWithdrawVolunteer } from "../../api/hooks";
-import { Button } from "../../components/ui";
+import LinkAction from "../../components/LinkAction";
 import { partyColours } from "./colours";
 
 export default function WithdrawVolunteer({ code }) {
   const party = useSite();
-  const withdraw = useWithdrawVolunteer(code);
   return (
-    <div className="join-shell" style={partyColours(party.data)}>
-      <div className="join-card">
-        <div className="join-heading">Stop volunteer contact</div>
-        {withdraw.isSuccess ? (
-          <div className="join-message-success">{withdraw.data.message}</div>
-        ) : (
-          <>
-            <div className="join-note">
-              This link stops the party contacting you about volunteering. Your membership stays
-              as it is.
-            </div>
-            {withdraw.error && <div className="join-error">{withdraw.error.message}</div>}
-            <Button tone="danger" disabled={withdraw.isPending} onClick={() => withdraw.mutate()} className="join-submit">
-              {withdraw.isPending ? "Stopping…" : "Stop volunteer contact"}
-            </Button>
-          </>
-        )}
-      </div>
-    </div>
+    <LinkAction
+      action={useWithdrawVolunteer(code)}
+      style={partyColours(party.data)}
+      heading="Stop volunteer contact"
+      note="This link stops the party contacting you about volunteering. Your membership stays as it is."
+      label="Stop volunteer contact"
+      busyLabel="Stopping…"
+    />
   );
 }

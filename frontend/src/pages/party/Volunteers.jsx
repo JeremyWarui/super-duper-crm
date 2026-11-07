@@ -8,11 +8,10 @@ import {
   useUpdateVolunteer,
 } from "../../api/hooks";
 import { Badge, Button, ErrorState, FormActions, LoadingState, Modal, Pager, PageTitle, Panel } from "../../components/ui";
-import { AREA_LABEL, AREAS, CONTACT_LABEL, NO_PLACE, PAGE_SIZE, PROFESSION_LABEL, STATUS_LABEL, STATUS_TONE, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE } from "./helpers";
+import { AREA_LABEL, AREAS, CONTACT_LABEL, NO_PLACE, PAGE_SIZE, placeOf, PROFESSION_LABEL, STATUS_LABEL, STATUS_TONE, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE } from "./helpers";
 import { formatDate } from "../../lib/format";
 import PlaceFilters from "./PlaceFilters";
 
-const place = (v) => [v.ward.name, v.constituency.name, v.county.name].join(" / ");
 const areasOf = (v) =>
   v.interests.map((x) => (x === "other" && v.interest_other ? `Other: ${v.interest_other}` : AREA_LABEL[x] || x)).join(", ");
 const professionOf = (v) =>
@@ -28,7 +27,7 @@ function Detail({ row, onClose }) {
   const save = (body) => update.mutate({ id: v.id, ...body });
 
   return (
-    <Modal title={v.full_name} sub={place(v)} onClose={onClose}>
+    <Modal title={v.full_name} sub={placeOf(v)} onClose={onClose}>
       <div className="modal-text">
         <div><Badge text={VOLUNTEER_STATUS_LABEL[v.status]} tone={VOLUNTEER_STATUS_TONE[v.status]} /></div>
         <div className="muted">Phone: {v.phone}</div>
@@ -145,7 +144,7 @@ export default function Volunteers() {
                 <tr key={v.id}>
                   <td className="strong"><button type="button" className="link-button" onClick={() => setOpenId(v.id)}>{v.full_name}</button></td>
                   <td className="muted">{v.phone}</td>
-                  <td className="muted">{place(v)}</td>
+                  <td className="muted">{placeOf(v)}</td>
                   <td><Badge text={VOLUNTEER_STATUS_LABEL[v.status]} tone={VOLUNTEER_STATUS_TONE[v.status]} /></td>
                   <td className="muted">{professionOf(v)}</td>
                   <td className="muted">{areasOf(v)}</td>

@@ -3,12 +3,12 @@ import { useMemo, useState } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppPage } from "@/components/layout/AppPage";
-import { WsTopBar } from "@/components/layout/WsTopBar";
+import { CrmTopBar } from "@/components/layout/CrmTopBar";
 import { useBranding } from "@/theme/branding";
 import { useAuth } from "./store/auth";
 import { useCampaigns } from "./api/hooks";
 import Legacy from "./components/Legacy";
-import NoCampaign from "./components/NoCampaign";
+import { NoCampaign } from "./components/SignedInNotice";
 import { ErrorMsg, Loading } from "./pages/campaign/controls";
 import { ROLE_LABEL, navFor, pagesOf } from "./pages/campaign/helpers";
 import { useInstall } from "./app/site";
@@ -108,7 +108,7 @@ function Shell({ campaign, role, where }) {
         card={<SeatCard campaign={campaign} winNumber={data.strategy?.win_number} />}
         footer={<AccessFooter role={role} wards={data.wards} />}
         topBar={(bar) => (
-          <WsTopBar
+          <CrmTopBar
             {...bar}
             search={<WorkspaceSearch data={data} role={role} />}
             tools={<><AreaPicker /><WorkspaceAlerts data={data} role={role} /><WorkspaceHelp /></>}

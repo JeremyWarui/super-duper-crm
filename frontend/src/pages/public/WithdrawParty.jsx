@@ -1,31 +1,18 @@
 // The public page an applicant's private link opens: take their details off the party register.
 import { useSite, useWithdrawParty } from "../../api/hooks";
-import { Button } from "../../components/ui";
+import LinkAction from "../../components/LinkAction";
 import { partyColours } from "./colours";
 
 export default function WithdrawParty({ code }) {
   const party = useSite();
-  const withdraw = useWithdrawParty(code);
   return (
-    <div className="join-shell" style={partyColours(party.data)}>
-      <div className="join-card">
-        <div className="join-heading">Withdraw from the party</div>
-        {withdraw.isSuccess ? (
-          <div className="join-message-success">{withdraw.data.message}</div>
-        ) : (
-          <>
-            <div className="join-note">
-              This link withdraws the application or membership it came with, if that
-              application put your number on the register. The party keeps the record with the
-              status withdrawn; to have your details erased, contact the party.
-            </div>
-            {withdraw.error && <div className="join-error">{withdraw.error.message}</div>}
-            <Button tone="danger" disabled={withdraw.isPending} onClick={() => withdraw.mutate()} className="join-submit">
-              {withdraw.isPending ? "Withdrawing…" : "Withdraw"}
-            </Button>
-          </>
-        )}
-      </div>
-    </div>
+    <LinkAction
+      action={useWithdrawParty(code)}
+      style={partyColours(party.data)}
+      heading="Withdraw from the party"
+      note="This link withdraws the application or membership it came with, if that application put your number on the register. The party keeps the record with the status withdrawn; to have your details erased, contact the party."
+      label="Withdraw"
+      busyLabel="Withdrawing…"
+    />
   );
 }

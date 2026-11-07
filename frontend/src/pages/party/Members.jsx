@@ -10,11 +10,10 @@ import {
   usePartyMembers,
 } from "../../api/hooks";
 import { Badge, Button, ErrorState, FormActions, LoadingState, Modal, Pager, PageTitle, Panel } from "../../components/ui";
-import { MOVES, NO_PLACE, PAGE_SIZE, STATUS_LABEL, STATUS_TONE } from "./helpers";
+import { MOVES, NO_PLACE, PAGE_SIZE, placeOf, STATUS_LABEL, STATUS_TONE } from "./helpers";
 import { formatDate } from "../../lib/format";
 import PlaceFilters from "./PlaceFilters";
 
-const place = (m) => [m.ward.name, m.constituency.name, m.county.name].join(" / ");
 const ERASABLE = ["withdrawn", "rejected"];
 
 function Erase({ member }) {
@@ -48,7 +47,7 @@ function Detail({ row, onClose }) {
   const actions = m.erased_at ? [] : MOVES[m.status] || [];
 
   return (
-    <Modal title={m.full_name} sub={place(m)} onClose={onClose}>
+    <Modal title={m.full_name} sub={placeOf(m)} onClose={onClose}>
       <div className="modal-text">
         <div><Badge text={STATUS_LABEL[m.status]} tone={STATUS_TONE[m.status]} /></div>
         <div className="muted">Phone: {m.phone}</div>
@@ -169,7 +168,7 @@ export default function Members() {
                 <tr key={m.id}>
                   <td className="strong"><button type="button" className="link-button" onClick={() => setOpen(m)}>{m.full_name}</button></td>
                   <td className="muted">{m.phone}</td>
-                  <td className="muted">{place(m)}</td>
+                  <td className="muted">{placeOf(m)}</td>
                   <td><Badge text={STATUS_LABEL[m.status]} tone={STATUS_TONE[m.status]} /></td>
                   <td className="muted">{formatDate(m.created_at)}</td>
                 </tr>

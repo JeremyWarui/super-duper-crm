@@ -5,11 +5,11 @@ import { useDeclineMessage, useDeleteMessage, useDraftMessage, useMessageLog, us
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Input, Textarea } from "@/components/ui/input";
+import { DeclineForm, DeclinedNote, DeliveryBadges, MessageField } from "@/components/SmsParts";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { useDraft } from "@/lib/draft";
-import { formatDate, formatNumber as fmt, plural } from "@/lib/format";
-import { DELIVERY_STATUS, FOOTER, partsOf } from "@/lib/sms";
+import { formatDate, plural } from "@/lib/format";
+import { DELIVERY_STATUS, FOOTER } from "@/lib/sms";
 import { cn } from "@/lib/utils";
 import SendError from "./SendError";
 import WsHeader, { KitLoading } from "./WsHeader";
@@ -48,7 +48,6 @@ function Compose({ campaign, data }) {
   const reach = useMessageReach(campaign.id, form.wards);
   const save = useDraftMessage();
   const text = form.body.trim() + FOOTER;
-  const parts = partsOf(text);
   const count = reach.data?.recipients ?? null;
   const ready = form.body.trim().length > 0 && text.length <= 918 && !save.isPending;
 
@@ -83,9 +82,7 @@ function Compose({ campaign, data }) {
         {data.wards.length === 0 && <p className="text-small text-muted-foreground">No supporter has agreed to texts yet.</p>}
       </div>
 
-      <Field label="Message" hint={<>{plural(text.length, "character")} · {plural(parts, "SMS part")} each · "Reply STOP to opt out" is added</>}>
-        <Textarea rows={5} maxLength={895} value={form.body} onChange={(e) => change({ body: e.target.value })} />
-      </Field>
+      <MessageField value={form.body} onChange={(body) => change({ body })} text={text} />
 
       {save.error && <SendError error={save.error} onRetry={() => submit(confirming)} />}
       {done && <p role="status" className="font-semibold text-ok-foreground">{done}</p>}
@@ -144,11 +141,8 @@ function Drafts({ data }) {
           <p className="whitespace-pre-wrap">{m.body}</p>
           <p className="text-small text-muted-foreground">{m.drafted_by} · {formatDate(m.created_at)} · {wardsOf(m)}</p>
           {declining === m.id ? (
-            <div className="flex flex-wrap items-end gap-2">
-              <Field label="Why (optional)" className="min-w-0 flex-1"><Input value={note} onChange={(e) => setNote(e.target.value)} /></Field>
-              <Button shape="rounded" size="sm" variant="outline" disabled={busy} onClick={() => decline.mutate({ id: m.id, note }, { onSuccess: () => { setDeclining(null); setNote(""); } })}>Decline</Button>
-              <Button shape="rounded" size="sm" variant="quiet" onClick={() => setDeclining(null)}>Keep it</Button>
-            </div>
+            <DeclineForm note={note} onNote={setNote} busy={busy} onKeep={() => setDeclining(null)}
+              onDecline={() => decline.mutate({ id: m.id, note }, { onSuccess: () => { setDeclining(null); setNote(""); } })} />
           ) : (
             <div className="flex flex-wrap gap-2">
               {data.can_send && <Button shape="rounded" size="sm" disabled={busy} onClick={() => approve.mutate(m.id)}>Approve and send</Button>}
@@ -178,10 +172,10 @@ function History({ data }) {
             {formatDate(m.decided_at || m.created_at)} · {wardsOf(m)} · {m.status === "declined" ? `declined by ${m.decided_by}` : `${plural(m.recipients, "recipient")}, sent by ${m.decided_by}`}
           </p>
           {m.status === "declined" ? (
-            <div><Badge tone="stone">Declined</Badge>{m.note && <span className="ml-2 text-small">{m.note}</span>}</div>
+            <DeclinedNote note={m.note} />
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              {Object.entries(DELIVERY_STATUS).map(([key, [label, tone]]) => m.delivery[key] > 0 && <Badge key={key} tone={tone}>{label} {fmt(m.delivery[key])}</Badge>)}
+              <DeliveryBadges delivery={m.delivery} />
               {data.can_send && (
                 <Button shape="rounded" size="sm" variant="quiet" aria-expanded={open === m.id} onClick={() => setOpen(open === m.id ? null : m.id)}>
                   {open === m.id ? "Hide delivery log" : "Delivery log"}

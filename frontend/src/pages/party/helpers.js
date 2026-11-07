@@ -1,4 +1,7 @@
 
+/** A register row's place, as "Ward / Constituency / County". */
+export const placeOf = (row) => [row.ward.name, row.constituency.name, row.county.name].join(" / ");
+
 /** A place filter with nothing chosen. */
 export const NO_PLACE = { county: "", constituency: "", ward: "" };
 

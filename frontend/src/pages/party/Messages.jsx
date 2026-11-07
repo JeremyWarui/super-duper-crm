@@ -2,12 +2,12 @@
 // Admin approves and sends, and only people whose consent covers SMS receive one.
 import { useState } from "react";
 import { useDeclinePartyMessage, useDraftPartyMessage, usePartyMessageReach, usePartyMessages, usePartyPlaceLists, useSendPartyMessage } from "@/api/hooks";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Input, Textarea } from "@/components/ui/input";
-import { formatDate, formatNumber as fmt, plural } from "@/lib/format";
-import { DELIVERY_STATUS, FOOTER, partsOf } from "@/lib/sms";
+import { Field } from "@/components/ui/input";
+import { DeclineForm, DeclinedNote, DeliveryBadges, MessageField } from "@/components/SmsParts";
+import { formatDate, plural } from "@/lib/format";
+import { FOOTER } from "@/lib/sms";
 import { cn } from "@/lib/utils";
 import { ErrorText } from "@/components/ui/error-text";
 
@@ -87,9 +87,7 @@ function Compose() {
           </>
         )}
       </p>
-      <Field label="Message" hint={<>{plural(text.length, "character")} · {plural(partsOf(text), "SMS part")} each · "Reply STOP to opt out" is added</>}>
-        <Textarea rows={5} maxLength={895} value={body} onChange={(e) => touch(setBody)(e.target.value)} />
-      </Field>
+      <MessageField value={body} onChange={touch(setBody)} text={text} />
       <ErrorText error={save.error} />
       {done && <p role="status" className="font-semibold text-ok-foreground">{done}</p>}
       <Button shape="rounded" className="self-start" disabled={!ready}
@@ -121,11 +119,8 @@ function Drafts({ data }) {
           {!data.can_send ? null : m.mine ? (
             <p className="text-small text-muted-foreground">Someone else approves your own draft.</p>
           ) : declining === m.id ? (
-            <div className="flex flex-wrap items-end gap-2">
-              <Field label="Why (optional)" className="min-w-0 flex-1"><Input value={note} onChange={(e) => setNote(e.target.value)} /></Field>
-              <Button shape="rounded" size="sm" variant="outline" disabled={busy} onClick={() => decline.mutate({ id: m.id, note }, { onSuccess: () => { setDeclining(null); setNote(""); } })}>Decline</Button>
-              <Button shape="rounded" size="sm" variant="quiet" onClick={() => setDeclining(null)}>Keep it</Button>
-            </div>
+            <DeclineForm note={note} onNote={setNote} busy={busy} onKeep={() => setDeclining(null)}
+              onDecline={() => decline.mutate({ id: m.id, note }, { onSuccess: () => { setDeclining(null); setNote(""); } })} />
           ) : (
             <div className="flex flex-wrap gap-2">
               <Button shape="rounded" size="sm" disabled={busy} onClick={() => approve.mutate(m.id)}>Approve and send</Button>
@@ -151,10 +146,10 @@ function History({ data }) {
             {formatDate(m.decided_at || m.created_at)} · {WHO[m.audience]}, {m.place} · {m.status === "declined" ? `declined by ${m.decided_by}` : `${plural(m.recipients, "recipient")}, approved by ${m.decided_by}`}
           </p>
           {m.status === "declined" ? (
-            <div><Badge tone="stone">Declined</Badge>{m.note && <span className="ml-2 text-small">{m.note}</span>}</div>
+            <DeclinedNote note={m.note} />
           ) : (
             <div className="flex flex-wrap gap-2">
-              {Object.entries(DELIVERY_STATUS).map(([key, [label, tone]]) => m.delivery[key] > 0 && <Badge key={key} tone={tone}>{label} {fmt(m.delivery[key])}</Badge>)}
+              <DeliveryBadges delivery={m.delivery} />
             </div>
           )}
         </article>
