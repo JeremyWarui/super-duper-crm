@@ -31,4 +31,6 @@ def test_every_image_is_pinned_and_the_app_runs_as_a_non_root_user():
 
     assert all("@sha256:" in image for image in pulled + based + copied)
     assert re.search(r"^USER app$", dockerfile, re.MULTILINE)
+    # The app finds alembic/ and data/ beside its source, so it is not copied into site-packages.
+    assert "--no-editable" not in dockerfile
     assert "ports" not in compose["services"]["app"]

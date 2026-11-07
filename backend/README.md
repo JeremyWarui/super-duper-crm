@@ -683,9 +683,9 @@ are served only when `DEBUG` is on.
 
 ## Migrations
 
-One revision, `alembic/versions/…-schema_20261024.py`, builds the schema. After the
-revisions are folded into one again, a database built from the old chain is
-relabelled or rebuilt as `DEPLOY.md` describes.
+The schema is built by the chain of revisions in `alembic/versions/`, oldest first,
+each named `YYYYMMDD_HHMM-<revision id>.py`. Every revision runs on both Postgres and
+SQLite, so test both lanes after adding one (see `docs/handover/Developer_Guide.md`).
 
 ```bash
 uv run alembic revision --autogenerate -m "what changed"

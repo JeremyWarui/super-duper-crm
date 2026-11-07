@@ -80,6 +80,16 @@ Each service has its own README, its own tests, and runs on its own.
 `frontend/tests/contract.test.js` checks the SPA's fixtures and source still
 match. Rename a field on one side and both fail until the other catches up.
 
+## Handover
+
+Each copy is installed and run by the buyer. What they need is in two places:
+
+- [`deploy/`](deploy/README.md): the self-host package, one Docker Compose file with the
+  database, the app, HTTPS and nightly backups.
+- [`docs/handover/`](docs/handover/): the guides for running and changing a copy:
+  `IT_Operations.md`, `Admin_Guide.md`, `User_Guides/`, `Developer_Guide.md`,
+  `Handover_Checklist.md` (what the buyer receives and signs for), and `samples/`.
+
 ## The idea
 
 Everything hangs off one number. Give the app a seat and an area and it pulls in

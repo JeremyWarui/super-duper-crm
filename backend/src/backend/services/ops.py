@@ -274,7 +274,10 @@ def kept(names: list[str]) -> set[str]:
         weeks.setdefault(when.isocalendar()[:2], name)
     newest_days = sorted(days, reverse=True)[:KEEP_DAILY]
     newest_weeks = sorted(weeks, reverse=True)[:KEEP_WEEKLY]
-    return {days[d] for d in newest_days} | {weeks[w] for w in newest_weeks}
+    # Every archive of the newest day stays, so a backup taken before a restore never
+    # removes the one being restored.
+    latest = {name for when, name in dated if when.date() == dated[0][0].date()}
+    return {days[d] for d in newest_days} | {weeks[w] for w in newest_weeks} | latest
 
 
 def prune(folder: Path) -> list[str]:
@@ -323,8 +326,7 @@ def restore(path: Path, *, confirmed: bool) -> str:
         raise Refused(f"No archive at {path}.")
     db = _database()
     with tempfile.TemporaryDirectory() as work:
-        with tarfile.open(path, "r:gz") as archive:
-            archive.extractall(work, filter="data")
+        unpack(path, Path(work))
         dump = Path(work) / "database.dump"
         if not dump.is_file():
             raise Refused("That archive has no database.dump; it is not a backup.")
@@ -340,17 +342,47 @@ def restore(path: Path, *, confirmed: bool) -> str:
             ],
             db.env,
         )
-        uploads = Path(get_settings().upload_dir)
         restored = Path(work) / "uploads"
         if restored.is_dir():
-            if uploads.exists():
-                uploads.rename(
-                    uploads.with_name(
-                        f"{uploads.name}.before-restore-{datetime.now():%Y%m%d-%H%M%S}"
-                    )
+            settings = get_settings()
+            try:
+                replace_uploads(
+                    restored, Path(settings.upload_dir), keep_in=Path(settings.backup_dir)
                 )
-            shutil.copytree(restored, uploads)
+            except OSError as failed:
+                raise Refused(
+                    f"The database was restored, but the uploaded files were not: {failed}. "
+                    "Fix the cause and run the restore again."
+                ) from failed
     return "Restored. Restart the app so it reads the restored data."
+
+
+def unpack(path: Path, into: Path) -> None:
+    """Extract an archive; refused, with nothing changed, when it cannot be read."""
+    try:
+        with tarfile.open(path, "r:gz") as archive:
+            archive.extractall(into, filter="data")
+    except (OSError, EOFError, tarfile.TarError) as failed:
+        raise Refused(f"That archive could not be read: {failed}. Nothing was changed.") from failed
+
+
+def replace_uploads(restored: Path, uploads: Path, *, keep_in: Path) -> Path | None:
+    """Put the archive's uploads in place, first copying the current ones into `keep_in`.
+
+    Swaps the folder's contents, never the folder, which may be a mounted volume. Returns
+    where the old uploads were kept, if there were any.
+    """
+    kept = None
+    if uploads.exists():
+        kept = keep_in / f"uploads.before-restore-{datetime.now():%Y%m%d-%H%M%S}"
+        shutil.copytree(uploads, kept)
+        for child in uploads.iterdir():
+            if child.is_dir() and not child.is_symlink():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+    shutil.copytree(restored, uploads, dirs_exist_ok=True)
+    return kept
 
 
 # Test sends
@@ -372,7 +404,7 @@ async def test_sms(session: AsyncSession, phone: str, *, actor: User) -> str:
     )
     await session.commit()
     if result.provider == "console":
-        return "SMS is not configured: the text was printed to the server log, not sent."
+        return "SMS is not configured: the text was recorded, not sent."
     if not result.delivered:
         raise Refused(f"The text did not send: {result.detail or 'the gateway refused it'}")
     return f"Sent to {number}."

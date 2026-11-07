@@ -66,9 +66,9 @@ def test_backups_keep_fourteen_days_and_eight_weeks() -> None:
     keep = ops.kept(names)
 
     days = {n[7:15] for n in keep}
-    assert len(keep) <= 14 + 8
+    assert len(keep) <= 14 + 8 + 1
     assert {f"202611{d:02d}" for d in range(17, 31)} <= days
-    assert all(n.endswith("-020000.tar.gz") for n in keep)
+    assert all(n.endswith("-020000.tar.gz") for n in keep if "20261130" not in n)
 
 
 async def test_the_audit_trail_filters_by_action_user_and_date(
@@ -120,3 +120,55 @@ def test_pruning_never_touches_a_file_the_backup_did_not_write(tmp_path: Path) -
 
     assert sorted(gone) == sorted(set(ours) - ops.kept(ours))
     assert all((tmp_path / name).exists() for name in others)
+
+
+def test_a_restore_swaps_the_uploads_contents_and_keeps_the_old_ones_with_the_backups(
+    tmp_path: Path, monkeypatch
+):
+    uploads, restored = tmp_path / "uploads", tmp_path / "archive"
+    (uploads / "old").mkdir(parents=True)
+    (uploads / "old" / "a.png").write_bytes(b"old")
+    (restored / "new").mkdir(parents=True)
+    (restored / "new" / "b.png").write_bytes(b"new")
+    real_rename = Path.rename
+
+    def mounted(self, target):
+        if self == uploads:
+            raise OSError(16, "Device or resource busy")
+        return real_rename(self, target)
+
+    monkeypatch.setattr(Path, "rename", mounted)
+
+    kept_in = tmp_path / "backups"
+    kept_in.mkdir()
+
+    kept = ops.replace_uploads(restored, uploads, keep_in=kept_in)
+
+    assert sorted(p.name for p in uploads.rglob("*.png")) == ["b.png"]
+    assert kept.parent == kept_in
+    assert (kept / "old" / "a.png").read_bytes() == b"old"
+
+
+def test_a_restore_of_an_unreadable_archive_says_nothing_was_changed(tmp_path: Path) -> None:
+    broken = tmp_path / "backup-20261106-120000.tar.gz"
+    broken.write_bytes(b"not an archive")
+
+    with pytest.raises(Refused, match="Nothing was changed"):
+        ops.unpack(broken, tmp_path)
+
+
+def test_a_practice_email_with_its_link_reaches_the_app_log() -> None:
+    import logging
+
+    import backend.main  # noqa: F401
+
+    app_logger = logging.getLogger("backend")
+
+    assert logging.getLogger("backend.services.email").isEnabledFor(logging.INFO)
+    assert app_logger.handlers
+
+
+def test_a_second_backup_on_the_same_day_keeps_the_first() -> None:
+    nightly, by_hand = "backup-20261107-000001.tar.gz", "backup-20261107-091500.tar.gz"
+
+    assert ops.kept([nightly, by_hand]) == {nightly, by_hand}

@@ -4,10 +4,9 @@
 
 name: campaign-crm
 
-# Built once, by the app service; migrate and backup run the same image.
+# Built by the app service; migrate and backup run the same image.
 x-app: &app
   image: campaign-crm-app:local
-  pull_policy: never
   env_file: .env
   environment:
     DB_HOST: db
@@ -39,6 +38,7 @@ services:
   # Brings the schema up to date, then exits; the app starts only after it succeeds.
   migrate:
     <<: *app
+    pull_policy: never
     command: ["alembic", "upgrade", "head"]
     restart: "no"
     healthcheck:
@@ -52,7 +52,6 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    pull_policy: build
     environment:
       DB_HOST: db
       DB_PORT: "5432"
@@ -69,6 +68,7 @@ services:
   # in the backups volume.
   backup:
     <<: *app
+    pull_policy: never
     entrypoint: ["sh", "/deploy/nightly-backup.sh"]
     command: []
     # A small init passes `docker compose down` on to the script, so it stops at once.

@@ -163,7 +163,7 @@ export function Modal({ title, sub, onClose, locked, children }) {
 export const linkNote = (sent, username) =>
   sent === "email"
     ? `We emailed ${username} a link to choose their password.`
-    : `${username} has no email, so no link could be sent. Add an email to their login, then send a reset link from the console.`;
+    : `${username} has no email, so no link could be sent. Ask the IT person to add one to their login, then send a reset link from the console.`;
 
 // Shown after a login is made: the invite went out by email, or could not.
 export const InviteModal = ({ title, invite, username, onClose, children }) => (

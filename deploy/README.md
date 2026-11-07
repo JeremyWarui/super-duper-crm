@@ -17,6 +17,7 @@ person is `docs/handover/IT_Operations.md`; this page lists what is here.
 cd deploy
 cp .env.example .env        # then fill in the required lines
 docker compose up -d --build
+docker compose exec app campaign-crm seed         # the map data; takes a few minutes
 docker compose exec app campaign-crm setup-token
 ```
 

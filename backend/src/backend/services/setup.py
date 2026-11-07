@@ -246,7 +246,7 @@ async def test_service(session: AsyncSession, key: str, user: User) -> str:
         )
         await session.commit()
         if result.provider == "console":
-            return "Printed to the server log in practice mode; nothing was sent."
+            return "Recorded in practice mode; nothing was sent."
         if not result.delivered:
             raise Refused(f"The text did not send: {result.detail or 'the gateway refused it'}")
         return f"Sent to {phone}."

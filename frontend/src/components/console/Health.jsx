@@ -37,6 +37,22 @@ function TestSend({ kind, label, note }) {
   );
 }
 
+/** Sends one email to the signed-in superuser's own address. */
+function TestEmail() {
+  const send = useTestService();
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-ui font-semibold">Send a test email</span>
+      <span className="text-small text-muted-foreground">Goes to your own login's email; in practice mode it is only logged.</span>
+      <Button type="button" shape="rounded" variant="quiet" className="self-start" disabled={send.isPending} onClick={() => send.mutate("email")}>
+        {send.isPending ? "Sending…" : "Send a test email"}
+      </Button>
+      {send.data && <p role="status" className="text-ui font-semibold text-primary">{send.data.message}</p>}
+      {send.error && <p role="alert" className="text-ui font-semibold text-destructive">{send.error.message}</p>}
+    </div>
+  );
+}
+
 /** A check that Google answers, once its keys are set. */
 function SignIn({ google }) {
   const check = useTestService();
@@ -72,7 +88,7 @@ export default function Health() {
         <Row label="Migration">
           {h.migration.up_to_date
             ? <Badge tone="ok">Up to date ({h.migration.current})</Badge>
-            : <Badge tone="warn">At {h.migration.current || "unknown"}, latest {h.migration.head || "unknown"}: run alembic upgrade head</Badge>}
+            : <Badge tone="warn">At {h.migration.current || "unknown"}, latest {h.migration.head || "unknown"}: the database needs updating (docker compose up -d, or alembic upgrade head)</Badge>}
         </Row>
         <Row label="Organisation type"><span className="capitalize">{h.organisation_type || "not set up"}</span></Row>
         {h.disks.map((d) => <Row key={d.label} label={`Free space, ${d.label.toLowerCase()}`}>{size(d.free_bytes)} of {size(d.total_bytes)}</Row>)}
@@ -84,6 +100,7 @@ export default function Health() {
           <Row key={s.key} label={s.label}>{s.configured ? <Badge tone="ok">Configured ({s.mode})</Badge> : <Badge tone="stone">Not configured</Badge>}</Row>
         ))}
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <TestEmail />
           <TestSend kind="sms" label="Send a test SMS" note="Sends one short text." />
           <TestSend kind="payout" label="Make a practice payout" note="KES 1 in practice mode; refused where payouts are live." />
         </div>
@@ -93,7 +110,7 @@ export default function Health() {
         <h2 className="text-card-title font-bold">Backups</h2>
         <p className="text-ui">
           Last backup: <strong>{last ? `${when(last.at)} (${last.status})` : "never"}</strong>.{" "}
-          <span className="text-muted-foreground">Run <code>campaign-crm backup</code> on the server every night; it keeps 14 daily and 8 weekly archives.</span>
+          <span className="text-muted-foreground">A nightly job runs <code>campaign-crm backup</code>; it keeps 14 daily and 8 weekly archives.</span>
         </p>
         {backups.length > 0 && (
           <Table stack minWidth={560}>

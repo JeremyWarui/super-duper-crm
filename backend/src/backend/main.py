@@ -26,6 +26,16 @@ from backend.services import membership, reconcile
 log = logging.getLogger(__name__)
 
 
+def _show_app_logs() -> None:
+    """Print the app's INFO lines, which carry practice-mode emails and their links."""
+    logger = logging.getLogger("backend")
+    logger.setLevel(logging.INFO)
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+        logger.addHandler(handler)
+
+
 async def _apply_party_requests(every: int) -> None:
     """Apply queued public party requests on a fixed clock, every `every` seconds, in a party
     installation only.
@@ -94,6 +104,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    _show_app_logs()
     app.add_middleware(InstallationType)
     register_error_handlers(app)
     app.include_router(api_router)
