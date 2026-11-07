@@ -5,6 +5,7 @@ import { useSaveWorkspaceSettings, useWorkspaceSettings } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
+import { ErrorText } from "@/components/ui/error-text";
 
 const LINES = [
   ["name", "Site name", 150],
@@ -60,7 +61,7 @@ function SettingsForm({ settings }) {
         {TEXTS.map(([key, label, rows]) => (
           <Field key={key} label={label}><Textarea rows={rows} value={form[key] ?? ""} onChange={set(key)} /></Field>
         ))}
-        {save.error ? <p role="alert" className="text-small font-semibold text-destructive">{save.error.message}</p> : null}
+        <ErrorText error={save.error} className="text-small" />
         {save.isSuccess ? <p role="status" className="text-small text-muted-foreground">Saved.</p> : null}
         <Button type="submit" shape="rounded" className="self-start" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save settings"}</Button>
       </form>

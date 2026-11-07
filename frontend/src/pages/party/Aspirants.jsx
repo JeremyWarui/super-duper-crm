@@ -13,78 +13,42 @@ import {
   useMoveAspirant,
   useNominate,
   useNominationWindows,
-  usePartyPlaces,
+  usePartyPlaceLists,
   usePublishNominationWindow,
   useReviseNominationWindow,
 } from "../../api/hooks";
-import {
-  Badge,
-  Button,
-  ErrorState,
-  LoadingState,
-  Modal,
-  PageTitle,
-  Panel,
-  InviteModal,
-} from "../../components/ui";
-import {
-  ASPIRANT_MOVES,
-  ASPIRANT_STATUS_LABEL,
-  ASPIRANT_STATUS_TONE,
-  NEEDS_REASON,
-  SEAT_AREA,
-  SEAT_LABEL,
-  SEATS,
-} from "./helpers";
+import { Badge, Button, ErrorState, FilterSelect, FormActions, InviteModal, LoadingState, Modal, Pager, PageTitle, Panel } from "../../components/ui";
+import { ASPIRANT_MOVES, ASPIRANT_STATUS_LABEL, ASPIRANT_STATUS_TONE, NEEDS_REASON, PAGE_SIZE, SEAT_AREA, SEAT_LABEL, SEATS } from "./helpers";
 import { formatDate, formatKES } from "../../lib/format";
-
-const PAGE_SIZE = 50;
-
-function Select({ label, value, onChange, options, disabled, blank }) {
-  return (
-    <select
-      aria-label={label}
-      className="app-field filter-field"
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="">{blank}</option>
-      {(options || []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-    </select>
-  );
-}
 
 // County, then constituency, then ward, down to the level the seat is fought over.
 function AreaPicker({ level, area, setArea }) {
-  const counties = usePartyPlaces();
-  const constituencies = usePartyPlaces({ county: area.county, enabled: !!area.county });
-  const wards = usePartyPlaces({ constituency: area.constituency, enabled: !!area.constituency });
+  const { counties, constituencies, wards } = usePartyPlaceLists(area);
   return (
     <div className="flex flex-wrap gap-2 chip-row">
-      <Select
+      <FilterSelect
         label="County"
         blank="Pick the county"
         value={area.county}
-        options={counties.data}
+        options={counties}
         onChange={(county) => setArea({ county, constituency: "", ward: "" })}
       />
       {level !== "county" && (
-        <Select
+        <FilterSelect
           label="Constituency"
           blank="Pick the constituency"
           value={area.constituency}
-          options={constituencies.data}
+          options={constituencies}
           disabled={!area.county}
           onChange={(constituency) => setArea({ ...area, constituency, ward: "" })}
         />
       )}
       {level === "ward" && (
-        <Select
+        <FilterSelect
           label="Ward"
           blank="Pick the ward"
           value={area.ward}
-          options={wards.data}
+          options={wards}
           disabled={!area.constituency}
           onChange={(ward) => setArea({ ...area, ward })}
         />
@@ -150,12 +114,12 @@ function Nominate({ onClose }) {
       </select>
       <AreaPicker level={level} area={area} setArea={setArea} />
       {nominate.isError && <div className="form-error">{nominate.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button primary disabled={!ready || nominate.isPending} onClick={submit}>
           {nominate.isPending ? "Nominating…" : "Nominate"}
         </Button>
-      </div>
+      </FormActions>
     </Modal>
   );
 }
@@ -203,11 +167,11 @@ function Workspace({ aspirant, onDone }) {
           placeholder="The manager's email, to sign in with" value={form.manager_email} onChange={set("manager_email")} />
       ) : null}
       {create.isError && <div className="form-error">{create.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Button primary disabled={form.candidate.trim().length < 3 || !isEmail(form.candidate_email) || (form.manager.trim() && !isEmail(form.manager_email)) || create.isPending} onClick={submit}>
           {create.isPending ? "Creating…" : "Create workspace"}
         </Button>
-      </div>
+      </FormActions>
     </div>
   );
 }
@@ -253,7 +217,7 @@ function Detail({ row, onClose }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
-          <div className="flex justify-end gap-2 form-actions">
+          <FormActions>
             {actions.map(([status, label]) => (
               <Button
                 key={status + label}
@@ -266,7 +230,7 @@ function Detail({ row, onClose }) {
                 {label}
               </Button>
             ))}
-          </div>
+          </FormActions>
         </>
       )}
       {move.isError && <div className="form-error">{move.error.message}</div>}
@@ -382,10 +346,10 @@ function TimetableForm({ window: w, onClose }) {
       </fieldset>
       <textarea aria-label="Requirements" className="app-field" rows={4} maxLength={5000} placeholder="Requirements aspirants must meet" value={form.requirements} onChange={set("requirements")} />
       {save.isError && <div className="form-error">{save.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button primary disabled={!ready || save.isPending} onClick={submit}>{save.isPending ? "Saving…" : "Save draft"}</Button>
-      </div>
+      </FormActions>
     </Modal>
   );
 }
@@ -459,15 +423,7 @@ export default function Aspirants() {
           </table>
         </div>
       </Panel>
-      <div className="flex items-center justify-between gap-2 chip-row">
-        <span className="meta">
-          {total === 0 ? "0 nominations" : `${offset + 1}–${offset + items.length} of ${total}`}
-        </span>
-        <div className="flex gap-2">
-          <Button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Previous</Button>
-          <Button disabled={offset + PAGE_SIZE >= total} onClick={() => setOffset(offset + PAGE_SIZE)}>Next</Button>
-        </div>
-      </div>
+      <Pager offset={offset} size={PAGE_SIZE} shown={items.length} total={total} noun="nominations" onChange={setOffset} />
       {nominating && <Nominate onClose={() => setNominating(false)} />}
       {open && <Detail row={open} onClose={() => setOpen(null)} />}
       {linked && !open && <Linked id={linked} onClose={closeLinked} />}

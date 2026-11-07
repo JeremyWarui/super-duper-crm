@@ -1,7 +1,7 @@
 // The party office's texts to members and volunteers: the Comms Officer drafts, the Party Super
 // Admin approves and sends, and only people whose consent covers SMS receive one.
 import { useState } from "react";
-import { useDeclinePartyMessage, useDraftPartyMessage, usePartyMessageReach, usePartyMessages, usePartyPlaces, useSendPartyMessage } from "@/api/hooks";
+import { useDeclinePartyMessage, useDraftPartyMessage, usePartyMessageReach, usePartyMessages, usePartyPlaceLists, useSendPartyMessage } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Field, Input, Textarea } from "@/components/ui/input";
 import { formatDate, formatNumber as fmt, plural } from "@/lib/format";
 import { DELIVERY_STATUS, FOOTER, partsOf } from "@/lib/sms";
 import { cn } from "@/lib/utils";
+import { ErrorText } from "@/components/ui/error-text";
 
 const AUDIENCES = [
   ["members", "Members", "members who ticked SMS updates when they joined"],
@@ -50,9 +51,7 @@ function Compose() {
   const [ward, setWard] = useState("");
   const [body, setBody] = useState("");
   const [done, setDone] = useState("");
-  const counties = usePartyPlaces().data || [];
-  const constituencies = usePartyPlaces({ county, enabled: !!county }).data || [];
-  const wards = usePartyPlaces({ constituency, enabled: !!constituency }).data || [];
+  const { counties, constituencies, wards } = usePartyPlaceLists({ county, constituency });
   const place = { audience, county: county || null, constituency: constituency || null, ward: ward || null };
   const reach = usePartyMessageReach(place);
   const save = useDraftPartyMessage();
@@ -91,7 +90,7 @@ function Compose() {
       <Field label="Message" hint={<>{plural(text.length, "character")} · {plural(partsOf(text), "SMS part")} each · "Reply STOP to opt out" is added</>}>
         <Textarea rows={5} maxLength={895} value={body} onChange={(e) => touch(setBody)(e.target.value)} />
       </Field>
-      {save.error && <p role="alert" className="font-semibold text-destructive">{save.error.message}</p>}
+      <ErrorText error={save.error} />
       {done && <p role="status" className="font-semibold text-ok-foreground">{done}</p>}
       <Button shape="rounded" className="self-start" disabled={!ready}
         onClick={() => save.mutate({ ...place, body: body.trim() }, { onSuccess: () => { setBody(""); setDone("Saved. The Party Super Admin approves it before it is sent."); } })}>
@@ -114,7 +113,7 @@ function Drafts({ data }) {
   return (
     <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Waiting for approval">
       <h2 className="text-h3 font-bold">Waiting for approval</h2>
-      {failed && <p role="alert" className="font-semibold text-destructive">{failed.message}</p>}
+      <ErrorText error={failed} />
       {drafts.map((m) => (
         <article key={m.id} className="grid gap-2 rounded-lg border border-line p-3" aria-label={`Draft by ${m.drafted_by}`}>
           <p className="whitespace-pre-wrap">{m.body}</p>

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatKES } from "../lib/format";
+import { ErrorText } from "@/components/ui/error-text";
 
 const LABEL = { pending: "Waiting for the phone", paid: "Paid", to_confirm: "To confirm", failed: "Failed", rejected: "Rejected" };
 const TONE = { pending: "stone", paid: "ok", to_confirm: "warn", failed: "bad", rejected: "bad" };
@@ -32,7 +33,7 @@ export default function PaymentsInTable({ campaignId }) {
         {view !== "To confirm" && rows.length ? <span className="text-ui text-muted-foreground">Paid in this list: {formatKES(total)}</span> : null}
       </div>
       {list.error ? <p role="alert" className="text-destructive">{list.error.message}</p> : null}
-      {decide.error ? <p role="alert" className="font-semibold text-destructive">{decide.error.message}</p> : null}
+      <ErrorText error={decide.error} />
       <Table stack minWidth={720}>
         <THead><TR><TH>Date</TH><TH>Payer</TH><TH>For</TH><TH align="right">Amount</TH><TH>M-Pesa code</TH><TH>Status</TH><TH><span className="sr-only">Actions</span></TH></TR></THead>
         <TBody>

@@ -10,7 +10,8 @@ import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatDate, formatNumber as fmt } from "@/lib/format";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
 
 const ROLE = { mobilizer: "Mobilizer", agent: "Agent" };
 
@@ -24,8 +25,8 @@ function LeftTeam({ campaign }) {
         Mobilizers and agents who were turned down or are off the team. Erasing clears their name, phone, email and ID number.
       </p>
       {isLoading && <KitLoading />}
-      {error && <KitError error={error} />}
-      {erase.isError && <p role="alert" className="font-semibold text-destructive">{erase.error.message}</p>}
+      <ErrorText error={error} />
+      <ErrorText error={erase.error} />
       {data && (
         <Table stack minWidth={520}>
           <THead><TR><TH>Name</TH><TH>Signed up as</TH><TH>Outcome</TH><TH>Signed up</TH><TH><span className="sr-only">Erase</span></TH></TR></THead>
@@ -56,7 +57,7 @@ function Retention({ campaign, state }) {
         <Input type="number" min={1} max={60} value={months} onChange={(e) => setMonths(e.target.value)} />
       </Field>
       <Button size="sm" shape="rounded" variant="quiet" disabled={save.isPending || Number(months) === state.retention_months} onClick={() => save.mutate(Number(months))}>Save</Button>
-      {save.error ? <p role="alert" className="w-full text-small font-semibold text-destructive">{save.error.message}</p> : null}
+      <ErrorText error={save.error} className="w-full text-small" />
     </div>
   );
 }
@@ -68,7 +69,7 @@ function Closing({ campaign, role }) {
   const [asking, setAsking] = useState(false);
   const candidate = role === "candidate";
   if (isLoading) return <KitLoading />;
-  if (error) return <KitError error={error} />;
+  if (error) return <ErrorText error={error} />;
   const due = state.erase_from && new Date(state.erase_from) <= new Date();
   return (
     <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="After the election">
@@ -93,7 +94,7 @@ function Closing({ campaign, role }) {
                   <Button shape="rounded" variant="ghost" onClick={() => setAsking(false)}>Cancel</Button>
                 </div>
               )}
-              {close.error ? <p role="alert" className="font-semibold text-destructive">{close.error.message}</p> : null}
+              <ErrorText error={close.error} />
             </>
           ) : <p className="text-small text-muted-foreground">Only the candidate closes the campaign.</p>}
         </>
@@ -107,7 +108,7 @@ function Closing({ campaign, role }) {
           {candidate && due ? (
             <EraseButton name="every supporter's details" pending={eraseAll.isPending} onErase={(done) => eraseAll.mutate(undefined, { onSuccess: done })} />
           ) : null}
-          {eraseAll.error ? <p role="alert" className="font-semibold text-destructive">{eraseAll.error.message}</p> : null}
+          <ErrorText error={eraseAll.error} />
         </>
       )}
     </Card>

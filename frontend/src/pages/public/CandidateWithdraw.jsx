@@ -4,6 +4,7 @@ import { useCandidateWithdraw } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import PageHead from "./PageHead";
+import { ErrorText } from "@/components/ui/error-text";
 
 export default function CandidateWithdraw() {
   const { code } = useParams();
@@ -17,7 +18,7 @@ export default function CandidateWithdraw() {
         ) : (
           <>
             <p className="text-base">Take your details off the campaign's volunteer list this link came with.</p>
-            {withdraw.error ? <p role="alert" className="text-small font-semibold text-destructive">{withdraw.error.message}</p> : null}
+            <ErrorText error={withdraw.error} className="text-small" />
             <Button className="self-start" disabled={withdraw.isPending} onClick={() => withdraw.mutate(code)}>Remove my details</Button>
           </>
         )}

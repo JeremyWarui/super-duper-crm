@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatNumber as fmt, plural } from "../../lib/format";
-import { Badge, Chip, Modal } from "../../components/ui";
+import { Badge, Chip, FormActions, Modal } from "../../components/ui";
 import { useInviteToEvent } from "../../api/hooks";
 import { useAuth } from "../../store/auth";
 import { FOOTER, partsOf } from "../../lib/sms";
@@ -49,11 +49,11 @@ export default function InviteForm({ event, onClose }) {
       {result && <InviteResult result={result} />}
       {invite.isError && <div className="form-error">{invite.error.message}</div>}
 
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Close</Btn>
         <Btn onClick={() => send(true)} disabled={!ok}>{invite.isPending ? "Working…" : "Preview"}</Btn>
         {canSend && <PrimaryBtn disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</PrimaryBtn>}
-      </div>
+      </FormActions>
     </Modal>
   );
 }

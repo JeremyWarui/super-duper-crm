@@ -9,7 +9,9 @@ import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { useCopy } from "@/copy";
 import { formatNumber as fmt } from "@/lib/format";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
+import { StatTiles } from "@/components/ui/stat-tiles";
 
 const LEVELS = { All: null, Supporter: "supporter", Undecided: "undecided", Opposed: "opposed" };
 const TONE = { supporter: "ok", undecided: "warn", opposed: "bad" };
@@ -42,14 +44,7 @@ function Summary({ all }) {
   const count = (level) => all.filter((s) => s.support_level === level).length;
   const tiles = [["On the register", all.length], ["Supporters", count("supporter")], ["Undecided", count("undecided")], ["Consent missing", all.filter((s) => !s.consent_given).length]];
   return (
-    <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
-      {tiles.map(([label, value]) => (
-        <Card key={label} variant="tile">
-          <span className="text-ui text-muted-foreground">{label}</span>
-          <span className="font-display text-[28px] leading-tight font-extrabold tabular-nums">{fmt(value)}</span>
-        </Card>
-      ))}
-    </section>
+    <StatTiles min={150} tiles={tiles.map(([label, value]) => [label, fmt(value)])} />
   );
 }
 
@@ -76,7 +71,7 @@ export default function Supporters({ campaign, role, mine, onModal }) {
     <>
       <WsHeader context={mine ? "My work" : "Field"} title={mine ? "My supporters" : "Supporters"} sub={copy.supportersSub} actions={action} />
       {isLoading && <KitLoading />}
-      {error && <KitError error={error} />}
+      <ErrorText error={error} />
       {data && (
         <>
           <Summary all={all} />
@@ -115,8 +110,8 @@ export default function Supporters({ campaign, role, mine, onModal }) {
                 {shown.length === 0 && <TR><TD colSpan={6} className="text-muted-foreground">None yet.</TD></TR>}
               </TBody>
             </Table>
-            {place.isError && <p role="alert" className="font-semibold text-destructive">{place.error.message}</p>}
-            {erase.isError && <p role="alert" className="font-semibold text-destructive">{erase.error.message}</p>}
+            <ErrorText error={place.error} />
+            <ErrorText error={erase.error} />
             {linkFor && <WithdrawalLink key={linkFor.id} campaign={campaign} supporter={linkFor} onClose={() => setLinkFor(null)} />}
           </Card>
         </>

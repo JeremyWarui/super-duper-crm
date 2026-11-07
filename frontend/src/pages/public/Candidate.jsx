@@ -12,6 +12,7 @@ import { Crumbs } from "@/components/ui/typography";
 import { AREAS, CONTACT_METHODS, PROFESSIONS, SEAT_LABEL, SEATS } from "@/pages/party/helpers";
 import { Photo, day } from "./story";
 import { isEmail } from "../../lib/email";
+import { ErrorText } from "@/components/ui/error-text";
 
 /** The seat an aspirant is vying for, as their badge says it. */
 export const vying = (seat) => `Vying for ${SEAT_LABEL[seat]}`;
@@ -101,7 +102,7 @@ export function SupportForm({ c, send, withdrawPath }) {
           <input type="checkbox" className="mt-0.5 size-[18px] flex-none accent-primary" checked={f.consent_given} onChange={(e) => setF({ ...f, consent_given: e.target.checked })} />
           {c.consent_wording}
         </label>
-        {send.error ? <p role="alert" className="text-small font-semibold text-destructive">{send.error.message}</p> : null}
+        <ErrorText error={send.error} className="text-small" />
         {!ok ? <p className="text-small text-muted-foreground">Fill in every field, tick at least one way to help and agree above to send this.</p> : null}
         <Button type="submit" disabled={!ok || send.isPending}>{send.isPending ? "Sending…" : "I'll volunteer"}</Button>
       </form>

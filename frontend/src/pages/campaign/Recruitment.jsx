@@ -4,6 +4,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { useRecruitment, useReplaceRecruitment } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ErrorText } from "@/components/ui/error-text";
+import { useClipboard } from "../../lib/useClipboard";
 
 const STATUSES = [
   ["pending", "Waiting for a decision"],
@@ -16,6 +18,7 @@ const STATUSES = [
 export default function Recruitment() {
   const recruitment = useRecruitment();
   const replace = useReplaceRecruitment();
+  const { copied, copy } = useClipboard();
   const data = recruitment.data;
   const link = data ? `${window.location.origin}/join-party?r=${data.code}` : "";
   return (
@@ -35,11 +38,11 @@ export default function Recruitment() {
               <QRCodeSVG value={link} size={176} title="Recruitment link QR code" />
             </div>
             <div className="flex flex-wrap gap-2.5">
-              <Button shape="rounded" variant="outline" onClick={() => navigator.clipboard?.writeText(link)}>Copy link</Button>
+              <Button shape="rounded" variant="outline" onClick={() => copy(link)}>{copied ? "Copied" : "Copy link"}</Button>
               <Button shape="rounded" variant="quiet" disabled={replace.isPending} onClick={() => replace.mutate()}>Replace link</Button>
             </div>
             <p className="text-small text-muted-foreground">Replacing it stops the old link and QR code from recruiting.</p>
-            {replace.error ? <p role="alert" className="text-small font-semibold text-destructive">{replace.error.message}</p> : null}
+            <ErrorText error={replace.error} className="text-small" />
           </Card>
           <Card variant="outline" className="min-w-0 flex-[1_1_300px] gap-3">
             <h2 className="text-card-title font-bold">Applicants through your link</h2>

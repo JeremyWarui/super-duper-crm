@@ -1,4 +1,4 @@
-import { InviteModal, Modal } from "../../components/ui";
+import { FormActions, InviteModal, Modal } from "../../components/ui";
 import { useSetManager } from "../../api/hooks";
 import { Btn, PrimaryBtn } from "./controls";
 import LoginFields, { useLoginFields } from "./LoginFields";
@@ -22,10 +22,10 @@ export default function ManagerForm({ campaignId, sitting, onClose }) {
     <Modal title={sitting ? "Replace manager" : "Add manager"} sub={sitting ? `${sitting.full_name || sitting.username} comes off the campaign and their login is turned off.` : "One manager per campaign. They add mobilizers and run the day-to-day."} onClose={onClose}>
       <LoginFields form={fields.form} set={fields.set} />
       {set.error && <div className="form-error">{set.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!fields.ok || set.isPending} onClick={save}>{set.isPending ? "Saving…" : sitting ? "Replace manager" : "Add manager"}</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

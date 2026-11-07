@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { useAgents, useCreateAssignment, useMobilizers } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
 import { useWardOptions } from "./helpers";
@@ -74,10 +74,10 @@ export default function AssignForm({ campaignId, event, member, onClose }) {
       <Label>Amount (KES)</Label>
       <input aria-label="Amount" type="number" min={1} step={1} className="app-field" value={amount} onChange={(e) => setAmount(e.target.value)} />
       {create.error && <div className="form-error">{create.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!ok || create.isPending} onClick={save}>{create.isPending ? "Saving…" : "Assign"}</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

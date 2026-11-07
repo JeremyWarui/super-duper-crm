@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { usePayoutMode, useReleaseCheck, useReleasePayment } from "../../api/hooks";
 import { PrimaryBtn, Btn } from "./controls";
 import { formatKES } from "../../lib/format";
@@ -48,14 +48,14 @@ export default function ReleaseForm({ payments, onClose }) {
           return <div key={p.id} className="flex justify-between gap-3"><span><b>{p.recipient_name}</b> <span className="muted">{p.recipient_phone || "no phone"}</span></span><span>{formatKES(p.amount_kes)}{r && <span className={`inline-badge ${r.ok ? "text-good" : r.pending ? "text-warn" : "text-bad"}`}>{r.ok ? `Paid · ${r.text}` : r.pending ? "Sending: Paystack confirms it" : r.text}</span>}</span></div>;
         })}
       </div>
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         {results ? <PrimaryBtn onClick={onClose}>Done</PrimaryBtn> : (
           <>
             <Btn onClick={onClose} disabled={running}>Back</Btn>
             <PrimaryBtn disabled={!mode || !cover?.enough || running} onClick={send}>{running ? "Sending…" : payments.length === 1 ? "Release" : `Release ${payments.length}`}</PrimaryBtn>
           </>
         )}
-      </div>
+      </FormActions>
     </Modal>
   );
 }

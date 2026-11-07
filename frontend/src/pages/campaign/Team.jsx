@@ -8,7 +8,9 @@ import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { ROLE_LABEL } from "./helpers";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
+import { StatTiles } from "@/components/ui/stat-tiles";
 
 const ORDER = ["candidate", "manager", "coordinator", "comms", "mobilizer", "agent"];
 const TONE = { candidate: "ink", manager: "primary", coordinator: "tint", comms: "info", mobilizer: "stone", agent: "stone" };
@@ -47,18 +49,10 @@ export default function Team({ campaign, role, onModal }) {
     <>
       <WsHeader context="People" title="Team" sub="Everyone with a login on this campaign." actions={actions} />
       {isLoading && <KitLoading />}
-      {error && <KitError error={error} />}
+      <ErrorText error={error} />
       {data && (
         <>
-          <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-            {tiles.map(([label, value, note]) => (
-              <Card key={label} variant="tile">
-                <span className="text-ui text-muted-foreground">{label}</span>
-                <span className="truncate font-display text-[24px] leading-tight font-extrabold tabular-nums">{value}</span>
-                <span className="text-small text-muted-foreground">{note}</span>
-              </Card>
-            ))}
-          </section>
+          <StatTiles tiles={tiles} valueClassName="truncate text-[24px] leading-tight" />
           {!manager && role === "candidate" && (
             <div role="note" className="rounded-lg border border-[#F2D98A] bg-warn px-4 py-3 text-ui text-warn-foreground">
               This campaign has no manager yet. Add one to run the day-to-day.

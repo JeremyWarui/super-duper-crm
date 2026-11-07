@@ -300,6 +300,12 @@ describe("the party workspace's recruitment page", () => {
     expect(await screen.findByText(/\/join-party\?r=Zx9$/)).toBeInTheDocument();
     expect(screen.getByTitle("Recruitment link QR code")).toBeInTheDocument();
     expect(screen.getByText("Waiting for a decision").nextSibling.textContent).toBe("4");
+
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
+    expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
+    expect(writeText.mock.calls[0][0]).toMatch(/\/join-party\?r=Zx9$/);
   });
 
   it("gives a coordinator a read-only list of the members in their area, with no export", async () => {

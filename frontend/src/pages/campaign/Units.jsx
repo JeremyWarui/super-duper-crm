@@ -8,7 +8,8 @@ import { FilterPills } from "@/components/ui/tabs";
 import { formatNumber as fmt } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { assignerFor, holderOf, statusOf } from "./helpers";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
 
 const TONE = { good: "ok", warn: "warn", bad: "bad" };
 const BAR = { good: "bg-primary", warn: "bg-accent", bad: "bg-bad-foreground" };
@@ -45,7 +46,7 @@ export default function Units({ campaign, role, onModal }) {
     <>
       <WsHeader context="Plan" title={role === "candidate" ? `${noun} performance` : `${noun}s`} sub="Win number, progress and coverage in each one." />
       {strategy.isLoading && <KitLoading />}
-      {strategy.error && <KitError error={strategy.error} />}
+      <ErrorText error={strategy.error} />
       {units && (
         <Card variant="outline" className="min-w-0 gap-3" role="region" aria-labelledby="units-h">
           <div className="flex flex-wrap items-center justify-between gap-3">

@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatDate, formatNumber as fmt } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
 
 const SWITCHES = [
   ["event_reach", "Event reach summary", "Totals reached and attended at your events"],
@@ -23,7 +24,7 @@ export default function PartyFeed({ campaign }) {
     <>
       <WsHeader context="Reach out" title="Party feed & sharing" sub="What the party shares with you, and what you share back." />
       {page.isLoading && <KitLoading />}
-      {page.error && <KitError error={page.error} />}
+      <ErrorText error={page.error} />
       {data && (
         <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <Feed data={data} />
@@ -98,7 +99,7 @@ function Sharing({ campaign, data }) {
           <Toggle label="Supporter list" checked={false} disabled />
         </li>
       </ul>
-      {change.error && <p role="alert" className="font-semibold text-destructive">{change.error.message}</p>}
+      <ErrorText error={change.error} />
       <div className="flex flex-col gap-1 rounded-lg bg-muted p-4">
         <h3 className="font-bold">What the party sees right now</h3>
         {seen.length ? seen.map((s) => <span key={s}>• {s}</span>) : <span className="text-muted-foreground">Nothing. Every share is off.</span>}

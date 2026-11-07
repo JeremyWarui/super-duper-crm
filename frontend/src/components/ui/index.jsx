@@ -158,6 +158,32 @@ export function Modal({ title, sub, onClose, locked, children }) {
   );
 }
 
+/** "51–100 of 240" with Previous and Next, for a list fetched `size` rows at a time from `offset`. */
+export function Pager({ offset, size, shown, total, noun, onChange }) {
+  return (
+    <div className="flex items-center justify-between gap-2 chip-row">
+      <span className="meta">{total === 0 ? `0 ${noun}` : `${offset + 1}–${offset + shown} of ${total}`}</span>
+      <div className="flex gap-2">
+        <Button disabled={offset === 0} onClick={() => onChange(Math.max(0, offset - size))}>Previous</Button>
+        <Button disabled={offset + size >= total} onClick={() => onChange(offset + size)}>Next</Button>
+      </div>
+    </div>
+  );
+}
+
+/** A filter list whose first, blank option reads `blank` and means no filter. `options` are { id, name } rows. */
+export function FilterSelect({ label, value, onChange, options, blank, disabled }) {
+  return (
+    <select aria-label={label} className="app-field filter-field" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+      <option value="">{blank}</option>
+      {(options || []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+    </select>
+  );
+}
+
+/** The right-aligned row of buttons at the foot of a form or modal. */
+export const FormActions = ({ children }) => <div className="flex justify-end gap-2 form-actions">{children}</div>;
+
 // A password shown once; a click on the backdrop leaves it open.
 // What happened to a new login's emailed invite, or a reset link: "email" or "none".
 export const linkNote = (sent, username) =>
@@ -169,6 +195,6 @@ export const linkNote = (sent, username) =>
 export const InviteModal = ({ title, invite, username, onClose, children }) => (
   <Modal title={title} sub={linkNote(invite, username)} onClose={onClose}>
     {children && <div className="modal-text">{children}</div>}
-    <div className="flex justify-end gap-2 form-actions"><Button primary onClick={onClose}>Done</Button></div>
+    <FormActions><Button primary onClick={onClose}>Done</Button></FormActions>
   </Modal>
 );

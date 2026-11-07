@@ -9,8 +9,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
 import { formatDate } from "../../lib/format";
+import { ErrorText } from "@/components/ui/error-text";
+import { useClipboard } from "../../lib/useClipboard";
 
 const VIEWS = { Waiting: "pending", Approved: "approved", "Not approved": "rejected" };
 const ROLE = { mobilizer: "Mobilizer", agent: "Agent" };
@@ -19,7 +21,7 @@ const LINK_WRITERS = ["candidate", "manager"];
 function TeamLinkCard({ campaign, role }) {
   const link = useTeamLink(campaign.id);
   const replace = useReplaceTeamLink();
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useClipboard();
   const url = link.data ? `${window.location.origin}/team/${link.data.code}` : "";
   return (
     <Card variant="outline" className="min-w-0 flex-[1_1_360px] gap-4" role="region" aria-label="Team link">
@@ -27,14 +29,14 @@ function TeamLinkCard({ campaign, role }) {
         <h2 className="text-card-title font-bold">Team sign-up link</h2>
         <p className="text-ui text-muted-foreground">Share it with people who want to be mobilizers or agents. Every sign-up waits for a decision here.</p>
       </div>
-      {link.error && <KitError error={link.error} />}
+      <ErrorText error={link.error} />
       {link.data && (
         <div className="flex flex-wrap items-start gap-5">
           <div className="rounded-xl border border-line bg-white p-3"><QRCodeSVG value={url} size={132} title="Team sign-up QR code" /></div>
           <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-3">
             <a href={url} className="break-all font-semibold">{url}</a>
             <div className="flex flex-wrap gap-2">
-              <Button shape="rounded" variant="quiet" size="sm" onClick={() => navigator.clipboard?.writeText(url).then(() => setCopied(true), () => setCopied(false))}>{copied ? "Copied" : "Copy link"}</Button>
+              <Button shape="rounded" variant="quiet" size="sm" onClick={() => copy(url)}>{copied ? "Copied" : "Copy link"}</Button>
               {LINK_WRITERS.includes(role) && <Button shape="rounded" variant="ghost" size="sm" disabled={replace.isPending} onClick={() => replace.mutate(campaign.id)}>Replace link</Button>}
             </div>
             {LINK_WRITERS.includes(role) && <p className="text-small text-muted-foreground">Replacing it stops the old link and QR code from working.</p>}
@@ -58,7 +60,7 @@ function Decision({ campaign, row, onDone }) {
           <Button shape="rounded" size="sm" variant="danger" disabled={reason.trim().length < 3 || decide.isPending} onClick={() => send("reject")}>Reject with this reason</Button>
           <Button shape="rounded" size="sm" variant="ghost" onClick={() => setRejecting(false)}>Back</Button>
         </div>
-        {decide.error && <p role="alert" className="text-small font-semibold text-destructive">{decide.error.message}</p>}
+        <ErrorText error={decide.error} className="text-small" />
       </div>
     );
   }
@@ -68,7 +70,7 @@ function Decision({ campaign, row, onDone }) {
         <Button shape="rounded" size="sm" disabled={decide.isPending} onClick={() => send("approve")} aria-label={`Approve ${row.full_name}`}>Approve</Button>
         <Button shape="rounded" size="sm" variant="quiet" onClick={() => setRejecting(true)} aria-label={`Reject ${row.full_name}`}>Reject</Button>
       </div>
-      {decide.error && <p role="alert" className="text-small font-semibold text-destructive">{decide.error.message}</p>}
+      <ErrorText error={decide.error} className="text-small" />
     </div>
   );
 }
@@ -95,7 +97,7 @@ export default function Signups({ campaign, role }) {
         <FilterPills label="Status" options={Object.keys(VIEWS)} value={view} onChange={(v) => { setView(v); setDone(""); }} />
         {done && <p role="status" className="rounded-lg bg-primary-tint p-3 text-ui font-semibold text-primary">{done}</p>}
         {rows.isLoading && <KitLoading />}
-        {rows.error && <KitError error={rows.error} />}
+        <ErrorText error={rows.error} />
         {rows.data && (
           <Table stack minWidth={760}>
             <THead><TR>

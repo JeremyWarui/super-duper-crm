@@ -12,7 +12,9 @@ import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { useCopy } from "@/copy";
 import { AREA_LABEL, CONTACT_LABEL, PROFESSION_LABEL } from "../party/helpers";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
+import { StatTiles } from "@/components/ui/stat-tiles";
 
 const TONE = { interested: "warn", active: "ok", inactive: "bad", withdrawn: "stone" };
 const LABEL = { interested: "Interested", active: "Active", inactive: "Inactive", withdrawn: "Withdrawn" };
@@ -43,25 +45,17 @@ export default function Volunteers({ campaign, role }) {
     <>
       <WsHeader context="Field" title="Volunteers" sub="People who offered to help on the candidate's website page." />
       {isLoading && <KitLoading />}
-      {error && <KitError error={error} />}
+      <ErrorText error={error} />
       {data && (
         <>
-          <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-            {tiles.map(([label, value, note]) => (
-              <Card key={label} variant="tile">
-                <span className="text-ui text-muted-foreground">{label}</span>
-                <span className="font-display text-[28px] leading-tight font-extrabold tabular-nums">{value}</span>
-                <span className="text-small text-muted-foreground">{note}</span>
-              </Card>
-            ))}
-          </section>
+          <StatTiles tiles={tiles} />
           <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Volunteers">
             <div className="flex flex-wrap items-center gap-3">
               <FilterPills label="Status" options={Object.keys(FILTERS)} value={filter} onChange={setFilter} />
               <Input type="search" aria-label="Search volunteers" placeholder="Name, phone or ward" className="max-w-xs" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
-            {update.isError && <p role="alert" className="font-semibold text-destructive">{update.error.message}</p>}
-            {erase.isError && <p role="alert" className="font-semibold text-destructive">{erase.error.message}</p>}
+            <ErrorText error={update.error} />
+            <ErrorText error={erase.error} />
             <Table stack minWidth={900}>
               <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Ward</TH><TH>Helps with</TH><TH>Profession</TH><TH>Contact by</TH><TH>Status</TH><TH className="relative"><span className="sr-only">Actions</span></TH></TR></THead>
               <TBody>

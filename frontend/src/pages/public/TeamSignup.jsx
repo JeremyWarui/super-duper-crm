@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { useSignupCentres, useSubmitSignup, useTeamSignup } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { ErrorText } from "@/components/ui/error-text";
 
 const ROLES = [
   ["mobilizer", "Mobilizer", "Recruit supporters and run events in your area."],
@@ -97,7 +98,7 @@ export default function TeamSignup() {
                 <input type="checkbox" checked={form.consent_given} onChange={set("consent_given")} className="mt-1 size-[18px] accent-primary" />
                 <span>{data.consent_wording}</span>
               </label>
-              {submit.error ? <p role="alert" className="text-ui font-semibold text-destructive">{submit.error.message}</p> : null}
+              <ErrorText error={submit.error} className="text-ui" />
               <Button type="submit" size="lg" disabled={submit.isPending || !ready}>{submit.isPending ? "Sending…" : "Sign up"}</Button>
             </form>
           )}

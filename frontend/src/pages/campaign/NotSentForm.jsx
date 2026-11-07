@@ -1,4 +1,4 @@
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { useMarkNotSent } from "../../api/hooks";
 import { Btn, PrimaryBtn } from "./controls";
 import { formatKES } from "../../lib/format";
@@ -9,10 +9,10 @@ export default function NotSentForm({ payment, onClose }) {
   return (
     <Modal title="Didn't go out" sub={`Only if the payout provider shows that ${formatKES(payment.amount_kes)} to ${payment.recipient_name} was not sent. The payment can then be released again.`} onClose={onClose}>
       {notSent.error && <div className="form-error">{notSent.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Back</Btn>
         <PrimaryBtn disabled={notSent.isPending} onClick={() => notSent.mutate({ id: payment.id }, { onSuccess: onClose })}>It was not sent</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

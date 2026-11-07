@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { formatDate, nairobiDate } from "@/lib/format";
+import { ErrorText } from "@/components/ui/error-text";
 
 const KINDS = { access: "Access to their data", correction: "Correction", erasure: "Erasure" };
 const DAYS = { access: 7, correction: 14, erasure: 14 };
@@ -35,7 +36,7 @@ function LogForm({ campaignId, onDone }) {
         <Field label="Phone or email to answer"><Input value={form.requester_contact} maxLength={254} onChange={set("requester_contact")} required /></Field>
       </div>
       <Field label="What they asked for"><Textarea rows={3} value={form.details} maxLength={4000} onChange={set("details")} /></Field>
-      {save.error ? <p role="alert" className="text-small font-semibold text-destructive">{save.error.message}</p> : null}
+      <ErrorText error={save.error} className="text-small" />
       <div className="flex gap-2">
         <Button type="submit" shape="rounded" disabled={save.isPending}>{save.isPending ? "Saving…" : "Log request"}</Button>
         <Button type="button" shape="rounded" variant="ghost" onClick={onDone}>Cancel</Button>
@@ -67,7 +68,7 @@ function Answer({ campaignId, request }) {
           <Button size="sm" shape="rounded" variant="quiet" disabled={save.isPending} onClick={() => save.mutate({ id: request.id, status: "open" })}>Reopen</Button>
         )}
       </div>
-      {save.error ? <p role="alert" className="text-small font-semibold text-destructive">{save.error.message}</p> : null}
+      <ErrorText error={save.error} className="text-small" />
     </div>
   );
 }

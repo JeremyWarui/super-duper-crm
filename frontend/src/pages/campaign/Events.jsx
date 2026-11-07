@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatNumber as fmt } from "@/lib/format";
 import AttendanceCard from "./AttendanceCard";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
 
 const ASSIGNERS = ["candidate", "manager", "coordinator"];
 const RECORDERS = ["candidate", "manager", "coordinator", "mobilizer"];
@@ -125,7 +126,7 @@ export default function Events({ campaign, role, onModal, mine }) {
       <WsHeader context={mine ? "My work" : "Field"} title={mine ? "My events" : "Events"} sub="Rallies and meetings, with mobilization counts." actions={actions} />
       <FilterPills label="When" options={Object.keys(WHEN)} value={when} onChange={setWhen} />
       {events.isLoading && <KitLoading />}
-      {events.error && <KitError error={events.error} />}
+      <ErrorText error={events.error} />
       {events.data && mine && when === "Upcoming" && <MyUpcoming rows={rows} records={acts} onQr={(ev) => onModal({ type: "qr", event: ev })} />}
       {events.data && !(mine && when === "Upcoming") && (
         <section aria-label="Event list" className="flex flex-col gap-3">

@@ -1,4 +1,10 @@
 
+/** A place filter with nothing chosen. */
+export const NO_PLACE = { county: "", constituency: "", ward: "" };
+
+/** Rows each party list fetches at a time. */
+export const PAGE_SIZE = 50;
+
 export const PARTY_ROLES = [
   ["membership_officer", "Membership Officer"],
   ["nominations_officer", "Nominations Officer"],

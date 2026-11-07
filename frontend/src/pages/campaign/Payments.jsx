@@ -7,7 +7,9 @@ import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatDate, formatKES, plural } from "../../lib/format";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
+import { StatTiles } from "@/components/ui/stat-tiles";
 
 const TONE = { scheduled: "warn", sending: "info", paid: "ok", failed: "bad", cancelled: "stone" };
 const LABEL = { scheduled: "Scheduled", sending: "Sending", paid: "Paid", failed: "To retry", cancelled: "Cancelled" };
@@ -32,15 +34,7 @@ function Summary({ rows }) {
     ["Paid", formatKES(sum("paid")), "this campaign so far"],
   ];
   return (
-    <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-      {tiles.map(([label, value, note]) => (
-        <Card key={label} variant="tile">
-          <span className="text-ui text-muted-foreground">{label}</span>
-          <span className="font-display text-[28px] leading-tight font-extrabold tabular-nums">{value}</span>
-          <span className="text-small text-muted-foreground">{note}</span>
-        </Card>
-      ))}
-    </section>
+    <StatTiles tiles={tiles} />
   );
 }
 
@@ -95,7 +89,7 @@ export default function Payments({ campaign, role, mine, onModal }) {
         </div>
       )}
       {isLoading && <KitLoading />}
-      {error && <KitError error={error} />}
+      <ErrorText error={error} />
       {data && (
         <>
           <Summary rows={rows} />
@@ -146,7 +140,7 @@ function Differences({ campaign }) {
         <h2 className="text-h3 font-bold">Differences with the payout provider</h2>
         <Button shape="rounded" size="sm" variant="quiet" disabled={now.isPending} onClick={() => now.mutate(campaign.id)}>{now.isPending ? "Checking…" : "Check now"}</Button>
       </div>
-      {(found.error || now.error) && <p role="alert" className="font-semibold text-destructive">{(found.error || now.error).message}</p>}
+      <ErrorText error={found.error || now.error} />
       <p className="text-small text-muted-foreground">
         {!run ? "Not checked yet. It runs once a day." : run.status === "practice" ? run.detail : run.status === "failed" ? `The last check failed: ${run.detail}` : `Last checked ${new Date(run.created_at).toLocaleString()}: ${plural(run.checked, "payment")} compared.`}
       </p>

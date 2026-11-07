@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
 import { isEmail } from "../../lib/email";
 import { isUsername } from "../../lib/username";
+import { ErrorText } from "@/components/ui/error-text";
 
 const STEPS = ["Type", "Name and colours", "Contacts", "First superuser", "Workspace", "Check and finish"];
 const SEATS = [["mca", "MCA", "ward"], ["mp", "MP", "constituency"], ["governor", "Governor", "county"], ["senator", "Senator", "county"], ["women_rep", "Women Rep", "county"]];
@@ -200,7 +201,7 @@ function Done({ result, form }) {
       {!token && (
         <Card variant="outline" className="gap-3">
           <p className="text-ui">Sign in as the superuser to test email and SMS from here.</p>
-          {error && <p role="alert" className="text-ui font-semibold text-destructive">{error}</p>}
+          <ErrorText error={error} className="text-ui" />
           <Button shape="rounded" className="self-start" disabled={busy} onClick={signIn}>{busy ? "Signing in…" : "Sign in and test"}</Button>
         </Card>
       )}
@@ -231,7 +232,7 @@ export default function Setup() {
         <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); checkToken.mutate(token.trim(), { onSuccess: () => setOpened(true) }); }}>
           <p className="text-muted-foreground">On the server, run <code className="rounded bg-stone px-1.5 py-0.5">campaign-crm setup-token</code> and paste the token it prints. It works once, for 24 hours.</p>
           <Field label="Setup token"><Input size="lg" autoComplete="off" autoFocus value={token} onChange={(e) => setToken(e.target.value)} /></Field>
-          {checkToken.error && <p role="alert" className="text-ui font-semibold text-destructive">{checkToken.error.message}</p>}
+          <ErrorText error={checkToken.error} className="text-ui" />
           <Button type="submit" size="lg" disabled={!token.trim() || checkToken.isPending}>{checkToken.isPending ? "Checking…" : "Start setup"}</Button>
         </form>
       </Frame>
@@ -317,7 +318,7 @@ export default function Setup() {
           </dl>
         )}
         {block && step < 5 && <p className="text-ui text-muted-foreground">{block}</p>}
-        {runSetup.error && <p role="alert" className="text-ui font-semibold text-destructive">{runSetup.error.message}</p>}
+        <ErrorText error={runSetup.error} className="text-ui" />
         <div className="flex flex-wrap justify-between gap-2">
           <Button shape="rounded" variant="quiet" disabled={step === 0 || runSetup.isPending} onClick={() => setStep(step - 1)}>Back</Button>
           {step < 5

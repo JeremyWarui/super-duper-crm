@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { holderOf, useUnits } from "./helpers";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
 import { initials } from "@/lib/format";
+import { ErrorText } from "@/components/ui/error-text";
 
 // How many targeted units have a mobilizer, naming the ones that have none.
 function Coverage({ units, mobilizers, noun }) {
@@ -43,7 +44,7 @@ export default function Mobilizers({ campaign, onModal }) {
     <>
       <WsHeader context="Field" title="Mobilizers" sub={`One lead per ${noun}. Mobilizers only see their own ${noun}.`} actions={action} />
       {isLoading && <KitLoading />}
-      {error && <KitError error={error} />}
+      <ErrorText error={error} />
       {data && (
         <>
           {units.length > 0 && <Coverage units={units} mobilizers={people} noun={noun} />}

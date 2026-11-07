@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { useArea, useSetArea } from "../../api/hooks";
 import { Btn, ErrorMsg, Loading, PrimaryBtn } from "./controls";
 import { useUnits } from "./helpers";
@@ -40,10 +40,10 @@ export default function AreaPicker({ campaign, person, onClose }) {
         </div>
       )}
       {save.error && <div className="form-error">{save.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={picked === null || save.isPending} onClick={submit}>{save.isPending ? "Saving…" : `Save ${picked?.size ?? 0} ${noun}`}</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

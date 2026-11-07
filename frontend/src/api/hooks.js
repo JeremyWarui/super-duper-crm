@@ -859,6 +859,14 @@ export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = 
     staleTime: Infinity,
   });
 
+/** The counties, the chosen county's constituencies and the chosen constituency's wards, each [] until loaded. */
+export function usePartyPlaceLists({ county, constituency } = {}) {
+  const counties = usePartyPlaces().data || [];
+  const constituencies = usePartyPlaces({ county, enabled: !!county }).data || [];
+  const wards = usePartyPlaces({ constituency, enabled: !!constituency }).data || [];
+  return { counties, constituencies, wards };
+}
+
 // County branches: published ones for the site, every county's for the superuser.
 export const usePublicBranches = () =>
   useQuery({ queryKey: ["public-branches"], queryFn: () => api("/party/branches/", { anonymous: true }) });

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { ErrorText } from "@/components/ui/error-text";
 
 const KINDS = {
   boundaries: {
@@ -83,7 +84,7 @@ function ImportCard({ kind }) {
         <Button shape="rounded" variant="quiet" disabled={!file || run.isPending} onClick={check}>{run.isPending && !checked ? "Checking…" : "Check file"}</Button>
         <Button shape="rounded" disabled={!checked || run.data?.applied || run.isPending} onClick={apply}>{run.isPending && checked ? "Importing…" : `Import ${title.toLowerCase()}`}</Button>
       </div>
-      {run.error && <p role="alert" className="text-ui font-semibold break-words text-destructive">{run.error.message}</p>}
+      <ErrorText error={run.error} className="text-ui break-words" />
       {report && <Report report={report} />}
     </Card>
   );

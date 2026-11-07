@@ -7,7 +7,8 @@ import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
 import { STATUS_LABEL } from "../party/helpers";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
 
 const TONE = { pending: "warn", approved: "ok", suspended: "warn", rejected: "bad", withdrawn: "stone" };
 
@@ -19,7 +20,7 @@ export default function Members() {
     <>
       <WsHeader context="Recruit" title="Party members" sub="Party members living in your area. View only: each time you open this list, it is recorded." />
       {isLoading && <KitLoading />}
-      {error && <KitError error={error} />}
+      <ErrorText error={error} />
       {data && (
         <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Party members">
           <p className="text-ui text-muted-foreground">{fmt(data.total)} in your area</p>

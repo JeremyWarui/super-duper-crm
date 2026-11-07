@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { useMarkPaid } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
 import { formatKES } from "../../lib/format";
@@ -13,10 +13,10 @@ export default function MarkPaidForm({ payment, onClose }) {
       <Label>M-Pesa or bank reference</Label>
       <input aria-label="Reference" className="app-field" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="QX12AB34" />
       {markPaid.error && <div className="form-error">{markPaid.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Back</Btn>
         <PrimaryBtn disabled={!reference.trim() || markPaid.isPending} onClick={save}>{markPaid.isPending ? "Saving…" : "Mark paid"}</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

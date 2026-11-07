@@ -12,7 +12,8 @@ import { formatDate, formatNumber as fmt, plural } from "@/lib/format";
 import { DELIVERY_STATUS, FOOTER, partsOf } from "@/lib/sms";
 import { cn } from "@/lib/utils";
 import SendError from "./SendError";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
 
 export default function Messages({ campaign }) {
   const page = useMessages(campaign.id);
@@ -21,7 +22,7 @@ export default function Messages({ campaign }) {
     <>
       <WsHeader context="Reach out" title="Messages" sub={data ? senderLine(data) : "SMS to your supporters."} />
       {page.isLoading && <KitLoading />}
-      {page.error && <KitError error={page.error} />}
+      <ErrorText error={page.error} />
       {data && (
         <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <Compose campaign={campaign} data={data} />
@@ -137,7 +138,7 @@ function Drafts({ data }) {
   return (
     <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Waiting for approval">
       <h2 className="text-h3 font-bold">Waiting for approval</h2>
-      {failed && <p role="alert" className="font-semibold text-destructive">{failed.message}</p>}
+      <ErrorText error={failed} />
       {drafts.map((m) => (
         <article key={m.id} className="grid gap-2 rounded-lg border border-line p-3" aria-label={`Draft by ${m.drafted_by}`}>
           <p className="whitespace-pre-wrap">{m.body}</p>
@@ -198,7 +199,7 @@ function History({ data }) {
 function DeliveryLog({ id }) {
   const log = useMessageLog(id);
   if (log.isLoading) return <KitLoading />;
-  if (log.error) return <KitError error={log.error} />;
+  if (log.error) return <ErrorText error={log.error} />;
   return (
     <Table stack minWidth={420}>
       <THead><TR><TH>Number</TH><TH>Status</TH><TH>Detail</TH></TR></THead>

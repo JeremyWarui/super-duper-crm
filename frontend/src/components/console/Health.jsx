@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { ErrorText } from "@/components/ui/error-text";
 
 const GB = 1024 ** 3;
 const size = (bytes) => (bytes == null ? "unknown" : bytes >= GB ? `${(bytes / GB).toFixed(1)} GB` : `${(bytes / 1024 ** 2).toFixed(1)} MB`);
@@ -32,7 +33,7 @@ function TestSend({ kind, label, note }) {
         {send.isPending ? "Sending…" : label}
       </Button>
       {send.data && <p role="status" className="text-ui font-semibold text-primary">{send.data.message}</p>}
-      {send.error && <p role="alert" className="text-ui font-semibold text-destructive">{send.error.message}</p>}
+      <ErrorText error={send.error} className="text-ui" />
     </form>
   );
 }
@@ -48,7 +49,7 @@ function TestEmail() {
         {send.isPending ? "Sending…" : "Send a test email"}
       </Button>
       {send.data && <p role="status" className="text-ui font-semibold text-primary">{send.data.message}</p>}
-      {send.error && <p role="alert" className="text-ui font-semibold text-destructive">{send.error.message}</p>}
+      <ErrorText error={send.error} className="text-ui" />
     </div>
   );
 }
@@ -66,7 +67,7 @@ function SignIn({ google }) {
         </Button>
         {!google && <p className="text-small text-muted-foreground">Google sign-in is off. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to <code>.env</code> and restart.</p>}
         {check.data && <p role="status" className="text-ui font-semibold text-primary">{check.data.message}</p>}
-        {check.error && <p role="alert" className="text-ui font-semibold text-destructive">{check.error.message}</p>}
+        <ErrorText error={check.error} className="text-ui" />
       </div>
     </Card>
   );
@@ -76,7 +77,7 @@ export default function Health() {
   const { data: h, isLoading, error } = useHealth();
   const backups = useBackups().data || [];
   if (isLoading) return <p className="kit text-muted-foreground">Checking…</p>;
-  if (error) return <p role="alert" className="kit font-semibold text-destructive">{error.message}</p>;
+  if (error) return <ErrorText error={error} className="kit" />;
   const last = h.last_backup;
   return (
     <div className="kit flex flex-col gap-4">

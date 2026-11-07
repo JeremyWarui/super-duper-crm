@@ -6,7 +6,8 @@ import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt, plural } from "@/lib/format";
 import { holderOf, statusOf } from "./helpers";
 import StrategyNotes from "./StrategyNotes";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
 
 const TONE = { good: "ok", warn: "warn", bad: "bad" };
 const ADDS_MOBILIZERS = ["candidate", "manager", "coordinator"];
@@ -82,7 +83,7 @@ export default function Overview({ campaign, role, onModal }) {
     <>
       <WsHeader context="Plan" title="Overview" sub={role === "candidate" ? "Where the campaign stands today." : "Your command view of the seat."} actions={actions} />
       {strategy.isLoading && <KitLoading />}
-      {strategy.error && <KitError error={strategy.error} />}
+      <ErrorText error={strategy.error} />
       {strategy.data && (
         <>
           <Hero s={strategy.data} noun={noun} />

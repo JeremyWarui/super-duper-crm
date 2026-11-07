@@ -8,7 +8,8 @@ import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatKES } from "../../lib/format";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
 
 const VIEWS = { "To mark done": "assigned", Done: "done", Cancelled: "cancelled" };
 const TONE = { assigned: "warn", done: "ok", cancelled: "stone" };
@@ -26,9 +27,9 @@ export default function Assignments({ campaign, onModal }) {
       <WsHeader context="Field" title="Assignments" sub="Paid work for mobilizers and agents. Mark it done once it happened; then it can be paid." actions={action} />
       <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Assignments">
         <FilterPills label="Status" options={Object.keys(VIEWS)} value={view} onChange={setView} />
-        {settle.error && <p role="alert" className="font-semibold text-destructive">{settle.error.message}</p>}
+        <ErrorText error={settle.error} />
         {rows.isLoading && <KitLoading />}
-        {rows.error && <KitError error={rows.error} />}
+        <ErrorText error={rows.error} />
         {rows.data && (
           <Table stack minWidth={720}>
             <THead><TR><TH>Work</TH><TH>Who</TH><TH>Where</TH><TH align="right">Amount</TH><TH>Status</TH>{open && <TH className="relative"><span className="sr-only">Actions</span></TH>}</TR></THead>

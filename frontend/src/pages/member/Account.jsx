@@ -23,6 +23,7 @@ import {
   VOLUNTEER_STATUS_LABEL,
 } from "../party/helpers";
 import { formatDate, formatKES } from "../../lib/format";
+import { ErrorText } from "@/components/ui/error-text";
 
 const MEMBER_STATUS = { approved: ["Active member", "ok"], pending: ["Application pending", "warn"], suspended: ["Suspended", "bad"] };
 const monthYear = (iso) => new Date(iso).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
@@ -106,7 +107,7 @@ function VolunteerForm({ volunteer, wording, onDone, onCancel }) {
         <input type="checkbox" required className="mt-1 size-[18px] accent-primary" checked={form.consent_given} onChange={(e) => set({ consent_given: e.target.checked })} />
         {wording}
       </label>
-      {change.error ? <p role="alert" className="text-small font-semibold text-destructive">{change.error.message}</p> : null}
+      <ErrorText error={change.error} className="text-small" />
       <div className="flex flex-wrap gap-2.5">
         <Button type="submit" disabled={change.isPending || form.areas.length === 0}>{volunteer ? "Save my volunteer details" : "Volunteer for events"}</Button>
         {onCancel ? <Button type="button" variant="quiet" onClick={onCancel}>Cancel</Button> : null}
@@ -217,7 +218,7 @@ function DataAndPrivacy({ account, party }) {
             <span className="text-meta text-muted-foreground">Given {formatDate(account.volunteer.consent_at)}</span>
           </div>
         ) : null}
-        {stop.error || leave.error ? <p role="alert" className="text-small font-semibold text-destructive">{(stop.error || leave.error).message}</p> : null}
+        <ErrorText error={stop.error || leave.error} className="text-small" />
         <div className="flex flex-wrap gap-2.5 pt-1">
           {account.volunteer ? (
             <Button variant="outline" disabled={stop.isPending} onClick={() => stop.mutate()}>Stop volunteering</Button>
@@ -279,7 +280,7 @@ function Choose({ notice, choices }) {
         ))}
       </fieldset>
       <p className="text-small text-muted-foreground">You vie in your own registered area.</p>
-      {apply.error && <p role="alert" className="font-semibold text-destructive">{apply.error.message}</p>}
+      <ErrorText error={apply.error} />
       <Button className="self-start" disabled={apply.isPending} onClick={() => apply.mutate(seat)}>{apply.isPending ? "Starting…" : "Start application"}</Button>
     </Card>
   );
@@ -304,7 +305,7 @@ function Application({ application: a, notice }) {
         <h2 className="font-display text-card-title font-extrabold">{SEAT_LABEL[a.seat]} · {a.area}</h2>
         <Badge tone={tone}>{statusLabel}</Badge>
       </div>
-      {failed && <p role="alert" className="font-semibold text-destructive">{failed.message}</p>}
+      <ErrorText error={failed} />
       {a.status === "submitted" && <p>Submitted. The nominations office vets your application and will contact you.</p>}
       {a.status === "approved" && <p>You are an approved aspirant. The party office will set up your campaign workspace.</p>}
       {(a.documents.length > 0 || draft) && (

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { useUpdateMobilizer } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
 
@@ -26,11 +26,11 @@ export default function AssignMobilizerForm({ unit, holder, mobilizers, onClose 
         <div className="muted">Every mobilizer already has a {unitWord}. Add one on the Mobilizers page.</div>
       )}
       {update.error && <div className="form-error">{update.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         {holder && <Btn onClick={remove} disabled={update.isPending}>Remove {holder.full_name}</Btn>}
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!chosen || update.isPending} onClick={assign}>{update.isPending ? "Saving…" : "Assign"}</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

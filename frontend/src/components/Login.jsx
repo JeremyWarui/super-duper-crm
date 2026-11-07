@@ -10,6 +10,7 @@ import { Field, Input } from "@/components/ui/input";
 import { useInstall } from "@/app/site";
 import { useCopy } from "@/copy";
 import { useAuth } from "../store/auth";
+import { ErrorText } from "@/components/ui/error-text";
 
 // Feather's eye and eye-off, drawn at the size of the field's text.
 function EyeIcon({ open }) {
@@ -171,7 +172,7 @@ export default function Login() {
                 </button>
               </span>
             </Field>
-            {error ? <p role="alert" className="text-ui font-semibold text-destructive">{error}</p> : null}
+            <ErrorText error={error} className="text-ui" />
             <Button type="submit" size="lg" disabled={busy || !ready}>{busy ? "Signing in…" : "Sign in"}</Button>
           </form>
           {google ? (

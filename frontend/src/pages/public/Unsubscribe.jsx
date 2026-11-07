@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCopy } from "@/copy";
 import PageHead from "./PageHead";
+import { ErrorText } from "@/components/ui/error-text";
 
 export default function Unsubscribe() {
   const { code } = useParams();
@@ -19,7 +20,7 @@ export default function Unsubscribe() {
         ) : (
           <>
             <p className="text-base">{copy.unsubscribe}</p>
-            {unsubscribe.error ? <p role="alert" className="text-small font-semibold text-destructive">{unsubscribe.error.message}</p> : null}
+            <ErrorText error={unsubscribe.error} className="text-small" />
             <Button className="self-start" disabled={unsubscribe.isPending} onClick={() => unsubscribe.mutate()}>Unsubscribe</Button>
           </>
         )}

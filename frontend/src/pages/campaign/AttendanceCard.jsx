@@ -2,6 +2,7 @@ import { useRecordEvent } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { useDraft } from "@/lib/draft";
 import SendError from "./SendError";
+import { ErrorText } from "@/components/ui/error-text";
 
 const toCount = (v) => Math.max(0, Math.min(100000, Number.parseInt(String(v).replace(/\D/g, ""), 10) || 0));
 
@@ -32,7 +33,7 @@ export default function AttendanceCard({ event }) {
     <div className="flex flex-col gap-3">
       <Counter label="Reached" value={counts.reached} onChange={(reached) => setCounts((c) => ({ ...c, reached }))} />
       <Counter label="Attended" value={counts.attended} onChange={(attended) => setCounts((c) => ({ ...c, attended }))} />
-      {over && <p role="alert" className="text-ui font-semibold text-destructive">Attendance can't be more than those reached.</p>}
+      <ErrorText error={over && "Attendance can't be more than those reached."} className="text-ui" />
       <SendError error={record.error} pending={record.isPending} onRetry={send} />
       <Button variant="accent" size="lg" className="w-full" disabled={!ok || record.isPending} onClick={send}>
         {record.isPending ? "Saving…" : "Save attendance"}

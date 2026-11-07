@@ -46,6 +46,7 @@ import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/format";
 import { SEAT_LABEL, SEATS } from "./helpers";
+import { ErrorText } from "@/components/ui/error-text";
 
 const HTTPS = /^https:\/\/\S+$/;
 const UPLOADED = /^\/api\/files\/[0-9a-f-]{36}\/$/;
@@ -265,7 +266,7 @@ function ItemForm({ section, row, onDone }) {
             </Field>
           );
         })}
-        {save.error ? <p role="alert" className="text-small font-semibold text-destructive">{save.error.message}</p> : null}
+        <ErrorText error={save.error} className="text-small" />
         <div className="flex flex-wrap gap-2.5">
           <Button type="submit" shape="rounded" disabled={save.isPending || (!row && Object.keys(errors).length > 0)}>
             {save.isPending ? "Saving…" : row ? `Save ${section.noun}` : `Add ${section.noun}`}
@@ -281,7 +282,7 @@ function ConfirmDelete({ section, row, onClose }) {
   const del = section.del();
   return (
     <Dialog title={`Delete ${section.name(row)}?`} description="It leaves the public site at once and cannot be brought back." onClose={onClose}>
-      {del.error ? <p role="alert" className="text-small font-semibold text-destructive">{del.error.message}</p> : null}
+      <ErrorText error={del.error} className="text-small" />
       <div className="flex justify-end gap-2.5">
         <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
         <Button shape="rounded" variant="danger" disabled={del.isPending} onClick={() => del.mutate(row.id, { onSuccess: onClose })}>Delete</Button>
@@ -365,7 +366,7 @@ function EventAspirants({ postId }) {
           ))}
         </div>
       ) : <p className="text-muted-foreground">No approved aspirants yet.</p>}
-      {save.error ? <p role="alert" className="text-small font-semibold text-destructive">{save.error.message}</p> : null}
+      <ErrorText error={save.error} className="text-small" />
       {save.isSuccess && picked === null ? <p role="status" className="text-small text-muted-foreground">Saved.</p> : null}
       <Button shape="rounded" className="self-start" disabled={picked === null || save.isPending} onClick={() => save.mutate({ id: postId, aspirant_ids: chosen }, { onSuccess: () => setPicked(null) })}>Save aspirants</Button>
     </Card>
@@ -415,7 +416,7 @@ export function ProfileForm({ title, profile: p, save, upload, extra = {}, onDon
           <input type="checkbox" className="size-[18px] accent-primary" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} />
           Published on the website
         </label>
-        {save.error ? <p role="alert" className="text-small font-semibold text-destructive">{save.error.message}</p> : null}
+        <ErrorText error={save.error} className="text-small" />
         <div className="flex flex-wrap gap-2.5">
           <Button type="submit" shape="rounded" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save profile"}</Button>
           {onDone ? <Button type="button" shape="rounded" variant="quiet" onClick={onDone}>Cancel</Button> : null}

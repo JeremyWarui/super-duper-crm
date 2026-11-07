@@ -1,4 +1,4 @@
-import { InviteModal, Modal } from "../../components/ui";
+import { FormActions, InviteModal, Modal } from "../../components/ui";
 import { useAddStaff } from "../../api/hooks";
 import { Btn, PrimaryBtn } from "./controls";
 import { ROLE_LABEL } from "./helpers";
@@ -28,10 +28,10 @@ export default function StaffForm({ campaignId, role, onClose }) {
     <Modal title={`Add ${label.toLowerCase()}`} sub={SUB[role]} onClose={onClose}>
       <LoginFields form={fields.form} set={fields.set} />
       {add.error && <div className="form-error">{add.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!fields.ok || add.isPending} onClick={() => add.mutate({ campaign: campaignId, role, ...fields.body })}>{add.isPending ? "Saving…" : `Add ${label.toLowerCase()}`}</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

@@ -12,6 +12,7 @@ import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatDate, nairobiDate } from "../../lib/format";
+import { ErrorText } from "@/components/ui/error-text";
 
 const FIELDS = [
   ["office_address", "Office address"],
@@ -63,7 +64,7 @@ function BranchForm({ row, onDone }) {
         <input type="checkbox" className="size-[18px] accent-primary" checked={form.published} onChange={set("published")} />
         Show this branch on the website
       </label>
-      {save.error ? <p role="alert" className="text-small font-semibold text-destructive">{save.error.message}</p> : null}
+      <ErrorText error={save.error} className="text-small" />
       <div className="flex flex-wrap gap-2.5">
         <Button type="submit" shape="rounded" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save branch"}</Button>
         <Button type="button" shape="rounded" variant="quiet" onClick={onDone}>Close</Button>
@@ -85,7 +86,7 @@ function EndTerm({ term, onDone }) {
       </Field>
       <Button type="submit" shape="rounded" variant="danger" size="sm" disabled={end.isPending}>End the term</Button>
       <Button type="button" shape="rounded" variant="ghost" size="sm" onClick={onDone}>Keep</Button>
-      {end.error && <p role="alert" className="w-full text-small font-semibold text-destructive">{end.error.message}</p>}
+      <ErrorText error={end.error} className="w-full text-small" />
     </form>
   );
 }
@@ -174,9 +175,9 @@ function Appoint({ county }) {
         <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={pickFile} className="min-h-11 text-ui font-normal" />
         <span className="font-normal text-muted-foreground">{uploadMinutes.isPending ? "Uploading…" : form.minutes ? `Attached: ${form.minutes.name}` : "A PDF or a photo; kept private to the party office."}</span>
       </label>
-      {uploadMinutes.error && <p role="alert" className="text-small font-semibold text-destructive">{uploadMinutes.error.message}</p>}
+      <ErrorText error={uploadMinutes.error} className="text-small" />
       <Field label="Note"><Input value={form.note} maxLength={1000} onChange={(e) => set({ note: e.target.value })} /></Field>
-      {appoint.error && <p role="alert" className="text-small font-semibold text-destructive">{appoint.error.message}</p>}
+      <ErrorText error={appoint.error} className="text-small" />
       <Button type="submit" shape="rounded" className="self-start" disabled={!ready || appoint.isPending || uploadMinutes.isPending}>
         {appoint.isPending ? "Saving…" : "Appoint"}
       </Button>
@@ -189,7 +190,7 @@ function Officials({ county }) {
   const { data, isLoading, error } = useBranchOfficials(county.id);
   const [ending, setEnding] = useState(null);
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
-  if (error) return <p role="alert" className="font-semibold text-destructive">{error.message}</p>;
+  if (error) return <ErrorText error={error} />;
   const others = data.current.filter((t) => t.office === "other");
   const onEnd = (term, open) => (open ? setEnding(term.id) : <EndTerm term={term} onDone={() => setEnding(null)} />);
   return (

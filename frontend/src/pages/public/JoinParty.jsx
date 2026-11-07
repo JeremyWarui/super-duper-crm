@@ -9,6 +9,7 @@ import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
 import { AREAS, CONTACT_METHODS, PROFESSIONS } from "../party/helpers";
 import { isEmail } from "../../lib/email";
+import { ErrorText } from "@/components/ui/error-text";
 
 const STEPS = ["Your details", "Your branch", "Consent"];
 const TICK = "mt-0.5 size-5 flex-none accent-primary";
@@ -246,7 +247,7 @@ export default function JoinParty() {
             ) : null}
           </div>
         ) : null}
-        {join.error ? <p role="alert" className="text-small font-semibold text-destructive">{join.error.message}</p> : null}
+        <ErrorText error={join.error} className="text-small" />
         <div className="flex justify-between gap-3 border-t border-line-soft pt-5">
           {step > 1 ? <Button type="button" variant="quiet" onClick={() => setStep(step - 1)}>Back</Button> : <span />}
           {step < 3 ? (

@@ -4,6 +4,7 @@ import { download } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { nairobiDate } from "@/lib/format";
+import { ErrorText } from "@/components/ui/error-text";
 
 export default function ExportPanel() {
   const [state, setState] = useState({ busy: false, error: null, done: false });
@@ -27,7 +28,7 @@ export default function ExportPanel() {
         </p>
         <Button shape="rounded" className="self-start" disabled={state.busy} onClick={run}>{state.busy ? "Preparing…" : "Download export"}</Button>
         {state.done && <p role="status" className="text-ui font-semibold text-primary">Downloaded.</p>}
-        {state.error && <p role="alert" className="text-ui font-semibold text-destructive">{state.error}</p>}
+        <ErrorText error={state.error} className="text-ui" />
       </Card>
     </div>
   );

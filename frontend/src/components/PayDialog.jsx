@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
 import { formatKES } from "../lib/format";
+import { ErrorText } from "@/components/ui/error-text";
 
 const AMOUNTS = [200, 500, 1000, 2500, 5000];
 const CODE = /^[A-Z0-9]{10}$/;
@@ -144,7 +145,7 @@ export default function PayDialog({ title, fee, amount: preset, phone: knownPhon
               {options.practice ? "Practice mode: no prompt goes out and no money moves." : `You will get an M-Pesa prompt for ${formatKES(amount)}. Enter your PIN to pay.`}
             </p>
           )}
-          {send.error ? <p role="alert" className="text-small font-semibold text-destructive">{send.error.message}</p> : null}
+          <ErrorText error={send.error} className="text-small" />
           <Button type="submit" disabled={!ready || send.isPending}>
             {send.isPending ? "Sending…" : method === "manual" ? "Send my code" : `Pay ${formatKES(amount)}`}
           </Button>

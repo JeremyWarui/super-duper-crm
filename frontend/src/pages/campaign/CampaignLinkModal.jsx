@@ -1,5 +1,5 @@
 import { QRCodeSVG } from "qrcode.react";
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { useCampaignSignups, useSetCampaignSignups } from "../../api/hooks";
 import { Btn, ErrorMsg, Loading, PrimaryBtn, ShareLink } from "./controls";
 
@@ -23,11 +23,11 @@ export default function CampaignLinkModal({ campaign, onClose }) {
         ? <ShareLink link={link} message={`Sign up to support ${campaign.title}:`} />
         : <div className="field-hint share-row">The link is closed: anyone who opens it sees a "closed" page. Open it to start taking sign-ups.</div>}
       {setSignups.error && <ErrorMsg error={setSignups.error} />}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={() => setSignups.mutate({ campaign: campaign.id, open: !open })} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Open sign-ups"}</Btn>
         <Btn onClick={() => window.print()}>Print</Btn>
         <PrimaryBtn onClick={onClose}>Done</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

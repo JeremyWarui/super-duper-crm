@@ -7,4 +7,3 @@ export default function WsHeader(props) {
 }
 
 export const KitLoading = () => <p className="text-muted-foreground">Loading…</p>;
-export const KitError = ({ error }) => <p role="alert" className="font-semibold text-destructive">{error.message}</p>;

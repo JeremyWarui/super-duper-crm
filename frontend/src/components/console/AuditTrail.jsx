@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { plural } from "@/lib/format";
+import { ErrorText } from "@/components/ui/error-text";
 
 const BLANK = { action: "", actor: "", since: "", until: "" };
 const LIMIT = 200;
@@ -27,7 +28,7 @@ export default function AuditTrail() {
           <Field label="To"><Input type="date" value={filters.until} onChange={set("until")} /></Field>
         </div>
       </Card>
-      {error && <p role="alert" className="font-semibold text-destructive">{error.message}</p>}
+      <ErrorText error={error} />
       <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Audit trail">
         <p className="text-ui text-muted-foreground">
           {isFetching ? "Loading…" : data.length === LIMIT ? `${count}: the latest ${LIMIT}; narrow the filters to see older ones.` : `${count}.`}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { useAssignments, usePayments, useSchedulePayment } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
 import { formatKES } from "../../lib/format";
@@ -24,10 +24,10 @@ export default function SchedulePaymentForm({ campaignId, role, onClose }) {
       </select>
       {work && <div className="page-note">{formatKES(work.amount_kes)} to {work.member_name}.</div>}
       {schedule.error && <div className="form-error">{schedule.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!work || schedule.isPending} onClick={() => schedule.mutate({ assignment: work.id }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule"}</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

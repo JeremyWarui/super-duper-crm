@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { useRecordEvent } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
 
@@ -14,10 +14,10 @@ export default function RecordForm({ event, onClose }) {
       <div className="field-gap" /><Label>How many attended</Label><input type="number" className="app-field" value={attended} onChange={(e) => setAttended(e.target.value)} />
       {reached !== "" && attended !== "" && a > r && <div className="form-error">Attendance can't exceed those reached.</div>}
       {record.isError && <div className="form-error">{record.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!ok || record.isPending} onClick={() => record.mutate({ id: event.id, number_reached: r, number_attended: a }, { onSuccess: onClose })}>{record.isPending ? "Saving…" : "Save & mark done"}</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

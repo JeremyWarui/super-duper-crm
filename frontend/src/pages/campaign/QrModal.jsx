@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { useSetSignups } from "../../api/hooks";
 import { Btn, PrimaryBtn, ShareLink } from "./controls";
 
@@ -19,11 +19,11 @@ export default function QrModal({ event, canClose, onClose }) {
       {open && <ShareLink link={link} message={`Sign up as a supporter at ${event.title || event.ward_name}:`} />}
       {!open && <div className="form-error">Sign-ups are closed: the code shows a "closed" page.</div>}
       {setSignups.error && <div className="form-error">{setSignups.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         {canClose && <Btn onClick={toggle} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Reopen sign-ups"}</Btn>}
         <Btn onClick={() => window.print()}>Print</Btn>
         <PrimaryBtn onClick={onClose}>Done</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

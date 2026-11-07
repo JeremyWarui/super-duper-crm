@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useRequestReset } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
+import { ErrorText } from "@/components/ui/error-text";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -25,7 +26,7 @@ export default function ForgotPassword() {
           <Field label="Email">
             <Input size="lg" type="email" autoComplete="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
-          {request.error ? <p role="alert" className="text-ui font-semibold text-destructive">{request.error.message}</p> : null}
+          <ErrorText error={request.error} className="text-ui" />
           <Button type="submit" size="lg" disabled={request.isPending || !email.trim()}>{request.isPending ? "Sending…" : "Send the link"}</Button>
         </form>
       )}

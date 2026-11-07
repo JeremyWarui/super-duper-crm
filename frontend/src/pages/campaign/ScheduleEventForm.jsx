@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { useCentres, useScheduleEvent } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
 
@@ -29,10 +29,10 @@ export default function ScheduleEventForm({ campaignId, wardOptions, byCentre, o
       <div className="field-gap" /><Label>Venue</Label><input className="app-field" value={venue} onChange={(e) => setVenue(e.target.value)} />
       <div className="field-gap" /><Label>Date</Label><input type="date" className="app-field" value={date} onChange={(e) => setDate(e.target.value)} />
       {schedule.isError && <div className="form-error">{schedule.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!ok || schedule.isPending} onClick={() => schedule.mutate({ campaign: campaignId, ward, registration_centre: centre || null, title: title.trim(), venue: venue.trim(), scheduled_date: date, status: "planned" }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule event"}</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

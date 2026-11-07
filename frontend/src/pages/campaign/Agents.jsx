@@ -7,7 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
+import { StatTiles } from "@/components/ui/stat-tiles";
 
 const STATUSES = [["applied", "Applied"], ["vetted", "Vetted"], ["trained", "Trained"], ["ready", "Ready"]];
 const EXPORTERS = ["candidate", "manager"];
@@ -20,15 +22,7 @@ function Tiles({ agents, coverage }) {
     ["Centres covered", coverage ? `${fmt(coverage.covered)} / ${fmt(coverage.centres)}` : "…", "with at least one agent"],
   ];
   return (
-    <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-      {tiles.map(([label, value, note]) => (
-        <Card key={label} variant="tile">
-          <span className="text-ui text-muted-foreground">{label}</span>
-          <span className="font-display text-[28px] leading-tight font-extrabold tabular-nums">{value}</span>
-          <span className="text-small text-muted-foreground">{note}</span>
-        </Card>
-      ))}
-    </section>
+    <StatTiles tiles={tiles} />
   );
 }
 
@@ -61,14 +55,14 @@ export default function Agents({ campaign, role, onModal }) {
     <>
       <WsHeader context="Field" title="Agents" sub="Polling agents, readied for one registration centre each before polling day." actions={action} />
       {agents.isLoading && <KitLoading />}
-      {agents.error && <KitError error={agents.error} />}
+      <ErrorText error={agents.error} />
       {agents.data && (
         <>
           <Tiles agents={rows} coverage={coverage.data} />
           {coverage.data && <Coverage coverage={coverage.data} />}
           <Card variant="outline" className="min-w-0 gap-3">
             <h2 className="text-card-title font-bold">Everyone</h2>
-            {update.error && <p role="alert" className="font-semibold text-destructive">{update.error.message}</p>}
+            <ErrorText error={update.error} />
             <Table stack minWidth={720}>
               <THead><TR><TH>Agent</TH><TH>Centre</TH>{ids && <TH>ID number</TH>}<TH>Status</TH><TH>Training date</TH><TH className="relative"><span className="sr-only">Assign</span></TH></TR></THead>
               <TBody>

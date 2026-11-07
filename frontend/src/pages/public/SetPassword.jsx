@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { landingOf } from "@/lib/home";
 import { useAuth } from "@/store/auth";
+import { ErrorText } from "@/components/ui/error-text";
 
 const MIN = 8;
 
@@ -55,7 +56,7 @@ export default function SetPassword() {
               <Input size="lg" type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} />
             </Field>
             {differ && <p className="text-small font-semibold text-destructive">The two passwords differ.</p>}
-            {claim.error ? <p role="alert" className="text-ui font-semibold text-destructive">{claim.error.message}</p> : null}
+            <ErrorText error={claim.error} className="text-ui" />
             <Button type="submit" size="lg" disabled={claim.isPending || !ready}>{claim.isPending ? "Saving…" : "Save and sign in"}</Button>
           </form>
         </>

@@ -30,6 +30,15 @@ describe("the members page", () => {
     await waitFor(() => expect(lists()).toBeGreaterThan(before));
   });
 
+  it("offers every county, constituency and ward as the blank place filter", async () => {
+    signInAsParty(["membership_officer"]);
+    stubApi(memberRoutes({ "GET /campaigns/": [] }));
+    renderApp(<Root />, { path: "/party/members" });
+
+    const blank = async (name) => (await screen.findByRole("combobox", { name })).options[0].textContent;
+    expect([await blank("County"), await blank("Constituency"), await blank("Ward")]).toEqual(["All counties", "All constituencies", "All wards"]);
+  });
+
   it("never shows the register to a staff login with no party office", async () => {
     signInAsParty([]);
     const calls = stubApi(memberRoutes({ "GET /campaigns/": [] }));

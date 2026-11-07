@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal } from "../../components/ui";
+import { FormActions, Modal } from "../../components/ui";
 import { useDeclinePayment } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
 import { formatKES } from "../../lib/format";
@@ -13,10 +13,10 @@ export default function DeclinePaymentForm({ payment, onClose }) {
       <Label>Reason</Label>
       <input aria-label="Reason" className="app-field" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why it is not paid" />
       {decline.error && <div className="form-error">{decline.error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Back</Btn>
         <PrimaryBtn disabled={reason.trim().length < 3 || decline.isPending} onClick={() => decline.mutate({ id: payment.id, reason: reason.trim() }, { onSuccess: onClose })}>Decline payment</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }

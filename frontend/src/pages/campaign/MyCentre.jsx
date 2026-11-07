@@ -5,8 +5,9 @@ import { useAgents, useAssignments } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatKES } from "../../lib/format";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
 import { day } from "../public/story";
+import { ErrorText } from "@/components/ui/error-text";
 
 const STEPS = [["applied", "Applied"], ["vetted", "Vetted"], ["trained", "Trained"], ["ready", "Ready"]];
 
@@ -19,7 +20,7 @@ export default function MyCentre({ campaign }) {
     <>
       <WsHeader context="My work" title="My centre" />
       {agents.isLoading && <KitLoading />}
-      {agents.error && <KitError error={agents.error} />}
+      <ErrorText error={agents.error} />
       {agents.data && !me && <p className="text-muted-foreground">You are not on this campaign's agent list yet.</p>}
       {me && (
         <div className="flex max-w-[560px] flex-col gap-4">

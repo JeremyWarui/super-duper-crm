@@ -8,13 +8,11 @@ import {
   useMoveMember,
   usePartyMember,
   usePartyMembers,
-  usePartyPlaces,
 } from "../../api/hooks";
-import { Badge, Button, ErrorState, LoadingState, Modal, PageTitle, Panel } from "../../components/ui";
-import { MOVES, STATUS_LABEL, STATUS_TONE } from "./helpers";
+import { Badge, Button, ErrorState, FormActions, LoadingState, Modal, Pager, PageTitle, Panel } from "../../components/ui";
+import { MOVES, NO_PLACE, PAGE_SIZE, STATUS_LABEL, STATUS_TONE } from "./helpers";
 import { formatDate } from "../../lib/format";
-
-const PAGE_SIZE = 50;
+import PlaceFilters from "./PlaceFilters";
 
 const place = (m) => [m.ward.name, m.constituency.name, m.county.name].join(" / ");
 const ERASABLE = ["withdrawn", "rejected"];
@@ -26,7 +24,7 @@ function Erase({ member }) {
   if (!ERASABLE.includes(member.status)) return null;
   return (
     <>
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         {asking ? (
           <>
             <span className="muted">Erase their name, phone, email and account for good?</span>
@@ -36,24 +34,9 @@ function Erase({ member }) {
         ) : (
           <Button tone="danger" onClick={() => setAsking(true)}>Erase their details</Button>
         )}
-      </div>
+      </FormActions>
       {erase.isError && <div className="form-error">{erase.error.message}</div>}
     </>
-  );
-}
-
-function PlaceFilter({ label, value, onChange, places, disabled }) {
-  return (
-    <select
-      aria-label={label}
-      className="app-field filter-field"
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="">All {label.toLowerCase()}s</option>
-      {(places || []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-    </select>
   );
 }
 
@@ -90,7 +73,7 @@ function Detail({ row, onClose }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
-          <div className="flex justify-end gap-2 form-actions">
+          <FormActions>
             {actions.map(([status, label]) => (
               <Button
                 key={status + label}
@@ -103,7 +86,7 @@ function Detail({ row, onClose }) {
                 {label}
               </Button>
             ))}
-          </div>
+          </FormActions>
         </>
       )}
       {move.isError && <div className="form-error">{move.error.message}</div>}
@@ -121,9 +104,7 @@ function Linked({ id, onClose }) {
 export default function Members() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
-  const [county, setCounty] = useState("");
-  const [constituency, setConstituency] = useState("");
-  const [ward, setWard] = useState("");
+  const [where, setWhere] = useState(NO_PLACE);
   const [offset, setOffset] = useState(0);
   const [open, setOpen] = useState(null);
   const [exportError, setExportError] = useState("");
@@ -138,11 +119,8 @@ export default function Members() {
     setStatus(wanted);
     setOffset(0);
   }
-  const counties = usePartyPlaces();
-  const constituencies = usePartyPlaces({ county, enabled: !!county });
-  const wards = usePartyPlaces({ constituency, enabled: !!constituency });
 
-  const filters = { q: q.trim(), status, county, constituency, ward };
+  const filters = { q: q.trim(), status, ...where };
   const { data, isLoading, error } = usePartyMembers({ ...filters, limit: PAGE_SIZE, offset });
   const set = (setter) => (value) => { setter(value); setOffset(0); };
   const total = data?.total ?? 0;
@@ -180,9 +158,7 @@ export default function Members() {
           <option value="">All statuses</option>
           {Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
-        <PlaceFilter label="County" value={county} places={counties.data} onChange={(v) => { set(setCounty)(v); setConstituency(""); setWard(""); }} />
-        <PlaceFilter label="Constituency" value={constituency} places={constituencies.data} disabled={!county} onChange={(v) => { set(setConstituency)(v); setWard(""); }} />
-        <PlaceFilter label="Ward" value={ward} places={wards.data} disabled={!constituency} onChange={set(setWard)} />
+        <PlaceFilters place={where} onChange={set(setWhere)} />
       </div>
       <Panel pad={0}>
         <div className="table-scroll">
@@ -203,15 +179,7 @@ export default function Members() {
           </table>
         </div>
       </Panel>
-      <div className="flex items-center justify-between gap-2 chip-row">
-        <span className="meta">
-          {total === 0 ? "0 members" : `${offset + 1}–${offset + items.length} of ${total}`}
-        </span>
-        <div className="flex gap-2">
-          <Button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Previous</Button>
-          <Button disabled={offset + PAGE_SIZE >= total} onClick={() => setOffset(offset + PAGE_SIZE)}>Next</Button>
-        </div>
-      </div>
+      <Pager offset={offset} size={PAGE_SIZE} shown={items.length} total={total} noun="members" onChange={setOffset} />
       {open && <Detail row={open} onClose={() => setOpen(null)} />}
       {linked && !open && <Linked id={linked} onClose={closeLinked} />}
     </>

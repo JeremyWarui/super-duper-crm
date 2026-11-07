@@ -1,6 +1,6 @@
 // The superuser's party-wide totals, filtered by place, seat, aspirant and dates.
 import { useState } from "react";
-import { useAspirants, usePartyDashboard, usePartyPlaces, usePartyShared } from "../../api/hooks";
+import { useAspirants, usePartyDashboard, usePartyPlaceLists, usePartyShared } from "../../api/hooks";
 import { Button, ErrorState, Field, LoadingState, PageTitle, Panel } from "../../components/ui";
 import { formatDate, formatNumber } from "../../lib/format";
 import { AREA_LABEL, SEAT_LABEL, SEATS } from "./helpers";
@@ -86,9 +86,7 @@ export default function Dashboard() {
     setFilters(next);
   };
   const board = usePartyDashboard(filters);
-  const counties = usePartyPlaces().data || [];
-  const constituencies = usePartyPlaces({ county: filters.county, enabled: !!filters.county }).data || [];
-  const wards = usePartyPlaces({ constituency: filters.constituency, enabled: !!filters.constituency }).data || [];
+  const { counties, constituencies, wards } = usePartyPlaceLists(filters);
   const aspirants = useAspirants({ status: "approved", limit: 200 }).data?.items || [];
   const places = (rows) => rows.map((p) => [p.id, p.name]);
   const d = board.data;

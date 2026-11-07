@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
 import { winNumber } from "@/winNumber";
-import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import WsHeader, { KitLoading } from "./WsHeader";
+import { ErrorText } from "@/components/ui/error-text";
 
 const SAVE_STATUS = {
   saving: ["Saving…", "text-muted-foreground"],
@@ -111,9 +112,9 @@ export default function Targets({ campaign, role }) {
     <>
       <WsHeader context="Plan" title="Targets" sub={`Set the expected turnout in each ${noun}. The win number is half the projected votes cast, plus one.`} actions={action} />
       {refresh.isSuccess && <p role="status" className="font-semibold text-primary">Refreshed from the latest register: {fmt(refresh.data.units)} {noun}s, win number {fmt(refresh.data.win_number)}.</p>}
-      {refresh.error && <p role="alert" className="font-semibold text-destructive">{refresh.error.message}</p>}
+      <ErrorText error={refresh.error} />
       {isLoading && <KitLoading />}
-      {error && <KitError error={error} />}
+      <ErrorText error={error} />
       {data && (
         <>
           <Totals rows={rows} turnoutOf={turnoutOf} neededOf={neededOf} />

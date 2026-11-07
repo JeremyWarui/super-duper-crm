@@ -4,45 +4,19 @@ import { useState } from "react";
 import {
   exportPartyVolunteers,
   useErasePartyVolunteer,
-  usePartyPlaces,
   usePartyVolunteers,
   useUpdateVolunteer,
 } from "../../api/hooks";
-import { Badge, Button, ErrorState, LoadingState, Modal, PageTitle, Panel } from "../../components/ui";
-import {
-  CONTACT_LABEL,
-  AREAS,
-  AREA_LABEL,
-  PROFESSION_LABEL,
-  STATUS_LABEL,
-  STATUS_TONE,
-  VOLUNTEER_STATUS_LABEL,
-  VOLUNTEER_STATUS_TONE,
-} from "./helpers";
+import { Badge, Button, ErrorState, FormActions, LoadingState, Modal, Pager, PageTitle, Panel } from "../../components/ui";
+import { AREA_LABEL, AREAS, CONTACT_LABEL, NO_PLACE, PAGE_SIZE, PROFESSION_LABEL, STATUS_LABEL, STATUS_TONE, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE } from "./helpers";
 import { formatDate } from "../../lib/format";
-
-const PAGE_SIZE = 50;
+import PlaceFilters from "./PlaceFilters";
 
 const place = (v) => [v.ward.name, v.constituency.name, v.county.name].join(" / ");
 const areasOf = (v) =>
   v.interests.map((x) => (x === "other" && v.interest_other ? `Other: ${v.interest_other}` : AREA_LABEL[x] || x)).join(", ");
 const professionOf = (v) =>
   v.profession === "other" ? v.profession_other : PROFESSION_LABEL[v.profession] || "Not given";
-
-function PlaceFilter({ label, value, onChange, places, disabled }) {
-  return (
-    <select
-      aria-label={label}
-      className="app-field filter-field"
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="">All {label.toLowerCase()}s</option>
-      {(places || []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-    </select>
-  );
-}
 
 function Detail({ row, onClose }) {
   const update = useUpdateVolunteer();
@@ -76,7 +50,7 @@ function Detail({ row, onClose }) {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
-          <div className="flex justify-end gap-2 form-actions">
+          <FormActions>
             <Button disabled={update.isPending} onClick={() => save({ availability_notes: notes.trim() || null })}>
               Save notes
             </Button>
@@ -86,9 +60,9 @@ function Detail({ row, onClose }) {
             {v.status === "active" && (
               <Button disabled={update.isPending} onClick={() => save({ status: "inactive" })}>Deactivate</Button>
             )}
-          </div>
+          </FormActions>
           {v.status === "withdrawn" && (
-            <div className="flex justify-end gap-2 form-actions">
+            <FormActions>
               {asking ? (
                 <>
                   <span className="muted">Erase their volunteer details for good? Their membership stays.</span>
@@ -98,7 +72,7 @@ function Detail({ row, onClose }) {
               ) : (
                 <Button tone="danger" onClick={() => setAsking(true)}>Erase volunteer details</Button>
               )}
-            </div>
+            </FormActions>
           )}
         </>
       )}
@@ -112,17 +86,12 @@ export default function Volunteers() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [area, setArea] = useState("");
-  const [county, setCounty] = useState("");
-  const [constituency, setConstituency] = useState("");
-  const [ward, setWard] = useState("");
+  const [where, setWhere] = useState(NO_PLACE);
   const [offset, setOffset] = useState(0);
   const [openId, setOpenId] = useState(null);
   const [exportError, setExportError] = useState("");
-  const counties = usePartyPlaces();
-  const constituencies = usePartyPlaces({ county, enabled: !!county });
-  const wards = usePartyPlaces({ constituency, enabled: !!constituency });
 
-  const filters = { q: q.trim(), status, area, county, constituency, ward };
+  const filters = { q: q.trim(), status, area, ...where };
   const { data, isLoading, error } = usePartyVolunteers({ ...filters, limit: PAGE_SIZE, offset });
   const set = (setter) => (value) => { setter(value); setOffset(0); };
   const total = data?.total ?? 0;
@@ -165,9 +134,7 @@ export default function Volunteers() {
           <option value="">All areas</option>
           {AREAS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
-        <PlaceFilter label="County" value={county} places={counties.data} onChange={(v) => { set(setCounty)(v); setConstituency(""); setWard(""); }} />
-        <PlaceFilter label="Constituency" value={constituency} places={constituencies.data} disabled={!county} onChange={(v) => { set(setConstituency)(v); setWard(""); }} />
-        <PlaceFilter label="Ward" value={ward} places={wards.data} disabled={!constituency} onChange={set(setWard)} />
+        <PlaceFilters place={where} onChange={set(setWhere)} />
       </div>
       <Panel pad={0}>
         <div className="table-scroll">
@@ -191,15 +158,7 @@ export default function Volunteers() {
           </table>
         </div>
       </Panel>
-      <div className="flex items-center justify-between gap-2 chip-row">
-        <span className="meta">
-          {total === 0 ? "0 volunteers" : `${offset + 1}–${offset + items.length} of ${total}`}
-        </span>
-        <div className="flex gap-2">
-          <Button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Previous</Button>
-          <Button disabled={offset + PAGE_SIZE >= total} onClick={() => setOffset(offset + PAGE_SIZE)}>Next</Button>
-        </div>
-      </div>
+      <Pager offset={offset} size={PAGE_SIZE} shown={items.length} total={total} noun="volunteers" onChange={setOffset} />
       {open && <Detail key={open.id} row={open} onClose={() => setOpenId(null)} />}
     </>
   );

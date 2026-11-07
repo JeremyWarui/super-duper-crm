@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { isEmail } from "../../lib/email";
-import { InviteModal, Modal } from "../../components/ui";
+import { FormActions, InviteModal, Modal } from "../../components/ui";
 import { useAddMobilizer, useCreateUser, useUpdateMobilizer } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
 import { holderOf } from "./helpers";
@@ -76,10 +76,10 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
         </>
       )}
       {error && <div className="form-error">{error.message}</div>}
-      <div className="flex justify-end gap-2 form-actions">
+      <FormActions>
         <Btn onClick={onClose}>Cancel</Btn>
         <PrimaryBtn disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : "Save mobilizer"}</PrimaryBtn>
-      </div>
+      </FormActions>
     </Modal>
   );
 }
