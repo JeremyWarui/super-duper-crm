@@ -16,7 +16,7 @@ import Legacy from "./components/Legacy";
 import About from "./pages/public/About";
 import Events from "./pages/public/Events";
 import Home from "./pages/public/Home";
-import AspirantHome from "./pages/public/AspirantHome";
+import AspirantHome, { AspirantAbout, AspirantAgenda, AspirantMedia } from "./pages/public/AspirantHome";
 import Volunteer from "./pages/public/Volunteer";
 import { useInstall } from "./app/site";
 import Setup from "./pages/setup/Setup";
@@ -164,6 +164,7 @@ const SHARED = [
   ["/contribute", () => page(<Contribute />)],
   ["/privacy", () => page(<Privacy />)],
   ["/unsubscribe/:code", () => page(<Unsubscribe />)],
+  ["/issues/:id", () => page(<Issue />)],
   ["/signin", () => <SignInPage />],
   ["/signin/where", () => <SignedInOnly><ChooserPage /></SignedInOnly>],
   ["/forgot-password", () => page(<ForgotPassword />)],
@@ -177,7 +178,6 @@ const SHARED = [
 
 const PARTY = [
   ["/", () => page(<Home />)],
-  ["/issues/:id", () => page(<Issue />)],
   ["/about", () => page(<About />)],
   ["/leadership", () => page(<Leadership />)],
   ["/manifesto", () => page(<Manifesto />)],
@@ -195,6 +195,9 @@ const PARTY = [
 
 const ASPIRANT = [
   ["/", () => page(<AspirantHome />)],
+  ["/about", () => page(<AspirantAbout />)],
+  ["/agenda", () => page(<AspirantAgenda />)],
+  ["/media", () => page(<AspirantMedia />)],
   ["/volunteer", () => page(<Volunteer />)],
   ["/volunteer/withdraw/:code", () => page(<CandidateWithdraw />)],
 ];

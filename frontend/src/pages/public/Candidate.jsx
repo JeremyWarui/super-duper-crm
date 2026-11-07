@@ -11,7 +11,7 @@ import { Crumbs } from "@/components/ui/typography";
 import { AREAS, CONTACT_METHODS, PROFESSIONS, SEATS } from "@/pages/party/helpers";
 import { Photo, day } from "./story";
 
-const SEAT_TITLE = { mca: "Member of County Assembly", mp: "Member of Parliament", governor: "Governor", senator: "Senator", women_rep: "Women Representative" };
+export const SEAT_TITLE = { mca: "Member of County Assembly", mp: "Member of Parliament", governor: "Governor", senator: "Senator", women_rep: "Women Representative" };
 const SEAT_NAME = Object.fromEntries(SEATS.map(([value, label]) => [value, label]));
 const TABS = ["About", "Priorities", "Events"];
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -109,6 +109,54 @@ export function SupportForm({ c, send, withdrawPath, bare = false }) {
   return bare ? form : <Card className="p-6">{form}</Card>;
 }
 
+/** The candidate's hero band: photo, seat, name, place and slogan, with `actions` below. */
+export function CandidateHero({ c, crumbs, actions }) {
+  const where = [c.area, c.county].filter((v, i, all) => v && all.indexOf(v) === i).join(", ");
+  return (
+    <section className="bg-primary text-white">
+      <div className="site-container flex flex-col gap-6 pt-10 pb-12">
+        {crumbs ? <Crumbs onDark items={crumbs} /> : null}
+        <div className="flex flex-wrap items-center gap-9">
+          <Photo url={c.photo_url} className="h-[260px] w-[220px] flex-none rounded-band bg-[#0F7049]" />
+          <div className="flex min-w-0 flex-[1_1_400px] flex-col gap-3.5">
+            <span className="self-start rounded-full bg-accent px-3 py-1.5 text-small font-extrabold uppercase tracking-[0.08em] text-ink">{SEAT_TITLE[c.seat]}</span>
+            <h1 className="font-display text-[clamp(40px,5vw,64px)] leading-none font-extrabold tracking-[-0.03em]">{c.name}</h1>
+            <p className="text-[19px] text-[#CFE0D5]">{where}{c.slogan ? ` · "${c.slogan}"` : ""}</p>
+            <div className="flex flex-wrap gap-3 pt-1">{actions}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** The volunteer form in a wide dialog. */
+export function VolunteerDialog({ c, send, withdrawPath, onClose }) {
+  const first = c.name.split(/\s+/)[0];
+  return (
+    <Dialog
+      title={send.isSuccess ? "Thank you" : `Volunteer for ${first}`}
+      description={send.isSuccess ? null : "Your details go to the campaign only."}
+      onClose={onClose}
+      className="w-[min(760px,calc(100vw-32px))]"
+    >
+      <SupportForm c={c} send={send} withdrawPath={withdrawPath} bare />
+    </Dialog>
+  );
+}
+
+/** A short "Support {first}" card whose button opens the volunteer dialog. */
+export function SupportCard({ c, onOpen }) {
+  const first = c.name.split(/\s+/)[0];
+  return (
+    <Card className="gap-3 p-6">
+      <h2 className="text-[20px] font-bold">Support {first}</h2>
+      <p className="text-text-2">Give a few hours at events, door to door or online. The campaign team will contact you.</p>
+      <Button onClick={onOpen}>Volunteer for {first}</Button>
+    </Card>
+  );
+}
+
 export default function Candidate({ slug }) {
   const query = usePublicCandidate(slug);
   const send = useCandidateVolunteer(slug);
@@ -136,27 +184,19 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
   const [volunteering, setVolunteering] = useState(false);
   const tabs = events ? TABS : TABS.filter((t) => t !== "Events");
   const first = c.name.split(/\s+/)[0];
-  const where = [c.area, c.county].filter((v, i, all) => v && all.indexOf(v) === i).join(", ");
   const contact = [c.office_phone, c.office_email].filter(Boolean).join(" · ");
   return (
     <>
-      <section className="bg-primary text-white">
-        <div className="site-container flex flex-col gap-6 pt-10 pb-12">
-          {crumbs ? <Crumbs onDark items={crumbs} /> : null}
-          <div className="flex flex-wrap items-center gap-9">
-            <Photo url={c.photo_url} className="h-[260px] w-[220px] flex-none rounded-band bg-[#0F7049]" />
-            <div className="flex min-w-0 flex-[1_1_400px] flex-col gap-3.5">
-              <span className="self-start rounded-full bg-accent px-3 py-1.5 text-small font-extrabold uppercase tracking-[0.08em] text-ink">{SEAT_TITLE[c.seat]}</span>
-              <h1 className="font-display text-[clamp(40px,5vw,64px)] leading-none font-extrabold tracking-[-0.03em]">{c.name}</h1>
-              <p className="text-[19px] text-[#CFE0D5]">{where}{c.slogan ? ` · "${c.slogan}"` : ""}</p>
-              <div className="flex flex-wrap gap-3 pt-1">
-                {c.volunteering_open ? <Button variant="accent" onClick={() => setVolunteering(true)}>Volunteer for this campaign</Button> : null}
-                {events && c.events.length ? <Button asChild variant="onDark"><a href="#events" onClick={() => setTab("Events")}>Meet the candidate</a></Button> : null}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <CandidateHero
+        c={c}
+        crumbs={crumbs}
+        actions={
+          <>
+            {c.volunteering_open ? <Button variant="accent" onClick={() => setVolunteering(true)}>Volunteer for this campaign</Button> : null}
+            {events && c.events.length ? <Button asChild variant="onDark"><a href="#events" onClick={() => setTab("Events")}>Meet the candidate</a></Button> : null}
+          </>
+        }
+      />
       <div className="border-b border-line-2 bg-white">
         <div role="tablist" aria-label="Profile sections" className="site-container flex flex-wrap gap-1">
           {tabs.map((t) => (
@@ -198,13 +238,7 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
           ) : null}
         </div>
         <aside id="support" className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
-          {c.volunteering_open ? (
-            <Card className="gap-3 p-6">
-              <h2 className="text-[20px] font-bold">Support {first}</h2>
-              <p className="text-text-2">Give a few hours at events, door to door or online. The campaign team will contact you.</p>
-              <Button onClick={() => setVolunteering(true)}>Volunteer for {first}</Button>
-            </Card>
-          ) : null}
+          {c.volunteering_open ? <SupportCard c={c} onOpen={() => setVolunteering(true)} /> : null}
           {c.office_address || contact ? (
             <Card variant="ink" className="gap-2 text-[15px]">
               <h2 className="mb-1 text-[18px] font-bold">Campaign office</h2>
@@ -215,16 +249,7 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
           {note ? <p className="text-small text-muted-foreground">{note}</p> : null}
         </aside>
       </div>
-      {volunteering ? (
-        <Dialog
-          title={send.isSuccess ? "Thank you" : `Volunteer for ${first}`}
-          description={send.isSuccess ? null : "Your details go to the campaign only."}
-          onClose={() => setVolunteering(false)}
-          className="w-[min(760px,calc(100vw-32px))]"
-        >
-          <SupportForm c={c} send={send} withdrawPath={withdrawPath} bare />
-        </Dialog>
-      ) : null}
+      {volunteering ? <VolunteerDialog c={c} send={send} withdrawPath={withdrawPath} onClose={() => setVolunteering(false)} /> : null}
     </>
   );
 }

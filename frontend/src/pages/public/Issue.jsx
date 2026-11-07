@@ -1,10 +1,11 @@
-// /issues/:id: one agenda issue, with what the party will do and why it matters.
+// /issues/:id: one agenda issue, with what will be done and why it matters.
 import { Link, NavLink, useParams } from "react-router-dom";
 import { usePublicIssue, usePublicIssues } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
+import { useCopy } from "@/copy";
 
 const lines = (text) => text.split("\n").map((l) => l.trim()).filter(Boolean);
 
@@ -12,6 +13,7 @@ export default function Issue() {
   const { id } = useParams();
   const issues = usePublicIssues().data || [];
   const issue = usePublicIssue(id);
+  const copy = useCopy();
   if (issue.isLoading) return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
   if (issue.error) return <div role="alert" className="site-container py-12">{issue.error.message}</div>;
   const i = issue.data;
@@ -36,7 +38,7 @@ export default function Issue() {
       ) : null}
       <section className="bg-primary text-white">
         <div className="site-container flex flex-col gap-4 py-14">
-          <Crumbs onDark items={[{ label: "Home", to: "/" }, { label: "Agenda & issues", to: "/#issues" }, { label: i.title }]} />
+          <Crumbs onDark items={[{ label: "Home", to: "/" }, { label: "Agenda & issues", to: copy.agendaHome }, { label: i.title }]} />
           <p className="text-ui font-bold uppercase tracking-[0.12em] text-accent">Our position{num ? ` · issue ${num}` : ""}</p>
           <h1 className="font-display text-page font-extrabold tracking-[-0.03em]">{i.title}</h1>
           {i.summary ? <p className="max-w-[46ch] text-[19px] leading-[1.6] text-[#CFE0D5]">{i.summary}</p> : null}
@@ -63,8 +65,8 @@ export default function Issue() {
           </section>
         ) : null}
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-card bg-primary-tint p-6">
-          <h2 className="text-[22px] font-bold">Help shape the party's agenda</h2>
-          <Button asChild><Link to="/join-party">Join to shape our agenda</Link></Button>
+          <h2 className="text-[22px] font-bold">{copy.issueCta.title}</h2>
+          <Button asChild><Link to={copy.issueCta.to}>{copy.issueCta.label}</Link></Button>
         </section>
       </div>
     </>

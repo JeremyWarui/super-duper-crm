@@ -35,19 +35,27 @@ const PARTY = {
   supportersSub: "Private to your campaign team. Never shared with the party.",
   volunteersNone: "None yet. Volunteers sign up on the candidate's page on the party website.",
   linkPlaceholder: "https:// or /join-party",
+  newsKicker: "From the party",
+  agendaMore: { label: "Read the manifesto", to: "/manifesto" },
+  agendaHome: "/#issues",
+  issueCta: { title: "Help shape the party's agenda", label: "Join to shape our agenda", to: "/join-party" },
 };
 
 const ASPIRANT = {
   tagline: "Official campaign website",
   join: { label: "Volunteer", to: "/volunteer" },
   nav: [
+    { label: "About", to: "/about" },
+    { label: "Agenda", to: "/agenda" },
     { label: "News", to: "/news" },
     { label: "Events", to: "/events" },
+    { label: "Media", to: "/media" },
     { label: "Volunteer", to: "/volunteer" },
   ],
   footer: [
     { title: "Take part", links: [["Volunteer", "/volunteer"], ["Events", "/events"], ["Contribute", "/contribute"]] },
-    { title: "Media", links: [["News & statements", "/news"]] },
+    { title: "The campaign", links: [["About", "/about"], ["Agenda", "/agenda"]] },
+    { title: "Media", links: [["News & statements", "/news"], ["Videos & documents", "/media"]] },
     { title: "Accounts", links: [["Team sign in", "/signin"]] },
   ],
   newsTitle: "Get campaign news by SMS or email",
@@ -67,6 +75,10 @@ const ASPIRANT = {
   supportersSub: "Private to your campaign team.",
   volunteersNone: "None yet. Volunteers sign up on the campaign website.",
   linkPlaceholder: "https:// or /volunteer",
+  newsKicker: "From the campaign",
+  agendaMore: { label: "See the whole agenda", to: "/agenda" },
+  agendaHome: "/agenda",
+  issueCta: { title: "Help win on this issue", label: "Volunteer", to: "/volunteer" },
 };
 
 /** The words for this installation; a party's until the site settings say otherwise. */

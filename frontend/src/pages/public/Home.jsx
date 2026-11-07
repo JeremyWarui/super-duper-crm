@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
 import { SectionHead } from "@/components/ui/typography";
 import { useBranding } from "@/theme/branding";
+import { useCopy } from "@/copy";
 import { LABELS, StoryKicker } from "./story";
 import { CandidateCard } from "./Candidates";
 
@@ -60,12 +61,16 @@ function BranchFinder() {
   );
 }
 
-/** Rotates every 6 seconds; Pause stops it, and it never moves on its own for reduced motion. */
-export function Carousel() {
+/**
+ * Rotates every 6 seconds; Pause stops it, and it never moves on its own for reduced motion.
+ * `fallback` is the one slide shown when none is published; `actions` and `aside` default to the
+ * party's join button and branch finder.
+ */
+export function Carousel({ fallback, actions, aside }) {
   const { partyName, slogan } = useBranding();
   const party = useSite().data;
   const published = usePublicSlides().data || [];
-  const slides = published.length ? published : [{ id: "party", kicker: partyName, headline: slogan || partyName, line: party?.description || "", image_url: "" }];
+  const slides = published.length ? published : [fallback || { id: "party", kicker: partyName, headline: slogan || partyName, line: party?.description || "", image_url: "" }];
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(() => !reducedMotion());
   const count = slides.length;
@@ -89,11 +94,11 @@ export function Carousel() {
           <h1 className="font-display text-hero font-extrabold tracking-[-0.03em]">{current.headline}</h1>
           {current.line ? <p className="max-w-[40ch] text-[19px] leading-[1.6] text-[#ECECE7]">{current.line}</p> : null}
           <div className="flex flex-wrap gap-3 pt-1.5">
-            <Button asChild variant="accent" size="lg"><Link to="/join-party">Join the party</Link></Button>
+            {actions || <Button asChild variant="accent" size="lg"><Link to="/join-party">Join the party</Link></Button>}
             <SlideButton slide={current} />
           </div>
         </div>
-        <BranchFinder />
+        {aside === undefined ? <BranchFinder /> : aside}
       </div>
       {count > 1 ? (
         <div className="absolute inset-x-0 bottom-7">
@@ -124,7 +129,7 @@ export function Carousel() {
   );
 }
 
-function Ticker({ news }) {
+export function Ticker({ news }) {
   if (!news.length) return null;
   return (
     <div className="border-b border-line-2 bg-white">
@@ -136,8 +141,10 @@ function Ticker({ news }) {
   );
 }
 
-function Agenda() {
-  const issues = usePublicIssues().data || [];
+export function Agenda({ limit }) {
+  const more = useCopy().agendaMore;
+  const all = usePublicIssues().data || [];
+  const issues = limit ? all.slice(0, limit) : all;
   if (!issues.length) return null;
   return (
     <section id="issues" className="scroll-mt-24 bg-white">
@@ -147,7 +154,7 @@ function Agenda() {
             <p className="kicker">Our agenda</p>
             <h2 className="font-display text-section font-extrabold tracking-[-0.02em]">Where we stand</h2>
           </div>
-          <Link to="/manifesto" className="font-bold">Read the manifesto</Link>
+          <Link to={more.to} className="font-bold">{more.label}</Link>
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
           {issues.map((issue, i) => (
@@ -176,7 +183,7 @@ export function youtubeThumb(url) {
   return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
 }
 
-function Watch() {
+export function Watch() {
   const videos = (usePublicVideos().data || []).slice(0, 3);
   const youtube = Object.entries(useSite().data?.social_links || {}).find(([name]) => /youtube/i.test(name))?.[1];
   if (!videos.length) return null;
@@ -205,13 +212,14 @@ function Watch() {
   );
 }
 
-function News({ news }) {
+export function News({ news }) {
+  const kicker = useCopy().newsKicker;
   if (!news.length) return null;
   const [lead, ...rest] = news;
   return (
     <section id="news" className="bg-stone">
       <div className="site-container flex flex-col gap-7 py-20">
-        <SectionHead kicker="From the party" title="News & statements" action={{ label: "All news", to: "/news" }} />
+        <SectionHead kicker={kicker} title="News & statements" action={{ label: "All news", to: "/news" }} />
         <div className="flex flex-wrap gap-7">
           <Link to={`/news/${lead.id}`} className="flex min-w-0 flex-[3_1_460px] flex-col gap-3.5 text-ink no-underline hover:text-ink">
             <Photo url={lead.image_url} className="aspect-video w-full rounded-card" />
@@ -242,7 +250,7 @@ function News({ news }) {
   );
 }
 
-function Events() {
+export function Events() {
   const events = usePublicPosts("event").data || [];
   if (!events.length) return null;
   return (

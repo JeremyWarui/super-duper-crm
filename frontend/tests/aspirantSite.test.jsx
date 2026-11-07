@@ -42,12 +42,19 @@ const PAGE = {
   wards: [{ id: "w1", name: "Zimmerman" }],
 };
 
+const ISSUE = { id: "i1", title: "Clean water", summary: "Water in every home.", what_we_will_do: "Drill boreholes", why_it_matters: "Health." };
+
 const ROUTES = {
   "GET /site/": SITE,
   "GET /site/candidate/": PAGE,
   "GET /party/posts/?kind=news&offset=0": [],
   "GET /party/posts/?kind=event&offset=0": [],
   "GET /party/places/": [],
+  "GET /party/slides/": [],
+  "GET /party/issues/": [ISSUE],
+  "GET /party/issues/i1/": ISSUE,
+  "GET /party/videos/": [{ id: "v1", title: "Town hall in Kahawa", url: "https://example.com/v1", duration: "4:10", thumbnail_url: "" }],
+  "GET /party/documents/": [{ id: "d1", title: "Campaign plan (PDF)", url: "https://example.com/plan.pdf" }],
 };
 
 /** The visible text of a page once its heading and `loaded` show. */
@@ -70,7 +77,42 @@ describe("an aspirant installation's website", () => {
     expect(screen.getByRole("heading", { name: "Support Jane" })).toBeInTheDocument();
   });
 
-  it.each(["/join-party", "/candidates", "/counties", "/vie", "/about", "/results"])(
+  it("shows what the Website editor publishes on the homepage, and links every page from the menu", async () => {
+    stubApi(ROUTES);
+    renderApp(<AppRoutes />);
+
+    expect(await screen.findByRole("heading", { name: "Why Jane?" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /Clean water/ })).toHaveAttribute("href", "/issues/i1");
+    expect(screen.getByRole("link", { name: "KES 500" })).toHaveAttribute("href", "/contribute?amount=500");
+    const menu = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
+    for (const path of ["/about", "/agenda", "/media", "/volunteer"]) expect(menu).toContain(path);
+  });
+
+  it("rotates published slides in the hero, and shows the candidate's own hero when there are none", async () => {
+    const slide = { id: "s1", kicker: "Roysambu 2027", headline: "Water for every ward", line: "", image_url: "", button_label: "", button_url: "" };
+    stubApi({ ...ROUTES, "GET /party/slides/": [slide] });
+    const first = renderApp(<AppRoutes />);
+    expect(await screen.findByRole("heading", { name: "Water for every ward", level: 1 })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Volunteer for Jane" }).length).toBeGreaterThan(0);
+    first.unmount();
+
+    stubApi(ROUTES);
+    renderApp(<AppRoutes />);
+    expect(await screen.findByRole("heading", { name: "Jane Wanjiku", level: 1 })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["/about", "Jane Wanjiku", "A teacher for twenty years."],
+    ["/agenda", "Agenda", "Clean water"],
+    ["/media", "Videos & documents", "Campaign plan (PDF)"],
+    ["/issues/i1", "Clean water", "Drill boreholes"],
+  ])("serves %s with no party word", async (path, heading, loaded) => {
+    const text = await textOf(path, heading, loaded);
+
+    expect(text).not.toMatch(/party/i);
+  });
+
+  it.each(["/join-party", "/candidates", "/counties", "/vie", "/results"])(
     "sends the party-only %s home",
     async (path) => {
       stubApi(ROUTES);
