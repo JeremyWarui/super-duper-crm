@@ -87,6 +87,7 @@ from backend.models.sms import CampaignMessage, PartyMessage, SmsInbound, SmsLog
 from backend.models.supporter import Supporter
 from backend.models.target import Target, compute_win_number, unit_key
 from backend.models.team import Agent, TeamRegistration
+from backend.models.two_step import UserTotp
 from backend.models.user import User
 from backend.models.volunteer import VolunteerProfile
 
@@ -179,6 +180,7 @@ __all__ = [
     "Supporter",
     "Target",
     "User",
+    "UserTotp",
     "VolunteerArea",
     "VolunteerProfile",
     "VolunteerStatus",

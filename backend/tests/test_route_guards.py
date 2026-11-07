@@ -41,6 +41,10 @@ PUBLIC_ROUTES = {
     ("POST", "/api/team-signup/{code}/"),
     ("GET", "/api/auth/links/{token}/"),
     ("POST", "/api/auth/links/{token}/"),
+    ("GET", "/api/auth/options/"),
+    ("GET", "/api/auth/google/start/"),
+    ("GET", "/api/auth/google/callback/"),
+    ("POST", "/api/auth/google/finish/"),
     ("GET", "/api/join/{code}/"),
     ("POST", "/api/join/{code}/"),
     ("POST", "/api/join/withdraw/{code}/"),
@@ -94,11 +98,16 @@ PARTY_ONLY_PATHS = (
 SAMPLE = "00000000-0000-0000-0000-000000000001"
 
 
-# Signed-in routes that skip the closed-campaign check, so a closed campaign's login can still
-# see who it is and sign out; and the member account, which a member login opens.
+# Signed-in routes that skip the closed-campaign and 2-step checks, so a login can still see
+# who it is, sign out and set up 2-step; and the member account, which a member login opens.
 SIGNED_IN_ONLY = {
     ("GET", "/api/auth/me/"),
     ("POST", "/api/auth/logout/"),
+    ("GET", "/api/auth/two-step/"),
+    ("POST", "/api/auth/two-step/start/"),
+    ("POST", "/api/auth/two-step/confirm/"),
+    ("POST", "/api/auth/two-step/recovery-codes/"),
+    ("POST", "/api/auth/two-step/off/"),
     ("GET", "/api/account/"),
     ("PUT", "/api/account/volunteer/"),
     ("POST", "/api/account/volunteer/stop/"),

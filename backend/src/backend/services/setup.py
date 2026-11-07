@@ -22,7 +22,7 @@ from backend.models import (
     WorkspaceKind,
 )
 from backend.schemas.setup import Area, ServiceState, SetupRequest, SetupResult
-from backend.services import party_workspace, texting
+from backend.services import oidc, party_workspace, texting
 from backend.services.accounts import new_login
 from backend.services.admin import build_workspace
 from backend.services.audit import record
@@ -111,7 +111,10 @@ async def run(session: AsyncSession, payload: SetupRequest) -> SetupResult:
         await _spend(session, payload.token)
         session.add(
             SiteSettings(
-                id=1, organisation_type=payload.organisation_type, **payload.site.model_dump()
+                id=1,
+                organisation_type=payload.organisation_type,
+                staff_two_step_required=payload.organisation_type is OrganisationType.PARTY,
+                **payload.site.model_dump(),
             )
         )
         await session.flush()
@@ -197,6 +200,13 @@ def services() -> list[ServiceState]:
             live=settings.payout_provider == "paystack",
             testable=False,
         ),
+        ServiceState(
+            key="google",
+            label="Google sign-in",
+            mode="google" if oidc.configured() else "off",
+            live=oidc.configured(),
+            testable=True,
+        ),
     ]
 
 
@@ -243,4 +253,16 @@ async def test_service(session: AsyncSession, key: str, user: User) -> str:
         if not result.delivered:
             raise Refused(f"The text did not send: {result.detail or 'the gateway refused it'}")
         return f"Sent to {phone}."
+    if key == "google":
+        if not oidc.configured():
+            raise Refused(
+                "Google sign-in is off: add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env."
+            )
+        try:
+            await oidc.metadata()
+        except (oidc.OidcError, OSError) as failed:
+            raise Refused(f"Google could not be reached: {failed}") from failed
+        return (
+            f"Google answered. Its OAuth client must allow the redirect URI {oidc.redirect_uri()}"
+        )
     raise Refused("That service has no test.")

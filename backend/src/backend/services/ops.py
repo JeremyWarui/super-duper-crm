@@ -34,7 +34,7 @@ from backend.services.sms import normalise_phone
 
 ALEMBIC_DIR = Path(__file__).resolve().parents[3] / "alembic"
 # Sign-in secrets: an export is for records and moving providers, and must not open accounts.
-SECRET_TABLES = {"auth_tokens", "login_invites", "setup_tokens"}
+SECRET_TABLES = {"auth_tokens", "login_invites", "setup_tokens", "user_totp"}
 SECRET_COLUMNS = {"users": {"password_hash"}}
 ARCHIVE = re.compile(r"^backup-(\d{8})-(\d{6})\.tar\.gz$")
 KEEP_DAILY = 14
@@ -88,7 +88,6 @@ async def health(session: AsyncSession, organisation_type: OrganisationType | No
     states = [
         {"key": s.key, "label": s.label, "mode": s.mode, "configured": s.live} for s in services()
     ]
-    states.append({"key": "google", "label": "Google sign-in", "mode": "off", "configured": False})
     last = None
     if database["reachable"]:
         run = await session.scalar(select(BackupRun).order_by(BackupRun.created_at.desc()).limit(1))

@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -12,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     Uuid,
+    false,
     func,
     text,
 )
@@ -60,6 +62,10 @@ class SiteSettings(Base):
     # Recorded with every news sign-up; raised when the notice changes.
     privacy_notice_version: Mapped[str] = mapped_column(
         String(20), default="1", server_default=text("'1'")
+    )
+    # Staff logins need 2-step sign-in; setup turns it on for a party.
+    staff_two_step_required: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

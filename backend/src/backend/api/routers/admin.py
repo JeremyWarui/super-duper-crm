@@ -70,7 +70,7 @@ from backend.schemas.content import (
 )
 from backend.schemas.imports import SHOWN_CHANGES, ImportReportRead, ImportRunRead, ImportUpload
 from backend.schemas.party import PartySettingsRead, PartySettingsUpdate
-from backend.schemas.site import SiteSettingsRead, SiteSettingsUpdate
+from backend.schemas.site import SignInRules, SiteSettingsRead, SiteSettingsUpdate
 from backend.services import admin as service
 from backend.services import audit, branches, candidates, content, home, imports
 from backend.services import party as party_service
@@ -168,6 +168,29 @@ async def update_site(
 ) -> SiteSettingsRead:
     """Replace the site settings; the organisation type stays as setup wrote it."""
     return await site_service.update_settings(session, payload, actor=admin)
+
+
+@router.get("/sign-in/", response_model=SignInRules)
+async def sign_in_rules(session: SessionDep, _: AdminUser) -> SignInRules:
+    return SignInRules.model_validate(await site_service.read_settings(session))
+
+
+@router.put("/sign-in/", response_model=SignInRules)
+async def update_sign_in_rules(
+    payload: SignInRules, session: SessionDep, admin: AdminUser
+) -> SignInRules:
+    """Whether staff logins need 2-step sign-in; the superuser always does."""
+    row = await site_service.read_settings(session)
+    row.staff_two_step_required = payload.staff_two_step_required
+    audit.record(
+        session,
+        actor=admin,
+        action="site_settings.sign_in",
+        subject_type="site_settings",
+        detail={"staff_two_step_required": payload.staff_two_step_required},
+    )
+    await session.commit()
+    return SignInRules.model_validate(row)
 
 
 @router.get("/campaigns/", response_model=list[AdminCampaignRead])

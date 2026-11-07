@@ -342,7 +342,9 @@
       "is_superuser",
       "party_roles",
       "kind",
-      "member_account"
+      "member_account",
+      "two_step_on",
+      "two_step_needed"
     ],
     "GET /api/party/members/": [
       "total",
@@ -1324,6 +1326,35 @@
       "availability_notes",
       "member_status",
       "erased_at"
+    ],
+    "GET /api/auth/options/": [
+      "google"
+    ],
+    "POST /api/auth/google/finish/": [
+      "token",
+      "user"
+    ],
+    "GET /api/auth/two-step/": [
+      "on",
+      "required",
+      "recovery_left"
+    ],
+    "POST /api/auth/two-step/start/": [
+      "secret",
+      "uri"
+    ],
+    "POST /api/auth/two-step/confirm/": [
+      "codes",
+      "token"
+    ],
+    "POST /api/auth/two-step/recovery-codes/": [
+      "codes"
+    ],
+    "GET /api/admin/sign-in/": [
+      "staff_two_step_required"
+    ],
+    "PUT /api/admin/sign-in/": [
+      "staff_two_step_required"
     ]
   },
   "nested_reads": {
@@ -1771,13 +1802,15 @@
   "writes": {
     "POST /api/auth/login/": [
       "email",
-      "password"
+      "password",
+      "code"
     ],
     "POST /api/auth/password-reset/": [
       "email"
     ],
     "POST /api/auth/links/{token}/": [
-      "password"
+      "password",
+      "code"
     ],
     "POST /api/mobilizers/": [
       "campaign",
@@ -2508,7 +2541,24 @@
     "POST /api/campaigns/{campaign_id}/data/close/": [],
     "POST /api/campaigns/{campaign_id}/data/erase-supporters/": [],
     "POST /api/party/members/{member_id}/erase/": [],
-    "POST /api/party/volunteers/{volunteer_id}/erase/": []
+    "POST /api/party/volunteers/{volunteer_id}/erase/": [],
+    "POST /api/auth/google/finish/": [
+      "handoff",
+      "bind"
+    ],
+    "POST /api/auth/two-step/start/": [],
+    "POST /api/auth/two-step/confirm/": [
+      "code"
+    ],
+    "POST /api/auth/two-step/recovery-codes/": [
+      "code"
+    ],
+    "POST /api/auth/two-step/off/": [
+      "code"
+    ],
+    "PUT /api/admin/sign-in/": [
+      "staff_two_step_required"
+    ]
   },
   "enums": {
     "user.role": [

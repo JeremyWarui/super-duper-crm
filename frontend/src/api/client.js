@@ -4,7 +4,7 @@
 
 import { useAuth } from "../store/auth";
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+export const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 // `anonymous` leaves the token off, for the public pages anyone can open.
 export async function api(path, { method = "GET", body, anonymous = false, headers = {} } = {}) {
@@ -32,7 +32,8 @@ export async function api(path, { method = "GET", body, anonymous = false, heade
     const first = data?.detail || (data && Object.values(data)[0]);
     const msg = Array.isArray(first) ? first[0] : first || "Request failed.";
     // `status` and `code` let a screen tell a closed campaign from any other refusal.
-    throw Object.assign(new Error(msg), { status: res.status, code: data?.code });
+    // `codeRequired`: the password was right and a 2-step code is wanted.
+    throw Object.assign(new Error(msg), { status: res.status, code: data?.code, codeRequired: !!data?.code_required });
   }
   return data;
 }

@@ -1,6 +1,6 @@
 // The console's Health tab: what is running, what is switched on, and the last backups.
 import { useState } from "react";
-import { useBackups, useHealth, useTestSend } from "@/api/hooks";
+import { useBackups, useHealth, useSaveSignInRules, useSignInRules, useTestSend, useTestService } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -37,6 +37,35 @@ function TestSend({ kind, label, note }) {
   );
 }
 
+/** Who needs 2-step sign-in, and a check that Google answers. */
+function SignIn({ google }) {
+  const rules = useSignInRules();
+  const save = useSaveSignInRules();
+  const check = useTestService();
+  const on = rules.data?.staff_two_step_required;
+  return (
+    <Card variant="outline" className="gap-3" role="region" aria-label="Sign-in">
+      <h2 className="text-card-title font-bold">Sign-in</h2>
+      <p className="text-ui text-muted-foreground">The superuser always signs in with 2-step. Anyone else may turn it on from Sign-in security.</p>
+      {rules.data && (
+        <label className="flex items-start gap-3 text-ui">
+          <input type="checkbox" className="mt-1 size-4" checked={on} disabled={save.isPending} onChange={(e) => save.mutate({ staff_two_step_required: e.target.checked })} />
+          <span><strong>Party staff need 2-step sign-in.</strong> A staff login without it opens nothing until it is set up.</span>
+        </label>
+      )}
+      {(rules.error || save.error) && <p role="alert" className="text-ui font-semibold text-destructive">{(rules.error || save.error).message}</p>}
+      <div className="flex flex-col gap-2">
+        <Button type="button" shape="rounded" variant="quiet" className="self-start" disabled={!google || check.isPending} onClick={() => check.mutate("google")}>
+          {check.isPending ? "Checking…" : "Check Google sign-in"}
+        </Button>
+        {!google && <p className="text-small text-muted-foreground">Google sign-in is off. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to <code>.env</code> and restart.</p>}
+        {check.data && <p role="status" className="text-ui font-semibold text-primary">{check.data.message}</p>}
+        {check.error && <p role="alert" className="text-ui font-semibold text-destructive">{check.error.message}</p>}
+      </div>
+    </Card>
+  );
+}
+
 export default function Health() {
   const { data: h, isLoading, error } = useHealth();
   const backups = useBackups().data || [];
@@ -69,6 +98,7 @@ export default function Health() {
           <TestSend kind="payout" label="Make a practice payout" note="KES 1 in practice mode; refused where payouts are live." />
         </div>
       </Card>
+      <SignIn google={h.services.some((s) => s.key === "google" && s.configured)} />
       <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Backups">
         <h2 className="text-card-title font-bold">Backups</h2>
         <p className="text-ui">

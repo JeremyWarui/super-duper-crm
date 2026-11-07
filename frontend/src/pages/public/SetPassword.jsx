@@ -16,17 +16,20 @@ export default function SetPassword() {
   const signedIn = useAuth((s) => s.user);
   const [password, setPassword] = useState("");
   const [again, setAgain] = useState("");
+  const [code, setCode] = useState("");
   const link = useLink(token);
   const claim = useClaimLink(token);
   if (claim.isSuccess) return <Navigate to={landingOf(signedIn)} replace />;
 
   const short = password.length > 0 && password.length < MIN;
   const differ = again.length > 0 && again !== password;
-  const ready = password.length >= MIN && again === password;
+  // A login with 2-step on keeps its old password until it gives a code.
+  const needCode = Boolean(claim.error?.codeRequired);
+  const ready = password.length >= MIN && again === password && (!needCode || code.trim().length >= 6);
   const invite = link.data?.purpose === "invite";
   const submit = (e) => {
     e.preventDefault();
-    if (ready) claim.mutate(password, { onSuccess: adopt });
+    if (ready) claim.mutate({ password, code: code.trim() }, { onSuccess: adopt });
   };
   return (
     <section className="mx-auto flex w-full max-w-[460px] flex-col gap-6 px-4 py-16">
@@ -55,6 +58,11 @@ export default function SetPassword() {
               <Input size="lg" type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} />
             </Field>
             {differ && <p className="text-small font-semibold text-destructive">The two passwords differ.</p>}
+            {needCode && (
+              <Field label="Code from your app" hint="Your login has 2-step sign-in on. Six digits, or a recovery code.">
+                <Input size="lg" inputMode="numeric" autoComplete="one-time-code" autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
+              </Field>
+            )}
             {claim.error ? <p role="alert" className="text-ui font-semibold text-destructive">{claim.error.message}</p> : null}
             <Button type="submit" size="lg" disabled={claim.isPending || !ready}>{claim.isPending ? "Saving…" : "Save and sign in"}</Button>
           </form>

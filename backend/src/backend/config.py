@@ -107,6 +107,11 @@ class Settings(BaseSettings):
     # "practice" moves no money; "paystack" sends M-Pesa transfers for party and campaign payments.
     payout_provider: Literal["practice", "paystack"] = "practice"
 
+    # Google sign-in; blank hides the button. The OAuth client's redirect URI is
+    # PUBLIC_URL followed by /api/auth/google/callback/.
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
     @field_validator("payout_provider", mode="after")
     @classmethod
     def _paystack_needs_a_key(cls, value: str, info: ValidationInfo) -> str:

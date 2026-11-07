@@ -20,8 +20,8 @@ from backend.models import (
     User,
     UserKind,
 )
-from backend.services import access, clock, membership, permissions, site
-from backend.services.errors import CampaignClosed, NotFound
+from backend.services import access, clock, membership, permissions, site, two_step
+from backend.services.errors import CampaignClosed, NotFound, TwoStepNeeded
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -36,9 +36,12 @@ def _unauthorized(detail: str) -> HTTPException:
 
 
 async def get_signed_in_user(
-    session: SessionDep, header: Annotated[str | None, Depends(_header)]
+    session: SessionDep, request: Request, header: Annotated[str | None, Depends(_header)]
 ) -> User:
-    """The caller named by "Authorization: Token <key>"; 401 when absent or unknown."""
+    """The caller named by "Authorization: Token <key>"; 401 when absent or unknown.
+
+    `request.state.two_step` says whether this session passed 2-step.
+    """
     if not header:
         raise _unauthorized("Authentication credentials were not provided.")
     scheme, _, key = header.partition(" ")
@@ -55,6 +58,7 @@ async def get_signed_in_user(
     )
     if token is None or not token.user.is_active:
         raise _unauthorized("Invalid token.")
+    request.state.two_step = token.two_step
     return token.user
 
 
@@ -83,10 +87,13 @@ OPEN_WHEN_CLOSED = re.compile(r"^/api/(auth/|campaigns/[0-9a-f-]+/data/)")
 async def get_current_user(user: SignedInUser, session: SessionDep, request: Request) -> User:
     """The signed-in caller, refused while their campaign is closed (`services/access.py`).
 
-    A member login is refused: it opens only the member account.
+    A member login is refused: it opens only the member account. A login that needs 2-step is
+    refused until this session has passed it.
     """
     if user.kind is UserKind.MEMBER:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "A member login opens only its account.")
+    if not getattr(request.state, "two_step", False) and await two_step.required(session, user):
+        raise TwoStepNeeded("Turn on 2-step sign-in, or sign in with it, to continue.")
     if user.role is None or user.is_superuser:
         return user
     found = await access.login_access(session, user.id)

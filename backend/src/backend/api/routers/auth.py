@@ -1,30 +1,52 @@
-"""Signing in and out, and the one-time links that set a password."""
+"""Signing in and out, 2-step sign-in, Google sign-in, and the one-time links that set a
+password."""
 
+import hashlib
+import secrets
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
+from urllib.parse import urlencode
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
-from fastapi.responses import JSONResponse
-from sqlalchemy import delete, select
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
+from fastapi.responses import JSONResponse, RedirectResponse
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from backend.api.deps import SessionDep, SignedInUser
 from backend.api.routers.join import _client
+from backend.config import get_settings
 from backend.db.session import get_session_factory
 from backend.models import AuthToken, User, UserKind
 from backend.schemas.auth import (
+    AuthOptions,
+    GoogleFinish,
     LinkClaim,
     LinkRead,
     LoginRequest,
     LoginResponse,
     LoginUser,
+    RecoveryCodes,
     ResetRequest,
     ResetSent,
+    TwoStepCode,
+    TwoStepStart,
+    TwoStepStatus,
 )
 from backend.security import hash_password, needs_rehash, new_token_key, verify_password
-from backend.services import login_links
+from backend.services import login_links, oidc, two_step
 from backend.services.accounts import clean_email, user_named, user_with_email
+from backend.services.audit import record
 from backend.services.ratelimit import RateLimit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -35,17 +57,76 @@ RESETS_PER_CLIENT = RateLimit(limit=5, window=3600)
 RESETS_PER_ADDRESS = RateLimit(limit=3, window=3600)
 CLAIMS = RateLimit(limit=20, window=3600)
 RESET_SENT = "If that email has a login, a link to choose a new password is on its way."
+CODE_NEEDED = "Enter the 6-digit code from your authenticator app, or a recovery code."
+GOOGLE_COOKIE = "google_sign_in"
+GOOGLE_PATH = "/api/auth/google/"
+HANDOFF_LIFE = timedelta(minutes=2)
+HANDOFF_SPENT = "That Google sign-in has expired. Sign in again."
 
 
-async def _signed_in(session: AsyncSession, user: User) -> dict:
-    """The login's token, created if it has none, and the login itself."""
+def _too_many(request: Request, limit: RateLimit = TRIES) -> None:
+    if not limit.allow(_client(request)):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+
+
+def _code_reply(detail: str) -> JSONResponse:
+    """A right password on a login with 2-step on, without a good code."""
+    return JSONResponse(
+        {"code_required": True, "detail": detail, "non_field_errors": [detail]},
+        status_code=status.HTTP_400_BAD_REQUEST,
+    )
+
+
+def _sha(value: str) -> str:
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+async def login_user(session: AsyncSession, user: User, passed: bool) -> LoginUser:
+    """The login as the browser keeps it, with where it stands on 2-step."""
+    needed = not passed and await two_step.required(session, user)
+    return LoginUser.model_validate(user).model_copy(
+        update={"two_step_on": await two_step.is_on(session, user), "two_step_needed": needed}
+    )
+
+
+async def _signed_in(
+    session: AsyncSession, user: User, *, passed: bool, handoff: str | None = None
+) -> dict:
+    """The login's token, created if it has none and marked with whether this sign-in passed
+    2-step, and the login itself. A `handoff` lets the browser fetch the token once."""
+    token = await _session_token(session, user, passed)
+    if handoff is not None:
+        token.handoff_hash = _sha(handoff)
+        token.handoff_expires_at = datetime.now(UTC) + HANDOFF_LIFE
+    user.last_login_at = datetime.now(UTC)
+    shown = await login_user(session, user, passed)
+    await session.commit()
+    return {"token": token.key, "user": shown}
+
+
+async def _session_token(session: AsyncSession, user: User, passed: bool) -> AuthToken:
+    """The login's one token, marked with `passed`; a change of mark gets a new key, so a
+    session that never passed 2-step is not raised by one that did."""
     token = await session.scalar(select(AuthToken).where(AuthToken.user_id == user.id))
     if token is None:
-        token = AuthToken(user_id=user.id, key=new_token_key())
+        token = AuthToken(user_id=user.id, key=new_token_key(), two_step=passed)
         session.add(token)
-    user.last_login_at = datetime.now(UTC)
-    await session.commit()
-    return {"token": token.key, "user": user}
+    elif token.two_step != passed:
+        token.key = new_token_key()
+        token.two_step = passed
+    await session.flush()
+    return token
+
+
+async def _second_step(session: AsyncSession, user: User, code: str) -> JSONResponse | bool:
+    """Whether this sign-in passed 2-step, or the reply asking for a good code."""
+    if not await two_step.is_on(session, user):
+        return False
+    if not code.strip():
+        return _code_reply(CODE_NEEDED)
+    if not await two_step.check(session, user, code):
+        return _code_reply(two_step.WRONG_CODE)
+    return True
 
 
 @router.post(
@@ -57,10 +138,10 @@ async def login(payload: LoginRequest, request: Request, session: SessionDep) ->
     """Exchange an email and password for a token; 10 tries an hour per device.
 
     A member login signs in only while its member is approved, and is refused otherwise with
-    the answer a wrong password gets.
+    the answer a wrong password gets. A login with 2-step on also needs a code: without a good
+    one the reply is 400 with `code_required`.
     """
-    if not TRIES.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    _too_many(request)
     user = await user_with_email(session, payload.email, with_party_roles=True)
     if (
         user is None
@@ -73,15 +154,18 @@ async def login(payload: LoginRequest, request: Request, session: SessionDep) ->
             {"non_field_errors": [WRONG_CREDENTIALS], "detail": WRONG_CREDENTIALS},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
+    passed = await _second_step(session, user, payload.code)
+    if isinstance(passed, JSONResponse):
+        return passed
     if needs_rehash(user.password_hash):
         user.password_hash = hash_password(payload.password)
-    return await _signed_in(session, user)
+    return await _signed_in(session, user, passed=passed)
 
 
 @router.get("/me/", response_model=LoginUser)
-async def me(user: SignedInUser) -> User:
+async def me(user: SignedInUser, session: SessionDep, request: Request) -> LoginUser:
     """The signed-in login, as the sign-in returns it."""
-    return user
+    return await login_user(session, user, request.state.two_step)
 
 
 @router.post("/logout/", status_code=status.HTTP_204_NO_CONTENT)
@@ -123,8 +207,7 @@ async def request_reset(
 @router.get("/links/{token}/", response_model=LinkRead)
 async def read_link(token: str, request: Request, session: SessionDep) -> LinkRead:
     """What a live link is for and whose login it sets; 400 when it has expired or been used."""
-    if not CLAIMS.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    _too_many(request, CLAIMS)
     purpose, user = await login_links.check(session, token)
     return LinkRead(purpose=purpose, username=user.username, email=user.email)
 
@@ -133,9 +216,211 @@ async def read_link(token: str, request: Request, session: SessionDep) -> LinkRe
 async def claim_link(
     token: str, payload: LinkClaim, request: Request, session: SessionDep
 ) -> object:
-    """Set the password from a live link and sign in; the link is spent."""
-    if not CLAIMS.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    """Set the password from a live link and sign in; the link is spent.
+
+    A login with 2-step on needs its code here too, as at sign-in, and keeps its old password
+    until it gives one.
+    """
+    _too_many(request, CLAIMS)
+    _, owner = await login_links.check(session, token)
+    passed = await _second_step(session, owner, payload.code)
+    if isinstance(passed, JSONResponse):
+        return passed
     user = await login_links.claim(session, token, payload.password)
     signed = await user_named(session, user.username, with_party_roles=True)
-    return await _signed_in(session, signed)
+    return await _signed_in(session, signed, passed=passed)
+
+
+@router.get("/options/", response_model=AuthOptions)
+async def options() -> AuthOptions:
+    return AuthOptions(google=oidc.configured())
+
+
+# 2-step: open to any signed-in login, so one that needs it can turn it on.
+
+
+@router.get("/two-step/", response_model=TwoStepStatus)
+async def two_step_status(user: SignedInUser, session: SessionDep) -> TwoStepStatus:
+    return TwoStepStatus(
+        on=await two_step.is_on(session, user),
+        required=await two_step.required(session, user),
+        recovery_left=await two_step.recovery_left(session, user),
+    )
+
+
+@router.post("/two-step/start/", response_model=TwoStepStart)
+async def two_step_start(user: SignedInUser, session: SessionDep) -> TwoStepStart:
+    """A new secret for the authenticator app; 2-step is on once a code from it is confirmed."""
+    secret, uri = await two_step.start(session, user)
+    await session.commit()
+    return TwoStepStart(secret=secret, uri=uri)
+
+
+@router.post(
+    "/two-step/confirm/",
+    response_model=RecoveryCodes,
+    responses={429: {"description": "Too many tries"}},
+)
+async def two_step_confirm(
+    payload: TwoStepCode, request: Request, user: SignedInUser, session: SessionDep
+) -> RecoveryCodes:
+    """Turn 2-step on with the app's first code; the recovery codes are shown this once.
+
+    This session has now passed 2-step, under the new `token` returned.
+    """
+    _too_many(request)
+    codes = await two_step.confirm(session, user, payload.code)
+    token = await _session_token(session, user, True)
+    await session.commit()
+    return RecoveryCodes(codes=codes, token=token.key)
+
+
+@router.post(
+    "/two-step/recovery-codes/",
+    response_model=RecoveryCodes,
+    responses={429: {"description": "Too many tries"}},
+)
+async def two_step_renew(
+    payload: TwoStepCode, request: Request, user: SignedInUser, session: SessionDep
+) -> RecoveryCodes:
+    """New recovery codes for a current code; the old ones stop working."""
+    _too_many(request)
+    codes = await two_step.renew_recovery(session, user, payload.code)
+    await session.commit()
+    return RecoveryCodes(codes=codes)
+
+
+@router.post(
+    "/two-step/off/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={429: {"description": "Too many tries"}},
+)
+async def two_step_off(
+    payload: TwoStepCode, request: Request, user: SignedInUser, session: SessionDep
+) -> Response:
+    """Turn 2-step off for a current code; refused while the login needs it."""
+    _too_many(request)
+    await two_step.turn_off(session, user, payload.code)
+    await session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# Google sign-in: start sends the browser to Google, Google sends it back to the callback, and
+# the callback sends it to /signin with a one-time handoff the page trades for the token.
+
+
+def _to_signin(**query: str) -> RedirectResponse:
+    target = f"{get_settings().public_url.rstrip('/')}/signin?{urlencode(query)}"
+    response = RedirectResponse(target, status_code=status.HTTP_302_FOUND)
+    response.delete_cookie(GOOGLE_COOKIE, path=GOOGLE_PATH)
+    return response
+
+
+def _need_google() -> None:
+    if not oidc.configured():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Google sign-in is not set up here.")
+
+
+@router.get("/google/start/", status_code=status.HTTP_302_FOUND)
+async def google_start(
+    bind: Annotated[str, Query(min_length=16, max_length=100, pattern=r"^[\w-]+$")],
+) -> RedirectResponse:
+    """Send the browser to Google, with the state, nonce and PKCE verifier kept in a 10-minute
+    cookie. `bind` is a random value the page keeps; only it can finish this sign-in."""
+    _need_google()
+    state, nonce, verifier = (secrets.token_urlsafe(32) for _ in range(3))
+    try:
+        url = await oidc.authorize_url(state, nonce, verifier)
+    except (oidc.OidcError, OSError):
+        return _to_signin(google_error="failed")
+    response = RedirectResponse(url, status_code=status.HTTP_302_FOUND)
+    response.set_cookie(
+        GOOGLE_COOKIE,
+        f"{state}.{nonce}.{verifier}.{bind}",
+        max_age=600,
+        path=GOOGLE_PATH,
+        httponly=True,
+        samesite="lax",
+        secure=get_settings().public_url.startswith("https://"),
+    )
+    return response
+
+
+async def _google_refused(session: AsyncSession, reason: str, email: str = "") -> RedirectResponse:
+    record(
+        session,
+        actor=None,
+        actor_name="google",
+        action="login.google_refused",
+        subject_type="user",
+        detail={"reason": reason, "email": email},
+    )
+    await session.commit()
+    return _to_signin(google_error=reason)
+
+
+@router.get("/google/callback/", status_code=status.HTTP_302_FOUND)
+async def google_callback(
+    request: Request, session: SessionDep, code: str = "", state: str = "", error: str = ""
+) -> RedirectResponse:
+    """Check Google's answer and sign in the existing login with that verified email.
+
+    Never creates a login. Every outcome is audited; a refusal names its reason in
+    `google_error`: cancelled, expired, failed, unverified or unknown.
+    """
+    _need_google()
+    if not CLAIMS.allow(_client(request)):
+        return await _google_refused(session, "busy")
+    saved = request.cookies.get(GOOGLE_COOKIE, "").split(".")
+    expected, nonce, verifier, bind = saved if len(saved) == 4 and all(saved) else ("",) * 4
+    if error:
+        return await _google_refused(session, "cancelled")
+    if not (expected and code and secrets.compare_digest(state.encode(), expected.encode())):
+        return await _google_refused(session, "expired")
+    try:
+        found = await oidc.identity(code, nonce, verifier)
+    except (oidc.OidcError, OSError):
+        return await _google_refused(session, "failed")
+    email = clean_email(found.email)
+    if not email or not found.email_verified:
+        return await _google_refused(session, "unverified", email)
+    user = await user_with_email(session, email, with_party_roles=True)
+    if user is None or not login_links.may_sign_in(user):
+        return await _google_refused(session, "unknown", email)
+    handoff = secrets.token_urlsafe(32)
+    record(session, actor=user, action="login.google", subject_type="user", subject_id=user.id)
+    await _signed_in(session, user, passed=True, handoff=f"{handoff}:{bind}")
+    return _to_signin(google=handoff)
+
+
+@router.post(
+    "/google/finish/",
+    response_model=LoginResponse,
+    responses={400: {"description": "Spent"}, 429: {"description": "Too many tries"}},
+)
+async def google_finish(payload: GoogleFinish, request: Request, session: SessionDep) -> object:
+    """Trade the callback's handoff for the session, once, within two minutes, from the page
+    holding the `bind` value the sign-in started with."""
+    _too_many(request, CLAIMS)
+    hashed = _sha(f"{payload.handoff}:{payload.bind}")
+    token = await session.scalar(select(AuthToken).where(AuthToken.handoff_hash == hashed))
+    expires = token.handoff_expires_at if token is not None else None
+    if expires is not None and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=UTC)
+    if token is None or expires is None or expires <= datetime.now(UTC):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, HANDOFF_SPENT)
+    spent = await session.execute(
+        update(AuthToken)
+        .where(AuthToken.id == token.id, AuthToken.handoff_hash == hashed)
+        .values(handoff_hash=None, handoff_expires_at=None)
+    )
+    if spent.rowcount != 1:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, HANDOFF_SPENT)
+    user = await session.scalar(
+        select(User)
+        .where(User.id == token.user_id)
+        .options(selectinload(User.party_roles), selectinload(User.party_member))
+    )
+    shown = await login_user(session, user, token.two_step)
+    await session.commit()
+    return {"token": token.key, "user": shown}

@@ -506,8 +506,43 @@ export const useLink = (token) =>
 // Sets the password through the link; resolves to the session it opens.
 export const useClaimLink = (token) =>
   useMutation({
-    mutationFn: (password) => api(`/auth/links/${token}/`, { method: "POST", body: { password }, anonymous: true }),
+    mutationFn: ({ password, code = "" }) => api(`/auth/links/${token}/`, { method: "POST", body: code ? { password, code } : { password }, anonymous: true }),
   });
+
+// ---- sign-in options and 2-step -------------------------------------------
+export const useSignInOptions = () =>
+  useQuery({ queryKey: ["sign-in-options"], queryFn: () => api("/auth/options/", { anonymous: true }), staleTime: Infinity });
+
+export const finishGoogle = (handoff, bind) =>
+  api("/auth/google/finish/", { method: "POST", body: { handoff, bind }, anonymous: true });
+
+export const useTwoStep = () => useQuery({ queryKey: ["two-step"], queryFn: () => api("/auth/two-step/") });
+
+function useTwoStepChange(mutationFn) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["two-step"] });
+      qc.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+}
+
+export const useStartTwoStep = () => useTwoStepChange(() => api("/auth/two-step/start/", { method: "POST" }));
+export const useConfirmTwoStep = () => useTwoStepChange((code) => api("/auth/two-step/confirm/", { method: "POST", body: { code } }));
+export const useRenewRecoveryCodes = () => useTwoStepChange((code) => api("/auth/two-step/recovery-codes/", { method: "POST", body: { code } }));
+export const useTurnOffTwoStep = () => useTwoStepChange((code) => api("/auth/two-step/off/", { method: "POST", body: { code } }));
+
+export const useSignInRules = () => useQuery({ queryKey: ["sign-in-rules"], queryFn: () => api("/admin/sign-in/") });
+
+export function useSaveSignInRules() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => api("/admin/sign-in/", { method: "PUT", body }),
+    onSuccess: (data) => qc.setQueryData(["sign-in-rules"], data),
+  });
+}
 
 // ---- admin console --------------------------------------------------------
 // Only a superuser may call these; every route checks the flag again itself.

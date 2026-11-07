@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -19,7 +19,8 @@ from backend.models import (
 )
 from backend.schemas.account import AccountRead, AccountVolunteer
 from backend.schemas.party import VolunteerPart
-from backend.services import membership, volunteers
+from backend.services import membership, two_step, volunteers
+from backend.services.errors import TwoStepNeeded
 
 router = APIRouter(prefix="/account", tags=["account"])
 
@@ -45,15 +46,19 @@ async def _member(session: SessionDep, user: User) -> PartyMember | None:
     )
 
 
-async def get_account_member(user: SignedInUser, session: SessionDep) -> PartyMember:
+async def get_account_member(
+    user: SignedInUser, session: SessionDep, request: Request
+) -> PartyMember:
     """The approved member this login opens.
 
     Applies the party inbox first, so a queued withdrawal ends the session on this request.
     A member login whose member is no longer approved gets 401; any other login without an
-    approved member gets 403.
+    approved member gets 403. A staff login that needs 2-step needs it here too.
     """
     if user.party_member_id is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "This login has no member account.")
+    if not request.state.two_step and await two_step.required(session, user):
+        raise TwoStepNeeded("Turn on 2-step sign-in, or sign in with it, to continue.")
     await membership.process_requests(session)
     member = await _member(session, user)
     if member is None or member.status is not PartyMemberStatus.APPROVED:
