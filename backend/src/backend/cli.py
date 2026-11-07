@@ -24,7 +24,7 @@ from backend.seed.reference import (
     import_geography,
 )
 from backend.seed.site import seed_branches, seed_home, seed_news, seed_site
-from backend.services import admin, imports, ops, setup, two_step
+from backend.services import admin, imports, ops, setup
 from backend.services.accounts import clean_email, new_login, user_with_email
 from backend.services.audit import record
 from backend.services.clock import today
@@ -240,15 +240,6 @@ async def _reset_password(args: argparse.Namespace, session: AsyncSession) -> in
     return 0
 
 
-async def _reset_two_step(args: argparse.Namespace, session: AsyncSession) -> int:
-    user = await admin.user_by_name(session, args.username)
-    await two_step.reset(session, user)
-    await session.commit()
-    print(f"2-step sign-in is off for {args.username}, and every session is signed out.")
-    print("They sign in with their password and set it up again.")
-    return 0
-
-
 async def _set_email(args: argparse.Namespace, session: AsyncSession) -> int:
     user = await admin.user_by_name(session, args.username)
     email = clean_email(args.email)
@@ -414,7 +405,6 @@ def build_parser() -> argparse.ArgumentParser:
     reset = command("reset-password", _reset_password, "give a login a new password")
     needs_user(reset)
     reset.add_argument("-p", "--password", help="generated when left out")
-    needs_user(command("reset-two-step", _reset_two_step, "take 2-step off a login that lost it"))
 
     for name, handler, help_text in (
         ("add-member", _add_member, "put somebody on a campaign"),

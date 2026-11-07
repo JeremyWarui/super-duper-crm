@@ -41,7 +41,6 @@ uv run campaign-crm remove-member -u juma -c <id>
 uv run campaign-crm rename-campaign -c <id> -t "Jane for Roysambu"
 uv run campaign-crm delete-campaign -c <id>       # says what and who would go; add --yes
 uv run campaign-crm reset-password -u jane
-uv run campaign-crm reset-two-step -u root       # a login that lost its authenticator app
 uv run campaign-crm deactivate -u jane            # and activate
 uv run campaign-crm reset-database --yes <name>   # empty a Postgres database; see DEPLOY.md
 ```
@@ -580,22 +579,10 @@ PUBLIC_URL=https://your-app.example.com
 `campaign-crm reset-password` still sets a password directly, for the operator
 locked out of the superuser login.
 
-## 2-step and Google sign-in
+## Google sign-in
 
-2-step sign-in uses a code from an authenticator app (TOTP, `services/two_step.py`).
-The superuser always needs it, and so do party staff while
-`site_settings.staff_two_step_required` is on (setup turns it on in a party copy;
-the console's Health tab has the switch). Anyone else may turn it on at
-`/security`. A login that needs it and has not passed it in this session gets
-403 `two_step_required` everywhere except `/api/auth/`, and the app sends it to
-`/security` to set it up. Once on, the password sign-in and a reset link both ask
-for a code. Ten recovery codes, each good once, are shown when it is turned on.
-The app secret is stored encrypted with `SECRET_KEY` (`user_totp`), so changing
-`SECRET_KEY` turns everyone's codes off: run `campaign-crm reset-two-step -u <name>`
-for each, and they set it up again. Exports leave `user_totp` out.
-
-Google sign-in (`services/oidc.py`, OpenID Connect with PKCE) is off until both
-keys are set:
+Sign-in is email and password. Google sign-in (`services/oidc.py`, OpenID Connect
+with PKCE) is off, and its button hidden, until both keys are set:
 
 ```bash
 GOOGLE_CLIENT_ID=<id>.apps.googleusercontent.com
@@ -606,8 +593,8 @@ PUBLIC_URL=https://your-app.example.com
 In Google Cloud, make a "Web application" OAuth client whose authorised redirect
 URI is exactly `PUBLIC_URL` + `/api/auth/google/callback/`, trailing slash
 included. It signs in only an existing login whose email matches a Google email
-Google has verified, never creates one, and counts as 2-step. Every sign-in and
-every refusal is in the audit trail (`login.google`, `login.google_refused`).
+Google has verified, and never creates one. Every sign-in and every refusal is
+in the audit trail (`login.google`, `login.google_refused`).
 The console's Check Google sign-in button confirms Google answers.
 
 ## Team sign-up and agents
@@ -719,9 +706,6 @@ required and at least 32 characters.
   Google advises keying on the account's `sub`. Someone who takes over an
   email address and gets Google to verify it for a new account signs in as
   that login. Storing `sub` at the first Google sign-in would close it.
-- A login has one token, so signing in on a second device reuses it: a
-  password-only sign-in there clears the 2-step mark the first device earned,
-  and both are sent to `/security`.
 - Coordinator, Comms and Agent have permissions but no screens yet (PD-10);
   `createuser` offers only candidate, manager and mobilizer. An agent's "own"
   rows (events, payments) are empty until assignments exist (PD-37). The

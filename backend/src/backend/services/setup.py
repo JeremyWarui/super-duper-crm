@@ -111,10 +111,7 @@ async def run(session: AsyncSession, payload: SetupRequest) -> SetupResult:
         await _spend(session, payload.token)
         session.add(
             SiteSettings(
-                id=1,
-                organisation_type=payload.organisation_type,
-                staff_two_step_required=payload.organisation_type is OrganisationType.PARTY,
-                **payload.site.model_dump(),
+                id=1, organisation_type=payload.organisation_type, **payload.site.model_dump()
             )
         )
         await session.flush()

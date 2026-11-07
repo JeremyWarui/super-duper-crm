@@ -23,7 +23,6 @@ export function UserMenu({ user, onSignOut }: { user: { initials: string; name: 
       {open ? (
         <div id="user-menu" className="absolute right-0 z-50 mt-2 flex w-60 flex-col gap-1 rounded-photo border border-line bg-white p-2 shadow-pop">
           <span className="px-3 py-2 text-meta font-bold text-muted-foreground">Signed in as {user.role}</span>
-          <Link to="/security" className="flex min-h-11 items-center rounded-lg px-3 text-ui font-bold text-ink hover:bg-stone">Sign-in security</Link>
           <button type="button" onClick={onSignOut} className="min-h-11 cursor-pointer rounded-lg px-3 text-left text-ui font-bold hover:bg-stone">Sign out</button>
         </div>
       ) : null}

@@ -9,15 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from backend.models import UserRole
 from tests.conftest import app_client, enforce_foreign_keys, upgrade_head
-from tests.factories import (
-    auth,
-    claim_link,
-    enrol_two_step,
-    make_geography,
-    make_user,
-    members_of,
-    sign_in,
-)
+from tests.factories import auth, claim_link, make_geography, make_user, members_of, sign_in
 
 
 @pytest.fixture
@@ -45,7 +37,7 @@ async def test_the_superuser_sets_a_campaign_up_that_its_aspirant_and_manager_wo
     county.turnout_2022_pct = Decimal("60.00")
     root = await make_user(session, username="root", role=UserRole.MANAGER)
     root.is_superuser = True
-    await enrol_two_step(session, root)
+    await session.commit()
 
     made = await client.post(
         "/api/admin/campaigns/",

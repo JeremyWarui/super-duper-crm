@@ -32,8 +32,7 @@ export async function api(path, { method = "GET", body, anonymous = false, heade
     const first = data?.detail || (data && Object.values(data)[0]);
     const msg = Array.isArray(first) ? first[0] : first || "Request failed.";
     // `status` and `code` let a screen tell a closed campaign from any other refusal.
-    // `codeRequired`: the password was right and a 2-step code is wanted.
-    throw Object.assign(new Error(msg), { status: res.status, code: data?.code, codeRequired: !!data?.code_required });
+    throw Object.assign(new Error(msg), { status: res.status, code: data?.code });
   }
   return data;
 }

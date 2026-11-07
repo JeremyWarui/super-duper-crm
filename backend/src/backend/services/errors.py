@@ -28,9 +28,3 @@ def refuse_own_record(actor, member_id) -> None:  # type: ignore[no-untyped-def]
         return
     if actor.party_member_id is not None and actor.party_member_id == member_id:
         raise Forbidden("You cannot act on your own party record.")
-
-
-class TwoStepNeeded(Exception):
-    """The caller's login needs 2-step sign-in and this session has not passed it."""
-
-    code = "two_step_required"

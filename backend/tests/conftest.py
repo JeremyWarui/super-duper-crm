@@ -365,9 +365,9 @@ async def world(session: AsyncSession, client: httpx.AsyncClient) -> World:
 async def admin_headers(session: AsyncSession, client: httpx.AsyncClient) -> dict[str, str]:
     """A signed-in superuser, `root`."""
     from backend.models import UserRole
-    from tests.factories import auth, enrol_two_step, make_user, sign_in
+    from tests.factories import auth, make_user, sign_in
 
     root = await make_user(session, username="root", role=UserRole.MANAGER)
     root.is_superuser = True
-    await enrol_two_step(session, root)
+    await session.commit()
     return auth(await sign_in(client, "root"))

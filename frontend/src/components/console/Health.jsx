@@ -1,6 +1,6 @@
 // The console's Health tab: what is running, what is switched on, and the last backups.
 import { useState } from "react";
-import { useBackups, useHealth, useSaveSignInRules, useSignInRules, useTestSend, useTestService } from "@/api/hooks";
+import { useBackups, useHealth, useTestSend, useTestService } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -37,23 +37,13 @@ function TestSend({ kind, label, note }) {
   );
 }
 
-/** Who needs 2-step sign-in, and a check that Google answers. */
+/** A check that Google answers, once its keys are set. */
 function SignIn({ google }) {
-  const rules = useSignInRules();
-  const save = useSaveSignInRules();
   const check = useTestService();
-  const on = rules.data?.staff_two_step_required;
   return (
     <Card variant="outline" className="gap-3" role="region" aria-label="Sign-in">
       <h2 className="text-card-title font-bold">Sign-in</h2>
-      <p className="text-ui text-muted-foreground">The superuser always signs in with 2-step. Anyone else may turn it on from Sign-in security.</p>
-      {rules.data && (
-        <label className="flex items-start gap-3 text-ui">
-          <input type="checkbox" className="mt-1 size-4" checked={on} disabled={save.isPending} onChange={(e) => save.mutate({ staff_two_step_required: e.target.checked })} />
-          <span><strong>Party staff need 2-step sign-in.</strong> A staff login without it opens nothing until it is set up.</span>
-        </label>
-      )}
-      {(rules.error || save.error) && <p role="alert" className="text-ui font-semibold text-destructive">{(rules.error || save.error).message}</p>}
+      <p className="text-ui text-muted-foreground">Everyone signs in with email and password; Google sign-in shows beside it once its keys are set.</p>
       <div className="flex flex-col gap-2">
         <Button type="button" shape="rounded" variant="quiet" className="self-start" disabled={!google || check.isPending} onClick={() => check.mutate("google")}>
           {check.isPending ? "Checking…" : "Check Google sign-in"}

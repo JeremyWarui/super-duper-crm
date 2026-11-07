@@ -6,7 +6,6 @@ import uuid
 import zlib
 from datetime import UTC, date, datetime
 
-import pyotp
 from sqlalchemy import select
 
 from backend.models import (
@@ -26,7 +25,6 @@ from backend.models import (
     SiteSettings,
     User,
     UserRole,
-    UserTotp,
     Ward,
 )
 from backend.security import hash_password
@@ -39,7 +37,6 @@ TEST_TODAY = date(2026, 11, 1)
 
 # Generated per run, so no literal reads as a credential.
 TEST_PASSWORD = secrets.token_urlsafe(16)
-TEST_TOTP_SECRET = pyotp.random_base32()
 
 
 def site_settings(**fields) -> SiteSettings:
@@ -190,37 +187,10 @@ def email_of(username: str) -> str:
     return f"{username.lower()}@example.test"
 
 
-async def enrol_two_step(session, user: User) -> None:
-    """Turn 2-step on for the login with `TEST_TOTP_SECRET`, as if set up in an app."""
-    from backend.services.two_step import _fernet
-
-    secret = _fernet().encrypt(TEST_TOTP_SECRET.encode()).decode()
-    session.add(
-        UserTotp(
-            user_id=user.id,
-            secret=secret,
-            confirmed_at=datetime.now(UTC),
-            last_step=0,
-            recovery_hashes=[],
-        )
-    )
-    await session.commit()
-
-
-def totp_code() -> str:
-    return pyotp.TOTP(TEST_TOTP_SECRET).now()
-
-
 async def sign_in(client, username: str, password: str = TEST_PASSWORD) -> str:
-    """A token for the login, signing in with `username`'s test email or an email given.
-
-    A login with 2-step on gives the current `TEST_TOTP_SECRET` code.
-    """
+    """A token for the login, signing in with `username`'s test email or an email given."""
     email = username if "@" in username else email_of(username)
-    body = {"email": email, "password": password}
-    response = await client.post("/api/auth/login/", json=body)
-    if response.status_code == 400 and response.json().get("code_required"):
-        response = await client.post("/api/auth/login/", json={**body, "code": totp_code()})
+    response = await client.post("/api/auth/login/", json={"email": email, "password": password})
     assert response.status_code == 200, response.text
     return response.json()["token"]
 

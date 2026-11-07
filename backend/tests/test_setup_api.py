@@ -107,21 +107,6 @@ async def test_the_aspirant_path_makes_one_standalone_workspace_and_the_candidat
     assert (await bare.get("/api/site/")).status_code == 200
 
 
-@pytest.mark.parametrize("kind", ["party", "aspirant"])
-async def test_staff_need_2_step_by_default_in_a_party_copy_only(
-    bare: httpx.AsyncClient, session: AsyncSession, kind: str
-) -> None:
-    *_, ward, _ = await make_geography(session)
-    token = await setup.new_token(session)
-    changes = {"organisation_type": "party", "aspirant": None} if kind == "party" else {}
-
-    answer = await bare.post("/api/setup/", json=_request(token, ward.id, **changes))
-
-    assert answer.status_code == 201, answer.text
-    required = (await session.get(SiteSettings, 1)).staff_two_step_required
-    assert required is (kind == "party")
-
-
 async def test_setup_cannot_run_twice_and_its_token_is_spent(
     bare: httpx.AsyncClient, session: AsyncSession
 ) -> None:

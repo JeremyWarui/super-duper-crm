@@ -70,10 +70,6 @@ class SiteSettingsRead(ORMModel):
         return self
 
 
-class SignInRules(ORMModel):
-    staff_two_step_required: bool
-
-
 class SiteSettingsUpdate(WriteModel):
     """Every editable field except the organisation type; the request replaces the whole row."""
 

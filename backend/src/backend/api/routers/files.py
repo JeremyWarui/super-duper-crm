@@ -4,7 +4,7 @@ only to a superuser."""
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 
 from backend.api.deps import AdminUser, SessionDep, _header, get_signed_in_user
@@ -21,17 +21,15 @@ PRIVATE_CACHE = "private, no-store"
 
 
 async def _caller(
-    session: SessionDep, request: Request, header: Annotated[str | None, Depends(_header)]
+    session: SessionDep, header: Annotated[str | None, Depends(_header)]
 ) -> User | None:
-    """The signed-in caller, or None for an anonymous or unknown one, or a superuser whose
-    session has not passed 2-step."""
+    """The signed-in caller, or None for an anonymous or unknown one."""
     if not header:
         return None
     try:
-        user = await get_signed_in_user(session, request, header)
+        return await get_signed_in_user(session, header)
     except HTTPException:
         return None
-    return user if request.state.two_step or not user.is_superuser else None
 
 
 def read(file: StoredFile) -> FileRead:

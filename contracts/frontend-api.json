@@ -342,9 +342,7 @@
       "is_superuser",
       "party_roles",
       "kind",
-      "member_account",
-      "two_step_on",
-      "two_step_needed"
+      "member_account"
     ],
     "GET /api/party/members/": [
       "total",
@@ -1333,28 +1331,6 @@
     "POST /api/auth/google/finish/": [
       "token",
       "user"
-    ],
-    "GET /api/auth/two-step/": [
-      "on",
-      "required",
-      "recovery_left"
-    ],
-    "POST /api/auth/two-step/start/": [
-      "secret",
-      "uri"
-    ],
-    "POST /api/auth/two-step/confirm/": [
-      "codes",
-      "token"
-    ],
-    "POST /api/auth/two-step/recovery-codes/": [
-      "codes"
-    ],
-    "GET /api/admin/sign-in/": [
-      "staff_two_step_required"
-    ],
-    "PUT /api/admin/sign-in/": [
-      "staff_two_step_required"
     ]
   },
   "nested_reads": {
@@ -1802,15 +1778,13 @@
   "writes": {
     "POST /api/auth/login/": [
       "email",
-      "password",
-      "code"
+      "password"
     ],
     "POST /api/auth/password-reset/": [
       "email"
     ],
     "POST /api/auth/links/{token}/": [
-      "password",
-      "code"
+      "password"
     ],
     "POST /api/mobilizers/": [
       "campaign",
@@ -2545,19 +2519,6 @@
     "POST /api/auth/google/finish/": [
       "handoff",
       "bind"
-    ],
-    "POST /api/auth/two-step/start/": [],
-    "POST /api/auth/two-step/confirm/": [
-      "code"
-    ],
-    "POST /api/auth/two-step/recovery-codes/": [
-      "code"
-    ],
-    "POST /api/auth/two-step/off/": [
-      "code"
-    ],
-    "PUT /api/admin/sign-in/": [
-      "staff_two_step_required"
     ]
   },
   "enums": {

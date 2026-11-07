@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCheckSetupToken, useRunSetup, useSetupAreas, useSetupServices, useTestService } from "@/api/hooks";
-import TwoStep from "@/components/TwoStep";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -184,8 +183,6 @@ function Services({ result }) {
 function Done({ result, form }) {
   const login = useAuth((s) => s.login);
   const token = useAuth((s) => s.token);
-  // The superuser opens nothing, the service tests included, until 2-step is on.
-  const needsTwoStep = useAuth((s) => Boolean(s.token && s.user?.two_step_needed));
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const invites = result.invites.length;
@@ -207,8 +204,7 @@ function Done({ result, form }) {
           <Button shape="rounded" className="self-start" disabled={busy} onClick={signIn}>{busy ? "Signing in…" : "Sign in and test"}</Button>
         </Card>
       )}
-      {needsTwoStep && <TwoStep />}
-      {!needsTwoStep && <Services result={result} />}
+      <Services result={result} />
       <Link to="/" reloadDocument className="self-start font-bold">Open the site</Link>
     </div>
   );

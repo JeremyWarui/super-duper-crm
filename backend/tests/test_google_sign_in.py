@@ -190,7 +190,7 @@ async def test_an_identity_token_that_does_not_check_out_is_refused(client, sess
     assert _signin_query(await _sign_in_with_google(client, seen)) == {"google_error": "failed"}
 
 
-async def test_google_sign_in_counts_as_2_step_for_the_superuser(client, session, google):
+async def test_the_superuser_signs_in_to_the_console_through_google(client, session, google):
     claims, seen = google
     root = await make_user(session, username="root", role=UserRole.MANAGER, email="root@gmail.com")
     root.is_superuser = True

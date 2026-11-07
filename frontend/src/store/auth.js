@@ -22,17 +22,15 @@ export const useAuth = create(
       token: null,
       user: null, // { id, username, full_name, role, kind, member_account }
 
-      // A login with 2-step on is refused with `codeRequired` until a code is given.
-      async login(email, password, code = "") {
+      async login(email, password) {
         const res = await fetch(`${BASE}/auth/login/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(code ? { email, password, code } : { email, password }),
+          body: JSON.stringify({ email, password }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const error = new Error(data?.non_field_errors?.[0] || data?.detail || "Wrong email or password.");
-          throw Object.assign(error, { codeRequired: !!data?.code_required });
+          throw new Error(data?.non_field_errors?.[0] || data?.detail || "Wrong email or password.");
         }
         set({ token: data.token, user: data.user });
         return data.user;

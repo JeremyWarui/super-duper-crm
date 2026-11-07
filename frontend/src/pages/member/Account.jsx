@@ -5,7 +5,6 @@ import {
   useAccount, useApplyToVie, useAttachNominationDocument, useChangeVolunteering, useDetachNominationDocument, useLeaveParty,
   useMyNomination, useSite, usePublicPosts, useStopVolunteering, useSubmitNomination, useWithdrawNomination,
 } from "@/api/hooks";
-import TwoStep from "@/components/TwoStep";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -370,13 +369,11 @@ export default function Account() {
           <TabsTrigger value="events">Party events</TabsTrigger>
           <TabsTrigger value="nomination">My nomination</TabsTrigger>
           <TabsTrigger value="data">My data &amp; privacy</TabsTrigger>
-          <TabsTrigger value="security">Sign-in security</TabsTrigger>
         </TabsList>
         <TabsContent value="volunteering"><Volunteering account={a} wording={party?.volunteer_consent_wording} /></TabsContent>
         <TabsContent value="events"><PartyEvents /></TabsContent>
         <TabsContent value="nomination"><MyNomination /></TabsContent>
         <TabsContent value="data"><DataAndPrivacy account={a} party={party} /></TabsContent>
-        <TabsContent value="security" className="max-w-[640px]"><TwoStep /></TabsContent>
       </Tabs>
     </div>
   );

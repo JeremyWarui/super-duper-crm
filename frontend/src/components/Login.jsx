@@ -1,5 +1,5 @@
-// The one sign-in form for every login: email and password, then a 2-step code where the login
-// has it on; or Google, where the installation has it set up.
+// The one sign-in form for every login: email and password, or Google where the installation
+// has it set up.
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { finishGoogle, useSignInOptions } from "@/api/hooks";
@@ -110,14 +110,12 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
-  const [needCode, setNeedCode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   useGoogleReturn(setError);
 
-  const ready = email.trim().length > 0 && password.length > 0 && (!needCode || code.trim().length >= 6);
+  const ready = email.trim().length > 0 && password.length > 0;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -125,11 +123,9 @@ export default function Login() {
     setError("");
     setBusy(true);
     try {
-      await login(email.trim(), password, needCode ? code.trim() : "");
+      await login(email.trim(), password);
     } catch (err) {
-      if (err.codeRequired && !needCode) setNeedCode(true);
-      else setError(err.message);
-      if (err.codeRequired) setCode("");
+      setError(err.message);
     } finally {
       setBusy(false);
     }
@@ -148,16 +144,10 @@ export default function Login() {
       <main className="flex min-w-0 flex-[1_1_520px] items-center justify-center px-6 py-12">
         <div className="flex w-full max-w-[420px] flex-col gap-7">
           <div className="flex flex-col gap-2">
-            <h2 className="font-display text-[34px] font-extrabold tracking-[-0.02em]">{needCode ? "Enter your code" : "Sign in"}</h2>
-            <p className="text-muted-foreground">{needCode ? "Your login has 2-step sign-in on. Open your authenticator app for the code." : "Use the email and password of your party account."}</p>
+            <h2 className="font-display text-[34px] font-extrabold tracking-[-0.02em]">Sign in</h2>
+            <p className="text-muted-foreground">Use the email and password of your party account.</p>
           </div>
           <form onSubmit={submit} className="flex flex-col gap-[18px]" noValidate>
-            {needCode ? (
-              <Field label="Code from your app" hint="Six digits. Lost your phone? Type one of your recovery codes.">
-                <Input size="lg" inputMode="numeric" autoComplete="one-time-code" autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
-              </Field>
-            ) : null}
-            <div className={needCode ? "hidden" : "contents"}>
             <Field label="Email">
               <Input size="lg" type="email" autoComplete="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
             </Field>
@@ -176,14 +166,10 @@ export default function Login() {
                 </button>
               </span>
             </Field>
-            </div>
             {error ? <p role="alert" className="text-ui font-semibold text-destructive">{error}</p> : null}
-            <Button type="submit" size="lg" disabled={busy || !ready}>{busy ? "Signing in…" : needCode ? "Continue" : "Sign in"}</Button>
-            {needCode ? (
-              <button type="button" onClick={() => { setNeedCode(false); setCode(""); setError(""); }} className="self-start cursor-pointer font-bold text-primary">Use a different login</button>
-            ) : null}
+            <Button type="submit" size="lg" disabled={busy || !ready}>{busy ? "Signing in…" : "Sign in"}</Button>
           </form>
-          {google && !needCode ? (
+          {google ? (
             <div className="flex flex-col gap-3">
               <span className="flex items-center gap-3 text-small text-muted-foreground"><span className="h-px flex-1 bg-line-2" />or<span className="h-px flex-1 bg-line-2" /></span>
               <GoogleButton />

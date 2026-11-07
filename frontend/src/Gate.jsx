@@ -41,13 +41,12 @@ import Branch from "./pages/public/Branch";
 import Issue from "./pages/public/Issue";
 import Branches from "./pages/public/Branches";
 import Account from "./pages/member/Account";
-import Security from "./pages/account/Security";
 import WithdrawParty from "./pages/public/WithdrawParty";
 import WithdrawVolunteer from "./pages/public/WithdrawVolunteer";
 
 /** Drop every cached read when the signed-in user changes, so nobody sees the last user's data.
 
-A new token for the same user, as when 2-step is turned on, keeps them.
+A new token for the same user keeps them.
 */
 export function forgetOnSwitch(queryClient) {
   return useAuth.subscribe((state, prev) => {
@@ -79,10 +78,7 @@ function Inside() {
   useMe();
   const isSuperuser = useAuth((s) => s.user?.is_superuser);
   const isMember = useAuth((s) => s.user?.kind === "member");
-  const twoStepNeeded = useAuth((s) => s.user?.two_step_needed);
   const { pathname } = useLocation();
-  // A login that needs 2-step opens nothing until this session has passed it.
-  if (twoStepNeeded) return <Navigate to="/security" replace />;
   // A member login opens only its own account.
   if (isMember) return <Navigate to="/account" replace />;
   if (isSuperuser) {
@@ -164,7 +160,6 @@ const SHARED = [
   ["/reset/:token", () => page(<SetPassword />)],
   ["/team/:code", () => page(<TeamSignup />)],
   ["/account", () => <SignedInOnly><AccountPage /></SignedInOnly>],
-  ["/security", () => <SignedInOnly>{page(<Security />)}</SignedInOnly>],
   ["/join/:code", () => <Legacy><JoinPage /></Legacy>],
   ["/withdraw/:code", () => <Legacy><WithdrawPage /></Legacy>],
 ];

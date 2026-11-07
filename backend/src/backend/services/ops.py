@@ -34,7 +34,7 @@ from backend.services.sms import normalise_phone
 
 ALEMBIC_DIR = Path(__file__).resolve().parents[3] / "alembic"
 # Sign-in secrets: an export is for records and moving providers, and must not open accounts.
-SECRET_TABLES = {"auth_tokens", "login_invites", "setup_tokens", "user_totp"}
+SECRET_TABLES = {"auth_tokens", "login_invites", "setup_tokens"}
 SECRET_COLUMNS = {"users": {"password_hash"}}
 ARCHIVE = re.compile(r"^backup-(\d{8})-(\d{6})\.tar\.gz$")
 KEEP_DAILY = 14
