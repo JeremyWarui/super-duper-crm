@@ -162,7 +162,8 @@ function Nominate({ onClose }) {
 
 function Workspace({ aspirant, onDone }) {
   const create = useCreateWorkspace();
-  const [form, setForm] = useState({ title: "", election_date: "", candidate: "", candidate_email: "", manager: "", manager_email: "" });
+  const memberEmail = aspirant.member.email || "";
+  const [form, setForm] = useState({ title: "", election_date: "", candidate: "", candidate_email: memberEmail, manager: "", manager_email: "" });
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
   const submit = () =>
@@ -192,6 +193,9 @@ function Workspace({ aspirant, onDone }) {
         placeholder="The aspirant's new username" value={form.candidate} onChange={set("candidate")} />
       <input aria-label="Aspirant's email" type="email" className="app-field" maxLength={254}
         placeholder="The aspirant's email, to sign in with" value={form.candidate_email} onChange={set("candidate_email")} />
+      {memberEmail && form.candidate_email.trim().toLowerCase() === memberEmail.toLowerCase() ? (
+        <p className="admin-subtle">Their member login moves to this one: they sign in once and see both the workspace and their membership.</p>
+      ) : null}
       <input aria-label="Manager's username" className="app-field" maxLength={150}
         placeholder="A manager's new username (optional)" value={form.manager} onChange={set("manager")} />
       {form.manager.trim() ? (

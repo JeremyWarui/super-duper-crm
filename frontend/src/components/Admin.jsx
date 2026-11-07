@@ -686,6 +686,8 @@ function MemberLink({ user, onLinked }) {
 }
 
 function UserRow({ user, me, onReset, resetting, resetError }) {
+  // A member's own login has a machine-made username; people know it by its email.
+  const name = user.kind === "member" ? user.email || user.full_name : user.username;
   const { aspirant } = useInstall();
   const active = useSetActive();
   const setEmail = useSetEmail();
@@ -714,7 +716,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <b>{user.username}</b>{" "}
+          <b>{name}</b>{" "}
           <span className="admin-subtle">{user.full_name}</span>{" "}
           {user.role && <Pill text={user.role} />}{" "}
           {user.party_roles?.map((r) => (
@@ -741,7 +743,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
               <input
                 type="email"
                 className="admin-field"
-                aria-label={`Email for ${user.username}`}
+                aria-label={`Email for ${name}`}
                 value={email}
                 onChange={(e) => setEmailText(e.target.value)}
               />
@@ -764,7 +766,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
             {!editingEmail && (
               <button
                 className="admin-link-button"
-                aria-label={`Change email for ${user.username}`}
+                aria-label={`Change email for ${name}`}
                 onClick={() => {
                   setEmail.reset();
                   setEmailText(user.email || "");
@@ -784,7 +786,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
                   <span className="flex flex-wrap items-center gap-2">
                     <select
                       className="admin-field"
-                      aria-label={`Party office for ${user.username}`}
+                      aria-label={`Party office for ${name}`}
                       value={office}
                       onChange={(e) => setOffice(e.target.value)}
                     >
@@ -817,7 +819,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
         <div className="flex flex-wrap gap-2">
           <Danger
             label="Send reset link"
-            question={`Email ${user.username} a link to choose a new password?`}
+            question={`Email ${name} a link to choose a new password?`}
             busy={resetting}
             // Your own password: use Forgot password on the sign-in page.
             disabled={isMe || resetting}
@@ -826,7 +828,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
           {user.is_active ? (
             <Danger
               label="Disable"
-              question={`Disable ${user.username}? They are signed out.`}
+              question={`Disable ${name}? They are signed out.`}
               busy={active.isPending}
               disabled={isMe || active.isPending}
               onConfirm={() => active.mutate({ id: user.id, active: false })}

@@ -66,9 +66,9 @@ export function AppPage({ crumb, context, title, actions, children, gap = 24, cl
         {title ? <PageHeader context={context} title={title} actions={actions} /> : null}
         {slotted ? <div ref={setSlot} /> : null}
       </div>
-      <div className={cn('flex flex-col px-app pt-7 pb-10', gap === 20 ? 'gap-5' : gap === 22 ? 'gap-[22px]' : 'gap-6', className)}>
+      <main id="main" className={cn('flex flex-col px-app pt-7 pb-10', gap === 20 ? 'gap-5' : gap === 22 ? 'gap-[22px]' : 'gap-6', className)}>
         <HeaderSlot.Provider value={slotted ? { node: slot } : null}>{children}</HeaderSlot.Provider>
-      </div>
+      </main>
     </div>
   )
 }

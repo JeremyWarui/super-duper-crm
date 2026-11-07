@@ -89,7 +89,7 @@ describe("an aspirant installation's website", () => {
     for (const path of ["/about", "/agenda", "/media", "/volunteer"]) expect(menu).toContain(path);
   });
 
-  it("rotates published slides in the hero, and shows the site's slogan when there are none", async () => {
+  it("rotates published slides in the hero, and shows the candidate page's slogan when there are none", async () => {
     const slide = { id: "s1", kicker: "Roysambu 2027", headline: "Water for every ward", line: "", image_url: "", button_label: "", button_url: "" };
     stubApi({ ...ROUTES, "GET /party/slides/": [slide] });
     const first = renderApp(<AppRoutes />);
@@ -97,9 +97,10 @@ describe("an aspirant installation's website", () => {
     expect(screen.getAllByRole("button", { name: "Volunteer for Jane" }).length).toBeGreaterThan(0);
     first.unmount();
 
-    stubApi(ROUTES);
+    stubApi({ ...ROUTES, "GET /site/": { ...SITE, slogan: "An old site slogan" } });
     renderApp(<AppRoutes />);
     expect(await screen.findByRole("heading", { name: "Roysambu first", level: 1 })).toBeInTheDocument();
+    expect(screen.getAllByText("Vying for MP · Roysambu").length).toBeGreaterThan(0);
   });
 
   it.each([

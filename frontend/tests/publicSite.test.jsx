@@ -3,8 +3,9 @@ import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../src/Gate";
+import { useAuth } from "../src/store/auth";
 import { Carousel } from "../src/pages/public/Home";
-import { renderApp, stubApi } from "./helpers";
+import { renderApp, signIn, stubApi } from "./helpers";
 
 const pdf = vi.hoisted(() => ({ load: null }));
 vi.mock("@/lib/pdf", () => ({ loadPdf: (url) => pdf.load(url) }));
@@ -76,6 +77,20 @@ describe("the public site", () => {
     expect((await screen.findAllByText("Party congress opens")).length).toBeGreaterThan(0);
     expect(await screen.findByText("Nakuru rally")).toBeInTheDocument();
     expect(screen.getByText("Afraha")).toBeInTheDocument();
+  });
+
+  it("offers Join the party to visitors but not to a signed-in member", async () => {
+    stubApi(ROUTES);
+    const visitor = renderApp(<AppRoutes />);
+    const header = within(await screen.findByRole("banner"));
+    expect(header.getByRole("link", { name: "Join the party" })).toBeInTheDocument();
+    visitor.unmount();
+
+    signIn(null);
+    useAuth.setState({ user: { ...useAuth.getState().user, kind: "member", member_account: true } });
+    renderApp(<AppRoutes />);
+    expect(within(await screen.findByRole("banner")).queryByRole("link", { name: "Join the party" })).toBeNull();
+    useAuth.getState().logout();
   });
 
   it("turns the carousel every six seconds until paused, and opens any slide", async () => {

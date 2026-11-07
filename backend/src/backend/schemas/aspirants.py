@@ -23,6 +23,7 @@ class CandidateRead(ORMModel):
 
     id: uuid.UUID
     full_name: str
+    email: str | None = None
     ward: MemberPlace
 
 

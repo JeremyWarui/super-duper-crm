@@ -16,10 +16,12 @@ from backend.models import (
     PartyMemberStatus,
     Seat,
     User,
+    UserKind,
     Ward,
 )
 from backend.schemas.campaign import SetupSummary
 from backend.services import admin
+from backend.services.accounts import user_with_email
 from backend.services.audit import record, record_if
 from backend.services.campaigns import AREA_FIELD, AREA_MODEL
 from backend.services.errors import NotFound, Refused, refuse_own_record
@@ -307,6 +309,20 @@ def named_after_member(candidate: dict, member: PartyMember) -> dict:
     return {**candidate, "first_name": first[:150], "last_name": last[:150]}
 
 
+async def take_member_email(session: AsyncSession, member_id: uuid.UUID, email: str) -> bool:
+    """Free the member's own login's email for their campaign login, and disable that login.
+
+    True when the email was the member login's; the campaign login then opens My membership.
+    """
+    login = await user_with_email(session, email)
+    if login is None or login.kind is not UserKind.MEMBER or login.party_member_id != member_id:
+        return False
+    login.email = ""
+    login.is_active = False
+    await session.flush()
+    return True
+
+
 async def create_workspace(
     session: AsyncSession,
     aspirant: Aspirant,
@@ -328,6 +344,7 @@ async def create_workspace(
     if aspirant.campaign_id is not None:
         raise Refused("That aspirant already has a workspace.")
     try:
+        moved = await take_member_email(session, aspirant.member_id, candidate.get("email") or "")
         campaign, summary, logins = await admin.build_workspace(
             session,
             aspirant=named_after_member(candidate, aspirant.member),
@@ -362,7 +379,7 @@ async def create_workspace(
         subject_type="aspirant",
         subject_id=aspirant.id,
         campaign_id=campaign.id,
-        detail={"campaign": str(campaign.id), "logins": len(logins)},
+        detail={"campaign": str(campaign.id), "logins": len(logins), "member_login_moved": moved},
     )
     await session.commit()
     return campaign, summary, logins

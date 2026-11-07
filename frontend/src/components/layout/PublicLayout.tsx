@@ -5,12 +5,14 @@ import { SiteHeader, SiteUtilityBar } from './SiteHeader'
 import { SiteFooter } from './SiteFooter'
 import { useCopy } from '@/copy'
 import { useInstall } from '@/app/site'
+import { useAuth } from '@/store/auth'
 
 /** Website frame: utility bar, sticky header, page, footer, and the phone-only Contribute and join bar. */
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
   const copy = useCopy()
   const install = useInstall()
+  const member = useAuth((s: any) => s.user?.member_account)
   const isJoin = pathname.startsWith('/join') || pathname === copy.join.to
   // The words differ by installation, so the frame waits until it knows which this is.
   if (install.loading) return null
@@ -25,7 +27,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       {!isJoin ? (
         <div className="sticky bottom-0 z-30 flex gap-2.5 border-t border-black/[0.06] bg-white/90 px-4 py-3 backdrop-blur-md md:hidden">
           <Button asChild variant="outline" className="flex-1"><Link to="/contribute">Contribute</Link></Button>
-          <Button asChild variant="accent" className="flex-1"><Link to={copy.join.to}>{copy.join.label}</Link></Button>
+          {member ? null : <Button asChild variant="accent" className="flex-1"><Link to={copy.join.to}>{copy.join.label}</Link></Button>}
         </div>
       ) : null}
     </div>

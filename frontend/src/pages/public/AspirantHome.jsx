@@ -7,7 +7,7 @@ import { paragraphs } from "@/components/RichText";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SectionHead } from "@/components/ui/typography";
-import { CandidateView, SEAT_TITLE, VolunteerDialog } from "./Candidate";
+import { CandidateView, VolunteerDialog, vying } from "./Candidate";
 import { Agenda, Carousel, Events, News, TakePart, Ticker, youtubeThumb } from "./Home";
 import PageHead from "./PageHead";
 import { Photo } from "./story";
@@ -36,7 +36,7 @@ function CandidateCard({ c }) {
         <Photo url={c.photo_url} className="size-[72px] flex-none rounded-full bg-primary-tint" />
         <span className="flex flex-col gap-0.5">
           <h2 id="who-h" className="font-display text-[22px] leading-tight font-extrabold">{c.name}</h2>
-          <span className="text-ui text-muted-foreground">{SEAT_TITLE[c.seat]} · {c.area}</span>
+          <span className="text-ui text-muted-foreground">{vying(c.seat)} · {c.area}</span>
         </span>
       </div>
       <div className="flex flex-col border-t border-line-2">
@@ -99,7 +99,7 @@ export default function AspirantHome() {
   ];
   return (
     <>
-      <Carousel actions={volunteer} aside={<CandidateCard c={c} />} />
+      <Carousel fallback={{ id: "candidate", kicker: c.name, headline: c.slogan || c.name, line: "", image_url: "" }} actions={volunteer} aside={<CandidateCard c={c} />} />
       <Ticker news={news} />
       <Agenda limit={6} />
       <News news={news} />

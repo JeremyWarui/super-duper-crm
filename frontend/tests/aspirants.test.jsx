@@ -49,7 +49,7 @@ describe("the aspirants page", () => {
     }
   });
 
-  it("creates an approved aspirant's workspace and says their invite was emailed", async () => {
+  it("creates an approved aspirant's workspace with their member email and says their invite was emailed", async () => {
     const user = userEvent.setup();
     signInAsParty(["nominations_officer"]);
     const calls = stubApi(aspirantRoutes({ "GET /campaigns/": [] }));
@@ -57,7 +57,8 @@ describe("the aspirants page", () => {
 
     await user.click(await screen.findByRole("button", { name: "Achieng Otieno" }));
     await user.type(await screen.findByLabelText("Aspirant's username"), "achieng");
-    await user.type(screen.getByLabelText("Aspirant's email"), "achieng@example.com");
+    expect(screen.getByLabelText("Aspirant's email")).toHaveValue("achieng@example.com");
+    expect(screen.getByText(/Their member login moves to this one/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Create workspace" }));
 
     expect(await screen.findByText("We emailed achieng a link to choose their password.")).toBeInTheDocument();

@@ -42,6 +42,7 @@ export function SiteUtilityBar() {
  */
 export function SiteHeader() {
   const copy = useCopy()
+  const member = useAuth((s: any) => s.user?.member_account)
   const [open, setOpen] = React.useState(false)
   const { pathname } = useLocation()
   React.useEffect(() => setOpen(false), [pathname])
@@ -55,7 +56,7 @@ export function SiteHeader() {
         </nav>
         <div className="hidden gap-2.5 md:flex">
           <Button asChild variant="outline"><Link to="/contribute">Contribute</Link></Button>
-          <Button asChild variant="accent"><Link to={copy.join.to}>{copy.join.label}</Link></Button>
+          {member ? null : <Button asChild variant="accent"><Link to={copy.join.to}>{copy.join.label}</Link></Button>}
         </div>
         <Button variant="quiet" className="xl:hidden" aria-expanded={open} aria-controls="site-menu" onClick={() => setOpen(!open)}>
           {open ? <X className="size-4" /> : <Menu className="size-4" />}Menu

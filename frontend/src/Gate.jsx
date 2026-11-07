@@ -44,14 +44,18 @@ import Account from "./pages/member/Account";
 import WithdrawParty from "./pages/public/WithdrawParty";
 import WithdrawVolunteer from "./pages/public/WithdrawVolunteer";
 
-/** Drop every cached read when the signed-in user changes, so nobody sees the last user's data.
+// The public site settings: the same for everyone, so they outlive a change of user.
+const PUBLIC = (query) => query.queryKey.length === 1 && query.queryKey[0] === "site";
+
+/** Drop every cached read but the public site settings when the signed-in user changes, so
+nobody sees the last user's data.
 
 A new token for the same user keeps them.
 */
 export function forgetOnSwitch(queryClient) {
   return useAuth.subscribe((state, prev) => {
     const sameUser = state.token && prev.token && state.user?.id === prev.user?.id;
-    if (state.token !== prev.token && !sameUser) queryClient.clear();
+    if (state.token !== prev.token && !sameUser) queryClient.removeQueries({ predicate: (q) => !PUBLIC(q) });
   });
 }
 

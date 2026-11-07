@@ -9,10 +9,11 @@ import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
-import { AREAS, CONTACT_METHODS, PROFESSIONS, SEATS } from "@/pages/party/helpers";
+import { AREAS, CONTACT_METHODS, PROFESSIONS, SEAT_LABEL, SEATS } from "@/pages/party/helpers";
 import { Photo, day } from "./story";
 
-export const SEAT_TITLE = { mca: "Member of County Assembly", mp: "Member of Parliament", governor: "Governor", senator: "Senator", women_rep: "Women Representative" };
+/** The seat an aspirant is vying for, as their badge says it. */
+export const vying = (seat) => `Vying for ${SEAT_LABEL[seat]}`;
 const SEAT_NAME = Object.fromEntries(SEATS.map(([value, label]) => [value, label]));
 const TABS = ["About", "Priorities", "Events"];
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -118,7 +119,7 @@ export function CandidateHero({ c, crumbs, actions }) {
         <div className="flex flex-wrap items-center gap-9">
           <Photo url={c.photo_url} className="h-[260px] w-[220px] flex-none rounded-band bg-[#0F7049]" />
           <div className="flex min-w-0 flex-[1_1_400px] flex-col gap-3.5">
-            <span className="self-start rounded-full bg-accent px-3 py-1.5 text-small font-extrabold uppercase tracking-[0.08em] text-ink">{SEAT_TITLE[c.seat]}</span>
+            <span className="self-start rounded-full bg-accent px-3 py-1.5 text-small font-extrabold uppercase tracking-[0.08em] text-ink">{vying(c.seat)}</span>
             <h1 className="font-display text-[clamp(40px,5vw,64px)] leading-none font-extrabold tracking-[-0.03em]">{c.name}</h1>
             <p className="text-[19px] text-[#CFE0D5]">{where}{c.slogan ? ` · "${c.slogan}"` : ""}</p>
             <div className="flex flex-wrap gap-3 pt-1">{actions}</div>

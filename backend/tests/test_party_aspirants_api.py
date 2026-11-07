@@ -19,13 +19,14 @@ from backend.models import (
     PartyRoleName,
     Seat,
     User,
+    UserKind,
     UserRole,
 )
 from backend.services import aspirants, membership
 from backend.services.consent import PARTY_WORDING
 from backend.services.errors import Refused
 from tests.conftest import POSTGRES, World
-from tests.factories import auth, make_officer, sign_in
+from tests.factories import auth, make_officer, make_user, sign_in
 
 pytestmark = pytest.mark.party_only
 
@@ -172,6 +173,27 @@ async def test_the_workspace_takes_the_aspirants_seat_and_area_and_links_the_log
     assert (login.role, login.party_member_id) == (UserRole.CANDIDATE, member.id)
     assert login.full_name == member.full_name
     assert all(row["invite"] in ("email", "none") for row in made.json()["logins"])
+
+
+async def test_the_members_own_email_moves_to_the_campaign_login(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    headers = await _nominations_officer(client, session, world)
+    member, aspirant_id = await _approved_aspirant(client, session, world, headers)
+    own = await make_user(session, username="member-own", role=None, email="wanjiru@mail.test")
+    own.kind, own.party_member_id = UserKind.MEMBER, member.id
+    await session.commit()
+    body = {"candidate": {"username": "wanjiru", "email": "wanjiru@mail.test"}}
+
+    made = await client.post(
+        f"/api/party/aspirants/{aspirant_id}/workspace/", json=body, headers=headers
+    )
+
+    assert made.status_code == 201, made.text
+    await session.refresh(own)
+    login = await session.scalar(select(User).where(User.username == "wanjiru"))
+    assert (login.email, login.party_member_id) == ("wanjiru@mail.test", member.id)
+    assert (own.email, own.is_active) == ("", False)
 
 
 async def test_a_second_workspace_is_refused_and_leaves_nothing_behind(

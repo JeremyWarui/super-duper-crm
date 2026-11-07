@@ -458,7 +458,7 @@ export function volunteerRoutes(overrides = {}) {
 
 export const ASPIRANT = {
   id: "as1",
-  member: { id: "pm1", full_name: "Achieng Otieno", ward: { id: "w1", name: "Githurai" } },
+  member: { id: "pm1", full_name: "Achieng Otieno", email: "achieng@example.com", ward: { id: "w1", name: "Githurai" } },
   seat: "mca",
   area: { level: "ward", id: "w1", name: "Githurai" },
   status: "approved",

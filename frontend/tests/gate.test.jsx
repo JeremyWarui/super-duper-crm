@@ -113,6 +113,23 @@ describe("the gate", () => {
     expect(queryClient.getQueryData(["campaigns"])).toBeUndefined();
   });
 
+  it("keeps the public site settings and drops the staff's site drafts when someone else signs in", () => {
+    signIn("manager");
+    const { queryClient } = renderApp(<span />);
+    queryClient.setQueryData(["site"], { name: "Umoja Party" });
+    queryClient.setQueryData(["site", "posts"], [{ id: "draft" }]);
+    const stop = forgetOnSwitch(queryClient);
+
+    act(() => {
+      useAuth.getState().logout();
+      signIn("candidate");
+    });
+    stop();
+
+    expect(queryClient.getQueryData(["site"])).toEqual({ name: "Umoja Party" });
+    expect(queryClient.getQueryData(["site", "posts"])).toBeUndefined();
+  });
+
   it("keeps cached reads when the same user gets a new token", async () => {
     signIn("manager");
     stubApi(

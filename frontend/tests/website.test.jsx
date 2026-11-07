@@ -52,6 +52,12 @@ async function openWebsite() {
 }
 
 describe("the website editor", () => {
+  it("puts the page's content in the main landmark", async () => {
+    await openWebsite();
+
+    expect(within(screen.getByRole("main")).getByText("Congress opens")).toBeInTheDocument();
+  });
+
   it("saves the post's text as the editor's formatted HTML", async () => {
     const user = userEvent.setup();
     const calls = await openWebsite();
