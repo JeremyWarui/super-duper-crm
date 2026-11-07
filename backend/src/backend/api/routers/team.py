@@ -72,6 +72,15 @@ async def add_staff(
     )
 
 
+@router.delete("/{user_id}/", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_staff(
+    campaign_id: uuid.UUID, user_id: uuid.UUID, session: SessionDep, user: TeamWriter
+) -> None:
+    """Take a coordinator or comms officer off the campaign and turn their login off."""
+    campaign = await require_visible_campaign(session, user, campaign_id)
+    await team.remove_staff(session, campaign, user_id, actor=user)
+
+
 @router.get("/{user_id}/area/", response_model=AreaRead)
 async def read_area(
     campaign_id: uuid.UUID, user_id: uuid.UUID, session: SessionDep, user: TeamWriter

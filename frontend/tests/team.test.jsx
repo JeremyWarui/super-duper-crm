@@ -94,6 +94,21 @@ describe("the team page", () => {
     await waitFor(() => expect(calls.find((c) => c.method === "PUT").body).toEqual({ wards: ["w1", "w2"], registration_centres: [] }));
   });
 
+  it("takes a comms officer off the team after a second click", async () => {
+    const comms = { id: "u6", username: "achieng", full_name: "Achieng Oduor", role: "comms", phone: "", is_active: true };
+    const { calls, user } = await openTeam("manager", {
+      "GET /campaigns/c1/team/": [...TEAM, comms],
+      "DELETE /campaigns/c1/team/u6/": { status: 204, body: null },
+    });
+
+    expect(screen.queryByRole("button", { name: "Take Amina Kariuki off the team" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Take Achieng Oduor off the team" }));
+    expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+    await user.click(screen.getByRole("button", { name: "Take off" }));
+
+    await waitFor(() => expect(calls.find((c) => c.method === "DELETE").path).toBe("/campaigns/c1/team/u6/"));
+  });
+
   it("offers centres, not wards, in an MCA race", async () => {
     const coordinator = { id: "u5", username: "otieno", full_name: "Otieno Ouma", role: "coordinator", phone: "", is_active: true };
     const { user } = await openTeam("manager", {

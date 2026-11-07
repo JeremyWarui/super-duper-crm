@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AuditEvent, UserRole
+from backend.models import AuditEvent, OrganisationType, UserRole
 from backend.services.audit import record
 from tests.conftest import World
 from tests.factories import make_user
@@ -42,6 +42,7 @@ ACTIONS = [
     ("user.reset_password", "user", "post", "/admin/users/{mobilizer}/reset-password/", "root"),
     ("user.deactivate", "user", "post", "/admin/users/{mobilizer}/active/", "root"),
     ("user.activate", "user", "post", "/admin/users/{mobilizer}/active/", "root"),
+    ("user.email", "user", "put", "/admin/users/{mobilizer}/email/", "root"),
     ("member.add", "user", "post", "/admin/campaigns/{campaign}/members/", "root"),
     ("member.remove", "user", "delete", "/admin/campaigns/{campaign}/members/{mobilizer}/", "root"),
     ("team.set_manager", "user", "post", "/campaigns/{campaign}/team/manager/", "jane"),
@@ -56,6 +57,7 @@ async def test_each_console_and_team_action_writes_its_event(
     session: AsyncSession,
     world: World,
     admin_headers: dict[str, str],
+    organisation_type: OrganisationType,
     action: str,
     subject_type: str,
     method: str,
@@ -76,6 +78,7 @@ async def test_each_console_and_team_action_writes_its_event(
         "user.reset_password": {},
         "user.deactivate": {"active": False},
         "user.activate": {"active": True},
+        "user.email": {"email": "juma.new@example.test"},
         "member.add": {"user": str(spare.id)},
         "team.set_manager": {"username": "wanjiru", "replace": True},
         "mobilizer_login.create": {
@@ -99,6 +102,10 @@ async def test_each_console_and_team_action_writes_its_event(
         **({"json": bodies[action]} if action in bodies else {}),
     )
 
+    if action == "campaign.create" and organisation_type is OrganisationType.PARTY:
+        # A party copy makes workspaces only from approved aspirants.
+        assert response.status_code == 400, response.text
+        return
     assert response.status_code < 300, response.text
     written = list(await session.scalars(select(AuditEvent).where(AuditEvent.action == action)))
     assert [(e.subject_type, e.actor_name) for e in written] == [(subject_type, actor)]

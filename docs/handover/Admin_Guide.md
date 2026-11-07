@@ -126,10 +126,12 @@ The console has seven tabs.
 
 Each campaign has a card with its counts and its people.
 
-- **New campaign** starts a step-by-step form: the seat, the area, the aspirant
-  ("Who is the aspirant?"), an optional manager ("Who manages it? (optional)"), the
-  **Campaign name** and **Election date**. Press **Create campaign** on the last step.
-  Each new login gets an invite link.
+- **New campaign** on an aspirant copy starts a step-by-step form: the seat, the area,
+  the aspirant ("Who is the aspirant?"), an optional manager ("Who manages it?
+  (optional)"), the **Campaign name** and **Election date**. Press **Create campaign** on
+  the last step. Each new login gets an invite link.
+- On a party copy **New campaign** opens **Aspirants**: a hosted workspace is made only
+  from an approved aspirant's record there.
 - **Rename** changes the campaign's name.
 - **Delete campaign** removes the campaign with its targets, mobilizers, events,
   supporters and the logins of everyone on it. It asks first. It cannot be undone.
@@ -148,6 +150,9 @@ Every login on the installation.
 - **Send reset link** emails a password reset link (see section 2).
 - **Disable** stops a login from signing in and signs it out. **Enable** turns it
   back on.
+- **change** next to a login's email opens a box: type the new address and press
+  **Save email**. The login signs in with the new address from then on, and its links go
+  there. Two logins cannot share an email.
 - For a party staff login: **Give a party office…** then **Grant** gives an office;
   the **×** on an office badge takes it away.
 - For a party staff login: **Link to a party member…** links the login to that
@@ -202,6 +207,8 @@ table as JSON and CSV, with a list of what is inside). Press **Download export**
 - Each export is recorded in the audit trail.
 - Passwords and sign-in links are left out. The file holds personal data: keep it
   somewhere safe and delete copies you no longer need.
+- On a party copy the supporters of hosted workspaces are left out: they belong to each
+  aspirant. The manifest lists them under `left_out`. Backups still hold everything.
 
 ---
 
@@ -255,6 +262,10 @@ If setup did not open it, open it from the console: on the **Campaigns** tab pre
 **Email** and **Phone**, and press **Open it**. They are emailed a link to choose a
 password. The button is shown only on a party copy, and only while there is no party
 workspace.
+
+Once the workspace is open the same place shows **Replace Workspace Manager** and the
+sitting manager's username. Fill the new manager's details and press **Replace**. The old
+Workspace Manager is turned off and signed out at once; the new one is emailed a link.
 
 ---
 
@@ -419,13 +430,14 @@ Only the candidate does this.
 There is one manager per campaign. Replacing the manager takes the old manager off the
 campaign and turns their login off at once.
 
-In the party workspace there is no candidate. Note to confirm: the way to replace the
-Workspace Manager there was not found on the Team page; ask the superuser.
+In the party workspace there is no candidate. The superuser replaces the Workspace
+Manager from the console (section 4, **Replace Workspace Manager**).
 
 ### Remove someone
 
-There is no remove button on the Team page.
-
+- **Coordinator or comms officer off the campaign:** on the **Team** page the candidate
+  or manager presses **Take off** on their row, then **Take off** again to confirm. Their
+  login is turned off and signed out.
 - **Mobilizer off a ward:** on the **Wards** page, press **Change** on the ward, then
   **Remove** followed by their name. They stay on the team with no ward.
 - **Anyone off the campaign:** the superuser opens the console, **Campaigns** tab,

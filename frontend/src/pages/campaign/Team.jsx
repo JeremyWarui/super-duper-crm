@@ -1,7 +1,7 @@
 // Everyone with a login on the campaign; the candidate and manager add coordinators and comms,
-// and set each coordinator's area. Only the candidate adds or replaces the manager.
+// set each coordinator's area and take staff off. Only the candidate adds or replaces the manager.
 import { useState } from "react";
-import { useTeam } from "@/api/hooks";
+import { useRemoveStaff, useTeam } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -23,6 +23,9 @@ const VIEWS = {
 export default function Team({ campaign, role, onModal }) {
   const { data, isLoading, error } = useTeam(campaign.id);
   const [view, setView] = useState("Everyone");
+  const [confirming, setConfirming] = useState(null);
+  const remove = useRemoveStaff();
+  const takeOff = (p) => remove.mutate({ campaign: campaign.id, user: p.id }, { onSuccess: () => setConfirming(null) });
   const people = [...(data || [])].sort((a, b) => ORDER.indexOf(a.role) - ORDER.indexOf(b.role) || (a.full_name || a.username).localeCompare(b.full_name || b.username));
   const manager = people.find((p) => p.role === "manager");
   const shown = people.filter(VIEWS[view]);
@@ -75,9 +78,25 @@ export default function Team({ campaign, role, onModal }) {
                       {!p.is_active && <span className="ml-2 text-small text-muted-foreground">turned off</span>}
                     </TD>
                     <TD align="right">
-                      {p.role === "coordinator" && (
-                        <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "area", person: p })} aria-label={`Area for ${p.full_name || p.username}`}>Area</Button>
+                      {confirming === p.id ? (
+                        <span className="inline-flex flex-wrap items-center justify-end gap-2">
+                          <span className="text-small text-muted-foreground">Their login is turned off.</span>
+                          <Button shape="rounded" size="sm" disabled={remove.isPending} onClick={() => takeOff(p)}>
+                            {remove.isPending ? "Taking off…" : "Take off"}
+                          </Button>
+                          <Button shape="rounded" size="sm" variant="quiet" onClick={() => setConfirming(null)}>Keep</Button>
+                        </span>
+                      ) : (
+                        <span className="inline-flex flex-wrap justify-end gap-2">
+                          {p.role === "coordinator" && (
+                            <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "area", person: p })} aria-label={`Area for ${p.full_name || p.username}`}>Area</Button>
+                          )}
+                          {(p.role === "coordinator" || p.role === "comms") && (
+                            <Button shape="rounded" size="sm" variant="quiet" onClick={() => { remove.reset(); setConfirming(p.id); }} aria-label={`Take ${p.full_name || p.username} off the team`}>Take off</Button>
+                          )}
+                        </span>
                       )}
+                      {confirming === p.id && remove.error && <p role="alert" className="mt-1 text-small text-destructive">{remove.error.message}</p>}
                     </TD>
                   </TR>
                 ))}

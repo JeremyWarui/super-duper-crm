@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend import __version__
 from backend.config import get_settings
-from backend.models import BackupRun, Base, OrganisationType, User
+from backend.models import BackupRun, Base, Campaign, OrganisationType, User, WorkspaceKind
 from backend.services import texting
 from backend.services.audit import record
 from backend.services.errors import Refused
@@ -134,8 +134,12 @@ def exported_tables() -> list[str]:
 async def export_archive(
     session: AsyncSession, *, actor: User | None, organisation_type: OrganisationType | None
 ) -> tuple[str, bytes]:
-    """Every table but sign-in secrets, as JSON and CSV in one zip; audited."""
+    """Every table but sign-in secrets, as JSON and CSV in one zip; audited.
+
+    A party copy leaves out the supporters of hosted workspaces, which belong to their aspirants.
+    """
     created = datetime.now(UTC)
+    party = organisation_type == OrganisationType.PARTY
     counts: dict[str, int] = {}
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -144,9 +148,16 @@ async def export_archive(
                 continue
             hidden = SECRET_COLUMNS.get(table.name, set())
             columns = [c for c in table.columns if c.name not in hidden]
+            query = select(*columns)
+            if party and table.name == "supporters":
+                query = query.where(
+                    table.c.campaign_id.in_(
+                        select(Campaign.id).where(Campaign.kind != WorkspaceKind.HOSTED)
+                    )
+                )
             rows = [
                 {c.name: _plain(v) for c, v in zip(columns, row, strict=True)}
-                for row in (await session.execute(select(*columns))).all()
+                for row in (await session.execute(query)).all()
             ]
             counts[table.name] = len(rows)
             archive.writestr(
@@ -166,7 +177,9 @@ async def export_archive(
             "migration": migration_head(),
             "organisation_type": organisation_type.value if organisation_type else None,
             "tables": counts,
-            "left_out": sorted(SECRET_TABLES) + ["users.password_hash"],
+            "left_out": sorted(SECRET_TABLES)
+            + ["users.password_hash"]
+            + (["supporters of hosted workspaces"] if party else []),
         }
         archive.writestr("manifest.json", json.dumps(manifest, indent=1))
     record(

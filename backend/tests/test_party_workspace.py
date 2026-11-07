@@ -80,6 +80,30 @@ def _member(name: str, phone: str, ward: Ward, **fields) -> PartyMember:
     )
 
 
+async def test_the_console_replaces_the_workspace_manager_and_the_old_one_is_signed_out(
+    session: AsyncSession, client: httpx.AsyncClient, world: World, admin_headers: dict
+) -> None:
+    campaign, password = await _workspace(session, client, admin_headers)
+    old = auth(await sign_in(client, "wm@example.com", password))
+    refused = await client.post(
+        f"{URL}manager/", headers=old, json={"manager": {"username": "wm-sneaky"}}
+    )
+
+    replaced = await client.post(
+        f"{URL}manager/",
+        headers=admin_headers,
+        json={"manager": {"username": "wm-baraka", "email": "baraka@example.com"}},
+    )
+    new = auth(await claim_link(client, session, "baraka@example.com"))
+
+    assert refused.status_code == 403
+    assert replaced.status_code == 200, replaced.text
+    assert (replaced.json()["replaced"], replaced.json()["invite"]) == ("wm-amani", "email")
+    assert (await client.get("/api/auth/me/", headers=old)).status_code == 401
+    assert (await client.get(f"/api/campaigns/{campaign.id}/", headers=new)).status_code == 200
+    assert (await client.get(URL, headers=admin_headers)).json()["managers"] == ["wm-baraka"]
+
+
 async def test_the_party_has_one_national_workspace_targeting_every_ward(
     session: AsyncSession, client: httpx.AsyncClient, world: World, admin_headers: dict
 ) -> None:

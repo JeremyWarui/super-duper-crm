@@ -108,6 +108,30 @@ async def add_staff(
     return created, invite
 
 
+async def remove_staff(
+    session: AsyncSession, campaign: Campaign, user_id: uuid.UUID, *, actor: User
+) -> None:
+    """Take a coordinator or comms officer off the campaign; their login is turned off and
+    signed out."""
+    member = await _member(session, campaign.id, user_id)
+    if member.role not in STAFF:
+        raise Refused("Only a coordinator or a comms officer is taken off here.")
+    person = await session.get(User, user_id)
+    await session.delete(member)
+    await session.execute(delete(AuthToken).where(AuthToken.user_id == user_id))
+    person.is_active = False
+    record(
+        session,
+        actor=actor,
+        action="team.remove",
+        subject_type="user",
+        subject_id=user_id,
+        campaign_id=campaign.id,
+        detail={"role": member.role.value},
+    )
+    await session.commit()
+
+
 async def _member(
     session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID
 ) -> CampaignMember:

@@ -362,6 +362,10 @@ opens the setup; one with logins keeps its settings.
 
 - The logo is an https link; uploaded logos wait for the site editor to use stored files.
 - Invite emails go out before the setup commits; if the commit then fails, the link is dead.
+- On an aspirant copy the console's **New campaign** still makes a hosted workspace beside the
+  standalone one setup made; nothing on that copy needs a second workspace.
+- Restore is proven against a backup this version made; a backup from an older version
+  (an earlier migration head) has not been restored in a test.
 
 ## Reference data imports
 

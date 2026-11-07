@@ -73,6 +73,15 @@ describe("the page frame", () => {
   });
 });
 
+describe("an MCA race's menu", () => {
+  it("names the units page Centres, and Wards everywhere else", () => {
+    const unitsLabel = (where) => pagesOf("manager", where).find(([key]) => key === "units")[1];
+
+    expect(unitsLabel({ byCentre: true })).toBe("Centres");
+    expect(unitsLabel({})).toBe("Wards");
+  });
+});
+
 describe("the seat card and the area picker", () => {
   it("shows the seat and area, and offers only the wards the role reads", async () => {
     await open("coordinator", {

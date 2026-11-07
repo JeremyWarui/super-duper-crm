@@ -25,6 +25,7 @@ import {
   useRemoveMember,
   useResetPassword,
   useSetActive,
+  useSetEmail,
 } from "../api/hooks";
 import { useInstall } from "../app/site";
 import { useCopy } from "../copy";
@@ -529,7 +530,9 @@ function NewLogin({ campaigns, create }) {
             ? "In an MCA race a mobilizer works one registration centre."
             : "A mobilizer works one ward, and sees only that ward."
           : "Leave the campaign blank to create the login now and place it later."}{" "}
-        An aspirant gets their login with their campaign, from New campaign.{" "}
+        {aspirant
+          ? "An aspirant gets their login with their campaign, from New campaign."
+          : "An aspirant gets their login with their workspace, made from their approved record in Aspirants."}{" "}
         They are emailed a link to choose their password.
       </div>
 
@@ -569,14 +572,25 @@ const MANAGER_FIELDS = [
 function OpenPartyWorkspace({ onInvite }) {
   const { party } = useInstall();
   const workspace = usePartyWorkspace(party);
-  const open = useOpenPartyWorkspace({ onInvite });
+  const replace = Boolean(workspace.data?.id);
   const [asking, setAsking] = useState(false);
   const [form, setForm] = useState(NO_MANAGER);
-  if (!workspace.data || workspace.data.id) return null;
+  const open = useOpenPartyWorkspace({
+    replace,
+    onInvite: (r) => {
+      setAsking(false);
+      setForm(NO_MANAGER);
+      onInvite(r);
+    },
+  });
+  if (!workspace.data) return null;
+  const title = replace ? "Replace Workspace Manager" : "Open the party workspace";
+  const sitting = workspace.data.managers?.join(", ");
   if (!asking)
     return (
       <div className="admin-section-action">
-        <Btn onClick={() => setAsking(true)}>Open the party workspace</Btn>
+        <Btn onClick={() => setAsking(true)}>{title}</Btn>
+        {replace && sitting && <span className="admin-subtle">Workspace Manager: {sitting}</span>}
       </div>
     );
   const name = form.username.trim();
@@ -593,7 +607,7 @@ function OpenPartyWorkspace({ onInvite }) {
     });
   return (
     <Card className="admin-card-new-login">
-      <div className="admin-display admin-form-heading">Open the party workspace</div>
+      <div className="admin-display admin-form-heading">{title}</div>
       <div className="flex flex-wrap gap-2">
         {MANAGER_FIELDS.map(([key, label, type]) => (
           <Field key={key} label={label}>
@@ -607,14 +621,14 @@ function OpenPartyWorkspace({ onInvite }) {
         ))}
       </div>
       <div className="admin-form-help">
-        The party's own national workspace, with every ward as a target. This person is its first
-        Workspace Manager and is emailed a link to choose their password. There is only one party
-        workspace.
+        {replace
+          ? `${sitting || "The sitting Workspace Manager"} is turned off and signed out. This person takes over and is emailed a link to choose their password.`
+          : "The party's own national workspace, with every ward as a target. This person is its first Workspace Manager and is emailed a link to choose their password. There is only one party workspace."}
       </div>
       {open.error && <div className="admin-error">{open.error.message}</div>}
       <div className="flex flex-wrap gap-2 admin-form-actions">
         <Btn disabled={!ready || open.isPending} onClick={submit}>
-          {open.isPending ? "Opening…" : "Open it"}
+          {open.isPending ? (replace ? "Replacing…" : "Opening…") : replace ? "Replace" : "Open it"}
         </Btn>
         <Btn onClick={() => setAsking(false)}>Cancel</Btn>
       </div>
@@ -676,6 +690,9 @@ function MemberLink({ user, onLinked }) {
 function UserRow({ user, me, onReset, resetting, resetError }) {
   const { aspirant } = useInstall();
   const active = useSetActive();
+  const setEmail = useSetEmail();
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [email, setEmailText] = useState("");
   const grant = useGrantPartyRole();
   const revoke = useRevokePartyRole();
   const [office, setOffice] = useState("");
@@ -687,6 +704,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
   const error =
     resetError ||
     active.error?.message ||
+    setEmail.error?.message ||
     grant.error?.message ||
     revoke.error?.message;
 
@@ -719,8 +737,45 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
           {!user.is_active && (
             <Pill text="disabled" />
           )}
+          {editingEmail ? (
+            <div className="admin-user-meta flex flex-wrap items-center gap-2">
+              <input
+                type="email"
+                className="admin-field"
+                aria-label={`Email for ${user.username}`}
+                value={email}
+                onChange={(e) => setEmailText(e.target.value)}
+              />
+              <Btn
+                disabled={!isEmail(email) || setEmail.isPending}
+                onClick={() =>
+                  setEmail.mutate(
+                    { id: user.id, email: email.trim() },
+                    { onSuccess: () => setEditingEmail(false) },
+                  )
+                }
+              >
+                {setEmail.isPending ? "Saving…" : "Save email"}
+              </Btn>
+              <Btn onClick={() => setEditingEmail(false)}>Cancel</Btn>
+            </div>
+          ) : null}
           <div className="admin-user-meta">
-            {user.email || "no email"} · last in{" "}
+            {user.email || "no email"}{" "}
+            {!editingEmail && (
+              <button
+                className="admin-link-button"
+                aria-label={`Change email for ${user.username}`}
+                onClick={() => {
+                  setEmail.reset();
+                  setEmailText(user.email || "");
+                  setEditingEmail(true);
+                }}
+              >
+                change
+              </button>
+            )}{" "}
+            · last in{" "}
             {user.last_login_at ? user.last_login_at.slice(0, 10) : "never"} ·{" "}
             {user.campaign || "on no campaign"}
           </div>
@@ -1139,7 +1194,16 @@ export default function Admin() {
 
         {tab === "campaigns" && (
           <div className="admin-section-action">
-            <Btn onClick={() => setCreating(true)}>New campaign</Btn>
+            {aspirant ? (
+              <Btn onClick={() => setCreating(true)}>New campaign</Btn>
+            ) : (
+              <>
+                <Btn onClick={() => navigate("/party/aspirants")}>New campaign</Btn>
+                <span className="admin-subtle">
+                  A workspace is made from an approved aspirant, in Aspirants.
+                </span>
+              </>
+            )}
           </div>
         )}
         {tab === "campaigns" && <OpenPartyWorkspace onInvite={handOut} />}

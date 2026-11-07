@@ -4,15 +4,16 @@ import uuid
 from datetime import date
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy import select
 
-from backend.api.deps import AdminUser, SessionDep, Today
+from backend.api.deps import AdminUser, SessionDep, Today, get_organisation_type
 from backend.api.install import PartyOnlyRoute
 from backend.models import (
     AgendaIssue,
     HeroSlide,
     ImportRun,
+    OrganisationType,
     PartyDocument,
     PartyOrgan,
     PartyRoleName,
@@ -31,6 +32,7 @@ from backend.schemas.admin import (
     AdminUserCreated,
     AdminUserRead,
     CampaignRename,
+    EmailSet,
     MemberAdd,
     Overview,
     PartyMemberLink,
@@ -179,9 +181,20 @@ async def list_campaigns(session: SessionDep, _: AdminUser) -> list[AdminCampaig
     "/campaigns/", response_model=AdminCampaignCreated, status_code=status.HTTP_201_CREATED
 )
 async def create_campaign(
-    payload: AdminCampaignCreate, session: SessionDep, admin: AdminUser
+    payload: AdminCampaignCreate,
+    session: SessionDep,
+    admin: AdminUser,
+    kind: Annotated[OrganisationType | None, Depends(get_organisation_type)],
 ) -> AdminCampaignCreated:
-    """Create a campaign with its aspirant's and manager's logins, each sent an invite link."""
+    """Create a campaign with its aspirant's and manager's logins, each sent an invite link.
+
+    A party copy refuses: its hosted workspaces come only from approved aspirants.
+    """
+    if kind == OrganisationType.PARTY:
+        raise Refused(
+            "In a party copy a workspace comes from an approved aspirant: open Aspirants and "
+            "create it from their record."
+        )
     created, summary, logins = await service.create_campaign(
         session,
         actor=admin,
@@ -299,6 +312,15 @@ async def set_active(
     if user_id == admin.id:
         raise Refused("You cannot disable your own login.")
     await service.set_active(session, user_id, payload.active, actor=admin)
+    return await service.user(session, user_id)
+
+
+@router.put("/users/{user_id}/email/", response_model=AdminUserRead)
+async def set_email(
+    user_id: uuid.UUID, payload: EmailSet, session: SessionDep, admin: AdminUser
+) -> AdminUserRead:
+    """Change the email a login signs in with."""
+    await service.set_email(session, user_id, payload.email, actor=admin)
     return await service.user(session, user_id)
 
 

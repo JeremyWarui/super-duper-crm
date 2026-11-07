@@ -471,6 +471,16 @@ export function useAddStaff() {
   });
 }
 
+// Takes a coordinator or comms officer off the campaign; their login is turned off.
+export function useRemoveStaff() {
+  const invalidate = useInvalidator();
+  return useMutation({
+    mutationFn: ({ campaign, user }) =>
+      api(`/campaigns/${campaign}/team/${user}/`, { method: "DELETE" }),
+    onSuccess: () => invalidate("team"),
+  });
+}
+
 // A coordinator's area: the wards and registration centres they cover.
 export const useArea = (campaignId, userId) =>
   useQuery({
@@ -591,6 +601,15 @@ export function useSetActive() {
   return useMutation({
     mutationFn: ({ id, active }) =>
       api(`/admin/users/${id}/active/`, { method: "POST", body: { active } }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useSetEmail() {
+  const invalidate = useAdminInvalidator();
+  return useMutation({
+    mutationFn: ({ id, email }) =>
+      api(`/admin/users/${id}/email/`, { method: "PUT", body: { email } }),
     onSuccess: invalidate,
   });
 }
@@ -1282,10 +1301,14 @@ export const useSaveWorkspaceCandidatePage = () =>
 export const usePartyWorkspace = (enabled) =>
   useQuery({ queryKey: ["admin", "party-workspace"], queryFn: () => api("/party/workspace/"), enabled });
 
-export function useOpenPartyWorkspace({ onInvite } = {}) {
+/** Opens the party workspace, or with `replace` gives it a new Workspace Manager. */
+export function useOpenPartyWorkspace({ onInvite, replace = false } = {}) {
   const invalidate = useAdminInvalidator();
   return useMutation({
-    mutationFn: ({ manager }) => api("/party/workspace/", { method: "POST", body: { manager } }),
+    mutationFn: ({ manager }) =>
+      replace
+        ? api("/party/workspace/manager/", { method: "POST", body: { manager } })
+        : api("/party/workspace/", { method: "POST", body: { manager } }),
     onSuccess: (data) => {
       onInvite?.(data);
       return invalidate();

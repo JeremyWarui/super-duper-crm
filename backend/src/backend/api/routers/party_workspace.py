@@ -18,10 +18,13 @@ from backend.schemas.party_workspace import (
     AreaMembers,
     PartyWorkspaceCreate,
     PartyWorkspaceCreated,
+    PartyWorkspaceManager,
     PartyWorkspaceRead,
     Recruitment,
 )
-from backend.services import party_workspace
+from backend.schemas.team import ManagerCreated
+from backend.services import party_workspace, team
+from backend.services.errors import NotFound
 
 router = APIRouter(prefix="/party/workspace", tags=["party workspace"], route_class=PartyOnlyRoute)
 
@@ -64,6 +67,27 @@ async def create_workspace(
         units=summary.units,
         username=manager.username,
         invite=invite,
+    )
+
+
+@router.post("/manager/", response_model=ManagerCreated)
+async def replace_manager(
+    payload: PartyWorkspaceManager, session: SessionDep, user: AdminUser
+) -> ManagerCreated:
+    """Replace the Workspace Manager: the sitting one is turned off and signed out, and the new
+    login is sent an invite link."""
+    found = await party_workspace.workspace(session)
+    if found is None:
+        raise NotFound("The party has no workspace yet.")
+    created, invite, replaced = await team.set_manager(
+        session, found, payload.manager.model_dump(), replace=True, actor=user
+    )
+    return ManagerCreated(
+        id=created.id,
+        username=created.username,
+        full_name=created.full_name,
+        invite=invite,
+        replaced=replaced,
     )
 
 

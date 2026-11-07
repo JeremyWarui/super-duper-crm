@@ -1,6 +1,7 @@
 /** The admin console: what it shows, and who is shown it. */
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../src/store/auth";
 import Admin from "../src/components/Admin";
@@ -110,6 +111,31 @@ describe("opening the party workspace", () => {
   });
 });
 
+describe("replacing the Workspace Manager", () => {
+  it("names the sitting manager and posts the new one", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    const calls = stubApi(adminRoutes({
+      "GET /site/": { name: "Umoja Party", organisation_type: "party" },
+      "GET /party/workspace/": { id: "w1", title: "Umoja Party workspace", managers: ["wm-amani"] },
+      "POST /party/workspace/manager/": { id: "u9", username: "wm-baraka", full_name: "", invite: "email", replaced: "wm-amani" },
+    }));
+    renderApp(<Admin />);
+
+    expect(await screen.findByText("Workspace Manager: wm-amani")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Replace Workspace Manager" }));
+    await user.type(screen.getByRole("textbox", { name: "Username" }), "wm-baraka");
+    await user.type(screen.getByRole("textbox", { name: "Email" }), "baraka@example.com");
+    await user.click(screen.getByRole("button", { name: "Replace" }));
+
+    expect(await screen.findByText("Link emailed")).toBeInTheDocument();
+    expect(calls.find((c) => c.path === "/party/workspace/manager/").body.manager).toMatchObject({
+      username: "wm-baraka",
+      email: "baraka@example.com",
+    });
+  });
+});
+
 describe("what the console can repair", () => {
   it("emails a login a reset link and says it went", async () => {
     const user = userEvent.setup();
@@ -131,6 +157,28 @@ describe("what the console can repair", () => {
     expect(await screen.findByText("Link emailed")).toBeInTheDocument();
     const posted = calls.find((c) => c.path.includes("reset-password"));
     expect([posted.method, posted.body ?? null]).toEqual(["POST", null]);
+  });
+});
+
+describe("changing a login's email", () => {
+  it("saves the new email from the login's row", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    const calls = stubApi(adminRoutes({
+      "PUT /admin/users/u-amina/email/": { ...USERS[0], email: "amina.k@example.com" },
+    }));
+    renderApp(<Admin />);
+    await user.click(await screen.findByRole("button", { name: /Logins/ }));
+
+    await user.click(await screen.findByRole("button", { name: "Change email for amina" }));
+    const field = screen.getByRole("textbox", { name: "Email for amina" });
+    await user.clear(field);
+    await user.type(field, "amina.k@example.com");
+    await user.click(screen.getByRole("button", { name: "Save email" }));
+
+    await vi.waitFor(() =>
+      expect(calls.find((c) => c.method === "PUT").body).toEqual({ email: "amina.k@example.com" }),
+    );
   });
 });
 
@@ -210,6 +258,7 @@ describe("creating a login from the console", () => {
 describe("creating a campaign from the console", () => {
   function campaignRoutes() {
     return adminRoutes({
+      "GET /site/": { name: "Jane", organisation_type: "aspirant" },
       "GET /counties/": [{ id: "cty1", name: "Nairobi City" }],
       "GET /constituencies/": [{ id: "k1", name: "Roysambu" }],
       "GET /wards/": [
@@ -270,7 +319,24 @@ describe("creating a campaign from the console", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
   }
 
-  it("creates the aspirant's and manager's logins with it and says how each invite went", async () => {
+  it("on a party copy sends New campaign to Aspirants, where approved aspirants get workspaces", async () => {
+    const user = userEvent.setup();
+    signInAsAdmin();
+    const calls = stubApi(adminRoutes());
+    renderApp(
+      <Routes>
+        <Route path="/" element={<Admin />} />
+        <Route path="/party/aspirants" element={<p>Aspirants page</p>} />
+      </Routes>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "New campaign" }));
+
+    expect(await screen.findByText("Aspirants page")).toBeInTheDocument();
+    expect(calls.some((c) => c.path === "/admin/campaigns/" && c.method === "POST")).toBe(false);
+  });
+
+  it("on an aspirant copy creates the aspirant's and manager's logins and says how each invite went", async () => {
     const user = userEvent.setup();
     signInAsAdmin();
     const calls = stubApi(campaignRoutes());

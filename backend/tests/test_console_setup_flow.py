@@ -7,7 +7,7 @@ import pytest
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-from backend.models import UserRole
+from backend.models import OrganisationType, UserRole
 from tests.conftest import app_client, enforce_foreign_keys, upgrade_head
 from tests.factories import auth, claim_link, make_geography, make_user, members_of, sign_in
 
@@ -23,7 +23,7 @@ async def migrated(tmp_path):
     engine = enforce_foreign_keys(create_async_engine(f"sqlite+aiosqlite:///{db.as_posix()}"))
     async with (
         AsyncSession(engine, expire_on_commit=False) as session,
-        app_client(session) as client,
+        app_client(session, OrganisationType.ASPIRANT) as client,
     ):
         yield client, session
     await engine.dispose()

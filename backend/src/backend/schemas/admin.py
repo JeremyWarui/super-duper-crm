@@ -3,6 +3,8 @@
 import uuid
 from datetime import date
 
+from pydantic import Field, field_validator
+
 from backend.models.enums import PartyMemberStatus, PartyRoleName, Seat, UserRole
 from backend.schemas.campaign import SetupSummary
 from backend.schemas.common import (
@@ -13,6 +15,7 @@ from backend.schemas.common import (
     ORMModel,
     WriteModel,
 )
+from backend.schemas.site import Email
 
 
 class Totals(ORMModel):
@@ -106,6 +109,15 @@ class PasswordResult(ORMModel):
 
 class ActiveSet(WriteModel):
     active: bool
+
+
+class EmailSet(WriteModel):
+    email: Email = Field(min_length=3)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _trim(cls, value: str) -> str:
+        return value.strip() if isinstance(value, str) else value
 
 
 class MemberAdd(WriteModel):

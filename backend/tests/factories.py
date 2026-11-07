@@ -6,6 +6,7 @@ import uuid
 import zlib
 from datetime import UTC, date, datetime
 
+import pytest
 from sqlalchemy import select
 
 from backend.models import (
@@ -44,6 +45,12 @@ def site_settings(**fields) -> SiteSettings:
     return SiteSettings(
         **{"id": 1, "organisation_type": OrganisationType.PARTY, "name": "Party name", **fields}
     )
+
+
+# Pins a test to an aspirant copy, where the console still makes campaigns itself.
+aspirant_copy = pytest.mark.parametrize(
+    "organisation_type", [OrganisationType.ASPIRANT], ids=["aspirant"], indirect=True
+)
 
 
 def fresh_password() -> str:

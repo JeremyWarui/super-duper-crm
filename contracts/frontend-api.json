@@ -147,6 +147,10 @@
       "username",
       "is_active"
     ],
+    "PUT /api/admin/users/{user_id}/email/": [
+      "id",
+      "email"
+    ],
     "POST /api/admin/campaigns/{campaign_id}/members/": [
       "id",
       "title",
@@ -908,9 +912,14 @@
       "published"
     ],
     "GET /api/party/workspace/": [
-      "id"
+      "id",
+      "managers"
     ],
     "POST /api/party/workspace/": [
+      "username",
+      "invite"
+    ],
+    "POST /api/party/workspace/manager/": [
       "username",
       "invite"
     ],
@@ -1868,6 +1877,9 @@
     "POST /api/admin/users/{user_id}/active/": [
       "active"
     ],
+    "PUT /api/admin/users/{user_id}/email/": [
+      "email"
+    ],
     "POST /api/admin/campaigns/{campaign_id}/members/": [
       "user"
     ],
@@ -2372,6 +2384,16 @@
       "phone",
       "email"
     ],
+    "POST /api/party/workspace/manager/": [
+      "manager"
+    ],
+    "POST /api/party/workspace/manager/.manager": [
+      "username",
+      "first_name",
+      "last_name",
+      "phone",
+      "email"
+    ],
     "POST /api/party/workspace/recruitment/": [],
     "POST /api/team-signup/{code}/": [
       "role",
@@ -2637,6 +2659,7 @@
       "DELETE /api/workspace/site/videos/{item_id}/",
       "POST /api/setup/check/",
       "DELETE /api/messages/{message_id}/",
+      "DELETE /api/campaigns/{campaign_id}/team/{user_id}/",
       "DELETE /api/party/nominations/mine/documents/{document_id}/",
       "POST /api/campaigns/{campaign_id}/data/supporters/{supporter_id}/erase/",
       "POST /api/campaigns/{campaign_id}/data/volunteers/{volunteer_id}/erase/",

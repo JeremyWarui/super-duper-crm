@@ -148,7 +148,7 @@ export default function App() {
   if (campaigns.isLoading) return <Legacy><Loading /></Legacy>;
   if (campaigns.error) return <Legacy><ErrorMsg error={campaigns.error} /></Legacy>;
   if (!campaign) return <Legacy><div className="not-on-campaign">You are not on a campaign yet.</div></Legacy>;
-  const where = { aspirant: install.aspirant, partyWorkspace: campaign.kind === "party", hosted: campaign.kind === "hosted" };
+  const where = { aspirant: install.aspirant, partyWorkspace: campaign.kind === "party", hosted: campaign.kind === "hosted", byCentre: campaign.operational_grain === "centre" };
   const pages = pagesOf(role, where);
 
   return (

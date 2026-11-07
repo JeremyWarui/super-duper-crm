@@ -36,7 +36,7 @@ from backend.schemas.admin import (
 from backend.schemas.campaign import SetupSummary
 from backend.security import hash_password, new_password
 from backend.services.accounts import add_member as join
-from backend.services.accounts import add_mobilizer, user_named
+from backend.services.accounts import add_mobilizer, clean_email, user_named, user_with_email
 from backend.services.audit import record
 from backend.services.campaigns import build_campaign
 from backend.services.errors import NotFound, Refused
@@ -276,6 +276,21 @@ async def set_active(
         subject_type="user",
         subject_id=login.id,
     )
+    await session.commit()
+    return login
+
+
+async def set_email(
+    session: AsyncSession, user_id: uuid.UUID, email: str, *, actor: User | None
+) -> User:
+    """Change the email a login signs in with and gets its links at."""
+    login = await _user(session, user_id)
+    email = clean_email(email)
+    holder = await user_with_email(session, email)
+    if holder is not None and holder.id != login.id:
+        raise Refused(f"The email {email} already belongs to another login.")
+    login.email = email
+    record(session, actor=actor, action="user.email", subject_type="user", subject_id=login.id)
     await session.commit()
     return login
 

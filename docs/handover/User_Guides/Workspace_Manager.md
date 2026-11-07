@@ -19,7 +19,8 @@ emails a link that works for an hour.
 
 - The workspace card shows the party name instead of a candidate.
 - You hold the Manager column of the permission table. **Team** has **Add coordinator** and
-  **Add comms officer**. There is no **Add manager** button for you.
+  **Add comms officer**, and **Take off** on each of their rows. There is no **Add manager**
+  button for you: the superuser replaces the Workspace Manager from the console.
 - **Personal data** has no **After the election** section: the party workspace is not
   closed after an election.
 - There is no **Party feed** and no **Website** or **Settings** in this workspace.

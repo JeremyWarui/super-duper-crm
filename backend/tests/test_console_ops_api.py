@@ -10,7 +10,16 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AuditEvent, Base, SmsLog, User
+from backend.models import (
+    AuditEvent,
+    Base,
+    Campaign,
+    OfficeLevel,
+    SmsLog,
+    Supporter,
+    User,
+    WorkspaceKind,
+)
 from backend.services import ops
 from backend.services.errors import Refused
 from tests.conftest import World
@@ -58,6 +67,32 @@ async def test_the_export_holds_every_table_but_sign_in_secrets(
     assert all("password_hash" not in u for u in users)
     assert f"csv/{'campaigns'}.csv" in archive.namelist()
     assert await session.scalar(select(AuditEvent.id).where(AuditEvent.action == "ops.export"))
+
+
+async def test_a_party_export_leaves_out_hosted_workspaces_supporters(
+    client: httpx.AsyncClient, admin_headers: dict, world: World, session: AsyncSession
+) -> None:
+    office = Campaign(
+        title="Party workspace", kind=WorkspaceKind.PARTY, office_level=OfficeLevel.NATIONAL
+    )
+    session.add(office)
+    await session.flush()
+    session.add_all(
+        [
+            Supporter(campaign_id=office.id, full_name="Party Member", phone="0711000001"),
+            Supporter(campaign_id=world.campaign.id, full_name="Hosted Voter", phone="0711000002"),
+        ]
+    )
+    await session.commit()
+
+    answer = await client.get("/api/admin/export/", headers=admin_headers)
+
+    archive = zipfile.ZipFile(io.BytesIO(answer.content))
+    names = [s["full_name"] for s in json.loads(archive.read("json/supporters.json"))]
+    assert world.campaign.kind == WorkspaceKind.HOSTED
+    assert names == ["Party Member"]
+    left_out = json.loads(archive.read("manifest.json"))["left_out"]
+    assert "supporters of hosted workspaces" in left_out
 
 
 def test_a_restore_is_refused_without_the_flag(tmp_path: Path) -> None:

@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Campaign
 from tests.conftest import World
-from tests.factories import fresh_password, make_rival_campaign
+from tests.factories import aspirant_copy, fresh_password, make_rival_campaign
 
 
 def _setup_body(world: World, **overrides) -> dict:
@@ -35,6 +35,7 @@ async def test_everyone_on_a_campaign_sees_it_and_not_a_rival_s(
     assert other.status_code == 404
 
 
+@aspirant_copy
 async def test_setting_up_a_campaign_in_an_area_that_does_not_exist_is_refused(
     client: httpx.AsyncClient, world: World, admin_headers: dict
 ) -> None:
@@ -47,6 +48,7 @@ async def test_setting_up_a_campaign_in_an_area_that_does_not_exist_is_refused(
     assert (response.status_code, response.json()["detail"]) == (400, "No such constituency.")
 
 
+@aspirant_copy
 async def test_an_mca_seat_needs_its_ward_s_registration_centres_loaded(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:

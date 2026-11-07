@@ -20,6 +20,10 @@ class PartyWorkspaceCreate(BaseModel):
     manager: LoginDetails
 
 
+class PartyWorkspaceManager(BaseModel):
+    manager: LoginDetails
+
+
 class PartyWorkspaceCreated(BaseModel):
     """`invite` says how the Workspace Manager's invite link went out."""
 

@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import AuthToken, CampaignMember, RegistrationCentre, User, UserRole
+from backend.services.accounts import add_member
 from tests.conftest import World
 from tests.factories import auth, claim_link, make_campaign, make_user, sign_in
 
@@ -87,6 +88,33 @@ async def test_replacing_the_manager_signs_the_old_one_out_and_off_the_campaign(
         )
     )
     assert [str(m) for m in managers] == [made["id"]]
+
+
+async def test_the_manager_takes_a_coordinator_off_and_never_the_candidate(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    coordinator = await make_user(session, username="kamau", role=UserRole.COORDINATOR)
+    await add_member(session, world.campaign.id, coordinator)
+    await session.commit()
+    signed_in = auth(await sign_in(client, "kamau"))
+
+    removed = await client.delete(
+        _team(world, str(coordinator.id)), headers=world.headers("manager")
+    )
+    candidate = await client.delete(
+        _team(world, str(world.candidate.id)), headers=world.headers("manager")
+    )
+
+    assert removed.status_code == 204, removed.text
+    assert (await client.get("/api/campaigns/", headers=signed_in)).status_code == 401
+    await session.refresh(coordinator)
+    assert coordinator.is_active is False
+    assert (candidate.status_code, candidate.json()["detail"]) == (
+        400,
+        "Only a coordinator or a comms officer is taken off here.",
+    )
+    team = (await client.get(_team(world), headers=world.headers("manager"))).json()
+    assert "kamau" not in [p["username"] for p in team]
 
 
 async def test_a_refused_replace_keeps_the_manager_there_and_makes_no_login(

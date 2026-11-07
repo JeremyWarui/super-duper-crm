@@ -69,7 +69,8 @@ The top bar has a search box (**Search supporters, wards, events…**, or press 
 
 ### Put a mobilizer on a ward
 
-1. Open **Wards**. The page is called **Ward performance** (or **Centre performance**).
+1. Open **Wards** (**Centres** in an MCA race). The page is called **Ward performance**
+   (or **Centre performance**).
 2. In the **Mobilizer** column press **Assign** (or **Change** if someone holds it).
 3. Pick the **Mobilizer** and press **Assign**. To take the current one off, press
    **Remove** followed by their name.
@@ -89,6 +90,9 @@ The top bar has a search box (**Search supporters, wards, events…**, or press 
    They are emailed a link to choose a password. In practice mode no email is sent; see `Admin_Guide.md` section 10.
 3. For a coordinator, press **Area** on their row next. Tick their wards (or centres) and
    press **Save**. Until you do, they see no wards.
+
+To take a coordinator or comms officer off, press **Take off** on their row, then **Take
+off** again. Their login is turned off and signed out at once.
 
 ### Approve mobilizers and agents who signed up
 
@@ -152,8 +156,3 @@ When **Practice mode** shows at the top of the page, no money moves.
 Press the **Help** button at the top. It lists your campaign's phone and email. For a lost
 password, use **Forgot your password?** first. Only the superuser (the party office, or
 whoever runs your installation) can send a reset link to someone else.
-
-## Notes to confirm
-
-- The menu item reads **Wards** even in an MCA race, where the page title says **Centre
-  performance**.

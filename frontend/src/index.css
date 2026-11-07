@@ -825,6 +825,15 @@
   line-height: 1;
 }
 
+.legacy .admin-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .legacy .admin-confirmation { font-size: var(--text-sm); }
 .legacy .admin-red { color: var(--color-danger); }
 .legacy .admin-subtle { color: var(--color-text-muted); }
