@@ -125,7 +125,7 @@ describe("an aspirant installation's website", () => {
 
   it.each([
     ["/", "Roysambu first", "A teacher for twenty years."],
-    ["/volunteer", "Volunteer", "Support Jane"],
+    ["/volunteer", "Volunteer", "Volunteer for Jane"],
     ["/contribute", "Contribute", "M-Pesa paybill 123456"],
     ["/privacy", "Privacy notice", "We keep your data safe."],
     ["/news", "News", null],
@@ -145,7 +145,8 @@ describe("an aspirant installation's website", () => {
     });
     renderApp(<AppRoutes />, { path: "/volunteer" });
     const user = userEvent.setup();
-    const form = within((await screen.findByRole("heading", { name: "Support Jane" })).closest("form"));
+    await screen.findByRole("heading", { name: "Volunteer for Jane" });
+    const form = within(document.querySelector("form"));
 
     await user.type(form.getByLabelText("First name"), "Wanjiru");
     await user.type(form.getByLabelText("Last name"), "Kamau");

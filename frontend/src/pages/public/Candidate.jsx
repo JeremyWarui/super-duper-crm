@@ -17,9 +17,13 @@ const TABS = ["About", "Priorities", "Events"];
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PILL = "flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-line-control bg-white px-3.5 text-small font-semibold has-[:checked]:border-primary has-[:checked]:bg-primary-tint";
 
-/** The volunteer form; `bare` drops its card and heading, for use inside a dialog. */
-export function SupportForm({ c, send, withdrawPath, bare = false }) {
-  const first = c.name.split(/\s+/)[0];
+export const VOLUNTEER_NOTE = "Your details go to the campaign only.";
+
+/** The volunteer box's title: who it is for, or thanks once sent. */
+export const volunteerTitle = (c, sent) => (sent ? "Thank you" : `Volunteer for ${c.name.split(/\s+/)[0]}`);
+
+/** The volunteer form, the same in the dialog and on the /volunteer page. */
+export function SupportForm({ c, send, withdrawPath }) {
   const [f, setF] = useState({ first_name: "", last_name: "", email: "", phone: "", ward: "", registration_centre: "", profession: "", profession_other: "", areas: [], area_other: "", preferred_contact: "", consent_given: false });
   const centres = usePartyPlaces({ ward: f.ward, enabled: !!f.ward }).data || [];
   const set = (key) => (e) => setF({ ...f, [key]: e.target.value });
@@ -41,21 +45,15 @@ export function SupportForm({ c, send, withdrawPath, bare = false }) {
         <p className="text-small text-muted-foreground">Keep this link: it takes your details off the campaign's list. <a href={link} className="break-all font-semibold">{link}</a></p>
       </>
     );
-    return bare ? <div className="flex flex-col gap-3">{thanks}</div> : (
-      <Card className="gap-3 p-6">
-        <h2 className="text-[20px] font-bold">Thank you</h2>
-        {thanks}
-      </Card>
-    );
+    return <div className="flex flex-col gap-3">{thanks}</div>;
   }
   const form = (
       <form onSubmit={submit} noValidate className="flex flex-col gap-3.5">
-        {bare ? null : <h2 className="text-[20px] font-bold">Support {first}</h2>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="First name"><Input value={f.first_name} onChange={set("first_name")} autoComplete="given-name" /></Field>
           <Field label="Last name"><Input value={f.last_name} onChange={set("last_name")} autoComplete="family-name" /></Field>
         </div>
-        <div className={`grid grid-cols-1 gap-3 ${bare ? "sm:grid-cols-3" : ""}`}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Field label="Email"><Input type="email" value={f.email} onChange={set("email")} autoComplete="email" /></Field>
           <Field label="Phone"><Input value={f.phone} onChange={set("phone")} inputMode="tel" autoComplete="tel" placeholder="07XX XXX XXX" /></Field>
           <Field label="Preferred contact">
@@ -65,7 +63,7 @@ export function SupportForm({ c, send, withdrawPath, bare = false }) {
           </NativeSelect>
         </Field>
         </div>
-        <div className={`grid grid-cols-1 gap-3 ${bare ? "sm:grid-cols-2" : ""}`}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Ward">
           <NativeSelect value={f.ward} onChange={(e) => setF({ ...f, ward: e.target.value, registration_centre: "" })}>
             <option value="">Pick your ward</option>
@@ -79,7 +77,7 @@ export function SupportForm({ c, send, withdrawPath, bare = false }) {
           </NativeSelect>
         </Field>
         </div>
-        <div className={`grid grid-cols-1 gap-3 ${bare ? "sm:grid-cols-2" : ""}`}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Profession">
           <NativeSelect value={f.profession} onChange={set("profession")}>
             <option value="">Pick your profession</option>
@@ -106,7 +104,7 @@ export function SupportForm({ c, send, withdrawPath, bare = false }) {
         <Button type="submit" disabled={!ok || send.isPending}>{send.isPending ? "Sending…" : "I'll volunteer"}</Button>
       </form>
   );
-  return bare ? form : <Card className="p-6">{form}</Card>;
+  return form;
 }
 
 /** The candidate's hero band: photo, seat, name, place and slogan, with `actions` below. */
@@ -132,15 +130,14 @@ export function CandidateHero({ c, crumbs, actions }) {
 
 /** The volunteer form in a wide dialog. */
 export function VolunteerDialog({ c, send, withdrawPath, onClose }) {
-  const first = c.name.split(/\s+/)[0];
   return (
     <Dialog
-      title={send.isSuccess ? "Thank you" : `Volunteer for ${first}`}
-      description={send.isSuccess ? null : "Your details go to the campaign only."}
+      title={volunteerTitle(c, send.isSuccess)}
+      description={send.isSuccess ? null : VOLUNTEER_NOTE}
       onClose={onClose}
       className="w-[min(760px,calc(100vw-32px))]"
     >
-      <SupportForm c={c} send={send} withdrawPath={withdrawPath} bare />
+      <SupportForm c={c} send={send} withdrawPath={withdrawPath} />
     </Dialog>
   );
 }
