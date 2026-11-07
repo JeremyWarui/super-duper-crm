@@ -360,29 +360,44 @@ function Leadership() {
   );
 }
 
-function TakePart() {
-  const panel = "flex flex-col gap-3.5 rounded-panel p-8";
-  const title = "font-display text-[28px] font-extrabold";
+const PANEL = "flex flex-col gap-3.5 rounded-panel p-8";
+const PANEL_TITLE = "font-display text-[28px] font-extrabold";
+
+/** One of the three take-part panels; `tone` is "accent", "primary" or "card". */
+function TakePanel({ tone, title, text, action }) {
+  if (tone === "card") {
+    return (
+      <Card variant="elevated" className={`${PANEL} p-8`}>
+        <h3 className={PANEL_TITLE}>{title}</h3>
+        <p className="text-text-2">{text}</p>
+        <div className="mt-auto self-start">{action}</div>
+      </Card>
+    );
+  }
+  const accent = tone === "accent";
+  return (
+    <div className={`${PANEL} ${accent ? "bg-accent text-ink" : "bg-primary text-white"}`}>
+      <h3 className={PANEL_TITLE}>{title}</h3>
+      <p className={accent ? "text-[#3B3415]" : "text-[#CFE0D5]"}>{text}</p>
+      <div className="mt-auto self-start">{action}</div>
+    </div>
+  );
+}
+
+const PARTY_PANELS = [
+  { tone: "accent", title: "Join the party", text: "Become a registered member and have a say in your branch.", action: <Button asChild variant="ink"><Link to="/join-party">Register as a member</Link></Button> },
+  { tone: "primary", title: "Vie with us", text: "Seeking a seat? Learn how to become an aspirant and get the party's campaign tools.", action: <Button asChild variant="accent"><Link to="/vie">Become an aspirant</Link></Button> },
+  { tone: "card", title: "Contribute", text: "Support the party's work in every county.", action: <Button asChild variant="ink"><Link to="/contribute">Give now</Link></Button> },
+];
+
+/** "Three ways to take part": the party's panels unless others are given. */
+export function TakePart({ panels = PARTY_PANELS }) {
   return (
     <section id="take-part" className="bg-white">
       <div className="site-container flex flex-col gap-7 py-20">
         <SectionHead kicker="Get involved" title="Three ways to take part" />
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
-          <div className={`${panel} bg-accent text-ink`}>
-            <h3 className={title}>Join the party</h3>
-            <p className="text-[#3B3415]">Become a registered member and have a say in your branch.</p>
-            <Button asChild variant="ink" className="mt-auto self-start"><Link to="/join-party">Register as a member</Link></Button>
-          </div>
-          <div className={`${panel} bg-primary text-white`}>
-            <h3 className={title}>Vie with us</h3>
-            <p className="text-[#CFE0D5]">Seeking a seat? Learn how to become an aspirant and get the party's campaign tools.</p>
-            <Button asChild variant="accent" className="mt-auto self-start"><Link to="/vie">Become an aspirant</Link></Button>
-          </div>
-          <Card variant="elevated" className={`${panel} p-8`}>
-            <h3 className={title}>Contribute</h3>
-            <p className="text-text-2">Support the party's work in every county.</p>
-            <Button asChild variant="ink" className="mt-auto self-start"><Link to="/contribute">Give now</Link></Button>
-          </Card>
+          {panels.map((panel) => <TakePanel key={panel.title} {...panel} />)}
         </div>
       </div>
     </section>

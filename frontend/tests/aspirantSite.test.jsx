@@ -69,12 +69,13 @@ async function textOf(path, heading, loaded) {
 }
 
 describe("an aspirant installation's website", () => {
-  it("shows the candidate page at / and the volunteer form at /volunteer", async () => {
+  it("lays the homepage out as the party's: carousel with the candidate beside it, then three ways to take part", async () => {
     stubApi(ROUTES);
     renderApp(<AppRoutes />);
 
     expect(await screen.findByRole("heading", { name: "Jane Wanjiku" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Support Jane" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Three ways to take part" })).toBeInTheDocument();
+    expect(screen.queryByText(/Chip in/)).toBeNull();
   });
 
   it("shows what the Website editor publishes on the homepage, and links every page from the menu", async () => {
@@ -83,12 +84,12 @@ describe("an aspirant installation's website", () => {
 
     expect(await screen.findByRole("heading", { name: "Why Jane?" })).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: /Clean water/ })).toHaveAttribute("href", "/issues/i1");
-    expect(screen.getByRole("link", { name: "KES 500" })).toHaveAttribute("href", "/contribute?amount=500");
+    expect(screen.getAllByRole("link", { name: "Give now" })[0]).toHaveAttribute("href", "/contribute");
     const menu = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
     for (const path of ["/about", "/agenda", "/media", "/volunteer"]) expect(menu).toContain(path);
   });
 
-  it("rotates published slides in the hero, and shows the candidate's own hero when there are none", async () => {
+  it("rotates published slides in the hero, and shows the site's slogan when there are none", async () => {
     const slide = { id: "s1", kicker: "Roysambu 2027", headline: "Water for every ward", line: "", image_url: "", button_label: "", button_url: "" };
     stubApi({ ...ROUTES, "GET /party/slides/": [slide] });
     const first = renderApp(<AppRoutes />);
@@ -98,7 +99,7 @@ describe("an aspirant installation's website", () => {
 
     stubApi(ROUTES);
     renderApp(<AppRoutes />);
-    expect(await screen.findByRole("heading", { name: "Jane Wanjiku", level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Roysambu first", level: 1 })).toBeInTheDocument();
   });
 
   it.each([
@@ -123,7 +124,7 @@ describe("an aspirant installation's website", () => {
   );
 
   it.each([
-    ["/", "Jane Wanjiku", "A teacher for twenty years."],
+    ["/", "Roysambu first", "A teacher for twenty years."],
     ["/volunteer", "Volunteer", "Support Jane"],
     ["/contribute", "Contribute", "M-Pesa paybill 123456"],
     ["/privacy", "Privacy notice", "We keep your data safe."],

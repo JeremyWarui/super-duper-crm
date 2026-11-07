@@ -2,17 +2,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FileText } from "lucide-react";
-import { usePublicDocuments, usePublicPosts, usePublicSlides, usePublicVideos, useSiteCandidate, useSiteVolunteer } from "@/api/hooks";
+import { usePublicDocuments, usePublicPosts, usePublicVideos, useSiteCandidate, useSiteVolunteer } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SectionHead } from "@/components/ui/typography";
-import { CandidateHero, CandidateView, SEAT_TITLE, SupportCard, VolunteerDialog } from "./Candidate";
-import { Agenda, Carousel, Events, News, Ticker, youtubeThumb } from "./Home";
+import { CandidateView, SEAT_TITLE, VolunteerDialog } from "./Candidate";
+import { Agenda, Carousel, Events, News, TakePart, Ticker, youtubeThumb } from "./Home";
 import PageHead from "./PageHead";
 import { Photo } from "./story";
 
 const WITHDRAW = "/volunteer/withdraw/";
-const AMOUNTS = [200, 500, 1000, 2500, 5000];
 const firstName = (c) => c.name.split(/\s+/)[0];
 
 function ComingSoon() {
@@ -28,62 +27,47 @@ function Loading() {
 }
 
 /** `photo` is left out when the candidate's hero above already shows it. */
-function Why({ c, photo }) {
+/** Beside the carousel, where the party's homepage has its branch finder. */
+function CandidateCard({ c }) {
+  return (
+    <aside aria-labelledby="who-h" className="flex flex-[0_1_360px] flex-col gap-3.5 rounded-[13px] bg-white p-6 text-ink shadow-hero-card">
+      <div className="flex items-center gap-3.5">
+        <Photo url={c.photo_url} className="size-[72px] flex-none rounded-full bg-primary-tint" />
+        <span className="flex flex-col gap-0.5">
+          <h2 id="who-h" className="font-display text-[22px] leading-tight font-extrabold">{c.name}</h2>
+          <span className="text-ui text-muted-foreground">{SEAT_TITLE[c.seat]} · {c.area}</span>
+        </span>
+      </div>
+      <div className="flex flex-col border-t border-line-2">
+        {[["About " + firstName(c), "/about"], ["The agenda", "/agenda"], ["Events near me", "/events"], ["Contribute", "/contribute"]].map(([label, to]) => (
+          <Link key={to} to={to} className="flex justify-between border-b border-line-soft py-3 font-semibold text-ink no-underline last:border-0 hover:text-primary">
+            <span>{label}</span><span aria-hidden>→</span>
+          </Link>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+/** Where the party's homepage shows its leadership: the candidate. */
+function Candidate({ c }) {
   const first = firstName(c);
   const lead = (c.bio || "").split(/\n+/).find(Boolean);
   return (
-    <section aria-labelledby="why-h" className="bg-white">
-      <div className="site-container flex flex-wrap items-center gap-10 py-20">
-        {photo ? <Photo url={c.photo_url} className="aspect-[4/5] w-full max-w-[360px] flex-none rounded-band bg-primary-tint" /> : null}
-        <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-4">
-          <p className="kicker">{SEAT_TITLE[c.seat]} · {c.area}</p>
-          <h2 id="why-h" className="font-display text-section font-extrabold tracking-[-0.02em]">Why {first}?</h2>
-          {lead ? <p className="text-[18px] leading-[1.7] text-text-2">{lead}</p> : null}
-          {c.priorities.length ? (
-            <ul className="flex flex-col gap-2">
-              {c.priorities.map((p, n) => (
-                <li key={n} className="flex gap-3">
-                  <span className="font-display font-extrabold text-primary">{n + 1}</span>
-                  <span><strong>{p.title}</strong>{p.text ? <span className="text-muted-foreground"> · {p.text}</span> : null}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <Link to="/about" className="font-bold">More about {first} →</Link>
+    <section id="about" className="bg-primary text-white">
+      <div className="site-container flex flex-col gap-7 py-[72px]">
+        <SectionHead kicker="Who is standing" title={`Why ${first}?`} action={{ label: `More about ${first}`, to: "/about" }} onDark />
+        <div className="flex flex-wrap items-center gap-8">
+          {c.photo_url ? <img src={c.photo_url} alt="" className="size-[120px] flex-none rounded-full border-2 border-accent object-cover" /> : <span className="size-[120px] flex-none rounded-full border-2 border-accent bg-white/20" />}
+          <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-3">
+            {lead ? <p className="text-[18px] leading-[1.7] text-[#CFE0D5]">{lead}</p> : null}
+            {c.priorities.length ? (
+              <ul className="flex flex-wrap gap-x-6 gap-y-2">
+                {c.priorities.map((p, n) => <li key={n} className="font-bold"><span className="text-accent">{n + 1}</span> {p.title}</li>)}
+              </ul>
+            ) : null}
+          </div>
         </div>
-      </div>
-    </section>
-  );
-}
-
-function ChipIn({ c }) {
-  return (
-    <section aria-labelledby="chip-h" className="bg-primary text-white">
-      <div className="site-container flex flex-wrap items-center justify-between gap-8 py-16">
-        <div className="flex max-w-[520px] flex-col gap-3">
-          <h2 id="chip-h" className="font-display text-section font-extrabold tracking-[-0.02em]">Chip in for {firstName(c)}</h2>
-          <p className="text-[18px] text-white/80">Every shilling pays for agents, transport and posters on the ground.</p>
-        </div>
-        <div className="flex flex-wrap gap-3" role="group" aria-label="Amount to give">
-          {AMOUNTS.map((a) => (
-            <Button key={a} asChild variant="accent" size="lg"><Link to={`/contribute?amount=${a}`}>KES {a.toLocaleString("en-KE")}</Link></Button>
-          ))}
-          <Button asChild variant="onDark" size="lg"><Link to="/contribute">Other</Link></Button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Engage({ c, onOpen }) {
-  return (
-    <section className="bg-stone">
-      <div className="site-container flex flex-wrap items-stretch gap-5 py-16">
-        <div className="flex min-w-0 flex-[2_1_420px] flex-col justify-center gap-3">
-          <SectionHead kicker="Get involved" title="Join the team on the ground" />
-          <p className="max-w-[56ch] text-text-2">Mobilise your ward, host a baraza or help on polling day. Sign up and the campaign team will call you.</p>
-        </div>
-        <div className="flex min-w-0 flex-[1_1_300px] flex-col"><SupportCard c={c} onOpen={onOpen} /></div>
       </div>
     </section>
   );
@@ -93,28 +77,34 @@ export default function AspirantHome() {
   const page = useSiteCandidate();
   const send = useSiteVolunteer();
   const news = usePublicPosts("news").data || [];
-  const slides = usePublicSlides().data || [];
   const [volunteering, setVolunteering] = useState(false);
   if (page.isLoading) return <Loading />;
   if (page.error) return <ComingSoon />;
   const c = page.data;
+  const first = firstName(c);
   const open = () => setVolunteering(true);
-  const actions = (
-    <>
-      {c.volunteering_open ? <Button variant="accent" size="lg" onClick={open}>Volunteer for {firstName(c)}</Button> : null}
-      <Button asChild variant="onDark" size="lg"><Link to="/contribute">Contribute</Link></Button>
-    </>
-  );
+  const volunteer = c.volunteering_open
+    ? <Button variant="accent" size="lg" onClick={open}>Volunteer for {first}</Button>
+    : <Button asChild variant="accent" size="lg"><Link to="/about">Meet {first}</Link></Button>;
+  const panels = [
+    {
+      tone: "accent",
+      title: "Volunteer",
+      text: "Mobilise your ward, host a baraza or help on polling day.",
+      action: c.volunteering_open ? <Button variant="ink" onClick={open}>Volunteer for {first}</Button> : <Button asChild variant="ink"><Link to="/volunteer">Volunteer</Link></Button>,
+    },
+    { tone: "primary", title: `Meet ${first}`, text: "Who is standing, and what the campaign will do.", action: <Button asChild variant="accent"><Link to="/about">About {first}</Link></Button> },
+    { tone: "card", title: "Contribute", text: "Support the campaign's work on the ground.", action: <Button asChild variant="ink"><Link to="/contribute">Give now</Link></Button> },
+  ];
   return (
     <>
-      {slides.length ? <Carousel actions={actions} aside={null} /> : <CandidateHero c={c} actions={actions} />}
+      <Carousel actions={volunteer} aside={<CandidateCard c={c} />} />
       <Ticker news={news} />
-      <Why c={c} photo={slides.length > 0} />
       <Agenda limit={6} />
-      <ChipIn c={c} />
       <News news={news} />
       <Events />
-      {c.volunteering_open ? <Engage c={c} onOpen={open} /> : null}
+      <Candidate c={c} />
+      <TakePart panels={panels} />
       {volunteering ? <VolunteerDialog c={c} send={send} withdrawPath={WITHDRAW} onClose={() => setVolunteering(false)} /> : null}
     </>
   );
