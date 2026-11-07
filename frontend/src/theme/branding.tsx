@@ -34,12 +34,19 @@ export const defaultBranding: Branding = {
 const shade = (hex: string, f: (c: number) => number) =>
   '#' + [1, 3, 5].map((i) => Math.round(f(parseInt(hex.slice(i, i + 2), 16))).toString(16).padStart(2, '0')).join('').toUpperCase()
 
+/** The logo tile's letters: a short name of up to three characters, else up to two initials of the name. */
+const tileMark = (short?: string, name?: string) => {
+  const s = (short || '').trim()
+  if (s && Array.from(s).length <= 3) return s
+  return (name || s).split(/\s+/).filter(Boolean).slice(0, 2).map((w) => Array.from(Array.from(w)[0].toLocaleUpperCase())[0]).join('')
+}
+
 /** Maps GET /api/site/ (plus the party's registration number) onto the kit's branding; hover is the primary darkened, tint the primary over white. */
 export function fromSettings(p: Record<string, any>): Branding {
   const primary = (p.primary_colour || defaultBranding.colors.primary).toUpperCase()
   return {
     partyName: p.name || defaultBranding.partyName,
-    shortName: (p.short_name || p.name?.[0] || '').slice(0, 3),
+    shortName: tileMark(p.short_name, p.name),
     slogan: p.slogan ?? '',
     registrationNo: p.registration_number ?? '',
     hotline: p.contact_phone ?? '',
@@ -59,6 +66,21 @@ export function applyBranding(b: Branding) {
   r.setProperty('--party-primary-hover', b.colors.primaryHover)
   r.setProperty('--party-primary-tint', b.colors.primaryTint)
   r.setProperty('--party-accent', b.colors.accent)
+  let icon = document.querySelector<HTMLLinkElement>('link[rel=icon]')
+  if (!icon) {
+    icon = document.createElement('link')
+    icon.rel = 'icon'
+    document.head.appendChild(icon)
+  }
+  icon.href = b.logoUrl || tileIcon(b)
+}
+
+/** The logo tile as an SVG data URI, for the tab icon when there is no logo. */
+const tileIcon = (b: Branding) => {
+  const letters = b.shortName.replace(/[<>&"']/g, '')
+  const size = letters.length > 2 ? 26 : 36
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${b.colors.primary}"/><text x="32" y="33" font-family="system-ui,sans-serif" font-size="${size}" font-weight="800" fill="${b.colors.accent}" text-anchor="middle" dominant-baseline="central">${letters}</text></svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
 const Ctx = React.createContext<Branding>(defaultBranding)

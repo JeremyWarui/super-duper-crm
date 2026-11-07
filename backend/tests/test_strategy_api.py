@@ -4,6 +4,7 @@ import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Event
+from backend.services.strategy import name_list
 from tests.conftest import World
 
 
@@ -53,6 +54,11 @@ async def test_unstaffed_units_are_flagged_by_name(client: httpx.AsyncClient, wo
     unstaffed = next(n for n in notes if "unstaffed" in n["title"])
     assert unstaffed["title"] == "1 unit unstaffed"
     assert "Githurai" in unstaffed["text"]
+
+
+def test_unstaffed_units_read_as_a_list_and_count_the_rest() -> None:
+    assert name_list(["Ruai", "Njiru", "Mwiki"]) == "Ruai, Njiru and Mwiki"
+    assert name_list([f"W{i}" for i in range(8)]) == "W0, W1, W2, W3, W4, W5 and 2 more"
 
 
 async def test_a_mobilizer_does_not_read_the_strategy(

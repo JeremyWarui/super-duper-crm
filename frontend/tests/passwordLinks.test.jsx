@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AppRoutes } from "../src/Gate";
+import { AppRoutes, forgetOnSwitch } from "../src/Gate";
 import { useAuth } from "../src/store/auth";
 import { fakeSecret, renderApp, stubApi } from "./helpers";
 
@@ -36,7 +36,8 @@ describe("an invite link", () => {
       "GET /auth/links/tok1/": { purpose: "invite", username: "jane", email: "jane@example.com" },
       "POST /auth/links/tok1/": { token: session, user: ME },
     });
-    renderApp(<AppRoutes />, { path: "/invite/tok1" });
+    const { queryClient } = renderApp(<AppRoutes />, { path: "/invite/tok1" });
+    const stop = forgetOnSwitch(queryClient);
     const user = userEvent.setup();
 
     expect(await screen.findByRole("heading", { name: "Choose your password" })).toBeInTheDocument();
@@ -50,6 +51,9 @@ describe("an invite link", () => {
 
     await waitFor(() => expect(useAuth.getState().token).toBe(session));
     expect(calls.find((c) => c.method === "POST").body).toEqual({ password: chosen });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(calls.filter((c) => c.method === "GET" && c.path === "/auth/links/tok1/")).toHaveLength(1);
+    stop();
   });
 
   it("says a spent link no longer works and offers a new one", async () => {

@@ -16,8 +16,8 @@ export default function SetPassword() {
   const signedIn = useAuth((s) => s.user);
   const [password, setPassword] = useState("");
   const [again, setAgain] = useState("");
-  const link = useLink(token);
   const claim = useClaimLink(token);
+  const link = useLink(token, claim.isIdle);
   if (claim.isSuccess) return <Navigate to={landingOf(signedIn)} replace />;
 
   const short = password.length > 0 && password.length < MIN;

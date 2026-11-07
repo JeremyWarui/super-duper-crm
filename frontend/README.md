@@ -199,3 +199,11 @@ Kit tables take `stack`: below 640px each row becomes a card, with each cell lab
 `contract.test.js` checks the fixtures and the source against it;
 `backend/evals/test_frontend_contract.py` checks the API against the same file.
 Renaming a field on one side fails on both until the other side is updated.
+
+## Known gaps
+
+- The logo tile's initials take the first code point of each word, not the
+  first character a reader sees: a flag emoji shows half a flag, and a
+  decomposed accent (`E` plus U+0301) loses the accent. `Intl.Segmenter`
+  would fix both. The 3-letter font size counts UTF-16 units, so `😀U` gets
+  the smaller size.

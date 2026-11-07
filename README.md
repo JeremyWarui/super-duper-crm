@@ -21,7 +21,7 @@ createdb campaign_crm
 cp .env.example .env                      # set SECRET_KEY and your Postgres password
 uv run alembic upgrade head
 uv run campaign-crm seed                  # 47 counties, 290 constituencies, 1450 wards, 27,273 centres
-uv run campaign-crm demo                  # the demo campaign and its three logins
+uv run campaign-crm setup-token           # the one-time token for /setup
 uv run watchfiles "uvicorn backend.main:app" src .env   # http://127.0.0.1:8000/docs
 ```
 
@@ -30,6 +30,12 @@ cd frontend
 npm install
 npm run dev                               # http://localhost:5173
 ```
+
+Open http://localhost:5173: every page goes to `/setup` until it is done. Paste
+the token, pick party or aspirant (fixed for good), and make the first superuser.
+An aspirant copy also gets its campaign workspace and candidate login there; a
+party copy can open the party workspace and its Workspace Manager. Sign-in links
+go to the server console while email is in practice mode.
 
 Before the first commit, turn on the hook that refuses passwords, keys and
 tokens (see `tools/secret-scan/README.md`):
@@ -49,13 +55,9 @@ same campaign, so you sign out and back in to switch.
 | `aspirant` | **Candidate.** Overview, ward performance, events, mobilizers, team, strategy. Adds or replaces the one manager, adds and assigns mobilizers; reads everything else. |
 | `manager` | **Campaign manager.** Targets, mobilizers, team and supporters, and every write. Adds mobilizers and shares the sign-up links supporters use. |
 | `mobilizer` | **Mobilizer.** One ward. Record events, register supporters, nothing else. |
-The demo makes no superuser. Only a superuser creates campaigns, from the admin
-console's **New campaign** button, with the aspirant's and manager's logins.
-Nobody signs up for a login. Create one to see the console:
-
-```bash
-uv run campaign-crm createuser -u root -r manager --superuser
-```
+The demo makes no superuser; the first one comes from `/setup`. Campaign
+workspaces come from setup (an aspirant copy) or from an approved aspirant in the
+party office (a party copy).
 
 `campaign-crm demo` prints every password; they are generated per run, so
 nothing credential-shaped is committed. `--password <value>` pins them.

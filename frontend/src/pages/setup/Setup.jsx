@@ -264,7 +264,7 @@ export default function Setup() {
           <div className="flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name"><Input value={form.site.name} onChange={site("name")} /></Field>
-              <Field label="Short name" hint="Up to 30 letters, for small screens."><Input value={form.site.short_name} onChange={site("short_name")} /></Field>
+              <Field label="Short name" hint="Up to 30 letters, for small screens. 3 letters or fewer go on the logo tile; longer, the initials do."><Input value={form.site.short_name} onChange={site("short_name")} /></Field>
             </div>
             <Field label="Logo link" hint="An https:// address of the logo image; you can change it later."><Input type="url" value={form.site.logo_url} onChange={site("logo_url")} /></Field>
             <Swatch label="Primary colour" value={form.site.primary_colour} onChange={site("primary_colour")} against={WHITE} textOn="white" />

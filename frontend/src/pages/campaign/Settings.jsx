@@ -8,7 +8,7 @@ import { Field, Input, Textarea } from "@/components/ui/input";
 
 const LINES = [
   ["name", "Site name", 150],
-  ["short_name", "Short name (logo letters)", 30],
+  ["short_name", "Short name (3 letters or fewer go on the logo tile)", 30],
   ["slogan", "Slogan", 150],
   ["logo_url", "Logo address (https://)", 500],
   ["contact_email", "Contact email", 254],

@@ -87,7 +87,7 @@ revision commits on its own, so revisions before the failing one stay applied.
 
 **After the migrations are squashed.** While there is no real data, the
 revisions are folded back into one from time to time, and the new one gets an
-ID no earlier revision used (today `schema_20261024`). A database built from an
+ID no earlier revision used (today `schema_20261107`). A database built from an
 earlier chain then stops the release: `alembic upgrade head` fails with
 `Can't locate revision identified by '...'`, the deploy aborts, and the running
 release keeps serving. Nothing is changed.
@@ -105,14 +105,14 @@ back at your local database afterwards.
 
    An old database answers `Can't locate revision identified by '<id>'`.
 
-2. **At `0006`** (the last revision folded into `schema_20261024`), its schema
+2. **At `payments_in`** (the last revision folded into `schema_20261107`), its schema
    is already the new one, so relabel it:
 
    ```powershell
-   uv run alembic stamp --purge schema_20261024
+   uv run alembic stamp --purge schema_20261107
    ```
 
-3. **At `0001` to `0005`**, rebuild it. This deletes every table and row in
+3. **At any earlier revision**, rebuild it. This deletes every table and row in
    that database, and runs only when `--yes` names it:
 
    ```powershell

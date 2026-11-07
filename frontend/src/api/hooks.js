@@ -506,11 +506,13 @@ export const useRequestReset = () =>
   });
 
 // What a sign-in link is for and whose login it sets; an error when it is spent.
-export const useLink = (token) =>
+// Pass enabled=false once the link is claimed, so signing in never reads the spent link again.
+export const useLink = (token, enabled = true) =>
   useQuery({
     queryKey: ["link", token],
     queryFn: () => api(`/auth/links/${token}/`, { anonymous: true }),
     retry: false,
+    enabled,
   });
 
 // Sets the password through the link; resolves to the session it opens.

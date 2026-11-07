@@ -137,6 +137,14 @@ async def read_strategy(
     )
 
 
+def name_list(names: list[str], limit: int = 6) -> str:
+    """Names as "A, B and C", the ones past `limit` counted as "and N more"."""
+    shown, rest = names[:limit], len(names) - limit
+    if rest > 0:
+        return ", ".join(shown) + f" and {rest} more"
+    return shown[0] if len(shown) == 1 else ", ".join(shown[:-1]) + f" and {shown[-1]}"
+
+
 def _notes(units: list[UnitRead], unplaced: int = 0) -> list[NoteRead]:
     """Where to go next, where to ease off, what is unstaffed, and who needs a centre."""
     notes: list[NoteRead] = []
@@ -191,7 +199,7 @@ def _notes(units: list[UnitRead], unplaced: int = 0) -> list[NoteRead]:
             NoteRead(
                 tone="watch",
                 title=f"{len(unstaffed)} unit{'s' if len(unstaffed) > 1 else ''} unstaffed",
-                text=" and ".join(unstaffed[:6]) + " - no ground organiser to move the numbers.",
+                text=name_list(unstaffed) + " - no ground organiser to move the numbers.",
             )
         )
 
