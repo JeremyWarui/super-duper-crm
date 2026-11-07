@@ -51,8 +51,10 @@ const HTTPS = /^https:\/\/\S+$/;
 const UPLOADED = /^\/api\/files\/[0-9a-f-]{36}\/$/;
 const imageOk = (v) => !v || HTTPS.test(v) || UPLOADED.test(v);
 const IMAGE_HINT = "A JPEG, PNG or WebP up to 5 MB, or an https:// address.";
+const PDF_HINT = "A PDF up to 10 MB, or an https:// address.";
 const CHECKS = {
   image: (v) => imageOk(v) || "Choose a file, or use an address starting with https://.",
+  pdf: (v) => imageOk(v) || "Choose a PDF, or use an address starting with https://.",
   https: (v) => !v || HTTPS.test(v) || "Use an address starting with https://.",
   link: (v, f) => !v || HTTPS.test(v) || (/^\/(?!\/)\S*$/.test(v)) || `Use a page on this site such as ${f.example || "/join-party"}, or an https:// address.`,
   order: (v) => (/^\d{1,5}$/.test(v) && Number(v) <= 10000) || "Use a whole number from 0 to 10000.",
@@ -82,7 +84,7 @@ export const ISSUE_FIELDS = [
 const LEADER_FIELDS = [
   { key: "name", label: "Name", max: 150, required: true },
   { key: "position", label: "Position", max: 150, required: true },
-  { key: "bio", label: "Bio (optional)", max: 20000, kind: "area" },
+  { key: "bio", label: "Bio (optional)", kind: "rich", area: "leaders" },
   { key: "photo_url", label: "Photo (optional)", max: 500, kind: "image", area: "leaders" },
   ORDER,
 ];
@@ -101,7 +103,7 @@ export const POST_FIELDS = [
   { key: "author", label: "Author (optional)", max: 150, show: isNews, hint: "For a statement, who issued it, such as Grace Chebet, Secretary General." },
   { key: "author_photo_url", label: "Author photo (optional)", max: 500, kind: "image", area: "site", show: isNews },
   { key: "reference", label: "Reference (optional)", max: 40, show: isStatement },
-  { key: "pdf_url", label: "Signed PDF address (optional)", max: 500, kind: "https", show: isStatement },
+  { key: "pdf_url", label: "Signed PDF (optional)", kind: "pdf", area: "documents", show: isStatement, hint: "A PDF up to 10 MB, or an https:// address. Readers see it on the statement page." },
   { key: "body", label: "Text", kind: "rich", area: "site" },
   { key: "image_url", label: "Image (optional)", max: 500, kind: "image", area: "site" },
 ];
@@ -196,7 +198,8 @@ function CountySelect(props) {
 }
 
 /** An image address with a file picker that uploads the chosen image and fills the address in. */
-export function ImageField({ label, hint, value, onChange, invalid, upload: path, area }) {
+/** An uploaded file or an https:// address; `pdf` takes a PDF instead of an image. */
+export function ImageField({ label, hint, value, onChange, invalid, upload: path, area, pdf = false }) {
   const id = useId();
   const picker = useRef(null);
   const send = useUploadImage(path);
@@ -205,14 +208,14 @@ export function ImageField({ label, hint, value, onChange, invalid, upload: path
     e.target.value = "";
     if (file) send.mutate({ file, area }, { onSuccess: (stored) => onChange(stored.url) });
   };
-  const note = send.error?.message || hint || IMAGE_HINT;
+  const note = send.error?.message || hint || (pdf ? PDF_HINT : IMAGE_HINT);
   return (
     <div className="flex flex-col gap-1.5 text-small font-semibold">
       <label htmlFor={id}>{label}</label>
       <div className="flex flex-wrap items-center gap-2">
-        {value && imageOk(value) ? <img src={value} alt="" className="size-11 flex-none rounded-lg border border-line object-cover" /> : null}
+        {!pdf && value && imageOk(value) ? <img src={value} alt="" className="size-11 flex-none rounded-lg border border-line object-cover" /> : null}
         <Input id={id} className="min-w-0 flex-[1_1_200px]" value={value} maxLength={500} placeholder="https://" aria-invalid={invalid} onChange={(e) => onChange(e.target.value)} />
-        <input ref={picker} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label={`Choose a file for ${label}`} onChange={pick} />
+        <input ref={picker} type="file" accept={pdf ? "application/pdf" : "image/jpeg,image/png,image/webp"} className="sr-only" tabIndex={-1} aria-label={`Choose a file for ${label}`} onChange={pick} />
         <Button type="button" shape="rounded" variant="quiet" disabled={send.isPending || !path} onClick={() => picker.current?.click()}>
           <ImageUp size={18} aria-hidden />{send.isPending ? "Uploading…" : "Choose file"}
         </Button>
@@ -250,8 +253,8 @@ function ItemForm({ section, row, onDone }) {
           if (f.kind === "rich") {
             return <RichTextEditor key={f.key} label={f.label} hint={hint} value={form[f.key]} upload={section.upload} area={f.area} onChange={(v) => setForm((now) => ({ ...now, [f.key]: v }))} />;
           }
-          if (f.kind === "image") {
-            return <ImageField key={f.key} label={f.label} hint={hint} value={form[f.key]} invalid={common["aria-invalid"]} upload={section.upload} area={f.area} onChange={(v) => setForm((now) => ({ ...now, [f.key]: v }))} />;
+          if (f.kind === "image" || f.kind === "pdf") {
+            return <ImageField key={f.key} pdf={f.kind === "pdf"} label={f.label} hint={hint} value={form[f.key]} invalid={common["aria-invalid"]} upload={section.upload} area={f.area} onChange={(v) => setForm((now) => ({ ...now, [f.key]: v }))} />;
           }
           return (
             <Field key={f.key} label={f.label} hint={hint}>
@@ -401,7 +404,7 @@ export function ProfileForm({ title, profile: p, save, upload, extra = {}, onDon
             <Input value={form[key]} maxLength={max} onChange={set(key)} />
           </Field>
         ))}
-        <Field label="Biography (optional)"><Textarea rows={5} maxLength={2000} value={form.bio} onChange={set("bio")} /></Field>
+        <RichTextEditor label="Biography (optional)" value={form.bio} upload={upload} area="candidates" onChange={(v) => setForm((now) => ({ ...now, bio: v }))} />
         {form.priorities.map((x, n) => (
           <div key={n} className="grid gap-2 sm:grid-cols-[1fr_2fr]">
             <Field label={`Priority ${n + 1} (optional)`}><Input value={x.title} maxLength={80} onChange={setPriority(n, "title")} /></Field>

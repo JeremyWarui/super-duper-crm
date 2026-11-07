@@ -6,6 +6,17 @@ import { AppRoutes } from "../src/Gate";
 import { Carousel } from "../src/pages/public/Home";
 import { renderApp, stubApi } from "./helpers";
 
+const pdf = vi.hoisted(() => ({ load: null }));
+vi.mock("@/lib/pdf", () => ({ loadPdf: (url) => pdf.load(url) }));
+
+const fakePdf = () => ({
+  getPage: async () => ({
+    getViewport: ({ scale }) => ({ width: 600 * scale, height: 800 * scale }),
+    render: () => ({ promise: Promise.resolve() }),
+  }),
+  destroy: () => {},
+});
+
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
@@ -84,7 +95,12 @@ describe("the public site", () => {
     expect(headline()).toBe("Jobs for all");
   });
 
-  it("shows a statement's reference and signed PDF", async () => {
+  it("shows a statement's reference and draws its signed PDF", async () => {
+    const opened = [];
+    pdf.load = async (url) => {
+      opened.push(url);
+      return fakePdf();
+    };
     stubApi({
       ...ROUTES,
       "GET /party/posts/s1/": post("s1", "news", "Statement on prices", {
@@ -99,10 +115,22 @@ describe("the public site", () => {
 
     const record = within(await screen.findByRole("region", { name: "Official record" }));
     expect(record.getByText("PP/ST/014/2026")).toBeInTheDocument();
-    expect(record.getByRole("link", { name: "Download the signed statement (PDF)" })).toHaveAttribute(
-      "href",
-      "https://example.com/statement.pdf",
-    );
+    const viewer = within(screen.getByRole("region", { name: "The signed statement" }));
+    expect(viewer.getByRole("img", { name: "The signed statement" })).toBeInTheDocument();
+    expect(viewer.getByRole("link", { name: "Download the PDF" })).toHaveAttribute("href", "https://example.com/statement.pdf");
+    expect(opened).toEqual(["https://example.com/statement.pdf"]);
+  });
+
+  it("keeps the download link when the statement's PDF cannot be drawn", async () => {
+    pdf.load = async () => {
+      throw new Error("bad PDF");
+    };
+    stubApi({ ...ROUTES, "GET /party/posts/s1/": post("s1", "news", "Statement", { label: "statement", pdf_url: "https://example.com/s.pdf" }) });
+    renderApp(<AppRoutes />, { path: "/news/s1" });
+
+    const viewer = within(await screen.findByRole("region", { name: "The signed statement" }));
+    expect(await viewer.findByRole("alert")).toHaveTextContent("The PDF cannot be shown here.");
+    expect(viewer.getByRole("link", { name: "Download the PDF" })).toHaveAttribute("href", "https://example.com/s.pdf");
   });
 
   it("draws a post's formatted text and drops anything that could run", async () => {

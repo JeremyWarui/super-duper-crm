@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { usePublicDocuments, usePublicPosts, usePublicVideos, useSiteCandidate, useSiteVolunteer } from "@/api/hooks";
+import { paragraphs } from "@/components/RichText";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SectionHead } from "@/components/ui/typography";
@@ -52,7 +53,7 @@ function CandidateCard({ c }) {
 /** Where the party's homepage shows its leadership: the candidate. */
 function Candidate({ c }) {
   const first = firstName(c);
-  const lead = (c.bio || "").split(/\n+/).find(Boolean);
+  const [lead] = paragraphs(c.bio);
   return (
     <section id="about" className="bg-primary text-white">
       <div className="site-container flex flex-col gap-7 py-[72px]">

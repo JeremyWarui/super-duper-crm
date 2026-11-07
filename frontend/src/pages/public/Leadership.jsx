@@ -1,5 +1,6 @@
 // /leadership: the party leader first and large, then every other published leader, in the party's order.
 import { usePublicLeaders } from "@/api/hooks";
+import { RichText } from "@/components/RichText";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
 import { Photo } from "./story";
@@ -11,7 +12,7 @@ function Leader({ leader }) {
       <span className="flex flex-col gap-1.5 p-5">
         <strong className="text-[19px]">{leader.name}</strong>
         <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{leader.position}</span>
-        {leader.bio ? <span className="text-ui leading-[1.55] text-text-2">{leader.bio}</span> : null}
+        {leader.bio ? <RichText html={leader.bio} className="text-ui leading-[1.55] text-text-2" /> : null}
       </span>
     </Card>
   );
@@ -40,7 +41,7 @@ export default function Leadership() {
             <span className="flex min-w-0 flex-[2_1_360px] flex-col justify-center gap-3 p-8">
               <span className="text-meta font-extrabold uppercase tracking-[0.1em] text-primary">{head.position}</span>
               <strong className="font-display text-[clamp(30px,3.6vw,44px)] leading-[1.05] font-extrabold">{head.name}</strong>
-              {head.bio ? <span className="max-w-[60ch] text-[18px] leading-[1.65] text-text-2">{head.bio}</span> : null}
+              {head.bio ? <RichText html={head.bio} className="max-w-[60ch] text-[18px] leading-[1.65] text-text-2" /> : null}
             </span>
           </Card>
         ) : null}

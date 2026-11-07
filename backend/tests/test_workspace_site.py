@@ -205,3 +205,12 @@ async def test_an_uploaded_image_is_served_and_can_be_a_slides_photo(
     assert pdf.status_code == 400
     assert (slide.status_code, slide.json()["image_url"]) == (201, url)
     assert (served.status_code, served.headers["content-type"]) == (200, "image/png")
+
+
+async def test_a_pdf_uploads_only_as_a_document(client: httpx.AsyncClient, comms: dict) -> None:
+    pdf = {"file": ("statement.pdf", b"%PDF-1.7 %%EOF", "application/pdf")}
+    sent = await client.post(f"{URL}images/", headers=comms, files=pdf, data={"area": "documents"})
+    served = await client.get(sent.json()["url"])
+
+    assert sent.status_code == 201
+    assert (served.status_code, served.headers["content-type"]) == (200, "application/pdf")

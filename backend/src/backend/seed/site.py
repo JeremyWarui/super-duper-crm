@@ -356,7 +356,7 @@ async def seed_site(session: AsyncSession, today: date) -> bool:
             PartyLeader(
                 name=name,
                 position=position,
-                bio=bio,
+                bio=from_plain(bio),
                 photo_url=portrait(photo),
                 sort_order=order,
                 published=True,
@@ -553,7 +553,7 @@ async def _seed_candidates(session: AsyncSession, today: date) -> int:
                 aspirant_id=aspirant.id,
                 photo_url=portrait(photo),
                 slogan=slogan,
-                bio=f"{name} is a demo aspirant. " + BODY,
+                bio=from_plain(f"{name} is a demo aspirant.") + BODY,
                 priorities=[{"title": t, "text": ""} for t in priorities],
                 office_address=f"Campaign office, {area}",
                 office_phone=SETTINGS["contact_phone"],

@@ -30,6 +30,7 @@ const ROUTES = {
   "GET /site/": { name: "Umoja Party" },
   "GET /admin/party/posts/": [POST],
   "GET /admin/party/leaders/": [],
+  "POST /admin/party/leaders/": { status: 201, body: { id: "l1" } },
   "POST /admin/party/posts/": { ...POST, id: "p2" },
   "PATCH /admin/party/posts/p1/": { ...POST, published: true },
   "DELETE /admin/party/posts/p1/": { status: 204, body: null },
@@ -62,6 +63,36 @@ describe("the website editor", () => {
     await user.click(screen.getByRole("button", { name: "Add post" }));
 
     await waitFor(() => expect(sent(calls, "POST", "/admin/party/posts/")?.body.body).toBe("<p><strong>Come early</strong></p>"));
+  });
+
+  it("writes a leader's bio with the formatted text editor", async () => {
+    const user = userEvent.setup();
+    const calls = await openWebsite();
+
+    await user.click(screen.getByRole("button", { name: "Leaders" }));
+    await user.click(await screen.findByRole("button", { name: "New leader" }));
+    await user.type(screen.getByLabelText("Name"), "Grace Chebet");
+    await user.type(screen.getByLabelText("Position"), "Chair");
+    await user.click(screen.getByRole("button", { name: "Italic" }));
+    await user.type(screen.getByRole("textbox", { name: "Bio (optional)" }), "Teacher");
+    await user.click(screen.getByRole("button", { name: "Add leader" }));
+
+    await waitFor(() => expect(sent(calls, "POST", "/admin/party/leaders/")?.body.bio).toBe("<p><em>Teacher</em></p>"));
+  });
+
+  it("uploads a statement's signed PDF to the documents area", async () => {
+    const user = userEvent.setup();
+    const calls = await openWebsite();
+
+    await user.click(screen.getByRole("button", { name: "New post" }));
+    await user.selectOptions(screen.getByLabelText("Label"), "statement");
+    await user.type(screen.getByLabelText("Title"), "On prices");
+    await user.upload(screen.getByLabelText("Choose a file for Signed PDF (optional)"), new File(["%PDF-1.7"], "s.pdf", { type: "application/pdf" }));
+    await waitFor(() => expect(screen.getByLabelText("Signed PDF (optional)")).toHaveValue(UPLOADED));
+    await user.click(screen.getByRole("button", { name: "Add post" }));
+
+    expect(sent(calls, "POST", "/files/").body.get("area")).toBe("documents");
+    await waitFor(() => expect(sent(calls, "POST", "/admin/party/posts/")?.body.pdf_url).toBe(UPLOADED));
   });
 
   it("uploads a chosen image and saves its address on the post", async () => {

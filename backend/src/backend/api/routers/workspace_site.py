@@ -53,10 +53,11 @@ Editor = Annotated[User, Depends(require("site.write"))]
 async def upload_image(
     file: UploadFile, session: SessionDep, user: Editor, area: Annotated[FileArea, Form()]
 ) -> FileRead:
-    """Upload a public JPEG, PNG or WebP image (up to 5 MB) for the site."""
-    raw = await file.read(files.IMAGE_MAX + 1)
+    """Upload a public JPEG, PNG or WebP image (up to 5 MB) for the site, or a PDF (up to
+    10 MB) for the documents area."""
+    raw = await file.read(files.PDF_MAX + 1)
     try:
-        if raw.startswith(b"%PDF-"):
+        if raw.startswith(b"%PDF-") and area is not FileArea.DOCUMENTS:
             raise Refused("Choose a JPEG, PNG or WebP image.")
         stored = await files.store(
             session,

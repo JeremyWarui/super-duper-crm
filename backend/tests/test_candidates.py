@@ -156,6 +156,19 @@ async def test_the_profile_lists_only_published_upcoming_events_naming_the_aspir
 
 
 @pytest.mark.party_only
+async def test_the_bio_keeps_the_editors_html_without_scripts(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
+) -> None:
+    aspirant = await _aspirant(session, world)
+    bio = "<p>A <em>nurse</em></p><p>From Mwiki<img src=x onerror=alert(1)></p>"
+    await _publish(client, admin_headers, aspirant, bio=bio)
+
+    page = (await client.get(f"/api/candidates/{await _slug(client)}/")).json()
+    assert page["bio"].startswith("<p>A <em>nurse</em></p><p>From Mwiki")
+    assert "onerror" not in page["bio"]
+
+
+@pytest.mark.party_only
 async def test_a_page_waits_for_the_aspirants_workspace(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:

@@ -21,6 +21,14 @@ export function RichText({ html, className }) {
   return <div className={cn("rich-text", className)} dangerouslySetInnerHTML={{ __html: clean }} />;
 }
 
+/** The text of each paragraph, list item or heading in the HTML, in order. */
+export function paragraphs(html) {
+  const doc = new DOMParser().parseFromString(html || "", "text/html");
+  const blocks = [...doc.body.querySelectorAll("p, li, h2, h3, blockquote")].filter((el) => !el.querySelector("p, li"));
+  const texts = (blocks.length ? blocks : [doc.body]).map((el) => el.textContent.trim());
+  return texts.filter(Boolean);
+}
+
 const extensions = [
   StarterKit.configure({
     heading: { levels: [2, 3] },

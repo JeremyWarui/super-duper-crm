@@ -1,6 +1,7 @@
 // /news/:id: one published story or event in full; a statement carries its official record.
 import { Link } from "react-router-dom";
 import { usePublicPost, usePublicPosts } from "@/api/hooks";
+import { PdfViewer } from "@/components/PdfViewer";
 import { RichText } from "@/components/RichText";
 import { Card } from "@/components/ui/card";
 import { Crumbs, RailHead } from "@/components/ui/typography";
@@ -15,7 +16,6 @@ function Record({ post }) {
         {post.author ? <><dt className="text-muted-foreground">Issued by</dt><dd className="font-semibold">{post.author}</dd></> : null}
         <dt className="text-muted-foreground">Date issued</dt><dd className="font-semibold">{day(post.published_on)}</dd>
       </dl>
-      {post.pdf_url ? <a href={post.pdf_url} target="_blank" rel="noreferrer" className="text-ui font-bold">Download the signed statement (PDF)</a> : null}
     </section>
   );
 }
@@ -91,6 +91,7 @@ export default function Post({ id }) {
           {p.image_url ? <img src={p.image_url} alt="" className="aspect-video w-full rounded-photo object-cover" /> : null}
           {p.body ? <RichText html={p.body} className="text-[18px] leading-[1.75]" /> : null}
           {p.label === "statement" && !event ? <Record post={p} /> : null}
+          {p.label === "statement" && !event && p.pdf_url ? <PdfViewer url={p.pdf_url} title="The signed statement" /> : null}
         </article>
         <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-[18px]">
           <LatestStatements id={p.id} />

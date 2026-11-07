@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCandidateVolunteer, usePartyPlaces, usePublicCandidate } from "@/api/hooks";
+import { RichText } from "@/components/RichText";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
@@ -206,7 +207,7 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
           {tab === "About" ? (
             <>
               <h2 className="rule-top font-display text-[32px] font-extrabold">About {first}</h2>
-              {c.bio ? c.bio.split(/\n+/).filter(Boolean).map((p, n) => <p key={n} className="text-[18px] leading-[1.7] text-text-2">{p}</p>) : <p className="text-muted-foreground">The campaign has not sent a biography yet.</p>}
+              {c.bio ? <RichText html={c.bio} className="text-[18px] leading-[1.7] text-text-2" /> : <p className="text-muted-foreground">The campaign has not sent a biography yet.</p>}
             </>
           ) : null}
           {tab === "Priorities" ? (

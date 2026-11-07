@@ -25,6 +25,16 @@ def _image(value: str) -> str:
     return value
 
 
+def _pdf(value: str) -> str:
+    """An https:// address, or the address of a file uploaded here."""
+    value = plain_text(value).strip()
+    if UPLOADED.match(value):
+        return value
+    if value and (not value.startswith("https://") or any(c.isspace() for c in value)):
+        raise ValueError("Upload a PDF, or use an address starting with https://.")
+    return value
+
+
 def _https(value: str) -> str:
     value = plain_text(value).strip()
     if value and (not value.startswith("https://") or any(c.isspace() for c in value)):
@@ -46,11 +56,12 @@ def _text(value: str) -> str:
 Image = Annotated[str, Field(max_length=500), AfterValidator(_image)]
 Line = Annotated[str, Field(min_length=1, max_length=150), AfterValidator(_line)]
 Link = Annotated[str, Field(max_length=500), AfterValidator(_https)]
+Pdf = Annotated[str, Field(max_length=500), AfterValidator(_pdf)]
 Place = Annotated[str, Field(max_length=80), AfterValidator(lambda v: plain_text(v).strip())]
 Reference = Annotated[str, Field(max_length=40), AfterValidator(lambda v: plain_text(v).strip())]
 Venue = Annotated[str, Field(max_length=150), AfterValidator(lambda v: plain_text(v).strip())]
 Body = Annotated[str, Field(max_length=20_000), AfterValidator(_text)]
-# A post's text as the editor's HTML, cleaned to the tags `rich_text` keeps.
+# Text from the rich text editor as HTML, cleaned to the tags `rich_text` keeps.
 RichBody = Annotated[
     str, Field(max_length=50_000), AfterValidator(lambda v: rich_text.clean(_text(v)))
 ]
@@ -73,7 +84,7 @@ class LeaderAdminRead(LeaderRead):
 class LeaderCreate(WriteModel):
     name: Line
     position: Line
-    bio: Body = ""
+    bio: RichBody = ""
     photo_url: Image = ""
     sort_order: int = Field(default=0, ge=0, le=10_000)
     published: bool = False
@@ -84,7 +95,7 @@ class LeaderUpdate(WriteModel):
 
     name: Line | None = None
     position: Line | None = None
-    bio: Body | None = None
+    bio: RichBody | None = None
     photo_url: Image | None = None
     sort_order: int | None = Field(default=None, ge=0, le=10_000)
     published: bool | None = None
@@ -152,7 +163,7 @@ class PostCreate(WriteModel):
     author: Venue = ""
     author_photo_url: Image = ""
     reference: Reference = ""
-    pdf_url: Link = ""
+    pdf_url: Pdf = ""
     county_id: uuid.UUID | None = None
     published: bool = False
 
@@ -178,7 +189,7 @@ class PostUpdate(WriteModel):
     author: Venue | None = None
     author_photo_url: Image | None = None
     reference: Reference | None = None
-    pdf_url: Link | None = None
+    pdf_url: Pdf | None = None
     county_id: uuid.UUID | None = Field(default=None, description="Send null to clear it.")
     published: bool | None = None
 

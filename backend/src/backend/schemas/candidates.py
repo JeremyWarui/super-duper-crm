@@ -9,7 +9,7 @@ from pydantic import AfterValidator, BaseModel, Field, field_validator
 
 from backend.models import ContactMethod, Profession, Seat, VolunteerStatus
 from backend.schemas.common import Erasable, ORMModel, WriteModel, plain_text
-from backend.schemas.content import Image
+from backend.schemas.content import Image, RichBody
 from backend.schemas.party import MemberPlace, Name, VolunteerPart
 from backend.schemas.site import Email
 
@@ -28,9 +28,7 @@ class ProfileWrite(WriteModel):
 
     photo_url: Image = ""
     slogan: _line(120) = ""
-    bio: Annotated[
-        str, Field(max_length=2000), AfterValidator(lambda v: plain_text(v, lines=True))
-    ] = ""
+    bio: RichBody = ""
     priorities: Annotated[list[Priority], Field(max_length=3)] = []
     office_address: _line(300) = ""
     office_phone: _line(20) = ""

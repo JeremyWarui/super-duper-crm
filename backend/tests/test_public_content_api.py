@@ -152,3 +152,23 @@ async def test_only_the_superuser_edits_content(
     assert answers == {
         (method, url): leaders if url.startswith(LEADERS) else 403 for method, url in EDITING
     }
+
+
+async def test_a_leader_bio_keeps_the_editors_html_and_a_statement_takes_an_uploaded_pdf(
+    client: httpx.AsyncClient, admin_headers: dict, organisation_type: OrganisationType
+) -> None:
+    upload = f"/api/files/{uuid.uuid4()}/"
+    post = await client.post(
+        POSTS,
+        headers=admin_headers,
+        json={"kind": "news", "label": "statement", "title": "T", "pdf_url": upload},
+    )
+    assert post.status_code == 201, post.text
+    assert post.json()["pdf_url"] == upload
+
+    if organisation_type is OrganisationType.PARTY:
+        bio = "<p>Chair <strong>since 2020</strong><script>alert(1)</script></p>"
+        leader = await client.post(
+            LEADERS, headers=admin_headers, json={"name": "A", "position": "Chair", "bio": bio}
+        )
+        assert leader.json()["bio"] == "<p>Chair <strong>since 2020</strong></p>"
