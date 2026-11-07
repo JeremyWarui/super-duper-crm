@@ -9,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 import { PARTY_ROLES, PARTY_ROLE_LABEL } from "../pages/party/helpers";
 import {
   useAdminOverview,
+  rowsOf,
+  useAdminUserPages,
   useAdminUsers,
   useAddMember,
   useCreateLogin,
@@ -39,11 +41,13 @@ import { Card } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
+import { FilterPills } from "@/components/ui/tabs";
 import { PartyShell } from "../pages/party/Portal";
 import AuditTrail from "./console/AuditTrail";
 import ExportPanel from "./console/ExportPanel";
 import Health from "./console/Health";
 import ReferenceData from "./console/ReferenceData";
+import { LoadMore } from "@/components/ui/load-more";
 
 const Btn = ({ children, onClick, disabled, variant = "quiet" }) => (
   <Button shape="rounded" size="sm" variant={variant} onClick={onClick} disabled={disabled}>
@@ -132,7 +136,7 @@ function CampaignCard({ campaign, users }) {
 
   return (
     <Card variant="outline" className="min-w-0">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-col gap-2">
         <div className="flex min-w-0 flex-col gap-1">
           {renaming ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -710,7 +714,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
               <Button
                 variant="link"
                 size="sm"
-                className="h-auto min-h-11 px-1 text-small"
+                className="relative h-auto px-1 text-small font-semibold underline max-sm:h-auto after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2"
                 aria-label={`Change email for ${name}`}
                 onClick={() => {
                   setEmail.reset();
@@ -1052,7 +1056,9 @@ export default function Admin() {
   const copy = useCopy();
   const overview = useAdminOverview();
   const [roleFilter, setRoleFilter] = useState("");
-  const users = useAdminUsers(roleFilter);
+  // Every login, for the campaign pickers and the tab count; the Logins tab lists them a page at a time.
+  const users = useAdminUsers();
+  const loginPages = useAdminUserPages(roleFilter);
   const [tab, setTab] = useState("campaigns");
   const navigate = useNavigate();
   const [handouts, setHandouts] = useState([]);
@@ -1099,6 +1105,7 @@ export default function Admin() {
 
   const { totals, campaigns } = overview.data;
   const everyone = users.data || [];
+  const listed = rowsOf(loginPages.data);
   const unstaffed = campaigns.filter((c) => c.members.length === 0).length;
 
   return (
@@ -1183,7 +1190,7 @@ export default function Admin() {
 
         {tab === "users" && (
           <Card variant="outline" className="min-w-0">
-            <Choices
+            <FilterPills
               label="Show logins"
               value={roleFilter}
               onChange={(key) => {
@@ -1199,14 +1206,14 @@ export default function Admin() {
             />
             <NewLogin campaigns={campaigns} create={create} />
             <div className="flex flex-col">
-              {users.isPending ? (
+              {loginPages.isPending ? (
                 <LoadingText>Loading the logins…</LoadingText>
-              ) : everyone.length === 0 ? (
+              ) : listed.length === 0 ? (
                 <p className="text-ui text-muted-foreground">
                   Nobody matches that.
                 </p>
               ) : (
-                everyone.map((u) => (
+                listed.map((u) => (
                   <UserRow
                     key={u.id}
                     user={u}
@@ -1218,6 +1225,14 @@ export default function Admin() {
                 ))
               )}
             </div>
+            <LoadMore
+              shown={listed.length}
+              total={roleFilter ? undefined : everyone.length}
+              noun="logins"
+              hasMore={!!loginPages.hasNextPage}
+              loading={loginPages.isFetchingNextPage}
+              onMore={() => loginPages.fetchNextPage()}
+            />
           </Card>
         )}
       </div>

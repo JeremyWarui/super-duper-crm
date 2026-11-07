@@ -55,21 +55,34 @@ export function TabsContent({ className, ...props }: React.ComponentProps<typeof
   return <TabsPrimitive.Content data-slot="tabs-content" className={cn('outline-none', className)} {...props} />
 }
 
-/** Same segmented look for plain filter buttons that aren't tabs (aria-pressed toggles) */
-export function FilterPills<T extends string>({ options, value, onChange, label }: { options: readonly T[]; value: T; onChange: (v: T) => void; label: string }) {
+/**
+ * Same segmented look for plain filter buttons that aren't tabs (aria-pressed toggles).
+ * An option is its own label, or a [value, label] pair. With an array `value` several are pressed
+ * at once and `onChange` gets the value clicked.
+ */
+export function FilterPills<T extends string>({ options, value, onChange, label }: {
+  options: readonly (T | readonly [T, string])[]
+  value: T | readonly T[]
+  onChange: (v: T) => void
+  label: string
+}) {
   return (
     <div role="group" aria-label={label} className="inline-flex w-fit flex-wrap items-center rounded-full border border-line-control bg-white p-[3px]">
-      {options.map((o) => (
-        <button
-          key={o}
-          type="button"
-          aria-pressed={o === value}
-          onClick={() => onChange(o)}
-          className={cn('min-h-10 cursor-pointer rounded-full px-4 text-ui font-bold max-sm:min-h-11', o === value ? 'bg-primary text-primary-foreground' : 'text-ink')}
-        >
-          {o}
-        </button>
-      ))}
+      {options.map((option) => {
+        const [o, text] = typeof option === 'string' ? [option, option] : option
+        const on = typeof value === 'string' ? o === value : value.includes(o)
+        return (
+          <button
+            key={o || 'all'}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(o)}
+            className={cn('min-h-10 cursor-pointer rounded-full px-4 text-ui font-bold max-sm:min-h-11', on ? 'bg-primary text-primary-foreground' : 'text-ink')}
+          >
+            {text}
+          </button>
+        )
+      })}
     </div>
   )
 }

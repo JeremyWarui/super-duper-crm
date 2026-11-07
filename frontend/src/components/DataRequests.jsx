@@ -116,7 +116,7 @@ export default function DataRequests({ campaignId }) {
       </p>
       {adding ? <LogForm campaignId={campaignId} onDone={() => setAdding(false)} /> : null}
       {list.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
-      {list.error ? <p role="alert" className="text-destructive">{list.error.message}</p> : null}
+      <ErrorText error={list.error} />
       {list.data ? (
         rows.length ? <ul className="grid">{rows.map((r) => <Row key={r.id} campaignId={campaignId} request={r} />)}</ul>
           : <p className="text-muted-foreground">No requests yet.</p>

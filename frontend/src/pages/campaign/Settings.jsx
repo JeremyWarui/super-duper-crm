@@ -78,7 +78,7 @@ export default function Settings() {
         <p className="text-ui text-muted-foreground">The website's name, colours and contacts.</p>
       </div>
       {settings.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
-      {settings.error ? <p role="alert" className="text-destructive">{settings.error.message}</p> : null}
+      <ErrorText error={settings.error} />
       {settings.data ? <SettingsForm key={settings.data.updated_at} settings={settings.data} /> : null}
     </div>
   );

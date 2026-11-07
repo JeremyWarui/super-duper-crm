@@ -7,6 +7,7 @@ import {
   useWorkspaceCandidatePage,
 } from "@/api/hooks";
 import { FilterPills } from "@/components/ui/tabs";
+import { ErrorText } from "@/components/ui/error-text";
 import { formatDate } from "@/lib/format";
 import {
   DOCUMENT_FIELDS,
@@ -45,7 +46,7 @@ function CandidatePage({ campaign }) {
   const page = useWorkspaceCandidatePage();
   const save = useSaveWorkspaceCandidatePage();
   if (page.isLoading) return <p className="text-muted-foreground">Loading…</p>;
-  if (page.error) return <p role="alert" className="text-destructive">{page.error.message}</p>;
+  if (page.error) return <ErrorText error={page.error} />;
   return (
     <div className="flex max-w-[720px] flex-col gap-3">
       <ProfileForm key={page.dataUpdatedAt} title={`${campaign.candidate_name || campaign.title}: the homepage`} profile={page.data} save={save} upload="/workspace/site/images/" />

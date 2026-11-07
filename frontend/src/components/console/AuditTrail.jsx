@@ -1,23 +1,23 @@
 // The console's Audit tab: who did what and when, read-only.
 import { useState } from "react";
-import { useAuditTrail } from "@/api/hooks";
+import { rowsOf, useAuditPages } from "@/api/hooks";
 import { useInstall } from "@/app/site";
 import { Card } from "@/components/ui/card";
+import { LoadMore } from "@/components/ui/load-more";
 import { Field, Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
-import { plural } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 
 const BLANK = { action: "", actor: "", since: "", until: "" };
-const LIMIT = 200;
 const detail = (d) => Object.entries(d || {}).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(", ");
 
 export default function AuditTrail() {
   const { aspirant } = useInstall();
   const [filters, setFilters] = useState(BLANK);
   const set = (key) => (e) => setFilters((f) => ({ ...f, [key]: e.target.value }));
-  const { data = [], isFetching, error } = useAuditTrail(filters);
-  const count = `${plural(data.length, "event")}, newest first`;
+  const pages = useAuditPages(filters);
+  const { isFetching, isFetchingNextPage, error } = pages;
+  const data = rowsOf(pages.data);
   return (
     <div className="kit flex flex-col gap-4">
       <Card variant="outline" className="gap-3" role="search" aria-label="Filter the audit trail">
@@ -30,9 +30,7 @@ export default function AuditTrail() {
       </Card>
       <ErrorText error={error} />
       <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Audit trail">
-        <p className="text-ui text-muted-foreground">
-          {isFetching ? "Loading…" : data.length === LIMIT ? `${count}: the latest ${LIMIT}; narrow the filters to see older ones.` : `${count}.`}
-        </p>
+        <p className="text-ui text-muted-foreground">Newest first.</p>
         <Table stack minWidth={720}>
           <THead><TR><TH>When</TH><TH>Who</TH><TH>Action</TH><TH>Detail</TH></TR></THead>
           <TBody>
@@ -47,6 +45,8 @@ export default function AuditTrail() {
             {data.length === 0 && !isFetching && <TR><TD colSpan={4} className="text-muted-foreground">Nothing matches.</TD></TR>}
           </TBody>
         </Table>
+        {isFetching && !isFetchingNextPage ? <p className="text-ui text-muted-foreground">Loading…</p> : null}
+        <LoadMore shown={data.length} noun={data.length === 1 ? "event" : "events"} hasMore={!!pages.hasNextPage} loading={isFetchingNextPage} onMore={() => pages.fetchNextPage()} />
       </Card>
     </div>
   );

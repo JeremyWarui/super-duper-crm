@@ -168,14 +168,21 @@ async def users(
     role: UserRole | None = None,
     campaign_id: uuid.UUID | None = None,
     user_id: uuid.UUID | None = None,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[AdminUserRead]:
-    """Every login matching the filters, with the title of the campaign it is on."""
+    """Every login matching the filters by username, with the title of the campaign it is on.
+
+    A login is on one campaign at most, so `limit` and `offset` page over logins.
+    """
     statement = (
         select(User, Campaign.title)
         .outerjoin(CampaignMember, CampaignMember.user_id == User.id)
         .outerjoin(Campaign, Campaign.id == CampaignMember.campaign_id)
         .options(selectinload(User.party_roles), selectinload(User.party_member))
-        .order_by(User.username)
+        .order_by(User.username, User.id)
+        .offset(offset)
+        .limit(limit)
     )
     if role is not None:
         statement = statement.where(User.role == role)

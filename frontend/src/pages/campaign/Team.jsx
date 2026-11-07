@@ -90,7 +90,7 @@ export default function Team({ campaign, role, onModal }) {
                           )}
                         </span>
                       )}
-                      {confirming === p.id && remove.error && <p role="alert" className="mt-1 text-small text-destructive">{remove.error.message}</p>}
+                      {confirming === p.id && <ErrorText error={remove.error} className="mt-1 text-small" />}
                     </TD>
                   </TR>
                 ))}

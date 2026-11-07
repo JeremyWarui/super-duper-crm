@@ -309,7 +309,7 @@ export function SectionList({ section }) {
           <Button shape="rounded" disabled={full} onClick={() => setEditing({ row: null })}>New {section.noun}</Button>
         </div>
         {rows.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
-        {rows.error ? <p role="alert" className="text-destructive">{rows.error.message}</p> : null}
+        <ErrorText error={rows.error} />
         {rows.isSuccess && !list.length ? <p className="text-muted-foreground">Nothing here yet.</p> : null}
         <ul className="flex flex-col">
           {list.map((r) => (
@@ -439,7 +439,7 @@ function CandidatesEditor() {
           <p className="text-small text-muted-foreground">Every approved aspirant. Write the profile from what the candidate sends, then publish it.</p>
         </div>
         {list.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
-        {list.error ? <p role="alert" className="text-destructive">{list.error.message}</p> : null}
+        <ErrorText error={list.error} />
         {list.isSuccess && !rows.length ? <p className="text-muted-foreground">No approved aspirants yet.</p> : null}
         <ul className="flex flex-col">
           {rows.map((c) => (

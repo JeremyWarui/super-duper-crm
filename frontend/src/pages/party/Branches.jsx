@@ -5,14 +5,18 @@ import {
   useAppointOfficial, useBranchOfficials, useEndTerm, useOfficeBranches, usePartyMembers, useSaveBranch, useUploadMinutes,
 } from "@/api/hooks";
 import { useAuth } from "@/store/auth";
+import MemberSearch from "@/components/MemberSearch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, KpiValue } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatDate, nairobiDate } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
+import { useShowMore } from "@/lib/useShowMore";
+import { LoadMore } from "@/components/ui/load-more";
 
 const FIELDS = [
   ["office_address", "Office address"],
@@ -50,8 +54,8 @@ function BranchForm({ row, onDone }) {
     save.mutate({ county: row.county.id, ...form, next_meeting_on: form.next_meeting_on || null }, { onSuccess: onDone });
   };
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3.5">
-      <h2 className="text-card-title font-bold">Branch office</h2>
+    <form onSubmit={submit} className="flex flex-col gap-3.5 border-t border-line-soft pt-4" aria-label="Branch office">
+      <h3 className="text-card-title font-bold">Branch office</h3>
       {FIELDS.map(([key, label]) => (
         <Field key={key} label={label}>
           <Input value={form[key]} onChange={set(key)} maxLength={key === "office_address" ? 300 : key === "phone" ? 20 : key === "email" ? 254 : 150} type={key === "email" ? "email" : "text"} />
@@ -65,10 +69,7 @@ function BranchForm({ row, onDone }) {
         Show this branch on the website
       </label>
       <ErrorText error={save.error} className="text-small" />
-      <div className="flex flex-wrap gap-2.5">
-        <Button type="submit" shape="rounded" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save branch"}</Button>
-        <Button type="button" shape="rounded" variant="quiet" onClick={onDone}>Close</Button>
-      </div>
+      <Button type="submit" shape="rounded" className="self-start" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save branch"}</Button>
     </form>
   );
 }
@@ -120,7 +121,7 @@ function Appoint({ county }) {
   const [form, setForm] = useState(blank);
   const [q, setQ] = useState("");
   const found = usePartyMembers({ q, status: "approved", county: county.id });
-  const people = q.trim().length >= 2 ? found.data?.items || [] : [];
+  const searching = q.trim().length >= 2;
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const pickFile = (e) => {
     const file = e.target.files?.[0];
@@ -154,22 +155,18 @@ function Appoint({ county }) {
         </Field>
         <Field label="Effective from"><Input type="date" value={form.term_start} onChange={(e) => set({ term_start: e.target.value })} /></Field>
       </div>
-      <Field label="Member" hint={`Approved members in ${county.name}; type two or more letters of a name or phone.`}>
-        <Input value={form.member ? form.member.full_name : q} onChange={(e) => { set({ member: null }); setQ(e.target.value); }} />
-      </Field>
-      {!form.member && people.length > 0 && (
-        <ul className="flex flex-col rounded-lg border border-line-soft" aria-label="Matching members">
-          {people.slice(0, 8).map((m) => (
-            <li key={m.id}>
-              <button type="button" className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 px-3 text-left hover:bg-stone" onClick={() => set({ member: m })}>
-                <span className="font-semibold">{m.full_name}</span>
-                <span className="text-small text-muted-foreground">{m.ward?.name || m.phone}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {!form.member && q.trim().length >= 2 && !found.isFetching && people.length === 0 && <p className="text-small text-muted-foreground">No approved member in {county.name} matches.</p>}
+      <MemberSearch
+        label="Member"
+        hint={`Approved members in ${county.name}; type two or more letters of a name or phone.`}
+        query={q}
+        onQuery={setQ}
+        results={searching ? found.data?.items || [] : undefined}
+        loading={found.isFetching}
+        error={searching && found.error}
+        empty={`No approved member in ${county.name} matches.`}
+        picked={form.member}
+        onPick={(m) => set({ member: m })}
+      />
       <label className="flex flex-col gap-1.5 text-small font-semibold">
         Signed minutes of the meeting
         <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={pickFile} className="min-h-11 text-ui font-normal" />
@@ -189,16 +186,14 @@ function Appoint({ county }) {
 function Officials({ county }) {
   const { data, isLoading, error } = useBranchOfficials(county.id);
   const [ending, setEnding] = useState(null);
+  const past = useShowMore(data?.history);
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
   if (error) return <ErrorText error={error} />;
   const others = data.current.filter((t) => t.office === "other");
   const onEnd = (term, open) => (open ? setEnding(term.id) : <EndTerm term={term} onDone={() => setEnding(null)} />);
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-0.5">
-        <h2 className="text-card-title font-bold">Officials · {county.name} County</h2>
-        <span className="text-small text-muted-foreground">Only approved members hold an office; each has one holder at a time.</span>
-      </div>
+    <section className="flex flex-col gap-4" aria-label="Officials">
+      <h3 className="text-card-title font-bold">Officials</h3>
       <div className="grid gap-3 sm:grid-cols-2">
         {OFFICES.filter(([o]) => o !== "other").map(([office, label]) => (
           <OfficeBox key={office} label={label}
@@ -213,16 +208,17 @@ function Officials({ county }) {
         <details className="border-t border-line-soft pt-3">
           <summary className="min-h-11 cursor-pointer content-center font-bold">Past officials ({data.history.length})</summary>
           <ul className="mt-2 flex flex-col">
-            {data.history.map((t) => (
+            {past.visible.map((t) => (
               <li key={t.id} className="flex flex-wrap justify-between gap-2 border-t border-line-soft py-2 text-ui">
                 <span><strong>{t.holder_name}</strong>, {t.label}</span>
                 <span className="text-muted-foreground">{formatDate(t.term_start)} to {formatDate(t.term_end)} · {END_LABEL[t.end_reason] || "Ended"}</span>
               </li>
             ))}
           </ul>
+          <LoadMore shown={past.shown} total={past.total} noun="past officials" hasMore={past.hasMore} onMore={past.more} />
         </details>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -230,6 +226,7 @@ export default function Branches() {
   const rows = useOfficeBranches();
   const superuser = useAuth((s) => s.user?.is_superuser);
   const [open, setOpen] = useState(null);
+  const counties = useShowMore(rows.data);
   if (rows.isLoading) return <p className="text-muted-foreground">Loading…</p>;
   if (rows.error) return <p role="alert">{rows.error.message}</p>;
   const list = rows.data;
@@ -245,45 +242,44 @@ export default function Branches() {
         <Card variant="tile"><span className="text-ui font-semibold text-muted-foreground">On the website</span><KpiValue>{published}</KpiValue><span className="text-small text-muted-foreground">published</span></Card>
         <Card variant="tile"><span className="text-ui font-semibold text-muted-foreground">Chairpersons</span><KpiValue>{chaired}</KpiValue><span className="text-small text-muted-foreground">in office</span></Card>
       </section>
-      <div className="flex flex-wrap items-start gap-6">
-        <Card variant="outline" className="min-w-0 flex-[3_1_520px] gap-3.5">
-          <h2 className="text-card-title font-bold">County branches</h2>
-          <Table stack minWidth={640}>
-            <THead>
-              <TR><TH>County</TH><TH>Chairperson</TH><TH>Secretary</TH><TH>Next meeting</TH><TH>Status</TH></TR>
-            </THead>
-            <TBody>
-              {list.map((r) => (
-                <TR key={r.county.id} selected={r.county.id === open}>
-                  <TD><RowButton onClick={() => setOpen(r.county.id)}>{r.county.name}</RowButton></TD>
-                  <TD>{holderOf(r.branch, "chair") || "Vacant"}</TD>
-                  <TD>{holderOf(r.branch, "secretary") || "Vacant"}</TD>
-                  <TD>{r.branch?.next_meeting_on || "None set"}</TD>
-                  <TD>
-                    {r.branch ? (
-                      <Badge tone={r.branch.published ? "ok" : "warn"}>{r.branch.published ? "Published" : "Draft"}</Badge>
-                    ) : (
-                      <Badge tone="stone">Not set up</Badge>
-                    )}
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Card>
-        {current ? (
-          <div className="flex min-w-0 flex-[2_1_380px] flex-col gap-4">
-            <Card variant="outline" role="region" aria-label="Officials">
-              <Officials key={current.county.id} county={current.county} />
-            </Card>
-            {superuser && (
-              <Card variant="outline">
-                <BranchForm key={current.county.id} row={current} onDone={() => setOpen(null)} />
-              </Card>
-            )}
-          </div>
-        ) : null}
-      </div>
+      <Card variant="outline" className="min-w-0 gap-3.5">
+        <h2 className="text-card-title font-bold">County branches</h2>
+        <Table stack minWidth={640}>
+          <THead>
+            <TR><TH>County</TH><TH>Chairperson</TH><TH>Secretary</TH><TH>Next meeting</TH><TH>Status</TH></TR>
+          </THead>
+          <TBody>
+            {counties.visible.map((r) => (
+              <TR key={r.county.id}>
+                <TD><RowButton onClick={() => setOpen(r.county.id)}>{r.county.name}</RowButton></TD>
+                <TD>{holderOf(r.branch, "chair") || "Vacant"}</TD>
+                <TD>{holderOf(r.branch, "secretary") || "Vacant"}</TD>
+                <TD>{r.branch?.next_meeting_on || "None set"}</TD>
+                <TD>
+                  {r.branch ? (
+                    <Badge tone={r.branch.published ? "ok" : "warn"}>{r.branch.published ? "Published" : "Draft"}</Badge>
+                  ) : (
+                    <Badge tone="stone">Not set up</Badge>
+                  )}
+                </TD>
+              </TR>
+            ))}
+          </TBody>
+        </Table>
+        <LoadMore shown={counties.shown} total={counties.total} noun="counties" hasMore={counties.hasMore} onMore={counties.more} />
+      </Card>
+      {current ? (
+        <Dialog
+          key={current.county.id}
+          title={`${current.county.name} County`}
+          description="Only approved members hold an office; each has one holder at a time."
+          onClose={() => setOpen(null)}
+          className="w-[min(760px,calc(100vw-32px))]"
+        >
+          <Officials county={current.county} />
+          {superuser && <BranchForm row={current} onDone={() => setOpen(null)} />}
+        </Dialog>
+      ) : null}
     </>
   );
 }

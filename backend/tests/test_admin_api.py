@@ -204,3 +204,18 @@ async def test_the_console_changes_a_login_s_email_and_the_login_signs_in_with_i
     assert changed.status_code == 200, changed.text
     assert changed.json()["email"] == "juma@example.test"
     assert await sign_in(client, "juma@example.test")
+
+
+async def test_the_console_pages_logins_by_username_and_lists_all_without_a_limit(
+    client: httpx.AsyncClient, world: World, admin_headers: dict[str, str]
+) -> None:
+    every = (await client.get("/api/admin/users/", headers=admin_headers)).json()
+    pages = [
+        (await client.get(f"/api/admin/users/?limit=2&offset={offset}", headers=admin_headers))
+        for offset in (0, 2, len(every))
+    ]
+
+    names = [u["username"] for u in every]
+    assert names == sorted(names) and {"jane", "juma", "root"} <= set(names)
+    assert world.campaign.title in {u["campaign"] for u in every}
+    assert [p.json() for p in pages] == [every[:2], every[2:4], []]

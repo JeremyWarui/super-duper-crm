@@ -382,6 +382,6 @@ describe("the console's health and audit", () => {
 
     expect(await screen.findByText("import.boundaries")).toBeInTheDocument();
     const lastAudit = () => calls.filter((c) => c.path.startsWith("/admin/audit/")).at(-1).path;
-    await vi.waitFor(() => expect(lastAudit()).toBe("/admin/audit/?action=import&actor=root&since=&until=&limit=200"), { timeout: 5000 });
+    await vi.waitFor(() => expect(lastAudit()).toBe("/admin/audit/?action=import&actor=root&limit=50&offset=0"), { timeout: 5000 });
   });
 });

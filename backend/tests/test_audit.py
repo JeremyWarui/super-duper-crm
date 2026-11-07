@@ -97,3 +97,20 @@ async def test_each_console_and_team_action_writes_its_event(
     assert response.status_code < 300, response.text
     written = list(await session.scalars(select(AuditEvent).where(AuditEvent.action == action)))
     assert [(e.subject_type, e.actor_name) for e in written] == [(subject_type, actor)]
+
+
+async def test_the_audit_trail_pages_newest_first_with_limit_and_offset(
+    client: httpx.AsyncClient, session: AsyncSession, admin_headers: dict[str, str]
+) -> None:
+    for n in range(5):
+        record(session, actor=None, action=f"campaign.step{n}", subject_type="campaign")
+    await session.commit()
+
+    every = (await client.get("/api/admin/audit/", headers=admin_headers)).json()
+    pages = [
+        (await client.get(f"/api/admin/audit/?limit=2&offset={offset}", headers=admin_headers))
+        for offset in (0, 2, 5)
+    ]
+
+    assert len(every) == 5
+    assert [p.json() for p in pages] == [every[:2], every[2:4], []]

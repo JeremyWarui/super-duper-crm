@@ -28,7 +28,7 @@ export default function Recruitment() {
         <p className="text-ui text-muted-foreground">Share your link: everyone who applies through it is counted to you. Membership officers still decide each application.</p>
       </div>
       {recruitment.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
-      {recruitment.error ? <p role="alert" className="text-destructive">{recruitment.error.message}</p> : null}
+      <ErrorText error={recruitment.error} />
       {data ? (
         <div className="flex flex-wrap items-start gap-6">
           <Card variant="outline" className="min-w-0 flex-[1_1_360px] gap-4">

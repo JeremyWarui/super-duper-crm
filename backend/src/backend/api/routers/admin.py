@@ -226,8 +226,10 @@ async def list_users(
     _: AdminUser,
     role: UserRole | None = None,
     campaign: uuid.UUID | None = None,
+    limit: Annotated[int | None, Query(ge=1, le=200)] = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[AdminUserRead]:
-    return await service.users(session, role=role, campaign_id=campaign)
+    return await service.users(session, role=role, campaign_id=campaign, limit=limit, offset=offset)
 
 
 @router.post("/users/", response_model=AdminUserCreated, status_code=status.HTTP_201_CREATED)
@@ -322,6 +324,7 @@ async def audit_events(
     since: date | Literal[""] = "",
     until: date | Literal[""] = "",
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[AuditEventRead]:
     """The audit trail, newest first, filtered by action, who did it and when."""
     return await audit.events(
@@ -333,6 +336,7 @@ async def audit_events(
         since=since or None,
         until=until or None,
         limit=limit,
+        offset=offset,
     )
 
 

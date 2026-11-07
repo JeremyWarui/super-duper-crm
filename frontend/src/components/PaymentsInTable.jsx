@@ -32,7 +32,7 @@ export default function PaymentsInTable({ campaignId }) {
         <FilterPills label="Show" options={Object.keys(FILTERS)} value={view} onChange={setView} />
         {view !== "To confirm" && rows.length ? <span className="text-ui text-muted-foreground">Paid in this list: {formatKES(total)}</span> : null}
       </div>
-      {list.error ? <p role="alert" className="text-destructive">{list.error.message}</p> : null}
+      <ErrorText error={list.error} />
       <ErrorText error={decide.error} />
       <Table stack minWidth={720}>
         <THead><TR><TH>Date</TH><TH>Payer</TH><TH>For</TH><TH align="right">Amount</TH><TH>M-Pesa code</TH><TH>Status</TH><TH><span className="sr-only">Actions</span></TH></TR></THead>

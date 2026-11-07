@@ -25,7 +25,7 @@ function WithdrawalLink({ campaign, supporter, onClose }) {
     <div role="region" aria-label={`Withdrawal link for ${supporter.full_name}`} className="grid gap-2 rounded-lg border border-line bg-muted p-3">
       <p className="text-ui font-semibold">Withdrawal link for {supporter.full_name}</p>
       <p className="text-small text-muted-foreground">Opening it removes their details from the register for good.</p>
-      {link.error ? <p role="alert" className="text-destructive">{link.error.message}</p> : null}
+      <ErrorText error={link.error} />
       {link.data ? <Input readOnly aria-label="Withdrawal link" value={link.data.url} onFocus={(e) => e.target.select()} /> : null}
       <div className="flex flex-wrap items-center gap-2">
         {link.data?.can_text && !campaign.closed_at ? (
@@ -35,7 +35,7 @@ function WithdrawalLink({ campaign, supporter, onClose }) {
         ) : null}
         <Button size="sm" shape="rounded" variant="ghost" onClick={onClose}>Close</Button>
       </div>
-      {text.error ? <p role="alert" className="text-destructive">{text.error.message}</p> : null}
+      <ErrorText error={text.error} />
     </div>
   );
 }

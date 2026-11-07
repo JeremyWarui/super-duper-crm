@@ -8,6 +8,7 @@ import { Bold, Heading2, Heading3, ImageUp, Italic, Link2, List, ListOrdered, Qu
 import { useUploadImage } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ErrorText } from "@/components/ui/error-text";
 import { useCopy } from "@/copy";
 import { cn } from "@/lib/utils";
 
@@ -137,7 +138,7 @@ export function RichTextEditor({ label, hint, value, onChange, upload, area }) {
         ) : null}
         <EditorContent editor={editor} />
       </div>
-      {send.error ? <span role="alert" className="font-semibold text-destructive">{send.error.message}</span>
+      {send.error ? <ErrorText error={send.error} />
         : hint ? <span className="font-normal text-muted-foreground">{hint}</span> : null}
     </div>
   );

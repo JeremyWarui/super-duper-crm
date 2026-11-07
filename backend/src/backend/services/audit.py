@@ -76,10 +76,12 @@ async def events(
     since: date | None = None,
     until: date | None = None,
     limit: int = 100,
+    offset: int = 0,
 ) -> list[AuditEvent]:
     """The newest events first, optionally for one subject; `action` matches its start (so
     "import" finds every import), `actor` part of the name, and the dates are inclusive."""
-    query = select(AuditEvent).order_by(AuditEvent.created_at.desc(), AuditEvent.id).limit(limit)
+    query = select(AuditEvent).order_by(AuditEvent.created_at.desc(), AuditEvent.id)
+    query = query.offset(offset).limit(limit)
     if action:
         query = query.where(AuditEvent.action.startswith(action, autoescape=True))
     if actor:

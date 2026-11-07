@@ -15,6 +15,7 @@ import {
   usePublishNominationWindow,
   useReviseNominationWindow,
 } from "@/api/hooks";
+import MemberSearch from "@/components/MemberSearch";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -86,34 +87,18 @@ function Nominate({ onClose }) {
 
   return (
     <Dialog title="Nominate a member" description="Only approved members without a live nomination are offered." onClose={onClose}>
-      {member ? (
-        <Card variant="tinted" className="items-start gap-2">
-          <span className="font-semibold">{member.full_name}</span>
-          <span className="text-ui text-muted-foreground">{member.ward.name}</span>
-          <Button shape="rounded" variant="quiet" size="sm" onClick={() => { setMember(null); nominate.reset(); }}>Choose someone else</Button>
-        </Card>
-      ) : (
-        <>
-          <Input
-            aria-label="Find a member"
-            placeholder="Name, or their whole phone number"
-            maxLength={100}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <ErrorText error={candidates.error} />
-          {candidates.data && <div className="flex flex-col items-start">
-            {candidates.data.map((c) => (
-              <Button key={c.id} shape="rounded" variant="link" className="min-h-11" onClick={() => { setMember(c); nominate.reset(); }}>
-                {c.full_name} · {c.ward.name}
-              </Button>
-            ))}
-            {candidates.isSuccess && candidates.data.length === 0 && (
-              <p className="text-ui text-muted-foreground">No approved member matches.</p>
-            )}
-          </div>}
-        </>
-      )}
+      <MemberSearch
+        label="Find a member"
+        placeholder="Name, or their whole phone number"
+        query={q}
+        onQuery={setQ}
+        results={candidates.data}
+        loading={candidates.isFetching}
+        error={candidates.error}
+        empty="No approved member matches."
+        picked={member}
+        onPick={(m) => { setMember(m); nominate.reset(); }}
+      />
       <NativeSelect
         aria-label="Seat"
         value={seat}

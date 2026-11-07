@@ -30,7 +30,8 @@ describe("county branches", () => {
     renderApp(<Root />, { path: "/party/branches" });
 
     await user.click(await screen.findByRole("button", { name: "Nakuru" }));
-    await user.type(screen.getByRole("textbox", { name: "Office address" }), "Kenyatta Avenue");
+    const county = await screen.findByRole("dialog", { name: "Nakuru County" });
+    await user.type(within(county).getByRole("textbox", { name: "Office address" }), "Kenyatta Avenue");
     await user.click(screen.getByRole("checkbox", { name: "Show this branch on the website" }));
     await user.click(screen.getByRole("button", { name: "Save branch" }));
 

@@ -6,6 +6,7 @@
 import { useEffect } from "react";
 import {
   keepPreviousData,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -66,73 +67,65 @@ function useInvalidator() {
     keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
 }
 
-export function useSetTarget() {
+// A mutation that refreshes the caches named by `keys` once it succeeds.
+function useWrite(mutationFn, ...keys) {
   const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (payload) =>
-      api("/targets/", { method: "POST", body: payload }),
-    onSuccess: () => invalidate("targets", "strategy"),
-  });
+  return useMutation({ mutationFn, onSuccess: () => invalidate(...keys) });
 }
 
-export function useAddMobilizer() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (payload) =>
+export const useSetTarget = () =>
+  useWrite(
+    (payload) =>
+      api("/targets/", { method: "POST", body: payload }),
+    "targets", "strategy",
+  );
+
+export const useAddMobilizer = () =>
+  useWrite(
+    (payload) =>
       api("/mobilizers/", { method: "POST", body: payload }),
-    onSuccess: () => invalidate("mobilizers", "strategy"),
-  });
-}
+    "mobilizers", "strategy",
+  );
 
 // Rename a mobilizer, or move them to a unit or to none; the server frees the unit's last holder.
-export function useUpdateMobilizer() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, ...body }) =>
+export const useUpdateMobilizer = () =>
+  useWrite(
+    ({ id, ...body }) =>
       api(`/mobilizers/${id}/`, { method: "PATCH", body }),
-    onSuccess: () => invalidate("mobilizers", "strategy"),
-  });
-}
+    "mobilizers", "strategy",
+  );
 
-export function useScheduleEvent() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (payload) => api("/events/", { method: "POST", body: payload }),
-    onSuccess: () => invalidate("events", "strategy"),
-  });
-}
+export const useScheduleEvent = () =>
+  useWrite(
+    (payload) => api("/events/", { method: "POST", body: payload }),
+    "events", "strategy",
+  );
 
-export function useRecordEvent() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, number_reached, number_attended }) =>
+export const useRecordEvent = () =>
+  useWrite(
+    ({ id, number_reached, number_attended }) =>
       api(`/events/${id}/record/`, {
         method: "POST",
         body: { number_reached, number_attended },
       }),
-    onSuccess: () => invalidate("events", "strategy"),
-  });
-}
+    "events", "strategy",
+  );
 
 // A supporter the team registers by hand; progress counts them at once.
-export function useRegisterSupporter() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (payload) =>
+export const useRegisterSupporter = () =>
+  useWrite(
+    (payload) =>
       api("/supporters/", { method: "POST", body: payload }),
-    onSuccess: () => invalidate("supporters", "strategy"),
-  });
-}
+    "supporters", "strategy",
+  );
 
 // Put a supporter at a centre with a target, so they count toward it.
-export function usePlaceSupporter() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, registration_centre }) =>
+export const usePlaceSupporter = () =>
+  useWrite(
+    ({ id, registration_centre }) =>
       api(`/supporters/${id}/`, { method: "PATCH", body: { registration_centre } }),
-    onSuccess: () => invalidate("supporters", "strategy"),
-  });
-}
+    "supporters", "strategy",
+  );
 
 // ---- Supporter sign-up behind an event's QR code -----------------------------
 export const useJoinPage = (code) =>
@@ -165,23 +158,19 @@ export const useCampaignSignups = (campaignId) =>
     enabled: !!campaignId,
   });
 
-export function useSetCampaignSignups() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ campaign, open }) =>
+export const useSetCampaignSignups = () =>
+  useWrite(
+    ({ campaign, open }) =>
       api(`/campaigns/${campaign}/signups/`, { method: "POST", body: { open } }),
-    onSuccess: () => invalidate("campaignSignups"),
-  });
-}
+    "campaignSignups",
+  );
 
-export function useSetSignups() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, open }) =>
+export const useSetSignups = () =>
+  useWrite(
+    ({ id, open }) =>
       api(`/events/${id}/signups/`, { method: "POST", body: { open } }),
-    onSuccess: () => invalidate("events"),
-  });
-}
+    "events",
+  );
 
 // ---- Payments to mobilizers ----------------------------------------------
 export const usePayments = (campaignId) =>
@@ -234,13 +223,11 @@ export function useMarkNotSent() {
   });
 }
 
-export function useSchedulePayment() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (payload) => api("/payments/", { method: "POST", body: payload }),
-    onSuccess: () => invalidate("payments"),
-  });
-}
+export const useSchedulePayment = () =>
+  useWrite(
+    (payload) => api("/payments/", { method: "POST", body: payload }),
+    "payments",
+  );
 
 export function useMarkPaid() {
   const invalidate = useInvalidator();
@@ -268,13 +255,11 @@ export const useAssignments = (campaignId, status) =>
     enabled: !!campaignId,
   });
 
-export function useCreateAssignment() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (body) => api("/assignments/", { method: "POST", body }),
-    onSuccess: () => invalidate("assignments"),
-  });
-}
+export const useCreateAssignment = () =>
+  useWrite(
+    (body) => api("/assignments/", { method: "POST", body }),
+    "assignments",
+  );
 
 // Texts to supporters: drafts, approval and the delivery log.
 export const useMessages = (campaignId) =>
@@ -293,37 +278,29 @@ export const useMessageReach = (campaignId, wards) =>
     placeholderData: (previous) => previous,
   });
 
-export function useDraftMessage() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (body) => api("/messages/", { method: "POST", body }),
-    onSuccess: () => invalidate("messages"),
-  });
-}
+export const useDraftMessage = () =>
+  useWrite(
+    (body) => api("/messages/", { method: "POST", body }),
+    "messages",
+  );
 
-export function useSendMessage() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (id) => api(`/messages/${id}/send/`, { method: "POST" }),
-    onSuccess: () => invalidate("messages"),
-  });
-}
+export const useSendMessage = () =>
+  useWrite(
+    (id) => api(`/messages/${id}/send/`, { method: "POST" }),
+    "messages",
+  );
 
-export function useDeclineMessage() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, note }) => api(`/messages/${id}/decline/`, { method: "POST", body: { note } }),
-    onSuccess: () => invalidate("messages"),
-  });
-}
+export const useDeclineMessage = () =>
+  useWrite(
+    ({ id, note }) => api(`/messages/${id}/decline/`, { method: "POST", body: { note } }),
+    "messages",
+  );
 
-export function useDeleteMessage() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (id) => api(`/messages/${id}/`, { method: "DELETE" }),
-    onSuccess: () => invalidate("messages"),
-  });
-}
+export const useDeleteMessage = () =>
+  useWrite(
+    (id) => api(`/messages/${id}/`, { method: "DELETE" }),
+    "messages",
+  );
 
 export const useMessageLog = (id) =>
   useQuery({
@@ -435,13 +412,11 @@ export function useInviteToEvent() {
 }
 
 // Creates a login. The password comes back once and is never fetchable again.
-export function useCreateUser() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (payload) => api("/users/", { method: "POST", body: payload }),
-    onSuccess: () => invalidate("team", "mobilizers", "strategy"),
-  });
-}
+export const useCreateUser = () =>
+  useWrite(
+    (payload) => api("/users/", { method: "POST", body: payload }),
+    "team", "mobilizers", "strategy",
+  );
 
 // ---- the campaign's own team ----------------------------------------------
 export const useTeam = (campaignId) =>
@@ -452,34 +427,28 @@ export const useTeam = (campaignId) =>
   });
 
 // The aspirant adds the manager, or replaces the one there with `replace: true`.
-export function useSetManager() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ campaign, ...body }) =>
+export const useSetManager = () =>
+  useWrite(
+    ({ campaign, ...body }) =>
       api(`/campaigns/${campaign}/team/manager/`, { method: "POST", body }),
-    onSuccess: () => invalidate("team"),
-  });
-}
+    "team",
+  );
 
 // Adds a coordinator or comms officer; the password comes back once.
-export function useAddStaff() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ campaign, ...body }) =>
+export const useAddStaff = () =>
+  useWrite(
+    ({ campaign, ...body }) =>
       api(`/campaigns/${campaign}/team/`, { method: "POST", body }),
-    onSuccess: () => invalidate("team"),
-  });
-}
+    "team",
+  );
 
 // Takes a coordinator or comms officer off the campaign; their login is turned off.
-export function useRemoveStaff() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ campaign, user }) =>
+export const useRemoveStaff = () =>
+  useWrite(
+    ({ campaign, user }) =>
       api(`/campaigns/${campaign}/team/${user}/`, { method: "DELETE" }),
-    onSuccess: () => invalidate("team"),
-  });
-}
+    "team",
+  );
 
 // A coordinator's area: the wards and registration centres they cover.
 export const useArea = (campaignId, userId) =>
@@ -489,14 +458,12 @@ export const useArea = (campaignId, userId) =>
     enabled: !!campaignId && !!userId,
   });
 
-export function useSetArea() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ campaign, user, ...body }) =>
+export const useSetArea = () =>
+  useWrite(
+    ({ campaign, user, ...body }) =>
       api(`/campaigns/${campaign}/team/${user}/area/`, { method: "PUT", body }),
-    onSuccess: () => invalidate("area"),
-  });
-}
+    "area",
+  );
 
 // ---- sign-in links ---------------------------------------------------------
 // The same answer whether or not the address has a login.
@@ -1029,37 +996,26 @@ export const usePartyMember = (id) =>
     enabled: !!id,
   });
 
-export function useMoveMember() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, status, reason }) =>
+export const useMoveMember = () =>
+  useWrite(
+    ({ id, status, reason }) =>
       api(`/party/members/${id}/status/`, {
         method: "POST",
         body: reason ? { status, reason } : { status },
       }),
-    onSuccess: () => invalidate("party-members", "party-member"),
-  });
-}
+    "party-members", "party-member",
+  );
 
 export const exportPartyMembers = (filters) =>
   download(`/party/members/export.csv?${memberQuery(filters)}`, "party-members.csv");
 
 // ---- party volunteer register ---------------------------------------------
-export const usePartyVolunteers = (filters) =>
-  useQuery({
-    queryKey: ["party-volunteers", filters],
-    queryFn: () => api(`/party/volunteers/?${memberQuery(filters)}`),
-    placeholderData: keepPreviousData,
-  });
-
-export function useUpdateVolunteer() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, ...body }) =>
+export const useUpdateVolunteer = () =>
+  useWrite(
+    ({ id, ...body }) =>
       api(`/party/volunteers/${id}/`, { method: "PATCH", body }),
-    onSuccess: () => invalidate("party-volunteers"),
-  });
-}
+    "party-volunteers",
+  );
 
 export const exportPartyVolunteers = (filters) =>
   download(`/party/volunteers/export.csv?${memberQuery(filters)}`, "party-volunteers.csv");
@@ -1071,6 +1027,41 @@ export const useAspirants = (filters) =>
     queryFn: () => api(`/party/aspirants/?${memberQuery(filters)}`),
     placeholderData: keepPreviousData,
   });
+
+export const usePartyVolunteers = (filters) =>
+  useQuery({
+    queryKey: ["party-volunteers", filters],
+    queryFn: () => api(`/party/volunteers/?${memberQuery(filters)}`),
+    placeholderData: keepPreviousData,
+  });
+
+// ---- console lists, loaded 50 rows at a time ---------------------------------
+// Each key starts like its single-page list's, so the same invalidations refresh it.
+
+export const PAGE_ROWS = 50;
+
+// The next offset of a plain list: more may follow while the last page came back full.
+const nextPlain = (last, pages) => (last.length === PAGE_ROWS ? pages.length * PAGE_ROWS : undefined);
+
+export const useAdminUserPages = (role) =>
+  useInfiniteQuery({
+    queryKey: ["admin", "users", "pages", role || "all"],
+    queryFn: ({ pageParam }) => api(`/admin/users/?${memberQuery({ role, limit: PAGE_ROWS, offset: pageParam })}`),
+    initialPageParam: 0,
+    getNextPageParam: nextPlain,
+    placeholderData: keepPreviousData,
+  });
+
+export const useAuditPages = ({ action, actor, since, until }) =>
+  useInfiniteQuery({
+    queryKey: ["admin", "audit", "pages", action, actor, since, until],
+    queryFn: ({ pageParam }) => api(`/admin/audit/?${memberQuery({ action, actor, since, until, limit: PAGE_ROWS, offset: pageParam })}`),
+    initialPageParam: 0,
+    getNextPageParam: nextPlain,
+  });
+
+/** Every row of a paged list loaded so far, in order. */
+export const rowsOf = (pages, read = (page) => page) => (pages?.pages || []).flatMap(read);
 
 export const useAspirant = (id) =>
   useQuery({
@@ -1086,34 +1077,28 @@ export const useCandidates = (q) =>
     enabled: q.trim().length >= 2,
   });
 
-export function useNominate() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (body) => api("/party/aspirants/", { method: "POST", body }),
-    onSuccess: () => invalidate("aspirants", "aspirant-candidates"),
-  });
-}
+export const useNominate = () =>
+  useWrite(
+    (body) => api("/party/aspirants/", { method: "POST", body }),
+    "aspirants", "aspirant-candidates",
+  );
 
-export function useMoveAspirant() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, status, reason }) =>
+export const useMoveAspirant = () =>
+  useWrite(
+    ({ id, status, reason }) =>
       api(`/party/aspirants/${id}/status/`, {
         method: "POST",
         body: reason ? { status, reason } : { status },
       }),
-    onSuccess: () => invalidate("aspirants", "aspirant"),
-  });
-}
+    "aspirants", "aspirant",
+  );
 
-export function useCreateWorkspace() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, ...body }) =>
+export const useCreateWorkspace = () =>
+  useWrite(
+    ({ id, ...body }) =>
       api(`/party/aspirants/${id}/workspace/`, { method: "POST", body }),
-    onSuccess: () => invalidate("aspirants", "aspirant"),
-  });
-}
+    "aspirants", "aspirant",
+  );
 
 // ---- party console top bar -------------------------------------------------
 export const usePartySearch = (q) =>
@@ -1353,16 +1338,14 @@ export const useRegistrations = (campaignId, status) =>
     enabled: !!campaignId,
   });
 
-export function useDecideRegistration() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ campaign, id, decision, reason }) =>
+export const useDecideRegistration = () =>
+  useWrite(
+    ({ campaign, id, decision, reason }) =>
       decision === "reject"
         ? api(`/campaigns/${campaign}/registrations/${id}/reject/`, { method: "POST", body: { reason } })
         : api(`/campaigns/${campaign}/registrations/${id}/approve/`, { method: "POST" }),
-    onSuccess: () => invalidate("registrations", "team", "mobilizers", "agents", "agent-coverage"),
-  });
-}
+    "registrations", "team", "mobilizers", "agents", "agent-coverage",
+  );
 
 export const useTeamLink = (campaignId) =>
   useQuery({ queryKey: ["team-link", campaignId], queryFn: () => api(`/campaigns/${campaignId}/team-link/`), enabled: !!campaignId });
@@ -1381,13 +1364,11 @@ export const useAgents = (campaignId) =>
 export const useAgentCoverage = (campaignId) =>
   useQuery({ queryKey: ["agent-coverage", campaignId], queryFn: () => api(`/agents/coverage/?campaign=${campaignId}`), enabled: !!campaignId });
 
-export function useUpdateAgent() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, ...body }) => api(`/agents/${id}/`, { method: "PATCH", body }),
-    onSuccess: () => invalidate("agents", "agent-coverage"),
-  });
-}
+export const useUpdateAgent = () =>
+  useWrite(
+    ({ id, ...body }) => api(`/agents/${id}/`, { method: "PATCH", body }),
+    "agents", "agent-coverage",
+  );
 
 export const exportAgents = (campaignId) => download(`/agents/export/?campaign=${campaignId}`, "agents.csv");
 
@@ -1430,13 +1411,11 @@ export function useRunImport() {
   });
 }
 
-export function useRefreshTargets() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (campaignId) => api("/targets/refresh/", { method: "POST", body: { campaign: campaignId } }),
-    onSuccess: () => invalidate("targets", "strategy"),
-  });
-}
+export const useRefreshTargets = () =>
+  useWrite(
+    (campaignId) => api("/targets/refresh/", { method: "POST", body: { campaign: campaignId } }),
+    "targets", "strategy",
+  );
 
 // The console's Health, Audit and Export tabs.
 export const useHealth = () =>
@@ -1444,13 +1423,6 @@ export const useHealth = () =>
 
 export const useBackups = () =>
   useQuery({ queryKey: ["admin", "backups"], queryFn: () => api("/admin/backups/") });
-
-export const useAuditTrail = ({ action, actor, since, until }) =>
-  useQuery({
-    queryKey: ["admin", "audit", action, actor, since, until],
-    queryFn: () =>
-      api(`/admin/audit/?action=${encodeURIComponent(action)}&actor=${encodeURIComponent(actor)}&since=${since}&until=${until}&limit=200`),
-  });
 
 export function useTestSend() {
   return useMutation({
@@ -1513,13 +1485,11 @@ function useMine(mutationFn) {
 export const useApplyToVie = () => useMine((seat) => api("/party/nominations/mine/", { method: "POST", body: { seat } }));
 export const useAttachNominationDocument = () =>
   useMine(({ file, label }) => upload("/party/nominations/mine/documents/", file, { label }));
-export function useDetachNominationDocument() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (id) => api(`/party/nominations/mine/documents/${id}/`, { method: "DELETE" }),
-    onSuccess: () => invalidate("nominations"),
-  });
-}
+export const useDetachNominationDocument = () =>
+  useWrite(
+    (id) => api(`/party/nominations/mine/documents/${id}/`, { method: "DELETE" }),
+    "nominations",
+  );
 export const useSubmitNomination = () =>
   useMine(() => api("/party/nominations/mine/submit/", { method: "POST", body: { declaration: true } }));
 export const useWithdrawNomination = () => useMine(() => api("/party/nominations/mine/withdraw/", { method: "POST" }));
@@ -1527,37 +1497,29 @@ export const useWithdrawNomination = () => useMine(() => api("/party/nominations
 export const useNominationWindows = () =>
   useQuery({ queryKey: ["nominations", "windows"], queryFn: () => api("/party/nominations/windows/") });
 
-export function useDraftNominationWindow() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (body) => api("/party/nominations/windows/", { method: "POST", body }),
-    onSuccess: () => invalidate("nominations"),
-  });
-}
+export const useDraftNominationWindow = () =>
+  useWrite(
+    (body) => api("/party/nominations/windows/", { method: "POST", body }),
+    "nominations",
+  );
 
-export function useReviseNominationWindow() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, body }) => api(`/party/nominations/windows/${id}/`, { method: "PUT", body }),
-    onSuccess: () => invalidate("nominations"),
-  });
-}
+export const useReviseNominationWindow = () =>
+  useWrite(
+    ({ id, body }) => api(`/party/nominations/windows/${id}/`, { method: "PUT", body }),
+    "nominations",
+  );
 
-export function usePublishNominationWindow() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (id) => api(`/party/nominations/windows/${id}/publish/`, { method: "POST" }),
-    onSuccess: () => invalidate("nominations"),
-  });
-}
+export const usePublishNominationWindow = () =>
+  useWrite(
+    (id) => api(`/party/nominations/windows/${id}/publish/`, { method: "POST" }),
+    "nominations",
+  );
 
-export function useMarkNominationFeePaid() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, reference }) => api(`/party/nominations/applications/${id}/fee/`, { method: "POST", body: { reference } }),
-    onSuccess: () => invalidate("aspirants", "aspirant"),
-  });
-}
+export const useMarkNominationFeePaid = () =>
+  useWrite(
+    ({ id, reference }) => api(`/party/nominations/applications/${id}/fee/`, { method: "POST", body: { reference } }),
+    "aspirants", "aspirant",
+  );
 
 // A hosted workspace's party feed and what it shares; the party's view of those counts.
 export const usePartyFeed = (campaignId) =>
@@ -1567,13 +1529,11 @@ export const usePartyFeed = (campaignId) =>
     enabled: !!campaignId,
   });
 
-export function useChangeSharing(campaignId) {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (body) => api(`/party-feed/sharing/?campaign=${campaignId}`, { method: "PUT", body }),
-    onSuccess: () => invalidate("party-feed"),
-  });
-}
+export const useChangeSharing = (campaignId) =>
+  useWrite(
+    (body) => api(`/party-feed/sharing/?campaign=${campaignId}`, { method: "PUT", body }),
+    "party-feed",
+  );
 
 export const usePartyShared = () => useQuery({ queryKey: ["party-shared"], queryFn: () => api("/party/shared/") });
 
@@ -1587,16 +1547,11 @@ export const usePartyMessageReach = ({ audience, county, constituency, ward }) =
     placeholderData: (previous) => previous,
   });
 
-function usePartyMessageAction(mutationFn) {
-  const invalidate = useInvalidator();
-  return useMutation({ mutationFn, onSuccess: () => invalidate("party-messages") });
-}
-
 export const useDraftPartyMessage = () =>
-  usePartyMessageAction(({ audience, county, constituency, ward, body }) => api("/party/messages/", { method: "POST", body: { audience, county, constituency, ward, body } }));
-export const useSendPartyMessage = () => usePartyMessageAction((id) => api(`/party/messages/${id}/send/`, { method: "POST" }));
+  useWrite(({ audience, county, constituency, ward, body }) => api("/party/messages/", { method: "POST", body: { audience, county, constituency, ward, body } }), "party-messages");
+export const useSendPartyMessage = () => useWrite((id) => api(`/party/messages/${id}/send/`, { method: "POST" }), "party-messages");
 export const useDeclinePartyMessage = () =>
-  usePartyMessageAction(({ id, note }) => api(`/party/messages/${id}/decline/`, { method: "POST", body: { note } }));
+  useWrite(({ id, note }) => api(`/party/messages/${id}/decline/`, { method: "POST", body: { note } }), "party-messages");
 
 // ---- personal data: requests, erasure, withdrawal links, closing ------------
 // `campaignId` undefined is the party's own requests (Membership Officer).
@@ -1606,13 +1561,9 @@ export const useDataRequests = (campaignId) =>
     queryFn: () => (campaignId ? api(`/campaigns/${campaignId}/data/requests/`) : api("/party/data-requests/")),
   });
 
-function useDataWrite(mutationFn, ...keys) {
-  const invalidate = useInvalidator();
-  return useMutation({ mutationFn, onSuccess: () => invalidate(...keys) });
-}
 
 export const useLogDataRequest = (campaignId) =>
-  useDataWrite(
+  useWrite(
     (body) =>
       campaignId
         ? api(`/campaigns/${campaignId}/data/requests/`, { method: "POST", body })
@@ -1621,7 +1572,7 @@ export const useLogDataRequest = (campaignId) =>
   );
 
 export const useUpdateDataRequest = (campaignId) =>
-  useDataWrite(
+  useWrite(
     ({ id, ...body }) =>
       campaignId
         ? api(`/campaigns/${campaignId}/data/requests/${id}/`, { method: "PATCH", body })
@@ -1640,7 +1591,7 @@ const ERASE = {
 
 // kind is supporters, volunteers or registrations.
 export const useErase = (campaignId, kind) =>
-  useDataWrite((id) => ERASE[kind](campaignId, id), "supporters", "campaign-volunteers", "left-team", "data-close");
+  useWrite((id) => ERASE[kind](campaignId, id), "supporters", "campaign-volunteers", "left-team", "data-close");
 
 export const useWithdrawalLink = (campaignId, supporterId) =>
   useQuery({
@@ -1656,19 +1607,19 @@ export const useCloseState = (campaignId) =>
   useQuery({ queryKey: ["data-close", campaignId], queryFn: () => api(`/campaigns/${campaignId}/data/close/`), enabled: !!campaignId });
 
 export const useSetRetention = (campaignId) =>
-  useDataWrite((retention_months) => api(`/campaigns/${campaignId}/data/retention/`, { method: "PUT", body: { retention_months } }), "data-close");
+  useWrite((retention_months) => api(`/campaigns/${campaignId}/data/retention/`, { method: "PUT", body: { retention_months } }), "data-close");
 
 export const useCloseCampaign = (campaignId) =>
-  useDataWrite(() => api(`/campaigns/${campaignId}/data/close/`, { method: "POST" }), "data-close", "campaigns");
+  useWrite(() => api(`/campaigns/${campaignId}/data/close/`, { method: "POST" }), "data-close", "campaigns");
 
 export const useEraseSupporters = (campaignId) =>
-  useDataWrite(() => api(`/campaigns/${campaignId}/data/erase-supporters/`, { method: "POST" }), "data-close", "supporters");
+  useWrite(() => api(`/campaigns/${campaignId}/data/erase-supporters/`, { method: "POST" }), "data-close", "supporters");
 
 export const useEraseMember = () =>
-  useDataWrite((id) => api(`/party/members/${id}/erase/`, { method: "POST" }), "party-members", "party-member", "party-volunteers");
+  useWrite((id) => api(`/party/members/${id}/erase/`, { method: "POST" }), "party-members", "party-member", "party-volunteers");
 
 export const useErasePartyVolunteer = () =>
-  useDataWrite((id) => api(`/party/volunteers/${id}/erase/`, { method: "POST" }), "party-volunteers");
+  useWrite((id) => api(`/party/volunteers/${id}/erase/`, { method: "POST" }), "party-volunteers");
 
 // ---- paying in by M-Pesa: the dialog's options, a contribution, a member's fee, and a
 // payment's status while the dialog waits.
@@ -1678,13 +1629,11 @@ export const usePayOptions = () =>
 export const useContribute = () =>
   useMutation({ mutationFn: (body) => api("/pay/contribution/", { method: "POST", body, anonymous: true }) });
 
-export function usePayFee() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: (body) => api("/party/nominations/mine/pay/", { method: "POST", body }),
-    onSuccess: () => invalidate("nominations"),
-  });
-}
+export const usePayFee = () =>
+  useWrite(
+    (body) => api("/party/nominations/mine/pay/", { method: "POST", body }),
+    "nominations",
+  );
 
 /** Polls every 3 seconds while the payment waits for the phone. */
 export const usePayment = (reference) =>
@@ -1705,10 +1654,9 @@ export const usePaymentsIn = (campaignId, status) =>
         : api(`/party/payments-in/?status=${status}`),
   });
 
-export function useDecidePaymentIn(campaignId) {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, reason }) => {
+export const useDecidePaymentIn = (campaignId) =>
+  useWrite(
+    ({ id, reason }) => {
       if (campaignId) {
         return reason === undefined
           ? api(`/campaigns/${campaignId}/payments-in/${id}/confirm/`, { method: "POST" })
@@ -1718,6 +1666,5 @@ export function useDecidePaymentIn(campaignId) {
         ? api(`/party/payments-in/${id}/confirm/`, { method: "POST" })
         : api(`/party/payments-in/${id}/reject/`, { method: "POST", body: { reason } });
     },
-    onSuccess: () => invalidate("payments-in", "nominations", "aspirants", "aspirant"),
-  });
-}
+    "payments-in", "nominations", "aspirants", "aspirant",
+  );

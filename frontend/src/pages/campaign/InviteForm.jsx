@@ -8,6 +8,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { Field, Textarea } from "@/components/ui/input";
+import { FilterPills } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
 import { FOOTER, partsOf } from "@/lib/sms";
@@ -42,14 +43,7 @@ export default function InviteForm({ event, onClose }) {
 
       <div className="flex flex-col gap-1.5">
         <span className="text-small font-semibold">Send to</span>
-        <div className="flex flex-wrap gap-2">
-          {LEVELS.map(([key, label]) => (
-            <button key={key} type="button" aria-pressed={levels.includes(key)} onClick={() => { toggle(key); setResult(null); }}
-              className={cn("min-h-11 cursor-pointer rounded-full border-[1.5px] px-4 text-ui font-semibold", levels.includes(key) ? "border-ink bg-ink text-white" : "border-line-control bg-white text-ink")}>
-              {label}
-            </button>
-          ))}
-        </div>
+        <FilterPills label="Send to" options={LEVELS} value={levels} onChange={(key) => { toggle(key); setResult(null); }} />
       </div>
       <label className="flex min-h-11 cursor-pointer items-start gap-3 text-ui text-muted-foreground">
         <input type="checkbox" checked={wholeCampaign} onChange={(e) => { setWholeCampaign(e.target.checked); setResult(null); }} className="mt-0.5 size-[18px] flex-none accent-primary" />
