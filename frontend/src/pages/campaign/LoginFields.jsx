@@ -1,13 +1,12 @@
 import { useState } from "react";
-import { isEmail } from "../../lib/email";
 import { Label } from "./controls";
+import { loginBody, loginReady } from "./helpers";
 
 // Name, username, email and phone for a new login; `body` is what the team routes take.
 export function useLoginFields() {
   const [form, setForm] = useState({ name: "", username: "", email: "", phone: "" });
-  const ok = !!form.name.trim() && form.username.trim().length >= 3 && isEmail(form.email);
-  const [first, ...rest] = form.name.trim().split(/\s+/);
-  const body = { username: form.username.trim().toLowerCase(), first_name: first, last_name: rest.join(" "), phone: form.phone.trim(), email: form.email.trim() };
+  const ok = !!form.name.trim() && loginReady(form);
+  const body = loginBody(form);
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
   return { form, set, ok, body };
 }

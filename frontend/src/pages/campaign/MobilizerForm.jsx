@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { isEmail } from "../../lib/email";
 import { FormActions, InviteModal, Modal } from "../../components/ui";
 import { useAddMobilizer, useCreateUser, useUpdateMobilizer } from "../../api/hooks";
 import { Btn, Label, PrimaryBtn } from "./controls";
-import { holderOf } from "./helpers";
+import { holderOf, loginBody, loginReady } from "./helpers";
 
 // Units (wards, or centres in a ward race) with no mobilizer, plus the one `keep` holds.
 const freeUnits = (units, mobilizers, keep) =>
@@ -23,12 +22,11 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
   const [made, setMade] = useState(null);
   const busy = add.isPending || update.isPending || createUser.isPending;
   const error = add.error || update.error || createUser.error;
-  const ok = name.trim() && (!withLogin || (username.trim().length >= 3 && isEmail(email)));
+  const ok = name.trim() && (!withLogin || loginReady({ username, email }));
   const choices = freeUnits(units, mobilizers, mobilizer);
   const unitWord = byCentre ? "centre" : "ward";
 
   const save = () => {
-    const [first, ...rest] = name.trim().split(/\s+/);
     const unit = units.find((u) => u.key === unitKey);
     const place = { ward: unit?.ward ?? null, registration_centre: unit?.registration_centre ?? null };
     if (mobilizer) {
@@ -36,7 +34,7 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
       update.mutate({ id: mobilizer.id, full_name: name.trim(), phone: phone.trim(), ...(moved && place) }, { onSuccess: onClose });
     } else if (withLogin) {
       createUser.mutate(
-        { username: username.trim().toLowerCase(), email: email.trim(), role: "mobilizer", first_name: first, last_name: rest.join(" "), phone: phone.trim(), campaign: campaignId, ...place },
+        { ...loginBody({ name, username, email, phone }), role: "mobilizer", campaign: campaignId, ...place },
         { onSuccess: (created) => setMade({ ...created, place: unit?.name }) },
       );
     } else {

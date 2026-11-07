@@ -1,6 +1,7 @@
 // What the campaign pages share: the nav per role, small helpers and the unit lists.
 import { useMemo } from "react";
 import { useTargets } from "../../api/hooks";
+import { isEmail } from "../../lib/email";
 
 // A tone is one of good, warn, bad or neutral; index.css colours each.
 export function statusOf(progress) {
@@ -115,3 +116,12 @@ export function useWardOptions(campaignId) {
 // Who may put a mobilizer on a unit; undefined hides the button.
 export const assignerFor = (role, onModal) =>
   role === "manager" || role === "candidate" ? (unit, holder) => onModal({ type: "assign", unit, holder }) : undefined;
+
+/** Whether a new login's username (3 or more characters) and email are usable. */
+export const loginReady = ({ username, email }) => username.trim().length >= 3 && isEmail(email);
+
+/** A new login's name, username, email and phone as the team routes take them. */
+export function loginBody({ name, username, email, phone }) {
+  const [first, ...rest] = name.trim().split(/\s+/);
+  return { username: username.trim().toLowerCase(), first_name: first, last_name: rest.join(" "), phone: phone.trim(), email: email.trim() };
+}
