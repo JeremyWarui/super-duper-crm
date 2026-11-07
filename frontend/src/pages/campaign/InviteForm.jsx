@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatNumber as fmt } from "../../lib/format";
+import { formatNumber as fmt, plural } from "../../lib/format";
 import { Badge, Chip, Modal } from "../../components/ui";
 import { useInviteToEvent } from "../../api/hooks";
 import { useAuth } from "../../store/auth";
@@ -32,7 +32,7 @@ export default function InviteForm({ event, onClose }) {
     <Modal title="Invite supporters" sub={`${event.title} · ${wholeCampaign ? "whole campaign" : event.ward_name}`} onClose={onClose}>
       <Label>Message</Label>
       <textarea className="textarea app-field" maxLength={895} value={message} onChange={(e) => { setMessage(e.target.value); setResult(null); }} />
-      <div className="field-hint">{text.length} characters · {parts} SMS part{parts === 1 ? "" : "s"} per person · "Reply STOP to opt out" is added</div>
+      <div className="field-hint">{text.length} characters · {plural(parts, "SMS part")} per person · "Reply STOP to opt out" is added</div>
 
       <div className="field-gap" /><Label>Send to</Label>
       <div className="flex flex-wrap gap-1 chip-row">
@@ -67,14 +67,14 @@ function InviteResult({ result }) {
         <span className="inline-badge"><Badge text={result.provider} tone={tone} /></span>
       </div>
       <div className="result-text">
-        {fmt(result.supporters_matched)} supporter{result.supporters_matched === 1 ? "" : "s"} matched ·
-        {" "}{fmt(result.requested)} usable number{result.requested === 1 ? "" : "s"} ·
-        {" "}{result.parts} part{result.parts === 1 ? "" : "s"} each
+        {plural(result.supporters_matched, "supporter")} matched ·
+        {" "}{plural(result.requested, "usable number")} ·
+        {" "}{plural(result.parts, "part")} each
         {result.opted_out > 0 && <> · {fmt(result.opted_out)} opted out, left out</>}
       </div>
       {result.rejected.length > 0 && (
         <div className="result-bad">
-          {result.rejected.length} number{result.rejected.length === 1 ? "" : "s"} unusable: {result.rejected.slice(0, 4).map((r) => r.phone || "(blank)").join(", ")}
+          {plural(result.rejected.length, "number")} unusable: {result.rejected.slice(0, 4).map((r) => r.phone || "(blank)").join(", ")}
         </div>
       )}
       {result.detail && <div className="result-note">{result.detail}</div>}

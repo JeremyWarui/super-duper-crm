@@ -19,6 +19,7 @@ import {
   VOLUNTEER_STATUS_LABEL,
   VOLUNTEER_STATUS_TONE,
 } from "./helpers";
+import { formatDate } from "../../lib/format";
 
 const PAGE_SIZE = 50;
 
@@ -64,7 +65,7 @@ function Detail({ row, onClose }) {
         <div className="muted">Membership: {STATUS_LABEL[v.member_status]}</div>
       </div>
       {v.erased_at ? (
-        <div className="muted">Volunteer details erased on {new Date(v.erased_at).toLocaleDateString()}.</div>
+        <div className="muted">Volunteer details erased on {formatDate(v.erased_at)}.</div>
       ) : (
         <>
           <textarea

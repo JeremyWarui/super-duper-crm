@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import { formatDate } from "../../lib/format";
 
 const VIEWS = { Waiting: "pending", Approved: "approved", "Not approved": "rejected" };
 const ROLE = { mobilizer: "Mobilizer", agent: "Agent" };
@@ -109,7 +110,7 @@ export default function Signups({ campaign, role }) {
                   <TD>{r.centre_name ? <><div>{r.centre_name}</div><div className="text-small text-muted-foreground">{r.ward_name}</div></> : r.ward_name}</TD>
                   <TD><div className="tabular-nums">{r.phone}</div><div className="text-small text-muted-foreground">{r.email}</div></TD>
                   {ids && <TD className="tabular-nums">{r.id_number || "None"}</TD>}
-                  <TD className="text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</TD>
+                  <TD className="text-muted-foreground">{formatDate(r.created_at)}</TD>
                   <TD align="right" className="relative">{waiting ? <Decision campaign={campaign} row={r} onDone={(d, row, data) => setDone(outcome(d, row, data))} /> : <span className="text-small text-muted-foreground">{r.reason}</span>}</TD>
                 </TR>
               ))}

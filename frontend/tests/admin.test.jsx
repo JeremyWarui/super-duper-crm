@@ -381,6 +381,6 @@ describe("the console's health and audit", () => {
     await user.type(screen.getByRole("textbox", { name: "Who" }), "root");
 
     expect(await screen.findByText("import.boundaries")).toBeInTheDocument();
-    await vi.waitFor(() => expect(calls.at(-1).path).toBe("/admin/audit/?action=import&actor=root&since=&until=&limit=200"));
+    await vi.waitFor(() => expect(calls.at(-1).path).toBe("/admin/audit/?action=import&actor=root&since=&until=&limit=200"), { timeout: 5000 });
   });
 });

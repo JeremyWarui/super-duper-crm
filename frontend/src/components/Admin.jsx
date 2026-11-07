@@ -31,7 +31,7 @@ import {
 import { useInstall } from "../app/site";
 import { useCopy } from "../copy";
 import { useAuth } from "../store/auth";
-import { formatNumber as fmt } from "../lib/format";
+import { formatNumber as fmt, plural } from "../lib/format";
 import {
   Button,
   Field as SharedField,
@@ -1165,7 +1165,7 @@ export default function Admin() {
           </div>
           {unstaffed > 0 && (
             <div className="admin-red admin-unstaffed">
-              {unstaffed} campaign{unstaffed === 1 ? "" : "s"} with nobody on{" "}
+              {plural(unstaffed, "campaign")} with nobody on{" "}
               {unstaffed === 1 ? "it" : "them"}: nobody can see{" "}
               {unstaffed === 1 ? "it" : "them"} until somebody is put on.
             </div>

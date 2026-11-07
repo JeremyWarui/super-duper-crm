@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
-import { formatNumber as fmt } from "@/lib/format";
+import { formatNumber as fmt, plural } from "@/lib/format";
 import { holderOf, statusOf } from "./helpers";
 import StrategyNotes from "./StrategyNotes";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
@@ -20,7 +20,7 @@ function Hero({ s, noun }) {
     ["Win number", fmt(s.win_number), `Half the projected votes, plus one, in each ${noun}`, "text-accent"],
     ["Votes committed", fmt(s.committed), `${s.progress_pct}% of the win number`],
     ["Gap to close", fmt(Math.max(s.win_number - s.committed, 0)), `Across ${short} of ${units} ${noun}s`],
-    ["Mobilizers", `${staffed} / ${units}`, `${quiet} ${noun}${quiet === 1 ? "" : "s"} with no event yet`],
+    ["Mobilizers", `${staffed} / ${units}`, `${plural(quiet, noun)} with no event yet`],
   ];
   return (
     <section aria-label="Win number" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6 rounded-card bg-ink p-7 text-on-dark">

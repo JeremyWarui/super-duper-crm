@@ -3,12 +3,13 @@ import { useState } from "react";
 import { download } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { nairobiDate } from "@/lib/format";
 
 export default function ExportPanel() {
   const [state, setState] = useState({ busy: false, error: null, done: false });
   const run = () => {
     setState({ busy: true, error: null, done: false });
-    download("/admin/export/", `export-${new Date().toISOString().slice(0, 10)}.zip`)
+    download("/admin/export/", `export-${nairobiDate()}.zip`)
       .then(() => setState({ busy: false, error: null, done: true }))
       .catch((e) => setState({ busy: false, error: e.message, done: false }));
   };

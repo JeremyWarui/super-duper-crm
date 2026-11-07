@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import { formatKES } from "../../lib/format";
+import { formatDate, formatKES, plural } from "../../lib/format";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
 
 const TONE = { scheduled: "warn", sending: "info", paid: "ok", failed: "bad", cancelled: "stone" };
@@ -108,7 +108,7 @@ export default function Payments({ campaign, role, mine, onModal }) {
               <TBody>
                 {shown.map((p) => (
                   <TR key={p.id}>
-                    <TD className="text-muted-foreground">{new Date(p.paid_at || p.created_at).toLocaleDateString()}</TD>
+                    <TD className="text-muted-foreground">{formatDate(p.paid_at || p.created_at)}</TD>
                     {!mine && <TD><div className="font-semibold">{p.recipient_name}</div><div className="text-small text-muted-foreground">{p.recipient_phone || "No phone"}</div></TD>}
                     <TD>{p.event_title || "None"}</TD>
                     <TD numeric className="font-bold">{formatKES(p.amount_kes)}</TD>
@@ -148,7 +148,7 @@ function Differences({ campaign }) {
       </div>
       {(found.error || now.error) && <p role="alert" className="font-semibold text-destructive">{(found.error || now.error).message}</p>}
       <p className="text-small text-muted-foreground">
-        {!run ? "Not checked yet. It runs once a day." : run.status === "practice" ? run.detail : run.status === "failed" ? `The last check failed: ${run.detail}` : `Last checked ${new Date(run.created_at).toLocaleString()}: ${run.checked} payment${run.checked === 1 ? "" : "s"} compared.`}
+        {!run ? "Not checked yet. It runs once a day." : run.status === "practice" ? run.detail : run.status === "failed" ? `The last check failed: ${run.detail}` : `Last checked ${new Date(run.created_at).toLocaleString()}: ${plural(run.checked, "payment")} compared.`}
       </p>
       {run && run.status !== "practice" && run.status !== "failed" && (rows.length === 0 ? <p className="font-semibold text-ok-foreground">The ledger matches the provider.</p> : (
         <Table stack minWidth={640}>

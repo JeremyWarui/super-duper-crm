@@ -5,6 +5,7 @@ import { useInstall } from "@/app/site";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { plural } from "@/lib/format";
 
 const BLANK = { action: "", actor: "", since: "", until: "" };
 const LIMIT = 200;
@@ -15,7 +16,7 @@ export default function AuditTrail() {
   const [filters, setFilters] = useState(BLANK);
   const set = (key) => (e) => setFilters((f) => ({ ...f, [key]: e.target.value }));
   const { data = [], isFetching, error } = useAuditTrail(filters);
-  const count = `${data.length} event${data.length === 1 ? "" : "s"}, newest first`;
+  const count = `${plural(data.length, "event")}, newest first`;
   return (
     <div className="kit flex flex-col gap-4">
       <Card variant="outline" className="gap-3" role="search" aria-label="Filter the audit trail">

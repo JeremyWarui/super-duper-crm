@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatKES } from "../../lib/format";
 import WsHeader, { KitError, KitLoading } from "./WsHeader";
+import { day } from "../public/story";
 
 const STEPS = [["applied", "Applied"], ["vetted", "Vetted"], ["trained", "Trained"], ["ready", "Ready"]];
 
@@ -37,7 +38,7 @@ export default function MyCentre({ campaign }) {
                 </li>
               ))}
             </ol>
-            <p className="text-ui text-muted-foreground">Training: {me.training_date ? new Date(`${me.training_date}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }) : "the campaign will tell you the date."}</p>
+            <p className="text-ui text-muted-foreground">Training: {me.training_date ? day(me.training_date) : "the campaign will tell you the date."}</p>
           </Card>
           <Card variant="outline" className="gap-3" role="region" aria-label="Your assignments">
             <h2 className="text-card-title font-bold">Your assignments</h2>
