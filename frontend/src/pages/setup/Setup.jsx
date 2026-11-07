@@ -13,10 +13,11 @@ import { useAuth } from "@/store/auth";
 import { isEmail } from "../../lib/email";
 import { isUsername } from "../../lib/username";
 import { ErrorText } from "@/components/ui/error-text";
+import { PlaceSelects } from "@/components/PlaceCascade";
+import LoginFields from "../campaign/LoginFields";
 
 const STEPS = ["Type", "Name and colours", "Contacts", "First superuser", "Workspace", "Check and finish"];
 const SEATS = [["mca", "MCA", "ward"], ["mp", "MP", "constituency"], ["governor", "Governor", "county"], ["senator", "Senator", "county"], ["women_rep", "Women Rep", "county"]];
-const LEVELS = ["county", "constituency", "ward"];
 
 const BLANK = {
   organisation_type: "",
@@ -83,29 +84,29 @@ function Choice({ selected, onPick, title, children }) {
   );
 }
 
-function LoginFields({ value, onChange, who }) {
-  const set = (key) => (e) => onChange({ ...value, [key]: e.target.value });
+// The candidate's or manager's login, two boxes to a row.
+function Login({ value, onChange, who }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Field label={`${who} first name`}><Input value={value.first_name} onChange={set("first_name")} /></Field>
-      <Field label={`${who} last name`}><Input value={value.last_name} onChange={set("last_name")} /></Field>
-      <Field label={`${who} username`}><Input autoComplete="off" value={value.username} onChange={set("username")} /></Field>
-      <Field label={`${who} email`} hint="Their sign-in link goes here."><Input type="email" autoComplete="off" value={value.email} onChange={set("email")} /></Field>
+      <LoginFields who={who} emailHint="Their sign-in link goes here." fields={["first_name", "last_name", "username", "email"]} form={value} set={(key) => (e) => onChange({ ...value, [key]: e.target.value })} />
     </div>
   );
 }
 
-function AreaPicker({ token, level, parent, value, onChange }) {
-  const { data = [], isLoading } = useSetupAreas(token, level, parent);
-  const label = level[0].toUpperCase() + level.slice(1);
+// The seat's area, down to `level`, from the places the setup token can read.
+function AreaPicker({ token, level, place, onChange }) {
+  const counties = useSetupAreas(token, "county", null);
+  const constituencies = useSetupAreas(token, "constituency", place.county);
+  const wards = useSetupAreas(token, "ward", place.constituency);
+  const loading = { county: counties.isLoading, constituency: constituencies.isLoading, ward: wards.isLoading };
+  const lists = { counties: counties.data, constituencies: constituencies.data, wards: wards.data };
   return (
-    <Field label={label}>
-      <NativeSelect value={value} onChange={(e) => onChange(e.target.value)} disabled={level !== "county" && !parent}>
-        <option value="">{isLoading ? "Loading…" : `Pick the ${level}`}</option>
-        {data.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-      </NativeSelect>
-      {!isLoading && level === "county" && data.length === 0 && <span className="text-small font-normal text-destructive">No counties loaded. Run <code>campaign-crm seed</code> first.</span>}
-    </Field>
+    <>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <PlaceSelects labelled level={level} place={place} onChange={onChange} lists={lists} blank={(lv) => (loading[lv] ? "Loading…" : `Pick the ${lv}`)} />
+      </div>
+      {!counties.isLoading && counties.data?.length === 0 && <span className="text-small font-semibold text-destructive">No counties loaded. Run <code>campaign-crm seed</code> first.</span>}
+    </>
   );
 }
 
@@ -113,7 +114,6 @@ function SeatStep({ token, form, change }) {
   const a = form.aspirant;
   const set = (patch) => change({ aspirant: { ...a, ...patch } });
   const level = SEATS.find(([key]) => key === a.seat)[2];
-  const needed = LEVELS.slice(0, LEVELS.indexOf(level) + 1);
   return (
     <div className="flex flex-col gap-4">
       <Field label="Campaign name" hint="Shown in the workspace, e.g. Jane for Parklands."><Input value={a.title} onChange={(e) => set({ title: e.target.value })} /></Field>
@@ -125,14 +125,9 @@ function SeatStep({ token, form, change }) {
         </Field>
         <Field label="Election date"><Input type="date" value={a.election_date} onChange={(e) => set({ election_date: e.target.value })} /></Field>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {needed.map((lv, i) => (
-          <AreaPicker key={lv} token={token} level={lv} parent={i ? a[needed[i - 1]] : null} value={a[lv]}
-            onChange={(id) => set({ [lv]: id, ...Object.fromEntries(needed.slice(i + 1).map((k) => [k, ""])) })} />
-        ))}
-      </div>
+      <AreaPicker token={token} level={level} place={a} onChange={({ county, constituency, ward }) => set({ county, constituency, ward })} />
       <h3 className="text-card-title font-bold">The candidate's login</h3>
-      <LoginFields who="Candidate" value={a.candidate} onChange={(candidate) => set({ candidate })} />
+      <Login who="Candidate" value={a.candidate} onChange={(candidate) => set({ candidate })} />
     </div>
   );
 }
@@ -286,10 +281,7 @@ export default function Setup() {
           <div className="flex flex-col gap-4">
             <p className="text-ui text-muted-foreground">The first console login. It manages logins, workspaces and the site.</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="First name"><Input value={form.superuser.first_name} onChange={user("first_name")} /></Field>
-              <Field label="Last name"><Input value={form.superuser.last_name} onChange={user("last_name")} /></Field>
-              <Field label="Username"><Input autoComplete="off" value={form.superuser.username} onChange={user("username")} /></Field>
-              <Field label="Email"><Input type="email" autoComplete="off" value={form.superuser.email} onChange={user("email")} /></Field>
+              <LoginFields fields={["first_name", "last_name", "username", "email"]} form={form.superuser} set={user} />
               <Field label="Password" hint="At least 8 characters."><Input type="password" autoComplete="new-password" value={form.superuser.password} onChange={user("password")} /></Field>
               <Field label="Password again"><Input type="password" autoComplete="new-password" value={form.confirm} onChange={(e) => change({ confirm: e.target.value })} /></Field>
             </div>
@@ -302,7 +294,7 @@ export default function Setup() {
               <input type="checkbox" className="size-5 accent-primary" checked={form.openWorkspace} onChange={(e) => change({ openWorkspace: e.target.checked })} />
               Open the party workspace now, with its first Workspace Manager
             </label>
-            {form.openWorkspace ? <LoginFields who="Manager" value={form.manager} onChange={(manager) => change({ manager })} /> : <p className="text-ui text-muted-foreground">You can open it later from the console.</p>}
+            {form.openWorkspace ? <Login who="Manager" value={form.manager} onChange={(manager) => change({ manager })} /> : <p className="text-ui text-muted-foreground">You can open it later from the console.</p>}
           </div>
         )}
         {step === 5 && (

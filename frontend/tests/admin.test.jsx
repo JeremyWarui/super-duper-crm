@@ -256,7 +256,7 @@ describe("creating a login from the console", () => {
     renderApp(<Admin />);
 
     await openForm(user);
-    await user.type(screen.getByPlaceholderText("jane.wanjiku"), "newmgr");
+    await user.type(screen.getByRole("textbox", { name: "Username" }), "newmgr");
     await user.type(screen.getByRole("textbox", { name: "Email" }), "newmgr@example.com");
     await user.selectOptions(screen.getByLabelText(/Campaign/), "c1");
     await user.click(screen.getByRole("button", { name: "Create the login" }));

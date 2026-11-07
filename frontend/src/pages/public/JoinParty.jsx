@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Check } from "lucide-react";
-import { useJoinParty, useParty, usePartyPlaces, useSite } from "@/api/hooks";
+import { useJoinParty, useParty, useSite } from "@/api/hooks";
+import PlaceCascade from "@/components/PlaceCascade";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
@@ -14,17 +15,6 @@ import { ErrorText } from "@/components/ui/error-text";
 const STEPS = ["Your details", "Your branch", "Consent"];
 const TICK = "mt-0.5 size-5 flex-none accent-primary";
 const PILL = "flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-line-control px-4 font-semibold has-[:checked]:border-primary has-[:checked]:bg-primary-tint";
-
-function PlaceSelect({ label, value, onChange, places, disabled }) {
-  return (
-    <Field label={label}>
-      <NativeSelect value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
-        <option value="">Pick your {label.toLowerCase()}</option>
-        {(places || []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-      </NativeSelect>
-    </Field>
-  );
-}
 
 function Steps({ step }) {
   return (
@@ -70,10 +60,8 @@ export default function JoinParty() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [county, setCounty] = useState("");
-  const [constituency, setConstituency] = useState("");
-  const [ward, setWard] = useState("");
-  const [centre, setCentre] = useState("");
+  const [place, setPlace] = useState({ county: "", constituency: "", ward: "", centre: "" });
+  const { ward, centre } = place;
   const [smsUpdates, setSmsUpdates] = useState(false);
   const [volunteer, setVolunteer] = useState(false);
   const [profession, setProfession] = useState("");
@@ -83,10 +71,6 @@ export default function JoinParty() {
   const [contact, setContact] = useState("");
   const [consent, setConsent] = useState(false);
   const [volunteerConsent, setVolunteerConsent] = useState(false);
-  const counties = usePartyPlaces();
-  const constituencies = usePartyPlaces({ county, enabled: !!county });
-  const wards = usePartyPlaces({ constituency, enabled: !!constituency });
-  const centres = usePartyPlaces({ ward, enabled: !!ward });
 
   const detailsOk =
     firstName.trim() && surname.trim() && phone.trim() && isEmail(email) && password.length >= 8;
@@ -182,10 +166,7 @@ export default function JoinParty() {
             <h2 className="text-[24px] font-bold">Where you'll belong</h2>
             <p className="text-muted-foreground">Your branch is set by where you are registered to vote.</p>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-              <PlaceSelect label="County" value={county} places={counties.data} onChange={(v) => { setCounty(v); setConstituency(""); setWard(""); setCentre(""); }} />
-              <PlaceSelect label="Constituency" value={constituency} places={county ? constituencies.data : []} disabled={!county} onChange={(v) => { setConstituency(v); setWard(""); setCentre(""); }} />
-              <PlaceSelect label="Ward" value={ward} places={constituency ? wards.data : []} disabled={!constituency} onChange={(v) => { setWard(v); setCentre(""); }} />
-              <PlaceSelect label="Polling station" value={centre} places={ward ? centres.data : []} disabled={!ward} onChange={setCentre} />
+              <PlaceCascade labelled level="centre" place={place} onChange={setPlace} blank={(lv) => (lv === "centre" ? "Pick your polling station" : `Pick your ${lv}`)} />
             </div>
             <label className={`${PILL} self-start`}>
               <input type="checkbox" className="size-[18px] accent-primary" checked={volunteer} onChange={(e) => setVolunteer(e.target.checked)} />

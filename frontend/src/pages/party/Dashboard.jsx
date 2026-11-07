@@ -1,11 +1,12 @@
 // The superuser's party-wide totals, filtered by place, seat, aspirant and dates.
 import { useState } from "react";
-import { useAspirants, usePartyDashboard, usePartyPlaceLists, usePartyShared } from "@/api/hooks";
+import { useAspirants, usePartyDashboard, usePartyShared } from "@/api/hooks";
+import PlaceCascade from "@/components/PlaceCascade";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
-import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { Field, FilterSelect, Input } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
@@ -13,17 +14,6 @@ import { formatDate, formatNumber } from "@/lib/format";
 import { AREA_LABEL, SEAT_LABEL, SEATS } from "./helpers";
 
 const EMPTY = { county: "", constituency: "", ward: "", seat: "", aspirant: "", from: "", to: "" };
-
-function Pick({ label, value, onChange, options, disabled }) {
-  return (
-    <Field label={label}>
-      <NativeSelect aria-label={label} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
-        <option value="">All</option>
-        {options.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-      </NativeSelect>
-    </Field>
-  );
-}
 
 function Counts({ title, head, rows }) {
   return (
@@ -81,17 +71,9 @@ function Shared() {
 
 export default function Dashboard() {
   const [filters, setFilters] = useState(EMPTY);
-  const set = (key) => (value) => {
-    const next = { ...filters, [key]: value };
-    // A narrower place belongs to the wider one; changing the wider clears it.
-    if (key === "county") Object.assign(next, { constituency: "", ward: "" });
-    if (key === "constituency") next.ward = "";
-    setFilters(next);
-  };
+  const set = (key) => (value) => setFilters({ ...filters, [key]: value });
   const board = usePartyDashboard(filters);
-  const { counties, constituencies, wards } = usePartyPlaceLists(filters);
   const aspirants = useAspirants({ status: "approved", limit: 200 }).data?.items || [];
-  const places = (rows) => rows.map((p) => [p.id, p.name]);
   const d = board.data;
 
   const tiles = d && [
@@ -107,11 +89,9 @@ export default function Dashboard() {
       <SlottedHeader title="Dashboard" sub="Totals across the party's registers and campaigns." />
       <Card variant="outline">
         <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
-          <Pick label="County" value={filters.county} onChange={set("county")} options={places(counties)} />
-          <Pick label="Constituency" value={filters.constituency} onChange={set("constituency")} options={places(constituencies)} disabled={!filters.county} />
-          <Pick label="Ward" value={filters.ward} onChange={set("ward")} options={places(wards)} disabled={!filters.constituency} />
-          <Pick label="Seat" value={filters.seat} onChange={set("seat")} options={SEATS.map(([value, label]) => [value, label])} />
-          <Pick label="Aspirant" value={filters.aspirant} onChange={set("aspirant")} options={aspirants.map((a) => [a.id, `${a.member.full_name} · ${SEAT_LABEL[a.seat]}`])} />
+          <PlaceCascade labelled place={filters} onChange={(place) => setFilters({ ...filters, ...place })} blank={() => "All"} />
+          <FilterSelect labelled label="Seat" blank="All" value={filters.seat} onChange={set("seat")} options={SEATS} />
+          <FilterSelect labelled label="Aspirant" blank="All" value={filters.aspirant} onChange={set("aspirant")} options={aspirants.map((a) => [a.id, `${a.member.full_name} · ${SEAT_LABEL[a.seat]}`])} />
           <Field label="From">
             <Input aria-label="From" type="date" value={filters.from} onChange={(e) => set("from")(e.target.value)} />
           </Field>

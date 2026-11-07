@@ -43,22 +43,32 @@ export function NativeSelect({ className, size, children, ...props }: SelectProp
   )
 }
 
-/** A filter list named by `label`, whose blank first option reads `blank` and means no filter. `options` are { id, name } rows. */
-export function FilterSelect({ label, value, onChange, options, blank, disabled, className }: {
+type Choice = { id: string; name: string } | readonly [string, string]
+
+/**
+ * A list named by `label`, whose blank first option reads `blank`. `options` are { id, name } rows
+ * or [value, label] pairs. `labelled` shows the label above it instead of only naming it.
+ */
+export function FilterSelect({ label, value, onChange, options, blank, disabled, className, labelled, ...rest }: {
   label: string
   value: string
   onChange: (value: string) => void
-  options?: { id: string; name: string }[]
+  options?: readonly Choice[]
   blank: string
   disabled?: boolean
   className?: string
-}) {
-  return (
-    <NativeSelect aria-label={label} className={cn('w-auto min-w-0 flex-[1_1_180px]', className)} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+  labelled?: boolean
+} & Omit<React.ComponentProps<'select'>, 'value' | 'onChange' | 'size'>) {
+  const select = (
+    <NativeSelect aria-label={labelled ? undefined : label} className={cn(!labelled && 'w-auto min-w-0 flex-[1_1_180px]', className)} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} {...rest}>
       <option value="">{blank}</option>
-      {(options || []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+      {(options || []).map((x) => {
+        const [id, name] = 'id' in x ? [x.id, x.name] : x
+        return <option key={id} value={id}>{name}</option>
+      })}
     </NativeSelect>
   )
+  return labelled ? <Field label={label} className="min-w-0">{select}</Field> : select
 }
 
 /** Label stacked above its control, 13px semibold, 4–6px gap — as in every mockup form */

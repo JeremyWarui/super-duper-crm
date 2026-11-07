@@ -22,12 +22,12 @@ import {
   SEAT_LABEL,
   VOLUNTEER_STATUS_LABEL,
 } from "../party/helpers";
-import { formatDate, formatKES } from "../../lib/format";
+import { formatDate, formatDay, formatKES, placeOf } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 
 const MEMBER_STATUS = { approved: ["Active member", "ok"], pending: ["Application pending", "warn"], suspended: ["Suspended", "bad"] };
-const monthYear = (iso) => new Date(iso).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-const place = (a) => [a.ward?.name, a.county?.name].filter(Boolean).join(", ");
+// A member's branch, shown as ward and county.
+const place = (a) => placeOf({ ward: a.ward, county: a.county }, ", ");
 
 function MemberCard({ account }) {
   const [label, tone] = MEMBER_STATUS[account.status] || [account.status, "stone"];
@@ -41,7 +41,7 @@ function MemberCard({ account }) {
         <dl className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4 text-small">
           <div className="flex flex-col gap-0.5"><dt className="text-[#CFE0D5]">Branch</dt><dd className="font-bold">{place(account)}</dd></div>
           <div className="flex flex-col gap-0.5"><dt className="text-[#CFE0D5]">Polling station</dt><dd className="font-bold">{account.registration_centre?.name || "Not set"}</dd></div>
-          <div className="flex flex-col gap-0.5"><dt className="text-[#CFE0D5]">Member since</dt><dd className="font-bold">{monthYear(account.member_since)}</dd></div>
+          <div className="flex flex-col gap-0.5"><dt className="text-[#CFE0D5]">Member since</dt><dd className="font-bold">{formatDay(account.member_since, { month: "long", year: "numeric" })}</dd></div>
         </dl>
         <span className="text-small text-[#CFE0D5]">Show this card at branch meetings and party events.</span>
       </section>

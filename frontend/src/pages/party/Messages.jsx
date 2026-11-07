@@ -1,15 +1,16 @@
 // The party office's texts to members and volunteers: the Comms Officer drafts, the Party Super
 // Admin approves and sends, and only people whose consent covers SMS receive one.
 import { useState } from "react";
-import { useDeclinePartyMessage, useDraftPartyMessage, usePartyMessageReach, usePartyMessages, usePartyPlaceLists, useSendPartyMessage } from "@/api/hooks";
+import { useDeclinePartyMessage, useDraftPartyMessage, usePartyMessageReach, usePartyMessages, useSendPartyMessage } from "@/api/hooks";
+import PlaceCascade from "@/components/PlaceCascade";
+import { DraftList, MessageField, SentList } from "@/components/SmsParts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field } from "@/components/ui/input";
-import { DeclineForm, DeclinedNote, DeliveryBadges, MessageField } from "@/components/SmsParts";
-import { formatDate, plural } from "@/lib/format";
-import { FOOTER } from "@/lib/sms";
-import { cn } from "@/lib/utils";
 import { ErrorText } from "@/components/ui/error-text";
+import { LoadingText } from "@/components/ui/loading-text";
+import { FilterPills } from "@/components/ui/tabs";
+import { plural } from "@/lib/format";
+import { FOOTER } from "@/lib/sms";
 
 const AUDIENCES = [
   ["members", "Members", "members who ticked SMS updates when they joined"],
@@ -19,8 +20,8 @@ const WHO = Object.fromEntries(AUDIENCES.map(([k, l]) => [k, l.toLowerCase()]));
 
 export default function Messages() {
   const page = usePartyMessages();
-  if (page.isLoading) return <p className="text-muted-foreground">Loading…</p>;
-  if (page.error) return <p role="alert">{page.error.message}</p>;
+  if (page.isLoading) return <LoadingText />;
+  if (page.error) return <ErrorText error={page.error} />;
   const data = page.data;
   return (
     <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
@@ -33,26 +34,12 @@ export default function Messages() {
   );
 }
 
-function Select({ label, value, onChange, options, blank, disabled }) {
-  return (
-    <Field label={label} className="min-w-0 flex-[1_1_160px]">
-      <select aria-label={label} className="min-h-11 w-full rounded-lg border border-line-control bg-white px-3" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
-        <option value="">{blank}</option>
-        {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-      </select>
-    </Field>
-  );
-}
-
 function Compose() {
   const [audience, setAudience] = useState("members");
-  const [county, setCounty] = useState("");
-  const [constituency, setConstituency] = useState("");
-  const [ward, setWard] = useState("");
+  const [where, setWhere] = useState({ county: "", constituency: "", ward: "" });
   const [body, setBody] = useState("");
   const [done, setDone] = useState("");
-  const { counties, constituencies, wards } = usePartyPlaceLists({ county, constituency });
-  const place = { audience, county: county || null, constituency: constituency || null, ward: ward || null };
+  const place = { audience, county: where.county || null, constituency: where.constituency || null, ward: where.ward || null };
   const reach = usePartyMessageReach(place);
   const save = useDraftPartyMessage();
   const text = body.trim() + FOOTER;
@@ -64,20 +51,11 @@ function Compose() {
     <Card variant="outline" className="min-w-0 content-start gap-4" role="region" aria-label="New message">
       <h2 className="text-h3 font-bold">New message</h2>
       <div className="grid gap-2">
-        <span className="text-small font-semibold" id="audience">Audience</span>
-        <div role="group" aria-labelledby="audience" className="flex flex-wrap gap-2">
-          {AUDIENCES.map(([key, label]) => (
-            <button key={key} type="button" aria-pressed={audience === key} onClick={() => touch(setAudience)(key)}
-              className={cn("min-h-11 rounded-full border-[1.5px] px-4 text-ui font-semibold", audience === key ? "border-ink bg-ink text-white" : "border-line-control bg-white text-ink")}>
-              {label}
-            </button>
-          ))}
-        </div>
+        <span className="text-small font-semibold">Audience</span>
+        <FilterPills label="Audience" options={AUDIENCES} value={audience} onChange={touch(setAudience)} />
       </div>
-      <div className="flex flex-wrap gap-3">
-        <Select label="County" value={county} blank="All counties" options={counties} onChange={touch((v) => { setCounty(v); setConstituency(""); setWard(""); })} />
-        <Select label="Constituency" value={constituency} blank="All" options={constituencies} disabled={!county} onChange={touch((v) => { setConstituency(v); setWard(""); })} />
-        <Select label="Ward" value={ward} blank="All" options={wards} disabled={!constituency} onChange={touch(setWard)} />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <PlaceCascade labelled place={where} onChange={touch(setWhere)} />
       </div>
       <p className="text-small text-muted-foreground" aria-live="polite">
         {count === null ? "Counting…" : (
@@ -99,61 +77,20 @@ function Compose() {
   );
 }
 
+const aboutDraft = (m) => `${WHO[m.audience]}, ${m.place} · ${plural(m.targeted, "recipient")} when drafted`;
+
 function Drafts({ data }) {
-  const drafts = data.messages.filter((m) => m.status === "draft");
-  const approve = useSendPartyMessage();
-  const decline = useDeclinePartyMessage();
-  const [declining, setDeclining] = useState(null);
-  const [note, setNote] = useState("");
-  if (drafts.length === 0) return null;
-  const busy = approve.isPending || decline.isPending;
-  const failed = approve.error || decline.error;
   return (
-    <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Waiting for approval">
-      <h2 className="text-h3 font-bold">Waiting for approval</h2>
-      <ErrorText error={failed} />
-      {drafts.map((m) => (
-        <article key={m.id} className="grid gap-2 rounded-lg border border-line p-3" aria-label={`Draft by ${m.drafted_by}`}>
-          <p className="whitespace-pre-wrap">{m.body}</p>
-          <p className="text-small text-muted-foreground">{m.drafted_by} · {formatDate(m.created_at)} · {WHO[m.audience]}, {m.place} · {plural(m.targeted, "recipient")} when drafted</p>
-          {!data.can_send ? null : m.mine ? (
-            <p className="text-small text-muted-foreground">Someone else approves your own draft.</p>
-          ) : declining === m.id ? (
-            <DeclineForm note={note} onNote={setNote} busy={busy} onKeep={() => setDeclining(null)}
-              onDecline={() => decline.mutate({ id: m.id, note }, { onSuccess: () => { setDeclining(null); setNote(""); } })} />
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              <Button shape="rounded" size="sm" disabled={busy} onClick={() => approve.mutate(m.id)}>Approve and send</Button>
-              <Button shape="rounded" size="sm" variant="outline" disabled={busy} onClick={() => setDeclining(m.id)}>Decline…</Button>
-            </div>
-          )}
-        </article>
-      ))}
-    </Card>
+    <DraftList
+      drafts={data.messages.filter((m) => m.status === "draft")}
+      about={aboutDraft}
+      decide={(m) => (!data.can_send ? false : m.mine ? "Someone else approves your own draft." : true)}
+      approve={useSendPartyMessage()}
+      decline={useDeclinePartyMessage()}
+    />
   );
 }
 
 function History({ data }) {
-  const done = data.messages.filter((m) => m.status !== "draft");
-  return (
-    <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Recent sends">
-      <h2 className="text-h3 font-bold">Recent sends</h2>
-      {done.length === 0 && <p className="text-muted-foreground">Nothing sent yet.</p>}
-      {done.map((m) => (
-        <article key={m.id} className="grid gap-2 border-b border-line pb-3 last:border-0 last:pb-0">
-          <p className="line-clamp-2 font-semibold">{m.body}</p>
-          <p className="text-small text-muted-foreground">
-            {formatDate(m.decided_at || m.created_at)} · {WHO[m.audience]}, {m.place} · {m.status === "declined" ? `declined by ${m.decided_by}` : `${plural(m.recipients, "recipient")}, approved by ${m.decided_by}`}
-          </p>
-          {m.status === "declined" ? (
-            <DeclinedNote note={m.note} />
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              <DeliveryBadges delivery={m.delivery} />
-            </div>
-          )}
-        </article>
-      ))}
-    </Card>
-  );
+  return <SentList messages={data.messages.filter((m) => m.status !== "draft")} title="Recent sends" about={(m) => `${WHO[m.audience]}, ${m.place}`} sentBy="approved by" />;
 }

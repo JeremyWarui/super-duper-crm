@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
 import { SEATS } from "@/pages/party/helpers";
-import { day } from "./story";
+import { formatDay } from "@/lib/format";
 
 /** Rows (already ordered by seat, area and votes) as races: one seat in one area, most votes first. */
 export function races(rows) {
@@ -31,7 +31,7 @@ function Race({ race, label }) {
             <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{label}</span>
             <strong className="text-[19px]">{race.area}</strong>
           </span>
-          {race.declared ? <Badge tone="tint">Declared {day(race.declared)}</Badge> : <Badge tone="stone">Counting</Badge>}
+          {race.declared ? <Badge tone="tint">Declared {formatDay(race.declared)}</Badge> : <Badge tone="stone">Counting</Badge>}
         </div>
         <ol>
           {race.rows.map((r, n) => {

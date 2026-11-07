@@ -34,8 +34,7 @@ export default function MemberSearch({ label, hint, placeholder, query, onQuery,
             <li key={m.id}>
               <Button variant="ghost" className="h-auto min-h-11 w-full flex-wrap justify-between gap-x-2 gap-y-0 rounded-none px-3 py-1.5 text-left font-normal whitespace-normal" onClick={() => onPick(m)}>
                 <span className="font-semibold">{m.full_name}</span>
-                <span className="sr-only"> · </span>
-                <span className="text-small text-muted-foreground">{detailOf(m)}</span>
+                {detailOf(m) && <><span className="sr-only"> · </span><span className="text-small text-muted-foreground">{detailOf(m)}</span></>}
               </Button>
             </li>
           ))}

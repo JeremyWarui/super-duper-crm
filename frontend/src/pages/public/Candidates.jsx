@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { usePartyPlaces, usePublicCandidates } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
-import { Input, NativeSelect } from "@/components/ui/input";
+import { FilterSelect, Input } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
 import { SEATS } from "@/pages/party/helpers";
 import { Photo } from "./story";
@@ -48,10 +48,7 @@ export default function Candidates() {
             </label>
             <label className="flex min-w-[200px] flex-col gap-1.5 text-small font-semibold text-[#DDE3DF]">
               County
-              <NativeSelect value={county} onChange={(e) => setCounty(e.target.value)} className="border-0 bg-white text-ink">
-                <option value="">All counties</option>
-                {counties.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </NativeSelect>
+              <FilterSelect label="County" blank="All counties" value={county} onChange={setCounty} options={counties} className="w-full flex-none border-0 bg-white text-ink" />
             </label>
           </div>
         </div>

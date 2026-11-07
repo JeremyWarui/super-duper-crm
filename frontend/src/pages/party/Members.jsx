@@ -20,9 +20,9 @@ import { Input, NativeSelect } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 import { Pager } from "@/components/ui/pager";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
-import { formatDate } from "@/lib/format";
-import { MOVES, NO_PLACE, PAGE_SIZE, placeOf, STATUS_LABEL, STATUS_TONE } from "./helpers";
-import PlaceFilters from "./PlaceFilters";
+import { formatDate, placeOf } from "@/lib/format";
+import { MOVES, NO_PLACE, PAGE_SIZE, STATUS_LABEL, STATUS_TONE } from "./helpers";
+import PlaceCascade from "@/components/PlaceCascade";
 
 const ERASABLE = ["withdrawn", "rejected"];
 
@@ -167,7 +167,7 @@ export default function Members() {
           <option value="">All statuses</option>
           {Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </NativeSelect>
-        <PlaceFilters place={where} onChange={set(setWhere)} />
+        <PlaceCascade place={where} onChange={set(setWhere)} />
       </div>
       <Card variant="outline">
         <Table stack minWidth={720}>

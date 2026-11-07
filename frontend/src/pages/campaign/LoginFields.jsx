@@ -11,13 +11,25 @@ export function useLoginFields() {
   return { form, set, ok, body };
 }
 
-export default function LoginFields({ form, set }) {
-  return (
-    <>
-      <Field label="Full name"><Input aria-label="Full name" value={form.name} onChange={set("name")} /></Field>
-      <Field label="Username"><Input aria-label="Username" value={form.username} onChange={set("username")} placeholder="amina" /></Field>
-      <Field label="Email"><Input aria-label="Email" type="email" value={form.email} onChange={set("email")} placeholder="amina@example.com" /></Field>
-      <Field label="Phone"><Input aria-label="Phone" value={form.phone} onChange={set("phone")} /></Field>
-    </>
-  );
+const LABEL = { name: "Full name", first_name: "First name", last_name: "Last name", username: "Username", email: "Email", phone: "Phone" };
+const PLACEHOLDER = { username: "amina", email: "amina@example.com", phone: "0712 345678" };
+const MAX = { username: 150, email: 254 };
+
+/**
+ * The login boxes named by `fields`, read from `form` and written by `set(key)(event)`; `who` starts
+ * each label ("Candidate username"), `emailHint` sits under the email box and `placeholders` replaces the sample text.
+ */
+export default function LoginFields({ form, set, fields = ["name", "username", "email", "phone"], who, emailHint, placeholders }) {
+  return fields.map((key) => (
+    <Field key={key} label={who ? `${who} ${LABEL[key].toLowerCase()}` : LABEL[key]} hint={key === "email" ? emailHint : undefined}>
+      <Input
+        type={key === "email" ? "email" : "text"}
+        autoComplete={key === "username" || key === "email" ? "off" : undefined}
+        placeholder={{ ...PLACEHOLDER, ...placeholders }[key]}
+        maxLength={MAX[key]}
+        value={form[key]}
+        onChange={set(key)}
+      />
+    </Field>
+  ));
 }

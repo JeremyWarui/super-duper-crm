@@ -3,7 +3,7 @@ import { useEvents } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FilterPills } from "@/components/ui/tabs";
-import { formatNumber as fmt } from "@/lib/format";
+import { formatDay, formatNumber as fmt } from "@/lib/format";
 import AttendanceCard from "./AttendanceCard";
 import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
@@ -31,8 +31,8 @@ function EventCard({ event: e, onRecord, onInvite, onQr, onAssign }) {
       <div className="flex h-[72px] w-16 flex-none flex-col items-center justify-center rounded-lg bg-primary-tint text-primary">
         {day ? (
           <>
-            <span className="text-[11px] font-extrabold tracking-[0.08em] uppercase">{day.toLocaleDateString("en-GB", { month: "short" })}</span>
-            <span className="font-display text-[24px] leading-none font-extrabold">{day.getDate()}</span>
+            <span className="text-[11px] font-extrabold tracking-[0.08em] uppercase">{formatDay(e.scheduled_date, { month: "short" })}</span>
+            <span className="font-display text-[24px] leading-none font-extrabold">{formatDay(e.scheduled_date, { day: "numeric" })}</span>
           </>
         ) : <span className="text-meta font-bold">No date</span>}
       </div>
@@ -69,7 +69,7 @@ const dayLabel = (e) => {
   if (!day) return "No date yet";
   const today = new Date().toDateString() === day.toDateString();
   const time = day.getHours() || day.getMinutes() ? ` · ${day.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : "";
-  return `${today ? "Today" : day.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}${time}`;
+  return `${today ? "Today" : formatDay(e.scheduled_date, { weekday: "short", day: "numeric", month: "short" })}${time}`;
 };
 
 // The field view: the event to count now, with the rest coming up below it.

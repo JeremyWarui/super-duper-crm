@@ -5,12 +5,12 @@ import { useDeclineMessage, useDeleteMessage, useDraftMessage, useMessageLog, us
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { DeclineForm, DeclinedNote, DeliveryBadges, MessageField } from "@/components/SmsParts";
+import { DraftList, MessageField, SentList } from "@/components/SmsParts";
+import { FilterPills } from "@/components/ui/tabs";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { useDraft } from "@/lib/draft";
-import { formatDate, plural } from "@/lib/format";
+import { plural } from "@/lib/format";
 import { DELIVERY_STATUS, FOOTER } from "@/lib/sms";
-import { cn } from "@/lib/utils";
 import SendError from "./SendError";
 import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
@@ -63,13 +63,13 @@ function Compose({ campaign, data }) {
     <Card variant="outline" className="min-w-0 content-start gap-4" role="region" aria-label="New SMS">
       <h2 className="text-h3 font-bold">New SMS</h2>
       <div className="grid gap-2">
-        <span className="text-small font-semibold" id="send-to">Send to</span>
-        <div role="group" aria-labelledby="send-to" className="flex flex-wrap gap-2">
-          <Pill on={form.wards.length === 0} onClick={() => change({ wards: [] })}>{data.wards.length === 1 ? data.wards[0].name : "All my wards"}</Pill>
-          {data.wards.length > 1 && data.wards.map((w) => (
-            <Pill key={w.id} on={form.wards.includes(w.id)} onClick={() => toggle(w.id)}>{w.name}</Pill>
-          ))}
-        </div>
+        <span className="text-small font-semibold">Send to</span>
+        <FilterPills
+          label="Send to"
+          options={[["", data.wards.length === 1 ? data.wards[0].name : "All my wards"], ...(data.wards.length > 1 ? data.wards.map((w) => [w.id, w.name]) : [])]}
+          value={form.wards.length ? form.wards : [""]}
+          onChange={(id) => (id ? toggle(id) : change({ wards: [] }))}
+        />
         <p className="text-small text-muted-foreground" aria-live="polite">
           {count === null ? "Counting…" : (
             <>
@@ -109,85 +109,24 @@ function Compose({ campaign, data }) {
   );
 }
 
-function Pill({ on, onClick, children }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onClick}
-      className={cn("min-h-10 cursor-pointer rounded-full border-[1.5px] px-4 text-ui font-semibold max-sm:min-h-11", on ? "border-ink bg-ink text-white" : "border-line-control bg-white text-ink")}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Drafts({ data }) {
-  const drafts = data.messages.filter((m) => m.status === "draft");
-  const approve = useSendMessage();
-  const decline = useDeclineMessage();
-  const remove = useDeleteMessage();
-  const [declining, setDeclining] = useState(null);
-  const [note, setNote] = useState("");
-  if (drafts.length === 0) return null;
-  const busy = approve.isPending || decline.isPending || remove.isPending;
-  const failed = approve.error || decline.error || remove.error;
-  return (
-    <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Waiting for approval">
-      <h2 className="text-h3 font-bold">Waiting for approval</h2>
-      <ErrorText error={failed} />
-      {drafts.map((m) => (
-        <article key={m.id} className="grid gap-2 rounded-lg border border-line p-3" aria-label={`Draft by ${m.drafted_by}`}>
-          <p className="whitespace-pre-wrap">{m.body}</p>
-          <p className="text-small text-muted-foreground">{m.drafted_by} · {formatDate(m.created_at)} · {wardsOf(m)}</p>
-          {declining === m.id ? (
-            <DeclineForm note={note} onNote={setNote} busy={busy} onKeep={() => setDeclining(null)}
-              onDecline={() => decline.mutate({ id: m.id, note }, { onSuccess: () => { setDeclining(null); setNote(""); } })} />
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {data.can_send && <Button shape="rounded" size="sm" disabled={busy} onClick={() => approve.mutate(m.id)}>Approve and send</Button>}
-              {data.can_send && <Button shape="rounded" size="sm" variant="outline" disabled={busy} onClick={() => setDeclining(m.id)}>Decline…</Button>}
-              {(m.mine || data.can_send) && <Button shape="rounded" size="sm" variant="quiet" disabled={busy} onClick={() => remove.mutate(m.id)}>Delete</Button>}
-            </div>
-          )}
-        </article>
-      ))}
-    </Card>
-  );
-}
-
 const wardsOf = (m) => (m.ward_names.length ? m.ward_names.join(", ") : "all wards");
 
-function History({ data }) {
-  const done = data.messages.filter((m) => m.status !== "draft");
-  const [open, setOpen] = useState(null);
+function Drafts({ data }) {
   return (
-    <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Sent">
-      <h2 className="text-h3 font-bold">Sent</h2>
-      {done.length === 0 && <p className="text-muted-foreground">Nothing sent yet.</p>}
-      {done.map((m) => (
-        <article key={m.id} className="grid gap-2 border-b border-line pb-3 last:border-0 last:pb-0">
-          <p className="line-clamp-2 font-semibold">{m.body}</p>
-          <p className="text-small text-muted-foreground">
-            {formatDate(m.decided_at || m.created_at)} · {wardsOf(m)} · {m.status === "declined" ? `declined by ${m.decided_by}` : `${plural(m.recipients, "recipient")}, sent by ${m.decided_by}`}
-          </p>
-          {m.status === "declined" ? (
-            <DeclinedNote note={m.note} />
-          ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              <DeliveryBadges delivery={m.delivery} />
-              {data.can_send && (
-                <Button shape="rounded" size="sm" variant="quiet" aria-expanded={open === m.id} onClick={() => setOpen(open === m.id ? null : m.id)}>
-                  {open === m.id ? "Hide delivery log" : "Delivery log"}
-                </Button>
-              )}
-            </div>
-          )}
-          {open === m.id && <DeliveryLog id={m.id} />}
-        </article>
-      ))}
-    </Card>
+    <DraftList
+      drafts={data.messages.filter((m) => m.status === "draft")}
+      about={wardsOf}
+      decide={() => data.can_send}
+      canDelete={(m) => m.mine || data.can_send}
+      approve={useSendMessage()}
+      decline={useDeclineMessage()}
+      remove={useDeleteMessage()}
+    />
   );
+}
+
+function History({ data }) {
+  return <SentList messages={data.messages.filter((m) => m.status !== "draft")} title="Sent" about={wardsOf} sentBy="sent by" Log={data.can_send ? DeliveryLog : null} />;
 }
 
 function DeliveryLog({ id }) {

@@ -7,10 +7,11 @@ import { RichText } from "@/components/RichText";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { Field, FilterSelect, Input, NativeSelect } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
 import { AREAS, CONTACT_METHODS, PROFESSIONS, SEAT_LABEL, SEATS } from "@/pages/party/helpers";
-import { Photo, day } from "./story";
+import { formatDay } from "@/lib/format";
+import { Photo } from "./story";
 import { isEmail } from "../../lib/email";
 import { ErrorText } from "@/components/ui/error-text";
 
@@ -67,18 +68,8 @@ export function SupportForm({ c, send, withdrawPath }) {
         </Field>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Ward">
-          <NativeSelect value={f.ward} onChange={(e) => setF({ ...f, ward: e.target.value, registration_centre: "" })}>
-            <option value="">Pick your ward</option>
-            {c.wards.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </NativeSelect>
-        </Field>
-          <Field label="Polling station">
-          <NativeSelect value={f.registration_centre} onChange={set("registration_centre")} disabled={!f.ward}>
-            <option value="">Pick your polling station</option>
-            {centres.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-          </NativeSelect>
-        </Field>
+          <FilterSelect labelled label="Ward" blank="Pick your ward" value={f.ward} options={c.wards} onChange={(ward) => setF({ ...f, ward, registration_centre: "" })} />
+          <FilterSelect labelled label="Polling station" blank="Pick your polling station" value={f.registration_centre} options={centres} disabled={!f.ward} onChange={(registration_centre) => setF({ ...f, registration_centre })} />
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Profession">
@@ -229,7 +220,7 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
               {c.events.length ? c.events.map((e) => (
                 <Card key={e.id} asChild interactive className="flex-row flex-wrap items-center justify-between gap-3 p-[18px]">
                   <Link to={`/news/${e.id}`}>
-                    <span className="flex flex-col gap-1"><strong className="text-[17px]">{e.title}</strong><span className="text-small text-muted-foreground">{[day(e.event_date, { weekday: "short", day: "numeric", month: "long" }), e.venue].filter(Boolean).join(" · ")}</span></span>
+                    <span className="flex flex-col gap-1"><strong className="text-[17px]">{e.title}</strong><span className="text-small text-muted-foreground">{[formatDay(e.event_date, { weekday: "short", day: "numeric", month: "long" }), e.venue].filter(Boolean).join(" · ")}</span></span>
                     <span className="font-bold text-primary">Details →</span>
                   </Link>
                 </Card>

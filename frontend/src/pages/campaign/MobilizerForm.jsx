@@ -7,6 +7,7 @@ import { FormActions } from "@/components/ui/form-actions";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { InviteDialog } from "@/components/ui/invite-dialog";
 import { holderOf, loginBody, loginReady } from "./helpers";
+import LoginFields from "./LoginFields";
 
 // Units (wards, or centres in a ward race) with no mobilizer, plus the one `keep` holds.
 const freeUnits = (units, mobilizers, keep) =>
@@ -21,12 +22,11 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
   const [picked, setPicked] = useState(null);  // null until the user changes the ward box
   const unitKey = picked ?? (units.find((u) => mobilizer && holderOf([mobilizer], u))?.key || "");
   const [withLogin, setWithLogin] = useState(false);
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState({ username: "", email: "" });
   const [made, setMade] = useState(null);
   const busy = add.isPending || update.isPending || createUser.isPending;
   const error = add.error || update.error || createUser.error;
-  const ok = name.trim() && (!withLogin || loginReady({ username, email }));
+  const ok = name.trim() && (!withLogin || loginReady(login));
   const choices = freeUnits(units, mobilizers, mobilizer);
   const unitWord = byCentre ? "centre" : "ward";
 
@@ -38,7 +38,7 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
       update.mutate({ id: mobilizer.id, full_name: name.trim(), phone: phone.trim(), ...(moved && place) }, { onSuccess: onClose });
     } else if (withLogin) {
       createUser.mutate(
-        { ...loginBody({ name, username, email, phone }), role: "mobilizer", campaign: campaignId, ...place },
+        { ...loginBody({ name, phone, ...login }), role: "mobilizer", campaign: campaignId, ...place },
         { onSuccess: (created) => setMade({ ...created, place: unit?.name }) },
       );
     } else {
@@ -71,10 +71,7 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
         </label>
       )}
       {withLogin && (
-        <>
-          <Field label="Username"><Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="juma" /></Field>
-          <Field label="Email"><Input aria-label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="juma@example.com" /></Field>
-        </>
+        <LoginFields fields={["username", "email"]} form={login} set={(key) => (e) => setLogin({ ...login, [key]: e.target.value })} />
       )}
       <ErrorText error={error} />
       <FormActions>

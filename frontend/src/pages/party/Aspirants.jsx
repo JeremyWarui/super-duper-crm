@@ -11,18 +11,19 @@ import {
   useMoveAspirant,
   useNominate,
   useNominationWindows,
-  usePartyPlaceLists,
   usePublishNominationWindow,
   useReviseNominationWindow,
 } from "@/api/hooks";
 import MemberSearch from "@/components/MemberSearch";
+import LoginFields from "../campaign/LoginFields";
+import PlaceCascade from "@/components/PlaceCascade";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
-import { FilterSelect, Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
+import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { FormActions } from "@/components/ui/form-actions";
 import { InviteDialog } from "@/components/ui/invite-dialog";
 import { LoadingText } from "@/components/ui/loading-text";
@@ -32,42 +33,6 @@ import { isEmail } from "@/lib/email";
 import { formatDate, formatKES } from "@/lib/format";
 import { useAuth } from "@/store/auth";
 import { ASPIRANT_MOVES, ASPIRANT_STATUS_LABEL, ASPIRANT_STATUS_TONE, NEEDS_REASON, PAGE_SIZE, SEAT_AREA, SEAT_LABEL, SEATS } from "./helpers";
-
-// County, then constituency, then ward, down to the level the seat is fought over.
-function AreaPicker({ level, area, setArea }) {
-  const { counties, constituencies, wards } = usePartyPlaceLists(area);
-  return (
-    <div className="flex flex-wrap gap-2">
-      <FilterSelect
-        label="County"
-        blank="Pick the county"
-        value={area.county}
-        options={counties}
-        onChange={(county) => setArea({ county, constituency: "", ward: "" })}
-      />
-      {level !== "county" && (
-        <FilterSelect
-          label="Constituency"
-          blank="Pick the constituency"
-          value={area.constituency}
-          options={constituencies}
-          disabled={!area.county}
-          onChange={(constituency) => setArea({ ...area, constituency, ward: "" })}
-        />
-      )}
-      {level === "ward" && (
-        <FilterSelect
-          label="Ward"
-          blank="Pick the ward"
-          value={area.ward}
-          options={wards}
-          disabled={!area.constituency}
-          onChange={(ward) => setArea({ ...area, ward })}
-        />
-      )}
-    </div>
-  );
-}
 
 function Nominate({ onClose }) {
   const [q, setQ] = useState("");
@@ -106,7 +71,9 @@ function Nominate({ onClose }) {
       >
         {SEATS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </NativeSelect>
-      <AreaPicker level={level} area={area} setArea={setArea} />
+      <div className="flex flex-wrap gap-2">
+        <PlaceCascade level={level} place={area} onChange={setArea} blank={(lv) => `Pick the ${lv}`} />
+      </div>
       <ErrorText error={nominate.error} className="text-small" />
       <FormActions>
         <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
@@ -149,19 +116,13 @@ function Workspace({ aspirant, onDone }) {
         value={form.title} onChange={set("title")} />
       <Input aria-label="Election date" type="date"
         value={form.election_date} onChange={set("election_date")} />
-      <Input aria-label="Aspirant's username" maxLength={150}
-        placeholder="The aspirant's new username" value={form.candidate} onChange={set("candidate")} />
-      <Input aria-label="Aspirant's email" type="email" maxLength={254}
-        placeholder="The aspirant's email, to sign in with" value={form.candidate_email} onChange={set("candidate_email")} />
+      <LoginFields who="Aspirant's" fields={["username", "email"]} form={{ username: form.candidate, email: form.candidate_email }}
+        set={(key) => set(key === "username" ? "candidate" : "candidate_email")} />
       {memberEmail && form.candidate_email.trim().toLowerCase() === memberEmail.toLowerCase() ? (
         <p className="text-small text-muted-foreground">Their member login moves to this one: they sign in once and see both the workspace and their membership.</p>
       ) : null}
-      <Input aria-label="Manager's username" maxLength={150}
-        placeholder="A manager's new username (optional)" value={form.manager} onChange={set("manager")} />
-      {form.manager.trim() ? (
-        <Input aria-label="Manager's email" type="email" maxLength={254}
-          placeholder="The manager's email, to sign in with" value={form.manager_email} onChange={set("manager_email")} />
-      ) : null}
+      <LoginFields who="Manager's" placeholders={{ username: "Optional" }} fields={form.manager.trim() ? ["username", "email"] : ["username"]} form={{ username: form.manager, email: form.manager_email }}
+        set={(key) => set(key === "username" ? "manager" : "manager_email")} />
       <ErrorText error={create.error} className="text-small" />
       <FormActions>
         <Button shape="rounded" disabled={form.candidate.trim().length < 3 || !isEmail(form.candidate_email) || (form.manager.trim() && !isEmail(form.manager_email)) || create.isPending} onClick={submit}>

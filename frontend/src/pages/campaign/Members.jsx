@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { useAreaMembers } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Pager } from "@/components/ui/pager";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
 import { STATUS_LABEL } from "../party/helpers";
@@ -15,7 +15,6 @@ const TONE = { pending: "warn", approved: "ok", suspended: "warn", rejected: "ba
 export default function Members() {
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useAreaMembers(page);
-  const pages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
   return (
     <>
       <WsHeader context="Recruit" title="Party members" sub="Party members living in your area. View only: each time you open this list, it is recorded." />
@@ -39,12 +38,8 @@ export default function Members() {
               {data.members.length === 0 && <TR><TD colSpan={5} className="text-muted-foreground">No party members in your area yet.</TD></TR>}
             </TBody>
           </Table>
-          {pages > 1 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button shape="rounded" size="sm" variant="quiet" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
-              <span className="text-small text-muted-foreground">Page {fmt(page)} of {fmt(pages)}</span>
-              <Button shape="rounded" size="sm" variant="quiet" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</Button>
-            </div>
+          {data.total > data.page_size && (
+            <Pager offset={(page - 1) * data.page_size} size={data.page_size} shown={data.members.length} total={data.total} noun="members" onChange={(offset) => setPage(offset / data.page_size + 1)} />
           )}
         </Card>
       )}

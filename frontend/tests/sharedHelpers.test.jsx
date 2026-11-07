@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { download } from "../src/api/client";
 import ExportPanel from "../src/components/console/ExportPanel";
-import { initials } from "../src/lib/format";
+import { formatDay, initials } from "../src/lib/format";
 import { workspaceAlerts } from "../src/pages/campaign/shell";
 
 vi.mock("../src/api/client", () => ({ download: vi.fn(() => Promise.resolve()) }));
@@ -28,6 +28,11 @@ describe("shared helpers", () => {
     fireEvent.click(screen.getByRole("button", { name: "Download export" }));
 
     expect(download).toHaveBeenCalledWith("/admin/export/", "export-2026-11-08.zip");
+  });
+
+  it("reads a day in Nairobi time, whatever the browser's zone", () => {
+    expect(formatDay("2026-11-03")).toBe("3 November 2026");
+    expect(formatDay("2026-11-02T22:30:00Z", { day: "numeric", month: "short" })).toBe("3 Nov");
   });
 
   it("takes initials only from words that start with a letter", () => {

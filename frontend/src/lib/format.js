@@ -26,3 +26,11 @@ export const plural = (n, one, many = `${one}s`) => `${formatNumber(n)} ${n === 
 /** Up to two capitals from the words of a name that start with a letter: "Amina (Mama) Kariuki" is "AK". */
 export const initials = (name) =>
   (name || "").split(/\s+/).filter((w) => /^\p{L}/u.test(w)).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+
+/** A date or timestamp read in Nairobi time, in the parts `opts` names: "3 November 2026" by default. */
+export const formatDay = (value, opts = { day: "numeric", month: "long", year: "numeric" }) =>
+  value ? new Date(value.length === 10 ? `${value}T00:00:00+03:00` : value).toLocaleDateString("en-GB", { ...opts, timeZone: "Africa/Nairobi" }) : "";
+
+/** A row's ward, constituency and county names, whichever it has, as "Karen / Langata / Nairobi City". */
+export const placeOf = (row, sep = " / ") =>
+  [row.ward?.name, row.constituency?.name, row.county?.name].filter(Boolean).join(sep);

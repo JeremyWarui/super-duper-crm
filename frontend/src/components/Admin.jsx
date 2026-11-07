@@ -48,6 +48,8 @@ import ExportPanel from "./console/ExportPanel";
 import Health from "./console/Health";
 import ReferenceData from "./console/ReferenceData";
 import { LoadMore } from "@/components/ui/load-more";
+import MemberSearch from "./MemberSearch";
+import LoginFields from "../pages/campaign/LoginFields";
 
 const Btn = ({ children, onClick, disabled, variant = "quiet" }) => (
   <Button shape="rounded" size="sm" variant={variant} onClick={onClick} disabled={disabled}>
@@ -357,13 +359,7 @@ function NewLogin({ campaigns, create }) {
       <Heading>A new login</Heading>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Username">
-          <Input
-            value={form.username}
-            onChange={(e) => set({ username: e.target.value })}
-            placeholder="jane.wanjiku"
-          />
-        </Field>
+        <LoginFields fields={["username"]} form={form} set={(key) => (e) => set({ [key]: e.target.value })} />
         <Field label="They are a">
           <NativeSelect
             value={form.role}
@@ -381,35 +377,7 @@ function NewLogin({ campaigns, create }) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="First name">
-          <Input
-            value={form.first_name}
-            onChange={(e) => set({ first_name: e.target.value })}
-          />
-        </Field>
-        <Field label="Last name">
-          <Input
-            value={form.last_name}
-            onChange={(e) => set({ last_name: e.target.value })}
-          />
-        </Field>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Email">
-          <Input
-            type="email"
-            value={form.email}
-            onChange={(e) => set({ email: e.target.value })}
-          />
-        </Field>
-        <Field label="Phone">
-          <Input
-            value={form.phone}
-            onChange={(e) => set({ phone: e.target.value })}
-            placeholder="0712 345678"
-          />
-        </Field>
+        <LoginFields fields={["first_name", "last_name", "email", "phone"]} form={form} set={(key) => (e) => set({ [key]: e.target.value })} />
       </div>
 
       {!isStaff && (
@@ -502,14 +470,6 @@ function NewLogin({ campaigns, create }) {
 }
 
 const NO_MANAGER = { username: "", first_name: "", last_name: "", email: "", phone: "" };
-const MANAGER_FIELDS = [
-  ["username", "Username", "text"],
-  ["first_name", "First name", "text"],
-  ["last_name", "Last name", "text"],
-  ["email", "Email", "email"],
-  ["phone", "Phone", "text"],
-];
-
 // A party copy's own workspace when setup did not open it; gone once it exists.
 function OpenPartyWorkspace({ onInvite }) {
   const { party } = useInstall();
@@ -551,15 +511,7 @@ function OpenPartyWorkspace({ onInvite }) {
     <Card variant="outline" className="gap-3">
       <Heading>{title}</Heading>
       <div className="grid gap-3 sm:grid-cols-2">
-        {MANAGER_FIELDS.map(([key, label, type]) => (
-          <Field key={key} label={label}>
-            <Input
-              type={type}
-              value={form[key]}
-              onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-            />
-          </Field>
-        ))}
+        <LoginFields fields={["username", "first_name", "last_name", "email", "phone"]} form={form} set={(key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
       </div>
       <Help>
         {replace
@@ -598,30 +550,17 @@ function MemberLink({ user, onLinked }) {
           )}
         </span>
       ) : (
-        <span className="flex flex-wrap items-center gap-2">
-          <Input
-            className={INLINE}
-            aria-label={`Party member for ${user.username}`}
-            placeholder="Link to a party member…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          {searching &&
-            (found.data?.items || []).map((m) => (
-              <Btn
-                key={m.id}
-                disabled={link.isPending}
-                onClick={() =>
-                  link.mutate(
-                    { user: user.id, member: m.id },
-                    { onSuccess: () => { setQ(""); onLinked(); } },
-                  )
-                }
-              >
-                {m.full_name}
-              </Btn>
-            ))}
-        </span>
+        <MemberSearch
+          label={`Party member for ${user.username}`}
+          placeholder="Name or phone of an approved member"
+          query={q}
+          onQuery={setQ}
+          results={searching ? found.data?.items || [] : undefined}
+          loading={found.isFetching}
+          empty="No approved member matches."
+          picked={null}
+          onPick={(m) => !link.isPending && link.mutate({ user: user.id, member: m.id }, { onSuccess: () => { setQ(""); onLinked(); } })}
+        />
       )}
       <ErrorText error={link.isError && link.error} className="text-small" />
     </div>

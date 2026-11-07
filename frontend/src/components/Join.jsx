@@ -4,7 +4,7 @@ import { useJoin, useJoinPage } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
-import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { Field, FilterSelect, Input } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 
 // The person's own way back off the register; shown once, after signing up.
@@ -64,10 +64,7 @@ export default function Join({ code }) {
       </Field>
       {p.places.length > 0 && (
         <Field label={p.place === "centre" ? "Your registration centre" : "Your ward"}>
-          <NativeSelect aria-label="Where you vote" value={place} onChange={(e) => setPlace(e.target.value)}>
-            <option value="">{p.place === "centre" ? "Not sure" : "Pick your ward"}</option>
-            {p.places.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-          </NativeSelect>
+          <FilterSelect label="Where you vote" blank={p.place === "centre" ? "Not sure" : "Pick your ward"} value={place} onChange={setPlace} options={p.places} className="w-full flex-none" />
         </Field>
       )}
       <label className="flex cursor-pointer items-start gap-3 text-ui leading-[1.5] text-muted-foreground">

@@ -4,9 +4,9 @@ import { usePublicBranch, usePublicPosts } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
-import { day } from "./story";
+import { formatDay } from "@/lib/format";
 
-const dayWithWeekday = (iso) => day(iso, { weekday: "short", day: "numeric", month: "long", year: "numeric" });
+const dayWithWeekday = (iso) => formatDay(iso, { weekday: "short", day: "numeric", month: "long", year: "numeric" });
 
 export default function Branch() {
   const { id } = useParams();

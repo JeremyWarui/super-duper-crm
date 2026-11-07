@@ -5,6 +5,7 @@ import {
   useAppointOfficial, useBranchOfficials, useEndTerm, useOfficeBranches, usePartyMembers, useSaveBranch, useUploadMinutes,
 } from "@/api/hooks";
 import { useAuth } from "@/store/auth";
+import ConfigFields from "@/components/ConfigFields";
 import MemberSearch from "@/components/MemberSearch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,10 +20,10 @@ import { useShowMore } from "@/lib/useShowMore";
 import { LoadMore } from "@/components/ui/load-more";
 
 const FIELDS = [
-  ["office_address", "Office address"],
-  ["phone", "Office phone"],
-  ["email", "Office email"],
-  ["next_meeting_venue", "Next meeting venue"],
+  ["office_address", "Office address", 300],
+  ["phone", "Office phone", 20],
+  ["email", "Office email", 254, { type: "email" }],
+  ["next_meeting_venue", "Next meeting venue", 150],
 ];
 const OFFICES = [
   ["chair", "Chairperson"],
@@ -56,11 +57,7 @@ function BranchForm({ row, onDone }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3.5 border-t border-line-soft pt-4" aria-label="Branch office">
       <h3 className="text-card-title font-bold">Branch office</h3>
-      {FIELDS.map(([key, label]) => (
-        <Field key={key} label={label}>
-          <Input value={form[key]} onChange={set(key)} maxLength={key === "office_address" ? 300 : key === "phone" ? 20 : key === "email" ? 254 : 150} type={key === "email" ? "email" : "text"} />
-        </Field>
-      ))}
+      <ConfigFields fields={FIELDS} form={form} set={set} />
       <Field label="Next meeting date">
         <Input type="date" value={form.next_meeting_on} onChange={set("next_meeting_on")} />
       </Field>

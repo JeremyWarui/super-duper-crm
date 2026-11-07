@@ -18,9 +18,9 @@ import { Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 import { Pager } from "@/components/ui/pager";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
-import { formatDate } from "@/lib/format";
-import { AREA_LABEL, AREAS, CONTACT_LABEL, NO_PLACE, PAGE_SIZE, placeOf, PROFESSION_LABEL, STATUS_LABEL, STATUS_TONE, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE } from "./helpers";
-import PlaceFilters from "./PlaceFilters";
+import { formatDate, placeOf } from "@/lib/format";
+import { AREA_LABEL, AREAS, CONTACT_LABEL, NO_PLACE, PAGE_SIZE, PROFESSION_LABEL, STATUS_LABEL, STATUS_TONE, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE } from "./helpers";
+import PlaceCascade from "@/components/PlaceCascade";
 
 const areasOf = (v) =>
   v.interests.map((x) => (x === "other" && v.interest_other ? `Other: ${v.interest_other}` : AREA_LABEL[x] || x)).join(", ");
@@ -142,7 +142,7 @@ export default function Volunteers() {
           <option value="">All areas</option>
           {AREAS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </NativeSelect>
-        <PlaceFilters place={where} onChange={set(setWhere)} />
+        <PlaceCascade place={where} onChange={set(setWhere)} />
       </div>
       <Card variant="outline">
         <Table stack minWidth={960}>

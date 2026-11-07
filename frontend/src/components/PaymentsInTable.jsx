@@ -8,14 +8,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import { formatKES } from "../lib/format";
+import { formatDay, formatKES } from "../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 
 const LABEL = { pending: "Waiting for the phone", paid: "Paid", to_confirm: "To confirm", failed: "Failed", rejected: "Rejected" };
 const TONE = { pending: "stone", paid: "ok", to_confirm: "warn", failed: "bad", rejected: "bad" };
 const PURPOSE = { contribution: "Contribution", nomination_fee: "Nomination fee" };
 const FILTERS = { "To confirm": "to_confirm", Paid: "paid", All: "" };
-const day = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 /** A workspace's list with `campaignId`; the party's without. */
 export default function PaymentsInTable({ campaignId }) {
@@ -39,7 +38,7 @@ export default function PaymentsInTable({ campaignId }) {
         <TBody>
           {rows.map((r) => (
             <TR key={r.id}>
-              <TD>{day(r.created_at)}</TD>
+              <TD>{formatDay(r.created_at, { day: "numeric", month: "short" })}</TD>
               <TD><div className="font-semibold">{r.payer_name}</div><div className="text-small text-muted-foreground">{r.payer_phone}</div></TD>
               <TD>{PURPOSE[r.purpose]}</TD>
               <TD align="right" className="tabular-nums">{formatKES(r.amount_kes)}</TD>

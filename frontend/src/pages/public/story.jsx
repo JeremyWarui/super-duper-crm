@@ -4,10 +4,6 @@ import { initials } from "@/lib/format";
 
 export const LABELS = { statement: "Statement", news: "News", opinion: "Opinion" };
 
-/** "3 November 2026" from an ISO date; pass `opts` for other parts. */
-export const day = (iso, opts = { day: "numeric", month: "long", year: "numeric" }) =>
-  iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", opts) : "";
-
 export function Photo({ url, className = "" }) {
   return url ? <img src={url} alt="" className={`object-cover ${className}`} /> : <div className={`ph ${className}`} />;
 }

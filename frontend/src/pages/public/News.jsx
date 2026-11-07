@@ -5,10 +5,11 @@ import { usePublicPosts } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RailHead } from "@/components/ui/typography";
-import { Initials, LABELS, Photo, StoryKicker, day } from "./story";
+import { formatDay } from "@/lib/format";
+import { Initials, LABELS, Photo, StoryKicker } from "./story";
 
 const PAGE = 20;
-const short = (iso) => day(iso, { day: "numeric", month: "short" });
+const short = (iso) => formatDay(iso, { day: "numeric", month: "short" });
 
 function Lead({ lead, beside }) {
   return (
@@ -21,7 +22,7 @@ function Lead({ lead, beside }) {
         </h2>
         {lead.excerpt ? <p className="line-clamp-2 max-w-[60ch] text-[18px] leading-[1.6] text-text-2">{lead.excerpt}</p> : null}
         <span className="text-small text-muted-foreground">
-          {lead.author ? `By ${lead.author} · ` : ""}{day(lead.published_on)} · {lead.read_minutes} min read
+          {lead.author ? `By ${lead.author} · ` : ""}{formatDay(lead.published_on)} · {lead.read_minutes} min read
         </span>
       </article>
       <div className="flex min-w-0 flex-[2_1_320px] flex-col">
@@ -54,7 +55,7 @@ function More({ stories, offset, setOffset, full }) {
               <Photo url={n.image_url} className="aspect-[16/10] w-full rounded-photo" />
               <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{LABELS[n.label] || "News"}{n.place ? ` · ${n.place}` : ""}</span>
               <span className="text-[18px] leading-[1.3] font-bold">{n.title}</span>
-              <span className="text-small text-muted-foreground">{day(n.published_on)} · {n.read_minutes} min read</span>
+              <span className="text-small text-muted-foreground">{formatDay(n.published_on)} · {n.read_minutes} min read</span>
             </Link>
           ))}
         </div>
@@ -124,7 +125,7 @@ function Statements() {
             <span className="flex min-w-0 flex-col gap-1">
               <span className="font-bold leading-[1.35]">{d.title}</span>
               <span className="text-meta text-muted-foreground">
-                {d.reference ? `Ref. ${d.reference} · ` : ""}{day(d.published_on)}{d.author ? ` · signed by ${d.author}` : ""}
+                {d.reference ? `Ref. ${d.reference} · ` : ""}{formatDay(d.published_on)}{d.author ? ` · signed by ${d.author}` : ""}
               </span>
             </span>
             {d.pdf_url ? <span className="text-meta font-extrabold text-primary">PDF</span> : null}

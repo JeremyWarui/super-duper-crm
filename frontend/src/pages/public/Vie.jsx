@@ -8,7 +8,7 @@ import { Crumbs } from "@/components/ui/typography";
 
 import { SEAT_LABEL } from "../party/helpers";
 import { formatKES } from "../../lib/format";
-import { day } from "./story";
+import { formatDay } from "@/lib/format";
 
 
 // The published nominations timetable: open now, or the next to open.
@@ -22,7 +22,7 @@ function Timetable() {
           <h2 id="timetable-h" className="font-display text-[26px] font-extrabold">{notice.title}</h2>
           <Badge tone={notice.open ? "ok" : "info"}>{notice.open ? "Applications open" : "Opens soon"}</Badge>
         </div>
-        <p className="text-[17px]">Applications from <strong>{day(notice.opens_on)}</strong> to <strong>{day(notice.closes_on)}</strong>.</p>
+        <p className="text-[17px]">Applications from <strong>{formatDay(notice.opens_on)}</strong> to <strong>{formatDay(notice.closes_on)}</strong>.</p>
         <table className="w-full max-w-[480px] text-left">
           <thead><tr className="text-small text-muted-foreground"><th className="py-1 font-semibold">Seat</th><th className="py-1 text-right font-semibold">Nomination fee</th></tr></thead>
           <tbody>

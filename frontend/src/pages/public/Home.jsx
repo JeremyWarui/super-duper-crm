@@ -18,12 +18,13 @@ import { NativeSelect } from "@/components/ui/input";
 import { SectionHead } from "@/components/ui/typography";
 import { useBranding } from "@/theme/branding";
 import { useCopy } from "@/copy";
+import { formatDay } from "@/lib/format";
 import { LABELS, StoryKicker } from "./story";
 import { CandidateCard } from "./Candidates";
 
 const ROTATE_MS = 6000;
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-const ago = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long" }) : "");
+const ago = (iso) => formatDay(iso, { day: "numeric", month: "long" });
 const isInternal = (url) => url.startsWith("/");
 
 function SlideButton({ slide }) {
@@ -259,12 +260,11 @@ export function Events() {
         <SectionHead kicker="Coming up" title="Upcoming events" action={{ label: "Full calendar", to: "/events" }} onDark />
         <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
           {events.slice(0, 3).map((e) => {
-            const d = new Date(`${e.event_date}T00:00:00`);
             return (
               <Link key={e.id} to={`/news/${e.id}`} className="flex flex-col gap-3.5 rounded-photo border border-ink-2 p-[22px] text-on-dark no-underline hover:text-white">
                 <span className="flex h-16 w-[58px] flex-col items-center justify-center rounded-lg bg-accent text-ink">
-                  <span className="text-[11px] font-extrabold tracking-[0.08em] uppercase">{d.toLocaleDateString("en-GB", { month: "short" })}</span>
-                  <span className="font-display text-2xl leading-none font-extrabold">{d.getDate()}</span>
+                  <span className="text-[11px] font-extrabold tracking-[0.08em] uppercase">{formatDay(e.event_date, { month: "short" })}</span>
+                  <span className="font-display text-2xl leading-none font-extrabold">{formatDay(e.event_date, { day: "numeric" })}</span>
                 </span>
                 <span className="text-[19px] leading-[1.3] font-bold">{e.title}</span>
                 {e.venue ? <span className="text-ui text-on-dark-muted">{e.venue}</span> : null}

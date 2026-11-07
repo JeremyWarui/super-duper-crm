@@ -365,7 +365,7 @@ describe("adding a mobilizer", () => {
       const boxes = await screen.findAllByRole("textbox");
       await user.type(boxes[0], "Wanjiku Njeri");
       await user.click(screen.getByRole("checkbox"));
-      await user.type(await screen.findByPlaceholderText("juma"), "Wanjiku");
+      await user.type(await screen.findByRole("textbox", { name: "Username" }), "Wanjiku");
       await user.type(screen.getByRole("textbox", { name: "Email" }), "wanjiku@example.com");
       await user.click(screen.getByRole("button", { name: "Save mobilizer" }));
 

@@ -2,14 +2,14 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { usePartyPlaces, usePublicPosts } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
-import { NativeSelect } from "@/components/ui/input";
+import { FilterSelect } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
-import { day } from "./story";
+import { formatDay } from "@/lib/format";
 
 function byMonth(events) {
   const months = [];
   for (const e of events) {
-    const name = day(e.event_date, { month: "long", year: "numeric" });
+    const name = formatDay(e.event_date, { month: "long", year: "numeric" });
     if (months.at(-1)?.name !== name) months.push({ name, events: [] });
     months.at(-1).events.push(e);
   }
@@ -21,8 +21,8 @@ function EventCard({ e }) {
     <Card asChild interactive className="flex-row flex-wrap items-center gap-5 p-5">
       <Link to={`/news/${e.id}`}>
         <span className="flex h-20 w-[72px] flex-none flex-col items-center justify-center rounded-[8px] bg-primary-tint text-primary">
-          <span className="text-meta font-extrabold uppercase tracking-[0.08em]">{day(e.event_date, { weekday: "short" })}</span>
-          <span className="font-display text-[30px] leading-none font-extrabold">{day(e.event_date, { day: "numeric" })}</span>
+          <span className="text-meta font-extrabold uppercase tracking-[0.08em]">{formatDay(e.event_date, { weekday: "short" })}</span>
+          <span className="font-display text-[30px] leading-none font-extrabold">{formatDay(e.event_date, { day: "numeric" })}</span>
         </span>
         <span className="flex min-w-0 flex-[1_1_220px] flex-col gap-1.5">
           <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">Event{e.county ? ` · ${e.county.name}` : ""}</span>
@@ -40,7 +40,7 @@ export default function Events() {
   const counties = usePartyPlaces().data || [];
   const events = usePublicPosts("event", 0, { county });
   const months = byMonth(events.data || []);
-  const pick = (e) => setParams(e.target.value ? { county: e.target.value } : {}, { replace: true });
+  const pick = (county) => setParams(county ? { county } : {}, { replace: true });
   return (
     <>
       <section className="bg-ink text-on-dark">
@@ -49,10 +49,7 @@ export default function Events() {
           <h1 className="font-display text-[clamp(40px,5vw,64px)] leading-none font-extrabold tracking-[-0.03em]">Events near you</h1>
           <label className="flex w-full max-w-[280px] flex-col gap-1.5 text-small font-semibold text-on-dark-muted">
             County
-            <NativeSelect value={county} onChange={pick} className="border-0 bg-white text-ink">
-              <option value="">All counties</option>
-              {counties.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </NativeSelect>
+            <FilterSelect label="County" blank="All counties" value={county} onChange={pick} options={counties} className="w-full flex-none border-0 bg-white text-ink" />
           </label>
         </div>
       </section>

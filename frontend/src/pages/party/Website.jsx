@@ -25,7 +25,6 @@ import {
   useSaveSlide,
   useSaveValue,
   useSaveVideo,
-  usePartyPlaces,
   useSiteDocuments,
   useSiteIssues,
   useSiteLeaders,
@@ -37,6 +36,7 @@ import {
   useSiteVideos,
   useUploadImage,
 } from "@/api/hooks";
+import PlaceCascade from "@/components/PlaceCascade";
 import { RichTextEditor } from "@/components/RichText";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -188,16 +188,6 @@ function payload(fields, form, row) {
   return Object.fromEntries(Object.entries(body).filter(([k, v]) => (v ?? "") !== (row[k] ?? "")));
 }
 
-function CountySelect(props) {
-  const counties = usePartyPlaces().data || [];
-  return (
-    <NativeSelect {...props}>
-      <option value="">No county</option>
-      {counties.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-    </NativeSelect>
-  );
-}
-
 /** An image address with a file picker that uploads the chosen image and fills the address in. */
 /** An uploaded file or an https:// address; `pdf` takes a PDF instead of an image. */
 export function ImageField({ label, hint, value, onChange, invalid, upload: path, area, pdf = false }) {
@@ -261,7 +251,7 @@ function ItemForm({ section, row, onDone }) {
             <Field key={f.key} label={f.label} hint={hint}>
               {f.kind === "area" ? <Textarea rows={4} maxLength={f.max} {...common} />
                 : f.kind === "select" ? <NativeSelect {...common}>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</NativeSelect>
-                : f.kind === "county" ? <CountySelect {...common} />
+                : f.kind === "county" ? <PlaceCascade level="county" place={{ county: form[f.key] ?? "" }} onChange={(p) => setForm((now) => ({ ...now, [f.key]: p.county }))} blank={() => "No county"} className="w-full flex-none" aria-label={f.label} aria-invalid={common["aria-invalid"]} />
                 : <Input type={f.kind === "date" ? "date" : "text"} inputMode={f.kind === "order" || f.kind === "count" ? "numeric" : undefined} maxLength={f.max} {...common} />}
             </Field>
           );

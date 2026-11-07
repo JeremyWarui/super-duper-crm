@@ -34,7 +34,7 @@ export default function Mobilizers({ campaign, onModal }) {
   const noun = byCentre ? "centre" : "ward";
   const { data, isLoading, error } = useMobilizers(campaign.id);
   const people = data || [];
-  const placeOf = (m) => {
+  const unitOf = (m) => {
     if (!byCentre) return m.ward_name;
     if (!m.registration_centre) return null;
     return units.find((u) => u.registration_centre === m.registration_centre)?.name || "A centre with no target";
@@ -61,7 +61,7 @@ export default function Mobilizers({ campaign, onModal }) {
                         <span className="font-semibold">{m.full_name}</span>
                       </div>
                     </TD>
-                    <TD className={placeOf(m) ? undefined : "text-muted-foreground"}>{placeOf(m) || `No ${noun} yet`}</TD>
+                    <TD className={unitOf(m) ? undefined : "text-muted-foreground"}>{unitOf(m) || `No ${noun} yet`}</TD>
                     <TD className="text-muted-foreground tabular-nums">{m.phone || "None"}</TD>
                     <TD align="right">
                       <div className="flex justify-end gap-2">

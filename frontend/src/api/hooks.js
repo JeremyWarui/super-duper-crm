@@ -827,11 +827,12 @@ export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = 
   });
 
 /** The counties, the chosen county's constituencies and the chosen constituency's wards, each [] until loaded. */
-export function usePartyPlaceLists({ county, constituency } = {}) {
+export function usePartyPlaceLists({ county, constituency, ward } = {}, { centres: withCentres = false } = {}) {
   const counties = usePartyPlaces().data || [];
   const constituencies = usePartyPlaces({ county, enabled: !!county }).data || [];
   const wards = usePartyPlaces({ constituency, enabled: !!constituency }).data || [];
-  return { counties, constituencies, wards };
+  const centres = usePartyPlaces({ ward, enabled: withCentres && !!ward }).data || [];
+  return { counties, constituencies, wards, centres };
 }
 
 // County branches: published ones for the site, every county's for the superuser.

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useSaveWorkspaceSettings, useWorkspaceSettings } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Input, Textarea } from "@/components/ui/input";
+import ConfigFields from "@/components/ConfigFields";
+import { Field, Input } from "@/components/ui/input";
 import { ErrorText } from "@/components/ui/error-text";
 
 const LINES = [
@@ -24,9 +25,9 @@ const COLOURS = [
   ["secondary_colour", "Secondary colour", "Highlights; dark text sits on it."],
 ];
 const TEXTS = [
-  ["description", "About the campaign", 6],
-  ["payment_instructions", "How to give (shown on the Contribute page)", 4],
-  ["privacy_notice", "Privacy notice", 8],
+  ["description", "About the campaign", undefined, { rows: 6 }],
+  ["payment_instructions", "How to give (shown on the Contribute page)", undefined, { rows: 4 }],
+  ["privacy_notice", "Privacy notice", undefined, { rows: 8 }],
 ];
 // Sent back unchanged; this page does not edit them.
 const KEPT = ["about_headline", "social_links", "manifesto_text", "manifesto_url"];
@@ -46,9 +47,7 @@ function SettingsForm({ settings }) {
     <Card variant="outline" asChild>
       <form onSubmit={submit} className="flex max-w-[720px] flex-col gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          {LINES.map(([key, label, max]) => (
-            <Field key={key} label={label}><Input value={form[key] ?? ""} maxLength={max} onChange={set(key)} /></Field>
-          ))}
+          <ConfigFields fields={LINES} form={form} set={set} />
           {COLOURS.map(([key, label, hint]) => (
             <Field key={key} label={label} hint={hint}>
               <span className="flex items-center gap-2">
@@ -58,9 +57,7 @@ function SettingsForm({ settings }) {
             </Field>
           ))}
         </div>
-        {TEXTS.map(([key, label, rows]) => (
-          <Field key={key} label={label}><Textarea rows={rows} value={form[key] ?? ""} onChange={set(key)} /></Field>
-        ))}
+        <ConfigFields fields={TEXTS} form={form} set={set} />
         <ErrorText error={save.error} className="text-small" />
         {save.isSuccess ? <p role="status" className="text-small text-muted-foreground">Saved.</p> : null}
         <Button type="submit" shape="rounded" className="self-start" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save settings"}</Button>

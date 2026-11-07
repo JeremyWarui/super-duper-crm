@@ -5,7 +5,8 @@ import { PdfViewer } from "@/components/PdfViewer";
 import { RichText } from "@/components/RichText";
 import { Card } from "@/components/ui/card";
 import { Crumbs, RailHead } from "@/components/ui/typography";
-import { Initials, LABELS, Photo, StoryKicker, day } from "./story";
+import { formatDay } from "@/lib/format";
+import { Initials, LABELS, Photo, StoryKicker } from "./story";
 
 function Record({ post }) {
   return (
@@ -14,7 +15,7 @@ function Record({ post }) {
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[15px]">
         {post.reference ? <><dt className="text-muted-foreground">Reference</dt><dd className="font-semibold">{post.reference}</dd></> : null}
         {post.author ? <><dt className="text-muted-foreground">Issued by</dt><dd className="font-semibold">{post.author}</dd></> : null}
-        <dt className="text-muted-foreground">Date issued</dt><dd className="font-semibold">{day(post.published_on)}</dd>
+        <dt className="text-muted-foreground">Date issued</dt><dd className="font-semibold">{formatDay(post.published_on)}</dd>
       </dl>
     </section>
   );
@@ -32,7 +33,7 @@ function ReadNext({ id }) {
             <Photo url={n.image_url} className="aspect-[16/10] w-full rounded-photo" />
             <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{LABELS[n.label] || "News"}</span>
             <span className="text-[18px] leading-[1.3] font-bold">{n.title}</span>
-            <span className="text-small text-muted-foreground">{day(n.published_on)} · {n.read_minutes} min read</span>
+            <span className="text-small text-muted-foreground">{formatDay(n.published_on)} · {n.read_minutes} min read</span>
           </Link>
         ))}
       </div>
@@ -49,7 +50,7 @@ function LatestStatements({ id }) {
         <RailHead id="rel-h">Latest statements</RailHead>
         {list.map((r) => (
           <Link key={r.id} to={`/news/${r.id}`} className="flex flex-col gap-1 border-t border-line-soft pt-2.5 text-ink no-underline hover:text-primary">
-            <span className="text-meta font-bold text-primary">{day(r.published_on)}</span>
+            <span className="text-meta font-bold text-primary">{formatDay(r.published_on)}</span>
             <span className="text-[15px] leading-[1.35] font-bold">{r.title}</span>
           </Link>
         ))}
@@ -75,7 +76,7 @@ export default function Post({ id }) {
           <div className="flex items-center gap-2.5 border-y border-line-2 py-3.5">
             {event ? (
               <span className="flex flex-col">
-                <strong className="text-[15px]">{day(p.event_date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</strong>
+                <strong className="text-[15px]">{formatDay(p.event_date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</strong>
                 <span className="text-small text-muted-foreground">{[p.venue, p.county?.name].filter(Boolean).join(" · ")}</span>
               </span>
             ) : (
@@ -83,7 +84,7 @@ export default function Post({ id }) {
                 {p.author ? <Initials name={p.author} url={p.author_photo_url} className="size-10 flex-none" /> : null}
                 <span className="flex flex-col">
                   {p.author ? <strong className="text-[15px]">{p.author}</strong> : null}
-                  <span className="text-small text-muted-foreground">Published {day(p.published_on)} · {p.read_minutes} min read</span>
+                  <span className="text-small text-muted-foreground">Published {formatDay(p.published_on)} · {p.read_minutes} min read</span>
                 </span>
               </>
             )}
