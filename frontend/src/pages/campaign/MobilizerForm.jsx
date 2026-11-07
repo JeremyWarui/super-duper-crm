@@ -1,7 +1,11 @@
 import { useState } from "react";
-import { FormActions, InviteModal, Modal } from "../../components/ui";
-import { useAddMobilizer, useCreateUser, useUpdateMobilizer } from "../../api/hooks";
-import { Btn, Label, PrimaryBtn } from "./controls";
+import { useAddMobilizer, useCreateUser, useUpdateMobilizer } from "@/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { InviteDialog } from "@/components/ui/invite-dialog";
 import { holderOf, loginBody, loginReady } from "./helpers";
 
 // Units (wards, or centres in a ward race) with no mobilizer, plus the one `keep` holds.
@@ -44,41 +48,39 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
 
   if (made) {
     return (
-      <InviteModal title="Mobilizer added" invite={made.invite} username={made.username} onClose={onClose}>
+      <InviteDialog title="Mobilizer added" invite={made.invite} username={made.username} onClose={onClose}>
         {made.place ? <>They work {made.place}.</> : <>Assign them a {unitWord} from the Wards page.</>}
-      </InviteModal>
+      </InviteDialog>
     );
   }
 
   return (
-    <Modal title={mobilizer ? "Edit mobilizer" : "Add mobilizer"} sub={`One mobilizer per ${unitWord}. The ${unitWord} can be left for later.`} onClose={onClose}>
-      <Label>Full name</Label><input className="app-field" value={name} onChange={(e) => setName(e.target.value)} />
-      <div className="field-gap" /><Label>Phone</Label><input className="app-field" value={phone} onChange={(e) => setPhone(e.target.value)} />
-      <div className="field-gap" /><Label>{byCentre ? "Registration centre" : "Ward"}</Label>
-      <select aria-label={byCentre ? "Registration centre" : "Ward"} className="app-field" value={unitKey} onChange={(e) => setPicked(e.target.value)}>
-        <option value="">No {unitWord} yet</option>
-        {choices.map((u) => <option key={u.key} value={u.key}>{u.name}</option>)}
-      </select>
+    <Dialog title={mobilizer ? "Edit mobilizer" : "Add mobilizer"} description={`One mobilizer per ${unitWord}. The ${unitWord} can be left for later.`} onClose={onClose}>
+      <Field label="Full name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+      <Field label="Phone"><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
+      <Field label={byCentre ? "Registration centre" : "Ward"}>
+        <NativeSelect aria-label={byCentre ? "Registration centre" : "Ward"} value={unitKey} onChange={(e) => setPicked(e.target.value)}>
+          <option value="">No {unitWord} yet</option>
+          {choices.map((u) => <option key={u.key} value={u.key}>{u.name}</option>)}
+        </NativeSelect>
+      </Field>
       {!mobilizer && (
-        <label className="flex items-start gap-2 checkbox-row">
-          <input type="checkbox" checked={withLogin} onChange={(e) => setWithLogin(e.target.checked)} className="checkbox" />
+        <label className="flex min-h-11 cursor-pointer items-start gap-3 text-ui text-muted-foreground">
+          <input type="checkbox" checked={withLogin} onChange={(e) => setWithLogin(e.target.checked)} className="mt-0.5 size-[18px] flex-none accent-primary" />
           Give them a login, so they can record their own events and supporters.
         </label>
       )}
       {withLogin && (
         <>
-          <div className="field-gap" /><Label>Username</Label>
-          <input className="app-field" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="juma" />
-          <div className="field-gap" /><Label>Email</Label>
-          <input aria-label="Email" type="email" className="app-field" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="juma@example.com" />
+          <Field label="Username"><Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="juma" /></Field>
+          <Field label="Email"><Input aria-label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="juma@example.com" /></Field>
         </>
       )}
-      {error && <div className="form-error">{error.message}</div>}
+      <ErrorText error={error} />
       <FormActions>
-        <Btn onClick={onClose}>Cancel</Btn>
-        <PrimaryBtn disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : "Save mobilizer"}</PrimaryBtn>
+        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button shape="rounded" disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : "Save mobilizer"}</Button>
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }
-

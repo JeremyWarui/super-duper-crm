@@ -11,7 +11,6 @@ import Portal from "./pages/party/Portal";
 import Join from "./components/Join";
 import Withdraw from "./components/Withdraw";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import Legacy from "./components/Legacy";
 import About from "./pages/public/About";
 import Events from "./pages/public/Events";
 import Home from "./pages/public/Home";
@@ -67,10 +66,10 @@ function SignedIn() {
   // A staff login is never on a campaign, so it needs no campaign list to be routed.
   if (staff && partyRoles?.length) return <Portal />;
   if (campaigns.error?.code === "campaign_suspended") {
-    return <Legacy><SignedInNotice title={campaigns.error.message} rest=". Your campaign's data is kept, and the campaign opens again if the party reinstates its aspirant." /></Legacy>;
+    return <SignedInNotice title={campaigns.error.message} rest=". Your campaign's data is kept, and the campaign opens again if the party reinstates its aspirant." />;
   }
   if (campaigns.isSuccess && campaigns.data.length === 0) {
-    return partyRoles?.length ? <Portal /> : <Legacy><NoCampaign /></Legacy>;
+    return partyRoles?.length ? <Portal /> : <NoCampaign />;
   }
   return <App />;
 }
@@ -175,8 +174,9 @@ const SHARED = [
   ["/reset/:token", () => page(<SetPassword />)],
   ["/team/:code", () => page(<TeamSignup />)],
   ["/account", () => <SignedInOnly><AccountPage /></SignedInOnly>],
-  ["/join/:code", () => <Legacy><JoinPage /></Legacy>],
-  ["/withdraw/:code", () => <Legacy><WithdrawPage /></Legacy>],
+  // An event's QR code opens the sign-up page on its own, without waiting for the site frame.
+  ["/join/:code", () => <JoinPage />],
+  ["/withdraw/:code", () => page(<WithdrawPage />)],
 ];
 
 const PARTY = [
@@ -192,8 +192,8 @@ const PARTY = [
   ["/join-party", () => page(<JoinParty />)],
   ["/counties", () => page(<Branches />)],
   ["/counties/:id", () => page(<Branch />)],
-  ["/party/withdraw/:code", () => <Legacy><WithdrawPartyPage /></Legacy>],
-  ["/party/volunteer/withdraw/:code", () => <Legacy><WithdrawVolunteerPage /></Legacy>],
+  ["/party/withdraw/:code", () => page(<WithdrawPartyPage />)],
+  ["/party/volunteer/withdraw/:code", () => page(<WithdrawVolunteerPage />)],
 ];
 
 const ASPIRANT = [

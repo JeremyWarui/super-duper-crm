@@ -2,6 +2,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/input";
 
 describe("the UI kit", () => {
   it("renders a primary button on the party colour at the 44px touch height", () => {
@@ -10,5 +11,12 @@ describe("the UI kit", () => {
     const button = screen.getByRole("button", { name: "Join the party" });
     expect(button.className).toMatch(/\bbg-primary\b/);
     expect(button.className).toMatch(/\bh-11\b/);
+  });
+
+  it("draws a select on white with its down arrow", () => {
+    render(<NativeSelect aria-label="County"><option>All counties</option></NativeSelect>);
+
+    const select = screen.getByRole("combobox", { name: "County" });
+    expect(select.className.split(" ")).toEqual(expect.arrayContaining(["bg-white", "bg-[image:var(--select-chevron)]"]));
   });
 });

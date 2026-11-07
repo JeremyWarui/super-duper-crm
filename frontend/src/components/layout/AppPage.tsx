@@ -35,6 +35,12 @@ export function useSlottedHeader(header: React.ReactNode): { slotted: boolean; r
   return { slotted: true, rendered: slot.node ? createPortal(header, slot.node) : null }
 }
 
+/** A page's header: in the shell's sticky frosted slot when it has one, otherwise where it is rendered. */
+export function SlottedHeader(props: React.ComponentProps<typeof PageHeader>) {
+  const header = useSlottedHeader(<PageHeader {...props} />)
+  return header.slotted ? <>{header.rendered}</> : <PageHeader {...props} />
+}
+
 /**
  * One CRM / workspace screen. Pins the top bar and this page's header together (sticky),
  * then renders the content with 28px/32px padding. Without a title there is no page header.

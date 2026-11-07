@@ -1,6 +1,9 @@
-import { FormActions, InviteModal, Modal } from "../../components/ui";
-import { useAddStaff } from "../../api/hooks";
-import { Btn, PrimaryBtn } from "./controls";
+import { useAddStaff } from "@/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { InviteDialog } from "@/components/ui/invite-dialog";
 import { ROLE_LABEL } from "./helpers";
 import LoginFields, { useLoginFields } from "./LoginFields";
 
@@ -18,20 +21,20 @@ export default function StaffForm({ campaignId, role, onClose }) {
 
   if (made) {
     return (
-      <InviteModal title={`${label} added`} invite={made.invite} username={made.username} onClose={onClose}>
+      <InviteDialog title={`${label} added`} invite={made.invite} username={made.username} onClose={onClose}>
         {role === "coordinator" && "Set their area next: until then they see no wards."}
-      </InviteModal>
+      </InviteDialog>
     );
   }
 
   return (
-    <Modal title={`Add ${label.toLowerCase()}`} sub={SUB[role]} onClose={onClose}>
+    <Dialog title={`Add ${label.toLowerCase()}`} description={SUB[role]} onClose={onClose}>
       <LoginFields form={fields.form} set={fields.set} />
-      {add.error && <div className="form-error">{add.error.message}</div>}
+      <ErrorText error={add.error} />
       <FormActions>
-        <Btn onClick={onClose}>Cancel</Btn>
-        <PrimaryBtn disabled={!fields.ok || add.isPending} onClick={() => add.mutate({ campaign: campaignId, role, ...fields.body })}>{add.isPending ? "Saving…" : `Add ${label.toLowerCase()}`}</PrimaryBtn>
+        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button shape="rounded" disabled={!fields.ok || add.isPending} onClick={() => add.mutate({ campaign: campaignId, role, ...fields.body })}>{add.isPending ? "Saving…" : `Add ${label.toLowerCase()}`}</Button>
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }

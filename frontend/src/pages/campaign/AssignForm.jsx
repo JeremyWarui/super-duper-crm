@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { FormActions, Modal } from "../../components/ui";
-import { useAgents, useCreateAssignment, useMobilizers } from "../../api/hooks";
-import { Btn, Label, PrimaryBtn } from "./controls";
+import { useAgents, useCreateAssignment, useMobilizers } from "@/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { useWardOptions } from "./helpers";
 
 const KINDS = [["activity", "Activity (training or other)"], ["ward_work", "Ward work"]];
@@ -33,51 +36,44 @@ export default function AssignForm({ campaignId, event, member, onClose }) {
     amount_kes: Number(amount),
   }, { onSuccess: onClose });
   return (
-    <Modal title="Assign work" sub={event ? event.title : "It is paid once it is marked done."} onClose={onClose}>
+    <Dialog title="Assign work" description={event ? event.title : "It is paid once it is marked done."} onClose={onClose}>
       {!event && (
-        <>
-          <Label>Kind</Label>
-          <select aria-label="Kind" className="app-field" value={kind} onChange={(e) => setKind(e.target.value)}>
+        <Field label="Kind">
+          <NativeSelect aria-label="Kind" value={kind} onChange={(e) => setKind(e.target.value)}>
             {KINDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-          <div className="field-gap" />
-        </>
+          </NativeSelect>
+        </Field>
       )}
       {!member && (
-        <>
-          <Label>Who</Label>
-          <select aria-label="Who" className="app-field" value={who} onChange={(e) => setWho(e.target.value)}>
+        <Field label="Who">
+          <NativeSelect aria-label="Who" value={who} onChange={(e) => setWho(e.target.value)}>
             <option value="">Pick a mobilizer or agent</option>
             <optgroup label="Mobilizers">{mobilizers.map((m) => <option key={m.id} value={`mobilizer:${m.id}`}>{m.full_name}</option>)}</optgroup>
             <optgroup label="Agents">{agents.map((a) => <option key={a.id} value={`agent:${a.id}`}>{a.full_name}</option>)}</optgroup>
-          </select>
-          <div className="field-gap" />
-        </>
+          </NativeSelect>
+        </Field>
       )}
       {kind === "ward_work" && (
-        <>
-          <Label>Ward</Label>
-          <select aria-label="Ward" className="app-field" value={ward} onChange={(e) => setWard(e.target.value)}>
+        <Field label="Ward">
+          <NativeSelect aria-label="Ward" value={ward} onChange={(e) => setWard(e.target.value)}>
             <option value="">Pick a ward</option>
             {wards.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </select>
-          <div className="field-gap" />
-        </>
+          </NativeSelect>
+        </Field>
       )}
       {kind === "activity" && (
-        <>
-          <Label>What</Label>
-          <input aria-label="What" className="app-field" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Agent training at the ward office" />
-          <div className="field-gap" />
-        </>
+        <Field label="What">
+          <Input aria-label="What" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Agent training at the ward office" />
+        </Field>
       )}
-      <Label>Amount (KES)</Label>
-      <input aria-label="Amount" type="number" min={1} step={1} className="app-field" value={amount} onChange={(e) => setAmount(e.target.value)} />
-      {create.error && <div className="form-error">{create.error.message}</div>}
+      <Field label="Amount (KES)">
+        <Input aria-label="Amount" type="number" min={1} step={1} value={amount} onChange={(e) => setAmount(e.target.value)} />
+      </Field>
+      <ErrorText error={create.error} />
       <FormActions>
-        <Btn onClick={onClose}>Cancel</Btn>
-        <PrimaryBtn disabled={!ok || create.isPending} onClick={save}>{create.isPending ? "Saving…" : "Assign"}</PrimaryBtn>
+        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button shape="rounded" disabled={!ok || create.isPending} onClick={save}>{create.isPending ? "Saving…" : "Assign"}</Button>
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }

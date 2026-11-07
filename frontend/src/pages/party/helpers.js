@@ -26,10 +26,10 @@ export const STATUS_LABEL = {
 
 export const STATUS_TONE = {
   pending: "warn",
-  approved: "good",
+  approved: "ok",
   suspended: "warn",
   rejected: "bad",
-  withdrawn: "neutral",
+  withdrawn: "stone",
 };
 
 // The moves an officer offers for each status: [new status, button label].
@@ -84,9 +84,9 @@ export const VOLUNTEER_STATUS_LABEL = {
 
 export const VOLUNTEER_STATUS_TONE = {
   interested: "warn",
-  active: "good",
-  inactive: "neutral",
-  withdrawn: "neutral",
+  active: "ok",
+  inactive: "stone",
+  withdrawn: "stone",
 };
 
 export const ASPIRANT_STATUS_LABEL = {
@@ -99,12 +99,12 @@ export const ASPIRANT_STATUS_LABEL = {
 };
 
 export const ASPIRANT_STATUS_TONE = {
-  draft: "neutral",
+  draft: "stone",
   submitted: "warn",
-  approved: "good",
+  approved: "ok",
   suspended: "warn",
   rejected: "bad",
-  withdrawn: "neutral",
+  withdrawn: "stone",
 };
 
 // The moves an officer offers for each nomination status: [new status, button label].

@@ -1,18 +1,20 @@
-import { useAuth } from "../store/auth";
+import { useAuth } from "@/store/auth";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 /** A full-page notice for a login with nowhere to go: "You are signed in as …" followed by `rest`, and Sign out. */
 export default function SignedInNotice({ title, rest }) {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
   return (
-    <div className="gate-no-campaign">
-      <div className="gate-no-campaign-card">
-        <div className="gate-no-campaign-title">{title}</div>
-        <div className="gate-no-campaign-message">You are signed in as {user?.username}{rest}</div>
-        <button onClick={logout} className="gate-no-campaign-button">
+    <div className="flex min-h-dvh items-center justify-center bg-background p-4">
+      <Card variant="outline" className="w-full max-w-[420px] gap-2">
+        <h1 className="font-display text-card-title font-bold">{title}</h1>
+        <p className="leading-[1.6] text-muted-foreground">You are signed in as {user?.username}{rest}</p>
+        <Button variant="quiet" shape="rounded" className="mt-3 self-start" onClick={logout}>
           Sign out
-        </button>
-      </div>
+        </Button>
+      </Card>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useTargets } from "../../api/hooks";
 import { isEmail } from "../../lib/email";
 
-// A tone is one of good, warn, bad or neutral; index.css colours each.
+// How far a unit is towards its target, as a label and a tone of good, warn or bad.
 export function statusOf(progress) {
   if (progress >= 1) return { label: "Target met", tone: "good" };
   if (progress >= 0.6) return { label: "Building", tone: "warn" };

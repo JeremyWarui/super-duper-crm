@@ -32,41 +32,35 @@ import { useInstall } from "../app/site";
 import { useCopy } from "../copy";
 import { useAuth } from "../store/auth";
 import { formatNumber as fmt, plural } from "../lib/format";
-import {
-  Button,
-  Field as SharedField,
-  LoadingState,
-  Panel,
-} from "./ui";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ErrorText } from "@/components/ui/error-text";
+import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
+import { LoadingText } from "@/components/ui/loading-text";
 import { PartyShell } from "../pages/party/Portal";
 import AuditTrail from "./console/AuditTrail";
 import ExportPanel from "./console/ExportPanel";
 import Health from "./console/Health";
 import ReferenceData from "./console/ReferenceData";
 
-const Card = (props) => (
-  <Panel
-    {...props}
-    className={`admin-card ${props.pad === 20 ? "admin-card-padded" : ""} ${props.className || ""}`.trim()}
-  />
-);
-
-const Btn = ({ children, onClick, disabled, tone }) => (
-  <Button
-    onClick={onClick}
-    disabled={disabled}
-    tone={tone}
-    className="admin-button"
-  >
+const Btn = ({ children, onClick, disabled, variant = "quiet" }) => (
+  <Button shape="rounded" size="sm" variant={variant} onClick={onClick} disabled={disabled}>
     {children}
   </Button>
 );
 
-const Pill = ({ text }) => (
-  <span className={`admin-pill admin-pill-${text}`}>
-    {text}
-  </span>
-);
+const PILL_TONE = { candidate: "tint", superuser: "tint", manager: "stone", mobilizer: "warn", disabled: "bad" };
+
+const Pill = ({ text }) => <Badge tone={PILL_TONE[text] || "stone"}>{text}</Badge>;
+
+// An inline control: full width on a phone, sharing the row from sm up.
+const INLINE = "w-full sm:w-auto sm:min-w-56 sm:flex-1";
+
+const Help = ({ children }) => <p className="text-small leading-relaxed text-muted-foreground">{children}</p>;
+
+const Heading = ({ children }) => <h2 className="text-card-title font-bold">{children}</h2>;
 
 // Nothing here can be undone, and the rows are close together, so the
 // destructive actions ask first and name who they are about.
@@ -79,10 +73,10 @@ function Danger({ label, question, onConfirm, disabled, busy }) {
       </Btn>
     );
   return (
-    <span className="flex flex-wrap items-center gap-2 admin-confirmation">
-      <span className="admin-red">{question}</span>
+    <span className="flex flex-wrap items-center gap-2">
+      <span className="text-ui text-destructive">{question}</span>
       <Btn
-        tone="danger"
+        variant="danger"
         disabled={disabled}
         onClick={() => {
           setAsking(false);
@@ -96,47 +90,23 @@ function Danger({ label, question, onConfirm, disabled, busy }) {
   );
 }
 
-function Stat({ label, value }) {
-  return (
-    <div>
-      <div className="admin-display admin-stat-value">
-        {fmt(value)}
-      </div>
-      <div className="admin-stat-label">{label}</div>
-    </div>
-  );
-}
-
 // Which sign-in links went out this visit, kept until the console is closed.
 function Handout({ shown }) {
   if (!shown.length) return null;
   return (
-    <Card className="admin-card-handout">
+    <Card variant="outline" className="gap-2 border-warn bg-warn/40">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div className="admin-display admin-handout-heading">
-          Sign-in links
-        </div>
-        <span className="admin-handout-note">
-          each person chooses their own password
-        </span>
+        <h2 className="text-body font-bold">Sign-in links</h2>
+        <span className="text-small text-warn-foreground">each person chooses their own password</span>
       </div>
-      <table className="admin-handout-table">
-        <tbody>
-          {shown.map((p, i) => (
-            <tr
-              key={p.username}
-              className={i ? "admin-handout-row" : undefined}
-            >
-              <td className="admin-handout-cell admin-handout-username">
-                {p.username}
-              </td>
-              <td className="admin-handout-cell">
-                {(p.sent ?? p.invite) === "email" ? "Link emailed" : "No email: nothing sent"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <ul className="flex flex-col divide-y divide-warn text-ui">
+        {shown.map((p) => (
+          <li key={p.username} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-2">
+            <span className="font-semibold break-all">{p.username}</span>
+            <span>{(p.sent ?? p.invite) === "email" ? "Link emailed" : "No email: nothing sent"}</span>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }
@@ -161,18 +131,19 @@ function CampaignCard({ campaign, users }) {
   const error = remove.error || add.error || rename.error || drop.error;
 
   return (
-    <Card className="admin-card-campaign">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div>
+    <Card variant="outline" className="min-w-0">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
           {renaming ? (
             <div className="flex flex-wrap items-center gap-2">
-              <input
-                className="admin-field admin-field-campaign"
+              <Input
+                className={INLINE}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 aria-label="Campaign name"
               />
               <Btn
+                variant="primary"
                 disabled={!title.trim() || rename.isPending}
                 onClick={() =>
                   rename.mutate(
@@ -187,9 +158,9 @@ function CampaignCard({ campaign, users }) {
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <div className="admin-display admin-campaign-title">
+              <h2 className="text-card-title font-bold break-words">
                 {campaign.title}
-              </div>
+              </h2>
               <Btn
                 onClick={() => {
                   setTitle(campaign.title);
@@ -207,12 +178,12 @@ function CampaignCard({ campaign, users }) {
               />
             </div>
           )}
-          <div className="admin-campaign-meta admin-subtle">
+          <div className="text-ui text-muted-foreground">
             {campaign.office_level} · for {campaign.candidate || "no candidate"}{" "}
             · {campaign.election_date || "no election date"}
           </div>
         </div>
-        <div className="flex flex-wrap gap-4 admin-campaign-counts">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-ui [&_b]:tabular-nums">
           <span>
             <b>{fmt(campaign.targets)}</b> targets
           </span>
@@ -232,9 +203,9 @@ function CampaignCard({ campaign, users }) {
         </div>
       </div>
 
-      <div className="admin-campaign-members">
+      <div className="flex flex-col border-t border-line pt-2">
         {campaign.members.length === 0 && (
-          <div className="admin-red admin-campaign-meta">
+          <div className="py-1.5 text-ui text-destructive">
             Nobody is on this campaign, so nobody can see it. Add someone below.
           </div>
         )}
@@ -242,11 +213,11 @@ function CampaignCard({ campaign, users }) {
           return (
             <div
               key={m.user_id}
-              className="flex flex-wrap items-center justify-between gap-2 admin-campaign-member"
+              className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-ui"
             >
-              <span>
+              <span className="min-w-0 break-words">
                 <b>{m.username}</b>{" "}
-                <span className="admin-subtle">{m.full_name}</span>{" "}
+                <span className="text-muted-foreground">{m.full_name}</span>{" "}
                 <Pill text={m.role} />
               </span>
               <Danger
@@ -265,17 +236,13 @@ function CampaignCard({ campaign, users }) {
         })}
       </div>
 
-      {error && (
-        <div className="admin-error">
-          {error.message}
-        </div>
-      )}
+      <ErrorText error={error} className="text-ui" />
 
-      <div className="admin-add-member">
+      <div>
         {adding ? (
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              className="admin-field"
+            <NativeSelect
+              className={INLINE}
               value={pick}
               onChange={(e) => setPick(e.target.value)}
             >
@@ -285,11 +252,12 @@ function CampaignCard({ campaign, users }) {
                   {u.username} ({u.role})
                 </option>
               ))}
-            </select>
-            <span className="admin-subtle admin-confirmation">
+            </NativeSelect>
+            <span className="text-ui text-muted-foreground">
               as {available.find((u) => u.id === pick)?.role || "themselves"}
             </span>
             <Btn
+              variant="primary"
               disabled={!pick || add.isPending}
               onClick={() =>
                 add.mutate(
@@ -334,12 +302,6 @@ const ROLES = [
 ];
 
 
-const Field = ({ label, children }) => (
-  <SharedField label={label} className="admin-field-label">
-    {children}
-  </SharedField>
-);
-
 function NewLogin({ campaigns, create }) {
   const { aspirant } = useInstall();
   const [open, setOpen] = useState(false);
@@ -360,7 +322,7 @@ function NewLogin({ campaigns, create }) {
 
   if (!open)
     return (
-      <div className="admin-section-action">
+      <div>
         <Btn onClick={() => setOpen(true)}>Add a login</Btn>
       </div>
     );
@@ -387,23 +349,19 @@ function NewLogin({ campaigns, create }) {
     );
 
   return (
-    <Card className="admin-card-new-login">
-      <div className="admin-display admin-form-heading">
-        A new login
-      </div>
+    <Card variant="tinted" className="gap-3">
+      <Heading>A new login</Heading>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Username">
-          <input
-            className="admin-field admin-field-wide"
+          <Input
             value={form.username}
             onChange={(e) => set({ username: e.target.value })}
             placeholder="jane.wanjiku"
           />
         </Field>
         <Field label="They are a">
-          <select
-            className="admin-field admin-field-wide"
+          <NativeSelect
             value={form.role}
             onChange={(e) =>
               set({ role: e.target.value, campaign: "", ward: "" })
@@ -414,41 +372,35 @@ function NewLogin({ campaigns, create }) {
                 {label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </Field>
       </div>
 
-      <div className="admin-form-spacer" />
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Field label="First name">
-          <input
-            className="admin-field admin-field-wide"
+          <Input
             value={form.first_name}
             onChange={(e) => set({ first_name: e.target.value })}
           />
         </Field>
         <Field label="Last name">
-          <input
-            className="admin-field admin-field-wide"
+          <Input
             value={form.last_name}
             onChange={(e) => set({ last_name: e.target.value })}
           />
         </Field>
       </div>
 
-      <div className="admin-form-spacer" />
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Email">
-          <input
+          <Input
             type="email"
-            className="admin-field admin-field-wide"
             value={form.email}
             onChange={(e) => set({ email: e.target.value })}
           />
         </Field>
         <Field label="Phone">
-          <input
-            className="admin-field admin-field-wide"
+          <Input
             value={form.phone}
             onChange={(e) => set({ phone: e.target.value })}
             placeholder="0712 345678"
@@ -458,11 +410,9 @@ function NewLogin({ campaigns, create }) {
 
       {!isStaff && (
       <>
-        <div className="admin-form-spacer" />
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Field label={isMobilizer ? "Campaign" : "Campaign (optional)"}>
-            <select
-              className="admin-field admin-field-wide"
+            <NativeSelect
               value={form.campaign}
               onChange={(e) => set({ campaign: e.target.value, ward: "", centre: "" })}
             >
@@ -472,12 +422,11 @@ function NewLogin({ campaigns, create }) {
                   {c.title}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </Field>
           {isMobilizer && byCentre && (
             <Field label="Centre">
-              <select
-                className="admin-field admin-field-wide"
+              <NativeSelect
                 value={form.centre}
                 onChange={(e) => {
                   const centre = centres.find((c) => c.id === e.target.value);
@@ -490,13 +439,12 @@ function NewLogin({ campaigns, create }) {
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
           )}
           {isMobilizer && !byCentre && (
             <Field label="Ward">
-              <select
-                className="admin-field admin-field-wide"
+              <NativeSelect
                 value={form.ward}
                 onChange={(e) => set({ ward: e.target.value })}
                 disabled={!chosen}
@@ -509,14 +457,14 @@ function NewLogin({ campaigns, create }) {
                     {w.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
           )}
         </div>
       </>
       )}
 
-      <div className="admin-form-help">
+      <Help>
         {isStaff
           ? "Party staff have no campaign. Give them a party office from their row once the login exists."
           : isMobilizer
@@ -528,16 +476,12 @@ function NewLogin({ campaigns, create }) {
           ? "The aspirant's login was made at setup."
           : "An aspirant gets their login with their workspace, made from their approved record in Aspirants."}{" "}
         They are emailed a link to choose their password.
-      </div>
+      </Help>
 
-      {create.error && (
-        <div className="admin-error">
-          {create.error.message}
-        </div>
-      )}
+      <ErrorText error={create.error} className="text-ui" />
 
-      <div className="flex flex-wrap gap-2 admin-form-actions">
-        <Btn disabled={!ready || create.isPending} onClick={submit}>
+      <div className="flex flex-wrap gap-2">
+        <Btn variant="primary" disabled={!ready || create.isPending} onClick={submit}>
           {create.isPending ? "Creating…" : "Create the login"}
         </Btn>
         <Btn
@@ -582,9 +526,9 @@ function OpenPartyWorkspace({ onInvite }) {
   const sitting = workspace.data.managers?.join(", ");
   if (!asking)
     return (
-      <div className="admin-section-action">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Btn onClick={() => setAsking(true)}>{title}</Btn>
-        {replace && sitting && <span className="admin-subtle">Workspace Manager: {sitting}</span>}
+        {replace && sitting && <span className="text-ui text-muted-foreground">Workspace Manager: {sitting}</span>}
       </div>
     );
   const name = form.username.trim();
@@ -600,28 +544,27 @@ function OpenPartyWorkspace({ onInvite }) {
       },
     });
   return (
-    <Card className="admin-card-new-login">
-      <div className="admin-display admin-form-heading">{title}</div>
-      <div className="flex flex-wrap gap-2">
+    <Card variant="outline" className="gap-3">
+      <Heading>{title}</Heading>
+      <div className="grid gap-3 sm:grid-cols-2">
         {MANAGER_FIELDS.map(([key, label, type]) => (
           <Field key={key} label={label}>
-            <input
+            <Input
               type={type}
-              className="admin-field admin-field-wide"
               value={form[key]}
               onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
             />
           </Field>
         ))}
       </div>
-      <div className="admin-form-help">
+      <Help>
         {replace
           ? `${sitting || "The sitting Workspace Manager"} is turned off and signed out. This person takes over and is emailed a link to choose their password.`
           : "The party's own national workspace, with every ward as a target. This person is its first Workspace Manager and is emailed a link to choose their password. There is only one party workspace."}
-      </div>
-      {open.error && <div className="admin-error">{open.error.message}</div>}
-      <div className="flex flex-wrap gap-2 admin-form-actions">
-        <Btn disabled={!ready || open.isPending} onClick={submit}>
+      </Help>
+      <ErrorText error={open.error} className="text-ui" />
+      <div className="flex flex-wrap gap-2">
+        <Btn variant="primary" disabled={!ready || open.isPending} onClick={submit}>
           {open.isPending ? (replace ? "Replacing…" : "Opening…") : replace ? "Replace" : "Open it"}
         </Btn>
         <Btn onClick={() => setAsking(false)}>Cancel</Btn>
@@ -637,7 +580,7 @@ function MemberLink({ user, onLinked }) {
   const found = usePartyMembers({ q: q.trim(), status: "approved", limit: 5 });
   const searching = q.trim().length >= 2;
   return (
-    <div className="admin-user-meta">
+    <div className="flex flex-col gap-1 text-small text-muted-foreground">
       {user.party_member ? (
         <span className="flex flex-wrap items-center gap-2">
           Party member: {user.party_member.full_name} ({user.party_member.status})
@@ -652,8 +595,8 @@ function MemberLink({ user, onLinked }) {
         </span>
       ) : (
         <span className="flex flex-wrap items-center gap-2">
-          <input
-            className="admin-field"
+          <Input
+            className={INLINE}
             aria-label={`Party member for ${user.username}`}
             placeholder="Link to a party member…"
             value={q}
@@ -676,7 +619,7 @@ function MemberLink({ user, onLinked }) {
             ))}
         </span>
       )}
-      {link.isError && <div className="admin-red">{link.error.message}</div>}
+      <ErrorText error={link.isError && link.error} className="text-small" />
     </div>
   );
 }
@@ -708,42 +651,46 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
   return (
     <div
       data-testid={`login-${user.username}`}
-      className="admin-user-row"
+      className="flex flex-col gap-2 border-t border-line py-3 text-ui"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <b>{name}</b>{" "}
-          <span className="admin-subtle">{user.full_name}</span>{" "}
-          {user.role && <Pill text={user.role} />}{" "}
-          {user.party_roles?.map((r) => (
-            <span key={r} className="admin-pill admin-pill-party">
-              {PARTY_ROLE_LABEL[r] || r}
-              <button
-                className="admin-pill-remove"
-                aria-label={`Revoke ${PARTY_ROLE_LABEL[r] || r}`}
-                disabled={revoke.isPending}
-                onClick={() => revoke.mutate({ user: user.id, role: r })}
-              >
-                ×
-              </button>
-            </span>
-          ))}{" "}
-          {user.is_superuser && (
-            <Pill text="superuser" />
-          )}
-          {!user.is_active && (
-            <Pill text="disabled" />
-          )}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <b className="break-all">{name}</b>
+            <span className="text-muted-foreground">{user.full_name}</span>
+            {user.role && <Pill text={user.role} />}
+            {user.party_roles?.map((r) => (
+              <Badge key={r} tone="tint">
+                {PARTY_ROLE_LABEL[r] || r}
+                <button
+                  type="button"
+                  className="-my-3 -mr-3 inline-flex size-11 cursor-pointer items-center justify-center rounded-full disabled:opacity-50"
+                  aria-label={`Revoke ${PARTY_ROLE_LABEL[r] || r}`}
+                  disabled={revoke.isPending}
+                  onClick={() => revoke.mutate({ user: user.id, role: r })}
+                >
+                  ×
+                </button>
+              </Badge>
+            ))}
+            {user.is_superuser && (
+              <Pill text="superuser" />
+            )}
+            {!user.is_active && (
+              <Pill text="disabled" />
+            )}
+          </div>
           {editingEmail ? (
-            <div className="admin-user-meta flex flex-wrap items-center gap-2">
-              <input
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
                 type="email"
-                className="admin-field"
+                className={INLINE}
                 aria-label={`Email for ${name}`}
                 value={email}
                 onChange={(e) => setEmailText(e.target.value)}
               />
               <Btn
+                variant="primary"
                 disabled={!isEmail(email) || setEmail.isPending}
                 onClick={() =>
                   setEmail.mutate(
@@ -757,11 +704,13 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
               <Btn onClick={() => setEditingEmail(false)}>Cancel</Btn>
             </div>
           ) : null}
-          <div className="admin-user-meta">
+          <div className="flex flex-wrap items-center gap-x-1 text-small wrap-anywhere text-muted-foreground">
             {user.email || "no email"}{" "}
             {!editingEmail && (
-              <button
-                className="admin-link-button"
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto min-h-11 px-1 text-small"
                 aria-label={`Change email for ${name}`}
                 onClick={() => {
                   setEmail.reset();
@@ -770,18 +719,19 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
                 }}
               >
                 change
-              </button>
-            )}{" "}
-            · last in{" "}
-            {user.last_login_at ? user.last_login_at.slice(0, 10) : "never"} ·{" "}
+              </Button>
+            )}
+            {/* Each dot keeps to the text before it, so a wrapped line never starts with one. */}
+            {" ·"}{" "}
+            <span className="whitespace-nowrap">last in {user.last_login_at ? user.last_login_at.slice(0, 10) : "never"}{" ·"}</span>{" "}
             {user.campaign || "on no campaign"}
           </div>
-          {!aspirant && <div className="admin-user-meta">
+          {!aspirant && <div className="text-small text-muted-foreground">
             {staff
               ? offered.length > 0 && (
                   <span className="flex flex-wrap items-center gap-2">
-                    <select
-                      className="admin-field"
+                    <NativeSelect
+                      className={INLINE}
                       aria-label={`Party office for ${name}`}
                       value={office}
                       onChange={(e) => setOffice(e.target.value)}
@@ -792,8 +742,9 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
                           {label}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                     <Btn
+                      variant="primary"
                       disabled={!office || grant.isPending}
                       onClick={() =>
                         grant.mutate(
@@ -839,11 +790,7 @@ function UserRow({ user, me, onReset, resetting, resetError }) {
           )}
         </div>
       </div>
-      {error && (
-        <div className="admin-user-error">
-          {error}
-        </div>
-      )}
+      <ErrorText error={error} className="text-ui" />
     </div>
   );
 }
@@ -917,137 +864,135 @@ function PartyForm({ party, isParty }) {
   };
 
   return (
-    <Card>
-      <div className="admin-display admin-form-heading">{isParty ? "Party settings" : "Site settings"}</div>
-      <div className="flex flex-wrap gap-2">
+    <Card variant="outline">
+      <Heading>{isParty ? "Party settings" : "Site settings"}</Heading>
+      <div className="grid gap-3 sm:grid-cols-2">
         {PARTY_TEXT.filter(([key]) => isParty || !PARTY_ONLY.has(key)).map(([key, label]) => (
           <Field key={key} label={label}>
-            <input
-              className="admin-field admin-field-wide"
+            <Input
               value={form[key]}
               onChange={(e) => set({ [key]: e.target.value })}
             />
           </Field>
         ))}
         <Field label="Primary colour">
-          <input
-            className="admin-field admin-field-wide"
+          <Input
             value={form.primary_colour}
             onChange={(e) => set({ primary_colour: e.target.value })}
             placeholder="#1f2937"
           />
         </Field>
         <Field label="Secondary colour">
-          <input
-            className="admin-field admin-field-wide"
+          <Input
             value={form.secondary_colour}
             onChange={(e) => set({ secondary_colour: e.target.value })}
             placeholder="#f59e0b"
           />
         </Field>
       </div>
-      <div className="admin-form-spacer" />
       <Field label="Description">
-        <textarea
-          className="admin-field admin-field-wide admin-field-area"
+        <Textarea
           value={form.description}
           onChange={(e) => set({ description: e.target.value })}
         />
       </Field>
-      <div className="admin-form-spacer" />
       <Field label="Manifesto text">
-        <textarea
-          className="admin-field admin-field-wide admin-field-area"
+        <Textarea
           value={form.manifesto_text}
           onChange={(e) => set({ manifesto_text: e.target.value })}
         />
       </Field>
       {isParty ? (
-        <>
-          <div className="admin-form-spacer" />
-          <Field label="Steps to become an aspirant (one per line)">
-            <textarea
-              className="admin-field admin-field-wide admin-field-area"
-              value={form.aspirant_steps}
-              onChange={(e) => set({ aspirant_steps: e.target.value })}
-            />
-          </Field>
-        </>
+        <Field label="Steps to become an aspirant (one per line)">
+          <Textarea
+            value={form.aspirant_steps}
+            onChange={(e) => set({ aspirant_steps: e.target.value })}
+          />
+        </Field>
       ) : null}
-      <div className="admin-form-spacer" />
       <Field label="How to give (shown on the Contribute page)">
-        <textarea
-          className="admin-field admin-field-wide admin-field-area"
+        <Textarea
           value={form.payment_instructions}
           onChange={(e) => set({ payment_instructions: e.target.value })}
           placeholder="Bank details, or how to give in person"
         />
       </Field>
-      <div className="flex flex-wrap gap-2">
-        {[
-          ["mpesa_paybill", "M-Pesa Paybill", "e.g. 123456"],
-          ["mpesa_account", "Paybill account", "e.g. DONATE"],
-          ["mpesa_till", "or M-Pesa Till", "e.g. 654321"],
-        ].map(([key, label, hint]) => (
-          <Field key={key} label={label}>
-            <input
-              className="admin-field"
-              value={form[key]}
-              placeholder={hint}
-              onChange={(e) => set({ [key]: e.target.value.trim() })}
-            />
-          </Field>
-        ))}
+      <div className="flex flex-col gap-2">
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[
+            ["mpesa_paybill", "M-Pesa Paybill", "e.g. 123456"],
+            ["mpesa_account", "Paybill account", "e.g. DONATE"],
+            ["mpesa_till", "or M-Pesa Till", "e.g. 654321"],
+          ].map(([key, label, hint]) => (
+            <Field key={key} label={label}>
+              <Input
+                value={form[key]}
+                placeholder={hint}
+                onChange={(e) => set({ [key]: e.target.value.trim() })}
+              />
+            </Field>
+          ))}
+        </div>
+        <Help>The Contribute page and the nomination fee offer these to pay by code. Give a Paybill or a Till, not both.</Help>
       </div>
-      <div className="admin-form-help">The Contribute page and the nomination fee offer these to pay by code. Give a Paybill or a Till, not both.</div>
-      <div className="admin-form-spacer" />
       <Field label="Privacy notice">
-        <textarea
-          className="admin-field admin-field-wide admin-field-area"
+        <Textarea
           value={form.privacy_notice}
           onChange={(e) => set({ privacy_notice: e.target.value })}
         />
       </Field>
-      <div className="admin-form-spacer" />
-      <div className="admin-form-heading">Social links</div>
-      {form.links.map(([name, url], i) => (
-        <div key={i} className="flex flex-wrap items-center gap-2 admin-link-row">
-          <input
-            className="admin-field"
-            aria-label={`Social link ${i + 1} name`}
-            value={name}
-            onChange={(e) => setLink(i, 0, e.target.value)}
-            placeholder="facebook"
-          />
-          <input
-            className="admin-field admin-field-link"
-            aria-label={`Social link ${i + 1} address`}
-            value={url}
-            onChange={(e) => setLink(i, 1, e.target.value)}
-            placeholder="https://"
-          />
-          <Btn
-            onClick={() =>
-              set({ links: form.links.filter((_, j) => j !== i) })
-            }
-          >
-            Remove
+      <div className="flex flex-col gap-2">
+        <h3 className="text-body font-bold">Social links</h3>
+        {form.links.map(([name, url], i) => (
+          <div key={i} className="flex flex-wrap items-center gap-2">
+            <Input
+              className="w-full sm:w-44"
+              aria-label={`Social link ${i + 1} name`}
+              value={name}
+              onChange={(e) => setLink(i, 0, e.target.value)}
+              placeholder="facebook"
+            />
+            <Input
+              className={INLINE}
+              aria-label={`Social link ${i + 1} address`}
+              value={url}
+              onChange={(e) => setLink(i, 1, e.target.value)}
+              placeholder="https://"
+            />
+            <Btn
+              onClick={() =>
+                set({ links: form.links.filter((_, j) => j !== i) })
+              }
+            >
+              Remove
+            </Btn>
+          </div>
+        ))}
+        <div>
+          <Btn onClick={() => set({ links: [...form.links, ["", ""]] })}>
+            Add a link
           </Btn>
         </div>
-      ))}
-      <div className="admin-link-row">
-        <Btn onClick={() => set({ links: [...form.links, ["", ""]] })}>
-          Add a link
-        </Btn>
       </div>
 
-      {save.error && <div className="admin-error">{save.error.message}</div>}
-      {saved && <div className="admin-form-help">Saved.</div>}
+      <ErrorText error={save.error} className="text-ui" />
+      {saved && <p role="status" className="text-ui font-semibold text-primary">Saved.</p>}
 
-      <div className="flex flex-wrap gap-2 admin-form-actions">
-        <Btn disabled={save.isPending} onClick={submit}>
+      <div className="flex flex-wrap gap-2">
+        <Btn variant="primary" disabled={save.isPending} onClick={submit}>
           {save.isPending ? "Saving…" : isParty ? "Save the party settings" : "Save the site settings"}
         </Btn>
+      </div>
+    </Card>
+  );
+}
+
+function Failed({ error, onRetry }) {
+  return (
+    <Card variant="outline" className="gap-3">
+      <ErrorText error={error} />
+      <div>
+        <Btn onClick={onRetry}>Try again</Btn>
       </div>
     </Card>
   );
@@ -1058,17 +1003,9 @@ function PartySettings() {
   const isParty = site.data?.organisation_type === "party";
   const party = useParty(isParty);
   if (site.isPending || (isParty && party.isPending))
-    return <LoadingState className="admin-loading" message={site.data?.organisation_type === "aspirant" ? "Loading the site settings…" : "Loading the party settings…"} />;
+    return <LoadingText>{site.data?.organisation_type === "aspirant" ? "Loading the site settings…" : "Loading the party settings…"}</LoadingText>;
   const failed = [site, ...(isParty ? [party] : [])].find((q) => q.error);
-  if (failed)
-    return (
-      <Card>
-        <div className="admin-red">{failed.error.message}</div>
-        <div className="admin-overview-action">
-          <Btn onClick={() => failed.refetch()}>Try again</Btn>
-        </div>
-      </Card>
-    );
+  if (failed) return <Failed error={failed.error} onRetry={() => failed.refetch()} />;
   return (
     <PartyForm
       key={`${site.data.updated_at} ${party.data?.updated_at}`}
@@ -1078,12 +1015,33 @@ function PartySettings() {
   );
 }
 
+/** A wrapping row of toggle buttons with one pressed. */
+function Choices({ label, options, value, onChange }) {
+  return (
+    <div role="group" aria-label={label} className="flex flex-wrap gap-2">
+      {options.map(([key, text]) => (
+        <Button
+          key={key || "all"}
+          shape="rounded"
+          size="sm"
+          variant={value === key ? "primary" : "quiet"}
+          aria-pressed={value === key}
+          onClick={() => onChange(key)}
+        >
+          {text}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 // The shell's menu carries the only way out of the console, so every state renders
 // inside it: a signed-out operator can always sign out and back in.
 function Shell({ children }) {
   return (
-    <PartyShell crumb="Console">
-      <div className="admin-content">{children}</div>
+    <PartyShell crumb="Console" page={{ kit: true }}>
+      <SlottedHeader title="Console" />
+      {children}
     </PartyShell>
   );
 }
@@ -1128,20 +1086,13 @@ export default function Admin() {
   if (overview.isLoading)
     return (
       <Shell>
-        <span className="admin-subtle">Loading the console…</span>
+        <LoadingText>Loading the console…</LoadingText>
       </Shell>
     );
   if (overview.error)
     return (
       <Shell>
-        <Card>
-          <div className="admin-red admin-overview-error">
-            {overview.error.message}
-          </div>
-          <div className="admin-overview-action">
-            <Btn onClick={() => overview.refetch()}>Try again</Btn>
-          </div>
-        </Card>
+        <Failed error={overview.error} onRetry={() => overview.refetch()} />
         <Handout shown={handouts} />
       </Shell>
     );
@@ -1152,30 +1103,40 @@ export default function Admin() {
 
   return (
     <Shell>
-      <>
-        <Card pad={20}>
-          <div className="flex flex-wrap gap-x-10 gap-y-4">
-            <Stat label="Campaigns" value={totals.campaigns} />
-            <Stat label="Logins" value={totals.users} />
-            <Stat label="Places held" value={totals.members} />
-            <Stat label="Targets" value={totals.targets} />
-            <Stat label="Mobilizers" value={totals.mobilizers} />
-            <Stat label="Events" value={totals.events} />
-            <Stat label="Supporters" value={totals.supporters} />
-          </div>
-          {unstaffed > 0 && (
-            <div className="admin-red admin-unstaffed">
-              {plural(unstaffed, "campaign")} with nobody on{" "}
-              {unstaffed === 1 ? "it" : "them"}: nobody can see{" "}
-              {unstaffed === 1 ? "it" : "them"} until somebody is put on.
-            </div>
-          )}
-        </Card>
-
-        <Handout shown={handouts} />
-
-        <div className="flex gap-1 admin-tab-bar">
+      <div className="flex flex-col gap-3">
+        <Card variant="outline" role="group" aria-label="Totals" className="flex-row flex-wrap gap-x-8 gap-y-4 px-6 py-5">
           {[
+            ["Campaigns", totals.campaigns],
+            ["Logins", totals.users],
+            ["Places held", totals.members],
+            ["Targets", totals.targets],
+            ["Mobilizers", totals.mobilizers],
+            ["Events", totals.events],
+            ["Supporters", totals.supporters],
+          ].map(([label, value]) => (
+            <div key={label} className="flex flex-col">
+              <span className="font-display text-h2-app leading-tight font-extrabold tabular-nums">{fmt(value)}</span>
+              <span className="text-small text-muted-foreground">{label}</span>
+            </div>
+          ))}
+        </Card>
+        {unstaffed > 0 && (
+          <p className="text-ui font-semibold text-destructive">
+            {plural(unstaffed, "campaign")} with nobody on{" "}
+            {unstaffed === 1 ? "it" : "them"}: nobody can see{" "}
+            {unstaffed === 1 ? "it" : "them"} until somebody is put on.
+          </p>
+        )}
+      </div>
+
+      <Handout shown={handouts} />
+
+      <div className="flex flex-col gap-4">
+        <Choices
+          label="Console sections"
+          value={tab}
+          onChange={setTab}
+          options={[
             ["campaigns", `Campaigns (${campaigns.length})`],
             ["users", `Logins (${everyone.length})`],
             ["party", copy.settingsTab],
@@ -1183,21 +1144,13 @@ export default function Admin() {
             ["health", "Health"],
             ["audit", "Audit"],
             ["export", "Export"],
-          ].map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`admin-tab ${tab === key ? "admin-tab-active" : ""}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+          ]}
+        />
 
         {tab === "campaigns" && !aspirant && (
-          <div className="admin-section-action">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <Btn onClick={() => navigate("/party/aspirants")}>New campaign</Btn>
-            <span className="admin-subtle">
+            <span className="text-ui text-muted-foreground">
               A workspace is made from an approved aspirant, in Aspirants.
             </span>
           </div>
@@ -1206,8 +1159,8 @@ export default function Admin() {
 
         {tab === "campaigns" &&
           (campaigns.length === 0 ? (
-            <Card>
-              <span className="admin-subtle admin-empty-message">
+            <Card variant="outline">
+              <span className="text-muted-foreground">
                 No campaigns yet.
               </span>
             </Card>
@@ -1218,7 +1171,7 @@ export default function Admin() {
           ))}
 
         {tab === "party" && !aspirant && (
-          <div className="admin-section-action">
+          <div>
             <Btn onClick={() => navigate("/party/aspirants")}>Open aspirants</Btn>
           </div>
         )}
@@ -1229,41 +1182,29 @@ export default function Admin() {
         {tab === "export" && <ExportPanel />}
 
         {tab === "users" && (
-          <Card>
-            <div
-              className="flex flex-wrap items-center gap-1 admin-user-filters"
-            >
-              {[
+          <Card variant="outline" className="min-w-0">
+            <Choices
+              label="Show logins"
+              value={roleFilter}
+              onChange={(key) => {
+                setRoleFilter(key);
+                setFailed({});
+              }}
+              options={[
                 ["", "Everyone"],
                 ["manager", "Managers"],
                 ["candidate", "Aspirants"],
                 ["mobilizer", "Mobilizers"],
-              ].map(([key, label]) => (
-                <button
-                  key={key || "all"}
-                  onClick={() => {
-                    setRoleFilter(key);
-                    setFailed({});
-                  }}
-                  className={`admin-filter ${roleFilter === key ? "admin-filter-active" : ""}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="admin-user-section">
-              <NewLogin campaigns={campaigns} create={create} />
-            </div>
-            <div className="admin-user-list">
+              ]}
+            />
+            <NewLogin campaigns={campaigns} create={create} />
+            <div className="flex flex-col">
               {users.isPending ? (
-                <LoadingState
-                  className="admin-loading"
-                  message="Loading the logins…"
-                />
+                <LoadingText>Loading the logins…</LoadingText>
               ) : everyone.length === 0 ? (
-                <div className="admin-empty">
+                <p className="text-ui text-muted-foreground">
                   Nobody matches that.
-                </div>
+                </p>
               ) : (
                 everyone.map((u) => (
                   <UserRow
@@ -1279,7 +1220,7 @@ export default function Admin() {
             </div>
           </Card>
         )}
-      </>
+      </div>
     </Shell>
   );
 }

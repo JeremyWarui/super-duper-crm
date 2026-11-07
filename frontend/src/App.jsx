@@ -7,9 +7,9 @@ import { CrmTopBar } from "@/components/layout/CrmTopBar";
 import { useBranding } from "@/theme/branding";
 import { useAuth } from "./store/auth";
 import { useCampaigns } from "./api/hooks";
-import Legacy from "./components/Legacy";
 import { NoCampaign } from "./components/SignedInNotice";
-import { ErrorMsg, Loading } from "./pages/campaign/controls";
+import { ErrorText } from "@/components/ui/error-text";
+import { LoadingText } from "@/components/ui/loading-text";
 import { ROLE_LABEL, navFor, pagesOf } from "./pages/campaign/helpers";
 import { useInstall } from "./app/site";
 import {
@@ -44,14 +44,11 @@ import ClosedNote from "./pages/campaign/ClosedNote";
 import FieldTabs from "./pages/campaign/FieldTabs";
 import { useMedia } from "./lib/useMedia";
 
-// Pages built on the UI kit, which render outside the legacy stylesheet.
 // Roles that work from a phone get a tab bar there.
 const FIELD_ROLES = ["mobilizer", "agent"];
 
-export const KIT_PAGES = new Set(["overview", "strategy", "targets", "units", "events", "myevents", "mobilizers", "supporters", "mysupporters", "payments", "mypayments", "team", "volunteers", "signups", "agents", "mycentre", "assignments", "messages", "register", "website", "settings", "recruitment", "members", "party", "privacy", "contributions"]);
-
 // One page per NAV key.
-const PAGES = {
+export const PAGES = {
   overview: Overview,
   units: Units,
   strategy: Strategy,
@@ -122,17 +119,8 @@ function Shell({ campaign, role, where }) {
       >
         <AppPage crumb={current[1]}>
           {campaign.closed_at && <ClosedNote />}
-          {KIT_PAGES.has(page) ? (
-            <>
-              <Page campaign={campaign} role={role} onModal={setModal} />
-              {modal && <Legacy bare><CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} /></Legacy>}
-            </>
-          ) : (
-            <Legacy>
-              <Page campaign={campaign} role={role} onModal={setModal} />
-              <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />
-            </Legacy>
-          )}
+          <Page campaign={campaign} role={role} onModal={setModal} />
+          {modal && <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />}
         </AppPage>
         {phone && FIELD_ROLES.includes(role) && <FieldTabs items={groups.flatMap((g) => g.items)} />}
       </AppLayout>
@@ -146,10 +134,10 @@ export default function App() {
   const campaigns = useCampaigns();
   const campaign = (campaigns.data || [])[0];
 
-  if (!pagesOf(role).length) return <Legacy><NoCampaign /></Legacy>;
-  if (campaigns.isLoading) return <Legacy><Loading /></Legacy>;
-  if (campaigns.error) return <Legacy><ErrorMsg error={campaigns.error} /></Legacy>;
-  if (!campaign) return <Legacy><div className="not-on-campaign">You are not on a campaign yet.</div></Legacy>;
+  if (!pagesOf(role).length) return <NoCampaign />;
+  if (campaigns.isLoading) return <div className="p-10"><LoadingText /></div>;
+  if (campaigns.error) return <div className="p-10"><ErrorText error={campaigns.error} /></div>;
+  if (!campaign) return <p className="p-10 text-muted-foreground">You are not on a campaign yet.</p>;
   const where = { aspirant: install.aspirant, partyWorkspace: campaign.kind === "party", hosted: campaign.kind === "hosted", byCentre: campaign.operational_grain === "centre" };
   const pages = pagesOf(role, where);
 

@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { FormActions, Modal } from "../../components/ui";
-import { usePayoutMode, useReleaseCheck, useReleasePayment } from "../../api/hooks";
-import { PrimaryBtn, Btn } from "./controls";
-import { formatKES } from "../../lib/format";
+import { usePayoutMode, useReleaseCheck, useReleasePayment } from "@/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { formatKES } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 // Sends payments one after another and reports how each went.
 export default function ReleaseForm({ payments, onClose }) {
@@ -29,34 +32,38 @@ export default function ReleaseForm({ payments, onClose }) {
     setRunning(false);
   };
   return (
-    <Modal title={payments.length === 1 ? "Release payment" : `Release ${payments.length} payments`} sub={`${formatKES(sum)} in total.`} onClose={running ? () => {} : onClose}>
-      {payout.error && <div className="form-error">Could not tell whether releases move money: {payout.error.message}</div>}
-      {mode && !mode.moves_money && <div className="notice-warn">Practice mode: no money moves. Each payment is marked paid under a PRACTICE reference, against a made-up balance.</div>}
-      {check.error && <div className="form-error">{check.error.message}</div>}
+    <Dialog title={payments.length === 1 ? "Release payment" : `Release ${payments.length} payments`} description={`${formatKES(sum)} in total.`} locked={running} onClose={running ? () => {} : onClose}>
+      {payout.error && <ErrorText error={`Could not tell whether releases move money: ${payout.error.message}`} />}
+      {mode && !mode.moves_money && <div role="note" className="rounded-lg border border-[#F2D98A] bg-warn px-4 py-3 text-ui font-medium text-warn-foreground">Practice mode: no money moves. Each payment is marked paid under a PRACTICE reference, against a made-up balance.</div>}
+      <ErrorText error={check.error} />
       {cover && !results && (
-        <dl className="release-list" aria-label="Balance">
+        <dl className="flex flex-col gap-2" aria-label="Balance">
           <div className="flex justify-between gap-3"><dt>Payout balance</dt><dd>{formatKES(cover.balance_kes)}</dd></div>
           <div className="flex justify-between gap-3"><dt>These payments</dt><dd>{formatKES(cover.amount_kes)}</dd></div>
           <div className="flex justify-between gap-3"><dt>Transfer fees</dt><dd>{formatKES(cover.fee_kes)}</dd></div>
-          <div className={`flex justify-between gap-3 font-bold ${cover.enough ? "" : "text-bad"}`}><dt>Left after</dt><dd>{formatKES(cover.left_kes)}</dd></div>
-          {!cover.enough && <div className="form-error">The balance does not cover these payments and their fees. Add money in the Paystack dashboard, then approve again.</div>}
+          <div className={cn("flex justify-between gap-3 font-bold", !cover.enough && "text-bad-foreground")}><dt>Left after</dt><dd>{formatKES(cover.left_kes)}</dd></div>
         </dl>
       )}
-      <div className="release-list">
+      {cover && !results && !cover.enough && <ErrorText error="The balance does not cover these payments and their fees. Add money in the Paystack dashboard, then approve again." />}
+      <div className="flex flex-col gap-2">
         {payments.map((p) => {
           const r = results?.find((x) => x.p.id === p.id);
-          return <div key={p.id} className="flex justify-between gap-3"><span><b>{p.recipient_name}</b> <span className="muted">{p.recipient_phone || "no phone"}</span></span><span>{formatKES(p.amount_kes)}{r && <span className={`inline-badge ${r.ok ? "text-good" : r.pending ? "text-warn" : "text-bad"}`}>{r.ok ? `Paid · ${r.text}` : r.pending ? "Sending: Paystack confirms it" : r.text}</span>}</span></div>;
+          return (
+            <div key={p.id} className="flex flex-wrap justify-between gap-x-3 gap-y-1">
+              <span><b>{p.recipient_name}</b> <span className="text-muted-foreground">{p.recipient_phone || "no phone"}</span></span>
+              <span>{formatKES(p.amount_kes)}{r && <span className={cn("ml-2 font-semibold", r.ok ? "text-ok-foreground" : r.pending ? "text-warn-foreground" : "text-bad-foreground")}>{r.ok ? `Paid · ${r.text}` : r.pending ? "Sending: Paystack confirms it" : r.text}</span>}</span>
+            </div>
+          );
         })}
       </div>
       <FormActions>
-        {results ? <PrimaryBtn onClick={onClose}>Done</PrimaryBtn> : (
+        {results ? <Button shape="rounded" onClick={onClose}>Done</Button> : (
           <>
-            <Btn onClick={onClose} disabled={running}>Back</Btn>
-            <PrimaryBtn disabled={!mode || !cover?.enough || running} onClick={send}>{running ? "Sending…" : payments.length === 1 ? "Release" : `Release ${payments.length}`}</PrimaryBtn>
+            <Button shape="rounded" variant="quiet" onClick={onClose} disabled={running}>Back</Button>
+            <Button shape="rounded" disabled={!mode || !cover?.enough || running} onClick={send}>{running ? "Sending…" : payments.length === 1 ? "Release" : `Release ${payments.length}`}</Button>
           </>
         )}
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }
-

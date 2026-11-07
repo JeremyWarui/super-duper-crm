@@ -1,19 +1,20 @@
-import { FormActions, Modal } from "../../components/ui";
-import { useMarkNotSent } from "../../api/hooks";
-import { Btn, PrimaryBtn } from "./controls";
-import { formatKES } from "../../lib/format";
+import { useMarkNotSent } from "@/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { formatKES } from "@/lib/format";
 
 // After checking the provider: the money did not go, so the payment can be released again.
 export default function NotSentForm({ payment, onClose }) {
   const notSent = useMarkNotSent();
   return (
-    <Modal title="Didn't go out" sub={`Only if the payout provider shows that ${formatKES(payment.amount_kes)} to ${payment.recipient_name} was not sent. The payment can then be released again.`} onClose={onClose}>
-      {notSent.error && <div className="form-error">{notSent.error.message}</div>}
+    <Dialog title="Didn't go out" description={`Only if the payout provider shows that ${formatKES(payment.amount_kes)} to ${payment.recipient_name} was not sent. The payment can then be released again.`} onClose={onClose}>
+      <ErrorText error={notSent.error} />
       <FormActions>
-        <Btn onClick={onClose}>Back</Btn>
-        <PrimaryBtn disabled={notSent.isPending} onClick={() => notSent.mutate({ id: payment.id }, { onSuccess: onClose })}>It was not sent</PrimaryBtn>
+        <Button shape="rounded" variant="quiet" onClick={onClose}>Back</Button>
+        <Button shape="rounded" disabled={notSent.isPending} onClick={() => notSent.mutate({ id: payment.id }, { onSuccess: onClose })}>It was not sent</Button>
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }
-

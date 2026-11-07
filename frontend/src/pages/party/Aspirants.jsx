@@ -1,8 +1,6 @@
 // The nominations officer's page: nominate approved members, move nominations, create workspaces.
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { isEmail } from "../../lib/email";
-import { useAuth } from "../../store/auth";
 import {
   useAspirant,
   useAspirants,
@@ -16,16 +14,29 @@ import {
   usePartyPlaceLists,
   usePublishNominationWindow,
   useReviseNominationWindow,
-} from "../../api/hooks";
-import { Badge, Button, ErrorState, FilterSelect, FormActions, InviteModal, LoadingState, Modal, Pager, PageTitle, Panel } from "../../components/ui";
+} from "@/api/hooks";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FilterSelect, Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
+import { FormActions } from "@/components/ui/form-actions";
+import { InviteDialog } from "@/components/ui/invite-dialog";
+import { LoadingText } from "@/components/ui/loading-text";
+import { Pager } from "@/components/ui/pager";
+import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { isEmail } from "@/lib/email";
+import { formatDate, formatKES } from "@/lib/format";
+import { useAuth } from "@/store/auth";
 import { ASPIRANT_MOVES, ASPIRANT_STATUS_LABEL, ASPIRANT_STATUS_TONE, NEEDS_REASON, PAGE_SIZE, SEAT_AREA, SEAT_LABEL, SEATS } from "./helpers";
-import { formatDate, formatKES } from "../../lib/format";
 
 // County, then constituency, then ward, down to the level the seat is fought over.
 function AreaPicker({ level, area, setArea }) {
   const { counties, constituencies, wards } = usePartyPlaceLists(area);
   return (
-    <div className="flex flex-wrap gap-2 chip-row">
+    <div className="flex flex-wrap gap-2">
       <FilterSelect
         label="County"
         blank="Pick the county"
@@ -74,53 +85,51 @@ function Nominate({ onClose }) {
     );
 
   return (
-    <Modal title="Nominate a member" sub="Only approved members without a live nomination are offered." onClose={onClose}>
+    <Dialog title="Nominate a member" description="Only approved members without a live nomination are offered." onClose={onClose}>
       {member ? (
-        <div className="modal-text">
-          <div className="strong">{member.full_name}</div>
-          <div className="muted">{member.ward.name}</div>
-          <Button onClick={() => { setMember(null); nominate.reset(); }}>Choose someone else</Button>
-        </div>
+        <Card variant="tinted" className="items-start gap-2">
+          <span className="font-semibold">{member.full_name}</span>
+          <span className="text-ui text-muted-foreground">{member.ward.name}</span>
+          <Button shape="rounded" variant="quiet" size="sm" onClick={() => { setMember(null); nominate.reset(); }}>Choose someone else</Button>
+        </Card>
       ) : (
         <>
-          <input
+          <Input
             aria-label="Find a member"
-            className="app-field"
             placeholder="Name, or their whole phone number"
             maxLength={100}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          {candidates.error && <ErrorState error={candidates.error} />}
-          <div className="modal-text">
-            {(candidates.data || []).map((c) => (
-              <button key={c.id} type="button" className="link-button" onClick={() => { setMember(c); nominate.reset(); }}>
+          <ErrorText error={candidates.error} />
+          {candidates.data && <div className="flex flex-col items-start">
+            {candidates.data.map((c) => (
+              <Button key={c.id} shape="rounded" variant="link" className="min-h-11" onClick={() => { setMember(c); nominate.reset(); }}>
                 {c.full_name} · {c.ward.name}
-              </button>
+              </Button>
             ))}
             {candidates.isSuccess && candidates.data.length === 0 && (
-              <div className="muted">No approved member matches.</div>
+              <p className="text-ui text-muted-foreground">No approved member matches.</p>
             )}
-          </div>
+          </div>}
         </>
       )}
-      <select
+      <NativeSelect
         aria-label="Seat"
-        className="app-field"
         value={seat}
         onChange={(e) => { setSeat(e.target.value); setArea({ county: "", constituency: "", ward: "" }); }}
       >
         {SEATS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-      </select>
+      </NativeSelect>
       <AreaPicker level={level} area={area} setArea={setArea} />
-      {nominate.isError && <div className="form-error">{nominate.error.message}</div>}
+      <ErrorText error={nominate.error} className="text-small" />
       <FormActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button primary disabled={!ready || nominate.isPending} onClick={submit}>
+        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button shape="rounded" disabled={!ready || nominate.isPending} onClick={submit}>
           {nominate.isPending ? "Nominating…" : "Nominate"}
         </Button>
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -143,32 +152,34 @@ function Workspace({ aspirant, onDone }) {
     );
 
   return (
-    <div className="modal-text">
-      <div className="strong">Create the campaign workspace</div>
-      <div className="muted">
-        It is built on the {SEAT_LABEL[aspirant.seat]} seat for {aspirant.area.name}.
+    <div className="flex flex-col gap-3 border-t border-line-soft pt-4">
+      <div className="flex flex-col gap-0.5">
+        <h3 className="text-card-title font-bold">Create the campaign workspace</h3>
+        <p className="text-ui text-muted-foreground">
+          It is built on the {SEAT_LABEL[aspirant.seat]} seat for {aspirant.area.name}.
+        </p>
       </div>
-      <input aria-label="Campaign title" className="app-field" maxLength={150}
+      <Input aria-label="Campaign title" maxLength={150}
         placeholder={`${aspirant.member.full_name} for ${SEAT_LABEL[aspirant.seat]}`}
         value={form.title} onChange={set("title")} />
-      <input aria-label="Election date" type="date" className="app-field"
+      <Input aria-label="Election date" type="date"
         value={form.election_date} onChange={set("election_date")} />
-      <input aria-label="Aspirant's username" className="app-field" maxLength={150}
+      <Input aria-label="Aspirant's username" maxLength={150}
         placeholder="The aspirant's new username" value={form.candidate} onChange={set("candidate")} />
-      <input aria-label="Aspirant's email" type="email" className="app-field" maxLength={254}
+      <Input aria-label="Aspirant's email" type="email" maxLength={254}
         placeholder="The aspirant's email, to sign in with" value={form.candidate_email} onChange={set("candidate_email")} />
       {memberEmail && form.candidate_email.trim().toLowerCase() === memberEmail.toLowerCase() ? (
-        <p className="admin-subtle">Their member login moves to this one: they sign in once and see both the workspace and their membership.</p>
+        <p className="text-small text-muted-foreground">Their member login moves to this one: they sign in once and see both the workspace and their membership.</p>
       ) : null}
-      <input aria-label="Manager's username" className="app-field" maxLength={150}
+      <Input aria-label="Manager's username" maxLength={150}
         placeholder="A manager's new username (optional)" value={form.manager} onChange={set("manager")} />
       {form.manager.trim() ? (
-        <input aria-label="Manager's email" type="email" className="app-field" maxLength={254}
+        <Input aria-label="Manager's email" type="email" maxLength={254}
           placeholder="The manager's email, to sign in with" value={form.manager_email} onChange={set("manager_email")} />
       ) : null}
-      {create.isError && <div className="form-error">{create.error.message}</div>}
+      <ErrorText error={create.error} className="text-small" />
       <FormActions>
-        <Button primary disabled={form.candidate.trim().length < 3 || !isEmail(form.candidate_email) || (form.manager.trim() && !isEmail(form.manager_email)) || create.isPending} onClick={submit}>
+        <Button shape="rounded" disabled={form.candidate.trim().length < 3 || !isEmail(form.candidate_email) || (form.manager.trim() && !isEmail(form.manager_email)) || create.isPending} onClick={submit}>
           {create.isPending ? "Creating…" : "Create workspace"}
         </Button>
       </FormActions>
@@ -187,7 +198,7 @@ function Detail({ row, onClose }) {
   if (logins?.length) {
     const [first, ...rest] = logins;
     return (
-      <InviteModal
+      <InviteDialog
         title={first.role === "candidate" ? "The aspirant's login" : "The campaign manager's login"}
         invite={first.invite}
         username={first.username}
@@ -197,21 +208,20 @@ function Detail({ row, onClose }) {
   }
 
   return (
-    <Modal title={a.member.full_name} sub={`${SEAT_LABEL[a.seat]} · ${a.area.name}`} onClose={onClose}>
-      <div className="modal-text">
-        <div><Badge text={ASPIRANT_STATUS_LABEL[a.status]} tone={ASPIRANT_STATUS_TONE[a.status]} /></div>
-        <div className="muted">Nominated: {formatDate(a.created_at)}</div>
-        <div className="muted">Decided: {formatDate(a.decided_at)}</div>
-        {a.status_reason && <div className="muted">Reason: {a.status_reason}</div>}
-        <div className="muted">Workspace: {a.campaign_id ? "created" : "none yet"}</div>
+    <Dialog title={a.member.full_name} description={`${SEAT_LABEL[a.seat]} · ${a.area.name}`} onClose={onClose}>
+      <div className="flex flex-col gap-1.5 text-ui text-muted-foreground">
+        <div><Badge tone={ASPIRANT_STATUS_TONE[a.status]}>{ASPIRANT_STATUS_LABEL[a.status]}</Badge></div>
+        <div>Nominated: {formatDate(a.created_at)}</div>
+        <div>Decided: {formatDate(a.decided_at)}</div>
+        {a.status_reason && <div>Reason: {a.status_reason}</div>}
+        <div>Workspace: {a.campaign_id ? "created" : "none yet"}</div>
       </div>
       {a.window_title && <Application a={a} />}
-      {detail.error && <ErrorState error={detail.error} />}
+      <ErrorText error={detail.error} />
       {actions.length > 0 && (
         <>
-          <input
+          <Input
             aria-label="Reason"
-            className="app-field"
             placeholder="Reason (needed to reject or suspend)"
             maxLength={1000}
             value={reason}
@@ -221,7 +231,8 @@ function Detail({ row, onClose }) {
             {actions.map(([status, label]) => (
               <Button
                 key={status + label}
-                primary={status === "approved"}
+                shape="rounded"
+                variant={status === "approved" ? "primary" : "quiet"}
                 disabled={move.isPending || (NEEDS_REASON.has(status) && !reason.trim())}
                 onClick={() =>
                   move.mutate({ id: a.id, status, reason: reason.trim() }, { onSuccess: () => setReason("") })
@@ -233,9 +244,9 @@ function Detail({ row, onClose }) {
           </FormActions>
         </>
       )}
-      {move.isError && <div className="form-error">{move.error.message}</div>}
+      <ErrorText error={move.error} className="text-small" />
       {a.status === "approved" && !a.campaign_id && <Workspace aspirant={a} onDone={setLogins} />}
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -244,24 +255,24 @@ function Application({ a }) {
   const pay = useMarkNominationFeePaid();
   const [reference, setReference] = useState("");
   return (
-    <div className="modal-text" aria-label="Application">
-      <div className="muted">Applied in: {a.window_title}</div>
-      <div className="muted">Declaration: {a.declared_at ? `signed ${formatDate(a.declared_at)}` : "not yet"}</div>
-      <div className="muted">
+    <Card variant="tinted" className="gap-1.5 text-ui" aria-label="Application">
+      <div className="text-muted-foreground">Applied in: {a.window_title}</div>
+      <div className="text-muted-foreground">Declaration: {a.declared_at ? `signed ${formatDate(a.declared_at)}` : "not yet"}</div>
+      <div className="text-muted-foreground">
         Fee: {a.fee_kes ? `${formatKES(a.fee_kes)} · ${a.fee_paid_at ? `paid, ref ${a.fee_reference}` : "not paid"}` : "none"}
       </div>
-      <div className="muted">Documents: {a.documents.length === 0 ? "none" : ""}</div>
+      <div className="text-muted-foreground">Documents: {a.documents.length === 0 ? "none" : ""}</div>
       {a.documents.map((d) => (
-        <a key={d.id} href={`/api/party/nominations/applications/${a.id}/documents/${d.id}/`} target="_blank" rel="noreferrer">{d.label}</a>
+        <a key={d.id} className="font-semibold text-primary underline underline-offset-2" href={`/api/party/nominations/applications/${a.id}/documents/${d.id}/`} target="_blank" rel="noreferrer">{d.label}</a>
       ))}
       {a.fee_kes > 0 && !a.fee_paid_at && a.status === "draft" && (
-        <div className="flex gap-2">
-          <input aria-label="Fee reference" className="app-field" placeholder="M-Pesa or bank reference" maxLength={50} value={reference} onChange={(e) => setReference(e.target.value)} />
-          <Button disabled={pay.isPending || reference.trim().length < 3} onClick={() => pay.mutate({ id: a.id, reference: reference.trim() })}>Mark fee paid</Button>
+        <div className="flex flex-wrap gap-2">
+          <Input aria-label="Fee reference" className="w-auto flex-[1_1_200px]" placeholder="M-Pesa or bank reference" maxLength={50} value={reference} onChange={(e) => setReference(e.target.value)} />
+          <Button shape="rounded" variant="quiet" disabled={pay.isPending || reference.trim().length < 3} onClick={() => pay.mutate({ id: a.id, reference: reference.trim() })}>Mark fee paid</Button>
         </div>
       )}
-      {pay.isError && <div className="form-error">{pay.error.message}</div>}
-    </div>
+      <ErrorText error={pay.error} className="text-small" />
+    </Card>
   );
 }
 
@@ -272,27 +283,27 @@ function Timetable() {
   const superuser = useAuth((st) => st.user?.is_superuser);
   const [editing, setEditing] = useState(null);
   if (windows.isLoading) return null;
-  if (windows.error) return <ErrorState error={windows.error} />;
+  if (windows.error) return <ErrorText error={windows.error} />;
   return (
-    <Panel>
+    <Card variant="outline" className="gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="strong">Nominations timetable</div>
-        <Button onClick={() => setEditing({})}>Draft a timetable</Button>
+        <h2 className="text-card-title font-bold">Nominations timetable</h2>
+        <Button shape="rounded" variant="quiet" onClick={() => setEditing({})}>Draft a timetable</Button>
       </div>
-      <div className="modal-text" aria-label="Timetables">
-        {windows.data.length === 0 && <div className="muted">No timetable yet. Members can apply only inside a published one.</div>}
+      <div className="flex flex-col" aria-label="Timetables">
+        {windows.data.length === 0 && <p className="text-ui text-muted-foreground">No timetable yet. Members can apply only inside a published one.</p>}
         {windows.data.map((w) => (
-          <div key={w.id} className="flex flex-wrap items-center gap-2">
-            <span className="strong">{w.title}</span>
-            <span className="muted">{formatDate(w.opens_on)} – {formatDate(w.closes_on)}</span>
-            <span className="muted">{w.seats.map((x) => `${SEAT_LABEL[x.seat]} ${x.fee_kes ? formatKES(x.fee_kes) : "no fee"}`).join(" · ")}</span>
-            <Badge text={w.status === "published" ? "Published" : "Draft"} tone={w.status === "published" ? "ok" : "warn"} />
-            {w.status === "draft" && <Button onClick={() => setEditing(w)}>Edit</Button>}
+          <div key={w.id} className="flex flex-wrap items-center gap-2 border-t border-line-soft py-2.5 text-ui first:border-0">
+            <span className="font-semibold">{w.title}</span>
+            <span className="text-muted-foreground">{formatDate(w.opens_on)} – {formatDate(w.closes_on)}</span>
+            <span className="text-muted-foreground">{w.seats.map((x) => `${SEAT_LABEL[x.seat]} ${x.fee_kes ? formatKES(x.fee_kes) : "no fee"}`).join(" · ")}</span>
+            <Badge tone={w.status === "published" ? "ok" : "warn"}>{w.status === "published" ? "Published" : "Draft"}</Badge>
+            {w.status === "draft" && <Button shape="rounded" variant="quiet" size="sm" onClick={() => setEditing(w)}>Edit</Button>}
             {w.status === "draft" && superuser && !w.mine && (
-              <Button primary disabled={publish.isPending} onClick={() => publish.mutate(w.id)}>Publish</Button>
+              <Button shape="rounded" size="sm" disabled={publish.isPending} onClick={() => publish.mutate(w.id)}>Publish</Button>
             )}
             {w.status === "draft" && w.mine && (
-              <span className="muted">
+              <span className="text-muted-foreground">
                 {superuser
                   ? "You drafted it, so you cannot publish it. A Nominations Officer opens Edit and saves it, then you publish. Give that office in the console, on a staff login linked to an approved member."
                   : "The Party Super Admin publishes it."}
@@ -301,9 +312,9 @@ function Timetable() {
           </div>
         ))}
       </div>
-      {publish.isError && <div className="form-error">{publish.error.message}</div>}
+      <ErrorText error={publish.error} className="text-small" />
       {editing && <TimetableForm window={editing} onClose={() => setEditing(null)} />}
-    </Panel>
+    </Card>
   );
 }
 
@@ -322,35 +333,35 @@ function TimetableForm({ window: w, onClose }) {
     save.mutate(w.id ? { id: w.id, body } : body, { onSuccess: onClose });
   };
   return (
-    <Modal title={w.id ? "Edit timetable" : "Draft a timetable"} sub="A draft stays private until the Super Admin publishes it." onClose={onClose}>
-      <input aria-label="Title" className="app-field" placeholder="e.g. Nominations 2027" maxLength={150} value={form.title} onChange={set("title")} />
-      <div className="flex flex-wrap gap-2">
-        <label className="muted">Opens <input aria-label="Opens" type="date" className="app-field" value={form.opens_on} onChange={set("opens_on")} /></label>
-        <label className="muted">Closes <input aria-label="Closes" type="date" className="app-field" value={form.closes_on} onChange={set("closes_on")} /></label>
+    <Dialog title={w.id ? "Edit timetable" : "Draft a timetable"} description="A draft stays private until the Super Admin publishes it." onClose={onClose}>
+      <Input aria-label="Title" placeholder="e.g. Nominations 2027" maxLength={150} value={form.title} onChange={set("title")} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Opens"><Input aria-label="Opens" type="date" value={form.opens_on} onChange={set("opens_on")} /></Field>
+        <Field label="Closes"><Input aria-label="Closes" type="date" value={form.closes_on} onChange={set("closes_on")} /></Field>
       </div>
-      <fieldset className="modal-text">
-        <legend className="strong">Seats and nomination fees (KES)</legend>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-small font-semibold">Seats and nomination fees (KES)</legend>
         {SEATS.map(([value, label]) => (
-          <div key={value} className="flex items-center gap-2">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={value in seats}
+          <div key={value} className="flex flex-wrap items-center gap-3">
+            <label className="flex min-h-11 min-w-32 items-center gap-2.5 text-body">
+              <input type="checkbox" className="size-[18px] accent-primary" checked={value in seats}
                 onChange={(e) => { const next = { ...seats }; if (e.target.checked) next[value] = "0"; else delete next[value]; setSeats(next); }} />
               {label}
             </label>
             {value in seats && (
-              <input aria-label={`${label} fee`} type="number" min={0} className="app-field" value={seats[value]}
+              <Input aria-label={`${label} fee`} type="number" min={0} className="w-auto flex-[1_1_140px]" value={seats[value]}
                 onChange={(e) => setSeats({ ...seats, [value]: e.target.value })} />
             )}
           </div>
         ))}
       </fieldset>
-      <textarea aria-label="Requirements" className="app-field" rows={4} maxLength={5000} placeholder="Requirements aspirants must meet" value={form.requirements} onChange={set("requirements")} />
-      {save.isError && <div className="form-error">{save.error.message}</div>}
+      <Textarea aria-label="Requirements" rows={4} maxLength={5000} placeholder="Requirements aspirants must meet" value={form.requirements} onChange={set("requirements")} />
+      <ErrorText error={save.error} className="text-small" />
       <FormActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button primary disabled={!ready || save.isPending} onClick={submit}>{save.isPending ? "Saving…" : "Save draft"}</Button>
+        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button shape="rounded" disabled={!ready || save.isPending} onClick={submit}>{save.isPending ? "Saving…" : "Save draft"}</Button>
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -381,48 +392,46 @@ export default function Aspirants() {
   const total = data?.total ?? 0;
   const items = data?.items || [];
 
-  if (isLoading) return <LoadingState />;
-  if (error) return <ErrorState error={error} />;
+  if (isLoading) return <LoadingText />;
+  if (error) return <ErrorText error={error} />;
 
   return (
     <>
-      <PageTitle
+      <SlottedHeader
         title="Aspirants"
         sub={`${total} nominations`}
-        action={<Button primary onClick={() => setNominating(true)}>Nominate a member</Button>}
+        actions={<Button shape="rounded" onClick={() => setNominating(true)}>Nominate a member</Button>}
       />
       <Timetable />
-      <div className="flex flex-wrap gap-2 chip-row">
-        <select aria-label="Status" className="app-field filter-field" value={status}
+      <div className="flex flex-wrap gap-2">
+        <NativeSelect aria-label="Status" className="w-auto min-w-0 flex-[1_1_180px]" value={status}
           onChange={(e) => { setStatus(e.target.value); setOffset(0); }}>
           <option value="">All statuses</option>
           {Object.entries(ASPIRANT_STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-        <select aria-label="Seat filter" className="app-field filter-field" value={seat}
+        </NativeSelect>
+        <NativeSelect aria-label="Seat filter" className="w-auto min-w-0 flex-[1_1_180px]" value={seat}
           onChange={(e) => { setSeat(e.target.value); setOffset(0); }}>
           <option value="">All seats</option>
           {SEATS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
+        </NativeSelect>
       </div>
-      <Panel pad={0}>
-        <div className="table-scroll">
-          <table className="table">
-            <thead><tr><th>Name</th><th>Seat</th><th>Area</th><th>Status</th><th>Workspace</th></tr></thead>
-            <tbody>
-              {items.map((a) => (
-                <tr key={a.id}>
-                  <td className="strong"><button type="button" className="link-button" onClick={() => setOpen(a)}>{a.member.full_name}</button></td>
-                  <td className="muted">{SEAT_LABEL[a.seat]}</td>
-                  <td className="muted">{a.area.name}</td>
-                  <td><Badge text={ASPIRANT_STATUS_LABEL[a.status]} tone={ASPIRANT_STATUS_TONE[a.status]} /></td>
-                  <td className="muted">{a.campaign_id ? "Created" : "—"}</td>
-                </tr>
-              ))}
-              {items.length === 0 && <tr><td colSpan={5} className="empty-row">No nominations match.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </Panel>
+      <Card variant="outline">
+        <Table stack minWidth={640}>
+          <THead><TR><TH>Name</TH><TH>Seat</TH><TH>Area</TH><TH>Status</TH><TH>Workspace</TH></TR></THead>
+          <TBody>
+            {items.map((a) => (
+              <TR key={a.id}>
+                <TD><RowButton onClick={() => setOpen(a)}>{a.member.full_name}</RowButton></TD>
+                <TD className="text-muted-foreground">{SEAT_LABEL[a.seat]}</TD>
+                <TD className="text-muted-foreground">{a.area.name}</TD>
+                <TD><Badge tone={ASPIRANT_STATUS_TONE[a.status]}>{ASPIRANT_STATUS_LABEL[a.status]}</Badge></TD>
+                <TD className="text-muted-foreground">{a.campaign_id ? "Created" : "—"}</TD>
+              </TR>
+            ))}
+            {items.length === 0 && <TR><TD colSpan={5} className="text-center text-muted-foreground">No nominations match.</TD></TR>}
+          </TBody>
+        </Table>
+      </Card>
       <Pager offset={offset} size={PAGE_SIZE} shown={items.length} total={total} noun="nominations" onChange={setOffset} />
       {nominating && <Nominate onClose={() => setNominating(false)} />}
       {open && <Detail row={open} onClose={() => setOpen(null)} />}

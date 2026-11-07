@@ -1,10 +1,16 @@
 import { useState } from "react";
-import { formatNumber as fmt, plural } from "../../lib/format";
-import { Badge, Chip, FormActions, Modal } from "../../components/ui";
-import { useInviteToEvent } from "../../api/hooks";
-import { useAuth } from "../../store/auth";
-import { FOOTER, partsOf } from "../../lib/sms";
-import { Btn, Label, PrimaryBtn } from "./controls";
+import { formatNumber as fmt, plural } from "@/lib/format";
+import { useInviteToEvent } from "@/api/hooks";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { Field, Textarea } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/store/auth";
+import { FOOTER, partsOf } from "@/lib/sms";
 
 const LEVELS = [["supporter", "Supporters"], ["undecided", "Undecided"], ["opposed", "Opposed"]];
 // Who may really text; anyone else who changes the event can preview.
@@ -29,57 +35,61 @@ export default function InviteForm({ event, onClose }) {
     );
 
   return (
-    <Modal title="Invite supporters" sub={`${event.title} · ${wholeCampaign ? "whole campaign" : event.ward_name}`} onClose={onClose}>
-      <Label>Message</Label>
-      <textarea className="textarea app-field" maxLength={895} value={message} onChange={(e) => { setMessage(e.target.value); setResult(null); }} />
-      <div className="field-hint">{text.length} characters · {plural(parts, "SMS part")} per person · "Reply STOP to opt out" is added</div>
+    <Dialog title="Invite supporters" description={`${event.title} · ${wholeCampaign ? "whole campaign" : event.ward_name}`} onClose={onClose}>
+      <Field label="Message" hint={`${text.length} characters · ${plural(parts, "SMS part")} per person · "Reply STOP to opt out" is added`}>
+        <Textarea aria-label="Message" maxLength={895} value={message} onChange={(e) => { setMessage(e.target.value); setResult(null); }} />
+      </Field>
 
-      <div className="field-gap" /><Label>Send to</Label>
-      <div className="flex flex-wrap gap-1 chip-row">
-        {LEVELS.map(([key, label]) => (
-          <Chip key={key} on={levels.includes(key)} onClick={() => { toggle(key); setResult(null); }}>{label}</Chip>
-        ))}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-small font-semibold">Send to</span>
+        <div className="flex flex-wrap gap-2">
+          {LEVELS.map(([key, label]) => (
+            <button key={key} type="button" aria-pressed={levels.includes(key)} onClick={() => { toggle(key); setResult(null); }}
+              className={cn("min-h-11 cursor-pointer rounded-full border-[1.5px] px-4 text-ui font-semibold", levels.includes(key) ? "border-ink bg-ink text-white" : "border-line-control bg-white text-ink")}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
-      <label className="flex items-start gap-2 checkbox-row">
-        <input type="checkbox" checked={wholeCampaign} onChange={(e) => { setWholeCampaign(e.target.checked); setResult(null); }} className="checkbox" />
+      <label className="flex min-h-11 cursor-pointer items-start gap-3 text-ui text-muted-foreground">
+        <input type="checkbox" checked={wholeCampaign} onChange={(e) => { setWholeCampaign(e.target.checked); setResult(null); }} className="mt-0.5 size-[18px] flex-none accent-primary" />
         Everyone on the campaign, not just {event.ward_name}
       </label>
 
-      {!canSend && <div className="field-hint">Only the candidate or the campaign manager sends texts.</div>}
+      {!canSend && <p className="text-small text-muted-foreground">Only the candidate or the campaign manager sends texts.</p>}
       {result && <InviteResult result={result} />}
-      {invite.isError && <div className="form-error">{invite.error.message}</div>}
+      <ErrorText error={invite.isError && invite.error} />
 
       <FormActions>
-        <Btn onClick={onClose}>Close</Btn>
-        <Btn onClick={() => send(true)} disabled={!ok}>{invite.isPending ? "Working…" : "Preview"}</Btn>
-        {canSend && <PrimaryBtn disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</PrimaryBtn>}
+        <Button shape="rounded" variant="quiet" onClick={onClose}>Close</Button>
+        <Button shape="rounded" variant="quiet" onClick={() => send(true)} disabled={!ok}>{invite.isPending ? "Working…" : "Preview"}</Button>
+        {canSend && <Button shape="rounded" disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</Button>}
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }
 
 function InviteResult({ result }) {
-  const tone = result.delivered ? "good" : "warn";
+  const tone = result.delivered ? "ok" : "warn";
   return (
-    <div className={`result tone-${tone}`}>
-      <div className="result-title">
+    <Card variant="tinted" className={cn("border-l-[3px]", result.delivered ? "border-l-primary" : "border-l-warn-foreground")}>
+      <div className="flex items-center gap-2 font-semibold">
         {result.dry_run ? "Preview" : result.delivered ? "Sent" : "Not sent"}
-        <span className="inline-badge"><Badge text={result.provider} tone={tone} /></span>
+        <Badge tone={tone}>{result.provider}</Badge>
       </div>
-      <div className="result-text">
+      <p className="text-small text-muted-foreground">
         {plural(result.supporters_matched, "supporter")} matched ·
         {" "}{plural(result.requested, "usable number")} ·
         {" "}{plural(result.parts, "part")} each
         {result.opted_out > 0 && <> · {fmt(result.opted_out)} opted out, left out</>}
-      </div>
+      </p>
       {result.rejected.length > 0 && (
-        <div className="result-bad">
+        <p className="text-small text-bad-foreground">
           {plural(result.rejected.length, "number")} unusable: {result.rejected.slice(0, 4).map((r) => r.phone || "(blank)").join(", ")}
-        </div>
+        </p>
       )}
-      {result.detail && <div className="result-note">{result.detail}</div>}
-      {!result.dry_run && result.delivered && <div className="result-good">Reached is now {fmt(result.number_reached)}.</div>}
-    </div>
+      {result.detail && <p className="text-small text-muted-foreground">{result.detail}</p>}
+      {!result.dry_run && result.delivered && <p className="text-small font-semibold text-ok-foreground">Reached is now {fmt(result.number_reached)}.</p>}
+    </Card>
   );
 }
-

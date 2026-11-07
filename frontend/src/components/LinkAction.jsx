@@ -1,23 +1,26 @@
-import { Button } from "./ui";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ErrorText } from "@/components/ui/error-text";
+import PageHead from "@/pages/public/PageHead";
 
 /** The page a private link opens: a note and one button that acts on the link, then the server's reply. `action` is the mutation. */
 export default function LinkAction({ action, heading, note, label, busyLabel, style }) {
   return (
-    <div className="join-shell" style={style}>
-      <div className="join-card">
-        <div className="join-heading">{heading}</div>
+    <div className="site-container py-12" style={style}>
+      <PageHead title={heading} />
+      <Card className="max-w-[620px]">
         {action.isSuccess ? (
-          <div className="join-message-success">{action.data.message}</div>
+          <p role="status" className="text-base">{action.data.message}</p>
         ) : (
           <>
-            <div className="join-note">{note}</div>
-            {action.error && <div className="join-error">{action.error.message}</div>}
-            <Button tone="danger" disabled={action.isPending} onClick={() => action.mutate()} className="join-submit">
+            <p className="text-base">{note}</p>
+            <ErrorText error={action.error} className="text-small" />
+            <Button variant="danger" className="self-start" disabled={action.isPending} onClick={() => action.mutate()}>
               {action.isPending ? busyLabel : label}
             </Button>
           </>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

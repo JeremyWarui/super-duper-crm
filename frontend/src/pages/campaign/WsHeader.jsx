@@ -1,9 +1,3 @@
-import { PageHeader, useSlottedHeader } from "@/components/layout/AppPage";
-
-// A kit page's frosted header: the menu group, the title and the page's actions.
-export default function WsHeader(props) {
-  const header = useSlottedHeader(<PageHeader {...props} />);
-  return header.slotted ? header.rendered : <PageHeader {...props} />;
-}
+export { SlottedHeader as default } from "@/components/layout/AppPage";
 
 export const KitLoading = () => <p className="text-muted-foreground">Loading…</p>;

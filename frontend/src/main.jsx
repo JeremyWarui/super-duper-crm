@@ -4,7 +4,6 @@ import ReactDOM from "react-dom/client";
 import "@fontsource-variable/public-sans";
 import "@fontsource-variable/bricolage-grotesque";
 import "@/styles/globals.css";
-import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { AppRoutes, forgetOnSwitch } from "./Gate";

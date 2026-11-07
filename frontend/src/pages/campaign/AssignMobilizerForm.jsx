@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { FormActions, Modal } from "../../components/ui";
-import { useUpdateMobilizer } from "../../api/hooks";
-import { Btn, Label, PrimaryBtn } from "./controls";
+import { useUpdateMobilizer } from "@/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { Field, NativeSelect } from "@/components/ui/input";
 
 // Puts an unassigned mobilizer on the clicked unit; the unit comes from the row.
 export default function AssignMobilizerForm({ unit, holder, mobilizers, onClose }) {
@@ -14,24 +17,22 @@ export default function AssignMobilizerForm({ unit, holder, mobilizers, onClose 
   const remove = () => update.mutate({ id: holder.id, ward: null, registration_centre: null }, { onSuccess: onClose });
 
   return (
-    <Modal title={`Mobilizer for ${unit.unit}`} sub={holder ? `Now: ${holder.full_name}` : `Pick a mobilizer without a ${unitWord}.`} onClose={onClose}>
+    <Dialog title={`Mobilizer for ${unit.unit}`} description={holder ? `Now: ${holder.full_name}` : `Pick a mobilizer without a ${unitWord}.`} onClose={onClose}>
       {free.length > 0 ? (
-        <>
-          <Label>Mobilizer</Label>
-          <select aria-label="Mobilizer" className="app-field" value={chosen} onChange={(e) => setPicked(e.target.value)}>
+        <Field label="Mobilizer">
+          <NativeSelect aria-label="Mobilizer" value={chosen} onChange={(e) => setPicked(e.target.value)}>
             {free.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-          </select>
-        </>
+          </NativeSelect>
+        </Field>
       ) : (
-        <div className="muted">Every mobilizer already has a {unitWord}. Add one on the Mobilizers page.</div>
+        <p className="text-muted-foreground">Every mobilizer already has a {unitWord}. Add one on the Mobilizers page.</p>
       )}
-      {update.error && <div className="form-error">{update.error.message}</div>}
+      <ErrorText error={update.error} />
       <FormActions>
-        {holder && <Btn onClick={remove} disabled={update.isPending}>Remove {holder.full_name}</Btn>}
-        <Btn onClick={onClose}>Cancel</Btn>
-        <PrimaryBtn disabled={!chosen || update.isPending} onClick={assign}>{update.isPending ? "Saving…" : "Assign"}</PrimaryBtn>
+        {holder && <Button shape="rounded" variant="quiet" onClick={remove} disabled={update.isPending}>Remove {holder.full_name}</Button>}
+        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button shape="rounded" disabled={!chosen || update.isPending} onClick={assign}>{update.isPending ? "Saving…" : "Assign"}</Button>
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }
-

@@ -5,11 +5,13 @@ import { cn } from '@/lib/utils'
 /**
  * Modal dialog on the browser's own <dialog>: it traps focus, closes on Escape and dims the page.
  * Rendered while open; `onClose` runs for Escape, the close button and a click on the backdrop.
+ * While `locked`, Escape and the backdrop do nothing and only the close button closes it.
  */
-export function Dialog({ title, description, onClose, className, children }: {
+export function Dialog({ title, description, onClose, locked, className, children }: {
   title: React.ReactNode
   description?: React.ReactNode
   onClose: () => void
+  locked?: boolean
   className?: string
   children: React.ReactNode
 }) {
@@ -26,8 +28,8 @@ export function Dialog({ title, description, onClose, className, children }: {
     <dialog
       ref={ref}
       aria-labelledby={`${id}-t`}
-      onCancel={(e) => { e.preventDefault(); onClose() }}
-      onClick={(e) => { if (e.target === ref.current) onClose() }}
+      onCancel={(e) => { e.preventDefault(); if (!locked) onClose() }}
+      onClick={(e) => { if (e.target === ref.current && !locked) onClose() }}
       className={cn('m-auto w-[min(560px,calc(100vw-32px))] max-h-[calc(100dvh-32px)] overflow-y-auto rounded-photo border border-black/5 bg-popover p-0 text-ink shadow-pop backdrop:bg-ink/40', className)}
     >
       <div className="flex flex-col gap-4 p-6">

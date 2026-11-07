@@ -1,8 +1,15 @@
 // The superuser's party-wide totals, filtered by place, seat, aspirant and dates.
 import { useState } from "react";
-import { useAspirants, usePartyDashboard, usePartyPlaceLists, usePartyShared } from "../../api/hooks";
-import { Button, ErrorState, Field, LoadingState, PageTitle, Panel } from "../../components/ui";
-import { formatDate, formatNumber } from "../../lib/format";
+import { useAspirants, usePartyDashboard, usePartyPlaceLists, usePartyShared } from "@/api/hooks";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ErrorText } from "@/components/ui/error-text";
+import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { LoadingText } from "@/components/ui/loading-text";
+import { StatTiles } from "@/components/ui/stat-tiles";
+import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { formatDate, formatNumber } from "@/lib/format";
 import { AREA_LABEL, SEAT_LABEL, SEATS } from "./helpers";
 
 const EMPTY = { county: "", constituency: "", ward: "", seat: "", aspirant: "", from: "", to: "" };
@@ -10,69 +17,65 @@ const EMPTY = { county: "", constituency: "", ward: "", seat: "", aspirant: "", 
 function Pick({ label, value, onChange, options, disabled }) {
   return (
     <Field label={label}>
-      <select aria-label={label} className="app-field" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+      <NativeSelect aria-label={label} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
         <option value="">All</option>
         {options.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-      </select>
+      </NativeSelect>
     </Field>
   );
 }
 
 function Counts({ title, head, rows }) {
   return (
-    <Panel pad={0}>
-      <div className="card-head"><div className="card-title">{title}</div></div>
-      <div className="table-scroll">
-        <table className="table">
-          <thead><tr><th>{head}</th><th className="num">Count</th></tr></thead>
-          <tbody>
-            {rows.map(([key, label, count]) => (
-              <tr key={key}><td>{label}</td><td className="num figure">{formatNumber(count)}</td></tr>
-            ))}
-            {rows.length === 0 && <tr><td colSpan={2} className="empty-row">None.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-    </Panel>
+    <Card variant="outline" className="min-w-0 gap-3">
+      <h2 className="text-card-title font-bold">{title}</h2>
+      <Table minWidth={240}>
+        <THead><TR><TH>{head}</TH><TH align="right">Count</TH></TR></THead>
+        <TBody>
+          {rows.map(([key, label, count]) => (
+            <TR key={key}><TD>{label}</TD><TD numeric className="font-semibold">{formatNumber(count)}</TD></TR>
+          ))}
+          {rows.length === 0 && <TR><TD colSpan={2} className="text-center text-muted-foreground">None.</TD></TR>}
+        </TBody>
+      </Table>
+    </Card>
   );
 }
 
-const NOT_SHARED = <span className="muted">Not shared</span>;
+const NOT_SHARED = <span className="text-muted-foreground">Not shared</span>;
 const wardList = (rows) => rows.map((w) => `${w.ward} ${formatNumber(w.count)}`).join(" · ");
 
 // The counts each hosted campaign has chosen to share; read fresh, so a switch turned off shows
 // "Not shared" on the next load.
 function Shared() {
   const shared = usePartyShared();
-  if (shared.error) return <ErrorState error={shared.error} />;
+  if (shared.error) return <ErrorText error={shared.error} />;
   const rows = shared.data || [];
   return (
-    <Panel pad={0}>
-      <div className="card-head"><div className="card-title">Shared by campaigns</div></div>
-      <div className="table-scroll">
-        <table className="table" aria-label="Shared by campaigns">
-          <thead><tr><th>Campaign</th><th>Event reach</th><th>Ward coverage</th><th>Supporters by ward</th></tr></thead>
-          <tbody>
-            {rows.map((c) => {
-              const supporters = c.supporter_counts;
-              return (
-                <tr key={c.id}>
-                  <td className="strong">{c.title}{c.seat && <div className="muted">{SEAT_LABEL[c.seat]}</div>}</td>
-                  <td>{c.event_reach ? `${formatNumber(c.event_reach.events)} events · ${formatNumber(c.event_reach.reached)} reached · ${formatNumber(c.event_reach.attended)} attended` : NOT_SHARED}</td>
-                  <td>{c.ward_coverage ? `${formatNumber(c.ward_coverage.covered.length)} of ${formatNumber(c.ward_coverage.wards)} wards have mobilizers` : NOT_SHARED}</td>
-                  <td>
-                    {supporters
-                      ? `${formatNumber(supporters.reduce((n, w) => n + w.count, 0))}${supporters.length ? ` · ${wardList(supporters)}` : ""}`
-                      : NOT_SHARED}
-                  </td>
-                </tr>
-              );
-            })}
-            {shared.isSuccess && rows.length === 0 && <tr><td colSpan={4} className="empty-row">No nominee workspaces yet.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-    </Panel>
+    <Card variant="outline" className="min-w-0 gap-3">
+      <h2 className="text-card-title font-bold">Shared by campaigns</h2>
+      <Table stack minWidth={720} aria-label="Shared by campaigns">
+        <THead><TR><TH>Campaign</TH><TH>Event reach</TH><TH>Ward coverage</TH><TH>Supporters by ward</TH></TR></THead>
+        <TBody>
+          {rows.map((c) => {
+            const supporters = c.supporter_counts;
+            return (
+              <TR key={c.id}>
+                <TD className="font-semibold">{c.title}{c.seat && <div className="text-small font-normal text-muted-foreground">{SEAT_LABEL[c.seat]}</div>}</TD>
+                <TD>{c.event_reach ? `${formatNumber(c.event_reach.events)} events · ${formatNumber(c.event_reach.reached)} reached · ${formatNumber(c.event_reach.attended)} attended` : NOT_SHARED}</TD>
+                <TD>{c.ward_coverage ? `${formatNumber(c.ward_coverage.covered.length)} of ${formatNumber(c.ward_coverage.wards)} wards have mobilizers` : NOT_SHARED}</TD>
+                <TD>
+                  {supporters
+                    ? `${formatNumber(supporters.reduce((n, w) => n + w.count, 0))}${supporters.length ? ` · ${wardList(supporters)}` : ""}`
+                    : NOT_SHARED}
+                </TD>
+              </TR>
+            );
+          })}
+          {shared.isSuccess && rows.length === 0 && <TR><TD colSpan={4} className="text-center text-muted-foreground">No nominee workspaces yet.</TD></TR>}
+        </TBody>
+      </Table>
+    </Card>
   );
 }
 
@@ -100,42 +103,35 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="page-stack">
-      <PageTitle title="Dashboard" sub="Totals across the party's registers and campaigns." />
-      <Panel pad={18}>
-        <div className="filter-grid">
+    <>
+      <SlottedHeader title="Dashboard" sub="Totals across the party's registers and campaigns." />
+      <Card variant="outline">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
           <Pick label="County" value={filters.county} onChange={set("county")} options={places(counties)} />
           <Pick label="Constituency" value={filters.constituency} onChange={set("constituency")} options={places(constituencies)} disabled={!filters.county} />
           <Pick label="Ward" value={filters.ward} onChange={set("ward")} options={places(wards)} disabled={!filters.constituency} />
           <Pick label="Seat" value={filters.seat} onChange={set("seat")} options={SEATS.map(([value, label]) => [value, label])} />
           <Pick label="Aspirant" value={filters.aspirant} onChange={set("aspirant")} options={aspirants.map((a) => [a.id, `${a.member.full_name} · ${SEAT_LABEL[a.seat]}`])} />
           <Field label="From">
-            <input aria-label="From" type="date" className="app-field" value={filters.from} onChange={(e) => set("from")(e.target.value)} />
+            <Input aria-label="From" type="date" value={filters.from} onChange={(e) => set("from")(e.target.value)} />
           </Field>
           <Field label="To">
-            <input aria-label="To" type="date" className="app-field" value={filters.to} onChange={(e) => set("to")(e.target.value)} />
+            <Input aria-label="To" type="date" value={filters.to} onChange={(e) => set("to")(e.target.value)} />
           </Field>
         </div>
-        <div className="flex justify-end form-actions">
-          <Button onClick={() => setFilters(EMPTY)}>Clear filters</Button>
+        <div className="flex justify-end">
+          <Button shape="rounded" variant="quiet" onClick={() => setFilters(EMPTY)}>Clear filters</Button>
         </div>
-      </Panel>
-      {board.error && <ErrorState error={board.error} />}
-      {!d && !board.error && <LoadingState />}
+      </Card>
+      <ErrorText error={board.error} />
+      {!d && !board.error && <LoadingText />}
       {d && (
         <>
-          <div className="kpi-grid kpi-grid-five">
-            {tiles.map(([label, value]) => (
-              <Panel key={label} pad={20} className="kpi">
-                <div className="kpi-label">{label}</div>
-                <div className="kpi-value">{value}</div>
-              </Panel>
-            ))}
-          </div>
-          <div className="page-note">
+          <StatTiles tiles={tiles} min={150} />
+          <p className="text-small text-muted-foreground">
             Events from {formatDate(d.events_from)} to {formatDate(d.events_to)}.
-          </div>
-          <div className="grid overview-grid gap-4">
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
             <Counts
               title="Campaigns by county and seat"
               head="County · seat"
@@ -165,6 +161,6 @@ export default function Dashboard() {
           <Shared />
         </>
       )}
-    </div>
+    </>
   );
 }

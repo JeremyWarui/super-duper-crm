@@ -7,7 +7,6 @@ import { useInstall } from "@/app/site";
 import { useCopy } from "@/copy";
 import { useAuth } from "../../store/auth";
 import { homeOf } from "../../lib/home";
-import Legacy from "../../components/Legacy";
 import DataRequests from "../../components/DataRequests";
 import Aspirants from "./Aspirants";
 import Branches from "./Branches";
@@ -52,7 +51,7 @@ function officeOf(user, superAdmin) {
     : (user?.party_roles || []).map((r) => PARTY_ROLE_LABEL[r] || r).join(", ");
 }
 
-/** The party CRM's frame around one page; a page not yet on the kit stays inside Legacy. */
+/** The party CRM's frame around one page; a page without a `kit` title renders its own header. */
 export function PartyShell({ crumb, page, children }) {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
@@ -71,13 +70,7 @@ export function PartyShell({ crumb, page, children }) {
       tools={<ConsoleTools />}
       slotHeaders
     >
-      {page?.kit ? (
-        <AppPage crumb={crumb} context={page.context} title={page.title}>{children}</AppPage>
-      ) : (
-        <AppPage crumb={crumb}>
-          <Legacy>{children}</Legacy>
-        </AppPage>
-      )}
+      <AppPage crumb={crumb} context={page?.context} title={page?.title}>{children}</AppPage>
     </AppLayout>
   );
 }
@@ -99,7 +92,7 @@ export default function Portal() {
           <Route path="*" element={<Navigate to={`/party/${pages[0][0]}`} replace />} />
         </Routes>
       ) : (
-        <div className="empty-row">There is nothing for your office here yet.</div>
+        <p className="text-muted-foreground">There is nothing for your office here yet.</p>
       )}
     </PartyShell>
   );

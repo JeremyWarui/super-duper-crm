@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { FormActions, Modal } from "../../components/ui";
-import { useSetSignups } from "../../api/hooks";
-import { Btn, PrimaryBtn, ShareLink } from "./controls";
+import { useSetSignups } from "@/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import ShareLink from "./ShareLink";
 
 export default function QrModal({ event, canClose, onClose }) {
   const setSignups = useSetSignups();
@@ -10,21 +13,20 @@ export default function QrModal({ event, canClose, onClose }) {
   const [open, setOpen] = useState(event.signups_open);
   const toggle = () => setSignups.mutate({ id: event.id, open: !open }, { onSuccess: () => setOpen(!open) });
   return (
-    <Modal title="Sign-up QR" sub={`${event.title || event.ward_name}: people scan it to sign up as supporters.`} onClose={onClose}>
-      <div className="qr-print">
-        <div className="qr-title">{event.title || event.ward_name}</div>
+    <Dialog title="Sign-up QR" description={`${event.title || event.ward_name}: people scan it to sign up as supporters.`} onClose={onClose}>
+      <div className="qr-print flex flex-col items-center gap-3 text-center">
+        <div className="text-lead font-semibold">{event.title || event.ward_name}</div>
         <QRCodeSVG value={link} size={220} marginSize={2} title={`Sign-up link for ${event.title || event.ward_name}`} />
-        <div className="qr-link">{link}</div>
+        <div className="break-all text-small text-muted-foreground">{link}</div>
       </div>
       {open && <ShareLink link={link} message={`Sign up as a supporter at ${event.title || event.ward_name}:`} />}
-      {!open && <div className="form-error">Sign-ups are closed: the code shows a "closed" page.</div>}
-      {setSignups.error && <div className="form-error">{setSignups.error.message}</div>}
+      {!open && <p className="font-semibold text-bad-foreground">Sign-ups are closed: the code shows a "closed" page.</p>}
+      <ErrorText error={setSignups.error} />
       <FormActions>
-        {canClose && <Btn onClick={toggle} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Reopen sign-ups"}</Btn>}
-        <Btn onClick={() => window.print()}>Print</Btn>
-        <PrimaryBtn onClick={onClose}>Done</PrimaryBtn>
+        {canClose && <Button shape="rounded" variant="quiet" onClick={toggle} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Reopen sign-ups"}</Button>}
+        <Button shape="rounded" variant="quiet" onClick={() => window.print()}>Print</Button>
+        <Button shape="rounded" onClick={onClose}>Done</Button>
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }
-

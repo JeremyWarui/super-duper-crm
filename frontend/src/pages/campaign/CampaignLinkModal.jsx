@@ -1,34 +1,37 @@
 import { QRCodeSVG } from "qrcode.react";
-import { FormActions, Modal } from "../../components/ui";
-import { useCampaignSignups, useSetCampaignSignups } from "../../api/hooks";
-import { Btn, ErrorMsg, Loading, PrimaryBtn, ShareLink } from "./controls";
+import { useCampaignSignups, useSetCampaignSignups } from "@/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { LoadingText } from "@/components/ui/loading-text";
+import ShareLink from "./ShareLink";
 
 // The campaign-wide sign-up link for posters and messages; the manager opens and closes it.
 export default function CampaignLinkModal({ campaign, onClose }) {
   const signups = useCampaignSignups(campaign.id);
   const setSignups = useSetCampaignSignups();
   const sub = "People open it, pick where they vote, and sign up as supporters.";
-  if (signups.isLoading) return <Modal title="Campaign sign-up link" sub={sub} onClose={onClose}><Loading /></Modal>;
-  if (signups.error) return <Modal title="Campaign sign-up link" sub={sub} onClose={onClose}><ErrorMsg error={signups.error} /></Modal>;
+  if (signups.isLoading) return <Dialog title="Campaign sign-up link" description={sub} onClose={onClose}><LoadingText /></Dialog>;
+  if (signups.error) return <Dialog title="Campaign sign-up link" description={sub} onClose={onClose}><ErrorText error={signups.error} /></Dialog>;
   const { code, open } = signups.data;
   const link = `${window.location.origin}/join/${code}`;
   return (
-    <Modal title="Campaign sign-up link" sub={sub} onClose={onClose}>
-      <div className="qr-print">
-        <div className="qr-title">{campaign.title}</div>
+    <Dialog title="Campaign sign-up link" description={sub} onClose={onClose}>
+      <div className="qr-print flex flex-col items-center gap-3 text-center">
+        <div className="text-lead font-semibold">{campaign.title}</div>
         <QRCodeSVG value={link} size={220} marginSize={2} title={`Sign-up link for ${campaign.title}`} />
-        <div className="qr-link">{link}</div>
+        <div className="break-all text-small text-muted-foreground">{link}</div>
       </div>
       {open
         ? <ShareLink link={link} message={`Sign up to support ${campaign.title}:`} />
-        : <div className="field-hint share-row">The link is closed: anyone who opens it sees a "closed" page. Open it to start taking sign-ups.</div>}
-      {setSignups.error && <ErrorMsg error={setSignups.error} />}
+        : <p className="text-small text-muted-foreground">The link is closed: anyone who opens it sees a "closed" page. Open it to start taking sign-ups.</p>}
+      <ErrorText error={setSignups.error} />
       <FormActions>
-        <Btn onClick={() => setSignups.mutate({ campaign: campaign.id, open: !open })} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Open sign-ups"}</Btn>
-        <Btn onClick={() => window.print()}>Print</Btn>
-        <PrimaryBtn onClick={onClose}>Done</PrimaryBtn>
+        <Button shape="rounded" variant="quiet" onClick={() => setSignups.mutate({ campaign: campaign.id, open: !open })} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Open sign-ups"}</Button>
+        <Button shape="rounded" variant="quiet" onClick={() => window.print()}>Print</Button>
+        <Button shape="rounded" onClick={onClose}>Done</Button>
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }
-

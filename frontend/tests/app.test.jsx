@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import App, { KIT_PAGES } from "../src/App";
+import App, { PAGES } from "../src/App";
 import { NAV, pagesOf } from "../src/pages/campaign/helpers";
 import { AppRoutes } from "../src/Gate";
 import { useAuth } from "../src/store/auth";
@@ -65,11 +65,11 @@ describe("what each role is shown", () => {
 });
 
 describe("the page frame", () => {
-  it("draws every page a workspace menu offers on the kit", () => {
+  it("has a page for every entry a workspace menu offers", () => {
     const wheres = [{}, { aspirant: true }, { partyWorkspace: true }, { hosted: true }];
     const offered = Object.keys(NAV).flatMap((role) => wheres.flatMap((w) => pagesOf(role, w).map(([key]) => key)));
 
-    expect(offered.filter((key) => !KIT_PAGES.has(key))).toEqual([]);
+    expect(offered.filter((key) => !PAGES[key])).toEqual([]);
   });
 });
 

@@ -8,10 +8,20 @@ import {
   useMoveMember,
   usePartyMember,
   usePartyMembers,
-} from "../../api/hooks";
-import { Badge, Button, ErrorState, FormActions, LoadingState, Modal, Pager, PageTitle, Panel } from "../../components/ui";
+} from "@/api/hooks";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { Input, NativeSelect } from "@/components/ui/input";
+import { LoadingText } from "@/components/ui/loading-text";
+import { Pager } from "@/components/ui/pager";
+import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { formatDate } from "@/lib/format";
 import { MOVES, NO_PLACE, PAGE_SIZE, placeOf, STATUS_LABEL, STATUS_TONE } from "./helpers";
-import { formatDate } from "../../lib/format";
 import PlaceFilters from "./PlaceFilters";
 
 const ERASABLE = ["withdrawn", "rejected"];
@@ -19,22 +29,22 @@ const ERASABLE = ["withdrawn", "rejected"];
 function Erase({ member }) {
   const erase = useEraseMember();
   const [asking, setAsking] = useState(false);
-  if (member.erased_at) return <div className="muted">Details erased on {formatDate(member.erased_at)}.</div>;
+  if (member.erased_at) return <p className="text-ui text-muted-foreground">Details erased on {formatDate(member.erased_at)}.</p>;
   if (!ERASABLE.includes(member.status)) return null;
   return (
     <>
       <FormActions>
         {asking ? (
           <>
-            <span className="muted">Erase their name, phone, email and account for good?</span>
-            <Button tone="danger" disabled={erase.isPending} onClick={() => erase.mutate(member.id)}>Yes, erase</Button>
-            <Button onClick={() => setAsking(false)}>Cancel</Button>
+            <span className="text-ui text-muted-foreground">Erase their name, phone, email and account for good?</span>
+            <Button shape="rounded" variant="danger" disabled={erase.isPending} onClick={() => erase.mutate(member.id)}>Yes, erase</Button>
+            <Button shape="rounded" variant="quiet" onClick={() => setAsking(false)}>Cancel</Button>
           </>
         ) : (
-          <Button tone="danger" onClick={() => setAsking(true)}>Erase their details</Button>
+          <Button shape="rounded" variant="danger" onClick={() => setAsking(true)}>Erase their details</Button>
         )}
       </FormActions>
-      {erase.isError && <div className="form-error">{erase.error.message}</div>}
+      <ErrorText error={erase.error} className="text-small" />
     </>
   );
 }
@@ -47,26 +57,25 @@ function Detail({ row, onClose }) {
   const actions = m.erased_at ? [] : MOVES[m.status] || [];
 
   return (
-    <Modal title={m.full_name} sub={placeOf(m)} onClose={onClose}>
-      <div className="modal-text">
-        <div><Badge text={STATUS_LABEL[m.status]} tone={STATUS_TONE[m.status]} /></div>
-        <div className="muted">Phone: {m.phone}</div>
-        <div className="muted">Email: {m.email || "—"}</div>
-        <div className="muted">Applied: {formatDate(m.created_at)}</div>
+    <Dialog title={m.full_name} description={placeOf(m)} onClose={onClose}>
+      <div className="flex flex-col gap-1.5 text-ui text-muted-foreground">
+        <div><Badge tone={STATUS_TONE[m.status]}>{STATUS_LABEL[m.status]}</Badge></div>
+        <div>Phone: {m.phone}</div>
+        <div>Email: {m.email || "—"}</div>
+        <div>Applied: {formatDate(m.created_at)}</div>
         {detail.data && (
           <>
-            <div className="muted">Decided: {formatDate(m.decided_at)}</div>
-            {m.status_reason && <div className="muted">Reason: {m.status_reason}</div>}
-            <div className="muted">Consent ({m.consent_channel}, {formatDate(m.consent_at)}): {m.consent_wording}</div>
+            <div>Decided: {formatDate(m.decided_at)}</div>
+            {m.status_reason && <div>Reason: {m.status_reason}</div>}
+            <div>Consent ({m.consent_channel}, {formatDate(m.consent_at)}): {m.consent_wording}</div>
           </>
         )}
       </div>
-      {detail.error && <ErrorState error={detail.error} />}
+      <ErrorText error={detail.error} />
       {actions.length > 0 && (
         <>
-          <input
+          <Input
             aria-label="Reason"
-            className="app-field"
             placeholder="Reason (optional)"
             maxLength={1000}
             value={reason}
@@ -76,7 +85,8 @@ function Detail({ row, onClose }) {
             {actions.map(([status, label]) => (
               <Button
                 key={status + label}
-                primary={status === "approved"}
+                shape="rounded"
+                variant={status === "approved" ? "primary" : "quiet"}
                 disabled={move.isPending}
                 onClick={() =>
                   move.mutate({ id: m.id, status, reason: reason.trim() }, { onSuccess: () => setReason("") })
@@ -88,9 +98,9 @@ function Detail({ row, onClose }) {
           </FormActions>
         </>
       )}
-      {move.isError && <div className="form-error">{move.error.message}</div>}
+      <ErrorText error={move.error} className="text-small" />
       {detail.data && <Erase member={m} />}
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -134,50 +144,48 @@ export default function Members() {
     }
   };
 
-  if (isLoading) return <LoadingState />;
-  if (error) return <ErrorState error={error} />;
+  if (isLoading) return <LoadingText />;
+  if (error) return <ErrorText error={error} />;
 
   return (
     <>
-      <PageTitle
+      <SlottedHeader
         title="Members"
         sub={`${total} on the register`}
-        action={<Button onClick={exportCsv}>Export CSV</Button>}
+        actions={<Button shape="rounded" variant="quiet" onClick={exportCsv}>Export CSV</Button>}
       />
-      {exportError && <ErrorState error={{ message: exportError }} />}
-      <div className="flex flex-wrap gap-2 chip-row">
-        <input
+      <ErrorText error={exportError} />
+      <div className="flex flex-wrap gap-2">
+        <Input
           aria-label="Search members"
-          className="app-field filter-field"
+          className="w-auto flex-[2_1_240px]"
           placeholder="Search name, phone or email"
           value={q}
           onChange={(e) => set(setQ)(e.target.value)}
         />
-        <select aria-label="Status" className="app-field filter-field" value={status} onChange={(e) => set(setStatus)(e.target.value)}>
+        <NativeSelect aria-label="Status" className="w-auto min-w-0 flex-[1_1_180px]" value={status} onChange={(e) => set(setStatus)(e.target.value)}>
           <option value="">All statuses</option>
           {Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
+        </NativeSelect>
         <PlaceFilters place={where} onChange={set(setWhere)} />
       </div>
-      <Panel pad={0}>
-        <div className="table-scroll">
-          <table className="table">
-            <thead><tr><th>Name</th><th>Phone</th><th>Ward / constituency / county</th><th>Status</th><th>Applied</th></tr></thead>
-            <tbody>
-              {items.map((m) => (
-                <tr key={m.id}>
-                  <td className="strong"><button type="button" className="link-button" onClick={() => setOpen(m)}>{m.full_name}</button></td>
-                  <td className="muted">{m.phone}</td>
-                  <td className="muted">{placeOf(m)}</td>
-                  <td><Badge text={STATUS_LABEL[m.status]} tone={STATUS_TONE[m.status]} /></td>
-                  <td className="muted">{formatDate(m.created_at)}</td>
-                </tr>
-              ))}
-              {items.length === 0 && <tr><td colSpan={5} className="empty-row">No members match.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </Panel>
+      <Card variant="outline">
+        <Table stack minWidth={720}>
+          <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Ward / constituency / county</TH><TH>Status</TH><TH>Applied</TH></TR></THead>
+          <TBody>
+            {items.map((m) => (
+              <TR key={m.id}>
+                <TD><RowButton onClick={() => setOpen(m)}>{m.full_name}</RowButton></TD>
+                <TD className="text-muted-foreground">{m.phone}</TD>
+                <TD className="text-muted-foreground">{placeOf(m)}</TD>
+                <TD><Badge tone={STATUS_TONE[m.status]}>{STATUS_LABEL[m.status]}</Badge></TD>
+                <TD className="text-muted-foreground">{formatDate(m.created_at)}</TD>
+              </TR>
+            ))}
+            {items.length === 0 && <TR><TD colSpan={5} className="text-center text-muted-foreground">No members match.</TD></TR>}
+          </TBody>
+        </Table>
+      </Card>
       <Pager offset={offset} size={PAGE_SIZE} shown={items.length} total={total} noun="members" onChange={setOffset} />
       {open && <Detail row={open} onClose={() => setOpen(null)} />}
       {linked && !open && <Linked id={linked} onClose={closeLinked} />}

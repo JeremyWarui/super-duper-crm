@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { FormActions, Modal } from "../../components/ui";
-import { useAssignments, usePayments, useSchedulePayment } from "../../api/hooks";
-import { Btn, Label, PrimaryBtn } from "./controls";
-import { formatKES } from "../../lib/format";
+import { useAssignments, usePayments, useSchedulePayment } from "@/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { Field, NativeSelect } from "@/components/ui/input";
+import { formatKES } from "@/lib/format";
 
 const APPROVER = { coordinator: "the campaign manager", manager: "the candidate" };
 
@@ -16,18 +19,19 @@ export default function SchedulePaymentForm({ campaignId, role, onClose }) {
   const work = open.find((a) => a.id === picked);
   const then = APPROVER[role] ? ` It then waits for ${APPROVER[role]} to approve it.` : "";
   return (
-    <Modal title="Schedule payment" sub={`For work marked done.${then}`} onClose={onClose}>
-      <Label>Work done</Label>
-      <select aria-label="Work done" className="app-field" value={picked} onChange={(e) => setPicked(e.target.value)}>
-        <option value="">{open.length ? "Pick the work" : "No done work waits for payment"}</option>
-        {open.map((a) => <option key={a.id} value={a.id}>{a.label} · {a.member_name} · {formatKES(a.amount_kes)}</option>)}
-      </select>
-      {work && <div className="page-note">{formatKES(work.amount_kes)} to {work.member_name}.</div>}
-      {schedule.error && <div className="form-error">{schedule.error.message}</div>}
+    <Dialog title="Schedule payment" description={`For work marked done.${then}`} onClose={onClose}>
+      <Field label="Work done">
+        <NativeSelect aria-label="Work done" value={picked} onChange={(e) => setPicked(e.target.value)}>
+          <option value="">{open.length ? "Pick the work" : "No done work waits for payment"}</option>
+          {open.map((a) => <option key={a.id} value={a.id}>{a.label} · {a.member_name} · {formatKES(a.amount_kes)}</option>)}
+        </NativeSelect>
+      </Field>
+      {work && <p className="text-small text-muted-foreground">{formatKES(work.amount_kes)} to {work.member_name}.</p>}
+      <ErrorText error={schedule.error} />
       <FormActions>
-        <Btn onClick={onClose}>Cancel</Btn>
-        <PrimaryBtn disabled={!work || schedule.isPending} onClick={() => schedule.mutate({ assignment: work.id }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule"}</PrimaryBtn>
+        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button shape="rounded" disabled={!work || schedule.isPending} onClick={() => schedule.mutate({ assignment: work.id }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule"}</Button>
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }

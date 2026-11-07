@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { FormActions, Modal } from "../../components/ui";
-import { useCentres, useScheduleEvent } from "../../api/hooks";
-import { Btn, Label, PrimaryBtn } from "./controls";
+import { useCentres, useScheduleEvent } from "@/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { Field, Input, NativeSelect } from "@/components/ui/input";
 
 // In an MCA race an event is held at one registration centre, which its sign-ups count toward.
 export default function ScheduleEventForm({ campaignId, wardOptions, byCentre, onClose }) {
@@ -13,27 +16,26 @@ export default function ScheduleEventForm({ campaignId, wardOptions, byCentre, o
   const centres = centresQuery.data || [];
   const ok = title.trim() && ward && date && !centresQuery.isFetching && (!byCentre || !centres.length || centre);
   return (
-    <Modal title="Schedule event" sub="Attendance is recorded after it happens." onClose={onClose}>
-      <Label>Event title</Label><input className="app-field" value={title} onChange={(e) => setTitle(e.target.value)} />
-      <div className="field-gap" /><Label>Ward</Label>
-      <select className="app-field" value={ward} onChange={(e) => { setWard(e.target.value); setCentre(""); }}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
+    <Dialog title="Schedule event" description="Attendance is recorded after it happens." onClose={onClose}>
+      <Field label="Event title"><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
+      <Field label="Ward">
+        <NativeSelect value={ward} onChange={(e) => { setWard(e.target.value); setCentre(""); }}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</NativeSelect>
+      </Field>
       {byCentre && centres.length > 0 && (
-        <>
-          <div className="field-gap" /><Label>Registration centre</Label>
-          <select aria-label="Registration centre" className="app-field" value={centre} onChange={(e) => setCentre(e.target.value)}>
+        <Field label="Registration centre">
+          <NativeSelect aria-label="Registration centre" value={centre} onChange={(e) => setCentre(e.target.value)}>
             <option value="">Pick the centre</option>
             {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </>
+          </NativeSelect>
+        </Field>
       )}
-      <div className="field-gap" /><Label>Venue</Label><input className="app-field" value={venue} onChange={(e) => setVenue(e.target.value)} />
-      <div className="field-gap" /><Label>Date</Label><input type="date" className="app-field" value={date} onChange={(e) => setDate(e.target.value)} />
-      {schedule.isError && <div className="form-error">{schedule.error.message}</div>}
+      <Field label="Venue"><Input value={venue} onChange={(e) => setVenue(e.target.value)} /></Field>
+      <Field label="Date"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+      <ErrorText error={schedule.isError && schedule.error} />
       <FormActions>
-        <Btn onClick={onClose}>Cancel</Btn>
-        <PrimaryBtn disabled={!ok || schedule.isPending} onClick={() => schedule.mutate({ campaign: campaignId, ward, registration_centre: centre || null, title: title.trim(), venue: venue.trim(), scheduled_date: date, status: "planned" }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule event"}</PrimaryBtn>
+        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button shape="rounded" disabled={!ok || schedule.isPending} onClick={() => schedule.mutate({ campaign: campaignId, ward, registration_centre: centre || null, title: title.trim(), venue: venue.trim(), scheduled_date: date, status: "planned" }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule event"}</Button>
       </FormActions>
-    </Modal>
+    </Dialog>
   );
 }
-

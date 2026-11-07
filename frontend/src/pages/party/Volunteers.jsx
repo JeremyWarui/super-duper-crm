@@ -6,10 +6,20 @@ import {
   useErasePartyVolunteer,
   usePartyVolunteers,
   useUpdateVolunteer,
-} from "../../api/hooks";
-import { Badge, Button, ErrorState, FormActions, LoadingState, Modal, Pager, PageTitle, Panel } from "../../components/ui";
+} from "@/api/hooks";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
+import { ErrorText } from "@/components/ui/error-text";
+import { FormActions } from "@/components/ui/form-actions";
+import { Input, NativeSelect, Textarea } from "@/components/ui/input";
+import { LoadingText } from "@/components/ui/loading-text";
+import { Pager } from "@/components/ui/pager";
+import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { formatDate } from "@/lib/format";
 import { AREA_LABEL, AREAS, CONTACT_LABEL, NO_PLACE, PAGE_SIZE, placeOf, PROFESSION_LABEL, STATUS_LABEL, STATUS_TONE, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE } from "./helpers";
-import { formatDate } from "../../lib/format";
 import PlaceFilters from "./PlaceFilters";
 
 const areasOf = (v) =>
@@ -27,57 +37,56 @@ function Detail({ row, onClose }) {
   const save = (body) => update.mutate({ id: v.id, ...body });
 
   return (
-    <Modal title={v.full_name} sub={placeOf(v)} onClose={onClose}>
-      <div className="modal-text">
-        <div><Badge text={VOLUNTEER_STATUS_LABEL[v.status]} tone={VOLUNTEER_STATUS_TONE[v.status]} /></div>
-        <div className="muted">Phone: {v.phone}</div>
-        <div className="muted">Polling station: {v.registration_centre?.name || "Not given"}</div>
-        <div className="muted">Profession: {professionOf(v)}</div>
-        <div className="muted">Areas: {areasOf(v)}</div>
-        <div className="muted">Preferred contact: {CONTACT_LABEL[v.preferred_contact] || v.preferred_contact}</div>
-        <div className="muted">Membership: {STATUS_LABEL[v.member_status]}</div>
+    <Dialog title={v.full_name} description={placeOf(v)} onClose={onClose}>
+      <div className="flex flex-col gap-1.5 text-ui text-muted-foreground">
+        <div><Badge tone={VOLUNTEER_STATUS_TONE[v.status]}>{VOLUNTEER_STATUS_LABEL[v.status]}</Badge></div>
+        <div>Phone: {v.phone}</div>
+        <div>Polling station: {v.registration_centre?.name || "Not given"}</div>
+        <div>Profession: {professionOf(v)}</div>
+        <div>Areas: {areasOf(v)}</div>
+        <div>Preferred contact: {CONTACT_LABEL[v.preferred_contact] || v.preferred_contact}</div>
+        <div>Membership: {STATUS_LABEL[v.member_status]}</div>
       </div>
       {v.erased_at ? (
-        <div className="muted">Volunteer details erased on {formatDate(v.erased_at)}.</div>
+        <p className="text-ui text-muted-foreground">Volunteer details erased on {formatDate(v.erased_at)}.</p>
       ) : (
         <>
-          <textarea
+          <Textarea
             aria-label="Availability notes"
-            className="app-field"
             placeholder="Availability notes"
             maxLength={2000}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
           <FormActions>
-            <Button disabled={update.isPending} onClick={() => save({ availability_notes: notes.trim() || null })}>
+            <Button shape="rounded" variant="quiet" disabled={update.isPending} onClick={() => save({ availability_notes: notes.trim() || null })}>
               Save notes
             </Button>
             {canActivate && (
-              <Button primary disabled={update.isPending} onClick={() => save({ status: "active" })}>Activate</Button>
+              <Button shape="rounded" disabled={update.isPending} onClick={() => save({ status: "active" })}>Activate</Button>
             )}
             {v.status === "active" && (
-              <Button disabled={update.isPending} onClick={() => save({ status: "inactive" })}>Deactivate</Button>
+              <Button shape="rounded" variant="quiet" disabled={update.isPending} onClick={() => save({ status: "inactive" })}>Deactivate</Button>
             )}
           </FormActions>
           {v.status === "withdrawn" && (
             <FormActions>
               {asking ? (
                 <>
-                  <span className="muted">Erase their volunteer details for good? Their membership stays.</span>
-                  <Button tone="danger" disabled={erase.isPending} onClick={() => erase.mutate(v.id)}>Yes, erase</Button>
-                  <Button onClick={() => setAsking(false)}>Cancel</Button>
+                  <span className="text-ui text-muted-foreground">Erase their volunteer details for good? Their membership stays.</span>
+                  <Button shape="rounded" variant="danger" disabled={erase.isPending} onClick={() => erase.mutate(v.id)}>Yes, erase</Button>
+                  <Button shape="rounded" variant="quiet" onClick={() => setAsking(false)}>Cancel</Button>
                 </>
               ) : (
-                <Button tone="danger" onClick={() => setAsking(true)}>Erase volunteer details</Button>
+                <Button shape="rounded" variant="danger" onClick={() => setAsking(true)}>Erase volunteer details</Button>
               )}
             </FormActions>
           )}
         </>
       )}
-      {update.isError && <div className="form-error">{update.error.message}</div>}
-      {erase.isError && <div className="form-error">{erase.error.message}</div>}
-    </Modal>
+      <ErrorText error={update.error} className="text-small" />
+      <ErrorText error={erase.error} className="text-small" />
+    </Dialog>
   );
 }
 
@@ -106,57 +115,55 @@ export default function Volunteers() {
     }
   };
 
-  if (isLoading) return <LoadingState />;
-  if (error) return <ErrorState error={error} />;
+  if (isLoading) return <LoadingText />;
+  if (error) return <ErrorText error={error} />;
 
   return (
     <>
-      <PageTitle
+      <SlottedHeader
         title="Volunteers"
         sub={`${total} on the register`}
-        action={<Button onClick={exportCsv}>Export CSV</Button>}
+        actions={<Button shape="rounded" variant="quiet" onClick={exportCsv}>Export CSV</Button>}
       />
-      {exportError && <ErrorState error={{ message: exportError }} />}
-      <div className="flex flex-wrap gap-2 chip-row">
-        <input
+      <ErrorText error={exportError} />
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-2">
+        <Input
           aria-label="Search volunteers"
-          className="app-field filter-field"
+          className="sm:col-span-2"
           placeholder="Search name or phone"
           value={q}
           onChange={(e) => set(setQ)(e.target.value)}
         />
-        <select aria-label="Status" className="app-field filter-field" value={status} onChange={(e) => set(setStatus)(e.target.value)}>
+        <NativeSelect aria-label="Status" className="w-auto min-w-0 flex-[1_1_180px]" value={status} onChange={(e) => set(setStatus)(e.target.value)}>
           <option value="">All statuses</option>
           {Object.entries(VOLUNTEER_STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-        <select aria-label="Area" className="app-field filter-field" value={area} onChange={(e) => set(setArea)(e.target.value)}>
+        </NativeSelect>
+        <NativeSelect aria-label="Area" className="w-auto min-w-0 flex-[1_1_180px]" value={area} onChange={(e) => set(setArea)(e.target.value)}>
           <option value="">All areas</option>
           {AREAS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
+        </NativeSelect>
         <PlaceFilters place={where} onChange={set(setWhere)} />
       </div>
-      <Panel pad={0}>
-        <div className="table-scroll">
-          <table className="table">
-            <thead><tr><th>Name</th><th>Phone</th><th>Ward / constituency / county</th><th>Status</th><th>Profession</th><th>Areas</th><th>Member</th><th>Contact</th></tr></thead>
-            <tbody>
-              {items.map((v) => (
-                <tr key={v.id}>
-                  <td className="strong"><button type="button" className="link-button" onClick={() => setOpenId(v.id)}>{v.full_name}</button></td>
-                  <td className="muted">{v.phone}</td>
-                  <td className="muted">{placeOf(v)}</td>
-                  <td><Badge text={VOLUNTEER_STATUS_LABEL[v.status]} tone={VOLUNTEER_STATUS_TONE[v.status]} /></td>
-                  <td className="muted">{professionOf(v)}</td>
-                  <td className="muted">{areasOf(v)}</td>
-                  <td><Badge text={STATUS_LABEL[v.member_status]} tone={STATUS_TONE[v.member_status]} /></td>
-                  <td className="muted">{CONTACT_LABEL[v.preferred_contact] || v.preferred_contact}</td>
-                </tr>
-              ))}
-              {items.length === 0 && <tr><td colSpan={8} className="empty-row">No volunteers match.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </Panel>
+      <Card variant="outline">
+        <Table stack minWidth={960}>
+          <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Ward / constituency / county</TH><TH>Status</TH><TH>Profession</TH><TH>Areas</TH><TH>Member</TH><TH>Contact</TH></TR></THead>
+          <TBody>
+            {items.map((v) => (
+              <TR key={v.id}>
+                <TD><RowButton onClick={() => setOpenId(v.id)}>{v.full_name}</RowButton></TD>
+                <TD className="text-muted-foreground">{v.phone}</TD>
+                <TD className="text-muted-foreground">{placeOf(v)}</TD>
+                <TD><Badge tone={VOLUNTEER_STATUS_TONE[v.status]}>{VOLUNTEER_STATUS_LABEL[v.status]}</Badge></TD>
+                <TD className="text-muted-foreground">{professionOf(v)}</TD>
+                <TD className="text-muted-foreground">{areasOf(v)}</TD>
+                <TD><Badge tone={STATUS_TONE[v.member_status]}>{STATUS_LABEL[v.member_status]}</Badge></TD>
+                <TD className="text-muted-foreground">{CONTACT_LABEL[v.preferred_contact] || v.preferred_contact}</TD>
+              </TR>
+            ))}
+            {items.length === 0 && <TR><TD colSpan={8} className="text-center text-muted-foreground">No volunteers match.</TD></TR>}
+          </TBody>
+        </Table>
+      </Card>
       <Pager offset={offset} size={PAGE_SIZE} shown={items.length} total={total} noun="volunteers" onChange={setOffset} />
       {open && <Detail key={open.id} row={open} onClose={() => setOpenId(null)} />}
     </>

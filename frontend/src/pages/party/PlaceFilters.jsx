@@ -1,5 +1,5 @@
-import { usePartyPlaceLists } from "../../api/hooks";
-import { FilterSelect } from "../../components/ui";
+import { usePartyPlaceLists } from "@/api/hooks";
+import { FilterSelect } from "@/components/ui/input";
 
 /** County, constituency and ward filters; choosing one level clears those below it, and `onChange` gets the whole place. */
 export default function PlaceFilters({ place, onChange }) {
