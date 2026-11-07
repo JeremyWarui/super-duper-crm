@@ -151,7 +151,6 @@
 }
 
 .legacy .ui-button,
-.legacy .onboarding-button,
 .legacy .gate-no-campaign-button {
   display: inline-flex;
   align-items: center;
@@ -173,20 +172,17 @@
 }
 
 .legacy .ui-button-secondary:hover:not(:disabled),
-.legacy .onboarding-button-secondary:hover:not(:disabled),
 .legacy .gate-no-campaign-button:hover {
   background: var(--color-surface-muted);
 }
 
-.legacy .ui-button-primary,
-.legacy .onboarding-button-primary {
+.legacy .ui-button-primary {
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-text-on-primary);
 }
 
-.legacy .ui-button-primary:hover:not(:disabled),
-.legacy .onboarding-button-primary:hover:not(:disabled) {
+.legacy .ui-button-primary:hover:not(:disabled) {
   border-color: var(--color-primary-hover);
   background: var(--color-primary-hover);
 }
@@ -209,8 +205,7 @@
   background: var(--color-primary-soft);
 }
 
-.legacy .ui-button:disabled,
-.legacy .onboarding-button:disabled {
+.legacy .ui-button:disabled {
   border-color: var(--color-border);
   background: var(--color-neutral-soft);
   color: var(--color-text-subtle);
@@ -220,7 +215,6 @@
 
 .legacy .app-field,
 .legacy .ui-select,
-.legacy .onboarding-field,
 .legacy .admin-field,
 .legacy .join-field {
   width: 100%;
@@ -238,7 +232,6 @@
 
 .legacy .app-field:focus,
 .legacy .ui-select:focus,
-.legacy .onboarding-field:focus,
 .legacy .admin-field:focus,
 .legacy .join-field:focus {
   outline: none;
@@ -249,7 +242,6 @@
 /* Selects match the inputs' height and carry their own chevron. */
 .legacy select.app-field,
 .legacy select.ui-select,
-.legacy select.onboarding-field,
 .legacy select.admin-field,
 .legacy select.join-field {
   height: 40px;
@@ -265,7 +257,6 @@
 .legacy select.join-field { height: 46px; }
 
 .legacy .app-field:disabled,
-.legacy .onboarding-field:disabled,
 .legacy .admin-field:disabled {
   background: var(--color-surface-muted);
   color: var(--color-text-muted);
@@ -962,210 +953,6 @@
 
 /* ---- new campaign wizard ------------------------------------------------ */
 
-.legacy .onboarding-shell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 16px;
-}
-
-.legacy .onboarding-card {
-  width: 100%;
-  max-width: 480px;
-  padding: 28px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-raised);
-}
-
-.legacy .onboarding-display { letter-spacing: -0.01em; }
-
-.legacy .onboarding-label {
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 500;
-}
-
-.legacy .onboarding-button { padding: 8px 16px; }
-
-.legacy .onboarding-spacer-10 { height: 10px; }
-.legacy .onboarding-spacer-12 { height: 12px; }
-.legacy .onboarding-spacer-14 { height: 14px; }
-
-.legacy .onboarding-subtext {
-  margin-top: 4px;
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
-.legacy .onboarding-person-field { flex: 1; }
-
-.legacy .onboarding-help {
-  margin-top: 8px;
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}
-
-.legacy .onboarding-box {
-  margin-top: 16px;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.legacy .onboarding-box-head {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-muted);
-}
-
-.legacy .onboarding-box-title { font-size: var(--text-base); font-weight: 600; }
-.legacy .onboarding-box-count { color: var(--color-text-muted); font-size: var(--text-sm); }
-.legacy .onboarding-login-note { margin-left: 8px; font-size: var(--text-xs); }
-
-.legacy .onboarding-box-message {
-  padding: 12px 14px;
-  color: var(--color-warning);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-}
-
-.legacy .onboarding-box-table-wrap { max-height: 200px; overflow-y: auto; }
-
-.legacy .onboarding-box-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-
-.legacy .onboarding-box-row + .onboarding-box-row { border-top: 1px solid var(--color-border); }
-.legacy .onboarding-box-cell { padding: 9px 14px; }
-.legacy .onboarding-box-cell-name { font-weight: 500; }
-
-.legacy .onboarding-box-cell-count {
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.legacy .onboarding-login-row { padding: 10px 14px; }
-.legacy .onboarding-login-name { font-size: var(--text-base); font-weight: 600; }
-
-.legacy .onboarding-cancel {
-  padding: 4px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  cursor: pointer;
-}
-
-.legacy .onboarding-cancel:hover { color: var(--color-text); }
-
-.legacy .onboarding-progress {
-  margin-bottom: 16px;
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
-.legacy .onboarding-brand { font-size: var(--text-lg); font-weight: 700; }
-
-.legacy .onboarding-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 24px;
-}
-
-.legacy .onboarding-actions-end { justify-content: flex-end; }
-.legacy .onboarding-actions-right { margin-top: 24px; text-align: right; }
-
-.legacy .onboarding-office-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.legacy .onboarding-office {
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 0.12s, background-color 0.12s;
-}
-
-.legacy .onboarding-office:hover { border-color: var(--color-border-strong); }
-
-.legacy .onboarding-office-selected,
-.legacy .onboarding-office-selected:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  box-shadow: 0 0 0 1px var(--color-primary);
-}
-
-.legacy .onboarding-office-title { font-size: var(--text-md); font-weight: 600; }
-.legacy .onboarding-office-subtitle { color: var(--color-text-muted); font-size: var(--text-xs); }
-
-.legacy .onboarding-review-notice {
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-muted);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-}
-
-.legacy .onboarding-review-copy { line-height: 1.6; }
-
-.legacy .onboarding-error {
-  margin-top: 8px;
-  color: var(--color-danger);
-  font-size: var(--text-sm);
-}
-
-.legacy .onboarding-review-error {
-  margin-top: 12px;
-  color: var(--color-danger);
-  font-size: var(--text-sm);
-}
-
-.legacy .onboarding-success-kicker {
-  color: var(--color-primary);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-}
-
-.legacy .onboarding-success-meta {
-  margin-top: 4px;
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
-.legacy .onboarding-win-number {
-  margin-top: 6px;
-  font-size: var(--text-hero);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-
-.legacy .onboarding-success-note {
-  margin-top: 12px;
-  color: var(--color-warning);
-  font-size: var(--text-sm);
-}
-
-.legacy .onboarding-success-action { margin-top: 24px; }
-
 /* ---- public sign-up and withdraw pages ---------------------------------- */
 
 .legacy .join-shell {
@@ -1282,8 +1069,7 @@
   .legacy .kpi-grid { gap: 10px; }
   .legacy .modal-backdrop { padding: 16px 12px; }
   .legacy .field-pair { grid-template-columns: minmax(0, 1fr); }
-  .legacy .join-card,
-  .legacy .onboarding-card { padding: 22px; }
+  .legacy .join-card { padding: 22px; }
 }
 
 .legacy .filter-field { width: auto; min-width: 160px; margin-top: 0; }

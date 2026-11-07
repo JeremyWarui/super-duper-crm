@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import AuditEvent, OrganisationType, UserRole
+from backend.models import AuditEvent, UserRole
 from backend.services.audit import record
 from tests.conftest import World
 from tests.factories import make_user
@@ -35,7 +35,6 @@ async def test_only_a_superuser_reads_the_audit_trail(
 
 
 ACTIONS = [
-    ("campaign.create", "campaign", "post", "/admin/campaigns/", "root"),
     ("campaign.rename", "campaign", "patch", "/admin/campaigns/{campaign}/", "root"),
     ("campaign.delete", "campaign", "delete", "/admin/campaigns/{campaign}/", "root"),
     ("user.create", "user", "post", "/admin/users/", "root"),
@@ -57,7 +56,6 @@ async def test_each_console_and_team_action_writes_its_event(
     session: AsyncSession,
     world: World,
     admin_headers: dict[str, str],
-    organisation_type: OrganisationType,
     action: str,
     subject_type: str,
     method: str,
@@ -67,12 +65,6 @@ async def test_each_console_and_team_action_writes_its_event(
     spare = await make_user(session, username="spare", role=UserRole.MOBILIZER)
     ids = {"campaign": world.campaign.id, "mobilizer": world.mobilizer_user.id}
     bodies = {
-        "campaign.create": {
-            "title": "New",
-            "seat": "mp",
-            "constituency": str(world.constituency.id),
-            "aspirant": {"username": "wanjiku"},
-        },
         "campaign.rename": {"title": "Renamed"},
         "user.create": {"username": "fresh", "role": "manager"},
         "user.reset_password": {},
@@ -102,10 +94,6 @@ async def test_each_console_and_team_action_writes_its_event(
         **({"json": bodies[action]} if action in bodies else {}),
     )
 
-    if action == "campaign.create" and organisation_type is OrganisationType.PARTY:
-        # A party copy makes workspaces only from approved aspirants.
-        assert response.status_code == 400, response.text
-        return
     assert response.status_code < 300, response.text
     written = list(await session.scalars(select(AuditEvent).where(AuditEvent.action == action)))
     assert [(e.subject_type, e.actor_name) for e in written] == [(subject_type, actor)]

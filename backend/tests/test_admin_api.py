@@ -22,8 +22,6 @@ from backend.models import (
 from tests.conftest import World
 from tests.factories import (
     TEST_PASSWORD,
-    aspirant_copy,
-    auth,
     claim_link,
     email_of,
     fresh_password,
@@ -173,88 +171,23 @@ async def test_the_console_gives_a_campaign_no_second_manager_and_no_lone_aspira
     )
     assert (aspirant.status_code, aspirant.json()["detail"]) == (
         400,
-        "An aspirant gets their login with their campaign: use New campaign.",
+        "An aspirant gets their login with their workspace, from Aspirants or at setup.",
     )
     for gone in ("newmgr", "loneaspirant"):
         assert await session.scalar(select(User).where(User.username == gone)) is None
 
 
-@aspirant_copy
-async def test_the_console_creates_a_campaign_whose_aspirant_and_manager_see_only_it(
+async def test_the_console_makes_no_campaign_itself(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
     response = await client.post(
         "/api/admin/campaigns/",
         headers=admin_headers,
-        json={
-            "title": "Wanjiku for Roysambu",
-            "seat": "mp",
-            "constituency": str(world.constituency.id),
-            "aspirant": {
-                "username": "wanjiku",
-                "first_name": "Wanjiku",
-                "email": "wanjiku@example.test",
-            },
-            "manager": {"username": "otieno", "email": "otieno@example.test"},
-        },
+        json={"title": "Straight from the console", "seat": "mp"},
     )
 
-    assert response.status_code == 201, response.text
-    body = response.json()
-    assert (body["setup"]["units"], body["setup"]["win_number"]) == (2, 19_981)
-    assert [(m["username"], m["role"]) for m in body["campaign"]["members"]] == [
-        ("wanjiku", "candidate"),
-        ("otieno", "manager"),
-    ]
-    assert [login["invite"] for login in body["logins"]] == ["email", "email"]
-    for login in body["logins"]:
-        head = auth(await claim_link(client, session, email_of(login["username"])))
-        seen = (await client.get("/api/campaigns/", headers=head)).json()
-        assert [c["id"] for c in seen] == [body["campaign"]["id"]]
-
-
-@aspirant_copy
-async def test_a_refused_campaign_leaves_no_campaign_and_no_login_behind(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
-) -> None:
-    response = await client.post(
-        "/api/admin/campaigns/",
-        headers=admin_headers,
-        json={
-            "title": "Clash",
-            "seat": "mp",
-            "constituency": str(world.constituency.id),
-            "aspirant": {"username": "wanjiku"},
-            "manager": {"username": "amina"},
-        },
-    )
-
-    assert (response.status_code, response.json()["detail"]) == (
-        400,
-        "The username amina is already taken.",
-    )
-    assert await session.scalar(select(Campaign).where(Campaign.title == "Clash")) is None
-    assert await session.scalar(select(User).where(User.username == "wanjiku")) is None
-
-
-@pytest.mark.party_only
-async def test_a_party_copy_console_makes_no_workspace_but_from_an_approved_aspirant(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
-) -> None:
-    response = await client.post(
-        "/api/admin/campaigns/",
-        headers=admin_headers,
-        json={
-            "title": "Straight from the console",
-            "seat": "mp",
-            "constituency": str(world.constituency.id),
-            "aspirant": {"username": "wanjiku"},
-        },
-    )
-
-    assert response.status_code == 400
-    assert "approved aspirant" in response.json()["detail"]
-    assert await session.scalar(select(User).where(User.username == "wanjiku")) is None
+    assert response.status_code == 405
+    assert await session.scalar(select(Campaign).where(Campaign.title.like("Straight%"))) is None
 
 
 async def test_the_console_changes_a_login_s_email_and_the_login_signs_in_with_it(
@@ -271,22 +204,3 @@ async def test_the_console_changes_a_login_s_email_and_the_login_signs_in_with_i
     assert changed.status_code == 200, changed.text
     assert changed.json()["email"] == "juma@example.test"
     assert await sign_in(client, "juma@example.test")
-
-
-@pytest.mark.parametrize("role", ["candidate", "manager", "mobilizer"])
-async def test_only_a_superuser_creates_a_campaign(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, role: str
-) -> None:
-    response = await client.post(
-        "/api/admin/campaigns/",
-        headers=world.headers(role),
-        json={
-            "title": "Not yours",
-            "seat": "mp",
-            "constituency": str(world.constituency.id),
-            "aspirant": {"username": "wanjiku"},
-        },
-    )
-
-    assert response.status_code == 403
-    assert await session.scalar(select(Campaign).where(Campaign.title == "Not yours")) is None

@@ -1,25 +1,16 @@
-"""Reading campaigns, and the refusals when the console sets one up."""
+"""Reading campaigns, and the refusals when one is built."""
 
 import uuid
 
 import httpx
 import pytest
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Campaign
+from backend.models import Seat
+from backend.services.campaigns import build_campaign
+from backend.services.errors import Refused
 from tests.conftest import World
-from tests.factories import aspirant_copy, fresh_password, make_rival_campaign
-
-
-def _setup_body(world: World, **overrides) -> dict:
-    body = {
-        "title": "Peter for Kasarani",
-        "seat": "mp",
-        "constituency": str(world.constituency.id),
-        "aspirant": {"username": "peter"},
-    }
-    return {**body, **overrides}
+from tests.factories import fresh_password, make_rival_campaign
 
 
 @pytest.mark.parametrize("role", ["candidate", "manager", "mobilizer"])
@@ -35,38 +26,22 @@ async def test_everyone_on_a_campaign_sees_it_and_not_a_rival_s(
     assert other.status_code == 404
 
 
-@aspirant_copy
-async def test_setting_up_a_campaign_in_an_area_that_does_not_exist_is_refused(
-    client: httpx.AsyncClient, world: World, admin_headers: dict
+async def test_a_campaign_in_an_area_that_does_not_exist_is_refused(
+    session: AsyncSession, world: World
 ) -> None:
-    response = await client.post(
-        "/api/admin/campaigns/",
-        headers=admin_headers,
-        json=_setup_body(world, constituency=str(uuid.uuid4())),
-    )
-
-    assert (response.status_code, response.json()["detail"]) == (400, "No such constituency.")
+    with pytest.raises(Refused, match="No such constituency."):
+        await build_campaign(
+            session, title="Peter for Kasarani", seat=Seat.MP, constituency=uuid.uuid4()
+        )
 
 
-@aspirant_copy
 async def test_an_mca_seat_needs_its_ward_s_registration_centres_loaded(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
+    session: AsyncSession, world: World
 ) -> None:
-    response = await client.post(
-        "/api/admin/campaigns/",
-        headers=admin_headers,
-        json=_setup_body(
-            world, title="Peter for Githurai", seat="mca", ward=str(world.other_ward.id)
-        ),
-    )
-
-    assert (response.status_code, response.json()["detail"]) == (
-        400,
-        "That ward has no registration centres loaded; load the geography first.",
-    )
-    assert (
-        await session.scalar(select(Campaign).where(Campaign.title == "Peter for Githurai")) is None
-    )
+    with pytest.raises(Refused, match="no registration centres loaded"):
+        await build_campaign(
+            session, title="Peter for Githurai", seat=Seat.MCA, ward=world.other_ward.id
+        )
 
 
 @pytest.mark.parametrize("path", ["/api/campaigns/setup/", "/api/auth/register/"])
@@ -76,7 +51,13 @@ async def test_nobody_signs_up_or_sets_up_a_campaign_for_themselves(
     response = await client.post(
         path,
         headers=world.headers("manager"),
-        json={**_setup_body(world), "username": "walkin", "password": fresh_password()},
+        json={
+            "title": "Peter for Kasarani",
+            "seat": "mp",
+            "constituency": str(world.constituency.id),
+            "username": "walkin",
+            "password": fresh_password(),
+        },
     )
 
     assert response.status_code in (404, 405)

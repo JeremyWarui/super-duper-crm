@@ -214,11 +214,13 @@ handles the party's own.
 ## The admin console
 
 A superuser (`createuser --superuser`) gets `/api/admin/`: every campaign with
-its team, wards and size; every login and its campaign; create a campaign with
-new logins for its aspirant and manager (`POST /api/admin/campaigns/`, the only
-way one is made); rename and delete a campaign; add and remove members; create a
+its team, wards and size; every login and its campaign; rename and delete a campaign; add and remove members; create a
 login; reset a password; disable or enable a login. An admin cannot disable themselves or the last active superuser,
 and a superuser is never put on a campaign.
+
+The console makes no campaign. An aspirant copy's one workspace is made at setup
+(`POST /api/setup/`); a party copy's hosted workspaces are made from approved aspirants
+(`POST /api/party/aspirants/{aspirant_id}/workspace/`).
 
 ## The workspace website (aspirant installations)
 
@@ -362,8 +364,6 @@ opens the setup; one with logins keeps its settings.
 
 - The logo is an https link; uploaded logos wait for the site editor to use stored files.
 - Invite emails go out before the setup commits; if the commit then fails, the link is dead.
-- On an aspirant copy the console's **New campaign** still makes a hosted workspace beside the
-  standalone one setup made; nothing on that copy needs a second workspace.
 - Restore is proven against a backup this version made; a backup from an older version
   (an earlier migration head) has not been restored in a test.
 

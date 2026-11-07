@@ -126,12 +126,9 @@ The console has seven tabs.
 
 Each campaign has a card with its counts and its people.
 
-- **New campaign** on an aspirant copy starts a step-by-step form: the seat, the area,
-  the aspirant ("Who is the aspirant?"), an optional manager ("Who manages it?
-  (optional)"), the **Campaign name** and **Election date**. Press **Create campaign** on
-  the last step. Each new login gets an invite link.
 - On a party copy **New campaign** opens **Aspirants**: a hosted workspace is made only
-  from an approved aspirant's record there.
+  from an approved aspirant's record there. An aspirant copy has no **New campaign**:
+  setup made its one workspace.
 - **Rename** changes the campaign's name.
 - **Delete campaign** removes the campaign with its targets, mobilizers, events,
   supporters and the logins of everyone on it. It asks first. It cannot be undone.
@@ -694,5 +691,4 @@ running copy:
 2. In an aspirant copy, the console **Party** tab still shows **Open aspirants**. The
    party pages do not exist in an aspirant copy, so this button is expected to lead
    nowhere useful.
-3. Whether the console's **New campaign** is limited to one workspace in an aspirant
-   copy.
+3. An aspirant copy has one workspace, made at setup; the console makes no other.

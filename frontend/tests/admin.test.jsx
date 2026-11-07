@@ -104,7 +104,7 @@ describe("opening the party workspace", () => {
 
     const aspirant = stubApi(adminRoutes({ "GET /site/": { name: "Jane", organisation_type: "aspirant" } }));
     renderApp(<Admin />);
-    await screen.findByRole("button", { name: "New campaign" });
+    await screen.findByRole("button", { name: /Logins/ });
     await vi.waitFor(() => expect(aspirant.some((c) => c.path === "/site/")).toBe(true));
     expect(aspirant.some((c) => c.path === "/party/workspace/")).toBe(false);
     expect(screen.queryByRole("button", { name: "Open the party workspace" })).toBeNull();
@@ -256,73 +256,10 @@ describe("creating a login from the console", () => {
 });
 
 describe("creating a campaign from the console", () => {
-  function campaignRoutes() {
-    return adminRoutes({
-      "GET /site/": { name: "Jane", organisation_type: "aspirant" },
-      "GET /counties/": [{ id: "cty1", name: "Nairobi City" }],
-      "GET /constituencies/": [{ id: "k1", name: "Roysambu" }],
-      "GET /wards/": [
-        { id: "w1", name: "Zimmerman", registered_voters: 30701 },
-      ],
-      "POST /admin/campaigns/": {
-        campaign: STAFFED,
-        setup: {
-          grain: "ward",
-          units: 1,
-          total_registered: 30701,
-          win_number: 9211,
-          note: null,
-        },
-        logins: [
-          {
-            id: "u1",
-            username: "wanjiku",
-            full_name: "",
-            role: "candidate",
-            invite: "email",
-          },
-          {
-            id: "u2",
-            username: "otieno",
-            full_name: "",
-            role: "manager",
-            invite: "none",
-          },
-        ],
-      },
-    });
-  }
-
-  /** Walk the wizard to its review step for an MP seat in Roysambu. */
-  async function walkToReview(user) {
-    await user.click(
-      await screen.findByRole("button", { name: "New campaign" }),
-    );
-    await user.type(screen.getByPlaceholderText("jane"), "wanjiku");
-    await user.type(screen.getByPlaceholderText("name@example.com"), "wanjiku@example.com");
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.type(screen.getByPlaceholderText("otieno"), "otieno");
-    await user.type(screen.getByPlaceholderText("name@example.com"), "otieno@example.com");
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.type(
-      screen.getByPlaceholderText(/Jane for Roysambu/),
-      "Wanjiku for Roysambu",
-    );
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.click(await screen.findByText("MP", { selector: "div" }));
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.selectOptions(
-      (await screen.findAllByRole("combobox"))[0],
-      "cty1",
-    );
-    await user.selectOptions((await screen.findAllByRole("combobox"))[1], "k1");
-    await user.click(screen.getByRole("button", { name: "Next" }));
-  }
-
   it("on a party copy sends New campaign to Aspirants, where approved aspirants get workspaces", async () => {
     const user = userEvent.setup();
     signInAsAdmin();
-    const calls = stubApi(adminRoutes());
+    stubApi(adminRoutes());
     renderApp(
       <Routes>
         <Route path="/" element={<Admin />} />
@@ -333,29 +270,16 @@ describe("creating a campaign from the console", () => {
     await user.click(await screen.findByRole("button", { name: "New campaign" }));
 
     expect(await screen.findByText("Aspirants page")).toBeInTheDocument();
-    expect(calls.some((c) => c.path === "/admin/campaigns/" && c.method === "POST")).toBe(false);
   });
 
-  it("on an aspirant copy creates the aspirant's and manager's logins and says how each invite went", async () => {
-    const user = userEvent.setup();
+  it("is not offered on an aspirant copy, whose one workspace setup made", async () => {
     signInAsAdmin();
-    const calls = stubApi(campaignRoutes());
+    const calls = stubApi(adminRoutes({ "GET /site/": { name: "Jane", organisation_type: "aspirant" } }));
     renderApp(<Admin />);
 
-    await walkToReview(user);
-    await user.click(
-      await screen.findByRole("button", { name: "Create campaign" }),
-    );
-
-    expect(await screen.findByText("Link emailed")).toBeInTheDocument();
-    expect(screen.getByText("No email: nothing sent")).toBeInTheDocument();
-    const posted = calls.find((c) => c.path === "/admin/campaigns/");
-    expect(posted.body).toMatchObject({
-      seat: "mp",
-      constituency: "k1",
-      aspirant: { username: "wanjiku" },
-      manager: { username: "otieno" },
-    });
+    await screen.findByRole("button", { name: /Logins/ });
+    await vi.waitFor(() => expect(calls.some((c) => c.path === "/site/")).toBe(true));
+    expect(screen.queryByRole("button", { name: "New campaign" })).toBeNull();
   });
 });
 

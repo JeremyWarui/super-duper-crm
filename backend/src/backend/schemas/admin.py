@@ -1,12 +1,10 @@
 """What the admin console reads and sends."""
 
 import uuid
-from datetime import date
 
 from pydantic import Field, field_validator
 
-from backend.models.enums import PartyMemberStatus, PartyRoleName, Seat, UserRole
-from backend.schemas.campaign import SetupSummary
+from backend.models.enums import PartyMemberStatus, PartyRoleName, UserRole
 from backend.schemas.common import (
     CampaignTitle,
     Invite,
@@ -140,27 +138,6 @@ class AdminUserCreate(LoginDetails):
 
 class AdminUserCreated(NewLogin):
     role: UserRole | None
-
-
-class AdminCampaignCreate(WriteModel):
-    """A campaign on its seat and area, with new logins for its aspirant and optional manager."""
-
-    title: CampaignTitle
-    seat: Seat
-    election_date: date | None = None
-    county: uuid.UUID | None = None
-    constituency: uuid.UUID | None = None
-    ward: uuid.UUID | None = None
-    aspirant: LoginDetails
-    manager: LoginDetails | None = None
-
-
-class AdminCampaignCreated(ORMModel):
-    """`logins` say how each invite link went out."""
-
-    campaign: AdminCampaignRead
-    setup: SetupSummary
-    logins: list[AdminUserCreated]
 
 
 class PartyRoleGrant(WriteModel):

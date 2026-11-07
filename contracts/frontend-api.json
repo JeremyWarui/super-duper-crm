@@ -226,10 +226,6 @@
       "place",
       "places"
     ],
-    "POST /api/admin/campaigns/": [
-      "setup",
-      "logins"
-    ],
     "GET /api/campaigns/{campaign_id}/team/": [
       "id",
       "username",
@@ -1434,20 +1430,6 @@
       "full_name",
       "role"
     ],
-    "POST /api/admin/campaigns/.setup": [
-      "grain",
-      "units",
-      "total_registered",
-      "win_number",
-      "note"
-    ],
-    "POST /api/admin/campaigns/.logins": [
-      "id",
-      "username",
-      "full_name",
-      "role",
-      "invite"
-    ],
     "GET /api/join/{code}/.places": [
       "id",
       "name"
@@ -1920,30 +1902,6 @@
     ],
     "POST /api/events/{event_id}/signups/": [
       "open"
-    ],
-    "POST /api/admin/campaigns/": [
-      "title",
-      "seat",
-      "election_date",
-      "county",
-      "constituency",
-      "ward",
-      "aspirant",
-      "manager"
-    ],
-    "POST /api/admin/campaigns/.aspirant": [
-      "username",
-      "first_name",
-      "last_name",
-      "phone",
-      "email"
-    ],
-    "POST /api/admin/campaigns/.manager": [
-      "username",
-      "first_name",
-      "last_name",
-      "phone",
-      "email"
     ],
     "POST /api/campaigns/{campaign_id}/team/manager/": [
       "username",

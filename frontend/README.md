@@ -82,7 +82,7 @@ frontend/
 │   │   ├── client.js      one place that talks to the API
 │   │   └── hooks.js       a query per read, a mutation per write
 │   ├── store/auth.js      the token and the role, kept in localStorage
-│   └── components/        Login.jsx, Admin.jsx, Onboarding.jsx (the console's new-campaign wizard)
+│   └── components/        Login.jsx, Admin.jsx (the console)
 └── tests/
 ```
 
@@ -129,14 +129,10 @@ every registration centre in the ward, each with its register and a total. A
 ward with no centres loaded says so there, rather than looking ready and coming
 back with a win number of zero.
 
-**Only the console sets a campaign up.** Nobody signs up for a login. The
-superuser's **New campaign** wizard names a new aspirant (first and last name,
-username, email and phone) and, optionally, a manager, then the seat and its
-area. Every login belongs to one campaign, so both are always new. The campaign
-belongs to the aspirant, and the review screen says which logins are about to be
-created. Their passwords are shown once on the screen that follows and kept in
-the console's "Write these down now" card until it is closed. Nothing is emailed
-yet, so an address is only kept on record.
+**Nobody sets a campaign up for themselves.** An aspirant copy's one workspace is
+made at setup (`pages/setup/Setup.jsx`). On a party copy the console's **New
+campaign** opens Aspirants, where a Nominations Officer makes an approved
+aspirant's workspace; its logins are emailed invite links.
 
 **A login on no campaign is told so.** An aspirant, manager or mobilizer whose
 campaign list is empty sees "You are not on a campaign yet" and can sign out;
@@ -167,7 +163,7 @@ mobilizer, with the password shown once. A manager can be put on a campaign as
 it is made, if the campaign has none yet, or left unplaced; a mobilizer must be
 given a campaign and one of its wards (in an MCA race, one of its centres with a
 target), or they sign in scoped to nothing. An aspirant is never made on their
-own: they get their login with their campaign, from New campaign.
+own: they get their login with their workspace, from Aspirants or at setup.
 
 Nothing destructive fires on one click: taking somebody off, disabling a login,
 resetting a password and deleting a campaign each ask first, naming who or what

@@ -443,38 +443,6 @@ async def build_workspace(
     return created, summary, logins
 
 
-async def create_campaign(
-    session: AsyncSession,
-    *,
-    actor: User | None,
-    aspirant: dict,
-    manager: dict | None = None,
-    **campaign_fields,
-) -> tuple[Campaign, SetupSummary, list[tuple[User, str]]]:
-    """Create a campaign, its targets, and new logins for its aspirant and manager.
-
-    Returns the campaign, the setup summary and each login with its password.
-    """
-    try:
-        created, summary, logins = await build_workspace(
-            session, aspirant=aspirant, manager=manager, **campaign_fields
-        )
-    except Refused:
-        await session.rollback()
-        raise
-    record(
-        session,
-        actor=actor,
-        action="campaign.create",
-        subject_type="campaign",
-        subject_id=created.id,
-        campaign_id=created.id,
-        detail={"logins": len(logins)},
-    )
-    await session.commit()
-    return created, summary, logins
-
-
 async def create_user(
     session: AsyncSession,
     *,
@@ -510,7 +478,9 @@ async def create_user(
         if not await ward_in_area(session, target, ward_id):
             raise Refused(f"{ward.name} is not a ward {target.title} works.")
     if role is UserRole.CANDIDATE:
-        raise Refused("An aspirant gets their login with their campaign: use New campaign.")
+        raise Refused(
+            "An aspirant gets their login with their workspace, from Aspirants or at setup."
+        )
 
     try:
         created, invite = await new_invited_login(

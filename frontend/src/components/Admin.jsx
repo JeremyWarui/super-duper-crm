@@ -37,9 +37,7 @@ import {
   LoadingState,
   Panel,
 } from "./ui";
-import Onboarding from "./Onboarding";
 import { PartyShell } from "../pages/party/Portal";
-import Legacy from "./Legacy";
 import AuditTrail from "./console/AuditTrail";
 import ExportPanel from "./console/ExportPanel";
 import Health from "./console/Health";
@@ -531,7 +529,7 @@ function NewLogin({ campaigns, create }) {
             : "A mobilizer works one ward, and sees only that ward."
           : "Leave the campaign blank to create the login now and place it later."}{" "}
         {aspirant
-          ? "An aspirant gets their login with their campaign, from New campaign."
+          ? "The aspirant's login was made at setup."
           : "An aspirant gets their login with their workspace, made from their approved record in Aspirants."}{" "}
         They are emailed a link to choose their password.
       </div>
@@ -1078,7 +1076,6 @@ export default function Admin() {
   const users = useAdminUsers(roleFilter);
   const [tab, setTab] = useState("campaigns");
   const navigate = useNavigate();
-  const [creating, setCreating] = useState(false);
   const [handouts, setHandouts] = useState([]);
   // Owned here, not in the row: a row unmounts on every refetch. One mutation
   // serves every row, and it only remembers its latest call, so what each row
@@ -1106,22 +1103,6 @@ export default function Admin() {
     setRunning((ids) => new Set(ids).add(id));
     reset.mutate({ id });
   };
-
-  // Before the overview's own states, so a failed refetch cannot take the
-  // wizard, and the passwords on its last screen, with it.
-  if (creating)
-    return (
-      <Legacy>
-        <Onboarding
-          onLogin={handOut}
-          onCancel={() => setCreating(false)}
-          onDone={() => {
-            setTab("campaigns");
-            setCreating(false);
-          }}
-        />
-      </Legacy>
-    );
 
   if (overview.isLoading)
     return (
@@ -1192,18 +1173,12 @@ export default function Admin() {
           ))}
         </div>
 
-        {tab === "campaigns" && (
+        {tab === "campaigns" && !aspirant && (
           <div className="admin-section-action">
-            {aspirant ? (
-              <Btn onClick={() => setCreating(true)}>New campaign</Btn>
-            ) : (
-              <>
-                <Btn onClick={() => navigate("/party/aspirants")}>New campaign</Btn>
-                <span className="admin-subtle">
-                  A workspace is made from an approved aspirant, in Aspirants.
-                </span>
-              </>
-            )}
+            <Btn onClick={() => navigate("/party/aspirants")}>New campaign</Btn>
+            <span className="admin-subtle">
+              A workspace is made from an approved aspirant, in Aspirants.
+            </span>
           </div>
         )}
         {tab === "campaigns" && <OpenPartyWorkspace onInvite={handOut} />}

@@ -4,16 +4,15 @@ import uuid
 from datetime import date
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Query, Response, status
 from sqlalchemy import select
 
-from backend.api.deps import AdminUser, SessionDep, Today, get_organisation_type
+from backend.api.deps import AdminUser, SessionDep, Today
 from backend.api.install import PartyOnlyRoute
 from backend.models import (
     AgendaIssue,
     HeroSlide,
     ImportRun,
-    OrganisationType,
     PartyDocument,
     PartyOrgan,
     PartyRoleName,
@@ -25,8 +24,6 @@ from backend.models import (
 )
 from backend.schemas.admin import (
     ActiveSet,
-    AdminCampaignCreate,
-    AdminCampaignCreated,
     AdminCampaignRead,
     AdminUserCreate,
     AdminUserCreated,
@@ -175,47 +172,6 @@ async def update_site(
 @router.get("/campaigns/", response_model=list[AdminCampaignRead])
 async def list_campaigns(session: SessionDep, _: AdminUser) -> list[AdminCampaignRead]:
     return await service.campaigns(session)
-
-
-@router.post(
-    "/campaigns/", response_model=AdminCampaignCreated, status_code=status.HTTP_201_CREATED
-)
-async def create_campaign(
-    payload: AdminCampaignCreate,
-    session: SessionDep,
-    admin: AdminUser,
-    kind: Annotated[OrganisationType | None, Depends(get_organisation_type)],
-) -> AdminCampaignCreated:
-    """Create a campaign with its aspirant's and manager's logins, each sent an invite link.
-
-    A party copy refuses: its hosted workspaces come only from approved aspirants.
-    """
-    if kind == OrganisationType.PARTY:
-        raise Refused(
-            "In a party copy a workspace comes from an approved aspirant: open Aspirants and "
-            "create it from their record."
-        )
-    created, summary, logins = await service.create_campaign(
-        session,
-        actor=admin,
-        **payload.model_dump(exclude={"aspirant", "manager"}),
-        aspirant=payload.aspirant.model_dump(),
-        manager=payload.manager.model_dump() if payload.manager else None,
-    )
-    return AdminCampaignCreated(
-        campaign=await service.campaign(session, created.id),
-        setup=summary,
-        logins=[
-            AdminUserCreated(
-                id=login.id,
-                username=login.username,
-                full_name=login.full_name,
-                role=login.role,
-                invite=invite,
-            )
-            for login, invite in logins
-        ],
-    )
 
 
 @router.get("/campaigns/{campaign_id}/", response_model=AdminCampaignRead)
