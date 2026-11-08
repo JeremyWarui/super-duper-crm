@@ -55,7 +55,7 @@ function Compose() {
         <FilterPills label="Audience" options={AUDIENCES} value={audience} onChange={touch(setAudience)} />
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
-        <PlaceCascade labelled place={where} onChange={touch(setWhere)} />
+        <PlaceCascade labelled place={where} onChange={touch(setWhere)} blank={(lv) => (lv === "county" ? "All counties" : "All")} />
       </div>
       <p className="text-small text-muted-foreground" aria-live="polite">
         {count === null ? "Counting…" : (
