@@ -10,13 +10,14 @@ from backend.models import (
     PartyMember,
     PartyMemberStatus,
     PartyRequest,
+    PartyRoleName,
     VolunteerProfile,
     VolunteerStatus,
 )
 from backend.services.consent import MEMBER_SMS_WORDING
 from backend.services.membership import process_requests
 from tests.conftest import World
-from tests.factories import TEST_PASSWORD
+from tests.factories import TEST_PASSWORD, auth, make_officer, sign_in
 
 pytestmark = pytest.mark.party_only
 
@@ -95,6 +96,18 @@ async def test_a_public_join_only_queues_a_request_until_the_inbox_is_applied(
     assert (len(queued), before) == (1, [])
     assert (member.status, member.phone) == (PartyMemberStatus.PENDING, "+254712345678")
     assert (await session.scalars(select(PartyRequest))).all() == []
+
+
+async def test_opening_the_members_page_applies_a_waiting_join(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await client.post("/api/party/join/", json=_application(world))
+    await make_officer(session, world.ward, PartyRoleName.MEMBERSHIP_OFFICER)
+    headers = auth(await sign_in(client, "ofisa"))
+
+    members = (await client.get("/api/party/members/", headers=headers)).json()
+
+    assert ("Wanjiru Kamau", "pending") in {(m["full_name"], m["status"]) for m in members["items"]}
 
 
 async def test_the_members_own_link_withdraws_them_once_and_is_audited_as_public(

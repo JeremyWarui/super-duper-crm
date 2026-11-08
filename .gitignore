@@ -15,3 +15,7 @@ backend/export-*.zip
 
 # The installation's own settings; deploy/.env.example is the template.
 deploy/.env
+
+# Vercel CLI link and its token file.
+.vercel
+.env.local

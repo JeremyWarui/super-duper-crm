@@ -1,0 +1,17 @@
+/*
+!/vercel.json
+!/frontend
+!/backend
+
+**/.env
+**/node_modules
+**/__pycache__
+frontend/dist
+frontend/tests
+frontend/vite.walk.local.mjs
+backend/.venv
+backend/.pytest_cache
+backend/.ruff_cache
+backend/uploads
+backend/tests
+backend/evals
