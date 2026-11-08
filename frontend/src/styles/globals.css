@@ -280,6 +280,7 @@
 
 /* Printing a sign-up QR code prints only the code, its title and its link. */
 @media print {
+  body { background: #fff; }
   body * { visibility: hidden; }
   .qr-print, .qr-print * { visibility: visible; }
   .qr-print { position: fixed; inset: 0; padding-top: 10vh; }

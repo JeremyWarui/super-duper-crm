@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { download } from "../src/api/client";
 import ExportPanel from "../src/components/console/ExportPanel";
 import { formatDay, initials } from "../src/lib/format";
+import { eventDay } from "../src/pages/campaign/helpers";
 import { workspaceAlerts } from "../src/pages/campaign/shell";
 
 vi.mock("../src/api/client", () => ({ download: vi.fn(() => Promise.resolve()) }));
@@ -33,6 +34,12 @@ describe("shared helpers", () => {
   it("reads a day in Nairobi time, whatever the browser's zone", () => {
     expect(formatDay("2026-11-03")).toBe("3 November 2026");
     expect(formatDay("2026-11-02T22:30:00Z", { day: "numeric", month: "short" })).toBe("3 Nov");
+  });
+
+  it("calls an event today and gives its time by the Nairobi clock", () => {
+    const now = new Date("2026-11-08T05:00:00Z");
+    expect(eventDay({ scheduled_date: "2026-11-07T21:30:00Z" }, now)).toBe("Today · 00:30");
+    expect(eventDay({ scheduled_date: "2026-11-09T00:00:00Z" }, now)).toBe("Mon 9 Nov");
   });
 
   it("takes initials only from words that start with a letter", () => {

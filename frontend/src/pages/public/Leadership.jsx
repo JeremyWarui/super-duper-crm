@@ -1,6 +1,6 @@
 // /leadership: the party leader first and large, then every other published leader, in the party's order.
 import { usePublicLeaders } from "@/api/hooks";
-import { RichText } from "@/components/RichText";
+import { RichText } from "@/components/RichTextView";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
 import { Photo } from "./story";

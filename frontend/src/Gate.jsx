@@ -1,13 +1,10 @@
-import { useRef } from "react";
+import { lazy, Suspense, useRef } from "react";
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "./store/auth";
 import { useCampaigns, useMe } from "./api/hooks";
 import { homeOf, landingOf } from "./lib/home";
 import Login from "./components/Login";
-import Admin from "./components/Admin";
 import SignedInNotice, { NoCampaign } from "./components/SignedInNotice";
-import App from "./App";
-import Portal from "./pages/party/Portal";
 import Join from "./components/Join";
 import Withdraw from "./components/Withdraw";
 import { PublicLayout } from "@/components/layout/PublicLayout";
@@ -17,7 +14,6 @@ import Home from "./pages/public/Home";
 import AspirantHome, { AspirantAbout, AspirantAgenda, AspirantMedia } from "./pages/public/AspirantHome";
 import Volunteer from "./pages/public/Volunteer";
 import { useInstall } from "./app/site";
-import Setup from "./pages/setup/Setup";
 import Leadership from "./pages/public/Leadership";
 import Manifesto from "./pages/public/Manifesto";
 import Results from "./pages/public/Results";
@@ -38,9 +34,16 @@ import Chooser from "./pages/public/Chooser";
 import Branch from "./pages/public/Branch";
 import Issue from "./pages/public/Issue";
 import Branches from "./pages/public/Branches";
-import Account from "./pages/member/Account";
 import WithdrawParty from "./pages/public/WithdrawParty";
 import WithdrawVolunteer from "./pages/public/WithdrawVolunteer";
+import { LoadingText } from "@/components/ui/loading-text";
+
+// The signed-in areas load when first opened, so the public site's first load stays small.
+const App = lazy(() => import("./App"));
+const Portal = lazy(() => import("./pages/party/Portal"));
+const Admin = lazy(() => import("./components/Admin"));
+const Setup = lazy(() => import("./pages/setup/Setup"));
+const Account = lazy(() => import("./pages/member/Account"));
 
 // The public site settings: the same for everyone, so they outlive a change of user.
 const PUBLIC = (query) => query.queryKey.length === 1 && query.queryKey[0] === "site";
@@ -215,10 +218,12 @@ export function AppRoutes() {
   if (install.notSetUp) settingUp.current = true;
   if (settingUp.current) {
     return (
-      <Routes>
-        <Route path="/setup" element={<Setup />} />
-        <Route path="*" element={<Navigate to="/setup" replace />} />
-      </Routes>
+      <Suspense fallback={<LoadingText />}>
+        <Routes>
+          <Route path="/setup" element={<Setup />} />
+          <Route path="*" element={<Navigate to="/setup" replace />} />
+        </Routes>
+      </Suspense>
     );
   }
   const own = install.aspirant ? ASPIRANT : PARTY;
@@ -232,11 +237,13 @@ export function AppRoutes() {
         ...other.filter(([path]) => !taken.has(path)).map(([path]) => <Route key={path} path={path} element={home} />),
       ];
   return (
-    <Routes>
-      <Route path="/setup" element={home} />
-      {SHARED.map(([path, element]) => <Route key={path} path={path} element={element()} />)}
-      {typed}
-      <Route path="/*" element={<Root />} />
-    </Routes>
+    <Suspense fallback={<LoadingText />}>
+      <Routes>
+        <Route path="/setup" element={home} />
+        {SHARED.map(([path, element]) => <Route key={path} path={path} element={element()} />)}
+        {typed}
+        <Route path="/*" element={<Root />} />
+      </Routes>
+    </Suspense>
   );
 }

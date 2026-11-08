@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatDay, formatNumber as fmt } from "@/lib/format";
 import AttendanceCard from "./AttendanceCard";
+import { eventDay } from "./helpers";
 import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
 
@@ -64,14 +65,6 @@ function EventCard({ event: e, onRecord, onInvite, onQr, onAssign }) {
   );
 }
 
-const dayLabel = (e) => {
-  const day = dayOf(e);
-  if (!day) return "No date yet";
-  const today = new Date().toDateString() === day.toDateString();
-  const time = day.getHours() || day.getMinutes() ? ` · ${day.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : "";
-  return `${today ? "Today" : formatDay(e.scheduled_date, { weekday: "short", day: "numeric", month: "short" })}${time}`;
-};
-
 // The field view: the event to count now, with the rest coming up below it.
 function MyUpcoming({ rows, records, onQr }) {
   const [activeId, setActiveId] = useState(null);
@@ -82,7 +75,7 @@ function MyUpcoming({ rows, records, onQr }) {
     <div className="flex max-w-[560px] flex-col gap-3.5">
       <section aria-label="Next event" className="flex flex-col gap-3.5 rounded-[18px] border border-line bg-card p-[18px]">
         <div className="flex flex-col gap-0.5">
-          <span className="text-meta font-bold tracking-[0.08em] text-primary uppercase">{dayLabel(active)}</span>
+          <span className="text-meta font-bold tracking-[0.08em] text-primary uppercase">{eventDay(active)}</span>
           <h2 className="text-[19px] font-bold">{active.title}</h2>
           <span className="text-ui text-muted-foreground">{[active.venue, active.ward_name].filter(Boolean).join(" · ") || "No venue yet"}</span>
         </div>
@@ -95,7 +88,7 @@ function MyUpcoming({ rows, records, onQr }) {
           <ul className="flex flex-col">
             {rest.map((e) => (
               <li key={e.id} className="flex items-center justify-between gap-3 border-t border-line-soft py-2 first:border-t-0">
-                <span className="min-w-0"><span className="block font-semibold">{e.title}</span><span className="text-small text-muted-foreground">{dayLabel(e)}</span></span>
+                <span className="min-w-0"><span className="block font-semibold">{e.title}</span><span className="text-small text-muted-foreground">{eventDay(e)}</span></span>
                 {records && (
                   <span className="flex flex-none flex-wrap justify-end gap-2">
                     {e.signup_code && <Button shape="rounded" size="sm" variant="quiet" aria-label={`Sign-up QR for ${e.title}`} onClick={() => onQr(e)}>{e.signups_open ? "Sign-up QR" : "Closed"}</Button>}

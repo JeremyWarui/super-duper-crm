@@ -3,9 +3,9 @@ import { cleanup, configure } from "@testing-library/react";
 import { afterEach, beforeEach } from "vitest";
 import { useAuth } from "../src/store/auth";
 
-// A findBy waits up to five seconds: on a loaded machine the first render of a route can take
-// longer than the one-second default, and the test would fail on timing, not behaviour.
-configure({ asyncUtilTimeout: 5000 });
+// A findBy waits up to ten seconds: the signed-in areas load lazily, and on a loaded machine the first
+// render of one can take several seconds, so the test would fail on timing, not behaviour.
+configure({ asyncUtilTimeout: 10000 });
 
 // jsdom lacks what Radix menus measure and capture with.
 globalThis.ResizeObserver ??= class {

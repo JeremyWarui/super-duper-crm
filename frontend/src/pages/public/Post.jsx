@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { usePublicPost, usePublicPosts } from "@/api/hooks";
 import { PdfViewer } from "@/components/PdfViewer";
-import { RichText } from "@/components/RichText";
+import { RichText } from "@/components/RichTextView";
 import { Card } from "@/components/ui/card";
 import { Crumbs, RailHead } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";

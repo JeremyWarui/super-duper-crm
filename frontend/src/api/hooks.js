@@ -826,12 +826,13 @@ export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = 
     staleTime: Infinity,
   });
 
-/** The counties, the chosen county's constituencies and the chosen constituency's wards, each [] until loaded. */
-export function usePartyPlaceLists({ county, constituency, ward } = {}, { centres: withCentres = false } = {}) {
+/** The party's places down to `level` (county, constituency, ward or centre) for the chosen place, each [] until loaded. */
+export function usePartyPlaceLists({ county, constituency, ward } = {}, level = "ward") {
+  const depth = ["county", "constituency", "ward", "centre"].indexOf(level);
   const counties = usePartyPlaces().data || [];
-  const constituencies = usePartyPlaces({ county, enabled: !!county }).data || [];
-  const wards = usePartyPlaces({ constituency, enabled: !!constituency }).data || [];
-  const centres = usePartyPlaces({ ward, enabled: withCentres && !!ward }).data || [];
+  const constituencies = usePartyPlaces({ county, enabled: depth >= 1 && !!county }).data || [];
+  const wards = usePartyPlaces({ constituency, enabled: depth >= 2 && !!constituency }).data || [];
+  const centres = usePartyPlaces({ ward, enabled: depth >= 3 && !!ward }).data || [];
   return { counties, constituencies, wards, centres };
 }
 

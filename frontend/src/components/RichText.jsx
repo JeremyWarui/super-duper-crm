@@ -1,9 +1,8 @@
-// Post text: a Tiptap editor with the site's toolbar, and the cleaned HTML it writes, shown on the site.
+// Post text: a Tiptap editor with the site's toolbar.
 import { useId, useRef, useState } from "react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
-import DOMPurify from "dompurify";
 import { Bold, Heading2, Heading3, ImageUp, Italic, Link2, List, ListOrdered, Quote, Redo2, Strikethrough, Undo2 } from "lucide-react";
 import { useUploadImage } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
@@ -12,23 +11,7 @@ import { ErrorText } from "@/components/ui/error-text";
 import { useCopy } from "@/copy";
 import { cn } from "@/lib/utils";
 
-// The tags the backend keeps (services/rich_text.py); anything else is dropped before it shows.
-const TAGS = ["p", "br", "h2", "h3", "strong", "em", "s", "a", "ul", "ol", "li", "blockquote", "img"];
 const LINK = /^(https:\/\/[^\s\\]+|mailto:[^\s\\]+|\/(?![/\\])[^\s\\]*)$/;
-
-/** Cleaned post HTML, drawn with the site's text styles. */
-export function RichText({ html, className }) {
-  const clean = DOMPurify.sanitize(html || "", { ALLOWED_TAGS: TAGS, ALLOWED_ATTR: ["href", "src", "alt", "rel"] });
-  return <div className={cn("rich-text", className)} dangerouslySetInnerHTML={{ __html: clean }} />;
-}
-
-/** The text of each paragraph, list item or heading in the HTML, in order. */
-export function paragraphs(html) {
-  const doc = new DOMParser().parseFromString(html || "", "text/html");
-  const blocks = [...doc.body.querySelectorAll("p, li, h2, h3, blockquote")].filter((el) => !el.querySelector("p, li"));
-  const texts = (blocks.length ? blocks : [doc.body]).map((el) => el.textContent.trim());
-  return texts.filter(Boolean);
-}
 
 const extensions = [
   StarterKit.configure({

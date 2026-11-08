@@ -1,5 +1,5 @@
 /** Which screen you land on. */
-import { act, screen } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import { useLocation } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -47,13 +47,13 @@ describe("the gate", () => {
     [{ role: "manager", is_superuser: false, party_roles: [] }, "/campaign"],
     [{ role: null, is_superuser: false, party_roles: ["membership_officer"] }, "/party"],
     [{ role: "manager", is_superuser: true, party_roles: [] }, "/console"],
-  ])("sends a signed-in %o from /signin to %s", (user, home) => {
+  ])("sends a signed-in %o from /signin to %s", async (user, home) => {
     signIn(user.role);
     useAuth.setState({ user: { ...useAuth.getState().user, ...user } });
     stubApi({});
     renderApp(<><AppRoutes /><Where /></>, { path: "/signin" });
 
-    expect(screen.getByTestId("where")).toHaveTextContent(home);
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent(home));
   });
 
   it("sends a signed-out visit to /console to /signin", async () => {

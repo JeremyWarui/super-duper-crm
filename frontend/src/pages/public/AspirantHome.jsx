@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { usePublicDocuments, usePublicPosts, usePublicVideos, useSiteCandidate, useSiteVolunteer } from "@/api/hooks";
-import { paragraphs } from "@/components/RichText";
+import { paragraphs } from "@/components/RichTextView";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SectionHead } from "@/components/ui/typography";

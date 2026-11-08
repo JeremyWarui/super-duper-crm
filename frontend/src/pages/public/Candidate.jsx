@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCandidateVolunteer, usePartyPlaces, usePublicCandidate } from "@/api/hooks";
-import { RichText } from "@/components/RichText";
+import { RichText } from "@/components/RichTextView";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";

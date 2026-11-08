@@ -30,5 +30,5 @@ export function PlaceSelects({ place, onChange, lists, level = "ward", blank = (
 
 /** The party's places down to `level`; takes every prop PlaceSelects does but `lists`. */
 export default function PlaceCascade(props) {
-  return <PlaceSelects lists={usePartyPlaceLists(props.place, { centres: props.level === "centre" })} {...props} />;
+  return <PlaceSelects lists={usePartyPlaceLists(props.place, props.level)} {...props} />;
 }

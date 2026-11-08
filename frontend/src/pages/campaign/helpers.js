@@ -2,6 +2,19 @@
 import { useMemo } from "react";
 import { useTargets } from "../../api/hooks";
 import { isEmail } from "../../lib/email";
+import { formatDay, nairobiDate } from "../../lib/format";
+
+/**
+ * An event's day as people in Nairobi read it: "Today" or "Sat 7 Nov", with the time when it has one.
+ * A date picked without a time is stored as midnight UTC and shows no time.
+ */
+export function eventDay(e, now = new Date()) {
+  if (!e.scheduled_date) return "No date yet";
+  const at = new Date(e.scheduled_date);
+  const day = nairobiDate(at) === nairobiDate(now) ? "Today" : formatDay(e.scheduled_date, { weekday: "short", day: "numeric", month: "short" });
+  const timed = at.getUTCHours() || at.getUTCMinutes();
+  return timed ? `${day} · ${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Nairobi" })}` : day;
+}
 
 // How far a unit is towards its target, as a label and a tone of good, warn or bad.
 export function statusOf(progress) {
