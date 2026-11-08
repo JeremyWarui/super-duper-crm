@@ -244,7 +244,7 @@ export default function JoinParty() {
   return (
     <div className="site-container flex flex-wrap items-start gap-12 pt-12 pb-20">
       <Intro name={p.name} />
-      <Card className="min-w-0 flex-[1_1_520px] gap-6 rounded-band p-[clamp(20px,4vw,32px)]">{body}</Card>
+      <Card className="min-w-0 flex-[1_1_520px] gap-6 self-end rounded-band p-[clamp(20px,4vw,32px)]">{body}</Card>
     </div>
   );
 }
