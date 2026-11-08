@@ -14,8 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.deps import get_organisation_type
 from backend.db.session import get_engine, get_sessionmaker
 from backend.models import County, UserRole
+from backend.seed import demo_aspirant, demo_party
 from backend.seed.demo import seed_demo
-from backend.seed.demo_party import build_party, credentials_sheet
 from backend.seed.reference import (
     CAW_CSV,
     CENTRES_CSV,
@@ -24,6 +24,7 @@ from backend.seed.reference import (
     import_centres,
     import_geography,
 )
+from backend.seed.sign_ins import credentials_sheet
 from backend.seed.site import seed_branches, seed_home, seed_news, seed_site
 from backend.services import admin, imports, ops, setup
 from backend.services.accounts import clean_email, new_login, user_with_email
@@ -98,8 +99,15 @@ async def _demo_install(args: argparse.Namespace, session: AsyncSession) -> int:
     if len(args.password) < 12:
         print("The demo password needs at least 12 characters.", file=sys.stderr)
         return 1
-    sign_ins = await build_party(session, password=args.password, today=today())
-    sheet = credentials_sheet(sign_ins, args.password, args.url)
+    if args.kind == "party":
+        title = demo_party.SETTINGS["name"]
+        sign_ins = await demo_party.build_party(session, password=args.password, today=today())
+    else:
+        title = demo_aspirant.TITLE
+        sign_ins = await demo_aspirant.build_aspirant(
+            session, password=args.password, today=today()
+        )
+    sheet = credentials_sheet(title, sign_ins, args.password, args.url)
     print(sheet)
     if args.sheet:
         Path(args.sheet).write_text(sheet, encoding="utf-8")
@@ -374,7 +382,7 @@ def build_parser() -> argparse.ArgumentParser:
     install = command(
         "demo-install", _demo_install, "set up an empty database as the demo, with its sign-ins"
     )
-    install.add_argument("kind", choices=["party"])
+    install.add_argument("kind", choices=["party", "aspirant"])
     install.add_argument("-p", "--password", required=True, help="one password for every login")
     install.add_argument("--url", default="http://localhost:5173", help="where the site opens")
     install.add_argument("--sheet", help="also write the sign-ins to this Markdown file")

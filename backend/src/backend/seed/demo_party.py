@@ -1,6 +1,5 @@
 """The party demo: a set-up party installation with its website, offices and one campaign."""
 
-from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
 from sqlalchemy import select
@@ -24,6 +23,7 @@ from backend.models import (
 )
 from backend.schemas.setup import SetupRequest, SetupSite, SetupSuperuser
 from backend.seed.demo import DEMO_CAMPAIGN_TITLE, demo_email, seed_demo
+from backend.seed.sign_ins import SignIn
 from backend.seed.site import (
     SETTINGS,
     portrait,
@@ -37,14 +37,6 @@ from backend.services.accounts import new_login
 from backend.services.consent import PARTY_WORDING
 from backend.services.errors import Refused
 from backend.services.rich_text import from_plain
-
-
-@dataclass
-class SignIn:
-    email: str
-    role: str
-    sees: str
-
 
 # username, office, first name, last name, phone
 OFFICERS = [
@@ -216,18 +208,3 @@ async def build_party(session: AsyncSession, *, password: str, today: date) -> l
 
     sign_ins += [SignIn(email, *sees.split(": ", 1)) for email, _, sees in demo.sign_ins]
     return sign_ins
-
-
-def credentials_sheet(sign_ins: list[SignIn], password: str, url: str) -> str:
-    """The sign-ins as a Markdown sheet to hand over."""
-    lines = [
-        f"# {SETTINGS['name']} demo",
-        "",
-        f"Open {url} and sign in at {url.rstrip('/')}/signin.",
-        f"Every login uses the password: `{password}`",
-        "",
-        "| Email | Role | What to try |",
-        "| --- | --- | --- |",
-    ]
-    lines += [f"| {s.email} | {s.role} | {s.sees} |" for s in sign_ins]
-    return "\n".join(lines) + "\n"

@@ -149,7 +149,7 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
 
     wards = sorted(constituency.wards, key=lambda w: w.name)
 
-    await _seed_ground_game(session, campaign, wards, mobilizer_user)
+    await seed_ground_game(session, campaign, wards, mobilizer_user)
     await _volunteer(session, wards[0], passwords)
     await session.commit()
 
@@ -223,7 +223,7 @@ async def _volunteer(session: AsyncSession, ward: Ward, passwords: dict[str, str
     await session.flush()
 
 
-async def _seed_ground_game(
+async def seed_ground_game(
     session: AsyncSession,
     campaign: Campaign,
     wards: list[Ward],
