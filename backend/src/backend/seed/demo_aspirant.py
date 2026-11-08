@@ -6,10 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import (
+    AgendaIssue,
     Campaign,
     CandidateProfile,
     Constituency,
     County,
+    HeroSlide,
     OrganisationType,
     PartyPost,
     PostKind,
@@ -22,7 +24,7 @@ from backend.schemas.setup import InvitedLogin, SetupRequest, SetupSeat, SetupSi
 from backend.security import hash_password
 from backend.seed.demo import demo_email, seed_ground_game
 from backend.seed.sign_ins import SignIn
-from backend.seed.site import BODY, PICTURE, portrait
+from backend.seed.site import BODY, PICTURE, SLIDE_PICTURES, portrait
 from backend.services import setup
 from backend.services.accounts import add_member, new_login
 from backend.services.errors import Refused
@@ -36,6 +38,56 @@ NEWS = [
     ("Clean water plan for Njiru and Ruai", 5, "6B6QMRB4XI"),
 ]
 EVENT = ("Town hall at Mwiki grounds", 9, "Mwiki grounds", "6KRBT8MYES")
+# The agenda and the candidate's priorities: title, summary, what he will do, why it matters.
+AGENDA = [
+    (
+        "Clean water",
+        "Piped water to every estate in Njiru and Ruai.",
+        "Extend the Ruai and Njiru mains and fix the leaking Mwiki line within two years.",
+        "Families in the new estates still buy water from carts at three times the city price.",
+    ),
+    (
+        "Jobs for young people",
+        "A youth skills centre in each of the five wards.",
+        "Open skills centres with the county polytechnic and link graduates to local employers.",
+        "Most young people in Kasarani are looking for steady work.",
+    ),
+    (
+        "Roads and drainage",
+        "Feeder roads that stay open in the rainy season.",
+        "Tarmac the worst feeder roads and clear the drains before every long rains.",
+        "Flooded roads cut traders and pupils off for weeks every year.",
+    ),
+    (
+        "Safe neighbourhoods",
+        "Street lights and community policing in every ward.",
+        "Light the main walkways and fund ward security committees from the NG-CDF.",
+        "Dark paths after 7pm are where most evening attacks happen.",
+    ),
+]
+SLIDES = [
+    (
+        "David Otieno for Kasarani",
+        "Kasarani deserves better, and we will build it together",
+        "Water, jobs, roads and safe streets for all five wards.",
+        "Read the agenda",
+        "/agenda",
+    ),
+    (
+        "Volunteer",
+        "Join the team going door to door this month",
+        "Give a Saturday morning in your own ward.",
+        "Volunteer",
+        "/volunteer",
+    ),
+    (
+        "Back the campaign",
+        "Every shilling goes to the ground game",
+        "Contribute by M-Pesa and get a receipt the same day.",
+        "Contribute",
+        "/contribute",
+    ),
+]
 
 
 async def _kasarani(session: AsyncSession) -> Constituency | None:
@@ -118,7 +170,7 @@ async def _team(session: AsyncSession, campaign: Campaign, password: str) -> Use
 
 
 async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
-    """Publish the candidate page, two news posts and an event."""
+    """Publish the candidate page, the agenda, the carousel, two news posts and an event."""
     profile = await session.scalar(
         select(CandidateProfile).where(CandidateProfile.campaign_id == campaign.id)
     )
@@ -128,11 +180,7 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
         "David Otieno grew up in Mwiki, trained as a civil engineer and has spent ten years "
         "building roads and water lines across Nairobi."
     )
-    profile.priorities = [
-        {"title": "Water", "text": "Piped water to every estate in Njiru and Ruai."},
-        {"title": "Jobs", "text": "A youth skills centre in each of the five wards."},
-        {"title": "Roads", "text": "Tarmac the feeder roads that flood every rainy season."},
-    ]
+    profile.priorities = [{"title": title, "text": summary} for title, summary, _, _ in AGENDA]
     profile.office_address = "Campaign office, Mwiki Road, Kasarani"
     profile.office_phone = "0700 111222"
     profile.office_email = "office@example.com"
@@ -145,6 +193,30 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
                 body=BODY,
                 image_url=PICTURE.format(picture),
                 published_on=today - timedelta(days=days_ago),
+                published=True,
+            )
+        )
+    for n, (title, summary, what, why) in enumerate(AGENDA):
+        session.add(
+            AgendaIssue(
+                title=title,
+                summary=summary,
+                what_we_will_do=what,
+                why_it_matters=why,
+                sort_order=n,
+                published=True,
+            )
+        )
+    for n, (kicker, headline, line, label, url) in enumerate(SLIDES):
+        session.add(
+            HeroSlide(
+                kicker=kicker,
+                headline=headline,
+                line=line,
+                button_label=label,
+                button_url=url,
+                image_url=PICTURE.format(SLIDE_PICTURES[n]),
+                sort_order=n,
                 published=True,
             )
         )
