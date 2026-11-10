@@ -1,8 +1,5 @@
 """Sending a payment to a phone: practice mode, or M-Pesa transfers through Paystack."""
 
-import hashlib
-import hmac
-import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -12,6 +9,7 @@ import httpx
 
 from backend.config import get_settings
 from backend.models import PaymentStatus
+from backend.services.paystack import PaystackApi, body
 
 
 @dataclass
@@ -96,24 +94,15 @@ def mpesa_fee_kes(amount_kes: int) -> int:
     return 60
 
 
-PAYSTACK_API = "https://api.paystack.co"
 # Transfer states that mean the money did not and will not go.
 PAYSTACK_DEAD = {"failed", "reversed", "abandoned", "rejected", "blocked"}
 
 
-def _body(response: httpx.Response) -> dict:
-    try:
-        body = response.json()
-    except ValueError:
-        return {}
-    return body if isinstance(body, dict) else {}
-
-
 def _message(response: httpx.Response) -> str:
-    return str(_body(response).get("message") or "")[:150]
+    return str(body(response).get("message") or "")[:150]
 
 
-class PaystackPayouts:
+class PaystackPayouts(PaystackApi):
     """M-Pesa transfers from the Paystack balance: a mobile money recipient, then a transfer.
 
     Every transfer Paystack accepts stays SENDING until its webhook says how it ended, so only
@@ -122,10 +111,6 @@ class PaystackPayouts:
 
     name = "paystack"
     moves_money = True
-
-    def __init__(self, secret_key: str, transport: httpx.AsyncBaseTransport | None = None) -> None:
-        self._secret_key = secret_key
-        self._transport = transport
 
     def fee_kes(self, amount_kes: int) -> int:
         return mpesa_fee_kes(amount_kes)
@@ -136,10 +121,10 @@ class PaystackPayouts:
                 answer = await client.get("/balance")
         except httpx.HTTPError as exc:
             raise BalanceUnavailable("Paystack could not be reached.") from exc
-        body = _body(answer)
-        if answer.status_code >= 300 or not body.get("status"):
+        reply = body(answer)
+        if answer.status_code >= 300 or not reply.get("status"):
             raise BalanceUnavailable(f"Paystack refused: {_message(answer)}".rstrip(": "))
-        for row in body.get("data") or []:
+        for row in reply.get("data") or []:
             if isinstance(row, dict) and row.get("currency") == "KES":
                 return int(row.get("balance") or 0) // 100
         raise BalanceUnavailable("Paystack shows no KES balance.")
@@ -153,8 +138,8 @@ class PaystackPayouts:
                     params={"perPage": 100, "page": page, "from": since.date().isoformat()},
                 )
                 answer.raise_for_status()
-                body = _body(answer)
-                rows = body.get("data") or []
+                reply = body(answer)
+                rows = reply.get("data") or []
                 for row in rows:
                     if isinstance(row, dict):
                         found.append(
@@ -165,18 +150,10 @@ class PaystackPayouts:
                                 code=str(row.get("transfer_code") or ""),
                             )
                         )
-                meta = body.get("meta") or {}
+                meta = reply.get("meta") or {}
                 if len(rows) < 100 or page >= int(meta.get("pageCount") or page):
                     break
         return found
-
-    def _client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(
-            base_url=PAYSTACK_API,
-            headers={"Authorization": f"Bearer {self._secret_key}"},
-            timeout=20,
-            transport=self._transport,
-        )
 
     async def send(
         self, *, payment_id: uuid.UUID, reference: str, phone: str, name: str, amount_kes: int
@@ -196,7 +173,7 @@ class PaystackPayouts:
             except httpx.HTTPError:
                 # No transfer was asked for, so nothing can have moved.
                 return PayoutResult(PaymentStatus.FAILED, detail="Paystack could not be reached.")
-            if made.status_code >= 300 or not _body(made).get("status"):
+            if made.status_code >= 300 or not body(made).get("status"):
                 return PayoutResult(
                     PaymentStatus.FAILED,
                     detail=f"Paystack refused the recipient: {_message(made)}".rstrip(": "),
@@ -218,7 +195,7 @@ class PaystackPayouts:
         if sent.status_code >= 500:
             sent.raise_for_status()
         if 400 <= sent.status_code < 500 or (
-            sent.status_code < 300 and not _body(sent).get("status")
+            sent.status_code < 300 and not body(sent).get("status")
         ):
             return PayoutResult(
                 PaymentStatus.FAILED,
@@ -237,34 +214,3 @@ def get_payout_provider() -> PayoutProvider:
     if settings.payout_provider == "paystack":
         return PaystackPayouts(settings.paystack_secret_key)
     return PracticePayouts()
-
-
-WEBHOOK_TOLERANCE = 300  # seconds a signed timestamp may be off
-
-
-def paystack_signed(raw: bytes, headers: dict[str, str], now: float | None = None) -> bool:
-    """Whether a webhook body carries a valid Paystack signature.
-
-    With a webhook secret, checks `Paystack-Signature` (HMAC-SHA512 of `t.body`, `t` within five
-    minutes); without one, the older `x-paystack-signature` (HMAC-SHA512 of the body with the
-    secret key).
-    """
-    settings = get_settings()
-    if settings.paystack_webhook_secret:
-        stamp, signatures = None, []
-        for part in headers.get("paystack-signature", "").split(","):
-            key, _, value = part.strip().partition("=")
-            if key == "t" and value.isdigit() and stamp is None:
-                stamp = value
-            elif key == "v1":
-                signatures.append(value.partition(":")[2])
-        if stamp is None or abs((now or time.time()) - int(stamp)) > WEBHOOK_TOLERANCE:
-            return False
-        expected = hmac.new(
-            settings.paystack_webhook_secret.encode(), stamp.encode() + b"." + raw, hashlib.sha512
-        ).hexdigest()
-        return any(hmac.compare_digest(expected, s) for s in signatures)
-    if settings.paystack_secret_key:
-        expected = hmac.new(settings.paystack_secret_key.encode(), raw, hashlib.sha512).hexdigest()
-        return hmac.compare_digest(expected, headers.get("x-paystack-signature", ""))
-    return False

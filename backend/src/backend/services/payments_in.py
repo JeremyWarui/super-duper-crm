@@ -29,7 +29,7 @@ from backend.models import (
 from backend.services.audit import record
 from backend.services.clock import as_utc
 from backend.services.errors import NotFound, Refused
-from backend.services.payouts import PAYSTACK_API
+from backend.services.paystack import PaystackApi, body
 from backend.services.sms import require_phone
 
 CODE = re.compile(r"^[A-Z0-9]{10}$")
@@ -69,30 +69,10 @@ class PracticePayIns:
         return None
 
 
-def _body(response: httpx.Response) -> dict:
-    try:
-        body = response.json()
-    except ValueError:
-        return {}
-    return body if isinstance(body, dict) else {}
-
-
-class PaystackPayIns:
+class PaystackPayIns(PaystackApi):
     """An M-Pesa prompt through Paystack's Charge API; only the webhook or a check marks it paid."""
 
     name = "paystack"
-
-    def __init__(self, secret_key: str, transport: httpx.AsyncBaseTransport | None = None) -> None:
-        self._secret_key = secret_key
-        self._transport = transport
-
-    def _client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(
-            base_url=PAYSTACK_API,
-            headers={"Authorization": f"Bearer {self._secret_key}"},
-            timeout=20,
-            transport=self._transport,
-        )
 
     async def charge(
         self, *, reference: str, amount_kes: int, phone: str, email: str, purpose: str
@@ -113,11 +93,11 @@ class PaystackPayIns:
         except httpx.HTTPError:
             # The charge may have started; the check after CHECK_AFTER settles it.
             return Charge(PayInStatus.PENDING)
-        body = _body(answer)
-        data = body.get("data") if isinstance(body.get("data"), dict) else {}
+        answer_body = body(answer)
+        data = answer_body.get("data") if isinstance(answer_body.get("data"), dict) else {}
         state = str(data.get("status") or "")
         if answer.status_code >= 400 or state in DEAD:
-            reason = str(data.get("gateway_response") or body.get("message") or "")[:200]
+            reason = str(data.get("gateway_response") or answer_body.get("message") or "")[:200]
             return Charge(PayInStatus.FAILED, reason=reason or "Paystack refused the prompt.")
         return Charge(PayInStatus.PENDING)
 
@@ -127,7 +107,7 @@ class PaystackPayIns:
                 answer = await client.get(f"/charge/{reference}")
         except httpx.HTTPError:
             return None
-        data = _body(answer).get("data")
+        data = body(answer).get("data")
         return data if answer.status_code < 300 and isinstance(data, dict) else None
 
 

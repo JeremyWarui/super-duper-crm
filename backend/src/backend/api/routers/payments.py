@@ -43,7 +43,8 @@ from backend.schemas.payment import (
 from backend.services import assignments, payment_routing, payments_in, payout_flow, reconcile
 from backend.services.audit import record
 from backend.services.payout_flow import OPEN
-from backend.services.payouts import get_payout_provider, paystack_signed
+from backend.services.payouts import get_payout_provider
+from backend.services.paystack import paystack_signed
 from backend.services.permissions import Reach, reach
 from backend.services.sms import normalise_phone
 
