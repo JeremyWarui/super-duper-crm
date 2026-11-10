@@ -21,7 +21,14 @@ from backend.models import (
     Profession,
     VolunteerArea,
 )
-from backend.schemas.common import Erasable, ORMModel, PlainLines, WriteModel, consent, plain_text
+from backend.schemas.common import (
+    Erasable,
+    ORMModel,
+    WriteModel,
+    consent,
+    plain_lines,
+    plain_text,
+)
 from backend.schemas.site import Email
 from backend.services.consent import MEMBER_SMS_WORDING, PARTY_WORDING
 
@@ -173,7 +180,7 @@ class MemberPage(BaseModel):
 
 class MemberMove(WriteModel):
     status: PartyMemberStatus
-    reason: PlainLines | None = Field(default=None, max_length=1000)
+    reason: plain_lines(1000) | None = None
 
 
 class PartySubscribe(WriteModel):

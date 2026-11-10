@@ -47,6 +47,13 @@ def trimmed(limit: int):  # type: ignore[no-untyped-def]
     return Annotated[str, Field(max_length=limit), AfterValidator(lambda v: plain_text(v).strip())]
 
 
+def plain_lines(limit: int):  # type: ignore[no-untyped-def]
+    """Plain text over several lines, of at most `limit` characters."""
+    return Annotated[
+        str, Field(max_length=limit), AfterValidator(lambda v: plain_text(v, lines=True))
+    ]
+
+
 STORE_CONSENT = "Consent is required before we can store these details."
 
 
