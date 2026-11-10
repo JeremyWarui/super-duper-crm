@@ -2,17 +2,19 @@
 
 Scope: `backend/src/backend` (26,209 lines, working tree of 2026-11-10). Tests, evals, the migration and the CSV data are out of scope. Comments and docstrings were ignored: every finding below rests on the code itself.
 
-Status: findings only. No backend code was changed by this review.
+Status: findings only. No backend code was changed by this review. Revised after a second pass (section 5) that read the files the first pass skipped and re-checked the first pass's claims.
 
 ## 1. Method
 
 1. `pylint --disable=all --enable=duplicate-code --min-similarity-lines=5` with comments, docstrings, imports and signatures ignored (24 hits).
 2. An AST script that strips docstrings and compares every function body, first exactly, then with variable names blanked (13 identical groups, 14 more after renaming).
-3. A second AST script that hashes runs of two sibling statements with names and strings blanked, over `api/` and `services/` (64 repeated runs).
+3. A second AST script that hashes runs of two sibling statements with names and strings blanked, over everything except `seed/`, `models/` and `schemas/` (64 repeated runs).
 4. Greps for known idioms (`token_urlsafe`, `HTTP_429`, `tzinfo`, `full_name or username`, phone refusals).
 5. Each hit was then read in the source. Files read in full: `api/deps.py`, `api/scope.py`, `api/errors.py`, routers `admin`, `workspace_site`, `party`, `messages`, `party_messages`, `party_members`, `party_volunteers`, `party_aspirants`; services `home`, `content`, `messages`, `party_messages`, `texting`, `membership`, `volunteers`, `aspirants`, `campaign_volunteers`, `payments_in`, `payouts`, `audit`, `errors`, `party`, `site`. Every other file was read only at the lines the tools flagged.
 
-Not read end to end: `services/admin.py`, `privacy.py`, `ops.py`, `imports.py`, `nominations.py`, `payout_flow.py`, `team_signup.py`, `dashboard.py`, `cli.py`, `seed/`. They can hold duplication the tools do not see (same idea, different shape).
+6. Second pass: a script listing every user-facing string of 28+ characters that appears in more than one place (40 strings), then full reads of `services/admin.py`, `accounts.py`, `team.py`, `team_signup.py`, `privacy.py`, `nominations.py`, `payout_flow.py`, `candidates.py`, `campaign_page.py` and routers `events`, `supporters`, `targets`, `mobilizers`, `agents`, `assignments`.
+
+Still not read end to end: `services/ops.py`, `imports.py`, `dashboard.py`, `sharing.py`, `party_workspace.py`, `branch_officials.py`, `setup.py`, `strategy.py`, `targets.py`, `files.py`, `cli.py`, `seed/`, and routers `auth`, `party_nominations`, `privacy`, `campaigns`, `account`, `payments` (read in part). The scripts covered them; a same-idea-different-shape duplicate there can still be missed.
 
 Line counts in the "saves" column are estimates from the spans listed, not measured diffs.
 
@@ -25,7 +27,7 @@ Line counts in the "saves" column are estimates from the spans listed, not measu
 | B3 | Inbox run twice per officer request, called by hand 15 times | 15 calls | 15 lines, 1 query pass | Low | 1 |
 | B4 | Rate-limit check and `_client` imported from another router | 18 checks, 7 imports | 40 lines | Low | 1 |
 | B5 | SMS drafts: campaign vs party message services | 2 services | 60 lines | Medium | 2 |
-| B6 | Guarded status move ("changed meanwhile") | 8 sites | 50 lines | Medium | 2 |
+| B6 | Guarded status move ("changed meanwhile") | 11 sites | 60 lines | Medium | 2 |
 | B7 | Paystack HTTP client and body parser | 2 services | 25 lines | Low | 2 |
 | B8 | Upload handlers and private file responses | 3 + 2 routers | 35 lines | Low | 2 |
 | B9 | Schema validators (`_plain`, consent, `_line`/`_short`, address checks) | 25+ | 80 lines | Low | 2 |
@@ -38,7 +40,18 @@ Line counts in the "saves" column are estimates from the spans listed, not measu
 | B16 | Place guard chain in create routes | 4 routers | 15 lines | Low | 3 |
 | B17 | `updated_at` column block | 4 model files | 25 lines | Low | 3 |
 | B18 | Test-send code in `ops` and `setup` | 2 services | 15 lines | Low | 3 |
-| K1-K6 | KISS items (section 4) | - | - | Low | 3 |
+| B19 | Campaign text audience rebuilt inside the events router | 1 router vs `messages.py` | 25 lines | Medium | 2 |
+| B20 | Candidate page written twice (party install vs aspirant install) | 2 services | 40 lines | Low | 2 |
+| B21 | "This place belongs to this campaign" checks | 7 files | 50 lines | Medium | 2 |
+| B22 | Row by id or NotFound | 21 sites | 40 lines | Low | 3 |
+| B23 | Logins on a campaign, and a login's place on it | 10 sites | 25 lines | Low | 3 |
+| B24 | Sign a login out | 8 sites | 8 lines | Low | 3 |
+| B25 | Site identity fields and the colour contrast check | 2 schemas | 20 lines | Low | 3 |
+| B26 | Nomination fee rules and fee stamp | 2 services | 12 lines | Low | 3 |
+| B27 | "Own rows" for a mobilizer or agent | 2 routers, 6 sentinels | 15 lines | Low | 3 |
+| B28 | Erased check written inline beside `refuse_erased` | 3 sites | 6 lines | Low | 3 |
+| B29 | Refusal wording written twice (pre-check and race handler) | 6 pairs | 10 lines | Low | 3 |
+| K1-K10 | KISS items (section 4) | - | - | Low | 3 |
 
 ## 3. Findings
 
@@ -213,6 +226,106 @@ The eight-line `updated_at` column with `onupdate` is copied in `models/content.
 
 `services/ops.py:404-423` (`test_sms`) and the `sms` branch of `services/setup.py:242-259` both normalise a phone, call `texting.send` with `TEST_TEXT`, audit, commit and word the outcome. One `texting.send_test(session, number, actor)` returning the result; each caller keeps its audit action and wording.
 
+### B19 - Campaign text audience rebuilt in the events router (second pass)
+
+`api/routers/events.py:147-207` (`invite_to_event`) builds a supporter audience by hand: consenting supporters of the campaign, narrowed by ward and by the caller's area (`events.py:156-166`), then `normalise_all` (`:168`), `texting.opted_out` (`:172`) and `payload.message.strip() + texting.FOOTER` (`:169`). `services/messages.py:45-72` (`_audience`, `recipients`) and `text_of` (`messages.py:20`) do the same for a campaign message. This is the third copy of `text_of` (B5 counted two).
+
+The two differ in one filter: `messages._audience` drops supporters with an empty phone (`messages.py:50`); the events router keeps them and lets `normalise_all` report them as unusable. Decide which is right before merging.
+
+Fix: move the invite into a service function that calls `messages.recipients` with an optional support-level filter, so one function decides who a campaign may text. The router keeps the dry-run switch and the response shape.
+
+### B20 - Candidate page written twice (second pass)
+
+`services/candidates.py` (party install) and `services/campaign_page.py` (aspirant install) both read and write a `CandidateProfile`:
+
+- Create-or-replace the profile: `candidates.py:233-242` and `campaign_page.py:99-106`.
+- `ProfileRead` from a profile or an empty one: `candidates.py:177-180` and `campaign_page.py:89-93`.
+- `CandidateDetail` with the same profile and consent fields: `candidates.py:151-165` and `campaign_page.py:69-86`.
+- `_county`: `candidates.py:53-58` and `campaign_page.py:53-58` (B13 listed only this one).
+- `PLACES` loader tuples of the same shape: `candidates.py:40-45` and `campaign_page.py:29-34`.
+
+Fix: keep both services (they find the profile differently) and share three helpers in `candidates.py`: `save_profile(session, profile, values, **keys)`, `profile_read(profile)` and `profile_fields(profile)` for the `CandidateDetail` arguments.
+
+### B21 - "This place belongs to this campaign" (second pass)
+
+The rule "a ward must be inside the campaign's seat, and a centre must be in such a ward" is checked separately in seven files, each with its own wording:
+
+- `api/scope.py:189-207` `require_ward_in_campaign`
+- `services/team.py:180-188` (`set_areas`)
+- `services/team_signup.py:70-73` (`centres_of`) and `:82-105` (`_place`)
+- `services/agents.py:91-97` (`update`)
+- `services/assignments.py:119-127` (`_place`)
+- `services/campaign_volunteers.py:173-181` (`sign_up`)
+- `services/admin.py:484-488` (`create_user`)
+
+"That ward is not one this campaign works." is written three times (`scope.py:198`, `team.py:182`, `team_signup.py:73`), "That registration centre is not one this campaign works." twice (`agents.py:97`, `team.py:188`), "Pick a ward this campaign works." twice (`assignments.py:127`, `team_signup.py:92`).
+
+Two smaller rules ride along:
+
+- "This centre has a target": the same SELECT at `scope.py:230-234`, `accounts.py:187-191` and `team_signup.py:98-101`.
+- "This mobilizer is on this campaign": `scope.py:242-250` and `assignments.py:88-92`, same wording.
+
+Fix: put the rules in `services/targets.py` beside `ward_in_area`: `require_ward(session, campaign, ward_id)`, `require_centre(session, campaign, centre_id) -> RegistrationCentre` and `is_targeted(session, campaign_id, centre_id)`, all raising `Refused`. `scope.py` and the six services call them. Wording becomes one sentence per rule, so check the frontend does not match on the old sentences.
+
+### B22 - Row by id or NotFound (second pass)
+
+"Get the row; raise `NotFound('No such X.')` when it is missing" is written about 21 times, often as a private helper per model: `admin.py:62` `_campaign`, `admin.py:69` `_user`, `content.py:103` `_leader`, `content.py:165` `_post`, `home.py:72` `_get`, `messages.py:208` and `party_messages.py:164` `get`, `nominations.py:308-310` and `:402-404` (the same document check twice), `candidates.py:257` and `:272-274` (the same post lookup twice, while `content._post` exists), `privacy.py:318-324`, and in routers `payments_in.py:52-56`, `privacy.py:44-50`, `agents.py:127-129`, `assignments.py:84-86`.
+
+Fix: one `get_or_refuse(session, model, row_id, noun, *, campaign_id=None)` in `db/session.py`. `home._get` is already this function for seven models.
+
+Inconsistency found on the way: `admin.py:311-313` answers a missing user with `Refused` (400) while `_user` (`admin.py:69`), which answers `NotFound` (404), sits unused there. `routers/mobilizers.py` `_free_mobilizer` and `routers/payments.py:95-97` also answer 400. If "400 for an id in the body, 404 for an id in the path" is the rule, write it down; if not, use `NotFound`.
+
+### B23 - Logins on a campaign (second pass)
+
+- "Logins on this campaign" (User joined to CampaignMember): `admin.py:383-391` `logins_on`, `team.py:29-36` `team`, `team.py:39-44` `manager_of`, and the party workspace router's own manager query (`api/routers/party_workspace.py:48-52`).
+- "This login's place on this campaign": `accounts.py:136-140`, `team.py:138-142`, `admin.py:333-337`.
+- "Take a login off a campaign": `admin.py:342-346`, `team.py:62-66`, `api/routers/mobilizers.py:115-118`.
+
+Fix: three functions in `services/accounts.py` (it already owns `add_member` and `campaign_of`): `logins_on(session, campaign_id, role=None)`, `member_of(session, campaign_id, user_id)` and `leave(session, campaign_id, user_id)`.
+
+### B24 - Sign a login out (second pass)
+
+`delete(AuthToken).where(AuthToken.user_id == ...)` appears eight times: `admin.py:232`, `:280`, `team.py:67`, `:121`, `team_signup.py:308`, `login_links.py:145`, `api/routers/account.py:137`, `api/routers/auth.py:124`. One `accounts.sign_out(session, user_id)`.
+
+### B25 - Site identity fields and colour contrast (second pass)
+
+`schemas/setup.py:22-41` (`SetupSite`) and `schemas/site.py:79-120` (`SiteSettingsUpdate`) declare the same nine fields with the same limits (`name`, `short_name`, `logo_url`, both colours, `contact_email`, `contact_phone`, `address`, `privacy_notice`) and the same two contrast checks with the same wording (`setup.py:36-39`, `site.py:117-120`).
+
+Fix: a `SiteIdentity(WriteModel)` base holding the shared fields and a `_contrast` validator; both classes inherit it. Belongs with B9.
+
+### B26 - Nomination fee rules (second pass)
+
+Whether a fee can still be paid is decided twice: `nominations.py:378-383` (`mark_fee_paid`) and `payments_in.py:176-181` (`_fee_open`), the same three checks in the same order. The three fee fields are stamped twice: `nominations.py:384-386` and `payments_in.py:278-281`.
+
+Fix: `nominations.require_fee_open(aspirant)` and `nominations.stamp_fee(aspirant, reference, marked_by_id, at)`; `payments_in` calls both.
+
+### B27 - "Own rows" for a mobilizer or agent (second pass)
+
+A caller with `Reach.OWN` sees only rows carrying their own mobilizer or agent id. `api/routers/assignments.py:52-63` and `api/routers/payments.py:81-88` each work that id out, with `uuid.UUID(int=0)` as the "matches nothing" value. The same sentinel is written six times (`assignments.py:54`, `:61`, `payments.py:84`, `:88`, `scope.py:52`, `:79`).
+
+Fix: `scope.own_ids(session, user) -> tuple[mobilizer_id, agent_id]` and a named `NOBODY = uuid.UUID(int=0)` in `scope.py`.
+
+### B28 - Erased check (second pass)
+
+`privacy.refuse_erased` (`privacy.py:59-61`) exists, and `api/routers/supporters.py` uses it. Three services write the same two lines inline instead: `membership.py:86-87`, `volunteers.py:88-89`, `campaign_volunteers.py:137-138`. Call the function. If importing `privacy` from `membership` makes a cycle, move `refuse_erased` to `services/errors.py` beside `refuse_own_record`.
+
+### B29 - Refusal wording written twice (second pass)
+
+A uniqueness rule is checked before the insert and again when the insert races, and the sentence is typed in both places:
+
+| Sentence | Pre-check | Race handler |
+|----------|-----------|--------------|
+| "That phone number is already on this campaign's register." | `routers/supporters.py:87` | `api/errors.py:85` |
+| "That member already has a live nomination." | `aspirants.py:91` | `api/errors.py:90` |
+| "That aspirant already has a workspace." | `aspirants.py:345` | `api/errors.py:93` |
+| "That unit already has a target." | `routers/targets.py:83` | `routers/targets.py:98` |
+| "That assignment already has a payment." | `routers/payments.py:114` | `routers/payments.py:139` |
+| "You already have a live nomination." | `nominations.py:252` | `nominations.py:266` |
+
+Fix: with B10's table in place, give each rule one named constant and use it in both spots. The `targets` and `payments` handlers that catch `IntegrityError` themselves can then let the central handler answer.
+
+Also twice: "This campaign is closed: it is read-only." (`access.py:28`, `privacy.py:47`), and `get_settings().public_url.rstrip('/')` four times (`login_links.py:46`, `privacy.py:246`, `oidc.py:45`, `routers/auth.py:188`), which wants a `Settings.url(path)` method.
+
 ## 4. KISS items
 
 - **K1 - Two refusal styles.** Routers raise `HTTPException(400, ...)` about 25 times and `Refused` 6 times; services always raise `Refused`, and `api/errors.py` turns it into the same response. Use `Refused`, `NotFound` and `Forbidden` in routers too, so there is one way to refuse.
@@ -220,17 +333,38 @@ The eight-line `updated_at` column with `onupdate` is copied in `models/content.
 - **K3 - `party.places`** (`party.py:178-207`) is four near-identical SELECTs in an if-chain. A small table of `(parameter, model, parent column)` and one SELECT says the same.
 - **K4 - Whole listing for one message.** See B5.
 - **K5 - `admin.py` re-reads after every write.** Seven handlers call a service that commits, then `service.user(...)` or `service.campaign(...)` to build the answer. Fine as it is; noted only so nobody "fixes" it into the services, which would couple them to response shapes.
+- **K7 - Two fetches to find one row.** `routers/agents.py:127-132` and `routers/assignments.py:84-89` load a row by id, check the campaign, then call a service that loads the same row again inside the caller's area. `scope.require_visible(session, user, Agent, agent_id, "agent", "agents.write")` already does all of it in one call (it answers 403 outside the area where the service answers 404).
+- **K8 - Candidate list filtered in Python.** `candidates.py:97-116` loads every listed aspirant and filters seat, county and name in a loop; `_by_slug` (`:119-123`) loads them all to find one. The slug ends in the first eight hex digits of the aspirant id, so one WHERE can narrow it.
+- **K9 - Guard aliases.** `Annotated[User, Depends(require("x.write"))]` is written 36 times across the routers. A one-line `may("x.write")` in `api/deps.py` returning that type keeps every alias and drops the noise.
+- **K10 - Business rules in a router.** `routers/supporters.py` `register_supporter` (about 50 lines) and `routers/events.py` `invite_to_event` (60 lines) decide wards, centres, audiences and duplicates in the route handler. Every other feature keeps that in `services/`. Moving them is what makes B19 and B21 possible.
 - **K6 - Seed loops.** `seed/demo_aspirant.py:199-217` and `seed/site.py:307-333` insert slides and issues with the same loops. Low value; share only if the seeds are touched for another reason.
 
-## 5. Looks alike, leave alone
+## 5. Second pass: corrections to the first pass
+
+The first pass was re-checked against the code. Its line references hold. These points were wrong or short:
+
+- **B6 undercounted and missed the existing answer.** There are 11 sites, not 8: add `team_signup.py:225-242` (`_claim`), `nominations.py:120-127` (`revise`) and `login_links.py:132-137` (`claim`). More important, `services/payout_flow.py:38-57` (`move`) is already a model-agnostic guarded move (`type(row)`, `status.in_(from_)`, refuse on a miss). The fix is to generalise that function, not to write a new one.
+- **B5 undercounted.** `text_of` has a third copy inline at `routers/events.py:169`; see B19.
+- **B13, withdraw codes.** `privacy.py:242` is not an inline call: it is a second named function, `privacy.new_code`, used by `routers/supporters.py`. So there are two named functions and four inline calls for one idea.
+- **B13, phone refusal.** Two more sites: `team_signup.py:118-120` ("Give a phone number like 0712 345678.") and `payments_in.py:161-165` (`_phone`). Eight sites, five wordings.
+- **B13, `_county`.** Listed as a small helper; it is one part of the larger B20.
+- **B9 missed the setup schema.** See B25.
+- **Method wording.** The statement script ran over everything except `seed/`, `models/` and `schemas/`, not only `api/` and `services/`. Fixed in section 1.
+- **Coverage.** Of the ten files the first pass named as unread, five are now read (`admin`, `privacy`, `nominations`, `payout_flow`, `team_signup`), along with `accounts`, `team`, `candidates` and `campaign_page`, which it had read only at flagged lines without saying so. Section 1 lists what is still unread.
+
+Checked and left as written: B1 (28 handlers, `admin.py:343-502`), B3 (`deps.py:138` and `:144`, 15 handler calls), B4 (18 checks, 7 importing routers), B8 (`TooLarge` subclasses `Refused` at `files.py:42`), B10 (10 branches).
+
+## 6. Looks alike, leave alone
 
 - `join.py:186-212` and `campaign_volunteers.py:182-212` (known phone, insert, swallow the race). Same shape, different models and columns; a shared helper would need more arguments than it saves lines.
 - `aspirants.follow_member` / `volunteers.follow_member` and the two `follow_withdrawal`s. Same names, different rules, and the constant-work property of the withdrawal path depends on each statement being written out.
 - The two Paystack `DEAD` sets, and the five separate `RateLimit` buckets in `party.py`.
 - `models/event.py:24-34` vs `models/target.py:65-75`, and `models/party.py:103-112` vs `models/volunteer.py:57-65` (ward and centre foreign keys). The `ondelete` rules differ per table; a mixin would hide that.
+- `schemas/content.py:174` and `services/content.py:182` both say "A news post has no date or venue.", and `schemas/content.py:532` and `branch_officials.py:214` both say "A term cannot end before it starts." They guard different operations (create vs update, appoint vs end), so both checks are needed.
+- The `try: ... except Refused: await session.rollback(); raise` wrapper in `team.py:59-72`, `:92-97`, `admin.py:494-510` and `aspirants.py:346-374`. Four copies of three lines; a context manager would hide the rollback, which is the part a reader needs to see.
 - Routers and services sharing a verb (`send`, `decline`, `approve`, about 60 names). That is the thin-router layering working as intended, not duplication.
 
-## 6. What is already single-sourced (keep and extend)
+## 7. What is already single-sourced (keep and extend)
 
 - `services/home.py`: one CRUD for seven content models.
 - `services/texting.py`: every outgoing text, opt-outs and the log.
@@ -241,17 +375,20 @@ The eight-line `updated_at` column with `onupdate` is copied in `models/content.
 - `schemas/common.py`: `plain_text`, `WriteModel`, `ORMModel`, `LoginDetails`.
 - `services/campaign_volunteers.py`: `write_status`, `check_move`, `audit`, reused by `services/volunteers.py`.
 - `workspace_site._items`: the route factory B1 asks the console to use.
+- `services/payout_flow.py` `move` and `finish`: the guarded update B6 should grow from.
+- `services/accounts.py`: `new_login`, `add_member`, `add_mobilizer`, `require_unit`, reused by `admin`, `team`, `team_signup` and two routers.
 
-## 7. Recommended sequencing
+## 8. Recommended sequencing
 
 1. **B1, B3, B4, B10** - mechanical, low risk, about 235 lines. No behaviour change; run `tests/test_route_guards.py`, `tests/test_admin_api.py`, `tests/test_workspace_site.py`, `tests/test_public_content_api.py`, `evals/test_frontend_contract.py`.
-2. **B2, B12, B13** - new shared modules (`services/register.py`, `api/csv.py`, helpers in `security.py`, `clock.py`, `sms.py`). Run the party members, volunteers and aspirants API tests.
-3. **B7, B8, B9, B14, B15, B16, B17, B18, B11** - one family per commit.
-4. **B5, B6** last and alone: they touch the send path and the concurrency guard.
+2. **B2, B12, B13, B22, B23, B24, B28** - shared helpers (`services/register.py`, `api/csv.py`, additions to `security.py`, `clock.py`, `sms.py`, `accounts.py`, `db/session.py`). Run the party members, volunteers, aspirants, team and admin API tests.
+3. **B7, B8, B9 with B25, B14, B15, B16, B17, B18, B11, B20, B26, B27, B29** - one family per commit.
+4. **B21** - one sentence per place rule; the wording changes, so check the frontend first.
+5. **B5 with B19, then B6** last and alone: they touch the send path and the concurrency guard.
 
 Two rules keep it from growing back:
 
 1. A router never imports from another router. Shared request helpers live in `api/` modules that define no routes.
 2. A new register, content type or draft flow starts from the shared piece (`home`, `register`, `texting`, the route factory) before writing its own.
 
-Total, if every family is done: roughly 800 lines out of 26,209 (about 3%).
+Total, if every family is done: roughly 1,050 lines out of 26,209 (about 4%): 795 from B1-B18 and 251 from B19-B29.
