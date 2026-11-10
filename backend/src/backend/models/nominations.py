@@ -1,7 +1,7 @@
 """Nomination windows the party publishes, and the documents a member's application carries."""
 
 import uuid
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     Date,
@@ -12,11 +12,16 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
-    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import (
+    Base,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+    choice_type,
+    updated_at_column,
+)
 from backend.models.enums import Seat
 
 
@@ -41,13 +46,7 @@ class NominationWindow(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
     )
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
-        sort_order=101,
-    )
+    updated_at: Mapped[datetime] = updated_at_column()
 
     seats: Mapped[list["NominationSeat"]] = relationship(
         back_populates="window",

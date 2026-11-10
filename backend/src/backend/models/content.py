@@ -1,7 +1,7 @@
 """The party's public content: leaders, news and events, county branches, and news sign-ups."""
 
 import uuid
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     JSON,
@@ -9,7 +9,6 @@ from sqlalchemy import (
     CheckConstraint,
     Column,
     Date,
-    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -18,25 +17,19 @@ from sqlalchemy import (
     Text,
     Uuid,
     false,
-    func,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import (
+    Base,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+    choice_type,
+    updated_at_column,
+)
 from backend.models.enums import BranchOffice, PostKind, PostLabel, Seat, TermEnd, TermStart
 from backend.models.geography import County
-
-
-def _updated_at() -> Mapped[datetime]:
-    return mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
-        nullable=False,
-        sort_order=101,
-    )
 
 
 class PartyLeader(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -53,7 +46,7 @@ class PartyLeader(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     published: Mapped[bool] = mapped_column(Boolean, default=False)
-    updated_at: Mapped[datetime] = _updated_at()
+    updated_at: Mapped[datetime] = updated_at_column()
 
 
 class PartyPost(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -87,7 +80,7 @@ class PartyPost(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # The first day it was published; kept when it is unpublished and published again.
     published_on: Mapped[date | None] = mapped_column(Date, default=None)
     published: Mapped[bool] = mapped_column(Boolean, default=False)
-    updated_at: Mapped[datetime] = _updated_at()
+    updated_at: Mapped[datetime] = updated_at_column()
 
 
 class Subscriber(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -118,7 +111,7 @@ class Branch(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     next_meeting_on: Mapped[date | None] = mapped_column(Date, default=None)
     next_meeting_venue: Mapped[str] = mapped_column(String(150), default="", server_default="")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = _updated_at()
+    updated_at: Mapped[datetime] = updated_at_column()
 
     county: Mapped["County"] = relationship(lazy="raise")
 
@@ -185,7 +178,7 @@ class HeroSlide(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     button_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = _updated_at()
+    updated_at: Mapped[datetime] = updated_at_column()
 
 
 class AgendaIssue(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -199,7 +192,7 @@ class AgendaIssue(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     why_it_matters: Mapped[str] = mapped_column(Text, default="", server_default="")
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = _updated_at()
+    updated_at: Mapped[datetime] = updated_at_column()
 
 
 class PartyDocument(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -214,7 +207,7 @@ class PartyDocument(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = _updated_at()
+    updated_at: Mapped[datetime] = updated_at_column()
 
 
 class PartyValue(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -226,7 +219,7 @@ class PartyValue(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     text: Mapped[str] = mapped_column(String(300), default="", server_default="")
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = _updated_at()
+    updated_at: Mapped[datetime] = updated_at_column()
 
 
 class PartyOrgan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -238,7 +231,7 @@ class PartyOrgan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     text: Mapped[str] = mapped_column(String(300), default="", server_default="")
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = _updated_at()
+    updated_at: Mapped[datetime] = updated_at_column()
 
 
 class PrimaryResult(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -255,7 +248,7 @@ class PrimaryResult(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # Set by the demo seed; the page then says the results are demo results.
     demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = _updated_at()
+    updated_at: Mapped[datetime] = updated_at_column()
 
 
 class PartyVideo(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -270,7 +263,7 @@ class PartyVideo(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     duration: Mapped[str] = mapped_column(String(8), default="", server_default="")
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = _updated_at()
+    updated_at: Mapped[datetime] = updated_at_column()
 
 
 # The aspirants a party event names; it shows on each one's candidate profile.
@@ -305,4 +298,4 @@ class CandidateProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     office_phone: Mapped[str] = mapped_column(String(20), default="", server_default="")
     office_email: Mapped[str] = mapped_column(String(254), default="", server_default="")
     published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = _updated_at()
+    updated_at: Mapped[datetime] = updated_at_column()

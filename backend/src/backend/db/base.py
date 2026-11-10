@@ -36,6 +36,18 @@ class UUIDPrimaryKeyMixin:
         super().__init__(**kwargs)
 
 
+def updated_at_column() -> Mapped[datetime]:
+    """A row's last change, set on insert and on every update."""
+    return mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+        sort_order=101,
+    )
+
+
 class TimestampMixin:
     """`created_at`, set by the database clock on insert."""
 

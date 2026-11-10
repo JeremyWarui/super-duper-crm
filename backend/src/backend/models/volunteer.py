@@ -1,7 +1,7 @@
 """Volunteer profiles: a party member's (`campaign_id` NULL), or a campaign's."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -14,12 +14,17 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
-    func,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import (
+    Base,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+    choice_type,
+    updated_at_column,
+)
 from backend.models.enums import ContactMethod, Profession, VolunteerStatus
 
 if TYPE_CHECKING:
@@ -83,14 +88,7 @@ class VolunteerProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)
     # Personal fields blanked on request; the row stays for counts.
     erased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
-        nullable=False,
-        sort_order=101,
-    )
+    updated_at: Mapped[datetime] = updated_at_column()
 
     member: Mapped["PartyMember | None"] = relationship(back_populates="volunteer")
     ward: Mapped["Ward"] = relationship()

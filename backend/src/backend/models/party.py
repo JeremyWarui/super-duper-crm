@@ -22,7 +22,13 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import (
+    Base,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+    choice_type,
+    updated_at_column,
+)
 from backend.models.enums import (
     AspirantStatus,
     PartyConsentChannel,
@@ -254,14 +260,7 @@ class Aspirant(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
     )
     declared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
-        nullable=False,
-        sort_order=101,
-    )
+    updated_at: Mapped[datetime] = updated_at_column()
 
     member: Mapped[PartyMember] = relationship()
     window: Mapped["NominationWindow | None"] = relationship()
