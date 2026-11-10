@@ -2,7 +2,7 @@
 
 Scope: `backend/src/backend` (26,209 lines, working tree of 2026-11-10). Tests, evals, the migration and the CSV data are out of scope. Comments and docstrings were ignored: every finding below rests on the code itself.
 
-Status: findings only. No backend code was changed by this review. Revised after a second pass (section 5) that read the files the first pass skipped and re-checked the first pass's claims.
+Status: findings only. No backend code was changed by this review. Revised twice: a second pass re-checked the first pass's claims, and a third pass read every file in `backend/src/backend` end to end (section 5).
 
 ## 1. Method
 
@@ -14,7 +14,7 @@ Status: findings only. No backend code was changed by this review. Revised after
 
 6. Second pass: a script listing every user-facing string of 28+ characters that appears in more than one place (40 strings), then full reads of `services/admin.py`, `accounts.py`, `team.py`, `team_signup.py`, `privacy.py`, `nominations.py`, `payout_flow.py`, `candidates.py`, `campaign_page.py` and routers `events`, `supporters`, `targets`, `mobilizers`, `agents`, `assignments`.
 
-Still not read end to end: `services/ops.py`, `imports.py`, `dashboard.py`, `sharing.py`, `party_workspace.py`, `branch_officials.py`, `setup.py`, `strategy.py`, `targets.py`, `files.py`, `cli.py`, `seed/`, and routers `auth`, `party_nominations`, `privacy`, `campaigns`, `account`, `payments` (read in part). The scripts covered them; a same-idea-different-shape duplicate there can still be missed.
+7. Third pass: every remaining file read end to end with its real line numbers: all of `services/`, `api/`, `schemas/`, `models/`, `seed/`, plus `cli.py`, `config.py`, `main.py`, `security.py` and `db/`. Nothing in `backend/src/backend` is now unread. Out of scope and unread: `tests/`, `evals/`, the Alembic migration, the CSV data.
 
 Line counts in the "saves" column are estimates from the spans listed, not measured diffs.
 
@@ -51,7 +51,19 @@ Line counts in the "saves" column are estimates from the spans listed, not measu
 | B27 | "Own rows" for a mobilizer or agent | 2 routers, 6 sentinels | 15 lines | Low | 3 |
 | B28 | Erased check written inline beside `refuse_erased` | 3 sites | 6 lines | Low | 3 |
 | B29 | Refusal wording written twice (pre-check and race handler) | 6 pairs | 10 lines | Low | 3 |
-| K1-K10 | KISS items (section 4) | - | - | Low | 3 |
+| B30 | One-time tokens, three implementations | 3 files | 30 lines | Medium | 2 |
+| B31 | Geography listings | 5 places | 40 lines | Low | 2 |
+| B32 | Two geography importers, and four copies of the upsert loop | 2 files | 70 lines | Medium | 3 |
+| B33 | Campaign loader tuple and candidate name | 3 + 3 sites | 10 lines | Low | 3 |
+| B34 | Published party posts queried in three places | 3 services | 15 lines | Low | 3 |
+| B35 | Party member helpers: place trio, approved check | 9 + 4 sites | 20 lines | Low | 3 |
+| B36 | Schemas: `{id, name}` model 8 times, page wrapper 3 times, twin classes | 15 classes | 40 lines | Low | 2 |
+| B37 | Schemas: Create/Update pairs declare every field twice | 8 pairs | 90 lines | Medium | 3 |
+| B38 | Schemas: field specs retyped | 30+ fields | 30 lines | Low | 3 |
+| B39 | Models: partial unique index with its WHERE typed twice | 20 indexes | 60 lines | Low | 2 |
+| B40 | Models: the same column written out per table | 60+ columns | 110 lines | Low | 2 |
+| B41 | CLI re-implements `admin.set_email` | 1 command | 8 lines | Low | 1 |
+| K1-K16 | KISS items (section 4) | - | - | Low | 3 |
 
 ## 3. Findings
 
@@ -326,6 +338,106 @@ Fix: with B10's table in place, give each rule one named constant and use it in 
 
 Also twice: "This campaign is closed: it is read-only." (`access.py:28`, `privacy.py:47`), and `get_settings().public_url.rstrip('/')` four times (`login_links.py:46`, `privacy.py:246`, `oidc.py:45`, `routers/auth.py:188`), which wants a `Settings.url(path)` method.
 
+### B30 - One-time tokens, three implementations (third pass)
+
+Three features issue a secret, keep only its SHA-256, expire it and spend it once. Each writes the four steps itself:
+
+| Step | Setup token | Login link | Google handoff |
+|------|-------------|------------|----------------|
+| Hash | `setup.py:41` | `login_links.py:36` | `routers/auth.py:66` |
+| Live check with the SQLite zone fix | `setup.py:70-71` | `login_links.py:110-111` | `auth.py:282-285` |
+| Void the older ones | `setup.py:58-60` | `login_links.py:52-60`, `:140-144` | - |
+| Spend with a guarded UPDATE | `setup.py:78-84` | `login_links.py:132-138` | `auth.py:287-293` |
+
+The models repeat the columns too: `token_hash`, `expires_at`, `used_at` on `SetupToken` (`models/site.py:81-83`) and `LoginInvite` (`models/login.py:25-27`).
+
+Fix: a small `services/tokens.py` with `digest(token)`, `is_live(expires_at, used_at)` and `spend(session, model, row_id)`; a `OneTimeToken` column mixin for the two tables. Security-sensitive, so one change, with `tests/test_setup_api.py`, `tests/test_login_links_api.py` and `tests/test_google_sign_in.py`.
+
+### B31 - Geography listings (third pass)
+
+"Areas of one level that are not retired, by name, optionally under a parent" is written in five places:
+
+- `routers/geography.py:22-91`: four handlers, one per level.
+- `routers/party.py:178-207`: four SELECTs in an if-chain (was K3).
+- `services/setup.py:87-104`: one table-driven query. This is the short version.
+- `services/team_signup.py:74-78` and `services/targets.py:85-89`: centres of a ward.
+
+Fix: one `services/geography.py` `areas(session, level, parent=None)` built like `setup.areas`; the five call it.
+
+### B32 - Two geography importers (third pass)
+
+`seed/reference.py` and `services/imports.py` both upsert counties, constituencies, wards and centres from CSV. They read different file layouts, but the work after parsing is the same and is written twice:
+
+- CSV rows with trimmed headers and values: `reference.py:38-47` and `imports.py:88-108`.
+- "Blank or comma-grouped number": `reference.py:56-60` and `imports.py:286-296`.
+- Find-or-create per level: `reference.py:111-141`, `:192-210` and `imports.py:201-261`.
+- The lookup tables by code: `reference.py:93-109`, `:173-187` and `imports.py:184-191`, repeated at `imports.py:329-335`.
+
+Inside `imports.py` the create / rename / move / restore block is written four times (county `201-212`, constituency `215-230`, ward `233-248`, centre `251-261`), the retire loop three times (`265-278`), and the centre agreement check inline (`173-179`) beside `_agree` (`117-121`), which does the same for the other three levels.
+
+Fix: in `imports.py`, one `_upsert(level, model, have, wanted, parent=None)` and one `_retire(level, have, keep, covered)`. Then let `seed/reference.py` turn the IEBC files into boundary rows and call `imports.import_boundaries`, so there is one writer. The second half changes how first-load matching works (names vs codes), so check it against `tests/test_seed.py` and `tests/test_boundaries.py` before committing to it.
+
+### B33 - Campaign loader and candidate name (third pass)
+
+`NAMED` (`routers/campaigns.py:32-37`) and `CAMPAIGN_NAMES` (`routers/join.py:44-49`) are the same four loader options; `campaign_page.PLACES` (`campaign_page.py:29-34`) is the same with the county chain added. `(candidate.full_name or candidate.username) if candidate else ""` is written at `campaigns.py:45`, `join.py:136` and `campaign_page.py:71`. `Campaign.area` (`models/campaign.py:168-172`) repeats the level-to-attribute map `AREA_FIELD` (`services/campaigns.py:27-31`).
+
+Fix: one `CAMPAIGN_NAMES` beside the model, a `Campaign.candidate_name` property, and one `AREA_FIELD`.
+
+### B34 - Published party posts (third pass)
+
+`services/content.py:31-60` has `_public()` and `upcoming_events`. Two other services query published posts themselves: `candidates.py:138-148` (events naming an aspirant) and `sharing.py:123-144` (events and statements for a county). Fix: make `content._public` public and build both from it.
+
+### B35 - Party member helpers (third pass)
+
+- Ward, constituency, county of a member, built by hand: `routers/account.py:90-92`, `routers/party_members.py:59-65`, `routers/party_volunteers.py:79-81` and again in both CSV exports. The loader chain for it: `account.py:38-41`, `membership.py:427-433`, `volunteers.py:299-308`.
+- "The member must be approved": `deps.py:152`, `account.py:59`, `console.py:25`, `admin.py:548-549`, `:606`, `aspirants.py:62`, `branch_officials.py:135`, `nominations.py:243`, `volunteers.py:77`. Nine sites, nine sentences.
+- Get-or-create a county's branch: `branches.py:98-103` and `branch_officials.py:77-87`.
+
+Fix: `PartyMember.places` (a dict of the three) and `PartyMember.is_approved` on the model, a `MEMBER_PLACES` loader constant, and `branches.get_or_create(session, county_id)`.
+
+### B36 - Schemas: the same class more than once (third pass)
+
+- `{id, name}` is declared eight times: `admin.py:36` `AdminWardRead`, `content.py:104` `PostCounty`, `content.py:204` `BranchCounty`, `content.py:229` `BranchWard`, `party.py:148` `PartyPlace`, `party.py:155` `MemberPlace` (seven lines apart), `join.py:11` `JoinPlace`, `setup.py:91` `Area`. One `Named` in `schemas/common.py`.
+- `{total, items}` three times: `aspirants.py:60`, `party.py:184`, `volunteers.py:39`. One generic `Page[T]`.
+- Twin classes: `Switches` and `SwitchesWrite` (`sharing.py:12-21`); `PartyWorkspaceCreate` and `PartyWorkspaceManager` (`party_workspace.py:19-24`), which also extend `BaseModel` instead of `WriteModel`, so unknown fields pass there and nowhere else; `MessageRead` and `PartyMessageRead` share ten fields (`messages.py:51-64`, `party_messages.py:38-52`); `SetupSuperuser` (`setup.py:43-50`) repeats `LoginDetails` (`common.py:76-78`).
+
+### B37 - Schemas: Create/Update pairs (third pass)
+
+In `schemas/content.py` each content type declares its fields twice, once to create and once as `| None = None` to update: Leader (`84-101`), Post (`154-194`), Slide (`317-340`), Issue (`357-374`), Document (`389-402`), AboutItem (`419-432`), Result (`455-472`), Video (`492-509`). About 90 mirrored lines, and a limit changed in one half can be missed in the other. The `sort_order, published, updated_at` tail is repeated on six `AdminRead` classes (`78-81`, `311-314`, `351-354`, `383-386`, `413-416`, `486-489`).
+
+Fix: a `partial(Model)` helper in `schemas/common.py` that builds the update class from the create class with every field optional (pydantic `create_model`), and an `AdminFields` mixin. `PostUpdate` keeps its own class: its `event_date` and `county_id` rules differ. Medium risk because the generated classes feed OpenAPI; `evals/test_frontend_contract.py` covers it.
+
+### B38 - Schemas: field specs retyped (third pass)
+
+- The trim-and-check lambda `AfterValidator(lambda v: plain_text(v).strip())` is written ten times (`content.py:60`, `:61`, `:62`, `:262`, `:264`, `:268`, `:294`, `:516`, `:525`, `candidates.py:18`) although `_short(limit)` (`content.py:293`) builds exactly that type.
+- `schemas/privacy.py:13-14` already defines `Line` and `Lines` as `Annotated[str, AfterValidator(plain_text)]`. That is the type B9 asks for; move it to `common.py` and the twelve `_plain` validators go.
+- A required https link four times (`content.py:391`, `:400`, `:494`, `:505`); `sort_order` spelt out for leaders (`content.py:89`, `:100`) though `Order` exists (`:298`).
+- Password `Field(min_length=8, max_length=128)` three times (`auth.py:58`, `party.py:106`, `setup.py:48`); phone `StringConstraints(strip_whitespace=True, min_length=1, max_length=20)` three times (`party.py:104`, `join.py:36`, `team_signup.py:37`); `Name` defined twice with different limits (`party.py:53` 75, `team_signup.py:12` 150); the SMS length 895 as `BODY_MAX` (`messages.py:12`) and as a bare number (`campaign.py:236`).
+- The `ward`, `ward_name`, `registration_centre` alias block on four read models (`campaign.py:65-73`, `99-104`, `131-136`, `190-194`).
+
+### B39 - Models: partial unique indexes (third pass)
+
+Twenty indexes are declared as `Index(name, columns, unique=True, postgresql_where=text(X), sqlite_where=text(X))` with the condition typed twice: `user.py:48-61` (2), `team.py:26-41` (2), `campaign.py:67-73`, `target.py:41-56` (2), `mobilizer.py:24-39` (2), `supporter.py:23-30`, `payment.py:75-90` (2), `content.py:137-144`, `party.py:172-178`, `:207-213`, `volunteer.py:39-45`, `membership.py:34-47` (2), `sms.py:110-124` (2).
+
+Fix: `partial_unique(name, *columns, where)` in `db/base.py`. Each index drops from eight lines to one or two, and the two conditions can no longer drift. Same DDL, so `tests/test_migrations.py` should show no change.
+
+### B40 - Models: the same column per table (third pass)
+
+- "Who did it": `mapped_column(Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None)` 27 times across 14 model files (for example `team.py:67`, `payment.py:112`, `party.py:120`, `sms.py:26`).
+- `campaign_id` with `ForeignKey("campaigns.id", ondelete="CASCADE")` 17 times; ten are the identical non-null, indexed form (`team.py:44`, `:88`, `target.py:68`, `mobilizer.py:42`, `event.py:27`, `supporter.py:33`, `assignment.py:31`, `payment.py:93`, `membership.py:50`, `sms.py:19`).
+- `stored_files.id` reference six times (`content.py:51`, `:163`, `:178`, `:212`, `:297`, `site.py:45`).
+- `sort_order, published, updated_at` on six content models (`content.py:54-56`, `186-188`, `200-202`, `215-217`, `227-229`, `239-241`, `271-273`). `PartyValue` (`220-229`) and `PartyOrgan` (`232-241`) are the same class with a different table name.
+- `retired` four times with the same comment (`geography.py:37`, `:59`, `:84`, `:119`); `erased_at` four times (`team.py:73`, `supporter.py:70`, `party.py:133`, `volunteer.py:85`).
+- County, constituency, ward foreign keys as a trio on `Campaign` (`campaign.py:85-93`), `Aspirant` (`party.py:220-228`) and `PartyMessage` (`sms.py:46-54`); draft decision fields on both message tables (`sms.py:25-34`, `56-66`).
+
+Fix: column helpers in `db/base.py` (`user_ref()`, `file_ref()`, `campaign_ref()`) and three mixins (`Published`, `Retirable`, `Erasable`). The ward and centre columns stay written out: their `ondelete` rules differ by table (section 6).
+
+One rule is stated in two languages and must be kept in step by hand: live nominations as SQL (`models/party.py:189`) and as a Python set (`services/aspirants.py:31`). Build the SQL from the set.
+
+### B41 - CLI re-implements a service (third pass)
+
+`cli.py:265-275` (`_set_email`) cleans the email, checks who holds it, sets it, audits and commits. `services/admin.py:292-304` (`set_email`) does the same and takes `actor=None`. The two already disagree on the refusal sentence. Every other CLI command calls the service; this one should too.
+
 ## 4. KISS items
 
 - **K1 - Two refusal styles.** Routers raise `HTTPException(400, ...)` about 25 times and `Refused` 6 times; services always raise `Refused`, and `api/errors.py` turns it into the same response. Use `Refused`, `NotFound` and `Forbidden` in routers too, so there is one way to refuse.
@@ -337,6 +449,12 @@ Also twice: "This campaign is closed: it is read-only." (`access.py:28`, `privac
 - **K8 - Candidate list filtered in Python.** `candidates.py:97-116` loads every listed aspirant and filters seat, county and name in a loop; `_by_slug` (`:119-123`) loads them all to find one. The slug ends in the first eight hex digits of the aspirant id, so one WHERE can narrow it.
 - **K9 - Guard aliases.** `Annotated[User, Depends(require("x.write"))]` is written 36 times across the routers. A one-line `may("x.write")` in `api/deps.py` returning that type keeps every alias and drops the noise.
 - **K10 - Business rules in a router.** `routers/supporters.py` `register_supporter` (about 50 lines) and `routers/events.py` `invite_to_event` (60 lines) decide wards, centres, audiences and duplicates in the route handler. Every other feature keeps that in `services/`. Moving them is what makes B19 and B21 possible.
+- **K11 - The same first line in 55 handlers.** `await require_visible_campaign(session, user, campaign_id)` opens 55 handlers in 15 routers (all 13 in `routers/privacy.py`). A path dependency, `VisibleCampaign = Annotated[Campaign, Depends(...)]`, does it once per router.
+- **K12 - Response models filled in by hand.** About a dozen builders copy attributes one by one into a schema that could read them itself: `party_nominations._window` (`49-60`) and `_public` (`63-71`), `payments_in._row` (`27-42`) and `pay.read` (`18-26`, the same seven fields), `team_signup._read` (`37-50`), `party_volunteers._read` (`71-93`), `party_aspirants._read` (`31-50`), `admin.users` (`admin.py:194-208`), the `AreaMember` list (`party_workspace.py:110-121`). `model_validate` plus the two or three computed fields is shorter and cannot forget a field.
+- **K13 - Handler pairs that differ only in scope.** `payments_in` campaign confirm/reject (`74-93`) and party confirm/reject (`125-138`); `privacy` campaign requests (`56-84`) and party requests (`219-240`); the three erase handlers in `privacy.py:90-127`.
+- **K14 - Generality built for one table.** `PayoutMixin` (`models/payment.py:33`) says it is shared by every payment table; only `Payment` uses it. `payout_flow.PREFIX` has one entry, `ATTEMPT` one alternative (`payout_flow.py:30-31`), and `reconcile.py:135` builds the reference by hand anyway. Either fold the mixin into `Payment` or keep it and use `PREFIX` in `reconcile`.
+- **K15 - Statuses as bare strings.** Message and timetable statuses are `"draft"`, `"sent"`, `"declined"`, `"published"` typed as strings (`models/sms.py:25`, `:56`, `models/nominations.py:36` and their services); every other status in the codebase is an enum.
+- **K16 - Small repeats.** `config.py:118-130`: two validators with one body, for `payout_provider` and `payin_provider`. `ops.py:174-183` and `:258-264`: the manifest dict twice. `ops.py:255`, `:363`: `Path(settings.upload_dir)` rebuilt though `files.upload_dir()` exists. `subscribers.py:22`: the dialect switch that `db.session.upsert` already wraps. `seed/site.py`: "if the table is empty, add these rows" nine times. `THANKS` twice (`aspirant_site.py:19`, `candidates.py:24`). `models/site.py` imports `hex_colour` from `models/party.py`.
 - **K6 - Seed loops.** `seed/demo_aspirant.py:199-217` and `seed/site.py:307-333` insert slides and issues with the same loops. Low value; share only if the seeds are touched for another reason.
 
 ## 5. Second pass: corrections to the first pass
@@ -354,6 +472,20 @@ The first pass was re-checked against the code. Its line references hold. These 
 
 Checked and left as written: B1 (28 handlers, `admin.py:343-502`), B3 (`deps.py:138` and `:144`, 15 handler calls), B4 (18 checks, 7 importing routers), B8 (`TooLarge` subclasses `Refused` at `files.py:42`), B10 (10 branches).
 
+### Third pass: what the full read changed in earlier findings
+
+- **B17 was wrong about `models/content.py`.** That file already has an `_updated_at()` helper (`content.py:31-39`) and uses it eleven times. The inline copies are `party.py:256-263`, `volunteer.py:86-93` and `nominations.py:44-50`; two more settings rows have the column without `onupdate` (`party.py:64-69`, `site.py:68-73`) and their services set it by hand (`services/party.py:30`, `site.py:46`). The fix is to move the existing helper to `db/base.py`, not to write a mixin.
+- **B2 has more sites.** Name-or-phone search also at `console.py:44` and `:60` and `campaign_volunteers.py:99-104`; those three do not escape `%` or `_`, the other three do. A third count-then-page at `party_workspace.py:100-109`, by page number where the others use limit and offset. `dashboard.Filters` (`dashboard.py:53-73`) is a fourth dataclass carrying county, constituency, ward, and `dashboard._in_ward` (`76-83`) and `party_messages._who` (`60-72`) narrow by place the way `membership._query` does.
+- **B6 is 14 sites.** Add `assignments.py:188-195`, `setup.py:78-84`, `routers/auth.py:287-293`.
+- **B8 is four handlers.** Add `routers/party_nominations.py:249-263`; that router also calls the private `nominations._own_draft` (`:248`).
+- **B4 is 19 checks.** Add `routers/sms_callbacks.py:28`.
+- **B13 additions.** SHA-256 hex also at `files.py:154` and `imports.py:415`; the uploaded-file URL pattern twice (`rich_text.py:10`, `schemas/content.py:15`); `dashboard.py:186` spells out `full_name or username`; county of a seat has five implementations (`campaign_page.py:53`, `candidates.py:53`, `:61`, `sharing.py:92-104`, `dashboard.py:92-93`).
+- **B18.** `setup.test_service` also repeats its own audit block (`setup.py:225-231`, `247-253`).
+- **B22 additions.** `geography.py:31-33`, `branches.py:98-99`, `branch_officials.py:78-79` and `:208-210`.
+- **B23 additions.** "The party workspace" is looked up at `party_workspace.py:36-37` and again inline at `dashboard.py:238`; "the standalone campaign" at `payments_in.py:156-158` and `campaign_page.py:39-41`.
+- **K3** is now part of B31.
+- **Seeds.** A demo `PartyMember` is built three ways (`demo.py:181-192`, `demo_party.py:57-67`, `site.py:524-533`); `demo_party._member` should be the one. The Roysambu lookup is written twice (`demo.py:108-113`, `demo_party.py:70-78`).
+
 ## 6. Looks alike, leave alone
 
 - `join.py:186-212` and `campaign_volunteers.py:182-212` (known phone, insert, swallow the race). Same shape, different models and columns; a shared helper would need more arguments than it saves lines.
@@ -362,6 +494,10 @@ Checked and left as written: B1 (28 handlers, `admin.py:343-502`), B3 (`deps.py:
 - `models/event.py:24-34` vs `models/target.py:65-75`, and `models/party.py:103-112` vs `models/volunteer.py:57-65` (ward and centre foreign keys). The `ondelete` rules differ per table; a mixin would hide that.
 - `schemas/content.py:174` and `services/content.py:182` both say "A news post has no date or venue.", and `schemas/content.py:532` and `branch_officials.py:214` both say "A term cannot end before it starts." They guard different operations (create vs update, appoint vs end), so both checks are needed.
 - The `try: ... except Refused: await session.rollback(); raise` wrapper in `team.py:59-72`, `:92-97`, `admin.py:494-510` and `aspirants.py:346-374`. Four copies of three lines; a context manager would hide the rollback, which is the part a reader needs to see.
+- The four provider modules (`email.py`, `sms.py`, `payouts.py`, `payments_in.py`): each has a protocol, a practice provider, a real one and a `get_..._provider`. The shape repeats on purpose and the bodies share nothing.
+- `models/enums.py`: forty small enums, no duplication.
+- `strategy.py:55-63` and `:79-88`: two supporter counts that look alike but cover different scopes.
+- `seed/demo_party.py:81-103` and `seed/demo_aspirant.py:101-143` (`_set_up`): both call the real setup with different content, which is the point.
 - Routers and services sharing a verb (`send`, `decline`, `approve`, about 60 names). That is the thin-router layering working as intended, not duplication.
 
 ## 7. What is already single-sourced (keep and extend)
@@ -384,11 +520,12 @@ Checked and left as written: B1 (28 handlers, `admin.py:343-502`), B3 (`deps.py:
 2. **B2, B12, B13, B22, B23, B24, B28** - shared helpers (`services/register.py`, `api/csv.py`, additions to `security.py`, `clock.py`, `sms.py`, `accounts.py`, `db/session.py`). Run the party members, volunteers, aspirants, team and admin API tests.
 3. **B7, B8, B9 with B25, B14, B15, B16, B17, B18, B11, B20, B26, B27, B29** - one family per commit.
 4. **B21** - one sentence per place rule; the wording changes, so check the frontend first.
-5. **B5 with B19, then B6** last and alone: they touch the send path and the concurrency guard.
+5. **B5 with B19, then B6 and B30** last and alone: they touch the send path, the concurrency guard and sign-in tokens.
+6. **Third-pass families.** B41 goes in batch 1 (one call). B39 and B40 are one change to `db/base.py` and the model files, checked by `tests/test_migrations.py` showing no schema difference. B36 and B38 ride with B9. B31, B33, B34, B35 are small and independent. B37 and B32 last: they change generated classes and the first-load path.
 
 Two rules keep it from growing back:
 
 1. A router never imports from another router. Shared request helpers live in `api/` modules that define no routes.
 2. A new register, content type or draft flow starts from the shared piece (`home`, `register`, `texting`, the route factory) before writing its own.
 
-Total, if every family is done: roughly 1,050 lines out of 26,209 (about 4%): 795 from B1-B18 and 251 from B19-B29.
+Total, if every family is done: roughly 1,570 lines out of 26,209 (about 6%): 795 from B1-B18, 251 from B19-B29 and 523 from B30-B41. All three figures are estimates from the spans listed.
