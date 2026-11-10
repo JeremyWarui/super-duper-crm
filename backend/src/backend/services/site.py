@@ -2,9 +2,11 @@
 
 from datetime import UTC, datetime
 
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.db.session import replace_fields
 from backend.models import OrganisationType, SiteSettings, User
 from backend.schemas.site import SiteSettingsUpdate
 from backend.services.audit import record
@@ -38,17 +40,22 @@ async def update_settings(
     session: AsyncSession, payload: SiteSettingsUpdate, *, actor: User | None
 ) -> SiteSettings:
     """Replace every editable field and audit the names of those that changed."""
-    row = await read_settings(session)
-    values = payload.model_dump()
-    changed = sorted(name for name, value in values.items() if getattr(row, name) != value)
-    for name, value in values.items():
-        setattr(row, name, value)
+    return await replace_settings(
+        session, await read_settings(session), payload, "site_settings", actor=actor
+    )
+
+
+async def replace_settings[Row](
+    session: AsyncSession, row: Row, payload: BaseModel, kind: str, *, actor: User | None
+) -> Row:
+    """Replace a settings row's editable fields and audit `<kind>.update` with the changed names."""
+    changed = replace_fields(row, payload.model_dump())
     row.updated_at = datetime.now(UTC)
     record(
         session,
         actor=actor,
-        action="site_settings.update",
-        subject_type="site_settings",
+        action=f"{kind}.update",
+        subject_type=kind,
         detail={"fields": changed},
     )
     await session.commit()

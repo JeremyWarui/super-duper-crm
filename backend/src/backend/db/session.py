@@ -96,3 +96,11 @@ async def get_or_refuse[Row](
     if row is None or any(getattr(row, name) != value for name, value in (match or {}).items()):
         raise NotFound(f"No such {noun}.")
     return row
+
+
+def replace_fields(row: object, values: dict) -> list[str]:
+    """Set every value on `row`; returns the sorted names of those that changed."""
+    changed = sorted(name for name, value in values.items() if getattr(row, name, None) != value)
+    for name, value in values.items():
+        setattr(row, name, value)
+    return changed

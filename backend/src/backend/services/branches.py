@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.db.session import get_or_refuse
+from backend.db.session import get_or_refuse, replace_fields
 from backend.models import Branch, Constituency, County, User
 from backend.schemas.content import BranchUpdate
 from backend.services.audit import record
@@ -101,10 +101,7 @@ async def save(
     if branch is None:
         branch = Branch(county_id=county_id)
         session.add(branch)
-    values = payload.model_dump()
-    changed = sorted(k for k, v in values.items() if getattr(branch, k, None) != v)
-    for name, value in values.items():
-        setattr(branch, name, value)
+    changed = replace_fields(branch, payload.model_dump())
     branch.updated_at = datetime.now(UTC)
     await session.flush()
     record(
