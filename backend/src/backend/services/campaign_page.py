@@ -22,6 +22,7 @@ from backend.schemas.candidates import (
 from backend.schemas.party import MemberPlace
 from backend.services import campaign_volunteers
 from backend.services.audit import record
+from backend.services.candidates import profile_fields, profile_read, save_profile
 from backend.services.consent import CAMPAIGN_VOLUNTEER_WORDING
 from backend.services.errors import NotFound
 from backend.services.targets import wards_in_area
@@ -66,11 +67,7 @@ async def public_page(session: AsyncSession) -> CandidateDetail:
         county=found.county_name,
         photo_url=profile.photo_url,
         slogan=profile.slogan,
-        bio=profile.bio,
-        priorities=profile.priorities,
-        office_address=profile.office_address,
-        office_phone=profile.office_phone,
-        office_email=profile.office_email,
+        **profile_fields(profile),
         events=[],
         volunteering_open=True,
         consent_wording=CAMPAIGN_VOLUNTEER_WORDING,
@@ -79,23 +76,14 @@ async def public_page(session: AsyncSession) -> CandidateDetail:
 
 
 async def read(session: AsyncSession) -> ProfileRead:
-    profile = await _profile(session, await campaign(session))
-    if profile is None:
-        return ProfileRead()
-    return ProfileRead.model_validate(profile, from_attributes=True)
+    return profile_read(await _profile(session, await campaign(session)))
 
 
 async def write(session: AsyncSession, payload: ProfileWrite, *, actor: User) -> ProfileRead:
     """Replace the candidate page, made on first save; audited."""
     found = await campaign(session)
     profile = await _profile(session, found)
-    values = payload.model_dump()
-    if profile is None:
-        profile = CandidateProfile(campaign_id=found.id, **values)
-        session.add(profile)
-    else:
-        for name, value in values.items():
-            setattr(profile, name, value)
+    profile = save_profile(session, profile, payload.model_dump(), campaign_id=found.id)
     record(
         session,
         actor=actor,
@@ -106,7 +94,7 @@ async def write(session: AsyncSession, payload: ProfileWrite, *, actor: User) ->
         detail={"published": payload.published},
     )
     await session.commit()
-    return ProfileRead.model_validate(profile, from_attributes=True)
+    return profile_read(profile)
 
 
 async def sign_up(session: AsyncSession, payload: CandidateVolunteerCreate) -> str:

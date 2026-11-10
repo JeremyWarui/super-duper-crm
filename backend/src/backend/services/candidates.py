@@ -9,7 +9,7 @@ from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.db.session import get_or_refuse
+from backend.db.session import get_or_refuse, replace_fields
 from backend.models import (
     Aspirant,
     AspirantStatus,
@@ -138,11 +138,7 @@ async def candidate(session: AsyncSession, value: str, today: date) -> Candidate
     wards = await wards_in_area(session, campaign) if campaign else []
     return CandidateDetail(
         **_card(aspirant, profile),
-        bio=profile.bio,
-        priorities=profile.priorities,
-        office_address=profile.office_address,
-        office_phone=profile.office_phone,
-        office_email=profile.office_email,
+        **profile_fields(profile),
         events=[
             CandidateEvent(id=e.id, title=e.title, event_date=e.event_date, venue=e.venue)
             for e in events
@@ -162,10 +158,34 @@ async def sign_up(session: AsyncSession, value: str, payload: CandidateVolunteer
     return await campaign_volunteers.sign_up(session, campaign, payload)
 
 
-def _profile_read(profile: CandidateProfile | None) -> ProfileRead:
+def profile_read(profile: CandidateProfile | None) -> ProfileRead:
+    """A profile as the editor reads it; an empty one before the first save."""
     if profile is None:
         return ProfileRead()
     return ProfileRead.model_validate(profile, from_attributes=True)
+
+
+def profile_fields(profile: CandidateProfile) -> dict:
+    """The page's text from the profile, as `CandidateDetail` takes it."""
+    return {
+        "bio": profile.bio,
+        "priorities": profile.priorities,
+        "office_address": profile.office_address,
+        "office_phone": profile.office_phone,
+        "office_email": profile.office_email,
+    }
+
+
+def save_profile(
+    session: AsyncSession, profile: CandidateProfile | None, values: dict, **keys: object
+) -> CandidateProfile:
+    """Replace a profile's fields, or add one with `keys` when there is none yet."""
+    if profile is None:
+        profile = CandidateProfile(**keys, **values)
+        session.add(profile)
+    else:
+        replace_fields(profile, values)
+    return profile
 
 
 async def _approved(session: AsyncSession, aspirant_id: uuid.UUID) -> Aspirant:
@@ -185,7 +205,7 @@ def _admin_read(aspirant: Aspirant, profile: CandidateProfile | None) -> Candida
         name=aspirant.member.full_name,
         seat=aspirant.seat,
         area=aspirant.area_name,
-        profile=_profile_read(profile),
+        profile=profile_read(profile),
     )
 
 
@@ -219,15 +239,13 @@ async def write_profile(
     if aspirant.campaign_id is None:
         raise Refused("Create this aspirant's workspace before writing their page.")
     profile = await _profile(session, aspirant_id)
-    values = payload.model_dump()
-    if profile is None:
-        profile = CandidateProfile(
-            campaign_id=aspirant.campaign_id, aspirant_id=aspirant_id, **values
-        )
-        session.add(profile)
-    else:
-        for name, value in values.items():
-            setattr(profile, name, value)
+    profile = save_profile(
+        session,
+        profile,
+        payload.model_dump(),
+        campaign_id=aspirant.campaign_id,
+        aspirant_id=aspirant_id,
+    )
     record(
         session,
         actor=actor,
