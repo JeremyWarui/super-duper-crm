@@ -29,7 +29,7 @@ from backend.services.audit import record
 from backend.services.clock import as_utc
 from backend.services.email import send_email
 from backend.services.errors import Forbidden, Refused
-from backend.services.sms import normalise_phone
+from backend.services.sms import require_phone
 
 TOKEN_LIFE = timedelta(hours=24)
 DONE = "This installation is already set up."
@@ -207,6 +207,13 @@ def services() -> list[ServiceState]:
     ]
 
 
+async def _audit_test(session: AsyncSession, user: User, key: str) -> None:
+    record(
+        session, actor=user, action="setup.test", subject_type="service", detail={"service": key}
+    )
+    await session.commit()
+
+
 async def test_service(session: AsyncSession, key: str, user: User) -> str:
     """Send a test email or text to the signed-in superuser; says what happened."""
     if key == "email":
@@ -215,14 +222,7 @@ async def test_service(session: AsyncSession, key: str, user: User) -> str:
         row = await send_email(
             session, user.email, "Test email", "This is a test email from your campaign platform."
         )
-        record(
-            session,
-            actor=user,
-            action="setup.test",
-            subject_type="service",
-            detail={"service": key},
-        )
-        await session.commit()
+        await _audit_test(session, user, key)
         if row.status == "failed":
             raise Refused(f"The email did not send: {row.detail}")
         return (
@@ -231,25 +231,10 @@ async def test_service(session: AsyncSession, key: str, user: User) -> str:
             else f"Sent to {user.email}."
         )
     if key == "sms":
-        phone = normalise_phone(user.phone)
-        if phone is None:
-            raise Refused("Your login has no phone number to text.")
-        result, _ = await texting.send(
-            session, [phone], texting.TEST_TEXT, purpose="test", sender=user
-        )
-        record(
-            session,
-            actor=user,
-            action="setup.test",
-            subject_type="service",
-            detail={"service": key},
-        )
-        await session.commit()
-        if result.provider == "console":
-            return "Recorded in practice mode; nothing was sent."
-        if not result.delivered:
-            raise Refused(f"The text did not send: {result.detail or 'the gateway refused it'}")
-        return f"Sent to {phone}."
+        phone = require_phone(user.phone, "Your login has no phone number to text.")
+        result = await texting.send_test(session, phone, actor=user)
+        await _audit_test(session, user, key)
+        return texting.test_outcome(result, phone, "Recorded in practice mode; nothing was sent.")
     if key == "google":
         if not oidc.configured():
             raise Refused(

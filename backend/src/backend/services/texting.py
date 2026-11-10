@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import SmsInbound, SmsLog, SmsOptOut, User
+from backend.services.errors import Refused
 from backend.services.sms import Recipient, SendResult, get_sms_provider, normalise_phone
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,21 @@ async def opted_out(
         scope = or_(scope, SmsOptOut.campaign_id == campaign_id)
     rows = await session.scalars(select(SmsOptOut.phone).where(SmsOptOut.phone.in_(phones), scope))
     return set(rows)
+
+
+async def send_test(session: AsyncSession, number: str, *, actor: User) -> SendResult:
+    """Text TEST_TEXT to one number; the caller audits and commits."""
+    result, _ = await send(session, [number], TEST_TEXT, purpose="test", sender=actor)
+    return result
+
+
+def test_outcome(result: SendResult, number: str, practice: str) -> str:
+    """What a test text did: `practice` when no gateway is set; Refused when it was not sent."""
+    if result.provider == "console":
+        return practice
+    if not result.delivered:
+        raise Refused(f"The text did not send: {result.detail or 'the gateway refused it'}")
+    return f"Sent to {number}."
 
 
 async def send(

@@ -403,9 +403,7 @@ def replace_uploads(restored: Path, uploads: Path, *, keep_in: Path) -> Path | N
 
 async def test_sms(session: AsyncSession, phone: str, *, actor: User) -> str:
     number = require_phone(phone, "That is not a phone number.")
-    result, _ = await texting.send(
-        session, [number], texting.TEST_TEXT, purpose="test", sender=actor
-    )
+    result = await texting.send_test(session, number, actor=actor)
     record(
         session,
         actor=actor,
@@ -414,11 +412,9 @@ async def test_sms(session: AsyncSession, phone: str, *, actor: User) -> str:
         detail={"delivered": result.delivered},
     )
     await session.commit()
-    if result.provider == "console":
-        return "SMS is not configured: the text was recorded, not sent."
-    if not result.delivered:
-        raise Refused(f"The text did not send: {result.detail or 'the gateway refused it'}")
-    return f"Sent to {number}."
+    return texting.test_outcome(
+        result, number, "SMS is not configured: the text was recorded, not sent."
+    )
 
 
 async def test_payout(session: AsyncSession, phone: str, *, actor: User) -> str:
