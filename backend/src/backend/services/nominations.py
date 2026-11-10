@@ -277,7 +277,7 @@ async def apply(
     return aspirant
 
 
-def _own_draft(aspirant: Aspirant | None) -> Aspirant:
+def own_draft(aspirant: Aspirant | None) -> Aspirant:
     if aspirant is None or aspirant.window_id is None:
         raise NotFound("You have no application.")
     if aspirant.status is not AspirantStatus.DRAFT:
@@ -288,7 +288,7 @@ def _own_draft(aspirant: Aspirant | None) -> Aspirant:
 async def attach(
     session: AsyncSession, aspirant: Aspirant | None, file: StoredFile, label: str, *, actor: User
 ) -> AspirantDocument:
-    aspirant = _own_draft(aspirant)
+    aspirant = own_draft(aspirant)
     document = AspirantDocument(aspirant_id=aspirant.id, label=label, file_id=file.id)
     session.add(document)
     await session.flush()
@@ -305,7 +305,7 @@ async def attach(
 
 
 async def detach(session: AsyncSession, aspirant: Aspirant | None, document_id: uuid.UUID) -> None:
-    aspirant = _own_draft(aspirant)
+    aspirant = own_draft(aspirant)
     document = await get_or_refuse(
         session, AspirantDocument, document_id, "document", match={"aspirant_id": aspirant.id}
     )
@@ -317,7 +317,7 @@ async def submit(
     session: AsyncSession, aspirant: Aspirant | None, *, actor: User, today: date
 ) -> Aspirant:
     """Send the application for vetting: the window must still be open and any fee paid."""
-    aspirant = _own_draft(aspirant)
+    aspirant = own_draft(aspirant)
     row = await session.get(NominationWindow, aspirant.window_id)
     if not is_open(row, today):
         raise Refused("Applications have closed.")

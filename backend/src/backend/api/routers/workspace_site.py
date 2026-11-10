@@ -6,12 +6,13 @@ only in an aspirant installation.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, Form, UploadFile, status
 
 from backend.api.content_routes import items, posts
 from backend.api.deps import SessionDep, require
 from backend.api.install import AspirantOnlyRoute
 from backend.api.routers.files import read as file_read
+from backend.api.uploads import store_upload
 from backend.models import (
     AgendaIssue,
     FileArea,
@@ -37,8 +38,7 @@ from backend.schemas.content import (
 )
 from backend.schemas.files import FileRead
 from backend.schemas.site import SiteSettingsRead, SiteSettingsUpdate
-from backend.services import campaign_page, files, site
-from backend.services.errors import Refused
+from backend.services import campaign_page, site
 
 router = APIRouter(prefix="/workspace/site", tags=["workspace site"], route_class=AspirantOnlyRoute)
 Editor = Annotated[User, Depends(require("site.write"))]
@@ -50,23 +50,14 @@ async def upload_image(
 ) -> FileRead:
     """Upload a public JPEG, PNG or WebP image (up to 5 MB) for the site, or a PDF (up to
     10 MB) for the documents area."""
-    raw = await file.read(files.PDF_MAX + 1)
-    try:
-        if raw.startswith(b"%PDF-") and area is not FileArea.DOCUMENTS:
-            raise Refused("Choose a JPEG, PNG or WebP image.")
-        stored = await files.store(
-            session,
-            raw,
-            name=file.filename or "",
-            declared_type=file.content_type,
-            area=area,
-            public=True,
-            actor=user,
-        )
-    except files.TooLarge as error:
-        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, str(error)) from None
-    except Refused as error:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(error)) from None
+    stored = await store_upload(
+        session,
+        file,
+        area=area,
+        public=True,
+        actor=user,
+        images_only=area is not FileArea.DOCUMENTS,
+    )
     return file_read(stored)
 
 

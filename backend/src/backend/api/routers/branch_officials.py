@@ -3,11 +3,12 @@ kept by the Membership Officer."""
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, UploadFile, status
+from fastapi import APIRouter, UploadFile, status
 from fastapi.responses import FileResponse
 
 from backend.api.deps import MembershipOfficer, SessionDep, Today
 from backend.api.install import PartyOnlyRoute
+from backend.api.uploads import private_file, store_upload
 from backend.models import BranchOfficial, FileArea
 from backend.schemas.content import (
     CountyBranch,
@@ -19,8 +20,6 @@ from backend.schemas.content import (
 )
 from backend.services import branch_officials as service
 from backend.services import branches as branch_service
-from backend.services import files
-from backend.services.errors import Refused
 
 router = APIRouter(prefix="/party/office", tags=["party"], route_class=PartyOnlyRoute)
 
@@ -82,21 +81,7 @@ async def upload_minutes(
     file: UploadFile, session: SessionDep, officer: MembershipOfficer
 ) -> MinutesRead:
     """Signed minutes of the meeting, as a PDF or a photo; private to the party office."""
-    raw = await file.read(files.PDF_MAX + 1)
-    try:
-        stored = await files.store(
-            session,
-            raw,
-            name=file.filename or "",
-            declared_type=file.content_type,
-            area=FileArea.MINUTES,
-            public=False,
-            actor=officer,
-        )
-    except files.TooLarge as error:
-        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, str(error)) from None
-    except Refused as error:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(error)) from None
+    stored = await store_upload(session, file, area=FileArea.MINUTES, public=False, actor=officer)
     return MinutesRead(id=stored.id, name=stored.original_name)
 
 
@@ -105,12 +90,4 @@ async def minutes(
     official_id: uuid.UUID, session: SessionDep, _: MembershipOfficer
 ) -> FileResponse:
     stored = await service.minutes_of(session, official_id)
-    path = files.path_of(stored, files.width_for(stored, None))
-    if not path.is_file():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "The minutes file is missing.")
-    return FileResponse(
-        path,
-        media_type=stored.content_type,
-        filename=stored.original_name,
-        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
-    )
+    return private_file(stored, "The minutes file is missing.")

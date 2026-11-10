@@ -12,6 +12,7 @@ from backend.api.install import PartyOnlyRoute
 from backend.api.routers.account import AccountMember
 from backend.api.routers.party_aspirants import _read as read_aspirant
 from backend.api.routers.pay import read as read_payment
+from backend.api.uploads import private_file, store_upload
 from backend.models import (
     Constituency,
     County,
@@ -37,7 +38,7 @@ from backend.schemas.nominations import (
     WindowWrite,
 )
 from backend.schemas.payments_in import PayFee, PaymentInRead
-from backend.services import aspirants, files, nominations, payments_in, site
+from backend.services import aspirants, nominations, payments_in, site
 from backend.services.errors import Refused
 
 router = APIRouter(prefix="/party/nominations", tags=["party"], route_class=PartyOnlyRoute)
@@ -128,10 +129,7 @@ async def application_document(
     aspirant_id: uuid.UUID, document_id: uuid.UUID, session: SessionDep, _: NominationsOfficer
 ) -> FileResponse:
     stored = await nominations.document(session, aspirant_id, document_id)
-    path = files.path_of(stored, files.width_for(stored, None))
-    if not path.is_file():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "The document file is missing.")
-    return FileResponse(path, media_type=stored.content_type, filename=stored.original_name)
+    return private_file(stored, "The document file is missing.")
 
 
 # The public notice
@@ -239,22 +237,8 @@ async def attach_document(
     label: str = Form(min_length=1, max_length=DOCUMENT_LABEL_MAX),
 ) -> MyNomination:
     """A document for the application, as a PDF or a photo; private to the nominations office."""
-    nominations._own_draft(await nominations.mine(session, member))
-    raw = await file.read(files.PDF_MAX + 1)
-    try:
-        stored = await files.store(
-            session,
-            raw,
-            name=file.filename or "",
-            declared_type=file.content_type,
-            area=FileArea.NOMINATIONS,
-            public=False,
-            actor=user,
-        )
-    except files.TooLarge as error:
-        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, str(error)) from None
-    except Refused as error:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(error)) from None
+    nominations.own_draft(await nominations.mine(session, member))
+    stored = await store_upload(session, file, area=FileArea.NOMINATIONS, public=False, actor=user)
     await nominations.attach(
         session, await nominations.mine(session, member), stored, label.strip(), actor=user
     )

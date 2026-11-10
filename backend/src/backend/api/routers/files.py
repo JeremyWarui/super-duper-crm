@@ -8,10 +8,10 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, 
 from fastapi.responses import FileResponse
 
 from backend.api.deps import AdminUser, SessionDep, _header, get_signed_in_user
+from backend.api.uploads import store_upload
 from backend.models import FileArea, StoredFile, User
 from backend.schemas.files import FileRead
 from backend.services import files
-from backend.services.errors import Refused
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -45,21 +45,7 @@ async def upload(
     public: Annotated[bool, Form()] = True,
 ) -> FileRead:
     """Upload a JPEG, PNG or WebP image (up to 5 MB) or a PDF (up to 10 MB)."""
-    raw = await file.read(files.PDF_MAX + 1)
-    try:
-        stored = await files.store(
-            session,
-            raw,
-            name=file.filename or "",
-            declared_type=file.content_type,
-            area=area,
-            public=public,
-            actor=user,
-        )
-    except files.TooLarge as error:
-        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, str(error)) from None
-    except Refused as error:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(error)) from None
+    stored = await store_upload(session, file, area=area, public=public, actor=user)
     return read(stored)
 
 

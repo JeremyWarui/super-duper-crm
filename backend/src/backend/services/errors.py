@@ -13,6 +13,10 @@ class Forbidden(Refused):
     """The caller may not do this."""
 
 
+class TooLarge(Refused):
+    """The upload is over its type's size limit."""
+
+
 class CampaignClosed(Exception):
     """The caller's campaign is closed while its aspirant is not approved."""
 

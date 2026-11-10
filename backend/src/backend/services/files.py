@@ -18,7 +18,7 @@ from backend.config import get_settings
 from backend.models import FileArea, StoredFile, User
 from backend.security import sha256_hex
 from backend.services.audit import record
-from backend.services.errors import Refused
+from backend.services.errors import Refused, TooLarge
 
 MB = 1024 * 1024
 IMAGE_MAX = 5 * MB
@@ -37,10 +37,6 @@ SAVE_OPTIONS = {
     "PNG": {"optimize": True},
     "WEBP": {"quality": 85},
 }
-
-
-class TooLarge(Refused):
-    """The upload is over its type's size limit."""
 
 
 def upload_dir() -> Path:

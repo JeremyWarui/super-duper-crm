@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
-from backend.services.errors import CampaignClosed, Forbidden, NotFound, Refused
+from backend.services.errors import CampaignClosed, Forbidden, NotFound, Refused, TooLarge
 
 # Each uniqueness rule a request can race past: the names Postgres and SQLite give its index,
 # and the sentence it answers with. The first match wins, so the one-manager rule comes before
@@ -77,6 +77,8 @@ def register_error_handlers(app: FastAPI) -> None:
             code = status.HTTP_404_NOT_FOUND
         elif isinstance(exc, Forbidden):
             code = status.HTTP_403_FORBIDDEN
+        elif isinstance(exc, TooLarge):
+            code = status.HTTP_413_CONTENT_TOO_LARGE
         return _detail(str(exc), code)
 
     @app.exception_handler(CampaignClosed)
