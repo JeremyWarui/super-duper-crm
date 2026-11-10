@@ -3,9 +3,9 @@
 import uuid
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, StringConstraints, field_validator
+from pydantic import BaseModel, StringConstraints
 
-from backend.schemas.common import WriteModel
+from backend.schemas.common import WriteModel, consent
 
 
 class JoinPlace(BaseModel):
@@ -34,17 +34,9 @@ class JoinCreate(WriteModel):
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)
     ]
     phone: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
-    consent_given: bool
+    consent_given: consent()
     # The ward or centre picked on a campaign's link; ignored on an event's.
     place: uuid.UUID | None = None
-
-    @field_validator("consent_given")
-    @classmethod
-    def _consent_is_required(cls, value: bool) -> bool:
-        # Data Protection Act 2019.
-        if not value:
-            raise ValueError("Consent is required before we can store these details.")
-        return value
 
 
 class JoinDone(BaseModel):

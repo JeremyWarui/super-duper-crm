@@ -45,13 +45,7 @@ async def set_manager(
         replace=payload.replace,
         actor=user,
     )
-    return ManagerCreated(
-        id=created.id,
-        username=created.username,
-        full_name=created.full_name,
-        invite=invite,
-        replaced=replaced,
-    )
+    return ManagerCreated.of(created, invite, replaced=replaced)
 
 
 @router.post("/", response_model=StaffCreated, status_code=status.HTTP_201_CREATED)
@@ -63,13 +57,7 @@ async def add_staff(
     created, invite = await team.add_staff(
         session, campaign, payload.role, payload.model_dump(exclude={"role"}), actor=user
     )
-    return StaffCreated(
-        id=created.id,
-        username=created.username,
-        full_name=created.full_name,
-        invite=invite,
-        role=created.role,
-    )
+    return StaffCreated.of(created, invite)
 
 
 @router.delete("/{user_id}/", status_code=status.HTTP_204_NO_CONTENT)

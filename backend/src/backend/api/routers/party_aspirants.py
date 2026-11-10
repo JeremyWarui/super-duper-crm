@@ -144,14 +144,5 @@ async def create_workspace(
     return WorkspaceCreated(
         aspirant=_read(await aspirants.get_aspirant(session, aspirant_id)),
         setup=summary,
-        logins=[
-            AdminUserCreated(
-                id=login.id,
-                username=login.username,
-                full_name=login.full_name,
-                role=login.role,
-                invite=invite,
-            )
-            for login, invite in logins
-        ],
+        logins=[AdminUserCreated.of(login, invite) for login, invite in logins],
     )

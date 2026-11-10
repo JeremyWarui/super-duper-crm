@@ -80,13 +80,7 @@ async def replace_manager(
     created, invite, replaced = await team.set_manager(
         session, found, payload.manager.model_dump(), replace=True, actor=user
     )
-    return ManagerCreated(
-        id=created.id,
-        username=created.username,
-        full_name=created.full_name,
-        invite=invite,
-        replaced=replaced,
-    )
+    return ManagerCreated.of(created, invite, replaced=replaced)
 
 
 @router.get("/members/", response_model=AreaMembers)

@@ -3,19 +3,16 @@ volunteers a candidate's page signs up for that candidate's campaign."""
 
 import uuid
 from datetime import date, datetime
-from typing import Annotated, Literal
+from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, Field, field_validator
+from pydantic import AfterValidator, BaseModel, Field
 
 from backend.models import ContactMethod, Profession, Seat, VolunteerStatus
-from backend.schemas.common import Erasable, ORMModel, WriteModel, plain_text
+from backend.schemas.common import Erasable, ORMModel, WriteModel, plain_text, trimmed
 from backend.schemas.content import Image, RichBody
-from backend.schemas.party import MemberPlace, Name, VolunteerPart
+from backend.schemas.party import MemberPlace, PlainName, VolunteerPart
 from backend.schemas.site import Email
-
-
-def _line(limit: int):
-    return Annotated[str, Field(max_length=limit), AfterValidator(lambda v: plain_text(v).strip())]
+from backend.schemas.volunteers import VolunteerUpdate
 
 
 class Priority(WriteModel):
@@ -27,11 +24,11 @@ class ProfileWrite(WriteModel):
     """The whole profile; the request replaces it."""
 
     photo_url: Image = ""
-    slogan: _line(120) = ""
+    slogan: trimmed(120) = ""
     bio: RichBody = ""
     priorities: Annotated[list[Priority], Field(max_length=3)] = []
-    office_address: _line(300) = ""
-    office_phone: _line(20) = ""
+    office_address: trimmed(300) = ""
+    office_phone: trimmed(20) = ""
     office_email: Email = ""
     published: bool = False
 
@@ -95,17 +92,12 @@ class PostAspirants(WriteModel):
 class CandidateVolunteerCreate(VolunteerPart):
     """The "Support <name>" form: the join's volunteer section plus who and where."""
 
-    first_name: Name
-    last_name: Name
+    first_name: PlainName
+    last_name: PlainName
     email: Email = Field(min_length=3)
     phone: str = Field(min_length=9, max_length=20)
     ward: uuid.UUID
     registration_centre: uuid.UUID
-
-    @field_validator("first_name", "last_name")
-    @classmethod
-    def _plain_name(cls, value: str) -> str:
-        return plain_text(value)
 
 
 class CampaignVolunteerRead(Erasable, ORMModel):
@@ -126,13 +118,5 @@ class CampaignVolunteerRead(Erasable, ORMModel):
     created_at: datetime
 
 
-class CampaignVolunteerUpdate(WriteModel):
+class CampaignVolunteerUpdate(VolunteerUpdate):
     """The manager's change: active or inactive, and notes."""
-
-    status: Literal["active", "inactive"] | None = None
-    availability_notes: str | None = Field(default=None, max_length=2000)
-
-    @field_validator("availability_notes")
-    @classmethod
-    def _plain(cls, value: str | None) -> str | None:
-        return plain_text(value, lines=True)

@@ -29,7 +29,7 @@ def _link(value: str) -> str:
     return value
 
 
-def _email(value: str) -> str:
+def email_address(value: str) -> str:
     if value and not EMAIL.match(value):
         raise ValueError("Use an email address like name@example.com.")
     return value
@@ -37,7 +37,28 @@ def _email(value: str) -> str:
 
 Colour = Annotated[str, Field(max_length=7), AfterValidator(_colour)]
 Link = Annotated[str, Field(max_length=500), AfterValidator(_link)]
-Email = Annotated[str, Field(max_length=254), AfterValidator(_email)]
+Email = Annotated[str, Field(max_length=254), AfterValidator(email_address)]
+
+
+def refuse_low_contrast(primary: str, secondary: str) -> None:
+    """Buttons put white text on the primary colour and ink text on the secondary."""
+    if contrast(primary, WHITE) < MIN_CONTRAST:
+        raise ValueError("The primary colour is too light for white text; pick a darker one.")
+    if contrast(secondary, INK) < MIN_CONTRAST:
+        raise ValueError("The secondary colour is too dark for ink text; pick a lighter one.")
+
+
+class SiteIdentity(WriteModel):
+    """The name, colours, contacts and privacy notice that setup and the console both write."""
+
+    name: str = Field(min_length=1, max_length=150)
+    short_name: str = Field(default="", max_length=30)
+    primary_colour: Colour
+    secondary_colour: Colour
+    contact_email: Email = ""
+    contact_phone: str = Field(default="", max_length=20)
+    address: str = Field(default="", max_length=300)
+    privacy_notice: str = Field(default="", max_length=20000)
 
 
 class SiteSettingsRead(ORMModel):
@@ -73,24 +94,16 @@ class SiteSettingsRead(ORMModel):
         return self
 
 
-class SiteSettingsUpdate(WriteModel):
+class SiteSettingsUpdate(SiteIdentity):
     """Every editable field except the organisation type; the request replaces the whole row."""
 
-    name: str = Field(min_length=1, max_length=150)
-    short_name: str = Field(default="", max_length=30)
     slogan: str = Field(default="", max_length=150)
     about_headline: str = Field(default="", max_length=150)
     logo_url: Link = ""
-    primary_colour: Colour
-    secondary_colour: Colour
-    contact_email: Email = ""
-    contact_phone: str = Field(default="", max_length=20)
-    address: str = Field(default="", max_length=300)
     social_links: dict[Annotated[str, Field(max_length=40)], Link] = Field(default_factory=dict)
     description: str = ""
     manifesto_text: str = ""
     manifesto_url: Link = ""
-    privacy_notice: str = Field(default="", max_length=20000)
     privacy_notice_version: str = Field(default="1", min_length=1, max_length=20)
     payment_instructions: str = Field(default="", max_length=2000)
     mpesa_paybill: str = Field(default="", pattern=r"^(\d{5,7})?$")
@@ -113,11 +126,7 @@ class SiteSettingsUpdate(WriteModel):
             plain_text(getattr(self, name))
         if self.mpesa_paybill and self.mpesa_till:
             raise ValueError("Give a Paybill or a Till, not both.")
-        # Buttons put white text on the primary colour and ink text on the secondary.
-        if contrast(self.primary_colour, WHITE) < MIN_CONTRAST:
-            raise ValueError("The primary colour is too light for white text; pick a darker one.")
-        if contrast(self.secondary_colour, INK) < MIN_CONTRAST:
-            raise ValueError("The secondary colour is too dark for ink text; pick a lighter one.")
+        refuse_low_contrast(self.primary_colour, self.secondary_colour)
         for name in (
             "address",
             "description",

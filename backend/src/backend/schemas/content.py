@@ -9,37 +9,25 @@ from typing import Annotated
 from pydantic import AfterValidator, Field, computed_field, field_validator, model_validator
 
 from backend.models import BranchOffice, PostKind, PostLabel, Seat, TermEnd, TermStart
-from backend.schemas.common import ORMModel, WriteModel, plain_text
+from backend.schemas.common import ORMModel, WriteModel, plain_text, trimmed
+from backend.schemas.site import email_address
 from backend.services import rich_text
 
 UPLOADED = re.compile(r"^/api/files/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/$")
 
 
-def _image(value: str) -> str:
-    """An https:// address, or the address of an image uploaded here."""
-    value = plain_text(value).strip()
-    if UPLOADED.match(value):
+def _address(refusal: str, *, uploaded: bool):  # type: ignore[no-untyped-def]
+    """An https:// address, refused with `refusal`; with `uploaded`, a file uploaded here too."""
+
+    def check(value: str) -> str:
+        value = plain_text(value).strip()
+        if uploaded and UPLOADED.match(value):
+            return value
+        if value and (not value.startswith("https://") or any(c.isspace() for c in value)):
+            raise ValueError(refusal)
         return value
-    if value and (not value.startswith("https://") or any(c.isspace() for c in value)):
-        raise ValueError("Upload an image, or use an address starting with https://.")
-    return value
 
-
-def _pdf(value: str) -> str:
-    """An https:// address, or the address of a file uploaded here."""
-    value = plain_text(value).strip()
-    if UPLOADED.match(value):
-        return value
-    if value and (not value.startswith("https://") or any(c.isspace() for c in value)):
-        raise ValueError("Upload a PDF, or use an address starting with https://.")
-    return value
-
-
-def _https(value: str) -> str:
-    value = plain_text(value).strip()
-    if value and (not value.startswith("https://") or any(c.isspace() for c in value)):
-        raise ValueError("Use an address starting with https://.")
-    return value
+    return check
 
 
 def _line(value: str) -> str:
@@ -53,13 +41,34 @@ def _text(value: str) -> str:
     return plain_text(value, lines=True)
 
 
-Image = Annotated[str, Field(max_length=500), AfterValidator(_image)]
+Image = Annotated[
+    str,
+    Field(max_length=500),
+    AfterValidator(
+        _address("Upload an image, or use an address starting with https://.", uploaded=True)
+    ),
+]
 Line = Annotated[str, Field(min_length=1, max_length=150), AfterValidator(_line)]
-Link = Annotated[str, Field(max_length=500), AfterValidator(_https)]
-Pdf = Annotated[str, Field(max_length=500), AfterValidator(_pdf)]
-Place = Annotated[str, Field(max_length=80), AfterValidator(lambda v: plain_text(v).strip())]
-Reference = Annotated[str, Field(max_length=40), AfterValidator(lambda v: plain_text(v).strip())]
-Venue = Annotated[str, Field(max_length=150), AfterValidator(lambda v: plain_text(v).strip())]
+Link = Annotated[
+    str,
+    Field(max_length=500),
+    AfterValidator(_address("Use an address starting with https://.", uploaded=False)),
+]
+RequiredLink = Annotated[
+    str,
+    Field(min_length=1, max_length=500),
+    AfterValidator(_address("Use an address starting with https://.", uploaded=False)),
+]
+Pdf = Annotated[
+    str,
+    Field(max_length=500),
+    AfterValidator(
+        _address("Upload a PDF, or use an address starting with https://.", uploaded=True)
+    ),
+]
+Place = trimmed(80)
+Reference = trimmed(40)
+Venue = trimmed(150)
 Body = Annotated[str, Field(max_length=20_000), AfterValidator(_text)]
 # Text from the rich text editor as HTML, cleaned to the tags `rich_text` keeps.
 RichBody = Annotated[
@@ -264,19 +273,10 @@ class BranchUpdate(WriteModel):
     phone: Annotated[str, Field(max_length=20), AfterValidator(lambda v: plain_text(v).strip())] = (
         ""
     )
-    email: Annotated[
-        str, Field(max_length=254), AfterValidator(lambda v: plain_text(v).strip())
-    ] = ""
+    email: Annotated[trimmed(254), AfterValidator(email_address)] = ""
     next_meeting_on: date | None = None
     next_meeting_venue: Venue = ""
     published: bool = False
-
-    @field_validator("email")
-    @classmethod
-    def _email(cls, value: str) -> str:
-        if value and ("@" not in value or any(c.isspace() for c in value)):
-            raise ValueError("Use an email address like name@example.com.")
-        return value
 
 
 def _target(value: str) -> str:
@@ -288,10 +288,6 @@ def _target(value: str) -> str:
     if any(c.isspace() for c in value):
         raise ValueError("A link has no spaces.")
     return value
-
-
-def _short(limit: int):
-    return Annotated[str, Field(max_length=limit), AfterValidator(lambda v: plain_text(v).strip())]
 
 
 Target = Annotated[str, Field(max_length=500), AfterValidator(_target)]
@@ -316,10 +312,10 @@ class SlideAdminRead(SlideRead):
 
 class SlideCreate(WriteModel):
     image_url: Image = ""
-    kicker: _short(80) = ""
+    kicker: trimmed(80) = ""
     headline: Annotated[str, Field(min_length=1, max_length=120), AfterValidator(_line)]
-    line: _short(300) = ""
-    button_label: _short(40) = ""
+    line: trimmed(300) = ""
+    button_label: trimmed(40) = ""
     button_url: Target = ""
     sort_order: Order = 0
     published: bool = False
@@ -329,12 +325,12 @@ class SlideUpdate(WriteModel):
     """Only the fields sent change."""
 
     image_url: Image | None = None
-    kicker: _short(80) | None = None
+    kicker: trimmed(80) | None = None
     headline: Annotated[str, Field(min_length=1, max_length=120), AfterValidator(_line)] | None = (
         None
     )
-    line: _short(300) | None = None
-    button_label: _short(40) | None = None
+    line: trimmed(300) | None = None
+    button_label: trimmed(40) | None = None
     button_url: Target | None = None
     sort_order: Order | None = None
     published: bool | None = None
@@ -356,7 +352,7 @@ class IssueAdminRead(IssueRead):
 
 class IssueCreate(WriteModel):
     title: Line
-    summary: _short(300) = ""
+    summary: trimmed(300) = ""
     what_we_will_do: Body = ""
     why_it_matters: Body = ""
     sort_order: Order = 0
@@ -367,7 +363,7 @@ class IssueUpdate(WriteModel):
     """Only the fields sent change."""
 
     title: Line | None = None
-    summary: _short(300) | None = None
+    summary: trimmed(300) | None = None
     what_we_will_do: Body | None = None
     why_it_matters: Body | None = None
     sort_order: Order | None = None
@@ -388,7 +384,7 @@ class DocumentAdminRead(DocumentRead):
 
 class DocumentCreate(WriteModel):
     title: Line
-    url: Annotated[str, Field(min_length=1, max_length=500), AfterValidator(_https)]
+    url: RequiredLink
     sort_order: Order = 0
     published: bool = False
 
@@ -397,7 +393,7 @@ class DocumentUpdate(WriteModel):
     """Only the fields sent change."""
 
     title: Line | None = None
-    url: Annotated[str, Field(min_length=1, max_length=500), AfterValidator(_https)] | None = None
+    url: RequiredLink | None = None
     sort_order: Order | None = None
     published: bool | None = None
 
@@ -418,7 +414,7 @@ class AboutItemAdminRead(AboutItemRead):
 
 class AboutItemCreate(WriteModel):
     title: Line
-    text: _short(300) = ""
+    text: trimmed(300) = ""
     sort_order: Order = 0
     published: bool = False
 
@@ -427,7 +423,7 @@ class AboutItemUpdate(WriteModel):
     """Only the fields sent change."""
 
     title: Line | None = None
-    text: _short(300) | None = None
+    text: trimmed(300) | None = None
     sort_order: Order | None = None
     published: bool | None = None
 
@@ -491,7 +487,7 @@ class VideoAdminRead(VideoRead):
 
 class VideoCreate(WriteModel):
     title: Line
-    url: Annotated[str, Field(min_length=1, max_length=500), AfterValidator(_https)]
+    url: RequiredLink
     thumbnail_url: Image = ""
     duration: Duration = ""
     sort_order: Order = 0
@@ -502,7 +498,7 @@ class VideoUpdate(WriteModel):
     """Only the fields sent change."""
 
     title: Line | None = None
-    url: Annotated[str, Field(min_length=1, max_length=500), AfterValidator(_https)] | None = None
+    url: RequiredLink | None = None
     thumbnail_url: Image | None = None
     duration: Duration | None = None
     sort_order: Order | None = None

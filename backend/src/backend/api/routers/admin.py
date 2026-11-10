@@ -218,13 +218,7 @@ async def create_user(
         ward_id=payload.ward,
         centre_id=payload.registration_centre,
     )
-    return AdminUserCreated(
-        id=created.id,
-        username=created.username,
-        full_name=created.full_name,
-        role=created.role,
-        invite=invite,
-    )
+    return AdminUserCreated.of(created, invite)
 
 
 @router.post("/users/{user_id}/reset-password/", response_model=PasswordResult)

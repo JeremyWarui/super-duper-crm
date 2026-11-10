@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StringConstraints, field_validator
+from pydantic import AfterValidator, BaseModel, Field, StringConstraints
 
 from backend.models.enums import AgentStatus, FieldRole, RegistrationStatus
 from backend.schemas.common import Invite, ORMModel, WriteModel, plain_text
@@ -32,10 +32,16 @@ class SignupRead(BaseModel):
 
 class SignupCreate(WriteModel):
     role: FieldRole
-    first_name: Name
-    last_name: Annotated[str, StringConstraints(strip_whitespace=True, max_length=150)] = ""
+    first_name: Annotated[Name, AfterValidator(plain_text)]
+    last_name: Annotated[
+        str, StringConstraints(strip_whitespace=True, max_length=150), AfterValidator(plain_text)
+    ] = ""
     phone: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
-    email: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=254)]
+    email: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=3, max_length=254),
+        AfterValidator(plain_text),
+    ]
     # A national ID or passport number.
     id_number: Annotated[
         str, StringConstraints(strip_whitespace=True, pattern=r"^[A-Za-z0-9]{5,12}$")
@@ -43,11 +49,6 @@ class SignupCreate(WriteModel):
     ward: uuid.UUID | None = None
     registration_centre: uuid.UUID | None = None
     consent_given: bool
-
-    @field_validator("first_name", "last_name", "email")
-    @classmethod
-    def _plain(cls, value: str) -> str:
-        return plain_text(value)
 
 
 class SignupDone(BaseModel):

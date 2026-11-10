@@ -8,35 +8,23 @@ from pydantic import Field, model_validator
 from backend.models import OrganisationType, Seat
 from backend.schemas.common import CampaignTitle, LoginDetails, ORMModel, WriteModel, plain_text
 from backend.schemas.content import Link
-from backend.schemas.site import Colour, Email
-from backend.services.branding import INK, MIN_CONTRAST, WHITE, contrast
+from backend.schemas.site import Email, SiteIdentity, refuse_low_contrast
 
 
 class SetupToken(WriteModel):
     token: str = Field(min_length=1, max_length=200)
 
 
-class SetupSite(WriteModel):
+class SetupSite(SiteIdentity):
     """Step 2 and 3: name, logo, colours, contacts and privacy notice."""
 
-    name: str = Field(min_length=1, max_length=150)
-    short_name: str = Field(default="", max_length=30)
     logo_url: Link = ""
-    primary_colour: Colour
-    secondary_colour: Colour
-    contact_email: Email = ""
-    contact_phone: str = Field(default="", max_length=20)
-    address: str = Field(default="", max_length=300)
-    privacy_notice: str = Field(default="", max_length=20000)
 
     @model_validator(mode="after")
     def _checked(self) -> "SetupSite":
         for name in ("name", "short_name", "contact_phone", "address"):
             setattr(self, name, plain_text(getattr(self, name)).strip())
-        if contrast(self.primary_colour, WHITE) < MIN_CONTRAST:
-            raise ValueError("The primary colour is too light for white text; pick a darker one.")
-        if contrast(self.secondary_colour, INK) < MIN_CONTRAST:
-            raise ValueError("The secondary colour is too dark for ink text; pick a lighter one.")
+        refuse_low_contrast(self.primary_colour, self.secondary_colour)
         return self
 
 

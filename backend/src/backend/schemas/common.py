@@ -3,15 +3,15 @@
 import unicodedata
 import uuid
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
 from pydantic import (
     AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
+    StrictBool,
     StringConstraints,
-    field_validator,
     model_validator,
 )
 
@@ -35,6 +35,30 @@ def plain_text(value: str | None, *, lines: bool = False) -> str | None:
     ):
         raise ValueError("Use letters, numbers and punctuation only.")
     return value
+
+
+# Text a person typed, refused when it holds characters a person never types.
+Plain = Annotated[str, AfterValidator(plain_text)]
+PlainLines = Annotated[str, AfterValidator(lambda v: plain_text(v, lines=True))]
+
+
+def trimmed(limit: int):  # type: ignore[no-untyped-def]
+    """Plain text of at most `limit` characters, trimmed."""
+    return Annotated[str, Field(max_length=limit), AfterValidator(lambda v: plain_text(v).strip())]
+
+
+STORE_CONSENT = "Consent is required before we can store these details."
+
+
+def consent(message: str = STORE_CONSENT, *, strict: bool = False):  # type: ignore[no-untyped-def]
+    """A consent box that must be ticked; an unticked box is refused with `message`."""
+
+    def ticked(value: bool) -> bool:
+        if not value:
+            raise ValueError(message)
+        return value
+
+    return Annotated[StrictBool if strict else bool, AfterValidator(ticked)]
 
 
 # A search box's text, refused with a 400 when it holds characters a person never types.
@@ -74,15 +98,10 @@ class LoginDetails(WriteModel):
     """Who a new login is for."""
 
     username: str = Field(min_length=3, max_length=150, pattern=r"^[A-Za-z0-9._-]+$")
-    first_name: str = Field(default="", max_length=150)
-    last_name: str = Field(default="", max_length=150)
-    phone: str = Field(default="", max_length=20)
-    email: str = Field(default="", max_length=254)
-
-    @field_validator("first_name", "last_name", "phone", "email")
-    @classmethod
-    def _plain(cls, value: str) -> str:
-        return plain_text(value)
+    first_name: Plain = Field(default="", max_length=150)
+    last_name: Plain = Field(default="", max_length=150)
+    phone: Plain = Field(default="", max_length=20)
+    email: Plain = Field(default="", max_length=254)
 
 
 # How a login's sign-in link went out; "none" when it has no email.
@@ -96,3 +115,13 @@ class NewLogin(ORMModel):
     username: str
     full_name: str
     invite: Invite
+
+    @classmethod
+    def of(cls, login: object, invite: Invite, **extra: object) -> Self:
+        """The answer for a login just made: its fields, how its invite went, and `extra`."""
+        taken = {
+            name: getattr(login, name)
+            for name in cls.model_fields
+            if name != "invite" and name not in extra
+        }
+        return cls(**taken, invite=invite, **extra)

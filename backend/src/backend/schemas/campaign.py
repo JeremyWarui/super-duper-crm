@@ -14,7 +14,7 @@ from backend.models.enums import (
     SupportLevel,
     WorkspaceKind,
 )
-from backend.schemas.common import Erasable, ORMModel, WriteModel
+from backend.schemas.common import Erasable, ORMModel, WriteModel, consent
 
 
 class CampaignRead(ORMModel):
@@ -218,15 +218,7 @@ class SupporterCreate(WriteModel):
     full_name: str = Field(min_length=1, max_length=150)
     phone: str = Field(default="", max_length=20)
     support_level: SupportLevel = SupportLevel.UNDECIDED
-    consent_given: bool
-
-    @field_validator("consent_given")
-    @classmethod
-    def _consent_is_required(cls, value: bool) -> bool:
-        # Data Protection Act 2019.
-        if not value:
-            raise ValueError("Consent is required before we can store these details.")
-        return value
+    consent_given: consent()
 
 
 class EventInvite(WriteModel):

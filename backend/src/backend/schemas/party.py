@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Annotated
 
 from pydantic import (
+    AfterValidator,
     BaseModel,
     Field,
     StrictBool,
@@ -20,7 +21,7 @@ from backend.models import (
     Profession,
     VolunteerArea,
 )
-from backend.schemas.common import Erasable, ORMModel, WriteModel, plain_text
+from backend.schemas.common import Erasable, ORMModel, PlainLines, WriteModel, consent, plain_text
 from backend.schemas.site import Email
 from backend.services.consent import MEMBER_SMS_WORDING, PARTY_WORDING
 
@@ -51,7 +52,10 @@ class PartySettingsUpdate(WriteModel):
 
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=75)]
-OtherText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]
+OtherText = Annotated[
+    str, StringConstraints(strip_whitespace=True, max_length=100), AfterValidator(plain_text)
+]
+PlainName = Annotated[Name, AfterValidator(plain_text)]
 
 
 class VolunteerPart(WriteModel):
@@ -62,25 +66,13 @@ class VolunteerPart(WriteModel):
     areas: Annotated[list[VolunteerArea], Field(min_length=1)]
     area_other: OtherText = ""
     preferred_contact: ContactMethod
-    consent_given: StrictBool
-
-    @field_validator("profession_other", "area_other")
-    @classmethod
-    def _plain(cls, value: str) -> str:
-        return plain_text(value)
+    consent_given: consent("Consent is required before the party can contact you.", strict=True)
 
     @field_validator("areas")
     @classmethod
     def _no_duplicates(cls, value: list[VolunteerArea]) -> list[VolunteerArea]:
         if len(set(value)) != len(value):
             raise ValueError("List each area once.")
-        return value
-
-    @field_validator("consent_given")
-    @classmethod
-    def _consent_is_required(cls, value: bool) -> bool:
-        if not value:
-            raise ValueError("Consent is required before the party can contact you.")
         return value
 
     @model_validator(mode="after")
@@ -99,38 +91,31 @@ class VolunteerPart(WriteModel):
 
 
 class PartyJoinCreate(WriteModel):
-    first_name: Name
-    surname: Name
-    phone: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
-    email: Annotated[Email, StringConstraints(strip_whitespace=True, min_length=1)]
+    first_name: PlainName
+    surname: PlainName
+    phone: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=20),
+        AfterValidator(plain_text),
+    ]
+    email: Annotated[
+        Email, StringConstraints(strip_whitespace=True, min_length=1), AfterValidator(plain_text)
+    ]
     password: str = Field(min_length=8, max_length=128)
     ward: uuid.UUID
     registration_centre: uuid.UUID
-    consent_given: StrictBool
+    consent_given: consent(strict=True)
     # Party updates by SMS; optional.
     sms_updates: StrictBool = False
     volunteer: VolunteerPart | None = None
     # A coordinator's recruitment code from `/join-party?r=`; any other value is ignored.
     recruitment: str | None = Field(default=None, max_length=32)
 
-    @field_validator("first_name", "surname", "phone", "email")
-    @classmethod
-    def _plain(cls, value: str) -> str:
-        return plain_text(value)
-
     @field_validator("first_name", "surname")
     @classmethod
     def _has_a_letter(cls, value: str) -> str:
         if not any(ch.isalpha() for ch in value):
             raise ValueError("Enter your name.")
-        return value
-
-    @field_validator("consent_given")
-    @classmethod
-    def _consent_is_required(cls, value: bool) -> bool:
-        # Data Protection Act 2019.
-        if not value:
-            raise ValueError("Consent is required before we can store these details.")
         return value
 
 
@@ -188,31 +173,19 @@ class MemberPage(BaseModel):
 
 class MemberMove(WriteModel):
     status: PartyMemberStatus
-    reason: str | None = Field(default=None, max_length=1000)
-
-    @field_validator("reason")
-    @classmethod
-    def _plain(cls, value: str | None) -> str | None:
-        return plain_text(value, lines=True)
+    reason: PlainLines | None = Field(default=None, max_length=1000)
 
 
 class PartySubscribe(WriteModel):
     """A footer sign-up: a Kenyan mobile number or an email address."""
 
     contact: str = Field(min_length=1, max_length=254)
-    consent_given: StrictBool
+    consent_given: consent("Tick the box to agree to receive party news.", strict=True)
 
     @field_validator("contact")
     @classmethod
     def _plain(cls, value: str) -> str:
         return plain_text(value.strip())
-
-    @field_validator("consent_given")
-    @classmethod
-    def _consent_is_required(cls, value: bool) -> bool:
-        if not value:
-            raise ValueError("Tick the box to agree to receive party news.")
-        return value
 
 
 class PartySubscribed(BaseModel):

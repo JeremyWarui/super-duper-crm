@@ -3,7 +3,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from backend.models import AspirantStatus, Seat
 from backend.schemas.admin import AdminUserCreated
@@ -12,8 +12,8 @@ from backend.schemas.common import (
     CampaignTitle,
     LoginDetails,
     ORMModel,
+    PlainLines,
     WriteModel,
-    plain_text,
 )
 from backend.schemas.party import MemberPlace
 
@@ -72,12 +72,7 @@ class AspirantCreate(WriteModel):
 
 class AspirantMove(WriteModel):
     status: AspirantStatus
-    reason: str | None = Field(default=None, max_length=1000)
-
-    @field_validator("reason")
-    @classmethod
-    def _plain(cls, value: str | None) -> str | None:
-        return plain_text(value, lines=True)
+    reason: PlainLines | None = Field(default=None, max_length=1000)
 
 
 class WorkspaceCreate(WriteModel):

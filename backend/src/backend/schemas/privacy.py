@@ -2,16 +2,16 @@
 
 import uuid
 from datetime import date, datetime
-from typing import Annotated, Literal
+from typing import Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
-from backend.schemas.common import WriteModel, plain_text
+from backend.schemas.common import Plain, PlainLines, WriteModel
 
 Kind = Literal["access", "correction", "erasure"]
 Status = Literal["open", "done"]
-Line = Annotated[str, AfterValidator(plain_text)]
-Lines = Annotated[str, AfterValidator(lambda v: plain_text(v, lines=True))]
+Line = Plain
+Lines = PlainLines
 
 
 class DataRequestCreate(WriteModel):

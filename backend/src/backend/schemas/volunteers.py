@@ -4,10 +4,10 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from backend.models import ContactMethod, PartyMemberStatus, Profession, VolunteerStatus
-from backend.schemas.common import ORMModel, WriteModel, plain_text
+from backend.schemas.common import ORMModel, PlainLines, WriteModel
 from backend.schemas.party import MemberPlace
 
 
@@ -45,9 +45,4 @@ class VolunteerUpdate(WriteModel):
     """An officer's change: a move between active and inactive, and the availability notes."""
 
     status: Literal["active", "inactive"] | None = None
-    availability_notes: str | None = Field(default=None, max_length=2000)
-
-    @field_validator("availability_notes")
-    @classmethod
-    def _plain(cls, value: str | None) -> str | None:
-        return plain_text(value, lines=True)
+    availability_notes: PlainLines | None = Field(default=None, max_length=2000)
