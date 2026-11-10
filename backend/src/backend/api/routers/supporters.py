@@ -27,8 +27,10 @@ from backend.schemas.campaign import (
     SupporterPlace,
     SupporterRead,
 )
+from backend.security import new_withdraw_code
 from backend.services import privacy
 from backend.services.consent import WORDING, ConsentChannel
+from backend.services.errors import refuse_erased
 from backend.services.sms import normalise_phone
 
 router = APIRouter(prefix="/supporters", tags=["supporters"])
@@ -97,7 +99,7 @@ async def register_supporter(
         consent_given=payload.consent_given,
         consent_channel=ConsentChannel.MOBILIZER,
         consent_wording=WORDING[ConsentChannel.MOBILIZER],
-        withdraw_code=privacy.new_code(),
+        withdraw_code=new_withdraw_code(),
     )
     session.add(supporter)
     await session.flush()
@@ -115,7 +117,7 @@ async def place_supporter(
     supporter = await require_visible(
         session, user, Supporter, supporter_id, "supporter", "supporters.write"
     )
-    privacy.refuse_erased(supporter)
+    refuse_erased(supporter)
     campaign = await require_visible_campaign(session, user, supporter.campaign_id)
     if campaign.operational_grain is not OperationalGrain.CENTRE:
         raise HTTPException(

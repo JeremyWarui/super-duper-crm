@@ -7,7 +7,6 @@ retired, which hides it from pickers and keeps everything that refers to it.
 """
 
 import csv
-import hashlib
 import io
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -25,6 +24,7 @@ from backend.models import (
     User,
     Ward,
 )
+from backend.security import sha256_hex
 from backend.services.audit import record
 from backend.services.errors import Refused
 
@@ -412,7 +412,7 @@ async def _finish(
     run = ImportRun(
         kind=report.kind,
         filename=filename[:255],
-        sha256=hashlib.sha256(text.encode()).hexdigest(),
+        sha256=sha256_hex(text),
         rows=report.rows,
         counts=report.counts,
         actor_id=actor.id if actor is not None else None,

@@ -1,17 +1,16 @@
 """The volunteer register for membership officers: list, update, CSV export."""
 
-import csv
-import io
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
+from backend.api.csv_export import cell, csv_response
 from backend.api.deps import MembershipOfficer, SessionDep
 from backend.api.install import PartyOnlyRoute
 from backend.models import VolunteerArea, VolunteerProfile, VolunteerStatus
-from backend.schemas.common import plain_text
+from backend.schemas.common import PlainQuery
 from backend.schemas.volunteers import VolunteerPage, VolunteerRead, VolunteerUpdate
 from backend.services import privacy, volunteers
 from backend.services.audit import record
@@ -35,21 +34,15 @@ CSV_COLUMNS = (
     "created_at",
 )
 
-FORMULA_LEADS = ("=", "+", "-", "@", chr(9), chr(13))
-
 
 def _filters(
-    q: str | None = None,
+    q: PlainQuery = None,
     status: VolunteerStatus | None = None,
     area: VolunteerArea | None = None,
     county: uuid.UUID | None = None,
     constituency: uuid.UUID | None = None,
     ward: uuid.UUID | None = None,
 ) -> VolunteerFilters:
-    try:
-        plain_text(q)
-    except ValueError as refused:
-        raise HTTPException(status_code=400, detail=str(refused)) from None
     return VolunteerFilters(
         q=q,
         status=status,
@@ -61,11 +54,6 @@ def _filters(
 
 
 FiltersDep = Annotated[VolunteerFilters, Depends(_filters)]
-
-
-def _cell(text: str) -> str:
-    """Text a spreadsheet will not run as a formula."""
-    return "'" + text if text[:1] in FORMULA_LEADS else text
 
 
 def _read(row: VolunteerProfile) -> VolunteerRead:
@@ -120,34 +108,27 @@ async def export_volunteers(
         detail={"filters": filters.given(), "rows": len(rows)},
     )
     await session.commit()
-    out = io.StringIO()
-    writer = csv.writer(out)
-    writer.writerow(CSV_COLUMNS)
-    for row in rows:
-        member = row.member
-        ward = member.ward
-        writer.writerow(
-            [
-                _cell(member.full_name),
-                member.phone,
-                row.status.value,
-                _cell(";".join(row.interests)),
-                _cell(row.interest_other),
-                _cell(row.profession_other or (row.profession.value if row.profession else "")),
-                row.preferred_contact.value,
-                _cell(row.registration_centre.name if row.registration_centre else ""),
-                _cell(ward.name),
-                _cell(ward.constituency.name),
-                _cell(ward.constituency.county.name),
-                member.status.value,
-                row.created_at.isoformat(),
-            ]
-        )
-    return Response(
-        out.getvalue(),
-        media_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="party-volunteers.csv"'},
-    )
+    return csv_response("party-volunteers.csv", CSV_COLUMNS, (_csv_row(row) for row in rows))
+
+
+def _csv_row(row: VolunteerProfile) -> list[str]:
+    member = row.member
+    ward = member.ward
+    return [
+        cell(member.full_name),
+        member.phone,
+        row.status.value,
+        cell(";".join(row.interests)),
+        cell(row.interest_other),
+        cell(row.profession_other or (row.profession.value if row.profession else "")),
+        row.preferred_contact.value,
+        cell(row.registration_centre.name if row.registration_centre else ""),
+        cell(ward.name),
+        cell(ward.constituency.name),
+        cell(ward.constituency.county.name),
+        member.status.value,
+        row.created_at.isoformat(),
+    ]
 
 
 @router.patch("/{volunteer_id}/", response_model=VolunteerRead)

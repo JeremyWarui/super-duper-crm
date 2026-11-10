@@ -3,6 +3,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import AfterValidator
 
 from backend.api.deps import CurrentUser, SessionDep
 from backend.api.install import PartyOnlyRoute
@@ -23,14 +24,10 @@ def _staff(user: User) -> None:
 async def search(
     user: CurrentUser,
     session: SessionDep,
-    q: Annotated[str, Query(min_length=2, max_length=100)],
+    q: Annotated[str, Query(min_length=2, max_length=100), AfterValidator(plain_text)],
 ) -> list[SearchHit]:
     """Members and aspirants by name or phone, each kind only for the office that opens it."""
     _staff(user)
-    try:
-        plain_text(q)
-    except ValueError as refused:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(refused)) from None
     return await console.search(session, user, q)
 
 

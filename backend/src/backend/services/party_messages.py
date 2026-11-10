@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.db.session import get_or_refuse
 from backend.models import (
     Constituency,
     ContactMethod,
@@ -27,7 +28,7 @@ from backend.models import (
 )
 from backend.services import texting
 from backend.services.audit import record
-from backend.services.errors import NotFound, Refused
+from backend.services.errors import Refused
 from backend.services.sms import normalise_all
 
 AUDIENCES = ("members", "volunteers")
@@ -162,10 +163,7 @@ async def draft(
 
 
 async def get(session: AsyncSession, message_id: uuid.UUID) -> PartyMessage:
-    message = await session.get(PartyMessage, message_id)
-    if message is None:
-        raise NotFound("No such message.")
-    return message
+    return await get_or_refuse(session, PartyMessage, message_id, "message")
 
 
 async def _decide(
@@ -246,7 +244,7 @@ async def listing(session: AsyncSession, me: uuid.UUID) -> list[dict]:
         counts[message_id][status] = n
     people = {m.drafted_by_id for m in messages} | {m.decided_by_id for m in messages}
     names = {
-        u.id: u.full_name or u.username
+        u.id: u.display_name
         for u in await session.scalars(select(User).where(User.id.in_(people - {None})))
     }
     wards = {m.ward_id for m in messages} - {None}

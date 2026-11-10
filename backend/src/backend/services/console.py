@@ -1,6 +1,6 @@
 """The party console's top bar: search over the registers and the counts that need someone."""
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -13,6 +13,7 @@ from backend.models import (
     User,
 )
 from backend.schemas.console import Notification, SearchHit
+from backend.services.register import person_matches
 
 HITS_SHOWN = 8
 
@@ -27,24 +28,16 @@ def offices(user: User) -> set[PartyRoleName]:
     return {held.role for held in user.party_roles}
 
 
-def _place(aspirant: Aspirant) -> str:
-    place = aspirant.ward or aspirant.constituency or aspirant.county
-    return place.name if place else ""
-
-
 async def search(session: AsyncSession, user: User, q: str) -> list[SearchHit]:
     """Members for the membership officer, aspirants for the nominations officer; name or phone."""
     held = offices(user)
-    needle = f"%{q.strip().lower()}%"
+    needle = person_matches(q)
+    if needle is None:
+        return []
     hits: list[SearchHit] = []
     if PartyRoleName.MEMBERSHIP_OFFICER in held:
         members = await session.scalars(
-            select(PartyMember)
-            .where(
-                or_(func.lower(PartyMember.full_name).like(needle), PartyMember.phone.like(needle))
-            )
-            .order_by(PartyMember.full_name)
-            .limit(HITS_SHOWN)
+            select(PartyMember).where(needle).order_by(PartyMember.full_name).limit(HITS_SHOWN)
         )
         hits += [
             SearchHit(
@@ -56,9 +49,7 @@ async def search(session: AsyncSession, user: User, q: str) -> list[SearchHit]:
         aspirants = await session.scalars(
             select(Aspirant)
             .join(PartyMember, PartyMember.id == Aspirant.member_id)
-            .where(
-                or_(func.lower(PartyMember.full_name).like(needle), PartyMember.phone.like(needle))
-            )
+            .where(needle)
             .options(
                 selectinload(Aspirant.member),
                 selectinload(Aspirant.ward),
@@ -73,7 +64,7 @@ async def search(session: AsyncSession, user: User, q: str) -> list[SearchHit]:
                 kind="aspirant",
                 id=a.id,
                 label=a.member.full_name,
-                detail=" · ".join(p for p in (a.seat.label, _place(a), a.status.label) if p),
+                detail=" · ".join(p for p in (a.seat.label, a.area_name, a.status.label) if p),
             )
             for a in aspirants
         ]

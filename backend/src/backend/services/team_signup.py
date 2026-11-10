@@ -10,14 +10,13 @@ import secrets
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Select, delete, or_, select, update
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.models import (
     Agent,
-    AuthToken,
     Campaign,
     FieldRole,
     LinkPurpose,
@@ -29,19 +28,21 @@ from backend.models import (
     User,
     UserRole,
 )
+from backend.security import new_short_code
 from backend.services.accounts import (
     add_member,
     add_mobilizer,
     clean_email,
     new_login,
+    sign_out,
     unit_holder,
     user_with_email,
 )
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
 from backend.services.login_links import send_link
-from backend.services.permissions import Area
-from backend.services.sms import normalise_phone
+from backend.services.permissions import Area, narrow
+from backend.services.sms import require_phone
 from backend.services.targets import ward_in_area
 
 CONSENT_VERSION = "team-1"
@@ -115,9 +116,7 @@ async def register(session: AsyncSession, campaign: Campaign, details: dict) -> 
     already taken."""
     if not details["consent_given"]:
         raise Refused("Tick the consent box to sign up.")
-    phone = normalise_phone(details["phone"])
-    if phone is None:
-        raise Refused("Give a phone number like 0712 345678.")
+    phone = require_phone(details["phone"], "Give a phone number like 0712 345678.")
     email = clean_email(details["email"])
     if "@" not in email:
         raise Refused("Give your email address: you sign in with it.")
@@ -180,14 +179,6 @@ async def register(session: AsyncSession, campaign: Campaign, details: dict) -> 
         ) from clash
 
 
-def _in(area: Area | None, statement: Select) -> Select:
-    if area is None:
-        return statement
-    return statement.where(
-        area.where(TeamRegistration.ward_id, TeamRegistration.registration_centre_id)
-    )
-
-
 async def registrations(
     session: AsyncSession,
     campaign_id: uuid.UUID,
@@ -199,7 +190,9 @@ async def registrations(
     if status is not None:
         statement = statement.where(TeamRegistration.status == status)
     found = await session.scalars(
-        _in(area, statement).options(*WITH_PLACES).order_by(TeamRegistration.created_at.desc())
+        narrow(statement, area, TeamRegistration)
+        .options(*WITH_PLACES)
+        .order_by(TeamRegistration.created_at.desc())
     )
     return list(found)
 
@@ -209,12 +202,13 @@ async def registration(
 ) -> TeamRegistration:
     """One sign-up the caller may decide; 404 outside their area."""
     found = await session.scalar(
-        _in(
-            area,
+        narrow(
             select(TeamRegistration).where(
                 TeamRegistration.id == registration_id,
                 TeamRegistration.campaign_id == campaign_id,
             ),
+            area,
+            TeamRegistration,
         ).options(*WITH_PLACES)
     )
     if found is None:
@@ -305,7 +299,7 @@ async def reject(
     """Refuse a sign-up with a reason: its login is deleted and its ID number blanked."""
     await _claim(session, registration, RegistrationStatus.REJECTED)
     if registration.user_id is not None:
-        await session.execute(delete(AuthToken).where(AuthToken.user_id == registration.user_id))
+        await sign_out(session, registration.user_id)
         await session.execute(delete(User).where(User.id == registration.user_id))
     registration.user_id = None
     registration.id_number = ""
@@ -325,7 +319,7 @@ async def reject(
 
 async def replace_code(session: AsyncSession, campaign: Campaign, *, actor: User) -> str:
     """A new team link; the old one stops working."""
-    campaign.team_code = secrets.token_urlsafe(9)
+    campaign.team_code = new_short_code()
     record(
         session,
         actor=actor,

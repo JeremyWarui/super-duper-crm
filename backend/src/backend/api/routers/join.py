@@ -3,7 +3,6 @@
 No login; one supporter per phone per campaign.
 """
 
-import secrets
 import uuid
 from dataclasses import dataclass
 
@@ -25,10 +24,11 @@ from backend.models import (
     Target,
 )
 from backend.schemas.join import JoinCreate, JoinDone, JoinPlace, JoinRead, Withdrawn
+from backend.security import new_withdraw_code
 from backend.services.access import FULL, Access, workspace_access
 from backend.services.consent import WORDING, ConsentChannel
 from backend.services.ratelimit import RateLimit
-from backend.services.sms import normalise_phone
+from backend.services.sms import require_phone
 from backend.services.targets import wards_in_area
 
 router = APIRouter(prefix="/join", tags=["join"])
@@ -116,7 +116,7 @@ async def read_signup(code: str, session: SessionDep) -> JoinRead:
     area = campaign.area
     return JoinRead(
         campaign_title=campaign.title,
-        candidate_name=(candidate.full_name or candidate.username) if candidate else "",
+        candidate_name=candidate.display_name if candidate else "",
         event_title=link.event.title if link.event else "",
         ward_name=link.event.ward.name if link.event else (area.name if area else ""),
         open=link.open,
@@ -157,13 +157,9 @@ async def sign_up(
     link = await _link(session, code)
     if not link.open:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Sign-ups are closed.")
-    phone = normalise_phone(payload.phone)
-    if phone is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Enter a Kenyan mobile number, like 0712 345678."
-        )
+    phone = require_phone(payload.phone)
     ward_id, centre_id = await _filed_at(session, link, payload.place)
-    withdraw_code = secrets.token_urlsafe(18)
+    withdraw_code = new_withdraw_code()
     known = await session.scalar(
         select(Supporter.id).where(
             Supporter.campaign_id == link.campaign.id, Supporter.phone == phone

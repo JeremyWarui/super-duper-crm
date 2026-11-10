@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from backend.config import get_settings
+from backend.services.errors import NotFound
 
 # asyncpg verifies these only against a root.crt file on disk, so they become an SSL context.
 VERIFYING = ("verify-ca", "verify-full")
@@ -78,3 +79,20 @@ def upsert(session: AsyncSession, model: type):
     """An INSERT into `model` that takes `on_conflict_do_update`, on Postgres or SQLite."""
     dialect = postgresql if session.get_bind().dialect.name == "postgresql" else sqlite
     return dialect.insert(model)
+
+
+async def get_or_refuse[Row](
+    session: AsyncSession,
+    model: type[Row],
+    row_id,
+    noun: str,
+    *,
+    match: dict | None = None,
+    **options,
+) -> Row:
+    """The row with this id; NotFound("No such <noun>.") when it is missing or any `match`
+    column differs. `options` go to `session.get`."""
+    row = await session.get(model, row_id, **options)
+    if row is None or any(getattr(row, name) != value for name, value in (match or {}).items()):
+        raise NotFound(f"No such {noun}.")
+    return row

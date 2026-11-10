@@ -67,7 +67,7 @@ from backend.services import (
 from backend.services import party as service
 from backend.services.accounts import clean_email
 from backend.services.ratelimit import RateLimit
-from backend.services.sms import normalise_phone
+from backend.services.sms import require_phone
 
 router = APIRouter(prefix="/party", tags=["party"])
 # Mounted in every installation; party_router only in a party installation.
@@ -215,11 +215,7 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
     shows whether the phone is already registered.
     """
     check(JOINS, request, "Too many applications from this device; try later.")
-    phone = normalise_phone(payload.phone)
-    if phone is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Enter a Kenyan mobile number, like 0712 345678."
-        )
+    phone = require_phone(payload.phone)
     if await session.get(Ward, payload.ward) is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such ward.")
     centre = await session.get(RegistrationCentre, payload.registration_centre)
@@ -283,11 +279,7 @@ async def subscribe(
             )
         channel = "email"
     else:
-        contact = normalise_phone(payload.contact)
-        if contact is None:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, "Enter a Kenyan mobile number, like 0712 345678."
-            )
+        contact = require_phone(payload.contact)
         channel = "sms"
     code = await subscribers.subscribe(session, contact, channel)
     await session.commit()

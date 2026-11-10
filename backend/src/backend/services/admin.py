@@ -6,9 +6,9 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.db.session import get_or_refuse
 from backend.models import (
     Aspirant,
-    AuthToken,
     Campaign,
     CampaignMember,
     Event,
@@ -37,7 +37,16 @@ from backend.schemas.admin import (
 from backend.schemas.campaign import SetupSummary
 from backend.security import hash_password, new_password
 from backend.services.accounts import add_member as join
-from backend.services.accounts import add_mobilizer, clean_email, user_named, user_with_email
+from backend.services.accounts import (
+    add_mobilizer,
+    clean_email,
+    leave,
+    logins_on,
+    member_of,
+    sign_out,
+    user_named,
+    user_with_email,
+)
 from backend.services.audit import record
 from backend.services.campaigns import build_campaign
 from backend.services.errors import NotFound, Refused
@@ -59,18 +68,16 @@ async def totals(session: AsyncSession) -> Totals:
     )
 
 
-async def _campaign(session: AsyncSession, campaign_id: uuid.UUID) -> Campaign:
-    found = await session.get(Campaign, campaign_id)
-    if found is None:
-        raise NotFound("No such campaign.")
-    return found
-
-
-async def _user(session: AsyncSession, user_id: uuid.UUID) -> User:
-    found = await session.get(User, user_id)
-    if found is None:
-        raise NotFound("No such user.")
-    return found
+async def _login_with_roles(session: AsyncSession, user_id: uuid.UUID) -> User:
+    """The login with its party offices freshly loaded; NotFound when missing."""
+    return await get_or_refuse(
+        session,
+        User,
+        user_id,
+        "user",
+        options=[selectinload(User.party_roles)],
+        populate_existing=True,
+    )
 
 
 async def campaigns(
@@ -226,10 +233,10 @@ async def user_by_name(session: AsyncSession, username: str) -> User:
 
 async def set_password(session: AsyncSession, user_id: uuid.UUID, password: str | None) -> str:
     """Give a login a password and sign out its session; for the operator's command line only."""
-    login = await _user(session, user_id)
+    login = await get_or_refuse(session, User, user_id, "user")
     chosen = password or new_password()
     login.password_hash = hash_password(chosen)
-    await session.execute(delete(AuthToken).where(AuthToken.user_id == login.id))
+    await sign_out(session, login.id)
     record(
         session, actor=None, action="user.set_password", subject_type="user", subject_id=login.id
     )
@@ -242,7 +249,7 @@ async def reset_password(session: AsyncSession, user_id: uuid.UUID, *, actor: Us
 
     Nobody else sets or sees the password. The login keeps working until the link is used.
     """
-    login = await _user(session, user_id)
+    login = await get_or_refuse(session, User, user_id, "user")
     if not login.is_active:
         raise Refused(
             f"{login.username} is disabled, so a reset link would not sign them in. "
@@ -266,7 +273,7 @@ async def set_active(
     session: AsyncSession, user_id: uuid.UUID, active: bool, *, actor: User | None
 ) -> User:
     """Turn a login on or off; off signs it out. The last active superuser stays on."""
-    login = await _user(session, user_id)
+    login = await get_or_refuse(session, User, user_id, "user")
     if login.is_superuser and not active:
         others = await session.scalar(
             select(func.count())
@@ -277,7 +284,7 @@ async def set_active(
             raise Refused("That is the only superuser left, so nothing could run the console.")
     login.is_active = active
     if not active:
-        await session.execute(delete(AuthToken).where(AuthToken.user_id == login.id))
+        await sign_out(session, login.id)
     record(
         session,
         actor=actor,
@@ -293,7 +300,7 @@ async def set_email(
     session: AsyncSession, user_id: uuid.UUID, email: str, *, actor: User | None
 ) -> User:
     """Change the email a login signs in with and gets its links at."""
-    login = await _user(session, user_id)
+    login = await get_or_refuse(session, User, user_id, "user")
     email = clean_email(email)
     holder = await user_with_email(session, email)
     if holder is not None and holder.id != login.id:
@@ -307,7 +314,7 @@ async def set_email(
 async def add_member(
     session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID, *, actor: User | None
 ) -> CampaignMember:
-    target = await _campaign(session, campaign_id)
+    target = await get_or_refuse(session, Campaign, campaign_id, "campaign")
     login = await session.get(User, user_id)
     if login is None:
         raise Refused("No such user.")
@@ -329,21 +336,13 @@ async def remove_member(
     session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID, *, actor: User | None
 ) -> None:
     """Take somebody off a campaign, freeing a mobilizer's ground row there; the login stays."""
-    await _campaign(session, campaign_id)
-    place = await session.scalar(
-        select(CampaignMember.role).where(
-            CampaignMember.campaign_id == campaign_id, CampaignMember.user_id == user_id
-        )
-    )
+    await get_or_refuse(session, Campaign, campaign_id, "campaign")
+    place = await member_of(session, campaign_id, user_id)
     if place is None:
         raise Refused("They are not on that campaign.")
-    if place is UserRole.CANDIDATE:
+    if place.role is UserRole.CANDIDATE:
         raise Refused("That is the candidate this campaign is for; delete the campaign instead.")
-    await session.execute(
-        delete(CampaignMember).where(
-            CampaignMember.campaign_id == campaign_id, CampaignMember.user_id == user_id
-        )
-    )
+    await leave(session, campaign_id, user_id)
     await session.execute(
         update(Mobilizer)
         .where(Mobilizer.campaign_id == campaign_id, Mobilizer.user_id == user_id)
@@ -356,7 +355,7 @@ async def remove_member(
         subject_type="user",
         subject_id=user_id,
         campaign_id=campaign_id,
-        detail={"role": place.value},
+        detail={"role": place.role.value},
     )
     await session.commit()
 
@@ -364,7 +363,7 @@ async def remove_member(
 async def rename_campaign(
     session: AsyncSession, campaign_id: uuid.UUID, title: str, *, actor: User | None
 ) -> Campaign:
-    renamed = await _campaign(session, campaign_id)
+    renamed = await get_or_refuse(session, Campaign, campaign_id, "campaign")
     if not title.strip():
         raise Refused("A campaign needs a name.")
     renamed.title = title.strip()
@@ -378,17 +377,6 @@ async def rename_campaign(
     )
     await session.commit()
     return renamed
-
-
-async def logins_on(session: AsyncSession, campaign_id: uuid.UUID) -> list[User]:
-    """The logins on a campaign, by username."""
-    statement = (
-        select(User)
-        .join(CampaignMember, CampaignMember.user_id == User.id)
-        .where(CampaignMember.campaign_id == campaign_id)
-        .order_by(User.username)
-    )
-    return list((await session.scalars(statement)).all())
 
 
 async def remove_campaign(session: AsyncSession, campaign_id: uuid.UUID) -> list[str]:
@@ -408,7 +396,7 @@ async def delete_campaign(
     session: AsyncSession, campaign_id: uuid.UUID, *, actor: User | None
 ) -> list[str]:
     """Delete a campaign, everything on it and its people's logins; returns their usernames."""
-    await _campaign(session, campaign_id)
+    await get_or_refuse(session, Campaign, campaign_id, "campaign")
     aspirant = await session.scalar(select(Aspirant.id).where(Aspirant.campaign_id == campaign_id))
     gone = await remove_campaign(session, campaign_id)
     detail: dict = {"logins": len(gone)}
@@ -525,11 +513,7 @@ async def grant_party_role(
     session: AsyncSession, user_id: uuid.UUID, role: PartyRoleName, *, actor: User | None
 ) -> None:
     """Give a staff login a party office."""
-    login = await session.get(
-        User, user_id, options=[selectinload(User.party_roles)], populate_existing=True
-    )
-    if login is None:
-        raise NotFound("No such user.")
+    login = await _login_with_roles(session, user_id)
     if login.is_superuser:
         raise Refused("A superuser reaches the party through the console and needs no office.")
     if login.role is not None:
@@ -565,11 +549,7 @@ async def revoke_party_role(
     session: AsyncSession, user_id: uuid.UUID, role: PartyRoleName, *, actor: User | None
 ) -> None:
     """Take a party office from a login."""
-    login = await session.get(
-        User, user_id, options=[selectinload(User.party_roles)], populate_existing=True
-    )
-    if login is None:
-        raise NotFound("No such user.")
+    login = await _login_with_roles(session, user_id)
     held = next((item for item in login.party_roles if item.role is role), None)
     if held is None:
         raise NotFound(f"{login.username} is not a {role.label}.")
@@ -592,11 +572,7 @@ async def link_party_member(
 
     An office holder stays linked to an approved member.
     """
-    login = await session.get(
-        User, user_id, options=[selectinload(User.party_roles)], populate_existing=True
-    )
-    if login is None:
-        raise NotFound("No such user.")
+    login = await _login_with_roles(session, user_id)
     member = await session.get(PartyMember, member_id) if member_id else None
     if member_id is not None and member is None:
         raise NotFound("No such member.")

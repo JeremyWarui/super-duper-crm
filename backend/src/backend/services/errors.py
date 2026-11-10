@@ -28,3 +28,9 @@ def refuse_own_record(actor, member_id) -> None:  # type: ignore[no-untyped-def]
         return
     if actor.party_member_id is not None and actor.party_member_id == member_id:
         raise Forbidden("You cannot act on your own party record.")
+
+
+def refuse_erased(row) -> None:  # type: ignore[no-untyped-def]
+    """Refused when the person's details on this row were erased."""
+    if row.erased_at is not None:
+        raise Refused("This person's details were erased.")

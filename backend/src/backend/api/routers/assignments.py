@@ -8,10 +8,10 @@ from sqlalchemy import select
 
 from backend.api.deps import SessionDep, require
 from backend.api.scope import area_of, require_visible_campaign
+from backend.db.session import get_or_refuse
 from backend.models import Agent, Assignment, AssignmentStatus, User, UserRole
 from backend.schemas.assignment import AssignmentCreate, AssignmentRead
 from backend.services import assignments
-from backend.services.errors import NotFound
 from backend.services.permissions import Reach, reach
 
 router = APIRouter(prefix="/assignments", tags=["assignments"])
@@ -24,7 +24,7 @@ def _read(row: Assignment) -> AssignmentRead:
     if row.mobilizer is not None:
         name, role = row.mobilizer.full_name, "mobilizer"
     else:
-        name, role = row.agent.user.full_name or row.agent.user.username, "agent"
+        name, role = row.agent.user.display_name, "agent"
     return AssignmentRead(
         id=row.id,
         kind=row.kind,
@@ -81,9 +81,7 @@ async def create_assignment(
 async def _settle(
     session: SessionDep, user: User, assignment_id: uuid.UUID, outcome: AssignmentStatus
 ) -> AssignmentRead:
-    found = await session.get(Assignment, assignment_id)
-    if found is None:
-        raise NotFound("No such assignment.")
+    found = await get_or_refuse(session, Assignment, assignment_id, "assignment")
     campaign = await require_visible_campaign(session, user, found.campaign_id)
     area = await area_of(session, user, "assignments.write")
     row = await assignments.assignment(session, campaign.id, assignment_id, area)

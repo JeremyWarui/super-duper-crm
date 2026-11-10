@@ -1,6 +1,5 @@
 """One candidate contesting one office in one place."""
 
-import secrets
 import uuid
 from datetime import date, datetime
 from typing import TYPE_CHECKING
@@ -28,8 +27,10 @@ from backend.db.base import (
     require_loaded,
 )
 from backend.models.enums import OfficeLevel, OperationalGrain, Seat, UserRole, WorkspaceKind
+from backend.models.geography import SeatPlaces
 from backend.models.membership import CampaignMember
 from backend.models.user import User
+from backend.security import new_short_code
 
 if TYPE_CHECKING:
     from backend.models.event import Event
@@ -59,7 +60,7 @@ SEAT_MATCHES_SCOPE = (
 SINGLE_KINDS = "kind <> 'hosted'"
 
 
-class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class Campaign(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "campaigns"
     __table_args__ = (
         CheckConstraint(SEAT_MATCHES_SCOPE, name="seat_matches_scope"),
@@ -95,14 +96,10 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     election_date: Mapped[date | None] = mapped_column(Date, default=None)
 
     # The campaign-wide sign-up link, for posters and shared messages; closed until opened.
-    signup_code: Mapped[str] = mapped_column(
-        String(24), unique=True, default=lambda: secrets.token_urlsafe(9)
-    )
+    signup_code: Mapped[str] = mapped_column(String(24), unique=True, default=new_short_code)
     signups_open: Mapped[bool] = mapped_column(Boolean, default=False)
     # The team sign-up link mobilizers and agents register through; replacing it retires the old.
-    team_code: Mapped[str] = mapped_column(
-        String(24), unique=True, default=lambda: secrets.token_urlsafe(9)
-    )
+    team_code: Mapped[str] = mapped_column(String(24), unique=True, default=new_short_code)
 
     # Closed after the election: read-only from then on.
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

@@ -110,6 +110,11 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}".strip()
 
+    @property
+    def display_name(self) -> str:
+        """The full name, or the username when no name is set."""
+        return self.full_name or self.username
+
     def __str__(self) -> str:
         role = self.role.label if self.role else "no campaign role"
-        return f"{self.full_name or self.username} ({role})"
+        return f"{self.display_name} ({role})"

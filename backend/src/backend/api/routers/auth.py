@@ -1,6 +1,5 @@
 """Signing in and out, Google sign-in, and the one-time links that set a password."""
 
-import hashlib
 import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -18,7 +17,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import JSONResponse, RedirectResponse
-from sqlalchemy import delete, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -38,10 +37,17 @@ from backend.schemas.auth import (
     ResetRequest,
     ResetSent,
 )
-from backend.security import hash_password, needs_rehash, new_token_key, verify_password
+from backend.security import (
+    hash_password,
+    needs_rehash,
+    new_token_key,
+    sha256_hex,
+    verify_password,
+)
 from backend.services import login_links, oidc
-from backend.services.accounts import clean_email, user_named, user_with_email
+from backend.services.accounts import clean_email, sign_out, user_named, user_with_email
 from backend.services.audit import record
+from backend.services.clock import as_utc
 from backend.services.ratelimit import RateLimit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -58,10 +64,6 @@ HANDOFF_LIFE = timedelta(minutes=2)
 HANDOFF_SPENT = "That Google sign-in has expired. Sign in again."
 
 
-def _sha(value: str) -> str:
-    return hashlib.sha256(value.encode()).hexdigest()
-
-
 async def _signed_in(session: AsyncSession, user: User, *, handoff: str | None = None) -> dict:
     """The login's token, created if it has none, and the login itself. A `handoff` lets the
     browser fetch the token once."""
@@ -70,7 +72,7 @@ async def _signed_in(session: AsyncSession, user: User, *, handoff: str | None =
         token = AuthToken(user_id=user.id, key=new_token_key())
         session.add(token)
     if handoff is not None:
-        token.handoff_hash = _sha(handoff)
+        token.handoff_hash = sha256_hex(handoff)
         token.handoff_expires_at = datetime.now(UTC) + HANDOFF_LIFE
     user.last_login_at = datetime.now(UTC)
     await session.commit()
@@ -115,7 +117,7 @@ async def me(user: SignedInUser) -> User:
 @router.post("/logout/", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(user: SignedInUser, session: SessionDep) -> Response:
     """Delete the caller's token everywhere."""
-    await session.execute(delete(AuthToken).where(AuthToken.user_id == user.id))
+    await sign_out(session, user.id)
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -269,11 +271,9 @@ async def google_finish(payload: GoogleFinish, request: Request, session: Sessio
     """Trade the callback's handoff for the session, once, within two minutes, from the page
     holding the `bind` value the sign-in started with."""
     check(CLAIMS, request)
-    hashed = _sha(f"{payload.handoff}:{payload.bind}")
+    hashed = sha256_hex(f"{payload.handoff}:{payload.bind}")
     token = await session.scalar(select(AuthToken).where(AuthToken.handoff_hash == hashed))
-    expires = token.handoff_expires_at if token is not None else None
-    if expires is not None and expires.tzinfo is None:
-        expires = expires.replace(tzinfo=UTC)
+    expires = as_utc(token.handoff_expires_at) if token and token.handoff_expires_at else None
     if token is None or expires is None or expires <= datetime.now(UTC):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, HANDOFF_SPENT)
     spent = await session.execute(

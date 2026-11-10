@@ -9,6 +9,7 @@ from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.db.session import get_or_refuse
 from backend.models import (
     Aspirant,
     AspirantStatus,
@@ -45,19 +46,6 @@ PLACES = (
 )
 
 
-def _area(aspirant: Aspirant) -> str:
-    place = aspirant.ward or aspirant.constituency or aspirant.county
-    return place.name if place else ""
-
-
-def _county(aspirant: Aspirant) -> str:
-    if aspirant.county:
-        return aspirant.county.name
-    if aspirant.constituency:
-        return aspirant.constituency.county.name
-    return aspirant.ward.constituency.county.name if aspirant.ward else ""
-
-
 def _county_id(aspirant: Aspirant) -> uuid.UUID | None:
     if aspirant.county_id:
         return aspirant.county_id
@@ -68,7 +56,7 @@ def _county_id(aspirant: Aspirant) -> uuid.UUID | None:
 
 def slug(aspirant: Aspirant) -> str:
     """`mp-westlands-1a2b3c4d`: the seat, the area and the start of the aspirant's id."""
-    area = re.sub(r"[^a-z0-9]+", "-", _area(aspirant).lower()).strip("-")
+    area = re.sub(r"[^a-z0-9]+", "-", aspirant.area_name.lower()).strip("-")
     return f"{aspirant.seat.value.replace('_', '-')}-{area}-{aspirant.id.hex[:8]}"
 
 
@@ -77,8 +65,8 @@ def _card(aspirant: Aspirant, profile: CandidateProfile) -> dict:
         "slug": slug(aspirant),
         "name": aspirant.member.full_name,
         "seat": aspirant.seat,
-        "area": _area(aspirant),
-        "county": _county(aspirant),
+        "area": aspirant.area_name,
+        "county": aspirant.county_name,
         "photo_url": profile.photo_url,
         "slogan": profile.slogan,
     }
@@ -196,7 +184,7 @@ def _admin_read(aspirant: Aspirant, profile: CandidateProfile | None) -> Candida
         aspirant_id=aspirant.id,
         name=aspirant.member.full_name,
         seat=aspirant.seat,
-        area=_area(aspirant),
+        area=aspirant.area_name,
         profile=_profile_read(profile),
     )
 
@@ -254,8 +242,7 @@ async def write_profile(
 
 
 async def post_aspirants(session: AsyncSession, post_id: uuid.UUID) -> list[uuid.UUID]:
-    if await session.get(PartyPost, post_id) is None:
-        raise NotFound("No such post.")
+    await get_or_refuse(session, PartyPost, post_id, "post")
     return list(
         await session.scalars(
             select(party_post_aspirants.c.aspirant_id).where(
@@ -269,9 +256,7 @@ async def set_post_aspirants(
     session: AsyncSession, post_id: uuid.UUID, aspirant_ids: list[uuid.UUID], *, actor: User
 ) -> list[uuid.UUID]:
     """Replace the aspirants an event names; each must be an approved aspirant."""
-    post = await session.get(PartyPost, post_id)
-    if post is None:
-        raise NotFound("No such post.")
+    post = await get_or_refuse(session, PartyPost, post_id, "post")
     if post.kind is not PostKind.EVENT:
         raise Refused("Only an event names aspirants.")
     wanted = set(aspirant_ids)

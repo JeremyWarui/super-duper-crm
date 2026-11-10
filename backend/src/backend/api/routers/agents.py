@@ -1,15 +1,13 @@
 """A workspace's polling agents, their coverage of registration centres, and the export for
 appointment letters."""
 
-import csv
-import io
 import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
+from backend.api.csv_export import cell, csv_response
 from backend.api.deps import SessionDep, require
-from backend.api.routers.party_members import _cell
 from backend.api.scope import area_of, require_visible_campaign
 from backend.models import Agent, User
 from backend.schemas.team_signup import AgentRead, AgentUpdate, Coverage, CoverageCentre
@@ -28,7 +26,7 @@ CSV_COLUMNS = ["centre", "ward", "agent", "phone", "email", "id_number", "status
 def _read(row: Agent, id_number: str | None) -> AgentRead:
     return AgentRead(
         id=row.id,
-        full_name=row.user.full_name or row.user.username,
+        full_name=row.user.display_name,
         phone=row.user.phone,
         email=row.user.email,
         id_number=id_number,
@@ -96,26 +94,22 @@ async def export(campaign: uuid.UUID, session: SessionDep, user: Exporter) -> Re
         detail={"rows": len(rows)},
     )
     await session.commit()
-    out = io.StringIO()
-    writer = csv.writer(out)
-    writer.writerow(CSV_COLUMNS)
-    for row in rows:
-        writer.writerow(
+    return csv_response(
+        "agents.csv",
+        CSV_COLUMNS,
+        (
             [
-                _cell(row.registration_centre.name if row.registration_centre else ""),
-                _cell(row.ward.name if row.ward else ""),
-                _cell(row.user.full_name or row.user.username),
+                cell(row.registration_centre.name if row.registration_centre else ""),
+                cell(row.ward.name if row.ward else ""),
+                cell(row.user.display_name),
                 row.user.phone,
-                _cell(row.user.email),
+                cell(row.user.email),
                 ids.get(row.user_id, ""),
                 row.status.value,
                 row.training_date.isoformat() if row.training_date else "",
             ]
-        )
-    return Response(
-        out.getvalue(),
-        media_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="agents.csv"'},
+            for row in rows
+        ),
     )
 
 

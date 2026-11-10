@@ -1,17 +1,16 @@
 """The party register for membership officers: list, detail, status moves, CSV export."""
 
-import csv
-import io
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
+from backend.api.csv_export import cell, csv_response
 from backend.api.deps import MembershipOfficer, SessionDep
 from backend.api.install import PartyOnlyRoute
 from backend.models import PartyMember, PartyMemberStatus
-from backend.schemas.common import plain_text
+from backend.schemas.common import PlainQuery
 from backend.schemas.party import MemberDetail, MemberMove, MemberPage, MemberRead
 from backend.services import membership, privacy
 from backend.services.audit import record
@@ -32,28 +31,16 @@ CSV_COLUMNS = (
 
 
 def _filters(
-    q: str | None = None,
+    q: PlainQuery = None,
     status: PartyMemberStatus | None = None,
     county: uuid.UUID | None = None,
     constituency: uuid.UUID | None = None,
     ward: uuid.UUID | None = None,
 ) -> MemberFilters:
-    try:
-        plain_text(q)
-    except ValueError as refused:
-        raise HTTPException(status_code=400, detail=str(refused)) from None
     return MemberFilters(q=q, status=status, county=county, constituency=constituency, ward=ward)
 
 
 FiltersDep = Annotated[MemberFilters, Depends(_filters)]
-
-
-FORMULA_LEADS = ("=", "+", "-", "@", chr(9), chr(13))
-
-
-def _cell(text: str) -> str:
-    """Text a spreadsheet will not run as a formula."""
-    return "'" + text if text[:1] in FORMULA_LEADS else text
 
 
 def _place(row: PartyMember) -> dict:
@@ -101,27 +88,22 @@ async def export_members(
         detail={"filters": filters.given(), "rows": len(rows)},
     )
     await session.commit()
-    out = io.StringIO()
-    writer = csv.writer(out)
-    writer.writerow(CSV_COLUMNS)
-    for row in rows:
-        ward = row.ward
-        writer.writerow(
+    return csv_response(
+        "party-members.csv",
+        CSV_COLUMNS,
+        (
             [
-                _cell(row.full_name),
+                cell(row.full_name),
                 row.phone,
-                _cell(row.email or ""),
+                cell(row.email or ""),
                 row.status.value,
-                ward.name,
-                ward.constituency.name,
-                ward.constituency.county.name,
+                row.ward.name,
+                row.ward.constituency.name,
+                row.ward.constituency.county.name,
                 row.created_at.isoformat(),
             ]
-        )
-    return Response(
-        out.getvalue(),
-        media_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="party-members.csv"'},
+            for row in rows
+        ),
     )
 
 

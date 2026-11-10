@@ -115,7 +115,7 @@ async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Sc
     if work.mobilizer is not None:
         name, phone = work.mobilizer.full_name, work.mobilizer.phone
     else:
-        name = work.agent.user.full_name or work.agent.user.username
+        name = work.agent.user.display_name
         phone = work.agent.user.phone
     payment = Payment(
         campaign_id=campaign.id,

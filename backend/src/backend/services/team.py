@@ -7,7 +7,6 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import (
-    AuthToken,
     Campaign,
     CampaignMember,
     CampaignMemberArea,
@@ -15,7 +14,7 @@ from backend.models import (
     User,
     UserRole,
 )
-from backend.services.accounts import add_member
+from backend.services.accounts import add_member, leave, logins_on, member_of, sign_out
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
 from backend.services.login_links import new_invited_login
@@ -28,20 +27,8 @@ STAFF = frozenset({UserRole.COORDINATOR, UserRole.COMMS})
 
 async def team(session: AsyncSession, campaign_id: uuid.UUID) -> list[User]:
     """The logins on a campaign by role, the aspirant first, then by username."""
-    found = await session.scalars(
-        select(User)
-        .join(CampaignMember, CampaignMember.user_id == User.id)
-        .where(CampaignMember.campaign_id == campaign_id)
-    )
+    found = await logins_on(session, campaign_id)
     return sorted(found, key=lambda u: (ORDER.get(u.role, 3), u.username))
-
-
-async def manager_of(session: AsyncSession, campaign_id: uuid.UUID) -> User | None:
-    return await session.scalar(
-        select(User)
-        .join(CampaignMember, CampaignMember.user_id == User.id)
-        .where(CampaignMember.campaign_id == campaign_id, CampaignMember.role == UserRole.MANAGER)
-    )
 
 
 async def set_manager(
@@ -52,19 +39,15 @@ async def set_manager(
     With `replace` the sitting manager is taken off the campaign, turned off and signed out.
     Returns the new login, how its invite went out and the replaced manager's username.
     """
-    sitting = await manager_of(session, campaign.id)
+    sitting = next(iter(await logins_on(session, campaign.id, UserRole.MANAGER)), None)
     replaced = sitting.username if sitting is not None else None
     if sitting is not None and not replace:
         raise Refused(f"{campaign.title} already has a manager, {replaced}. Replace them instead.")
     try:
         created, invite = await new_invited_login(session, role=UserRole.MANAGER, **details)
         if sitting is not None:
-            await session.execute(
-                delete(CampaignMember).where(
-                    CampaignMember.campaign_id == campaign.id, CampaignMember.user_id == sitting.id
-                )
-            )
-            await session.execute(delete(AuthToken).where(AuthToken.user_id == sitting.id))
+            await leave(session, campaign.id, sitting.id)
+            await sign_out(session, sitting.id)
             sitting.is_active = False
         await add_member(session, campaign.id, created)
     except Refused:
@@ -118,7 +101,7 @@ async def remove_staff(
         raise Refused("Only a coordinator or a comms officer is taken off here.")
     person = await session.get(User, user_id)
     await session.delete(member)
-    await session.execute(delete(AuthToken).where(AuthToken.user_id == user_id))
+    await sign_out(session, user_id)
     person.is_active = False
     record(
         session,
@@ -135,11 +118,7 @@ async def remove_staff(
 async def _member(
     session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID
 ) -> CampaignMember:
-    member = await session.scalar(
-        select(CampaignMember).where(
-            CampaignMember.campaign_id == campaign_id, CampaignMember.user_id == user_id
-        )
-    )
+    member = await member_of(session, campaign_id, user_id)
     if member is None:
         raise NotFound("No such person on this campaign.")
     return member

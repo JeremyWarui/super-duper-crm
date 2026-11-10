@@ -19,6 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
 from backend.models.enums import PaymentStatus, UserRole
+from backend.services.clock import as_utc
 
 if TYPE_CHECKING:
     from backend.models.event import Event
@@ -61,10 +62,7 @@ class PayoutMixin:
             return False
         if self.failure_reason == OUTCOME_UNKNOWN or self.sending_since is None:
             return True
-        since = self.sending_since
-        if since.tzinfo is None:
-            since = since.replace(tzinfo=UTC)
-        return datetime.now(UTC) - since > STUCK_AFTER
+        return datetime.now(UTC) - as_utc(self.sending_since) > STUCK_AFTER
 
 
 class Payment(PayoutMixin, UUIDPrimaryKeyMixin, TimestampMixin, Base):

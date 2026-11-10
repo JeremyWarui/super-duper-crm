@@ -11,6 +11,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Payment, PaymentStatus, ReconcileDifference, ReconcileRun
+from backend.services.clock import as_utc
 from backend.services.payout_flow import ATTEMPT
 from backend.services.payouts import PAYSTACK_DEAD, PayoutProvider, Transfer, get_payout_provider
 
@@ -52,9 +53,7 @@ def _overdue(row: Payment, now: datetime) -> bool:
     since = row.sending_since
     if since is None:
         return True
-    if since.tzinfo is None:
-        since = since.replace(tzinfo=UTC)
-    return now - since > GRACE
+    return now - as_utc(since) > GRACE
 
 
 async def run(

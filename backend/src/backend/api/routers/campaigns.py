@@ -42,7 +42,7 @@ async def _named(session: SessionDep, campaign: Campaign) -> CampaignRead:
     candidate of the party workspace; needs NAMED loaded."""
     area = campaign.area
     candidate = campaign.candidate
-    name = (candidate.full_name or candidate.username) if candidate else ""
+    name = candidate.display_name if candidate else ""
     if campaign.kind is WorkspaceKind.PARTY:
         name = (await site.read_settings(session)).name
     return CampaignRead.model_validate(campaign).model_copy(

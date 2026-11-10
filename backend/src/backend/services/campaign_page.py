@@ -50,14 +50,6 @@ async def _profile(session: AsyncSession, found: Campaign) -> CandidateProfile |
     )
 
 
-def _county(found: Campaign) -> str:
-    if found.county is not None:
-        return found.county.name
-    if found.constituency is not None:
-        return found.constituency.county.name
-    return found.ward.constituency.county.name if found.ward is not None else ""
-
-
 async def public_page(session: AsyncSession) -> CandidateDetail:
     """The published page with the volunteer form's wards; NotFound while unpublished."""
     found = await campaign(session)
@@ -68,10 +60,10 @@ async def public_page(session: AsyncSession) -> CandidateDetail:
     area = found.area
     return CandidateDetail(
         slug="",
-        name=(candidate.full_name or candidate.username) if candidate else found.title,
+        name=candidate.display_name if candidate else found.title,
         seat=found.seat,
         area=area.name if area is not None else "",
-        county=_county(found),
+        county=found.county_name,
         photo_url=profile.photo_url,
         slogan=profile.slogan,
         bio=profile.bio,

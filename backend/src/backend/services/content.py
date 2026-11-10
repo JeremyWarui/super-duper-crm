@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.db.session import get_or_refuse
 from backend.models import County, PartyLeader, PartyPost, PostKind, PostLabel, User
 from backend.schemas.content import LeaderCreate, LeaderUpdate, PostCreate, PostUpdate
 from backend.services.audit import record
@@ -100,17 +101,10 @@ async def create_leader(
     return leader
 
 
-async def _leader(session: AsyncSession, leader_id: uuid.UUID) -> PartyLeader:
-    leader = await session.get(PartyLeader, leader_id)
-    if leader is None:
-        raise NotFound("No such leader.")
-    return leader
-
-
 async def update_leader(
     session: AsyncSession, leader_id: uuid.UUID, payload: LeaderUpdate, *, actor: User
 ) -> PartyLeader:
-    leader = await _leader(session, leader_id)
+    leader = await get_or_refuse(session, PartyLeader, leader_id, "leader")
     changes = payload.model_dump(exclude_unset=True, exclude_none=True)
     for name, value in changes.items():
         setattr(leader, name, value)
@@ -128,7 +122,7 @@ async def update_leader(
 
 
 async def delete_leader(session: AsyncSession, leader_id: uuid.UUID, *, actor: User) -> None:
-    leader = await _leader(session, leader_id)
+    leader = await get_or_refuse(session, PartyLeader, leader_id, "leader")
     _audit(session, actor, "party.leader.delete", leader)
     await session.delete(leader)
     await session.commit()
@@ -162,17 +156,10 @@ async def _check_county(session: AsyncSession, county_id: uuid.UUID | None) -> N
         raise Refused("No such county.")
 
 
-async def _post(session: AsyncSession, post_id: uuid.UUID) -> PartyPost:
-    post = await session.get(PartyPost, post_id)
-    if post is None:
-        raise NotFound("No such post.")
-    return post
-
-
 async def update_post(
     session: AsyncSession, post_id: uuid.UUID, payload: PostUpdate, *, actor: User, on: date
 ) -> PartyPost:
-    post = await _post(session, post_id)
+    post = await get_or_refuse(session, PartyPost, post_id, "post")
     changes = {
         name: value
         for name, value in payload.model_dump(exclude_unset=True).items()
@@ -200,7 +187,7 @@ async def update_post(
 
 
 async def delete_post(session: AsyncSession, post_id: uuid.UUID, *, actor: User) -> None:
-    post = await _post(session, post_id)
+    post = await get_or_refuse(session, PartyPost, post_id, "post")
     _audit(session, actor, "party.post.delete", post, kind=post.kind.value)
     await session.delete(post)
     await session.commit()

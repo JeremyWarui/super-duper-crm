@@ -3,12 +3,11 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import delete, select, update
+from sqlalchemy import select, update
 from sqlalchemy.orm import joinedload, selectinload
 
 from backend.api.deps import SessionDep, SignedInUser
 from backend.models import (
-    AuthToken,
     Constituency,
     PartyMember,
     PartyMemberStatus,
@@ -19,7 +18,9 @@ from backend.models import (
 )
 from backend.schemas.account import AccountRead, AccountVolunteer
 from backend.schemas.party import VolunteerPart
+from backend.security import new_withdraw_code
 from backend.services import membership, volunteers
+from backend.services.accounts import sign_out
 
 router = APIRouter(prefix="/account", tags=["account"])
 
@@ -129,11 +130,11 @@ async def leave_party(member: AccountMember, user: SignedInUser, session: Sessio
     """Queue the member's withdrawal, as their withdrawal link does, and sign them out."""
     code = member.withdraw_code
     if code is None:
-        code = membership.new_withdraw_code()
+        code = new_withdraw_code()
         await session.execute(
             update(PartyMember).where(PartyMember.id == member.id).values(withdraw_code=code)
         )
     membership.request_withdraw(session, code)
-    await session.execute(delete(AuthToken).where(AuthToken.user_id == user.id))
+    await sign_out(session, user.id)
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

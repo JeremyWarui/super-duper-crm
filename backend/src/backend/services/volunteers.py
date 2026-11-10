@@ -1,6 +1,5 @@
 """Party volunteer profiles: officer moves, member-driven moves, and the public requests."""
 
-import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -13,7 +12,6 @@ from sqlalchemy import (
     bindparam,
     case,
     cast,
-    func,
     literal,
     select,
     update,
@@ -34,6 +32,7 @@ from backend.models import (
     VolunteerStatus,
     Ward,
 )
+from backend.security import new_withdraw_code
 from backend.services.audit import record_if
 from backend.services.campaign_volunteers import (
     OFFICER_TARGETS,
@@ -42,7 +41,8 @@ from backend.services.campaign_volunteers import (
     write_status,
 )
 from backend.services.consent import VOLUNTEER_WORDING
-from backend.services.errors import NotFound, Refused, refuse_own_record
+from backend.services.errors import NotFound, Refused, refuse_erased, refuse_own_record
+from backend.services.register import PlaceFilters, in_place, page
 
 V = VolunteerStatus
 
@@ -85,8 +85,7 @@ def set_notes(
 ) -> None:
     """Replace the officer's availability notes; the audit never holds the text."""
     refuse_own_record(actor, profile.member_id)
-    if profile.erased_at is not None:
-        raise Refused("This person's details were erased.")
+    refuse_erased(profile)
     profile.availability_notes = notes
     audit(session, profile, "volunteer.notes", {}, actor=actor)
 
@@ -264,33 +263,10 @@ async def withdraw_by_code(session: AsyncSession, code: str) -> None:
     )
 
 
-def _like(text: str) -> str:
-    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    return f"%{escaped.lower()}%"
-
-
 @dataclass(frozen=True)
-class VolunteerFilters:
-    q: str | None = None
+class VolunteerFilters(PlaceFilters):
     status: VolunteerStatus | None = None
     area: VolunteerArea | None = None
-    county: uuid.UUID | None = None
-    constituency: uuid.UUID | None = None
-    ward: uuid.UUID | None = None
-
-    def given(self) -> dict[str, str | bool]:
-        """The filters in use, for the audit trail; `q` is recorded only as set."""
-        found: dict[str, str | bool] = {}
-        if self.q:
-            found["q"] = True
-        if self.status is not None:
-            found["status"] = self.status.value
-        if self.area is not None:
-            found["area"] = self.area.value
-        for name in ("county", "constituency", "ward"):
-            if getattr(self, name) is not None:
-                found[name] = str(getattr(self, name))
-        return found
 
 
 def _query(filters: VolunteerFilters) -> Select:
@@ -308,30 +284,16 @@ def _query(filters: VolunteerFilters) -> Select:
         )
         .where(VolunteerProfile.campaign_id.is_(None))
     )
-    if filters.q and filters.q.strip():
-        pattern = _like(filters.q.strip())
-        matches = func.lower(PartyMember.full_name).like(pattern, escape="\\") | (
-            PartyMember.phone.like(pattern, escape="\\")
-        )
-        local = filters.q.replace(" ", "")
-        if local.startswith("0") and local[1:].isdigit():
-            matches |= PartyMember.phone.like(_like("+254" + local[1:]), escape="\\")
-        statement = statement.where(matches)
+    statement = in_place(statement, filters)
     if filters.status is not None:
         statement = statement.where(VolunteerProfile.status == filters.status)
     if filters.area is not None:
         # The JSON list as text holds each value quoted, so "other" matches only that value.
         statement = statement.where(
-            cast(VolunteerProfile.interests, String).like(
-                _like(f'"{filters.area.value}"'), escape="\\"
+            cast(VolunteerProfile.interests, String).contains(
+                f'"{filters.area.value}"', autoescape=True
             )
         )
-    if filters.county is not None:
-        statement = statement.where(Constituency.county_id == filters.county)
-    if filters.constituency is not None:
-        statement = statement.where(Ward.constituency_id == filters.constituency)
-    if filters.ward is not None:
-        statement = statement.where(PartyMember.ward_id == filters.ward)
     return statement.order_by(VolunteerProfile.created_at.desc(), VolunteerProfile.id)
 
 
@@ -339,14 +301,7 @@ async def volunteers(
     session: AsyncSession, filters: VolunteerFilters, limit: int, offset: int
 ) -> tuple[int, list[VolunteerProfile]]:
     """One page of the volunteer register, newest first, and the count of all that match."""
-    statement = _query(filters)
-    total = await session.scalar(
-        select(func.count()).select_from(
-            statement.order_by(None).with_only_columns(VolunteerProfile.id).subquery()
-        )
-    )
-    page = await session.scalars(statement.limit(limit).offset(offset))
-    return total or 0, list(page.unique())
+    return await page(session, _query(filters), VolunteerProfile.id, limit, offset)
 
 
 async def export_rows(session: AsyncSession, filters: VolunteerFilters) -> list[VolunteerProfile]:
@@ -401,7 +356,7 @@ async def own_update(
         "registration_centre_id": member.registration_centre_id,
         "consent_wording": VOLUNTEER_WORDING,
         "consent_at": datetime.now(UTC),
-        "withdraw_code": secrets.token_urlsafe(18),
+        "withdraw_code": new_withdraw_code(),
         "erased_at": None,
     }
     if profile is None:

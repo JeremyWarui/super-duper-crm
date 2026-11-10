@@ -1,12 +1,11 @@
 """The party register: allowed status moves, officer moves, and the public request inbox."""
 
 import logging
-import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, Select, delete, func, literal, select, text, update
+from sqlalchemy import Boolean, Select, delete, literal, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased, contains_eager
 from sqlalchemy.orm.attributes import set_committed_value
@@ -27,11 +26,13 @@ from backend.models import (
     VolunteerArea,
     Ward,
 )
+from backend.security import new_withdraw_code
 from backend.services import aspirants, party_workspace, volunteers
 from backend.services.accounts import clean_email
 from backend.services.audit import record, record_if
 from backend.services.consent import MEMBER_SMS_WORDING, PARTY_WORDING
-from backend.services.errors import NotFound, Refused, refuse_own_record
+from backend.services.errors import NotFound, Refused, refuse_erased, refuse_own_record
+from backend.services.register import PlaceFilters, in_place, page
 
 log = logging.getLogger(__name__)
 
@@ -44,11 +45,6 @@ MOVES: dict[PartyMemberStatus, frozenset[PartyMemberStatus]] = {
     S.REJECTED: frozenset({S.PENDING, S.WITHDRAWN}),
     S.WITHDRAWN: frozenset({S.PENDING}),
 }
-
-
-def new_withdraw_code() -> str:
-    """The private code a self-registered member withdraws with."""
-    return secrets.token_urlsafe(18)
 
 
 def check_move(frm: PartyMemberStatus, to: PartyMemberStatus) -> None:
@@ -83,8 +79,7 @@ async def move(
 ) -> None:
     """An officer's status move, audited; the caller commits."""
     refuse_own_record(actor, member.id)
-    if member.erased_at is not None:
-        raise Refused("This person's details were erased.")
+    refuse_erased(member)
     old = member.status
     if to is S.PENDING:
         raise Refused("Only the person re-applying puts a member back to pending.")
@@ -396,29 +391,8 @@ async def process_requests(session: AsyncSession, *, limit: int = 100) -> int:
 
 
 @dataclass(frozen=True)
-class MemberFilters:
-    q: str | None = None
+class MemberFilters(PlaceFilters):
     status: PartyMemberStatus | None = None
-    county: uuid.UUID | None = None
-    constituency: uuid.UUID | None = None
-    ward: uuid.UUID | None = None
-
-    def given(self) -> dict[str, str | bool]:
-        """The filters in use, for the audit trail; `q` is recorded only as set."""
-        found: dict[str, str | bool] = {}
-        if self.q:
-            found["q"] = True
-        if self.status is not None:
-            found["status"] = self.status.value
-        for name in ("county", "constituency", "ward"):
-            if getattr(self, name) is not None:
-                found[name] = str(getattr(self, name))
-        return found
-
-
-def _like(text: str) -> str:
-    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    return f"%{escaped.lower()}%"
 
 
 def _query(filters: MemberFilters) -> Select:
@@ -432,24 +406,9 @@ def _query(filters: MemberFilters) -> Select:
             .joinedload(Constituency.county)
         )
     )
-    if filters.q and filters.q.strip():
-        pattern = _like(filters.q.strip())
-        matches = func.lower(PartyMember.full_name).like(pattern, escape="\\") | (
-            PartyMember.phone.like(pattern, escape="\\")
-        )
-        local = filters.q.replace(" ", "")
-        if local.startswith("0") and local[1:].isdigit():
-            # Phones are stored as +254...; a number typed as 07... finds them too.
-            matches |= PartyMember.phone.like(_like("+254" + local[1:]), escape="\\")
-        statement = statement.where(matches)
+    statement = in_place(statement, filters)
     if filters.status is not None:
         statement = statement.where(PartyMember.status == filters.status)
-    if filters.county is not None:
-        statement = statement.where(Constituency.county_id == filters.county)
-    if filters.constituency is not None:
-        statement = statement.where(Ward.constituency_id == filters.constituency)
-    if filters.ward is not None:
-        statement = statement.where(PartyMember.ward_id == filters.ward)
     return statement.order_by(PartyMember.created_at.desc(), PartyMember.id)
 
 
@@ -457,14 +416,7 @@ async def members(
     session: AsyncSession, filters: MemberFilters, limit: int, offset: int
 ) -> tuple[int, list[PartyMember]]:
     """One page of the register, newest first, and the count of all that match."""
-    statement = _query(filters)
-    total = await session.scalar(
-        select(func.count()).select_from(
-            statement.order_by(None).with_only_columns(PartyMember.id).subquery()
-        )
-    )
-    page = await session.scalars(statement.limit(limit).offset(offset))
-    return total or 0, list(page.unique())
+    return await page(session, _query(filters), PartyMember.id, limit, offset)
 
 
 async def export_rows(session: AsyncSession, filters: MemberFilters) -> list[PartyMember]:

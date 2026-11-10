@@ -1,6 +1,5 @@
 """First-run setup: a one-time token opens it, and one transaction makes the installation."""
 
-import hashlib
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -22,10 +21,12 @@ from backend.models import (
     WorkspaceKind,
 )
 from backend.schemas.setup import Area, ServiceState, SetupRequest, SetupResult
+from backend.security import sha256_hex
 from backend.services import oidc, party_workspace, texting
 from backend.services.accounts import new_login
 from backend.services.admin import build_workspace
 from backend.services.audit import record
+from backend.services.clock import as_utc
 from backend.services.email import send_email
 from backend.services.errors import Forbidden, Refused
 from backend.services.sms import normalise_phone
@@ -36,14 +37,6 @@ BAD_TOKEN = (
     "That setup token is wrong, spent or more than 24 hours old. "
     "Print a new one with `campaign-crm setup-token`."
 )
-
-
-def _hash(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()
-
-
-def _utc(value: datetime) -> datetime:
-    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 async def is_set_up(session: AsyncSession) -> bool:
@@ -58,7 +51,7 @@ async def new_token(session: AsyncSession) -> str:
     await session.execute(
         update(SetupToken).where(SetupToken.used_at.is_(None)).values(used_at=datetime.now(UTC))
     )
-    session.add(SetupToken(token_hash=_hash(token), expires_at=datetime.now(UTC) + TOKEN_LIFE))
+    session.add(SetupToken(token_hash=sha256_hex(token), expires_at=datetime.now(UTC) + TOKEN_LIFE))
     await session.commit()
     return token
 
@@ -67,8 +60,8 @@ async def check(session: AsyncSession, token: str) -> None:
     """Refused unless setup is still to do and the token is live."""
     if await is_set_up(session):
         raise Refused(DONE)
-    row = await session.scalar(select(SetupToken).where(SetupToken.token_hash == _hash(token)))
-    if row is None or row.used_at is not None or _utc(row.expires_at) <= datetime.now(UTC):
+    row = await session.scalar(select(SetupToken).where(SetupToken.token_hash == sha256_hex(token)))
+    if row is None or row.used_at is not None or as_utc(row.expires_at) <= datetime.now(UTC):
         raise Forbidden(BAD_TOKEN)
 
 
@@ -77,7 +70,7 @@ async def _spend(session: AsyncSession, token: str) -> None:
     await check(session, token)
     spent = await session.execute(
         update(SetupToken)
-        .where(SetupToken.token_hash == _hash(token), SetupToken.used_at.is_(None))
+        .where(SetupToken.token_hash == sha256_hex(token), SetupToken.used_at.is_(None))
         .values(used_at=datetime.now(UTC))
     )
     if spent.rowcount != 1:

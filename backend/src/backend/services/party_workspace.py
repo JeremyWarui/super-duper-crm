@@ -1,7 +1,6 @@
 """The party's coordination workspace: creating it, its coordinators' view of the member
 register, and their recruitment links to the Join the Party form."""
 
-import secrets
 import uuid
 
 from sqlalchemy import func, select, update
@@ -21,6 +20,7 @@ from backend.models import (
     WorkspaceKind,
 )
 from backend.schemas.campaign import SetupSummary
+from backend.security import new_short_code
 from backend.services import site
 from backend.services.accounts import add_member
 from backend.services.audit import record
@@ -129,10 +129,6 @@ async def _active_code(session: AsyncSession, member: CampaignMember) -> Recruit
     )
 
 
-def _new_code() -> str:
-    return secrets.token_urlsafe(9)
-
-
 async def recruitment(
     session: AsyncSession, member: CampaignMember, *, replace: bool, actor: User
 ) -> tuple[str, dict[PartyMemberStatus, int]]:
@@ -145,7 +141,7 @@ async def recruitment(
             .where(RecruitmentCode.campaign_member_id == member.id)
             .values(active=False)
         )
-        active = RecruitmentCode(campaign_member_id=member.id, code=_new_code())
+        active = RecruitmentCode(campaign_member_id=member.id, code=new_short_code())
         session.add(active)
         record(
             session,

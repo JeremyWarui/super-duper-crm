@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Protocol
 
 from backend.config import Settings, get_settings
+from backend.services.errors import Refused
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +93,17 @@ def normalise_phone(raw: str | None, country_code: str = DEFAULT_COUNTRY_CODE) -
     if len(national) != NATIONAL_NUMBER_LENGTH or national.startswith("0"):
         return None
     return f"+{country_code}{national}"
+
+
+KENYAN_NUMBER = "Enter a Kenyan mobile number, like 0712 345678."
+
+
+def require_phone(raw: str | None, refusal: str = KENYAN_NUMBER) -> str:
+    """The number as E.164; Refused with `refusal` when it is not a phone number."""
+    phone = normalise_phone(raw)
+    if phone is None:
+        raise Refused(refusal)
+    return phone
 
 
 def normalise_all(raw_numbers: list[str | None]) -> tuple[list[str], list[Recipient]]:

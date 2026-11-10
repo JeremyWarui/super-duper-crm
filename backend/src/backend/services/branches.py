@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.db.session import get_or_refuse
 from backend.models import Branch, Constituency, County, User
 from backend.schemas.content import BranchUpdate
 from backend.services.audit import record
@@ -95,8 +96,7 @@ async def save(
     session: AsyncSession, county_id: uuid.UUID, payload: BranchUpdate, *, actor: User, today: date
 ) -> dict:
     """Write the county's branch, creating it on first save, and audit the changed fields."""
-    if await session.get(County, county_id) is None:
-        raise NotFound("No such county.")
+    await get_or_refuse(session, County, county_id, "county")
     branch = await session.scalar(select(Branch).where(Branch.county_id == county_id))
     if branch is None:
         branch = Branch(county_id=county_id)

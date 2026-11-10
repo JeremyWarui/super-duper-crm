@@ -20,7 +20,7 @@ from backend.models import (
     User,
     UserRole,
 )
-from backend.services.permissions import Area, Reach, reach
+from backend.services.permissions import Area, Reach, narrow, reach
 from backend.services.targets import ward_in_area
 
 
@@ -101,12 +101,7 @@ async def scoped(
     if campaign is not None:
         statement = statement.where(model.campaign_id == campaign)
     statement = statement.where(model.campaign_id.in_(await visible_campaign_ids(session, user)))
-    area = await area_of(session, user, action)
-    if area is not None:
-        statement = statement.where(
-            area.where(model.ward_id, getattr(model, "registration_centre_id", None))
-        )
-    return statement
+    return narrow(statement, await area_of(session, user, action), model)
 
 
 async def all_rows(session: AsyncSession, statement: Select) -> list:

@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from backend.api.deps import MembershipOfficer, SessionDep, require
 from backend.api.install import PartyOnlyRoute
 from backend.api.scope import require_visible_campaign
+from backend.db.session import get_or_refuse
 from backend.models import (
     Campaign,
     DataRequest,
@@ -31,7 +32,7 @@ from backend.schemas.privacy import (
     WithdrawalLink,
 )
 from backend.services import privacy
-from backend.services.errors import NotFound, Refused
+from backend.services.errors import Refused, refuse_erased
 
 router = APIRouter(prefix="/campaigns/{campaign_id}/data", tags=["data protection"])
 office_router = APIRouter(
@@ -44,9 +45,9 @@ Closer = Annotated[User, Depends(require("campaign.close"))]
 async def _row[T: (Supporter, VolunteerProfile, TeamRegistration)](
     session: SessionDep, model: type[T], row_id: uuid.UUID, campaign: Campaign
 ) -> T:
-    row = await session.get(model, row_id)
-    if row is None or row.campaign_id != campaign.id:
-        raise NotFound("No such person on this campaign.")
+    row = await get_or_refuse(
+        session, model, row_id, "person on this campaign", match={"campaign_id": campaign.id}
+    )
     return row
 
 
@@ -136,7 +137,7 @@ async def withdrawal_link(
 ) -> WithdrawalLink:
     campaign = await require_visible_campaign(session, user, campaign_id)
     supporter = await _row(session, Supporter, supporter_id, campaign)
-    privacy.refuse_erased(supporter)
+    refuse_erased(supporter)
     if not supporter.withdraw_code:
         raise Refused("This supporter has no withdrawal link.")
     return WithdrawalLink(
@@ -150,7 +151,7 @@ async def text_withdrawal_link(
 ) -> Response:
     campaign = await require_visible_campaign(session, user, campaign_id)
     supporter = await _row(session, Supporter, supporter_id, campaign)
-    privacy.refuse_erased(supporter)
+    refuse_erased(supporter)
     if campaign.closed_at is not None:
         raise Refused(privacy.CLOSED)
     await privacy.text_withdrawal(session, supporter, campaign, actor=user)

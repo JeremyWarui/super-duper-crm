@@ -27,9 +27,10 @@ from backend.models import (
     WorkspaceKind,
 )
 from backend.services.audit import record
+from backend.services.clock import as_utc
 from backend.services.errors import NotFound, Refused
 from backend.services.payouts import PAYSTACK_API
-from backend.services.sms import normalise_phone
+from backend.services.sms import require_phone
 
 CODE = re.compile(r"^[A-Z0-9]{10}$")
 MIN_KES, MAX_KES = 10, 1_000_000
@@ -159,9 +160,10 @@ async def contribution_campaign(session: AsyncSession, site: SiteSettings) -> uu
 
 
 def _phone(raw: str) -> str:
-    phone = normalise_phone(raw)
-    if phone is None or not phone.startswith("+254"):
-        raise Refused("Use a Kenyan M-Pesa number, such as 0712 345678.")
+    refusal = "Use a Kenyan M-Pesa number, such as 0712 345678."
+    phone = require_phone(raw, refusal)
+    if not phone.startswith("+254"):
+        raise Refused(refusal)
     return phone
 
 
@@ -291,7 +293,7 @@ async def by_reference(session: AsyncSession, reference: str) -> PaymentIn:
 async def refresh(session: AsyncSession, row: PaymentIn) -> PaymentIn:
     """A prompt still waiting is checked with Paystack once it is old enough."""
     if row.status is PayInStatus.PENDING and row.provider == "paystack":
-        created = row.created_at if row.created_at.tzinfo else row.created_at.replace(tzinfo=UTC)
+        created = as_utc(row.created_at)
         if datetime.now(UTC) - created >= CHECK_AFTER:
             data = await get_payin_provider().check(row.reference)
             if data is not None and await _apply(session, row, data):

@@ -27,7 +27,7 @@ from backend.seed.reference import (
 from backend.seed.sign_ins import credentials_sheet
 from backend.seed.site import seed_branches, seed_home, seed_news, seed_site
 from backend.services import admin, imports, ops, setup
-from backend.services.accounts import new_login
+from backend.services.accounts import logins_on, new_login
 from backend.services.audit import record
 from backend.services.clock import today
 from backend.services.errors import Refused
@@ -319,7 +319,7 @@ async def _rename_campaign(args: argparse.Namespace, session: AsyncSession) -> i
 async def _delete_campaign(args: argparse.Namespace, session: AsyncSession) -> int:
     """Without --yes, only say what and who would be deleted."""
     row = await admin.campaign(session, args.campaign)
-    people = await admin.logins_on(session, args.campaign)
+    people = await logins_on(session, args.campaign)
     logins = ", ".join(person.username for person in people) or "none"
     what = (
         f"{row.title} with {row.targets} targets, {row.mobilizers} mobilizers, "

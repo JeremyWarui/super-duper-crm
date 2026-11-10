@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.db.session import get_or_refuse
 from backend.models import (
     Aspirant,
     AspirantDocument,
@@ -305,9 +306,9 @@ async def attach(
 
 async def detach(session: AsyncSession, aspirant: Aspirant | None, document_id: uuid.UUID) -> None:
     aspirant = _own_draft(aspirant)
-    document = await session.get(AspirantDocument, document_id)
-    if document is None or document.aspirant_id != aspirant.id:
-        raise NotFound("No such document.")
+    document = await get_or_refuse(
+        session, AspirantDocument, document_id, "document", match={"aspirant_id": aspirant.id}
+    )
     await session.delete(document)
     await session.commit()
 
@@ -399,7 +400,7 @@ async def mark_fee_paid(
 async def document(
     session: AsyncSession, aspirant_id: uuid.UUID, document_id: uuid.UUID
 ) -> StoredFile:
-    row = await session.get(AspirantDocument, document_id)
-    if row is None or row.aspirant_id != aspirant_id:
-        raise NotFound("No such document.")
+    row = await get_or_refuse(
+        session, AspirantDocument, document_id, "document", match={"aspirant_id": aspirant_id}
+    )
     return await session.get(StoredFile, row.file_id)

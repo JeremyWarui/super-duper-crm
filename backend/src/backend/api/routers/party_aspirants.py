@@ -3,7 +3,8 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
+from pydantic import AfterValidator
 
 from backend.api.deps import NominationsOfficer, SessionDep
 from backend.api.install import PartyOnlyRoute
@@ -66,13 +67,9 @@ def _filters(
 async def list_candidates(
     user: NominationsOfficer,
     session: SessionDep,
-    q: Annotated[str, Query(max_length=100)] = "",
+    q: Annotated[str, Query(max_length=100), AfterValidator(plain_text)] = "",
 ) -> list:
     """Approved members without a live nomination, by name or exact full phone; at most 20."""
-    try:
-        plain_text(q)
-    except ValueError as refused:
-        raise HTTPException(status_code=400, detail=str(refused)) from None
     return await aspirants.candidates(session, q)
 
 

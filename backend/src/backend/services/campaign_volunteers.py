@@ -1,6 +1,5 @@
 """A campaign's volunteers: the move table, the register, sign-up and withdrawal."""
 
-import secrets
 import uuid
 from datetime import UTC, datetime
 
@@ -12,11 +11,12 @@ from sqlalchemy.orm.attributes import set_committed_value
 
 from backend.models import Campaign, RegistrationCentre, User, VolunteerProfile, VolunteerStatus
 from backend.schemas.candidates import CampaignVolunteerUpdate, CandidateVolunteerCreate
+from backend.security import new_withdraw_code
 from backend.services.audit import record
 from backend.services.consent import CAMPAIGN_VOLUNTEER_WORDING
-from backend.services.errors import NotFound, Refused
+from backend.services.errors import NotFound, Refused, refuse_erased
 from backend.services.permissions import Area
-from backend.services.sms import normalise_phone
+from backend.services.sms import require_phone
 from backend.services.targets import wards_in_area
 
 V = VolunteerStatus
@@ -134,8 +134,7 @@ async def update_volunteer(
         area is not None and not area.holds(profile.ward_id, profile.registration_centre_id)
     ):
         raise NotFound("No such volunteer.")
-    if profile.erased_at is not None:
-        raise Refused("This person's details were erased.")
+    refuse_erased(profile)
     if payload.status is not None:
         to = VolunteerStatus(payload.status)
         if to not in OFFICER_TARGETS:
@@ -167,9 +166,7 @@ async def sign_up(
     """
     if campaign.closed_at is not None:
         raise Refused("This campaign has closed.")
-    phone = normalise_phone(payload.phone)
-    if phone is None:
-        raise Refused("Enter a Kenyan mobile number, like 0712 345678.")
+    phone = require_phone(payload.phone)
     if payload.ward not in {w.id for w in await wards_in_area(session, campaign)}:
         raise Refused("Pick a ward inside the seat this candidate is vying for.")
     centre_ward = await session.scalar(
@@ -179,7 +176,7 @@ async def sign_up(
     )
     if centre_ward != payload.ward:
         raise Refused("Pick a polling station in the ward you chose.")
-    code = secrets.token_urlsafe(18)
+    code = new_withdraw_code()
     known = await session.scalar(
         select(VolunteerProfile.id).where(
             VolunteerProfile.campaign_id == campaign.id, VolunteerProfile.phone == phone

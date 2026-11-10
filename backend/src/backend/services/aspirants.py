@@ -272,8 +272,7 @@ async def candidates(session: AsyncSession, q: str) -> list[PartyMember]:
     if phone:
         match = PartyMember.phone == phone
     elif len(text) >= 2:
-        escaped = text.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        match = func.lower(PartyMember.full_name).like(f"%{escaped}%", escape="\\")
+        match = PartyMember.full_name.icontains(text, autoescape=True)
     else:
         return []
     nominated = select(Aspirant.member_id).where(Aspirant.status.in_(LIVE))

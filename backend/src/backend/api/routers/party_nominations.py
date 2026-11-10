@@ -13,7 +13,6 @@ from backend.api.routers.account import AccountMember
 from backend.api.routers.party_aspirants import _read as read_aspirant
 from backend.api.routers.pay import read as read_payment
 from backend.models import (
-    Aspirant,
     Constituency,
     County,
     FileArea,
@@ -155,11 +154,6 @@ async def _area_name(session: SessionDep, member: PartyMember, seat) -> str:
     return (await session.get(model, area_id)).name
 
 
-def _place(aspirant: Aspirant) -> str:
-    place = aspirant.ward or aspirant.constituency or aspirant.county
-    return place.name if place else ""
-
-
 async def _mine(session: SessionDep, member: PartyMember, today) -> MyNomination:
     row = await nominations.current(session, today)
     aspirant = await nominations.mine(session, member)
@@ -184,7 +178,7 @@ async def _mine(session: SessionDep, member: PartyMember, today) -> MyNomination
         else MyApplication(
             id=aspirant.id,
             seat=aspirant.seat,
-            area=_place(aspirant),
+            area=aspirant.area_name,
             status=aspirant.status,
             status_reason=aspirant.status_reason,
             fee_kes=aspirant.fee_kes,

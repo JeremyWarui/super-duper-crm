@@ -30,7 +30,7 @@ from backend.services.audit import record
 from backend.services.errors import Refused
 from backend.services.payouts import get_payout_provider
 from backend.services.setup import services
-from backend.services.sms import normalise_phone
+from backend.services.sms import require_phone
 
 ALEMBIC_DIR = Path(__file__).resolve().parents[3] / "alembic"
 # Sign-in secrets: an export is for records and moving providers, and must not open accounts.
@@ -402,9 +402,7 @@ def replace_uploads(restored: Path, uploads: Path, *, keep_in: Path) -> Path | N
 
 
 async def test_sms(session: AsyncSession, phone: str, *, actor: User) -> str:
-    number = normalise_phone(phone)
-    if number is None:
-        raise Refused("That is not a phone number.")
+    number = require_phone(phone, "That is not a phone number.")
     result, _ = await texting.send(
         session, [number], texting.TEST_TEXT, purpose="test", sender=actor
     )
@@ -428,9 +426,7 @@ async def test_payout(session: AsyncSession, phone: str, *, actor: User) -> str:
     provider = get_payout_provider()
     if provider.moves_money:
         raise Refused("Payouts are live here and move real money; check them with a real payment.")
-    number = normalise_phone(phone)
-    if number is None:
-        raise Refused("That is not a phone number.")
+    number = require_phone(phone, "That is not a phone number.")
     test_id = uuid.uuid4()
     result = await provider.send(
         payment_id=test_id,

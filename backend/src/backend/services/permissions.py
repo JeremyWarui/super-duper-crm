@@ -9,7 +9,7 @@ import uuid
 from dataclasses import dataclass
 from enum import StrEnum
 
-from sqlalchemy import ColumnElement, false, or_
+from sqlalchemy import ColumnElement, Select, false, or_
 
 from backend.models import User, UserRole
 
@@ -127,3 +127,13 @@ class Area:
         if centre is not None and self.centres:
             clauses.append(centre.in_(self.centres))
         return or_(*clauses) if clauses else false()
+
+
+def narrow(statement: Select, area: Area | None, model: type) -> Select:
+    """Keep `model`'s rows inside `area` by their ward and, when it has one, their centre; no
+    area keeps every row."""
+    if area is None:
+        return statement
+    return statement.where(
+        area.where(model.ward_id, getattr(model, "registration_centre_id", None))
+    )

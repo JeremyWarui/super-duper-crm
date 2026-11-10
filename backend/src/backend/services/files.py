@@ -6,7 +6,6 @@ from its content, and must match the type it was sent as.
 """
 
 import asyncio
-import hashlib
 import io
 import uuid
 import warnings
@@ -17,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import get_settings
 from backend.models import FileArea, StoredFile, User
+from backend.security import sha256_hex
 from backend.services.audit import record
 from backend.services.errors import Refused
 
@@ -151,7 +151,7 @@ async def store(
         original_name=(name or "upload")[:255],
         content_type=content_type,
         size=len(raw),
-        sha256=hashlib.sha256(raw).hexdigest(),
+        sha256=sha256_hex(raw),
         widths=[w for w, _ in kept if w is not None],
     )
     file.uploaded_by_id = actor.id

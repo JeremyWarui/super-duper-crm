@@ -4,7 +4,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from backend.api.deps import SessionDep, require
@@ -17,9 +17,9 @@ from backend.api.scope import (
     require_ward_in_campaign,
     scoped,
 )
-from backend.models import Campaign, CampaignMember, Mobilizer, User, UserRole, Ward
+from backend.models import Campaign, Mobilizer, User, UserRole, Ward
 from backend.schemas.campaign import MobilizerCreate, MobilizerRead, MobilizerUpdate
-from backend.services.accounts import add_mobilizer, move_mobilizer
+from backend.services.accounts import add_mobilizer, leave, move_mobilizer
 
 router = APIRouter(prefix="/mobilizers", tags=["mobilizers"])
 
@@ -111,12 +111,7 @@ async def delete_mobilizer(mobilizer_id: uuid.UUID, session: SessionDep, user: W
         session, user, Mobilizer, mobilizer_id, "mobilizer", "mobilizers.write"
     )
     if mobilizer.user_id is not None:
-        await session.execute(
-            delete(CampaignMember).where(
-                CampaignMember.campaign_id == mobilizer.campaign_id,
-                CampaignMember.user_id == mobilizer.user_id,
-            )
-        )
+        await leave(session, mobilizer.campaign_id, mobilizer.user_id)
     await session.delete(mobilizer)
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

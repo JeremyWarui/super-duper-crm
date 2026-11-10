@@ -7,12 +7,11 @@ Mounted only in a party installation.
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
 
 from backend.api.deps import AdminUser, CurrentUser, SessionDep
 from backend.api.install import PartyOnlyRoute
 from backend.api.scope import area_ids
-from backend.models import CampaignMember, User, UserRole
+from backend.models import CampaignMember, UserRole
 from backend.schemas.party_workspace import (
     AreaMember,
     AreaMembers,
@@ -24,6 +23,7 @@ from backend.schemas.party_workspace import (
 )
 from backend.schemas.team import ManagerCreated
 from backend.services import party_workspace, team
+from backend.services.accounts import logins_on
 from backend.services.errors import NotFound
 
 router = APIRouter(prefix="/party/workspace", tags=["party workspace"], route_class=PartyOnlyRoute)
@@ -45,12 +45,10 @@ async def read_workspace(session: SessionDep, _: AdminUser) -> PartyWorkspaceRea
     found = await party_workspace.workspace(session)
     if found is None:
         return PartyWorkspaceRead()
-    managers = await session.scalars(
-        select(User.username)
-        .join(CampaignMember, CampaignMember.user_id == User.id)
-        .where(CampaignMember.campaign_id == found.id, CampaignMember.role == UserRole.MANAGER)
+    managers = await logins_on(session, found.id, UserRole.MANAGER)
+    return PartyWorkspaceRead(
+        id=found.id, title=found.title, managers=[login.username for login in managers]
     )
-    return PartyWorkspaceRead(id=found.id, title=found.title, managers=list(managers))
 
 
 @router.post("/", response_model=PartyWorkspaceCreated, status_code=status.HTTP_201_CREATED)

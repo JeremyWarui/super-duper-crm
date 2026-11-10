@@ -31,6 +31,7 @@ from backend.models.enums import (
     PartyRoleName,
     Seat,
 )
+from backend.models.geography import SeatPlaces
 
 if TYPE_CHECKING:
     from backend.models.campaign import Campaign
@@ -189,7 +190,7 @@ class RecruitmentCode(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 LIVE_NOMINATION = "status IN ('draft', 'submitted', 'approved', 'suspended')"
 
 
-class Aspirant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class Aspirant(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """A party member's nomination for a seat, and the campaign made for it."""
 
     __tablename__ = "aspirants"

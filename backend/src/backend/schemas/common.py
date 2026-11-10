@@ -37,6 +37,9 @@ def plain_text(value: str | None, *, lines: bool = False) -> str | None:
     return value
 
 
+# A search box's text, refused with a 400 when it holds characters a person never types.
+PlainQuery = Annotated[str | None, AfterValidator(plain_text)]
+
 # A campaign title: trimmed, never blank, plain text.
 CampaignTitle = Annotated[
     str,

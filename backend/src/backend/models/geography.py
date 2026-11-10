@@ -19,6 +19,26 @@ if TYPE_CHECKING:
 NON_NEGATIVE_VOTERS = "registered_voters IS NULL OR registered_voters >= 0"
 
 
+class SeatPlaces:
+    """Names for a row on one seat's area: `county`, `constituency` and `ward`, one of them set.
+
+    Needs those relationships loaded, and the county under a constituency or ward.
+    """
+
+    @property
+    def area_name(self) -> str:
+        place = self.ward or self.constituency or self.county
+        return place.name if place else ""
+
+    @property
+    def county_name(self) -> str:
+        if self.county is not None:
+            return self.county.name
+        if self.constituency is not None:
+            return self.constituency.county.name
+        return self.ward.constituency.county.name if self.ward is not None else ""
+
+
 class County(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "counties"
     __table_args__ = (

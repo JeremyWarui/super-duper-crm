@@ -12,6 +12,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.db.session import get_or_refuse
 from backend.models import (
     Branch,
     BranchOffice,
@@ -75,8 +76,7 @@ def public(rows: list[BranchOfficial]) -> list[dict]:
 
 
 async def _branch(session: AsyncSession, county_id: uuid.UUID, *, create: bool) -> Branch | None:
-    if await session.get(County, county_id) is None:
-        raise NotFound("No such county.")
+    await get_or_refuse(session, County, county_id, "county")
     query = select(Branch).where(Branch.county_id == county_id)
     # Appointments to one branch run one at a time, so their date checks cannot race.
     branch = await session.scalar(query.with_for_update() if create else query)
@@ -205,9 +205,7 @@ async def end_term(
     session: AsyncSession, official_id: uuid.UUID, payload: OfficialEnd, *, actor: User
 ) -> BranchOfficial:
     """Close a term on a day; the office stands vacant from the next day."""
-    row = await session.get(BranchOfficial, official_id)
-    if row is None:
-        raise NotFound("No such term.")
+    row = await get_or_refuse(session, BranchOfficial, official_id, "term")
     if row.term_end is not None and row.term_end < payload.term_end:
         raise Refused("That term already ends sooner.")
     if payload.term_end < row.term_start:

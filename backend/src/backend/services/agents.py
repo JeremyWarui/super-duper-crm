@@ -18,7 +18,7 @@ from backend.models import (
 )
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
-from backend.services.permissions import Area
+from backend.services.permissions import Area, narrow
 from backend.services.targets import _in_area, ward_in_area
 
 # Centres without an agent listed by the coverage view; the rest are counted.
@@ -30,18 +30,12 @@ WITH_PEOPLE = (
 )
 
 
-def _within(statement: Select, area: Area | None) -> Select:
-    if area is None:
-        return statement
-    return statement.where(area.where(Agent.ward_id, Agent.registration_centre_id))
-
-
 async def agents(
     session: AsyncSession, campaign_id: uuid.UUID, area: Area | None, own: uuid.UUID | None = None
 ) -> list[Agent]:
     """The workspace's agents inside `area`, or only the login `own`, by centre then name."""
     statement = select(Agent).where(Agent.campaign_id == campaign_id).options(*WITH_PEOPLE)
-    statement = statement.where(Agent.user_id == own) if own else _within(statement, area)
+    statement = statement.where(Agent.user_id == own) if own else narrow(statement, area, Agent)
     found = list(await session.scalars(statement))
     return sorted(
         found,
@@ -66,8 +60,8 @@ async def agent(
     session: AsyncSession, campaign_id: uuid.UUID, agent_id: uuid.UUID, area: Area | None
 ) -> Agent:
     found = await session.scalar(
-        _within(
-            select(Agent).where(Agent.id == agent_id, Agent.campaign_id == campaign_id), area
+        narrow(
+            select(Agent).where(Agent.id == agent_id, Agent.campaign_id == campaign_id), area, Agent
         ).options(*WITH_PEOPLE)
     )
     if found is None:

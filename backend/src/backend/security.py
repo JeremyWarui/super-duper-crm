@@ -1,5 +1,6 @@
-"""Password hashing and API token keys."""
+"""Password hashing, API token keys, and the random codes and digests the app hands out."""
 
+import hashlib
 import secrets
 
 from argon2 import PasswordHasher
@@ -44,3 +45,18 @@ def new_token_key() -> str:
 def new_password() -> str:
     """DEFAULT_USER_PASSWORD when set, otherwise a generated one."""
     return get_settings().default_user_password or secrets.token_urlsafe(PASSWORD_BYTES)
+
+
+def new_withdraw_code() -> str:
+    """The private code a person withdraws their own sign-up with."""
+    return secrets.token_urlsafe(18)
+
+
+def new_short_code() -> str:
+    """A 12-character code for a link people share, such as a sign-up or team link."""
+    return secrets.token_urlsafe(9)
+
+
+def sha256_hex(value: str | bytes) -> str:
+    """The SHA-256 of `value` as 64 hex characters; text is hashed as UTF-8."""
+    return hashlib.sha256(value.encode() if isinstance(value, str) else value).hexdigest()

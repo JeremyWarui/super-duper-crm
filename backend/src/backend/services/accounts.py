@@ -2,12 +2,13 @@
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.models import (
+    AuthToken,
     Campaign,
     CampaignMember,
     Mobilizer,
@@ -133,11 +134,7 @@ async def membership_refusal(
 
 async def add_member(session: AsyncSession, campaign_id: uuid.UUID, user: User) -> CampaignMember:
     """Put a login on a campaign, in the place its role names."""
-    existing = await session.scalar(
-        select(CampaignMember).where(
-            CampaignMember.campaign_id == campaign_id, CampaignMember.user_id == user.id
-        )
-    )
+    existing = await member_of(session, campaign_id, user.id)
     if existing is not None:
         return existing
     refusal = await membership_refusal(session, user, campaign_id)
@@ -237,7 +234,7 @@ async def add_mobilizer(
         raise Refused(f"That {unit} already has a mobilizer: {holder.full_name}.")
     if user is not None:
         await add_member(session, campaign.id, user)
-        full_name = full_name or user.full_name or user.username
+        full_name = full_name or user.display_name
         phone = phone or user.phone
     mobilizer = Mobilizer(
         campaign_id=campaign.id,
@@ -250,3 +247,43 @@ async def add_mobilizer(
     session.add(mobilizer)
     await session.flush()
     return mobilizer
+
+
+async def logins_on(
+    session: AsyncSession, campaign_id: uuid.UUID, role: UserRole | None = None
+) -> list[User]:
+    """The logins on a campaign, or only those in `role`, by username."""
+    statement = (
+        select(User)
+        .join(CampaignMember, CampaignMember.user_id == User.id)
+        .where(CampaignMember.campaign_id == campaign_id)
+        .order_by(User.username)
+    )
+    if role is not None:
+        statement = statement.where(CampaignMember.role == role)
+    return list(await session.scalars(statement))
+
+
+async def member_of(
+    session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID
+) -> CampaignMember | None:
+    """This login's place on this campaign, if it has one."""
+    return await session.scalar(
+        select(CampaignMember).where(
+            CampaignMember.campaign_id == campaign_id, CampaignMember.user_id == user_id
+        )
+    )
+
+
+async def leave(session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID) -> None:
+    """Take a login off a campaign; the caller commits."""
+    await session.execute(
+        delete(CampaignMember).where(
+            CampaignMember.campaign_id == campaign_id, CampaignMember.user_id == user_id
+        )
+    )
+
+
+async def sign_out(session: AsyncSession, user_id: uuid.UUID) -> None:
+    """Delete every token the login holds; the caller commits."""
+    await session.execute(delete(AuthToken).where(AuthToken.user_id == user_id))

@@ -4,19 +4,19 @@ A link carries a random token; the database keeps only its SHA-256. A link works
 expires, and issuing a new one of the same purpose voids the older ones.
 """
 
-import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.config import get_settings
-from backend.models import AuthToken, LinkPurpose, LoginInvite, User, UserKind
-from backend.security import hash_password
-from backend.services.accounts import new_login, user_with_email
+from backend.models import LinkPurpose, LoginInvite, User, UserKind
+from backend.security import hash_password, sha256_hex
+from backend.services.accounts import new_login, sign_out, user_with_email
 from backend.services.audit import record
+from backend.services.clock import as_utc
 from backend.services.email import send_email
 from backend.services.errors import Refused
 
@@ -31,15 +31,6 @@ def may_sign_in(user: User) -> bool:
     if not user.is_active or user.pending:
         return False
     return user.kind is not UserKind.MEMBER or user.member_account
-
-
-def _hash(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()
-
-
-def _utc(moment: datetime) -> datetime:
-    """SQLite hands datetimes back without their zone; they are stored in UTC."""
-    return moment if moment.tzinfo else moment.replace(tzinfo=UTC)
 
 
 def link_url(purpose: LinkPurpose, token: str) -> str:
@@ -63,7 +54,7 @@ async def issue(session: AsyncSession, user: User, purpose: LinkPurpose) -> str:
         LoginInvite(
             user_id=user.id,
             purpose=purpose,
-            token_hash=_hash(token),
+            token_hash=sha256_hex(token),
             expires_at=now + LIFETIME[purpose],
         )
     )
@@ -107,8 +98,10 @@ async def new_invited_login(session: AsyncSession, **details) -> tuple[User, str
 
 
 async def _live(session: AsyncSession, token: str) -> tuple[LoginInvite, User]:
-    link = await session.scalar(select(LoginInvite).where(LoginInvite.token_hash == _hash(token)))
-    if link is None or link.used_at is not None or _utc(link.expires_at) <= datetime.now(UTC):
+    link = await session.scalar(
+        select(LoginInvite).where(LoginInvite.token_hash == sha256_hex(token))
+    )
+    if link is None or link.used_at is not None or as_utc(link.expires_at) <= datetime.now(UTC):
         raise Refused(SPENT)
     user = await session.scalar(
         select(User).where(User.id == link.user_id).options(selectinload(User.party_member))
@@ -142,7 +135,7 @@ async def claim(session: AsyncSession, token: str, password: str) -> User:
         .where(LoginInvite.user_id == user.id, LoginInvite.used_at.is_(None))
         .values(used_at=now)
     )
-    await session.execute(delete(AuthToken).where(AuthToken.user_id == user.id))
+    await sign_out(session, user.id)
     record(
         session,
         actor=user,

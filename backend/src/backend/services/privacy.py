@@ -5,7 +5,6 @@ audit row it writes names only the row, the officer and the time.
 """
 
 import calendar
-import secrets
 import uuid
 from datetime import UTC, date, datetime, timedelta
 
@@ -14,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.config import get_settings
+from backend.db.session import get_or_refuse
 from backend.models import (
     Campaign,
     CampaignMember,
@@ -35,7 +35,7 @@ from backend.models import (
 from backend.schemas.privacy import DataRequestCreate, DataRequestUpdate
 from backend.services import texting
 from backend.services.audit import record
-from backend.services.errors import NotFound, Refused
+from backend.services.errors import Refused, refuse_erased
 
 ERASED = "Erased"
 # Days to answer, from the Data Protection (General) Regulations 2021 (regs 9, 10 and 12).
@@ -54,11 +54,6 @@ def _now() -> datetime:
 def placeholder(row_id: uuid.UUID) -> str:
     """A stand-in for a unique phone or ID number; never a real one."""
     return f"~{row_id.hex[:19]}"
-
-
-def refuse_erased(row: Supporter | VolunteerProfile | PartyMember | TeamRegistration) -> None:
-    if row.erased_at is not None:
-        raise Refused("This person's details were erased.")
 
 
 def _audit(
@@ -238,10 +233,6 @@ def left_team(campaign_id: uuid.UUID) -> Select:
 # Withdrawal links for supporters.
 
 
-def new_code() -> str:
-    return secrets.token_urlsafe(18)
-
-
 def withdrawal_url(code: str) -> str:
     return f"{get_settings().public_url.rstrip('/')}/withdraw/{code}"
 
@@ -318,9 +309,9 @@ def log_request(
 async def find_request(
     session: AsyncSession, campaign_id: uuid.UUID | None, request_id: uuid.UUID
 ) -> DataRequest:
-    row = await session.get(DataRequest, request_id)
-    if row is None or row.campaign_id != campaign_id:
-        raise NotFound("No such request.")
+    row = await get_or_refuse(
+        session, DataRequest, request_id, "request", match={"campaign_id": campaign_id}
+    )
     return row
 
 

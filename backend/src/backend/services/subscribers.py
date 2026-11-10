@@ -1,12 +1,11 @@
 """News sign-ups from the website footer, and undoing them by their code."""
 
-import secrets
-
 from sqlalchemy import delete
 from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Subscriber
+from backend.security import new_withdraw_code
 from backend.services.consent import subscribe_wording
 from backend.services.site import read_settings
 
@@ -18,7 +17,7 @@ async def subscribe(session: AsyncSession, contact: str, channel: str) -> str:
     either way, so the answer does not show whether the contact was known.
     """
     settings = await read_settings(session)
-    code = secrets.token_urlsafe(18)
+    code = new_withdraw_code()
     dialect = postgresql if session.bind.dialect.name == "postgresql" else sqlite
     await session.execute(
         dialect.insert(Subscriber)

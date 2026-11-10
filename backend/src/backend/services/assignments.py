@@ -3,7 +3,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Select, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -21,7 +21,7 @@ from backend.models import (
 )
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
-from backend.services.permissions import Area
+from backend.services.permissions import Area, narrow
 from backend.services.targets import ward_in_area
 
 WITH_DETAIL = (
@@ -31,12 +31,6 @@ WITH_DETAIL = (
     selectinload(Assignment.ward),
     selectinload(Assignment.registration_centre),
 )
-
-
-def _within(statement: Select, area: Area | None) -> Select:
-    if area is None:
-        return statement
-    return statement.where(area.where(Assignment.ward_id, Assignment.registration_centre_id))
 
 
 async def assignments(
@@ -57,7 +51,7 @@ async def assignments(
             else Assignment.agent_id == agent_id
         )
     else:
-        statement = _within(statement, area)
+        statement = narrow(statement, area, Assignment)
     if status is not None:
         statement = statement.where(Assignment.status == status)
     found = await session.scalars(
@@ -70,11 +64,12 @@ async def assignment(
     session: AsyncSession, campaign_id: uuid.UUID, assignment_id: uuid.UUID, area: Area | None
 ) -> Assignment:
     found = await session.scalar(
-        _within(
+        narrow(
             select(Assignment).where(
                 Assignment.id == assignment_id, Assignment.campaign_id == campaign_id
             ),
             area,
+            Assignment,
         ).options(*WITH_DETAIL)
     )
     if found is None:

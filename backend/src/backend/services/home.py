@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.db.session import get_or_refuse
 from backend.models import (
     AgendaIssue,
     HeroSlide,
@@ -69,13 +70,6 @@ def _audit(session: AsyncSession, actor: User, verb: str, row: Row, **detail: ob
     )
 
 
-async def _get(session: AsyncSession, model: type[Row], row_id: uuid.UUID) -> Row:
-    row = await session.get(model, row_id)
-    if row is None:
-        raise NotFound("No such item.")
-    return row
-
-
 async def create(
     session: AsyncSession, model: type[Row], payload: BaseModel, *, actor: User
 ) -> Row:
@@ -94,7 +88,7 @@ async def create(
 async def update(
     session: AsyncSession, model: type[Row], row_id: uuid.UUID, payload: BaseModel, *, actor: User
 ) -> Row:
-    row = await _get(session, model, row_id)
+    row = await get_or_refuse(session, model, row_id, "item")
     changes = {
         name: value
         for name, value in payload.model_dump(exclude_unset=True).items()
@@ -111,7 +105,7 @@ async def update(
 async def delete(
     session: AsyncSession, model: type[Row], row_id: uuid.UUID, *, actor: User
 ) -> None:
-    row = await _get(session, model, row_id)
+    row = await get_or_refuse(session, model, row_id, "item")
     _audit(session, actor, "delete", row)
     await session.delete(row)
     await session.commit()
