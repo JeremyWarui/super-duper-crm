@@ -14,9 +14,9 @@ from sqlalchemy.orm import selectinload
 from backend.config import get_settings
 from backend.models import LinkPurpose, LoginInvite, User, UserKind
 from backend.security import hash_password, sha256_hex
+from backend.services import tokens
 from backend.services.accounts import new_login, sign_out, user_with_email
 from backend.services.audit import record
-from backend.services.clock import as_utc
 from backend.services.email import send_email
 from backend.services.errors import Refused
 
@@ -101,7 +101,7 @@ async def _live(session: AsyncSession, token: str) -> tuple[LoginInvite, User]:
     link = await session.scalar(
         select(LoginInvite).where(LoginInvite.token_hash == sha256_hex(token))
     )
-    if link is None or link.used_at is not None or as_utc(link.expires_at) <= datetime.now(UTC):
+    if link is None or not tokens.is_live(link.expires_at, link.used_at):
         raise Refused(SPENT)
     user = await session.scalar(
         select(User).where(User.id == link.user_id).options(selectinload(User.party_member))
@@ -122,12 +122,9 @@ async def claim(session: AsyncSession, token: str, password: str) -> User:
     link, user = await _live(session, token)
     now = datetime.now(UTC)
     # Spending this link first means two requests racing on it cannot both get through.
-    spent = await session.execute(
-        update(LoginInvite)
-        .where(LoginInvite.id == link.id, LoginInvite.used_at.is_(None))
-        .values(used_at=now)
-    )
-    if spent.rowcount != 1:
+    if not await tokens.spend(
+        session, LoginInvite, LoginInvite.id == link.id, LoginInvite.used_at.is_(None), used_at=now
+    ):
         raise Refused(SPENT)
     user.password_hash = hash_password(password)
     await session.execute(

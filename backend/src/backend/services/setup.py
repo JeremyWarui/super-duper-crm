@@ -22,11 +22,10 @@ from backend.models import (
 )
 from backend.schemas.setup import Area, ServiceState, SetupRequest, SetupResult
 from backend.security import sha256_hex
-from backend.services import oidc, party_workspace, texting
+from backend.services import oidc, party_workspace, texting, tokens
 from backend.services.accounts import new_login
 from backend.services.admin import build_workspace
 from backend.services.audit import record
-from backend.services.clock import as_utc
 from backend.services.email import send_email
 from backend.services.errors import Forbidden, Refused
 from backend.services.sms import require_phone
@@ -61,19 +60,20 @@ async def check(session: AsyncSession, token: str) -> None:
     if await is_set_up(session):
         raise Refused(DONE)
     row = await session.scalar(select(SetupToken).where(SetupToken.token_hash == sha256_hex(token)))
-    if row is None or row.used_at is not None or as_utc(row.expires_at) <= datetime.now(UTC):
+    if row is None or not tokens.is_live(row.expires_at, row.used_at):
         raise Forbidden(BAD_TOKEN)
 
 
 async def _spend(session: AsyncSession, token: str) -> None:
     """Marks the token used, once; a second request with it is refused."""
     await check(session, token)
-    spent = await session.execute(
-        update(SetupToken)
-        .where(SetupToken.token_hash == sha256_hex(token), SetupToken.used_at.is_(None))
-        .values(used_at=datetime.now(UTC))
-    )
-    if spent.rowcount != 1:
+    if not await tokens.spend(
+        session,
+        SetupToken,
+        SetupToken.token_hash == sha256_hex(token),
+        SetupToken.used_at.is_(None),
+        used_at=datetime.now(UTC),
+    ):
         raise Forbidden(BAD_TOKEN)
 
 

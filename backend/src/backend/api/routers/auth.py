@@ -17,7 +17,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import JSONResponse, RedirectResponse
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -44,10 +44,9 @@ from backend.security import (
     sha256_hex,
     verify_password,
 )
-from backend.services import login_links, oidc
+from backend.services import login_links, oidc, tokens
 from backend.services.accounts import clean_email, sign_out, user_named, user_with_email
 from backend.services.audit import record
-from backend.services.clock import as_utc
 from backend.services.ratelimit import RateLimit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -273,15 +272,16 @@ async def google_finish(payload: GoogleFinish, request: Request, session: Sessio
     check(CLAIMS, request)
     hashed = sha256_hex(f"{payload.handoff}:{payload.bind}")
     token = await session.scalar(select(AuthToken).where(AuthToken.handoff_hash == hashed))
-    expires = as_utc(token.handoff_expires_at) if token and token.handoff_expires_at else None
-    if token is None or expires is None or expires <= datetime.now(UTC):
+    if token is None or not tokens.is_live(token.handoff_expires_at):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, HANDOFF_SPENT)
-    spent = await session.execute(
-        update(AuthToken)
-        .where(AuthToken.id == token.id, AuthToken.handoff_hash == hashed)
-        .values(handoff_hash=None, handoff_expires_at=None)
-    )
-    if spent.rowcount != 1:
+    if not await tokens.spend(
+        session,
+        AuthToken,
+        AuthToken.id == token.id,
+        AuthToken.handoff_hash == hashed,
+        handoff_hash=None,
+        handoff_expires_at=None,
+    ):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, HANDOFF_SPENT)
     user = await session.scalar(
         select(User)

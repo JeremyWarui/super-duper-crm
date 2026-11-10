@@ -3,7 +3,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, MetaData, Uuid, func, inspect
+from sqlalchemy import DateTime, MetaData, String, Uuid, func, inspect
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -46,6 +46,14 @@ def updated_at_column() -> Mapped[datetime]:
         nullable=False,
         sort_order=101,
     )
+
+
+class OneTimeToken:
+    """A secret kept only as its SHA-256, live until it expires or is used."""
+
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
 
 class TimestampMixin:
