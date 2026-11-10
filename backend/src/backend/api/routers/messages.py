@@ -44,8 +44,8 @@ async def _visible(session, user: User, message_id: uuid.UUID) -> CampaignMessag
 
 
 async def _read(session, user: User, message: CampaignMessage) -> dict:
-    rows = await messages.listing(session, message.campaign_id, None, user.id)
-    return next(r for r in rows if r["id"] == message.id)
+    (row,) = await messages.listing(session, message.campaign_id, None, user.id, [message.id])
+    return row
 
 
 async def _drafter_area(session, message: CampaignMessage):

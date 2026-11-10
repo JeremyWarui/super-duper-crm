@@ -25,7 +25,8 @@ CommsOfficer = Annotated[User, Depends(require_party_role(PartyRoleName.COMMS_OF
 
 
 async def _read(session, me: uuid.UUID, message_id: uuid.UUID) -> dict:
-    return next(r for r in await party_messages.listing(session, me) if r["id"] == message_id)
+    (row,) = await party_messages.listing(session, me, [message_id])
+    return row
 
 
 @router.get("/", response_model=PartyMessages)

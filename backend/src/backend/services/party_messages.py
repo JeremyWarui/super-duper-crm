@@ -6,10 +6,8 @@ SMS as the way to reach them. A STOP reply opts the number out of party texts.
 """
 
 import uuid
-from collections import defaultdict
-from datetime import UTC, datetime
 
-from sqlalchemy import func, select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.session import get_or_refuse
@@ -32,11 +30,6 @@ from backend.services.errors import Refused
 from backend.services.sms import normalise_all
 
 AUDIENCES = ("members", "volunteers")
-
-
-def text_of(body: str) -> str:
-    """What each person receives: the message and the opt-out line."""
-    return body.strip() + texting.FOOTER
 
 
 def _who(
@@ -172,16 +165,7 @@ async def _decide(
     """Move a draft on once, never by whoever drafted it."""
     if message.drafted_by_id == actor.id:
         raise Refused("Someone other than whoever drafted the message approves it.")
-    changed = await session.execute(
-        update(PartyMessage)
-        .where(PartyMessage.id == message.id, PartyMessage.status == "draft")
-        .values(status=status, decided_by_id=actor.id, decided_at=datetime.now(UTC), note=note)
-        .execution_options(synchronize_session=False)
-    )
-    if changed.rowcount == 0:
-        await session.rollback()
-        raise Refused("That message is no longer a draft.")
-    await session.refresh(message)
+    await texting.decide(session, PartyMessage, message, status, actor, note)
 
 
 async def send(session: AsyncSession, message: PartyMessage, *, actor: User) -> PartyMessage:
@@ -193,7 +177,7 @@ async def send(session: AsyncSession, message: PartyMessage, *, actor: User) -> 
     result, _ = await texting.send(
         session,
         numbers,
-        text_of(message.body),
+        texting.text_of(message.body),
         purpose="party",
         sender=actor,
         party_message_id=message.id,
@@ -205,11 +189,7 @@ async def send(session: AsyncSession, message: PartyMessage, *, actor: User) -> 
         action="party_sms.send",
         subject_type="party_message",
         subject_id=message.id,
-        detail={
-            "provider": result.provider,
-            "accepted": len(result.accepted),
-            "failed": len(result.rejected),
-        },
+        detail=texting.send_detail(result),
     )
     await session.commit()
     return message
@@ -230,23 +210,20 @@ async def decline(
     return message
 
 
-async def listing(session: AsyncSession, me: uuid.UUID) -> list[dict]:
-    """Every party message, newest first, with how delivery went."""
-    messages = list(
-        await session.scalars(select(PartyMessage).order_by(PartyMessage.created_at.desc()))
+async def listing(
+    session: AsyncSession, me: uuid.UUID, ids: list[uuid.UUID] | None = None
+) -> list[dict]:
+    """Every party message, or those in `ids`, newest first, with how delivery went."""
+    statement = select(PartyMessage).order_by(PartyMessage.created_at.desc())
+    if ids is not None:
+        statement = statement.where(PartyMessage.id.in_(ids))
+    messages = list(await session.scalars(statement))
+    counts = await texting.delivery_counts(
+        session, SmsLog.party_message_id, [m.id for m in messages]
     )
-    counts: dict[uuid.UUID, dict[str, int]] = defaultdict(dict)
-    for message_id, status, n in await session.execute(
-        select(SmsLog.party_message_id, SmsLog.status, func.count())
-        .where(SmsLog.party_message_id.in_([m.id for m in messages]))
-        .group_by(SmsLog.party_message_id, SmsLog.status)
-    ):
-        counts[message_id][status] = n
-    people = {m.drafted_by_id for m in messages} | {m.decided_by_id for m in messages}
-    names = {
-        u.id: u.display_name
-        for u in await session.scalars(select(User).where(User.id.in_(people - {None})))
-    }
+    names = await texting.names_of(
+        session, {m.drafted_by_id for m in messages} | {m.decided_by_id for m in messages}
+    )
     wards = {m.ward_id for m in messages} - {None}
     constituencies = {m.constituency_id for m in messages} - {None}
     counties = {m.county_id for m in messages} - {None}

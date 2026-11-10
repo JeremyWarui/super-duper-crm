@@ -3,13 +3,15 @@ row is written per number, and the gateway's delivery reports and STOP replies c
 
 import logging
 import uuid
+from collections import defaultdict
 from datetime import UTC, datetime
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import InstrumentedAttribute
 
-from backend.models import SmsInbound, SmsLog, SmsOptOut, User
+from backend.models import CampaignMessage, PartyMessage, SmsInbound, SmsLog, SmsOptOut, User
 from backend.services.errors import Refused
 from backend.services.sms import Recipient, SendResult, get_sms_provider, normalise_phone
 
@@ -24,6 +26,63 @@ STOP_WORDS = {"STOP", "STOPALL", "UNSUBSCRIBE", "END", "QUIT", "CANCEL", "ACHA"}
 # The gateway's delivery report status, as this app records it.
 REPORTED = {"Success": "delivered", "Failed": "failed", "Rejected": "failed"}
 FINAL = {"delivered", "failed"}
+
+
+def text_of(body: str) -> str:
+    """What each person receives: the message and the opt-out line."""
+    return body.strip() + FOOTER
+
+
+async def decide(
+    session: AsyncSession,
+    model: type[CampaignMessage | PartyMessage],
+    message: CampaignMessage | PartyMessage,
+    status: str,
+    actor: User,
+    note: str = "",
+) -> None:
+    """Move a draft on, once; a second click finds it decided and is refused."""
+    changed = await session.execute(
+        update(model)
+        .where(model.id == message.id, model.status == "draft")
+        .values(status=status, decided_by_id=actor.id, decided_at=datetime.now(UTC), note=note)
+        .execution_options(synchronize_session=False)
+    )
+    if changed.rowcount == 0:
+        await session.rollback()
+        raise Refused("That message is no longer a draft.")
+    await session.refresh(message)
+
+
+def send_detail(result: SendResult) -> dict:
+    """The audit detail of a message sent."""
+    return {
+        "provider": result.provider,
+        "accepted": len(result.accepted),
+        "failed": len(result.rejected),
+    }
+
+
+async def delivery_counts(
+    session: AsyncSession, column: InstrumentedAttribute, ids: list[uuid.UUID]
+) -> dict[uuid.UUID, dict[str, int]]:
+    """How many texts of each message are in each delivery status, by `column` of sms_log."""
+    counts: dict[uuid.UUID, dict[str, int]] = defaultdict(dict)
+    for message_id, status, n in await session.execute(
+        select(column, SmsLog.status, func.count())
+        .where(column.in_(ids))
+        .group_by(column, SmsLog.status)
+    ):
+        counts[message_id][status] = n
+    return counts
+
+
+async def names_of(session: AsyncSession, user_ids: set) -> dict[uuid.UUID, str]:
+    """The display name of each login named."""
+    return {
+        u.id: u.display_name
+        for u in await session.scalars(select(User).where(User.id.in_(user_ids - {None})))
+    }
 
 
 async def opted_out(

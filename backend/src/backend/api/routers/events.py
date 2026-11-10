@@ -29,9 +29,9 @@ from backend.schemas.campaign import (
     EventSignups,
     InviteRecipient,
 )
-from backend.services import texting
+from backend.services import messages, texting
 from backend.services.permissions import reach, refusal
-from backend.services.sms import Recipient, SendResult, get_sms_provider, normalise_all
+from backend.services.sms import Recipient, SendResult, get_sms_provider
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -149,20 +149,14 @@ async def invite_to_event(
         raise HTTPException(status.HTTP_403_FORBIDDEN, refusal(user, "sms.send"))
     event = await require_visible(session, user, Event, event_id, "event", "events.write", LOADED)
 
-    statement = select(Supporter).where(
-        Supporter.campaign_id == event.campaign_id, Supporter.consent_given.is_(True)
+    matched, text, numbers, unusable = await messages.invite(
+        session,
+        event,
+        await area_of(session, user, "events.write"),
+        payload.message,
+        whole_campaign=payload.whole_campaign,
+        support_levels=payload.support_levels,
     )
-    if not payload.whole_campaign:
-        statement = statement.where(Supporter.ward_id == event.ward_id)
-    if payload.support_levels:
-        statement = statement.where(Supporter.support_level.in_(payload.support_levels))
-    area = await area_of(session, user, "events.write")
-    if area is not None:
-        statement = statement.where(area.where(Supporter.ward_id, Supporter.registration_centre_id))
-
-    supporters = await all_rows(session, statement)
-    numbers, unusable = normalise_all([s.phone for s in supporters])
-    text = payload.message.strip() + texting.FOOTER
 
     if payload.dry_run:
         blocked = await texting.opted_out(session, event.campaign_id, numbers)
@@ -195,7 +189,7 @@ async def invite_to_event(
         dry_run=payload.dry_run,
         message=result.message,
         parts=result.parts,
-        supporters_matched=len(supporters),
+        supporters_matched=matched,
         requested=result.requested,
         opted_out=left_out,
         accepted=[shown(r) for r in result.accepted],

@@ -3,24 +3,25 @@ Candidate or Manager sends. A message goes to supporters who consented, have a n
 not opted out, in the wards picked and inside the drafter's area."""
 
 import uuid
-from collections import defaultdict
-from datetime import UTC, datetime
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.session import get_or_refuse
-from backend.models import CampaignMessage, RegistrationCentre, SmsLog, Supporter, User, Ward
+from backend.models import (
+    CampaignMessage,
+    Event,
+    RegistrationCentre,
+    SmsLog,
+    Supporter,
+    User,
+    Ward,
+)
 from backend.services import texting
 from backend.services.audit import record
 from backend.services.errors import Refused
 from backend.services.permissions import Area
 from backend.services.sms import normalise_all, parts_of
-
-
-def text_of(body: str) -> str:
-    """What each supporter receives: the message and the opt-out line."""
-    return body.strip() + texting.FOOTER
 
 
 async def _area_wards(session: AsyncSession, area: Area) -> set[uuid.UUID]:
@@ -43,13 +44,14 @@ async def check_wards(session: AsyncSession, area: Area | None, wards: list[uuid
         raise Refused("Pick only wards inside your area.")
 
 
-def _audience(campaign_id: uuid.UUID, area: Area | None, wards: list[uuid.UUID]) -> list:
-    """The conditions on `supporters` for who a message may reach."""
-    conditions = [
-        Supporter.campaign_id == campaign_id,
-        Supporter.consent_given.is_(True),
-        Supporter.phone != "",
-    ]
+def _audience(
+    campaign_id: uuid.UUID, area: Area | None, wards: list[uuid.UUID], *, with_phone: bool = True
+) -> list:
+    """The conditions on `supporters` for who a text may reach; `with_phone` drops the ones
+    with no number at all."""
+    conditions = [Supporter.campaign_id == campaign_id, Supporter.consent_given.is_(True)]
+    if with_phone:
+        conditions.append(Supporter.phone != "")
     if wards:
         conditions.append(Supporter.ward_id.in_(wards))
     if area is not None:
@@ -73,12 +75,34 @@ async def recipients(
     return [n for n in numbers if n not in blocked], len(blocked), len(unusable)
 
 
+async def invite(
+    session: AsyncSession,
+    event: Event,
+    area: Area | None,
+    message: str,
+    *,
+    whole_campaign: bool,
+    support_levels: list,
+) -> tuple[int, str, list[str], list]:
+    """Who an event invite reaches: how many supporters matched, the text, their usable
+    numbers, and the ones with no usable number. Supporters with an empty phone count as
+    matched and come back unusable."""
+    conditions = _audience(event.campaign_id, area, [], with_phone=False)
+    if not whole_campaign:
+        conditions.append(Supporter.ward_id == event.ward_id)
+    if support_levels:
+        conditions.append(Supporter.support_level.in_(support_levels))
+    phones = list(await session.scalars(select(Supporter.phone).where(*conditions)))
+    numbers, unusable = normalise_all(phones)
+    return len(phones), texting.text_of(message), numbers, unusable
+
+
 async def reach(
     session: AsyncSession, campaign_id: uuid.UUID, area: Area | None, wards: list, body: str
 ) -> dict:
     await check_wards(session, area, wards)
     numbers, blocked, unusable = await recipients(session, campaign_id, area, wards)
-    text = text_of(body)
+    text = texting.text_of(body)
     return {
         "recipients": len(numbers),
         "opted_out": blocked,
@@ -134,32 +158,16 @@ async def draft(
     return message
 
 
-async def _decide(
-    session: AsyncSession, message: CampaignMessage, status: str, actor: User, note: str = ""
-) -> None:
-    """Move a draft on, once; a second click finds it decided and is refused."""
-    changed = await session.execute(
-        update(CampaignMessage)
-        .where(CampaignMessage.id == message.id, CampaignMessage.status == "draft")
-        .values(status=status, decided_by_id=actor.id, decided_at=datetime.now(UTC), note=note)
-        .execution_options(synchronize_session=False)
-    )
-    if changed.rowcount == 0:
-        await session.rollback()
-        raise Refused("That message is no longer a draft.")
-    await session.refresh(message)
-
-
 async def send(
     session: AsyncSession, message: CampaignMessage, drafter_area: Area | None, *, actor: User
 ) -> CampaignMessage:
     """Approve a draft and text it to its supporters, inside the drafter's area."""
-    await _decide(session, message, "sent", actor)
+    await texting.decide(session, CampaignMessage, message, "sent", actor)
     numbers, _, _ = await recipients(session, message.campaign_id, drafter_area, message.wards)
     result, _ = await texting.send(
         session,
         numbers,
-        text_of(message.body),
+        texting.text_of(message.body),
         purpose="message",
         sender=actor,
         campaign_id=message.campaign_id,
@@ -173,11 +181,7 @@ async def send(
         subject_type="campaign_message",
         subject_id=message.id,
         campaign_id=message.campaign_id,
-        detail={
-            "provider": result.provider,
-            "accepted": len(result.accepted),
-            "failed": len(result.rejected),
-        },
+        detail=texting.send_detail(result),
     )
     await session.commit()
     return message
@@ -186,7 +190,7 @@ async def send(
 async def decline(
     session: AsyncSession, message: CampaignMessage, note: str, *, actor: User
 ) -> CampaignMessage:
-    await _decide(session, message, "declined", actor, note.strip())
+    await texting.decide(session, CampaignMessage, message, "declined", actor, note.strip())
     record(
         session,
         actor=actor,
@@ -211,27 +215,24 @@ async def get(session: AsyncSession, message_id: uuid.UUID) -> CampaignMessage:
 
 
 async def listing(
-    session: AsyncSession, campaign_id: uuid.UUID, drafter: uuid.UUID | None, me: uuid.UUID
+    session: AsyncSession,
+    campaign_id: uuid.UUID,
+    drafter: uuid.UUID | None,
+    me: uuid.UUID,
+    ids: list[uuid.UUID] | None = None,
 ) -> list[dict]:
     """The campaign's messages, newest first, with how delivery went; `drafter` narrows them to
-    one person's."""
+    one person's, `ids` to those messages."""
     statement = select(CampaignMessage).where(CampaignMessage.campaign_id == campaign_id)
     if drafter is not None:
         statement = statement.where(CampaignMessage.drafted_by_id == drafter)
+    if ids is not None:
+        statement = statement.where(CampaignMessage.id.in_(ids))
     messages = list(await session.scalars(statement.order_by(CampaignMessage.created_at.desc())))
-    ids = [m.id for m in messages]
-    counts: dict[uuid.UUID, dict[str, int]] = defaultdict(dict)
-    for message_id, status, n in await session.execute(
-        select(SmsLog.message_id, SmsLog.status, func.count())
-        .where(SmsLog.message_id.in_(ids))
-        .group_by(SmsLog.message_id, SmsLog.status)
-    ):
-        counts[message_id][status] = n
-    people = {m.drafted_by_id for m in messages} | {m.decided_by_id for m in messages}
-    names = {
-        u.id: u.display_name
-        for u in await session.scalars(select(User).where(User.id.in_(people - {None})))
-    }
+    counts = await texting.delivery_counts(session, SmsLog.message_id, [m.id for m in messages])
+    names = await texting.names_of(
+        session, {m.drafted_by_id for m in messages} | {m.decided_by_id for m in messages}
+    )
     ward_ids = {uuid.UUID(w) for m in messages for w in m.wards}
     ward_names = {
         w.id: w.name for w in await session.scalars(select(Ward).where(Ward.id.in_(ward_ids)))
