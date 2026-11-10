@@ -17,6 +17,7 @@ from backend.models import (
     County,
     HeroSlide,
     PartyDocument,
+    PartyLeader,
     PartyMember,
     PartyMemberStatus,
     PartyOrgan,
@@ -113,7 +114,7 @@ async def get_party(session: SessionDep) -> PartySettingsRead:
 @party_router.get("/leaders/", response_model=list[LeaderRead])
 async def leaders(session: SessionDep):
     """The published leaders, in the order the party set."""
-    return await content.published_leaders(session)
+    return await home.published(session, PartyLeader)
 
 
 @party_router.get("/branches/", response_model=list[BranchRead])

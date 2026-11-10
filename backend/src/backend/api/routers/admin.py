@@ -15,6 +15,7 @@ from backend.models import (
     HeroSlide,
     ImportRun,
     PartyDocument,
+    PartyLeader,
     PartyOrgan,
     PartyRoleName,
     PartyValue,
@@ -68,7 +69,7 @@ from backend.schemas.imports import SHOWN_CHANGES, ImportReportRead, ImportRunRe
 from backend.schemas.party import PartySettingsRead, PartySettingsUpdate
 from backend.schemas.site import SiteSettingsRead, SiteSettingsUpdate
 from backend.services import admin as service
-from backend.services import audit, branches, candidates, content, imports
+from backend.services import audit, branches, candidates, imports
 from backend.services import party as party_service
 from backend.services import site as site_service
 from backend.services.errors import Refused
@@ -85,29 +86,16 @@ async def overview(session: SessionDep, _: AdminUser) -> Overview:
     )
 
 
-@party_router.get("/party/leaders/", response_model=list[LeaderAdminRead])
-async def party_leaders(session: SessionDep, _: AdminUser):
-    """Every leader, published or not."""
-    return await content.leaders(session)
-
-
-@party_router.post(
-    "/party/leaders/", response_model=LeaderAdminRead, status_code=status.HTTP_201_CREATED
+items(
+    party_router,
+    AdminUser,
+    "/party/leaders/",
+    PartyLeader,
+    LeaderCreate,
+    LeaderUpdate,
+    LeaderAdminRead,
+    key="leader_id",
 )
-async def create_party_leader(payload: LeaderCreate, session: SessionDep, admin: AdminUser):
-    return await content.create_leader(session, payload, actor=admin)
-
-
-@party_router.patch("/party/leaders/{leader_id}/", response_model=LeaderAdminRead)
-async def update_party_leader(
-    leader_id: uuid.UUID, payload: LeaderUpdate, session: SessionDep, admin: AdminUser
-):
-    return await content.update_leader(session, leader_id, payload, actor=admin)
-
-
-@party_router.delete("/party/leaders/{leader_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_party_leader(leader_id: uuid.UUID, session: SessionDep, admin: AdminUser):
-    await content.delete_leader(session, leader_id, actor=admin)
 
 
 posts(router, AdminUser, "/party/posts/")

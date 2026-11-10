@@ -1,4 +1,4 @@
-"""Homepage, About-page and Results-page content; the public sees published ones."""
+"""Homepage, About-page, Results-page and leader content; the public sees published ones."""
 
 import uuid
 
@@ -11,6 +11,7 @@ from backend.models import (
     AgendaIssue,
     HeroSlide,
     PartyDocument,
+    PartyLeader,
     PartyOrgan,
     PartyValue,
     PartyVideo,
@@ -23,7 +24,16 @@ from backend.services.errors import NotFound, Refused
 MAX_SLIDES = 5
 # Fields a null clears instead of leaving unchanged.
 CLEARABLE = {"declared_on"}
-Row = HeroSlide | AgendaIssue | PartyDocument | PartyValue | PartyOrgan | PrimaryResult | PartyVideo
+Row = (
+    HeroSlide
+    | AgendaIssue
+    | PartyDocument
+    | PartyValue
+    | PartyOrgan
+    | PrimaryResult
+    | PartyVideo
+    | PartyLeader
+)
 NAMES = {
     HeroSlide: "hero_slide",
     AgendaIssue: "agenda_issue",
@@ -32,12 +42,18 @@ NAMES = {
     PartyOrgan: "organ",
     PrimaryResult: "result",
     PartyVideo: "video",
+    PartyLeader: "leader",
 }
+# The audit subject and the missing-row noun, where they differ from NAMES and "item".
+SUBJECTS = {PartyLeader: "party_leader"}
+NOUNS = {PartyLeader: "leader"}
 
 
 def _ordered(model: type[Row]):
     if model is PrimaryResult:
         return select(model).order_by(model.seat, model.area, model.votes.desc(), model.candidate)
+    if model is PartyLeader:
+        return select(model).order_by(model.sort_order, model.name)
     return select(model).order_by(model.sort_order, model.created_at)
 
 
@@ -64,7 +80,7 @@ def _audit(session: AsyncSession, actor: User, verb: str, row: Row, **detail: ob
         session,
         actor=actor,
         action=f"party.{name}.{verb}",
-        subject_type=name,
+        subject_type=SUBJECTS.get(type(row), name),
         subject_id=row.id,
         detail=detail,
     )
@@ -88,7 +104,7 @@ async def create(
 async def update(
     session: AsyncSession, model: type[Row], row_id: uuid.UUID, payload: BaseModel, *, actor: User
 ) -> Row:
-    row = await get_or_refuse(session, model, row_id, "item")
+    row = await get_or_refuse(session, model, row_id, NOUNS.get(model, "item"))
     changes = {
         name: value
         for name, value in payload.model_dump(exclude_unset=True).items()
@@ -105,7 +121,7 @@ async def update(
 async def delete(
     session: AsyncSession, model: type[Row], row_id: uuid.UUID, *, actor: User
 ) -> None:
-    row = await get_or_refuse(session, model, row_id, "item")
+    row = await get_or_refuse(session, model, row_id, NOUNS.get(model, "item"))
     _audit(session, actor, "delete", row)
     await session.delete(row)
     await session.commit()
