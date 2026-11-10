@@ -10,12 +10,12 @@ existing status moves (`services/aspirants.py`); nothing is approved without the
 import uuid
 from datetime import UTC, date, datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.db.session import get_or_refuse
+from backend.db.session import get_or_refuse, move_row
 from backend.models import (
     Aspirant,
     AspirantDocument,
@@ -120,15 +120,13 @@ async def revise(
     """Change a draft; a published timetable is fixed. Whoever changes it becomes its drafter."""
     _check_dates(opens_on, closes_on)
     # Claims the row before the content changes, so a publish running alongside waits or fails.
-    claimed = await session.execute(
-        update(NominationWindow)
-        .where(NominationWindow.id == row.id, NominationWindow.status == DRAFT)
-        .values(drafted_by_id=actor.id)
-        .execution_options(synchronize_session=False)
+    await move_row(
+        session,
+        row,
+        "A published timetable cannot be changed.",
+        NominationWindow.status == DRAFT,
+        drafted_by_id=actor.id,
     )
-    if claimed.rowcount != 1:
-        raise Refused("A published timetable cannot be changed.")
-    row.drafted_by_id = actor.id
     row.title, row.opens_on, row.closes_on, row.requirements = (
         title,
         opens_on,
@@ -171,18 +169,16 @@ async def publish(
     )
     if clash is not None:
         raise Refused(f"Those dates overlap the published timetable “{clash}”.")
-    changed = await session.execute(
-        update(NominationWindow)
-        .where(
-            NominationWindow.id == row.id,
-            NominationWindow.status == DRAFT,
-            NominationWindow.drafted_by_id != actor.id,
-        )
-        .values(status=PUBLISHED, published_by_id=actor.id, published_at=datetime.now(UTC))
-        .execution_options(synchronize_session=False)
+    await move_row(
+        session,
+        row,
+        "That timetable changed meanwhile; reload and try again.",
+        NominationWindow.status == DRAFT,
+        NominationWindow.drafted_by_id != actor.id,
+        status=PUBLISHED,
+        published_by_id=actor.id,
+        published_at=datetime.now(UTC),
     )
-    if changed.rowcount != 1:
-        raise Refused("That timetable changed meanwhile; reload and try again.")
     record(
         session,
         actor=actor,
@@ -328,14 +324,14 @@ async def submit(
             f"The KES {aspirant.fee_kes:,} nomination fee is not marked paid yet. Pay it as the "
             "party's instructions say; the nominations officer marks it paid."
         )
-    changed = await session.execute(
-        update(Aspirant)
-        .where(Aspirant.id == aspirant.id, Aspirant.status == AspirantStatus.DRAFT)
-        .values(status=AspirantStatus.SUBMITTED, declared_at=datetime.now(UTC))
-        .execution_options(synchronize_session=False)
+    await move_row(
+        session,
+        aspirant,
+        "Your application changed meanwhile; reload and try again.",
+        Aspirant.status == AspirantStatus.DRAFT,
+        status=AspirantStatus.SUBMITTED,
+        declared_at=datetime.now(UTC),
     )
-    if changed.rowcount != 1:
-        raise Refused("Your application changed meanwhile; reload and try again.")
     record(
         session,
         actor=actor,
@@ -352,17 +348,14 @@ async def withdraw(session: AsyncSession, aspirant: Aspirant | None, *, actor: U
     """The member takes back an application not yet decided."""
     if aspirant is None or aspirant.window_id is None:
         raise NotFound("You have no application.")
-    changed = await session.execute(
-        update(Aspirant)
-        .where(
-            Aspirant.id == aspirant.id,
-            Aspirant.status.in_((AspirantStatus.DRAFT, AspirantStatus.SUBMITTED)),
-        )
-        .values(status=AspirantStatus.WITHDRAWN, decided_at=datetime.now(UTC))
-        .execution_options(synchronize_session=False)
+    await move_row(
+        session,
+        aspirant,
+        "Only an application not yet decided can be withdrawn.",
+        Aspirant.status.in_((AspirantStatus.DRAFT, AspirantStatus.SUBMITTED)),
+        status=AspirantStatus.WITHDRAWN,
+        decided_at=datetime.now(UTC),
     )
-    if changed.rowcount != 1:
-        raise Refused("Only an application not yet decided can be withdrawn.")
     record(
         session,
         actor=actor,

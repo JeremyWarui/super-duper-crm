@@ -3,18 +3,18 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import delete, or_, select, update
+from sqlalchemy import delete, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import set_committed_value
 
+from backend.db.session import move_row
 from backend.models import Campaign, RegistrationCentre, User, VolunteerProfile, VolunteerStatus
 from backend.schemas.candidates import CampaignVolunteerUpdate, CandidateVolunteerCreate
 from backend.security import new_withdraw_code
 from backend.services.audit import record
 from backend.services.consent import CAMPAIGN_VOLUNTEER_WORDING
-from backend.services.errors import NotFound, Refused, refuse_erased
+from backend.services.errors import NotFound, Refused, refuse_erased, refuse_unlisted_move
 from backend.services.permissions import Area
 from backend.services.sms import require_phone
 from backend.services.targets import wards_in_area
@@ -38,24 +38,20 @@ PLACES = (
 
 def check_move(frm: VolunteerStatus, to: VolunteerStatus) -> None:
     """Refuse a move the table does not list."""
-    if to not in VOLUNTEER_MOVES[frm]:
-        raise Refused(f"A {frm.label.lower()} volunteer cannot be moved to {to.label.lower()}.")
+    refuse_unlisted_move(VOLUNTEER_MOVES, frm, to, "volunteer")
 
 
 async def write_status(
     session: AsyncSession, profile: VolunteerProfile, old: VolunteerStatus, **values
 ) -> None:
     """Write the change only if the row still has the status it was checked against."""
-    changed = await session.execute(
-        update(VolunteerProfile)
-        .where(VolunteerProfile.id == profile.id, VolunteerProfile.status == old)
-        .values(**values)
-        .execution_options(synchronize_session=False)
+    await move_row(
+        session,
+        profile,
+        "This volunteer's status changed meanwhile; reload and try again.",
+        VolunteerProfile.status == old,
+        **values,
     )
-    if changed.rowcount != 1:
-        raise Refused("This volunteer's status changed meanwhile; reload and try again.")
-    for name, value in values.items():
-        set_committed_value(profile, name, value)
 
 
 def audit(

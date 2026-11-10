@@ -3,10 +3,11 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.db.session import move_row
 from backend.models import (
     Agent,
     Assignment,
@@ -174,14 +175,13 @@ async def settle(
     values: dict = {"status": outcome}
     if outcome is AssignmentStatus.DONE:
         values |= {"done_by_id": actor.id, "done_at": datetime.now(UTC)}
-    moved = await session.execute(
-        update(Assignment)
-        .where(Assignment.id == row.id, Assignment.status == AssignmentStatus.ASSIGNED)
-        .values(**values)
-        .execution_options(synchronize_session=False)
+    await move_row(
+        session,
+        row,
+        f"That assignment is already {row.status.label.lower()}.",
+        Assignment.status == AssignmentStatus.ASSIGNED,
+        **values,
     )
-    if moved.rowcount != 1:
-        raise Refused(f"That assignment is already {row.status.label.lower()}.")
     record(
         session,
         actor=actor,

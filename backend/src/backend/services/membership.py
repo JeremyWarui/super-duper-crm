@@ -8,9 +8,8 @@ from datetime import UTC, datetime
 from sqlalchemy import Boolean, Select, delete, literal, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased, contains_eager
-from sqlalchemy.orm.attributes import set_committed_value
 
-from backend.db.session import upsert
+from backend.db.session import move_row, upsert
 from backend.models import (
     Constituency,
     ContactMethod,
@@ -31,7 +30,13 @@ from backend.services import aspirants, party_workspace, volunteers
 from backend.services.accounts import clean_email
 from backend.services.audit import record, record_if
 from backend.services.consent import MEMBER_SMS_WORDING, PARTY_WORDING
-from backend.services.errors import NotFound, Refused, refuse_erased, refuse_own_record
+from backend.services.errors import (
+    NotFound,
+    Refused,
+    refuse_erased,
+    refuse_own_record,
+    refuse_unlisted_move,
+)
 from backend.services.register import PlaceFilters, in_place, page
 
 log = logging.getLogger(__name__)
@@ -49,24 +54,20 @@ MOVES: dict[PartyMemberStatus, frozenset[PartyMemberStatus]] = {
 
 def check_move(frm: PartyMemberStatus, to: PartyMemberStatus) -> None:
     """Refuse a move the table does not list."""
-    if to not in MOVES[frm]:
-        raise Refused(f"A {frm.label.lower()} member cannot be moved to {to.label.lower()}.")
+    refuse_unlisted_move(MOVES, frm, to, "member")
 
 
 async def _set_status(
     session: AsyncSession, member: PartyMember, old: PartyMemberStatus, **values
 ) -> None:
     """Write the move only if the row still has the status it was checked against."""
-    changed = await session.execute(
-        update(PartyMember)
-        .where(PartyMember.id == member.id, PartyMember.status == old)
-        .values(**values)
-        .execution_options(synchronize_session=False)
+    await move_row(
+        session,
+        member,
+        "This member's status changed meanwhile; reload and try again.",
+        PartyMember.status == old,
+        **values,
     )
-    if changed.rowcount != 1:
-        raise Refused("This member's status changed meanwhile; reload and try again.")
-    for name, value in values.items():
-        set_committed_value(member, name, value)
 
 
 async def move(

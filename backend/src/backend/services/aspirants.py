@@ -8,6 +8,7 @@ from sqlalchemy import Boolean, Select, Uuid, bindparam, func, literal, select, 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.db.session import move_row
 from backend.models import (
     Aspirant,
     AspirantStatus,
@@ -136,14 +137,13 @@ async def move(
         "decided_at": datetime.now(UTC),
         "decided_by_id": actor.id,
     }
-    changed = await session.execute(
-        update(Aspirant)
-        .where(Aspirant.id == aspirant.id, Aspirant.status == old)
-        .values(**values)
-        .execution_options(synchronize_session=False)
+    await move_row(
+        session,
+        aspirant,
+        "This nomination changed meanwhile; reload and try again.",
+        Aspirant.status == old,
+        **values,
     )
-    if changed.rowcount != 1:
-        raise Refused("This nomination changed meanwhile; reload and try again.")
     record(
         session,
         actor=actor,

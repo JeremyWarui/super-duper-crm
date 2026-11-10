@@ -6,6 +6,7 @@ from contextlib import AbstractAsyncContextManager
 from functools import lru_cache
 
 import certifi
+from sqlalchemy import update
 from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
@@ -14,9 +15,10 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.orm.attributes import set_committed_value
 
 from backend.config import get_settings
-from backend.services.errors import NotFound
+from backend.services.errors import NotFound, Refused
 
 # asyncpg verifies these only against a root.crt file on disk, so they become an SSL context.
 VERIFYING = ("verify-ca", "verify-full")
@@ -104,3 +106,19 @@ def replace_fields(row: object, values: dict) -> list[str]:
     for name, value in values.items():
         setattr(row, name, value)
     return changed
+
+
+async def move_row(session: AsyncSession, row: object, refusal: str, *still, **values) -> None:
+    """Write `values` to `row` only while every condition in `still` holds; Refused(refusal)
+    when another request changed it first. The row takes the new values without a reload."""
+    model = type(row)
+    changed = await session.execute(
+        update(model)
+        .where(model.id == row.id, *still)
+        .values(**values)
+        .execution_options(synchronize_session=False)
+    )
+    if changed.rowcount != 1:
+        raise Refused(refusal)
+    for name, value in values.items():
+        set_committed_value(row, name, value)

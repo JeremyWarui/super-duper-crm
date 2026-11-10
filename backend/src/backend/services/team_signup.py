@@ -10,11 +10,12 @@ import secrets
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import delete, or_, select, update
+from sqlalchemy import delete, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.db.session import move_row
 from backend.models import (
     Agent,
     Campaign,
@@ -212,17 +213,13 @@ async def _claim(
     cannot both go through."""
     if registration.status is not RegistrationStatus.PENDING:
         raise Refused(f"This sign-up was already {registration.status.label.lower()}.")
-    moved = await session.execute(
-        update(TeamRegistration)
-        .where(
-            TeamRegistration.id == registration.id,
-            TeamRegistration.status == RegistrationStatus.PENDING,
-        )
-        .values(status=outcome)
-        .execution_options(synchronize_session=False)
+    await move_row(
+        session,
+        registration,
+        "This sign-up was decided a moment ago; reload to see how.",
+        TeamRegistration.status == RegistrationStatus.PENDING,
+        status=outcome,
     )
-    if moved.rowcount != 1:
-        raise Refused("This sign-up was decided a moment ago; reload to see how.")
 
 
 async def approve(
