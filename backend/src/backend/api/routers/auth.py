@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.api.deps import SessionDep, SignedInUser
-from backend.api.routers.join import _client
+from backend.api.limits import TOO_MANY, check, client_key
 from backend.config import get_settings
 from backend.db.session import get_session_factory
 from backend.models import AuthToken, User, UserKind
@@ -58,11 +58,6 @@ HANDOFF_LIFE = timedelta(minutes=2)
 HANDOFF_SPENT = "That Google sign-in has expired. Sign in again."
 
 
-def _too_many(request: Request, limit: RateLimit) -> None:
-    if not limit.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
-
-
 def _sha(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
@@ -93,8 +88,7 @@ async def login(payload: LoginRequest, request: Request, session: SessionDep) ->
     A member login signs in only while its member is approved, and is refused otherwise with
     the answer a wrong password gets.
     """
-    if not TRIES.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    check(TRIES, request)
     user = await user_with_email(session, payload.email, with_party_roles=True)
     if (
         user is None
@@ -148,8 +142,8 @@ async def request_reset(
     its timing says whether the address has a login. 5 requests an hour per device, 3 per address.
     """
     email = clean_email(payload.email)
-    if not RESETS_PER_CLIENT.allow(_client(request)) or not RESETS_PER_ADDRESS.allow(email):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    if not RESETS_PER_CLIENT.allow(client_key(request)) or not RESETS_PER_ADDRESS.allow(email):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, TOO_MANY)
     background.add_task(_send_reset, opener, email)
     return ResetSent(detail=RESET_SENT)
 
@@ -157,8 +151,7 @@ async def request_reset(
 @router.get("/links/{token}/", response_model=LinkRead)
 async def read_link(token: str, request: Request, session: SessionDep) -> LinkRead:
     """What a live link is for and whose login it sets; 400 when it has expired or been used."""
-    if not CLAIMS.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    check(CLAIMS, request)
     purpose, user = await login_links.check(session, token)
     return LinkRead(purpose=purpose, username=user.username, email=user.email)
 
@@ -168,8 +161,7 @@ async def claim_link(
     token: str, payload: LinkClaim, request: Request, session: SessionDep
 ) -> object:
     """Set the password from a live link and sign in; the link is spent."""
-    if not CLAIMS.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    check(CLAIMS, request)
     user = await login_links.claim(session, token, payload.password)
     signed = await user_named(session, user.username, with_party_roles=True)
     return await _signed_in(session, signed)
@@ -244,7 +236,7 @@ async def google_callback(
     `google_error`: cancelled, expired, failed, unverified or unknown.
     """
     _need_google()
-    if not CLAIMS.allow(_client(request)):
+    if not CLAIMS.allow(client_key(request)):
         return await _google_refused(session, "busy")
     saved = request.cookies.get(GOOGLE_COOKIE, "").split(".")
     expected, nonce, verifier, bind = saved if len(saved) == 4 and all(saved) else ("",) * 4
@@ -276,7 +268,7 @@ async def google_callback(
 async def google_finish(payload: GoogleFinish, request: Request, session: SessionDep) -> object:
     """Trade the callback's handoff for the session, once, within two minutes, from the page
     holding the `bind` value the sign-in started with."""
-    _too_many(request, CLAIMS)
+    check(CLAIMS, request)
     hashed = _sha(f"{payload.handoff}:{payload.bind}")
     token = await session.scalar(select(AuthToken).where(AuthToken.handoff_hash == hashed))
     expires = token.handoff_expires_at if token is not None else None

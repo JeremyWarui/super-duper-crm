@@ -82,7 +82,6 @@ async def list_members(
     offset: Annotated[int, Query(ge=0, le=1_000_000)] = 0,
 ) -> MemberPage:
     """A page of the register, newest first."""
-    await membership.process_requests(session)
     total, rows = await membership.members(session, filters, limit, offset)
     logins = await membership.with_logins(session, [row.id for row in rows])
     return MemberPage(total=total, items=[_read(row, MemberRead, logins) for row in rows])
@@ -93,7 +92,6 @@ async def export_members(
     user: MembershipOfficer, session: SessionDep, filters: FiltersDep
 ) -> Response:
     """Every matching member as CSV; the export is audited before it is sent."""
-    await membership.process_requests(session)
     rows = await membership.export_rows(session, filters)
     record(
         session,
@@ -127,11 +125,14 @@ async def export_members(
     )
 
 
-@router.get("/{member_id}/", response_model=MemberDetail)
-async def get_member(member_id: uuid.UUID, user: MembershipOfficer, session: SessionDep):
-    await membership.process_requests(session)
+async def _detail(session: SessionDep, member_id: uuid.UUID) -> MemberDetail:
     member = await membership.get_member(session, member_id)
     return _read(member, MemberDetail, await membership.with_logins(session, [member.id]))
+
+
+@router.get("/{member_id}/", response_model=MemberDetail)
+async def get_member(member_id: uuid.UUID, user: MembershipOfficer, session: SessionDep):
+    return await _detail(session, member_id)
 
 
 @router.post("/{member_id}/status/", response_model=MemberDetail)
@@ -139,20 +140,16 @@ async def move_member(
     member_id: uuid.UUID, payload: MemberMove, user: MembershipOfficer, session: SessionDep
 ):
     """Move a member to a new status, with an optional reason."""
-    await membership.process_requests(session)
     member = await membership.get_member(session, member_id)
     await membership.move(session, member, payload.status, actor=user, reason=payload.reason)
     await session.commit()
-    member = await membership.get_member(session, member_id)
-    return _read(member, MemberDetail, await membership.with_logins(session, [member.id]))
+    return await _detail(session, member_id)
 
 
 @router.post("/{member_id}/erase/", response_model=MemberDetail)
 async def erase_member(member_id: uuid.UUID, user: MembershipOfficer, session: SessionDep):
     """Blank a withdrawn or rejected member's personal details on their request."""
-    await membership.process_requests(session)
     member = await membership.get_member(session, member_id)
     await privacy.erase_member(session, member, actor=user)
     await session.commit()
-    member = await membership.get_member(session, member_id)
-    return _read(member, MemberDetail, await membership.with_logins(session, [member.id]))
+    return await _detail(session, member_id)

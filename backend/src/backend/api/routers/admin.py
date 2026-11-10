@@ -7,6 +7,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Query, Response, status
 from sqlalchemy import select
 
+from backend.api.content_routes import items, posts
 from backend.api.deps import AdminUser, SessionDep, Today
 from backend.api.install import PartyOnlyRoute
 from backend.models import (
@@ -18,7 +19,6 @@ from backend.models import (
     PartyRoleName,
     PartyValue,
     PartyVideo,
-    PostKind,
     PrimaryResult,
     UserRole,
 )
@@ -54,9 +54,6 @@ from backend.schemas.content import (
     LeaderAdminRead,
     LeaderCreate,
     LeaderUpdate,
-    PostAdminRead,
-    PostCreate,
-    PostUpdate,
     ResultAdminRead,
     ResultCreate,
     ResultUpdate,
@@ -71,7 +68,7 @@ from backend.schemas.imports import SHOWN_CHANGES, ImportReportRead, ImportRunRe
 from backend.schemas.party import PartySettingsRead, PartySettingsUpdate
 from backend.schemas.site import SiteSettingsRead, SiteSettingsUpdate
 from backend.services import admin as service
-from backend.services import audit, branches, candidates, content, home, imports
+from backend.services import audit, branches, candidates, content, imports
 from backend.services import party as party_service
 from backend.services import site as site_service
 from backend.services.errors import Refused
@@ -113,31 +110,7 @@ async def delete_party_leader(leader_id: uuid.UUID, session: SessionDep, admin: 
     await content.delete_leader(session, leader_id, actor=admin)
 
 
-@router.get("/party/posts/", response_model=list[PostAdminRead])
-async def party_posts(session: SessionDep, _: AdminUser, kind: PostKind | None = None):
-    """Every post, drafts included, newest first."""
-    return await content.posts(session, kind)
-
-
-@router.post("/party/posts/", response_model=PostAdminRead, status_code=status.HTTP_201_CREATED)
-async def create_party_post(
-    payload: PostCreate, session: SessionDep, admin: AdminUser, today: Today
-):
-    """Add a post; publishing it sets its published date to today."""
-    return await content.create_post(session, payload, actor=admin, on=today)
-
-
-@router.patch("/party/posts/{post_id}/", response_model=PostAdminRead)
-async def update_party_post(
-    post_id: uuid.UUID, payload: PostUpdate, session: SessionDep, admin: AdminUser, today: Today
-):
-    """Change a post; the first publish sets its published date, later ones keep it."""
-    return await content.update_post(session, post_id, payload, actor=admin, on=today)
-
-
-@router.delete("/party/posts/{post_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_party_post(post_id: uuid.UUID, session: SessionDep, admin: AdminUser):
-    await content.delete_post(session, post_id, actor=admin)
+posts(router, AdminUser, "/party/posts/")
 
 
 @party_router.get("/party/branches/", response_model=list[CountyBranch])
@@ -340,166 +313,76 @@ async def audit_events(
     )
 
 
-@router.get("/party/slides/", response_model=list[SlideAdminRead])
-async def party_slides(session: SessionDep, _: AdminUser):
-    return await home.every(session, HeroSlide)
-
-
-@router.post("/party/slides/", response_model=SlideAdminRead, status_code=status.HTTP_201_CREATED)
-async def create_party_slide(payload: SlideCreate, session: SessionDep, admin: AdminUser):
-    return await home.create(session, HeroSlide, payload, actor=admin)
-
-
-@router.patch("/party/slides/{slide_id}/", response_model=SlideAdminRead)
-async def update_party_slide(
-    slide_id: uuid.UUID, payload: SlideUpdate, session: SessionDep, admin: AdminUser
-):
-    return await home.update(session, HeroSlide, slide_id, payload, actor=admin)
-
-
-@router.delete("/party/slides/{slide_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_party_slide(slide_id: uuid.UUID, session: SessionDep, admin: AdminUser):
-    await home.delete(session, HeroSlide, slide_id, actor=admin)
-
-
-@router.get("/party/issues/", response_model=list[IssueAdminRead])
-async def party_issues(session: SessionDep, _: AdminUser):
-    return await home.every(session, AgendaIssue)
-
-
-@router.post("/party/issues/", response_model=IssueAdminRead, status_code=status.HTTP_201_CREATED)
-async def create_party_issue(payload: IssueCreate, session: SessionDep, admin: AdminUser):
-    return await home.create(session, AgendaIssue, payload, actor=admin)
-
-
-@router.patch("/party/issues/{issue_id}/", response_model=IssueAdminRead)
-async def update_party_issue(
-    issue_id: uuid.UUID, payload: IssueUpdate, session: SessionDep, admin: AdminUser
-):
-    return await home.update(session, AgendaIssue, issue_id, payload, actor=admin)
-
-
-@router.delete("/party/issues/{issue_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_party_issue(issue_id: uuid.UUID, session: SessionDep, admin: AdminUser):
-    await home.delete(session, AgendaIssue, issue_id, actor=admin)
-
-
-@router.get("/party/documents/", response_model=list[DocumentAdminRead])
-async def party_documents(session: SessionDep, _: AdminUser):
-    return await home.every(session, PartyDocument)
-
-
-@router.post(
-    "/party/documents/", response_model=DocumentAdminRead, status_code=status.HTTP_201_CREATED
+items(
+    router,
+    AdminUser,
+    "/party/slides/",
+    HeroSlide,
+    SlideCreate,
+    SlideUpdate,
+    SlideAdminRead,
+    key="slide_id",
 )
-async def create_party_document(payload: DocumentCreate, session: SessionDep, admin: AdminUser):
-    return await home.create(session, PartyDocument, payload, actor=admin)
-
-
-@router.patch("/party/documents/{document_id}/", response_model=DocumentAdminRead)
-async def update_party_document(
-    document_id: uuid.UUID, payload: DocumentUpdate, session: SessionDep, admin: AdminUser
-):
-    return await home.update(session, PartyDocument, document_id, payload, actor=admin)
-
-
-@router.delete("/party/documents/{document_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_party_document(document_id: uuid.UUID, session: SessionDep, admin: AdminUser):
-    await home.delete(session, PartyDocument, document_id, actor=admin)
-
-
-@party_router.get("/party/values/", response_model=list[AboutItemAdminRead])
-async def party_values(session: SessionDep, _: AdminUser):
-    return await home.every(session, PartyValue)
-
-
-@party_router.post(
-    "/party/values/", response_model=AboutItemAdminRead, status_code=status.HTTP_201_CREATED
+items(
+    router,
+    AdminUser,
+    "/party/issues/",
+    AgendaIssue,
+    IssueCreate,
+    IssueUpdate,
+    IssueAdminRead,
+    key="issue_id",
 )
-async def create_party_value(payload: AboutItemCreate, session: SessionDep, admin: AdminUser):
-    return await home.create(session, PartyValue, payload, actor=admin)
-
-
-@party_router.patch("/party/values/{value_id}/", response_model=AboutItemAdminRead)
-async def update_party_value(
-    value_id: uuid.UUID, payload: AboutItemUpdate, session: SessionDep, admin: AdminUser
-):
-    return await home.update(session, PartyValue, value_id, payload, actor=admin)
-
-
-@party_router.delete("/party/values/{value_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_party_value(value_id: uuid.UUID, session: SessionDep, admin: AdminUser):
-    await home.delete(session, PartyValue, value_id, actor=admin)
-
-
-@party_router.get("/party/organs/", response_model=list[AboutItemAdminRead])
-async def party_organs(session: SessionDep, _: AdminUser):
-    return await home.every(session, PartyOrgan)
-
-
-@party_router.post(
-    "/party/organs/", response_model=AboutItemAdminRead, status_code=status.HTTP_201_CREATED
+items(
+    router,
+    AdminUser,
+    "/party/documents/",
+    PartyDocument,
+    DocumentCreate,
+    DocumentUpdate,
+    DocumentAdminRead,
+    key="document_id",
 )
-async def create_party_organ(payload: AboutItemCreate, session: SessionDep, admin: AdminUser):
-    return await home.create(session, PartyOrgan, payload, actor=admin)
-
-
-@party_router.patch("/party/organs/{organ_id}/", response_model=AboutItemAdminRead)
-async def update_party_organ(
-    organ_id: uuid.UUID, payload: AboutItemUpdate, session: SessionDep, admin: AdminUser
-):
-    return await home.update(session, PartyOrgan, organ_id, payload, actor=admin)
-
-
-@party_router.delete("/party/organs/{organ_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_party_organ(organ_id: uuid.UUID, session: SessionDep, admin: AdminUser):
-    await home.delete(session, PartyOrgan, organ_id, actor=admin)
-
-
-@party_router.get("/party/results/", response_model=list[ResultAdminRead])
-async def party_results(session: SessionDep, _: AdminUser):
-    return await home.every(session, PrimaryResult)
-
-
-@party_router.post(
-    "/party/results/", response_model=ResultAdminRead, status_code=status.HTTP_201_CREATED
+items(
+    party_router,
+    AdminUser,
+    "/party/values/",
+    PartyValue,
+    AboutItemCreate,
+    AboutItemUpdate,
+    AboutItemAdminRead,
+    key="value_id",
 )
-async def create_party_result(payload: ResultCreate, session: SessionDep, admin: AdminUser):
-    return await home.create(session, PrimaryResult, payload, actor=admin)
-
-
-@party_router.patch("/party/results/{result_id}/", response_model=ResultAdminRead)
-async def update_party_result(
-    result_id: uuid.UUID, payload: ResultUpdate, session: SessionDep, admin: AdminUser
-):
-    return await home.update(session, PrimaryResult, result_id, payload, actor=admin)
-
-
-@party_router.delete("/party/results/{result_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_party_result(result_id: uuid.UUID, session: SessionDep, admin: AdminUser):
-    await home.delete(session, PrimaryResult, result_id, actor=admin)
-
-
-@router.get("/party/videos/", response_model=list[VideoAdminRead])
-async def party_videos(session: SessionDep, _: AdminUser):
-    return await home.every(session, PartyVideo)
-
-
-@router.post("/party/videos/", response_model=VideoAdminRead, status_code=status.HTTP_201_CREATED)
-async def create_party_video(payload: VideoCreate, session: SessionDep, admin: AdminUser):
-    return await home.create(session, PartyVideo, payload, actor=admin)
-
-
-@router.patch("/party/videos/{video_id}/", response_model=VideoAdminRead)
-async def update_party_video(
-    video_id: uuid.UUID, payload: VideoUpdate, session: SessionDep, admin: AdminUser
-):
-    return await home.update(session, PartyVideo, video_id, payload, actor=admin)
-
-
-@router.delete("/party/videos/{video_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_party_video(video_id: uuid.UUID, session: SessionDep, admin: AdminUser):
-    await home.delete(session, PartyVideo, video_id, actor=admin)
+items(
+    party_router,
+    AdminUser,
+    "/party/organs/",
+    PartyOrgan,
+    AboutItemCreate,
+    AboutItemUpdate,
+    AboutItemAdminRead,
+    key="organ_id",
+)
+items(
+    party_router,
+    AdminUser,
+    "/party/results/",
+    PrimaryResult,
+    ResultCreate,
+    ResultUpdate,
+    ResultAdminRead,
+    key="result_id",
+)
+items(
+    router,
+    AdminUser,
+    "/party/videos/",
+    PartyVideo,
+    VideoCreate,
+    VideoUpdate,
+    VideoAdminRead,
+    key="video_id",
+)
 
 
 @party_router.get("/party/candidates/", response_model=list[CandidateAdminRead])

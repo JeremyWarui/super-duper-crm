@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 
 from backend.api.deps import AdminUser, SessionDep, Today
 from backend.api.install import PartyOnlyRoute
-from backend.api.routers.join import _client
+from backend.api.limits import check
 from backend.models import (
     AgendaIssue,
     Branch,
@@ -214,10 +214,7 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
     Every valid application is the same single insert, so neither the answer nor its timing
     shows whether the phone is already registered.
     """
-    if not JOINS.allow(_client(request)):
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS, "Too many applications from this device; try later."
-        )
+    check(JOINS, request, "Too many applications from this device; try later.")
     phone = normalise_phone(payload.phone)
     if phone is None:
         raise HTTPException(
@@ -255,8 +252,7 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
 @party_router.post("/withdraw/{code}/", response_model=PartyWithdrawn)
 async def withdraw(code: str, request: Request, session: SessionDep) -> PartyWithdrawn:
     """Queue a withdrawal by code; the answer is the same for any code."""
-    if not WITHDRAWALS.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    check(WITHDRAWALS, request)
     if _well_formed(code):
         membership.request_withdraw(session, code)
         await session.commit()
@@ -266,8 +262,7 @@ async def withdraw(code: str, request: Request, session: SessionDep) -> PartyWit
 @party_router.post("/volunteer/withdraw/{code}/", response_model=PartyWithdrawn)
 async def withdraw_volunteer(code: str, request: Request, session: SessionDep) -> PartyWithdrawn:
     """Queue a volunteer withdrawal by code; the answer is the same for any code."""
-    if not VOLUNTEER_WITHDRAWALS.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    check(VOLUNTEER_WITHDRAWALS, request)
     if _well_formed(code):
         membership.request_volunteer_withdraw(session, code)
         await session.commit()
@@ -279,8 +274,7 @@ async def subscribe(
     payload: PartySubscribe, request: Request, session: SessionDep
 ) -> PartySubscribed:
     """Sign a phone or email up for party news; a known contact gets the same answer."""
-    if not SUBSCRIBES.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many sign-ups; try later.")
+    check(SUBSCRIBES, request, "Too many sign-ups; try later.")
     if "@" in payload.contact:
         contact = clean_email(payload.contact)
         if not EMAIL.match(contact):
@@ -303,8 +297,7 @@ async def subscribe(
 @router.post("/unsubscribe/{code}/", response_model=PartyWithdrawn)
 async def unsubscribe(code: str, request: Request, session: SessionDep) -> PartyWithdrawn:
     """Remove a news sign-up by its code; the answer is the same for any code."""
-    if not UNSUBSCRIBES.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    check(UNSUBSCRIBES, request)
     if _well_formed(code):
         await subscribers.unsubscribe(session, code)
         await session.commit()

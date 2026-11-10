@@ -1,10 +1,10 @@
 """Paying in by M-Pesa from the website: the dialog's options, a contribution, and a payment's
 status while the dialog waits."""
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Request, status
 
 from backend.api.deps import SessionDep
-from backend.api.routers.join import _client
+from backend.api.limits import check
 from backend.models import PayInPurpose, PaymentIn
 from backend.schemas.payments_in import PayContribution, PaymentInRead, PayOptions
 from backend.services import payments_in, site
@@ -37,10 +37,7 @@ async def contribute(
     payload: PayContribution, request: Request, session: SessionDep
 ) -> PaymentInRead:
     """A contribution from the website: to the aspirant's workspace, or to the party."""
-    if not STARTS.allow(_client(request)):
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS, "Too many payments from this device; try later."
-        )
+    check(STARTS, request, "Too many payments from this device; try later.")
     settings = await site.read_settings(session)
     row = await payments_in.start(
         session,

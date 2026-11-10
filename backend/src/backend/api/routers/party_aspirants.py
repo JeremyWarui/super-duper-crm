@@ -21,7 +21,7 @@ from backend.schemas.aspirants import (
     WorkspaceCreated,
 )
 from backend.schemas.common import plain_text
-from backend.services import aspirants, membership
+from backend.services import aspirants
 from backend.services.aspirants import AspirantFilters
 from backend.services.campaigns import AREA_FIELD
 
@@ -73,7 +73,6 @@ async def list_candidates(
         plain_text(q)
     except ValueError as refused:
         raise HTTPException(status_code=400, detail=str(refused)) from None
-    await membership.process_requests(session)
     return await aspirants.candidates(session, q)
 
 
@@ -86,7 +85,6 @@ async def list_aspirants(
     offset: Annotated[int, Query(ge=0, le=1_000_000)] = 0,
 ) -> AspirantPage:
     """A page of nominations, newest first."""
-    await membership.process_requests(session)
     total, rows = await aspirants.aspirants(session, filters, limit, offset)
     return AspirantPage(total=total, items=[_read(row) for row in rows])
 
@@ -95,7 +93,6 @@ async def list_aspirants(
 async def get_aspirant(
     aspirant_id: uuid.UUID, user: NominationsOfficer, session: SessionDep
 ) -> AspirantRead:
-    await membership.process_requests(session)
     return _read(await aspirants.get_aspirant(session, aspirant_id))
 
 
@@ -104,7 +101,6 @@ async def nominate(
     payload: AspirantCreate, user: NominationsOfficer, session: SessionDep
 ) -> AspirantRead:
     """A draft nomination for an approved member on a seat and its area."""
-    await membership.process_requests(session)
     created = await aspirants.nominate(
         session,
         member_id=payload.member,
@@ -123,7 +119,6 @@ async def move_aspirant(
     aspirant_id: uuid.UUID, payload: AspirantMove, user: NominationsOfficer, session: SessionDep
 ) -> AspirantRead:
     """Move a nomination along the table; rejecting and suspending need a reason."""
-    await membership.process_requests(session)
     aspirant = await aspirants.get_aspirant(session, aspirant_id)
     await aspirants.move(session, aspirant, payload.status, actor=user, reason=payload.reason)
     await session.commit()
@@ -139,7 +134,6 @@ async def create_workspace(
     aspirant_id: uuid.UUID, payload: WorkspaceCreate, user: NominationsOfficer, session: SessionDep
 ) -> WorkspaceCreated:
     """An approved aspirant's campaign on their seat and area; its logins are sent invite links."""
-    await membership.process_requests(session)
     aspirant = await aspirants.get_aspirant(session, aspirant_id)
     _, summary, logins = await aspirants.create_workspace(
         session,

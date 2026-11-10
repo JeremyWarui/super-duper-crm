@@ -130,18 +130,18 @@ def require_party_role(*roles: PartyRoleName):
     """A guard letting through a superuser, or a holder of one of these offices whose login is
     linked to an approved party member.
 
-    Applies the party inbox first, so a queued withdrawal of the officer's own membership
-    stops them on this request, not the next.
+    Applies the party inbox first, so the route reads an up-to-date register and a queued
+    withdrawal of the officer's own membership stops them on this request, not the next.
     """
 
     async def dependency(user: CurrentUser, session: SessionDep) -> User:
-        if user.is_superuser:
-            return user
-        if not any(held.role in roles for held in user.party_roles):
+        if not user.is_superuser and not any(held.role in roles for held in user.party_roles):
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN, "This needs a party office you do not hold."
             )
         await membership.process_requests(session)
+        if user.is_superuser:
+            return user
         own = (
             await session.scalar(
                 select(PartyMember.status).where(PartyMember.id == user.party_member_id)

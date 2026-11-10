@@ -7,28 +7,49 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.services.errors import CampaignClosed, Forbidden, NotFound, Refused
 
-# The one-campaign index, as Postgres and SQLite name it.
-ONE_CAMPAIGN = ("uq_campaign_members_one_campaign_per_user", "campaign_members.user_id")
-# One manager per campaign. SQLite names only the column, which the one-candidate index shares.
-ONE_MANAGER = ("uq_campaign_members_one_manager",)
-ONE_PLACE = ("campaign_members.campaign_id",)
-# One supporter per phone per campaign, as Postgres and SQLite name it.
-ONE_SUPPORTER = ("uq_supporters_campaign_phone", "supporters.campaign_id, supporters.phone")
-# One of each party office per login, as Postgres and SQLite name it.
-ONE_OFFICE = ("pk_party_roles", "party_roles.user_id, party_roles.role")
-# One party member per phone, as Postgres and SQLite name it.
-ONE_PARTY_MEMBER = ("uq_party_members_phone", "party_members.phone")
-# One live nomination per member, and one aspirant per campaign, as Postgres and SQLite name them.
-ONE_NOMINATION = ("uq_aspirants_one_live_per_member", "aspirants.member_id")
-ONE_WORKSPACE = ("uq_aspirants_campaign_id", "aspirants.campaign_id")
-# One live payment per mobilizer per event, as Postgres and SQLite name it.
-ONE_PAYMENT = ("uq_payments_event_mobilizer", "payments.event_id, payments.mobilizer_id")
-# The one-mobilizer-per-unit indexes, as Postgres and SQLite name them.
-ONE_MOBILIZER = (
-    "uq_mobilizers_campaign_ward",
-    "uq_mobilizers_campaign_registration_centre",
-    "mobilizers.campaign_id, mobilizers.ward_id",
-    "mobilizers.campaign_id, mobilizers.registration_centre_id",
+# Each uniqueness rule a request can race past: the names Postgres and SQLite give its index,
+# and the sentence it answers with. The first match wins, so the one-manager rule comes before
+# the one-place rule: SQLite names only the column they share.
+UNIQUE_RULES: tuple[tuple[tuple[str, ...], str], ...] = (
+    (
+        ("uq_campaign_members_one_campaign_per_user", "campaign_members.user_id"),
+        "That login is already on a campaign; a login belongs to one campaign.",
+    ),
+    (("uq_campaign_members_one_manager",), "That campaign already has a manager."),
+    (("campaign_members.campaign_id",), "That campaign already has its aspirant or its manager."),
+    (
+        ("uq_supporters_campaign_phone", "supporters.campaign_id, supporters.phone"),
+        "That phone number is already on this campaign's register.",
+    ),
+    (
+        ("uq_aspirants_one_live_per_member", "aspirants.member_id"),
+        "That member already has a live nomination.",
+    ),
+    (
+        ("uq_aspirants_campaign_id", "aspirants.campaign_id"),
+        "That aspirant already has a workspace.",
+    ),
+    (
+        ("uq_party_members_phone", "party_members.phone"),
+        "That phone number is already on the party register.",
+    ),
+    (
+        ("uq_payments_event_mobilizer", "payments.event_id, payments.mobilizer_id"),
+        "That mobilizer already has a payment for this event.",
+    ),
+    (
+        (
+            "uq_mobilizers_campaign_ward",
+            "uq_mobilizers_campaign_registration_centre",
+            "mobilizers.campaign_id, mobilizers.ward_id",
+            "mobilizers.campaign_id, mobilizers.registration_centre_id",
+        ),
+        "That ward already has a mobilizer.",
+    ),
+    (
+        ("pk_party_roles", "party_roles.user_id, party_roles.role"),
+        "That login already holds that party office.",
+    ),
 )
 
 
@@ -68,43 +89,8 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(IntegrityError)
     async def _integrity_error(_: Request, exc: IntegrityError) -> JSONResponse:
         """A request that raced past a uniqueness check still answers with the rule."""
-        if any(name in str(exc.orig) for name in ONE_CAMPAIGN):
-            return _detail(
-                "That login is already on a campaign; a login belongs to one campaign.",
-                status.HTTP_400_BAD_REQUEST,
-            )
-        if any(name in str(exc.orig) for name in ONE_MANAGER):
-            return _detail("That campaign already has a manager.", status.HTTP_400_BAD_REQUEST)
-        if any(name in str(exc.orig) for name in ONE_PLACE):
-            return _detail(
-                "That campaign already has its aspirant or its manager.",
-                status.HTTP_400_BAD_REQUEST,
-            )
-        if any(name in str(exc.orig) for name in ONE_SUPPORTER):
-            return _detail(
-                "That phone number is already on this campaign's register.",
-                status.HTTP_400_BAD_REQUEST,
-            )
-        if any(name in str(exc.orig) for name in ONE_NOMINATION):
-            return _detail(
-                "That member already has a live nomination.", status.HTTP_400_BAD_REQUEST
-            )
-        if any(name in str(exc.orig) for name in ONE_WORKSPACE):
-            return _detail("That aspirant already has a workspace.", status.HTTP_400_BAD_REQUEST)
-        if any(name in str(exc.orig) for name in ONE_PARTY_MEMBER):
-            return _detail(
-                "That phone number is already on the party register.",
-                status.HTTP_400_BAD_REQUEST,
-            )
-        if any(name in str(exc.orig) for name in ONE_PAYMENT):
-            return _detail(
-                "That mobilizer already has a payment for this event.",
-                status.HTTP_400_BAD_REQUEST,
-            )
-        if any(name in str(exc.orig) for name in ONE_MOBILIZER):
-            return _detail("That ward already has a mobilizer.", status.HTTP_400_BAD_REQUEST)
-        if any(name in str(exc.orig) for name in ONE_OFFICE):
-            return _detail(
-                "That login already holds that party office.", status.HTTP_400_BAD_REQUEST
-            )
+        raised = str(exc.orig)
+        for names, message in UNIQUE_RULES:
+            if any(name in raised for name in names):
+                return _detail(message, status.HTTP_400_BAD_REQUEST)
         raise exc

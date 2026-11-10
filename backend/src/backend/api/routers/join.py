@@ -3,8 +3,6 @@
 No login; one supporter per phone per campaign.
 """
 
-import ipaddress
-import os
 import secrets
 import uuid
 from dataclasses import dataclass
@@ -15,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from backend.api.deps import SessionDep
+from backend.api.limits import check
 from backend.models import (
     Campaign,
     Event,
@@ -107,22 +106,6 @@ async def _places(session: SessionDep, campaign: Campaign) -> list[JoinPlace]:
     return [JoinPlace(id=w.id, name=w.name) for w in await wards_in_area(session, campaign)]
 
 
-def _client(request: Request) -> str:
-    """Who is signing up, for the rate limit: the address Fly saw, or the connection's own.
-
-    An IPv6 client is keyed by its /64, which one device can roam within.
-    """
-    raw = request.headers.get("fly-client-ip") if os.environ.get("FLY_APP_NAME") else None
-    raw = raw or (request.client.host if request.client else "")
-    try:
-        address = ipaddress.ip_address(raw)
-    except ValueError:
-        return raw
-    if address.version == 6:
-        return str(ipaddress.ip_network(f"{address}/64", strict=False))
-    return str(address)
-
-
 @router.get("/{code}/", response_model=JoinRead)
 async def read_signup(code: str, session: SessionDep) -> JoinRead:
     link = await _link(session, code)
@@ -170,10 +153,7 @@ async def sign_up(
     Every sign-up is handed a withdrawal code, a working one only for a new supporter, so
     the answer never shows whether the phone was on the register.
     """
-    if not SIGNUPS.allow(_client(request)):
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS, "Too many sign-ups from this device; try later."
-        )
+    check(SIGNUPS, request, "Too many sign-ups from this device; try later.")
     link = await _link(session, code)
     if not link.open:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Sign-ups are closed.")
@@ -216,8 +196,7 @@ async def sign_up(
 @router.post("/withdraw/{code}/", response_model=Withdrawn)
 async def withdraw(code: str, request: Request, session: SessionDep) -> Withdrawn:
     """Take a self-signed supporter off the register; the answer is the same for any code."""
-    if not WITHDRAWALS.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    check(WITHDRAWALS, request)
     await session.execute(delete(Supporter).where(Supporter.withdraw_code == code))
     await session.commit()
     return Withdrawn(message=WITHDRAWN)

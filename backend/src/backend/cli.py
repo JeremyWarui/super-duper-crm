@@ -27,7 +27,7 @@ from backend.seed.reference import (
 from backend.seed.sign_ins import credentials_sheet
 from backend.seed.site import seed_branches, seed_home, seed_news, seed_site
 from backend.services import admin, imports, ops, setup
-from backend.services.accounts import clean_email, new_login, user_with_email
+from backend.services.accounts import new_login
 from backend.services.audit import record
 from backend.services.clock import today
 from backend.services.errors import Refused
@@ -264,14 +264,8 @@ async def _reset_password(args: argparse.Namespace, session: AsyncSession) -> in
 
 async def _set_email(args: argparse.Namespace, session: AsyncSession) -> int:
     user = await admin.user_by_name(session, args.username)
-    email = clean_email(args.email)
-    holder = await user_with_email(session, email)
-    if holder is not None and holder.id != user.id:
-        raise Refused(f"The email {email} already belongs to {holder.username}.")
-    user.email = email
-    record(session, actor=None, action="user.email", subject_type="user", subject_id=user.id)
-    await session.commit()
-    print(f"{args.username} signs in with the email {email}.")
+    user = await admin.set_email(session, user.id, args.email, actor=None)
+    print(f"{args.username} signs in with the email {user.email}.")
     return 0
 
 

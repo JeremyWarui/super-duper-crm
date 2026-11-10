@@ -4,10 +4,10 @@ link itself."""
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request, status
 
 from backend.api.deps import SessionDep, require
-from backend.api.routers.join import _client
+from backend.api.limits import check
 from backend.api.scope import area_of, require_visible_campaign
 from backend.models import OperationalGrain, RegistrationStatus, TeamRegistration, User
 from backend.schemas.team_signup import (
@@ -93,8 +93,7 @@ async def sign_up(
     code: str, payload: SignupCreate, request: Request, session: SessionDep
 ) -> SignupDone:
     """Sign up as a mobilizer or agent; 10 an hour per device. The login waits for approval."""
-    if not SIGNUPS.allow(_client(request)):
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many tries; try later.")
+    check(SIGNUPS, request)
     campaign = await team_signup.by_code(session, code)
     if not (await workspace_access(session, campaign.id)).open:
         raise Refused("This campaign is not taking sign-ups.")

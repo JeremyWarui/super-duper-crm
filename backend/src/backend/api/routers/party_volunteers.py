@@ -13,7 +13,7 @@ from backend.api.install import PartyOnlyRoute
 from backend.models import VolunteerArea, VolunteerProfile, VolunteerStatus
 from backend.schemas.common import plain_text
 from backend.schemas.volunteers import VolunteerPage, VolunteerRead, VolunteerUpdate
-from backend.services import membership, privacy, volunteers
+from backend.services import privacy, volunteers
 from backend.services.audit import record
 from backend.services.volunteers import VolunteerFilters
 
@@ -102,7 +102,6 @@ async def list_volunteers(
     offset: Annotated[int, Query(ge=0, le=1_000_000)] = 0,
 ) -> VolunteerPage:
     """A page of volunteers, newest first."""
-    await membership.process_requests(session)
     total, rows = await volunteers.volunteers(session, filters, limit, offset)
     return VolunteerPage(total=total, items=[_read(row) for row in rows])
 
@@ -112,7 +111,6 @@ async def export_volunteers(
     user: MembershipOfficer, session: SessionDep, filters: FiltersDep
 ) -> Response:
     """Every matching volunteer as CSV; the export is audited before it is sent."""
-    await membership.process_requests(session)
     rows = await volunteers.export_rows(session, filters)
     record(
         session,
@@ -157,7 +155,6 @@ async def update_volunteer(
     volunteer_id: uuid.UUID, payload: VolunteerUpdate, user: MembershipOfficer, session: SessionDep
 ) -> VolunteerRead:
     """Make a volunteer active or inactive and edit their availability notes."""
-    await membership.process_requests(session)
     profile = await volunteers.get_volunteer(session, volunteer_id)
     if payload.status is not None:
         await volunteers.set_status(session, profile, VolunteerStatus(payload.status), actor=user)
@@ -172,7 +169,6 @@ async def erase_volunteer(
     volunteer_id: uuid.UUID, user: MembershipOfficer, session: SessionDep
 ) -> VolunteerRead:
     """Blank a withdrawn volunteer profile; the membership is left as it is."""
-    await membership.process_requests(session)
     profile = await volunteers.get_volunteer(session, volunteer_id)
     await privacy.erase_volunteer(session, profile, actor=user)
     await session.commit()

@@ -54,7 +54,7 @@ async def test_set_email_gives_a_login_the_email_it_signs_in_with(
 
     assert await sign_in(client, "jane.new@example.test")
     assert old_email.status_code == 400
-    assert "already belongs to jane" in capsys.readouterr().err
+    assert "already belongs to another login" in capsys.readouterr().err
 
 
 @pytest.mark.skipif(POSTGRES, reason="the test database is Postgres")

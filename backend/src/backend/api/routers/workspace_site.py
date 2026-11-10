@@ -4,13 +4,12 @@ Every route calls the services the console uses, so there is one set of content 
 only in an aspirant installation.
 """
 
-import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Response, UploadFile, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
 
-from backend.api.deps import SessionDep, Today, require
+from backend.api.content_routes import items, posts
+from backend.api.deps import SessionDep, require
 from backend.api.install import AspirantOnlyRoute
 from backend.api.routers.files import read as file_read
 from backend.models import (
@@ -19,7 +18,6 @@ from backend.models import (
     HeroSlide,
     PartyDocument,
     PartyVideo,
-    PostKind,
     User,
 )
 from backend.schemas.candidates import ProfileRead, ProfileWrite
@@ -30,9 +28,6 @@ from backend.schemas.content import (
     IssueAdminRead,
     IssueCreate,
     IssueUpdate,
-    PostAdminRead,
-    PostCreate,
-    PostUpdate,
     SlideAdminRead,
     SlideCreate,
     SlideUpdate,
@@ -42,7 +37,7 @@ from backend.schemas.content import (
 )
 from backend.schemas.files import FileRead
 from backend.schemas.site import SiteSettingsRead, SiteSettingsUpdate
-from backend.services import campaign_page, content, files, home, site
+from backend.services import campaign_page, files, site
 from backend.services.errors import Refused
 
 router = APIRouter(prefix="/workspace/site", tags=["workspace site"], route_class=AspirantOnlyRoute)
@@ -98,80 +93,10 @@ async def write_candidate_page(payload: ProfileWrite, session: SessionDep, user:
     return await campaign_page.write(session, payload, actor=user)
 
 
-@router.get("/posts/", response_model=list[PostAdminRead])
-async def posts(session: SessionDep, _: Editor, kind: PostKind | None = None):
-    """Every post, drafts included, newest first."""
-    return await content.posts(session, kind)
-
-
-@router.post("/posts/", response_model=PostAdminRead, status_code=status.HTTP_201_CREATED)
-async def create_post(payload: PostCreate, session: SessionDep, user: Editor, today: Today):
-    return await content.create_post(session, payload, actor=user, on=today)
-
-
-@router.patch("/posts/{post_id}/", response_model=PostAdminRead)
-async def update_post(
-    post_id: uuid.UUID, payload: PostUpdate, session: SessionDep, user: Editor, today: Today
-):
-    return await content.update_post(session, post_id, payload, actor=user, on=today)
-
-
-@router.delete("/posts/{post_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_post(post_id: uuid.UUID, session: SessionDep, user: Editor) -> Response:
-    await content.delete_post(session, post_id, actor=user)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-def _items(
-    path: str,
-    model: type,
-    create: type[BaseModel],
-    update: type[BaseModel],
-    read: type[BaseModel],
-) -> None:
-    """List, add, change and remove one kind of home page item at `path`."""
-
-    async def every(session: SessionDep, _: Editor):
-        return await home.every(session, model)
-
-    async def add(payload: create, session: SessionDep, user: Editor):  # type: ignore[valid-type]
-        return await home.create(session, model, payload, actor=user)
-
-    async def change(
-        item_id: uuid.UUID,
-        payload: update,  # type: ignore[valid-type]
-        session: SessionDep,
-        user: Editor,
-    ):
-        return await home.update(session, model, item_id, payload, actor=user)
-
-    async def remove(item_id: uuid.UUID, session: SessionDep, user: Editor) -> Response:
-        await home.delete(session, model, item_id, actor=user)
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-    name = path.strip("/")
-    router.add_api_route(path, every, methods=["GET"], response_model=list[read], name=name)
-    router.add_api_route(
-        path,
-        add,
-        methods=["POST"],
-        response_model=read,
-        status_code=status.HTTP_201_CREATED,
-        name=f"create_{name}",
-    )
-    router.add_api_route(
-        f"{path}{{item_id}}/", change, methods=["PATCH"], response_model=read, name=f"update_{name}"
-    )
-    router.add_api_route(
-        f"{path}{{item_id}}/",
-        remove,
-        methods=["DELETE"],
-        status_code=status.HTTP_204_NO_CONTENT,
-        name=f"delete_{name}",
-    )
-
-
-_items("/slides/", HeroSlide, SlideCreate, SlideUpdate, SlideAdminRead)
-_items("/issues/", AgendaIssue, IssueCreate, IssueUpdate, IssueAdminRead)
-_items("/documents/", PartyDocument, DocumentCreate, DocumentUpdate, DocumentAdminRead)
-_items("/videos/", PartyVideo, VideoCreate, VideoUpdate, VideoAdminRead)
+posts(router, Editor, "/posts/")
+items(router, Editor, "/slides/", HeroSlide, SlideCreate, SlideUpdate, SlideAdminRead)
+items(router, Editor, "/issues/", AgendaIssue, IssueCreate, IssueUpdate, IssueAdminRead)
+items(
+    router, Editor, "/documents/", PartyDocument, DocumentCreate, DocumentUpdate, DocumentAdminRead
+)
+items(router, Editor, "/videos/", PartyVideo, VideoCreate, VideoUpdate, VideoAdminRead)
