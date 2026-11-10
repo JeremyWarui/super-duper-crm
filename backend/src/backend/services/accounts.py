@@ -13,12 +13,12 @@ from backend.models import (
     CampaignMember,
     Mobilizer,
     OperationalGrain,
-    Target,
     User,
     UserRole,
 )
 from backend.security import hash_password, new_password
 from backend.services.errors import Refused
+from backend.services.targets import require_targeted
 
 
 def clean_email(email: str) -> str:
@@ -181,13 +181,7 @@ async def require_unit(
     if ward_id is not None and centre_id is None:
         raise Refused("In an MCA race a mobilizer works one registration centre; pick a centre.")
     if centre_id is not None:
-        targeted = await session.scalar(
-            select(Target.id).where(
-                Target.campaign_id == campaign.id, Target.registration_centre_id == centre_id
-            )
-        )
-        if targeted is None:
-            raise Refused("That centre has no target, so work there would count toward nothing.")
+        await require_targeted(session, campaign.id, centre_id)
 
 
 async def move_mobilizer(
@@ -287,3 +281,13 @@ async def leave(session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUI
 async def sign_out(session: AsyncSession, user_id: uuid.UUID) -> None:
     """Delete every token the login holds; the caller commits."""
     await session.execute(delete(AuthToken).where(AuthToken.user_id == user_id))
+
+
+async def campaign_mobilizer(
+    session: AsyncSession, campaign_id: uuid.UUID, mobilizer_id: uuid.UUID
+) -> Mobilizer:
+    """The mobilizer, refused unless they belong to this campaign."""
+    found = await session.get(Mobilizer, mobilizer_id)
+    if found is None or found.campaign_id != campaign_id:
+        raise Refused("No such mobilizer on this campaign.")
+    return found

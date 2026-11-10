@@ -24,7 +24,6 @@ from backend.models import (
     User,
     UserKind,
     UserRole,
-    Ward,
 )
 from backend.schemas.admin import (
     AdminCampaignRead,
@@ -52,7 +51,7 @@ from backend.services.campaigns import build_campaign
 from backend.services.errors import NotFound, Refused
 from backend.services.login_links import new_invited_login, send_link
 from backend.services.strategy import read_strategy
-from backend.services.targets import ward_in_area, wards_in_area
+from backend.services.targets import require_ward, wards_in_area
 
 SIZED = {"targets": Target, "mobilizers": Mobilizer, "events": Event, "supporters": Supporter}
 
@@ -463,17 +462,14 @@ async def create_user(
     target = await session.get(Campaign, campaign_id) if campaign_id is not None else None
     if campaign_id is not None and target is None:
         raise Refused("No such campaign.")
-    ward: Ward | None = None
+    mobilizer_ward: uuid.UUID | None = None
     if role is UserRole.MOBILIZER:
         if target is None:
             raise Refused("A mobilizer needs a campaign and a ward, or they sign in to nothing.")
         if ward_id is None:
             raise Refused("A mobilizer needs a ward, or they sign in to nothing.")
-        ward = await session.get(Ward, ward_id)
-        if ward is None:
-            raise Refused("No such ward.")
-        if not await ward_in_area(session, target, ward_id):
-            raise Refused(f"{ward.name} is not a ward {target.title} works.")
+        await require_ward(session, target, ward_id)
+        mobilizer_ward = ward_id
     if role is UserRole.CANDIDATE:
         raise Refused(
             "An aspirant gets their login with their workspace, from Aspirants or at setup."
@@ -489,8 +485,8 @@ async def create_user(
             email=email,
             phone=phone,
         )
-        if ward is not None:
-            await add_mobilizer(session, target, ward.id, created, centre_id=centre_id)
+        if mobilizer_ward is not None:
+            await add_mobilizer(session, target, mobilizer_ward, created, centre_id=centre_id)
         elif target is not None:
             await join(session, target.id, created)
     except Refused:

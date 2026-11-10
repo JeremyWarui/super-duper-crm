@@ -19,7 +19,7 @@ from backend.models import (
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
 from backend.services.permissions import Area, narrow
-from backend.services.targets import _in_area, ward_in_area
+from backend.services.targets import _in_area, require_centre
 
 # Centres without an agent listed by the coverage view; the rest are counted.
 UNCOVERED_LIMIT = 500
@@ -84,11 +84,7 @@ async def update(
         centre_id = changes["registration_centre"]
         if centre_id is None and area is not None:
             raise Refused("Move the agent to a centre in your area instead.")
-        centre = await session.get(RegistrationCentre, centre_id) if centre_id else None
-        if centre_id is not None and (
-            centre is None or not await ward_in_area(session, campaign, centre.ward_id)
-        ):
-            raise Refused("That registration centre is not one this campaign works.")
+        centre = await require_centre(session, campaign, centre_id) if centre_id else None
         if centre is not None and area is not None and not area.holds(centre.ward_id, centre.id):
             raise Refused("That registration centre is outside your area.")
         row.registration_centre_id = centre.id if centre else None

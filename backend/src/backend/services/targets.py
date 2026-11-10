@@ -21,6 +21,7 @@ from backend.models import (
 )
 from backend.schemas.campaign import SetupSummary
 from backend.services.audit import record
+from backend.services.errors import Refused
 
 WITH_COUNTY = selectinload(Ward.constituency).selectinload(Constituency.county)
 
@@ -43,6 +44,42 @@ async def ward_in_area(session: AsyncSession, campaign: Campaign, ward_id: uuid.
         return campaign.ward_id == ward_id
     statement = _in_area(select(Ward.id).where(Ward.id == ward_id), campaign)
     return statement is not None and await session.scalar(statement) is not None
+
+
+WARD_OUTSIDE = "That ward is not one this campaign works."
+CENTRE_OUTSIDE = "That registration centre is not one this campaign works."
+NO_TARGET = "That centre has no target, so work there would count toward nothing."
+
+
+async def require_ward(
+    session: AsyncSession, campaign: Campaign, ward_id: uuid.UUID | None
+) -> None:
+    """Refused unless the ward lies inside the campaign's seat."""
+    if ward_id is None or not await ward_in_area(session, campaign, ward_id):
+        raise Refused(WARD_OUTSIDE)
+
+
+async def require_centre(
+    session: AsyncSession, campaign: Campaign, centre_id: uuid.UUID | None
+) -> RegistrationCentre:
+    """The registration centre, refused unless it lies in a ward of the campaign's seat."""
+    centre = await session.get(RegistrationCentre, centre_id) if centre_id else None
+    if centre is None or not await ward_in_area(session, campaign, centre.ward_id):
+        raise Refused(CENTRE_OUTSIDE)
+    return centre
+
+
+async def require_targeted(
+    session: AsyncSession, campaign_id: uuid.UUID, centre_id: uuid.UUID
+) -> None:
+    """Refused unless the campaign has a target at this centre."""
+    targeted = await session.scalar(
+        select(Target.id).where(
+            Target.campaign_id == campaign_id, Target.registration_centre_id == centre_id
+        )
+    )
+    if targeted is None:
+        raise Refused(NO_TARGET)
 
 
 async def wards_in_area(session: AsyncSession, campaign: Campaign) -> list[Ward]:

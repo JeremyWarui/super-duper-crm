@@ -10,7 +10,6 @@ from backend.models import (
     Campaign,
     CampaignMember,
     CampaignMemberArea,
-    RegistrationCentre,
     User,
     UserRole,
 )
@@ -18,7 +17,7 @@ from backend.services.accounts import add_member, leave, logins_on, member_of, s
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
 from backend.services.login_links import new_invited_login
-from backend.services.targets import ward_in_area
+from backend.services.targets import require_centre, require_ward
 
 ORDER = {role: rank for rank, role in enumerate(UserRole)}
 # Roles the candidate and manager add from the Team page.
@@ -157,14 +156,9 @@ async def set_areas(
         raise Refused("Only a coordinator has an area.")
     wards, centres = sorted(set(wards)), sorted(set(centres))
     for ward_id in wards:
-        if not await ward_in_area(session, campaign, ward_id):
-            raise Refused("That ward is not one this campaign works.")
+        await require_ward(session, campaign, ward_id)
     for centre_id in centres:
-        centre_ward = await session.scalar(
-            select(RegistrationCentre.ward_id).where(RegistrationCentre.id == centre_id)
-        )
-        if centre_ward is None or not await ward_in_area(session, campaign, centre_ward):
-            raise Refused("That registration centre is not one this campaign works.")
+        await require_centre(session, campaign, centre_id)
     await session.execute(
         delete(CampaignMemberArea).where(CampaignMemberArea.campaign_member_id == member.id)
     )

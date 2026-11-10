@@ -23,7 +23,6 @@ from backend.models import (
     OperationalGrain,
     RegistrationCentre,
     RegistrationStatus,
-    Target,
     TeamRegistration,
     User,
     UserRole,
@@ -43,7 +42,7 @@ from backend.services.errors import NotFound, Refused
 from backend.services.login_links import send_link
 from backend.services.permissions import Area, narrow
 from backend.services.sms import require_phone
-from backend.services.targets import ward_in_area
+from backend.services.targets import require_centre, require_targeted, require_ward
 
 CONSENT_VERSION = "team-1"
 CONSENT = (
@@ -70,8 +69,7 @@ async def by_code(session: AsyncSession, code: str) -> Campaign:
 
 async def centres_of(session: AsyncSession, campaign: Campaign, ward_id: uuid.UUID) -> list:
     """The registration centres of a ward inside the workspace's seat, by name."""
-    if not await ward_in_area(session, campaign, ward_id):
-        raise Refused("That ward is not one this campaign works.")
+    await require_ward(session, campaign, ward_id)
     found = await session.scalars(
         select(RegistrationCentre)
         .where(RegistrationCentre.ward_id == ward_id, RegistrationCentre.retired.is_(False))
@@ -89,20 +87,11 @@ async def _place(session: AsyncSession, campaign: Campaign, details: dict) -> tu
     )
     wants_centre = role is FieldRole.AGENT or campaign.operational_grain is OperationalGrain.CENTRE
     if not wants_centre:
-        if ward_id is None or not await ward_in_area(session, campaign, ward_id):
-            raise Refused("Pick a ward this campaign works.")
+        await require_ward(session, campaign, ward_id)
         return ward_id, None
-    centre = await session.get(RegistrationCentre, centre_id) if centre_id else None
-    if centre is None or not await ward_in_area(session, campaign, centre.ward_id):
-        raise Refused("Pick a registration centre this campaign works.")
+    centre = await require_centre(session, campaign, centre_id)
     if role is FieldRole.MOBILIZER:
-        targeted = await session.scalar(
-            select(Target.id).where(
-                Target.campaign_id == campaign.id, Target.registration_centre_id == centre.id
-            )
-        )
-        if targeted is None:
-            raise Refused("Pick a registration centre this campaign works.")
+        await require_targeted(session, campaign.id, centre.id)
     return centre.ward_id, centre.id
 
 

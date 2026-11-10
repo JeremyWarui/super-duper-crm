@@ -17,12 +17,12 @@ from backend.models import (
     Mobilizer,
     OperationalGrain,
     RegistrationCentre,
-    Target,
     User,
     UserRole,
 )
+from backend.services.accounts import campaign_mobilizer
 from backend.services.permissions import Area, Reach, narrow, reach
-from backend.services.targets import ward_in_area
+from backend.services.targets import require_targeted, require_ward
 
 # An id no row has, for a caller with nothing of their own.
 NOBODY = uuid.UUID(int=0)
@@ -201,10 +201,8 @@ async def require_ward_in_campaign(
     centre_id: uuid.UUID | None = None,
 ) -> None:
     """A ward, and a centre in it, must lie inside the campaign's seat."""
-    if ward_id is not None and not await ward_in_area(session, campaign, ward_id):
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "That ward is not one this campaign works."
-        )
+    if ward_id is not None:
+        await require_ward(session, campaign, ward_id)
     if centre_id is not None:
         centre_ward = await session.scalar(
             select(RegistrationCentre.ward_id).where(RegistrationCentre.id == centre_id)
@@ -247,24 +245,12 @@ async def require_targeted_centre(
     """A centre a supporter is filed at must have a target, or they count toward nothing."""
     if centre_id is None or campaign.operational_grain is not OperationalGrain.CENTRE:
         return
-    targeted = await session.scalar(
-        select(Target.id).where(
-            Target.campaign_id == campaign.id, Target.registration_centre_id == centre_id
-        )
-    )
-    if targeted is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "That centre has no target yet; ask the campaign manager to add one.",
-        )
+    await require_targeted(session, campaign.id, centre_id)
 
 
 async def require_campaign_mobilizer(
     session: AsyncSession, campaign_id: uuid.UUID, mobilizer_id: uuid.UUID | None
 ) -> None:
     """A mobilizer named in a body must belong to this campaign."""
-    if mobilizer_id is None:
-        return
-    owner = await session.scalar(select(Mobilizer.campaign_id).where(Mobilizer.id == mobilizer_id))
-    if owner != campaign_id:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such mobilizer on this campaign.")
+    if mobilizer_id is not None:
+        await campaign_mobilizer(session, campaign_id, mobilizer_id)

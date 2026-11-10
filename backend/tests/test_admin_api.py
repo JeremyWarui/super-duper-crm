@@ -177,6 +177,27 @@ async def test_the_console_gives_a_campaign_no_second_manager_and_no_lone_aspira
         assert await session.scalar(select(User).where(User.username == gone)) is None
 
 
+async def test_a_mobilizer_made_in_the_console_works_the_ward_given(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
+) -> None:
+    created = await client.post(
+        "/api/admin/users/",
+        headers=admin_headers,
+        json={
+            "username": "wanjiku",
+            "role": "mobilizer",
+            "campaign": str(world.campaign.id),
+            "ward": str(world.other_ward.id),
+        },
+    )
+
+    assert created.status_code == 201
+    ground = await session.scalar(
+        select(Mobilizer).where(Mobilizer.user_id == uuid.UUID(created.json()["id"]))
+    )
+    assert ground is not None and ground.ward_id == world.other_ward.id
+
+
 async def test_the_console_makes_no_campaign_itself(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:

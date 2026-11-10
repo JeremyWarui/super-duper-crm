@@ -16,13 +16,13 @@ from backend.models import (
     Event,
     EventStatus,
     Mobilizer,
-    RegistrationCentre,
     User,
 )
+from backend.services.accounts import campaign_mobilizer
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
 from backend.services.permissions import Area, narrow
-from backend.services.targets import ward_in_area
+from backend.services.targets import require_centre, require_ward
 
 WITH_DETAIL = (
     selectinload(Assignment.mobilizer),
@@ -82,10 +82,7 @@ async def _member(
 ) -> tuple[Mobilizer | None, Agent | None]:
     """The mobilizer or agent named, who must belong to this workspace."""
     if details.get("mobilizer") and not details.get("agent"):
-        found = await session.get(Mobilizer, details["mobilizer"])
-        if found is None or found.campaign_id != campaign.id:
-            raise Refused("No such mobilizer on this campaign.")
-        return found, None
+        return await campaign_mobilizer(session, campaign.id, details["mobilizer"]), None
     if details.get("agent") and not details.get("mobilizer"):
         found = await session.get(Agent, details["agent"])
         if found is None or found.campaign_id != campaign.id:
@@ -114,12 +111,9 @@ async def _place(
         centre_id = details.get("registration_centre")
         ward_id = details.get("ward")
         if centre_id:
-            centre = await session.get(RegistrationCentre, centre_id)
-            if centre is None:
-                raise Refused("No such registration centre.")
-            ward_id = centre.ward_id
-        if ward_id is None or not await ward_in_area(session, campaign, ward_id):
-            raise Refused("Pick a ward this campaign works.")
+            ward_id = (await require_centre(session, campaign, centre_id)).ward_id
+        else:
+            await require_ward(session, campaign, ward_id)
         return None, ward_id, centre_id
     member = mobilizer or agent
     if member.ward_id is None:
