@@ -30,7 +30,7 @@ from backend.schemas.campaign import (
 from backend.security import new_withdraw_code
 from backend.services import privacy
 from backend.services.consent import WORDING, ConsentChannel
-from backend.services.errors import refuse_erased
+from backend.services.errors import PHONE_ON_REGISTER, Refused, refuse_erased
 from backend.services.sms import normalise_phone
 
 router = APIRouter(prefix="/supporters", tags=["supporters"])
@@ -76,7 +76,7 @@ async def register_supporter(
     centre_id = centre_id if by_centre else None
     await require_in_area(session, user, "supporters.write", ward_id, centre_id)
     await require_ward_in_campaign(session, campaign, ward_id, centre_id)
-    await require_centre_in_ward_race(session, campaign, ward_id, centre_id)
+    require_centre_in_ward_race(campaign, centre_id)
     await require_targeted_centre(session, campaign, centre_id)
 
     phone = normalise_phone(payload.phone) or payload.phone
@@ -85,9 +85,7 @@ async def register_supporter(
             Supporter.campaign_id == payload.campaign, Supporter.phone == phone
         )
     ):
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "That phone number is already on this campaign's register."
-        )
+        raise Refused(PHONE_ON_REGISTER)
     supporter = Supporter(
         campaign_id=payload.campaign,
         ward_id=ward_id,

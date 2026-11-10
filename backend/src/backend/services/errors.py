@@ -1,5 +1,10 @@
 """Refusals the services raise; the API answers them as 400, 403 for Forbidden, 404 for NotFound."""
 
+# What a uniqueness rule answers, both before an insert and when one races past.
+PHONE_ON_REGISTER = "That phone number is already on this campaign's register."
+LIVE_NOMINATION = "That member already has a live nomination."
+HAS_WORKSPACE = "That aspirant already has a workspace."
+
 
 class Refused(Exception):
     """A request that cannot be done, with the reason to show."""

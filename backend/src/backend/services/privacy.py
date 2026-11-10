@@ -34,6 +34,7 @@ from backend.models import (
 )
 from backend.schemas.privacy import DataRequestCreate, DataRequestUpdate
 from backend.services import texting
+from backend.services.access import READ_ONLY
 from backend.services.audit import record
 from backend.services.errors import Refused, refuse_erased
 
@@ -44,7 +45,7 @@ DUE_DAYS = {
     DataRequestKind.CORRECTION: 14,
     DataRequestKind.ERASURE: 14,
 }
-CLOSED = "This campaign is closed: it is read-only."
+CLOSED = READ_ONLY.reason
 
 
 def _now() -> datetime:
@@ -234,7 +235,7 @@ def left_team(campaign_id: uuid.UUID) -> Select:
 
 
 def withdrawal_url(code: str) -> str:
-    return f"{get_settings().public_url.rstrip('/')}/withdraw/{code}"
+    return get_settings().url(f"/withdraw/{code}")
 
 
 async def text_withdrawal(

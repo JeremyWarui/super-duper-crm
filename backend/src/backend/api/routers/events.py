@@ -14,12 +14,9 @@ from backend.api.scope import (
     load,
     own_ground_row,
     require_campaign_mobilizer,
-    require_centre_in_ward_race,
-    require_in_area,
     require_mobilizer_in_area,
+    require_place,
     require_visible,
-    require_visible_campaign,
-    require_ward_in_campaign,
     scoped,
 )
 from backend.models import Event, EventStatus, Supporter, User
@@ -88,10 +85,9 @@ async def set_signups(
 @router.post("/", response_model=EventRead, status_code=status.HTTP_201_CREATED)
 async def create_event(payload: EventCreate, session: SessionDep, user: Writer) -> Event:
     """Schedule an event; a mobilizer's own is credited to them."""
-    campaign = await require_visible_campaign(session, user, payload.campaign)
-    await require_in_area(session, user, "events.write", payload.ward, payload.registration_centre)
-    await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
-    await require_centre_in_ward_race(session, campaign, payload.ward, payload.registration_centre)
+    await require_place(
+        session, user, "events.write", payload.campaign, payload.ward, payload.registration_centre
+    )
     await require_campaign_mobilizer(session, payload.campaign, payload.mobilizer)
     await require_mobilizer_in_area(session, user, "events.write", payload.mobilizer)
 

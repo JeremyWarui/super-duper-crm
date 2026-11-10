@@ -163,6 +163,10 @@ class Settings(BaseSettings):
         )
         return str(dsn)
 
+    def url(self, path: str) -> str:
+        """`path` on the public site, as a full address."""
+        return f"{self.public_url.rstrip('/')}{path}"
+
 
 @lru_cache
 def get_settings() -> Settings:

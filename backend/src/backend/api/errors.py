@@ -5,7 +5,16 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
-from backend.services.errors import CampaignClosed, Forbidden, NotFound, Refused, TooLarge
+from backend.services.errors import (
+    HAS_WORKSPACE,
+    LIVE_NOMINATION,
+    PHONE_ON_REGISTER,
+    CampaignClosed,
+    Forbidden,
+    NotFound,
+    Refused,
+    TooLarge,
+)
 
 # Each uniqueness rule a request can race past: the names Postgres and SQLite give its index,
 # and the sentence it answers with. The first match wins, so the one-manager rule comes before
@@ -19,15 +28,15 @@ UNIQUE_RULES: tuple[tuple[tuple[str, ...], str], ...] = (
     (("campaign_members.campaign_id",), "That campaign already has its aspirant or its manager."),
     (
         ("uq_supporters_campaign_phone", "supporters.campaign_id, supporters.phone"),
-        "That phone number is already on this campaign's register.",
+        PHONE_ON_REGISTER,
     ),
     (
         ("uq_aspirants_one_live_per_member", "aspirants.member_id"),
-        "That member already has a live nomination.",
+        LIVE_NOMINATION,
     ),
     (
         ("uq_aspirants_campaign_id", "aspirants.campaign_id"),
-        "That aspirant already has a workspace.",
+        HAS_WORKSPACE,
     ),
     (
         ("uq_party_members_phone", "party_members.phone"),

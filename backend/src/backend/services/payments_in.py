@@ -15,7 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.config import get_settings
 from backend.models import (
     Aspirant,
-    AspirantStatus,
     Campaign,
     OrganisationType,
     PayInMethod,
@@ -26,6 +25,7 @@ from backend.models import (
     User,
     WorkspaceKind,
 )
+from backend.services import nominations
 from backend.services.audit import record
 from backend.services.clock import as_utc
 from backend.services.errors import NotFound, Refused
@@ -155,12 +155,11 @@ def _code(raw: str) -> str:
 
 
 async def _fee_open(session: AsyncSession, aspirant: Aspirant) -> None:
-    if aspirant.fee_kes <= 0:
-        raise Refused("This application has no fee to pay.")
-    if aspirant.fee_paid_at is not None:
-        raise Refused("The fee is already paid.")
-    if aspirant.status is not AspirantStatus.DRAFT:
-        raise Refused("Only a draft application's fee is paid here.")
+    nominations.require_fee_open(
+        aspirant,
+        paid="The fee is already paid.",
+        not_draft="Only a draft application's fee is paid here.",
+    )
     waiting = await session.scalar(
         select(PaymentIn.id).where(
             PaymentIn.aspirant_id == aspirant.id, PaymentIn.status == PayInStatus.TO_CONFIRM
@@ -258,9 +257,9 @@ async def _settle(session: AsyncSession, row: PaymentIn, code: str) -> None:
     if row.aspirant_id is not None:
         aspirant = await session.get(Aspirant, row.aspirant_id)
         if aspirant is not None and aspirant.fee_paid_at is None:
-            aspirant.fee_paid_at = row.paid_at
-            aspirant.fee_reference = (row.mpesa_code or row.reference)[:50]
-            aspirant.fee_marked_by_id = row.decided_by_id
+            nominations.stamp_fee(
+                aspirant, (row.mpesa_code or row.reference)[:50], row.decided_by_id, row.paid_at
+            )
 
 
 async def by_reference(session: AsyncSession, reference: str) -> PaymentIn:

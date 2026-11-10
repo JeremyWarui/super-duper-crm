@@ -34,7 +34,7 @@ def may_sign_in(user: User) -> bool:
 
 
 def link_url(purpose: LinkPurpose, token: str) -> str:
-    return f"{get_settings().public_url.rstrip('/')}/{PATH[purpose]}/{token}"
+    return get_settings().url(f"/{PATH[purpose]}/{token}")
 
 
 async def issue(session: AsyncSession, user: User, purpose: LinkPurpose) -> str:

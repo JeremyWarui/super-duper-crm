@@ -179,7 +179,7 @@ async def options() -> AuthOptions:
 
 
 def _to_signin(**query: str) -> RedirectResponse:
-    target = f"{get_settings().public_url.rstrip('/')}/signin?{urlencode(query)}"
+    target = get_settings().url(f"/signin?{urlencode(query)}")
     response = RedirectResponse(target, status_code=status.HTTP_302_FOUND)
     response.delete_cookie(GOOGLE_COOKIE, path=GOOGLE_PATH)
     return response

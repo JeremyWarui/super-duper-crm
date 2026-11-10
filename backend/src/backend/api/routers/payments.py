@@ -15,6 +15,7 @@ from backend.api.deps import CurrentUser, SessionDep, require
 from backend.api.scope import (
     all_rows,
     area_ids,
+    own_ids,
     require_in_area,
     require_visible_campaign,
     visible_campaign_ids,
@@ -28,7 +29,6 @@ from backend.models import (
     Payment,
     PaymentStatus,
     User,
-    UserRole,
 )
 from backend.schemas.payment import (
     PaymentCreate,
@@ -53,6 +53,7 @@ logger = logging.getLogger(__name__)
 Reader = Annotated[User, Depends(require("payments.read"))]
 Scheduler = Annotated[User, Depends(require("payments.schedule"))]
 Approver = Annotated[User, Depends(require("payments.approve"))]
+ASSIGNMENT_PAID = "That assignment already has a payment."
 
 
 @router.get("/", response_model=list[PaymentRead])
@@ -79,14 +80,13 @@ async def list_payments(
                     and_(Payment.assignment_id.is_(None), Payment.event_id.in_(events)),
                 )
             )
-        case Reach.OWN if user.role is UserRole.MOBILIZER:
-            profile = user.mobilizer_profile
-            statement = statement.where(
-                Payment.mobilizer_id == (profile.id if profile is not None else uuid.UUID(int=0))
-            )
         case Reach.OWN:
-            agent = await session.scalar(select(Agent.id).where(Agent.user_id == user.id))
-            statement = statement.where(Payment.agent_id == (agent or uuid.UUID(int=0)))
+            mobilizer_id, agent_id = await own_ids(session, user)
+            statement = statement.where(
+                Payment.mobilizer_id == mobilizer_id
+                if mobilizer_id
+                else Payment.agent_id == agent_id
+            )
     return await all_rows(session, statement.order_by(Payment.created_at.desc()))
 
 
@@ -112,7 +112,7 @@ async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Sc
         )
     )
     if taken is not None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That assignment already has a payment.")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, ASSIGNMENT_PAID)
     if work.mobilizer is not None:
         name, phone = work.mobilizer.full_name, work.mobilizer.phone
     else:
@@ -136,9 +136,7 @@ async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Sc
         await session.flush()
     except IntegrityError:
         await session.rollback()
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "That assignment already has a payment."
-        ) from None
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, ASSIGNMENT_PAID) from None
     record(
         session,
         actor=user,

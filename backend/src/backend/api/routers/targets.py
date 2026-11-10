@@ -12,11 +12,9 @@ from backend.api.deps import SessionDep, require
 from backend.api.scope import (
     all_rows,
     load,
-    require_centre_in_ward_race,
-    require_in_area,
+    require_place,
     require_visible,
     require_visible_campaign,
-    require_ward_in_campaign,
     scoped,
 )
 from backend.models import OperationalGrain, RegistrationCentre, Target, User, Ward
@@ -34,6 +32,7 @@ router = APIRouter(prefix="/targets", tags=["targets"])
 LOADED = (selectinload(Target.ward), selectinload(Target.registration_centre))
 Reader = Annotated[User, Depends(require("targets.read"))]
 Writer = Annotated[User, Depends(require("targets.write"))]
+TARGET_TAKEN = "That unit already has a target."
 
 
 @router.get("/", response_model=list[TargetRead])
@@ -61,10 +60,9 @@ async def refresh(
 
 @router.post("/", response_model=TargetRead, status_code=status.HTTP_201_CREATED)
 async def create_target(payload: TargetCreate, session: SessionDep, user: Writer) -> Target:
-    campaign = await require_visible_campaign(session, user, payload.campaign)
-    await require_in_area(session, user, "targets.write", payload.ward, payload.registration_centre)
-    await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
-    await require_centre_in_ward_race(session, campaign, payload.ward, payload.registration_centre)
+    campaign = await require_place(
+        session, user, "targets.write", payload.campaign, payload.ward, payload.registration_centre
+    )
     if campaign.operational_grain is OperationalGrain.WARD and payload.registration_centre:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -80,7 +78,7 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
         ).scalars()
     )
     if payload.registration_centre in taken:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That unit already has a target.")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, TARGET_TAKEN)
 
     target = Target(
         campaign_id=payload.campaign,
@@ -94,9 +92,7 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
         await session.flush()
     except IntegrityError:
         await session.rollback()
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "That unit already has a target."
-        ) from None
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, TARGET_TAKEN) from None
     return await _saved(session, target, new=True)
 
 

@@ -42,7 +42,7 @@ def configured() -> bool:
 
 
 def redirect_uri() -> str:
-    return f"{get_settings().public_url.rstrip('/')}/api/auth/google/callback/"
+    return get_settings().url("/api/auth/google/callback/")
 
 
 def _client() -> httpx.AsyncClient:

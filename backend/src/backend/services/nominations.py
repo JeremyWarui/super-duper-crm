@@ -37,6 +37,8 @@ from backend.services.errors import NotFound, Refused, refuse_own_record
 
 DRAFT, PUBLISHED = "draft", "published"
 
+OWN_LIVE_NOMINATION = "You already have a live nomination."
+
 
 def _check_dates(opens_on: date, closes_on: date) -> None:
     if closes_on < opens_on:
@@ -250,7 +252,7 @@ async def apply(
     if offered is None:
         raise Refused(f"{seat.label} is not open in this timetable.")
     if await mine(session, member) is not None:
-        raise Refused("You already have a live nomination.")
+        raise Refused(OWN_LIVE_NOMINATION)
     aspirant = Aspirant(
         member_id=member.id,
         seat=seat,
@@ -264,7 +266,7 @@ async def apply(
         await session.flush()
     except IntegrityError:
         await session.rollback()
-        raise Refused("You already have a live nomination.") from None
+        raise Refused(OWN_LIVE_NOMINATION) from None
     record(
         session,
         actor=actor,
@@ -371,20 +373,37 @@ async def withdraw(session: AsyncSession, aspirant: Aspirant | None, *, actor: U
     await session.commit()
 
 
+def require_fee_open(
+    aspirant: Aspirant,
+    *,
+    paid: str = "The fee is already marked paid.",
+    not_draft: str = "Only a draft application's fee is marked paid.",
+) -> None:
+    """Refused unless the application has a fee, still unpaid, and is a draft."""
+    if aspirant.fee_kes <= 0:
+        raise Refused("This application has no fee to pay.")
+    if aspirant.fee_paid_at is not None:
+        raise Refused(paid)
+    if aspirant.status is not AspirantStatus.DRAFT:
+        raise Refused(not_draft)
+
+
+def stamp_fee(
+    aspirant: Aspirant, reference: str, marked_by_id: uuid.UUID | None, at: datetime
+) -> None:
+    """Record the fee paid at `at` under `reference`."""
+    aspirant.fee_paid_at = at
+    aspirant.fee_reference = reference
+    aspirant.fee_marked_by_id = marked_by_id
+
+
 async def mark_fee_paid(
     session: AsyncSession, aspirant: Aspirant, reference: str, *, actor: User
 ) -> Aspirant:
     """The officer records the nomination fee paid, under its M-Pesa or bank reference."""
     refuse_own_record(actor, aspirant.member_id)
-    if aspirant.fee_kes <= 0:
-        raise Refused("This application has no fee to pay.")
-    if aspirant.fee_paid_at is not None:
-        raise Refused("The fee is already marked paid.")
-    if aspirant.status is not AspirantStatus.DRAFT:
-        raise Refused("Only a draft application's fee is marked paid.")
-    aspirant.fee_paid_at = datetime.now(UTC)
-    aspirant.fee_reference = reference
-    aspirant.fee_marked_by_id = actor.id
+    require_fee_open(aspirant)
+    stamp_fee(aspirant, reference, actor.id, datetime.now(UTC))
     record(
         session,
         actor=actor,

@@ -24,7 +24,13 @@ from backend.services import admin
 from backend.services.accounts import user_with_email
 from backend.services.audit import record, record_if
 from backend.services.campaigns import AREA_FIELD, AREA_MODEL
-from backend.services.errors import NotFound, Refused, refuse_own_record
+from backend.services.errors import (
+    HAS_WORKSPACE,
+    LIVE_NOMINATION,
+    NotFound,
+    Refused,
+    refuse_own_record,
+)
 from backend.services.sms import normalise_phone
 
 A = AspirantStatus
@@ -88,7 +94,7 @@ async def nominate(
         select(Aspirant.id).where(Aspirant.member_id == member_id, Aspirant.status.in_(LIVE))
     )
     if live is not None:
-        raise Refused("That member already has a live nomination.")
+        raise Refused(LIVE_NOMINATION)
     aspirant = Aspirant(
         member_id=member_id, seat=seat, created_by_id=actor.id, **{f"{area_field}_id": area_id}
     )
@@ -341,7 +347,7 @@ async def create_workspace(
     if aspirant.status is not A.APPROVED:
         raise Refused("Only an approved aspirant gets a workspace.")
     if aspirant.campaign_id is not None:
-        raise Refused("That aspirant already has a workspace.")
+        raise Refused(HAS_WORKSPACE)
     try:
         moved = await take_member_email(session, aspirant.member_id, candidate.get("email") or "")
         campaign, summary, logins = await admin.build_workspace(

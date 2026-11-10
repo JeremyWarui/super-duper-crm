@@ -4,12 +4,11 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import select
 
 from backend.api.deps import SessionDep, require
-from backend.api.scope import area_of, require_visible_campaign
+from backend.api.scope import area_of, own_ids, require_visible_campaign
 from backend.db.session import get_or_refuse
-from backend.models import Agent, Assignment, AssignmentStatus, User, UserRole
+from backend.models import Assignment, AssignmentStatus, User
 from backend.schemas.assignment import AssignmentCreate, AssignmentRead
 from backend.services import assignments
 from backend.services.permissions import Reach, reach
@@ -50,16 +49,10 @@ async def list_assignments(
     """The caller's assignments: all, a coordinator's area, or a mobilizer's or agent's own."""
     await require_visible_campaign(session, user, campaign)
     if reach(user, "assignments.read") is Reach.OWN:
-        if user.role is UserRole.MOBILIZER:
-            own = user.mobilizer_profile.id if user.mobilizer_profile else uuid.UUID(int=0)
-            rows = await assignments.assignments(
-                session, campaign, None, mobilizer_id=own, status=status
-            )
-        else:
-            agent = await session.scalar(select(Agent.id).where(Agent.user_id == user.id))
-            rows = await assignments.assignments(
-                session, campaign, None, agent_id=agent or uuid.UUID(int=0), status=status
-            )
+        mobilizer_id, agent_id = await own_ids(session, user)
+        rows = await assignments.assignments(
+            session, campaign, None, mobilizer_id=mobilizer_id, agent_id=agent_id, status=status
+        )
     else:
         area = await area_of(session, user, "assignments.read")
         rows = await assignments.assignments(session, campaign, area, status=status)

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.interfaces import ORMOption
 
 from backend.models import (
+    Agent,
     Campaign,
     CampaignMember,
     CampaignMemberArea,
@@ -22,6 +23,18 @@ from backend.models import (
 )
 from backend.services.permissions import Area, Reach, narrow, reach
 from backend.services.targets import ward_in_area
+
+# An id no row has, for a caller with nothing of their own.
+NOBODY = uuid.UUID(int=0)
+
+
+async def own_ids(session: AsyncSession, user: User) -> tuple[uuid.UUID | None, uuid.UUID | None]:
+    """A mobilizer's own mobilizer id, or anyone else's agent id; NOBODY when they have none."""
+    if user.role is UserRole.MOBILIZER:
+        profile = user.mobilizer_profile
+        return (profile.id if profile is not None else NOBODY), None
+    agent = await session.scalar(select(Agent.id).where(Agent.user_id == user.id))
+    return None, agent or NOBODY
 
 
 async def visible_campaign_ids(session: AsyncSession, user: User) -> frozenset[uuid.UUID]:
@@ -49,7 +62,7 @@ def mobilizer_ward_id(user: User) -> uuid.UUID | None:
         return None
     profile = user.mobilizer_profile
     if profile is None or profile.ward_id is None:
-        return uuid.UUID(int=0)
+        return NOBODY
     return profile.ward_id
 
 
@@ -76,7 +89,7 @@ async def area_of(session: AsyncSession, user: User, action: str) -> Area | None
         case Reach.AREA:
             return await area_ids(session, user)
         case Reach.OWN if user.role is UserRole.MOBILIZER:
-            return Area(frozenset({mobilizer_ward_id(user) or uuid.UUID(int=0)}), frozenset())
+            return Area(frozenset({mobilizer_ward_id(user) or NOBODY}), frozenset())
         case _:
             return Area(frozenset(), frozenset())
 
@@ -202,18 +215,30 @@ async def require_ward_in_campaign(
             )
 
 
-async def require_centre_in_ward_race(
-    session: AsyncSession,
-    campaign: Campaign,
-    ward_id: uuid.UUID | None,
-    centre_id: uuid.UUID | None,
-) -> None:
+def require_centre_in_ward_race(campaign: Campaign, centre_id: uuid.UUID | None) -> None:
     """In a ward (MCA) race a registration centre is required."""
     if campaign.operational_grain is OperationalGrain.CENTRE and centre_id is None:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "In an MCA race this happens at a registration centre; pick one.",
         )
+
+
+async def require_place(
+    session: AsyncSession,
+    user: User,
+    action: str,
+    campaign_id: uuid.UUID,
+    ward_id: uuid.UUID | None,
+    centre_id: uuid.UUID | None,
+) -> Campaign:
+    """The campaign, once the caller may see it, the place is in their area and the campaign's
+    seat, and an MCA race has its centre."""
+    campaign = await require_visible_campaign(session, user, campaign_id)
+    await require_in_area(session, user, action, ward_id, centre_id)
+    await require_ward_in_campaign(session, campaign, ward_id, centre_id)
+    require_centre_in_ward_race(campaign, centre_id)
+    return campaign
 
 
 async def require_targeted_centre(
