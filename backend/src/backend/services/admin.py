@@ -15,7 +15,6 @@ from backend.models import (
     LinkPurpose,
     Mobilizer,
     PartyMember,
-    PartyMemberStatus,
     PartyRole,
     PartyRoleName,
     RegistrationCentre,
@@ -527,7 +526,7 @@ async def grant_party_role(
     member = (
         await session.get(PartyMember, login.party_member_id) if login.party_member_id else None
     )
-    if member is None or member.status is not PartyMemberStatus.APPROVED:
+    if member is None or not member.is_approved:
         raise Refused(f"Link {login.username} to their approved party member first.")
     login.party_roles.append(PartyRole(role=role))
     record(
@@ -572,7 +571,7 @@ async def link_party_member(
     member = await session.get(PartyMember, member_id) if member_id else None
     if member_id is not None and member is None:
         raise NotFound("No such member.")
-    if login.party_roles and (member is None or member.status is not PartyMemberStatus.APPROVED):
+    if login.party_roles and (member is None or not member.is_approved):
         raise Refused(
             f"{login.username} holds a party office, so it stays linked to an approved member."
         )

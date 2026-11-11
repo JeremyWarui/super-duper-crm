@@ -26,6 +26,7 @@ from backend.models import (
 from backend.schemas.join import JoinCreate, JoinDone, JoinPlace, JoinRead, Withdrawn
 from backend.security import new_withdraw_code
 from backend.services.access import FULL, Access, workspace_access
+from backend.services.campaigns import CAMPAIGN_NAMES
 from backend.services.consent import WORDING, ConsentChannel
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import require_phone
@@ -39,13 +40,6 @@ WITHDRAWALS = RateLimit(limit=20, window=3600)
 THANKS = "Thank you, you're signed up."
 # The same answer for every code, so a code cannot be tested for whether it was real.
 WITHDRAWN = "Done. If your details were on this campaign's register, they are gone now."
-
-CAMPAIGN_NAMES = (
-    selectinload(Campaign.candidate),
-    selectinload(Campaign.county),
-    selectinload(Campaign.constituency),
-    selectinload(Campaign.ward),
-)
 
 
 @dataclass
@@ -110,13 +104,12 @@ async def _places(session: SessionDep, campaign: Campaign) -> list[JoinPlace]:
 async def read_signup(code: str, session: SessionDep) -> JoinRead:
     link = await _link(session, code)
     campaign = link.campaign
-    candidate = campaign.candidate
     on_campaign_link = link.event is None
     by_centre = campaign.operational_grain is OperationalGrain.CENTRE
     area = campaign.area
     return JoinRead(
         campaign_title=campaign.title,
-        candidate_name=candidate.display_name if candidate else "",
+        candidate_name=campaign.candidate_label,
         event_title=link.event.title if link.event else "",
         ward_name=link.event.ward.name if link.event else (area.name if area else ""),
         open=link.open,

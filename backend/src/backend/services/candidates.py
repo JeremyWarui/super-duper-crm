@@ -35,6 +35,7 @@ from backend.schemas.party import MemberPlace
 from backend.services import access, campaign_volunteers
 from backend.services.audit import record
 from backend.services.consent import CAMPAIGN_VOLUNTEER_WORDING
+from backend.services.content import public_posts
 from backend.services.errors import NotFound, Refused
 from backend.services.targets import wards_in_area
 
@@ -124,12 +125,11 @@ async def candidate(session: AsyncSession, value: str, today: date) -> Candidate
     """One listed candidate's page: profile, upcoming party events naming them, the form."""
     aspirant, profile = await _by_slug(session, value)
     events = await session.scalars(
-        select(PartyPost)
+        public_posts()
         .join(party_post_aspirants, party_post_aspirants.c.post_id == PartyPost.id)
         .where(
             party_post_aspirants.c.aspirant_id == aspirant.id,
             PartyPost.kind == PostKind.EVENT,
-            PartyPost.published.is_(True),
             PartyPost.event_date >= today,
         )
         .order_by(PartyPost.event_date)

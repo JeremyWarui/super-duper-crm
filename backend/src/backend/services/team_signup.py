@@ -40,6 +40,7 @@ from backend.services.accounts import (
 )
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
+from backend.services.geography import places
 from backend.services.login_links import send_link
 from backend.services.permissions import Area, narrow
 from backend.services.sms import require_phone
@@ -71,12 +72,7 @@ async def by_code(session: AsyncSession, code: str) -> Campaign:
 async def centres_of(session: AsyncSession, campaign: Campaign, ward_id: uuid.UUID) -> list:
     """The registration centres of a ward inside the workspace's seat, by name."""
     await require_ward(session, campaign, ward_id)
-    found = await session.scalars(
-        select(RegistrationCentre)
-        .where(RegistrationCentre.ward_id == ward_id, RegistrationCentre.retired.is_(False))
-        .order_by(RegistrationCentre.name)
-    )
-    return list(found)
+    return await places(session, RegistrationCentre, ward_id)
 
 
 async def _place(session: AsyncSession, campaign: Campaign, details: dict) -> tuple:

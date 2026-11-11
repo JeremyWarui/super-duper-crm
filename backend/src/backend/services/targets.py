@@ -22,6 +22,7 @@ from backend.models import (
 from backend.schemas.campaign import SetupSummary
 from backend.services.audit import record
 from backend.services.errors import Refused
+from backend.services.geography import places
 
 WITH_COUNTY = selectinload(Ward.constituency).selectinload(Constituency.county)
 
@@ -118,15 +119,7 @@ async def generate_targets(
         note = None if wards else "No area is set for this campaign's office level."
     else:
         ward = wards[0] if wards else None
-        centres = (
-            await session.scalars(
-                select(RegistrationCentre)
-                .where(RegistrationCentre.ward_id == ward.id, RegistrationCentre.retired.is_(False))
-                .order_by(RegistrationCentre.name)
-            )
-            if ward is not None
-            else []
-        )
+        centres = await places(session, RegistrationCentre, ward.id) if ward is not None else []
         units = [(ward, centre) for centre in centres]
         note = None if units else "No registration centres are loaded for this campaign's ward."
 

@@ -3,7 +3,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -19,7 +19,8 @@ NEWS_PAGE = 20
 # ---- public ----
 
 
-def _public():
+def public_posts() -> Select:
+    """Published posts, with their county loaded."""
     return (
         select(PartyPost)
         .options(selectinload(PartyPost.county))
@@ -30,7 +31,7 @@ def _public():
 async def published_news(
     session: AsyncSession, offset: int, label: PostLabel | None = None
 ) -> list[PartyPost]:
-    query = _public().where(PartyPost.kind == PostKind.NEWS)
+    query = public_posts().where(PartyPost.kind == PostKind.NEWS)
     if label is not None:
         query = query.where(PartyPost.label == label)
     return list(
@@ -45,14 +46,14 @@ async def published_news(
 async def upcoming_events(
     session: AsyncSession, on: date, county_id: uuid.UUID | None = None
 ) -> list[PartyPost]:
-    query = _public().where(PartyPost.kind == PostKind.EVENT, PartyPost.event_date >= on)
+    query = public_posts().where(PartyPost.kind == PostKind.EVENT, PartyPost.event_date >= on)
     if county_id is not None:
         query = query.where(PartyPost.county_id == county_id)
     return list(await session.scalars(query.order_by(PartyPost.event_date, PartyPost.title)))
 
 
 async def published_post(session: AsyncSession, post_id: uuid.UUID) -> PartyPost:
-    post = await session.scalar(_public().where(PartyPost.id == post_id))
+    post = await session.scalar(public_posts().where(PartyPost.id == post_id))
     if post is None:
         raise NotFound("No such post.")
     return post

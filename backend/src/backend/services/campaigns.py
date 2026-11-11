@@ -5,6 +5,7 @@ from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from backend.models import (
     Campaign,
@@ -15,6 +16,7 @@ from backend.models import (
     Seat,
     Ward,
 )
+from backend.models.campaign import AREA_FIELD
 from backend.schemas.campaign import SetupSummary
 from backend.services.errors import Refused
 from backend.services.targets import generate_targets
@@ -24,11 +26,15 @@ AREA_MODEL = {
     OfficeLevel.CONSTITUENCY: Constituency,
     OfficeLevel.WARD: Ward,
 }
-AREA_FIELD = {
-    OfficeLevel.COUNTY: "county",
-    OfficeLevel.CONSTITUENCY: "constituency",
-    OfficeLevel.WARD: "ward",
-}
+
+
+# Loads what a campaign's name and seat are spelt out from.
+CAMPAIGN_NAMES = (
+    selectinload(Campaign.candidate),
+    selectinload(Campaign.county),
+    selectinload(Campaign.constituency),
+    selectinload(Campaign.ward),
+)
 
 
 async def build_campaign(

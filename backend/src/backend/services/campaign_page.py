@@ -57,11 +57,10 @@ async def public_page(session: AsyncSession) -> CandidateDetail:
     profile = await _profile(session, found)
     if profile is None or not profile.published:
         raise NotFound("The candidate page is not published yet.")
-    candidate = found.candidate
     area = found.area
     return CandidateDetail(
         slug="",
-        name=candidate.display_name if candidate else found.title,
+        name=found.candidate_label or found.title,
         seat=found.seat,
         area=area.name if area is not None else "",
         county=found.county_name,

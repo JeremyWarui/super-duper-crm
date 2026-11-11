@@ -58,15 +58,12 @@ FiltersDep = Annotated[VolunteerFilters, Depends(_filters)]
 
 def _read(row: VolunteerProfile) -> VolunteerRead:
     member = row.member
-    ward = member.ward
     return VolunteerRead(
         id=row.id,
         member_id=row.member_id,
         full_name=member.full_name,
         phone=member.phone,
-        ward=ward,
-        constituency=ward.constituency,
-        county=ward.constituency.county,
+        **member.places,
         registration_centre=row.registration_centre,
         profession=row.profession,
         profession_other=row.profession_other,

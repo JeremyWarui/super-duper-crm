@@ -25,7 +25,6 @@ from backend.models import (
     NominationWindow,
     OfficeLevel,
     PartyMember,
-    PartyMemberStatus,
     Seat,
     StoredFile,
     User,
@@ -239,7 +238,7 @@ async def apply(
     session: AsyncSession, member: PartyMember, seat: Seat, *, actor: User, today: date
 ) -> Aspirant:
     """Start an approved member's application for a seat open in today's window."""
-    if member.status is not PartyMemberStatus.APPROVED:
+    if not member.is_approved:
         raise Refused("Only an approved party member can apply to vie.")
     row = await current(session, today)
     if not is_open(row, today):

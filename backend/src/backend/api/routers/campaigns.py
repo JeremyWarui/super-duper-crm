@@ -6,7 +6,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from backend.api.deps import CurrentUser, SessionDep, require
 from backend.api.scope import (
@@ -20,6 +19,7 @@ from backend.models import Campaign, User, VolunteerProfile, VolunteerStatus, Wo
 from backend.schemas.campaign import CampaignRead, CampaignSignups, EventSignups, SetupSummary
 from backend.schemas.candidates import CampaignVolunteerRead, CampaignVolunteerUpdate
 from backend.services import campaign_volunteers, site
+from backend.services.campaigns import CAMPAIGN_NAMES
 from backend.services.targets import refresh_targets
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
@@ -29,20 +29,13 @@ TargetsWriter = Annotated[User, Depends(require("targets.write"))]
 VolunteerReader = Annotated[User, Depends(require("volunteers.read"))]
 VolunteerWriter = Annotated[User, Depends(require("volunteers.write"))]
 
-NAMED = (
-    selectinload(Campaign.candidate),
-    selectinload(Campaign.county),
-    selectinload(Campaign.constituency),
-    selectinload(Campaign.ward),
-)
-
 
 async def _named(session: SessionDep, campaign: Campaign) -> CampaignRead:
     """A campaign with its candidate and seat spelt out, the party's name standing for the
-    candidate of the party workspace; needs NAMED loaded."""
+    candidate of the party workspace; needs CAMPAIGN_NAMES loaded."""
     area = campaign.area
     candidate = campaign.candidate
-    name = candidate.display_name if candidate else ""
+    name = campaign.candidate_label
     if campaign.kind is WorkspaceKind.PARTY:
         name = (await site.read_settings(session)).name
     return CampaignRead.model_validate(campaign).model_copy(
@@ -60,7 +53,7 @@ async def list_campaigns(session: SessionDep, user: CurrentUser) -> list[Campaig
     """The caller's campaign, in a list; empty when they are on none."""
     statement = (
         select(Campaign)
-        .options(*NAMED)
+        .options(*CAMPAIGN_NAMES)
         .where(Campaign.id.in_(await visible_campaign_ids(session, user)))
         .order_by(Campaign.created_at)
     )
@@ -72,7 +65,7 @@ async def get_campaign(
     campaign_id: uuid.UUID, session: SessionDep, user: CurrentUser
 ) -> CampaignRead:
     await require_visible_campaign(session, user, campaign_id)
-    return await _named(session, await load(session, Campaign, campaign_id, NAMED))
+    return await _named(session, await load(session, Campaign, campaign_id, CAMPAIGN_NAMES))
 
 
 @router.get("/{campaign_id}/signups/", response_model=CampaignSignups)

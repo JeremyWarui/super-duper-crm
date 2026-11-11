@@ -60,6 +60,7 @@ from backend.services import (
     branches,
     content,
     dashboard,
+    geography,
     home,
     membership,
     sharing,
@@ -186,26 +187,12 @@ async def places(
     """Counties; a county's constituencies; a constituency's wards; or a ward's polling
     stations, by name."""
     if ward is not None:
-        statement = (
-            select(RegistrationCentre)
-            .where(RegistrationCentre.ward_id == ward, RegistrationCentre.retired.is_(False))
-            .order_by(RegistrationCentre.name)
-        )
-    elif constituency is not None:
-        statement = (
-            select(Ward)
-            .where(Ward.constituency_id == constituency, Ward.retired.is_(False))
-            .order_by(Ward.name)
-        )
-    elif county is not None:
-        statement = (
-            select(Constituency)
-            .where(Constituency.county_id == county, Constituency.retired.is_(False))
-            .order_by(Constituency.name)
-        )
-    else:
-        statement = select(County).where(County.retired.is_(False)).order_by(County.name)
-    return list(await session.scalars(statement))
+        return await geography.places(session, RegistrationCentre, ward)
+    if constituency is not None:
+        return await geography.places(session, Ward, constituency)
+    if county is not None:
+        return await geography.places(session, Constituency, county)
+    return await geography.places(session, County)
 
 
 @party_router.post("/join/", response_model=PartyJoinDone, status_code=status.HTTP_201_CREATED)

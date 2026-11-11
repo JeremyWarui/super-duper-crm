@@ -2,12 +2,12 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import selectinload
 
 from backend.api.deps import CurrentUser, SessionDep, get_current_user
 from backend.api.scope import all_rows, mobilizer_ward_id
+from backend.db.session import get_or_refuse
 from backend.models import Constituency, County, RegistrationCentre, Ward
 from backend.schemas.geography import (
     ConstituencyRead,
@@ -15,38 +15,28 @@ from backend.schemas.geography import (
     RegistrationCentreRead,
     WardRead,
 )
+from backend.services.geography import in_level, places
 
 router = APIRouter(tags=["geography"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/counties/", response_model=list[CountyRead])
 async def list_counties(session: SessionDep) -> list[County]:
-    return await all_rows(
-        session, select(County).where(County.retired.is_(False)).order_by(County.name)
-    )
+    return await places(session, County)
 
 
 @router.get("/counties/{county_id}/", response_model=CountyRead)
 async def get_county(county_id: uuid.UUID, session: SessionDep) -> County:
-    county = await session.get(County, county_id)
-    if county is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such county.")
-    return county
+    return await get_or_refuse(session, County, county_id, "county")
 
 
 @router.get("/constituencies/", response_model=list[ConstituencyRead])
 async def list_constituencies(
     session: SessionDep, county: uuid.UUID | None = None
 ) -> list[Constituency]:
-    statement = (
-        select(Constituency)
-        .where(Constituency.retired.is_(False))
-        .options(selectinload(Constituency.county))
-        .order_by(Constituency.name)
+    return await all_rows(
+        session, in_level(Constituency, county).options(selectinload(Constituency.county))
     )
-    if county is not None:
-        statement = statement.where(Constituency.county_id == county)
-    return await all_rows(session, statement)
 
 
 @router.get("/wards/", response_model=list[WardRead])
@@ -57,14 +47,7 @@ async def list_wards(
     county: uuid.UUID | None = None,
 ) -> list[Ward]:
     """Every ward, or those in one constituency or county."""
-    statement = (
-        select(Ward)
-        .where(Ward.retired.is_(False))
-        .options(selectinload(Ward.constituency))
-        .order_by(Ward.name)
-    )
-    if constituency is not None:
-        statement = statement.where(Ward.constituency_id == constituency)
+    statement = in_level(Ward, constituency).options(selectinload(Ward.constituency))
     if county is not None:
         statement = statement.join(Constituency).where(Constituency.county_id == county)
     own_ward = mobilizer_ward_id(user)
@@ -77,14 +60,7 @@ async def list_wards(
 async def list_centres(
     session: SessionDep, user: CurrentUser, ward: uuid.UUID | None = None
 ) -> list[RegistrationCentre]:
-    statement = (
-        select(RegistrationCentre)
-        .where(RegistrationCentre.retired.is_(False))
-        .options(selectinload(RegistrationCentre.ward))
-        .order_by(RegistrationCentre.name)
-    )
-    if ward is not None:
-        statement = statement.where(RegistrationCentre.ward_id == ward)
+    statement = in_level(RegistrationCentre, ward).options(selectinload(RegistrationCentre.ward))
     own_ward = mobilizer_ward_id(user)
     if own_ward is not None:
         statement = statement.where(RegistrationCentre.ward_id == own_ward)

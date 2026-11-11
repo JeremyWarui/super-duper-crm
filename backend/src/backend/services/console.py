@@ -23,7 +23,7 @@ def offices(user: User) -> set[PartyRoleName]:
     if user.is_superuser:
         return set(PartyRoleName)
     member = user.party_member
-    if member is None or member.status is not PartyMemberStatus.APPROVED:
+    if member is None or not member.is_approved:
         return set()
     return {held.role for held in user.party_roles}
 

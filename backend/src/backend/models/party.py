@@ -156,6 +156,16 @@ class PartyMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     def __str__(self) -> str:
         return self.full_name
 
+    @property
+    def is_approved(self) -> bool:
+        return self.status is PartyMemberStatus.APPROVED
+
+    @property
+    def places(self) -> dict:
+        """The member's ward, constituency and county; needs the chain loaded."""
+        ward = self.ward
+        return {"ward": ward, "constituency": ward.constituency, "county": ward.constituency.county}
+
 
 class PartyRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """A public join or withdrawal waiting to be applied to the register; deleted once applied."""

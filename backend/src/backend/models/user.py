@@ -101,10 +101,8 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     @property
     def member_account(self) -> bool:
         """Whether this login opens an approved party member's account; needs `party_member`."""
-        from backend.models.enums import PartyMemberStatus
-
         member = self.party_member
-        return member is not None and member.status is PartyMemberStatus.APPROVED
+        return member is not None and member.is_approved
 
     @property
     def full_name(self) -> str:

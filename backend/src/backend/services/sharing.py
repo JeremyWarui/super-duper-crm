@@ -32,6 +32,7 @@ from backend.models import (
 )
 from backend.services import rich_text
 from backend.services.audit import record
+from backend.services.content import public_posts
 from backend.services.targets import wards_in_area
 
 SWITCHES = ("event_reach", "ward_coverage", "supporter_counts")
@@ -121,24 +122,14 @@ async def feed(session: AsyncSession, campaign: Campaign, today: date) -> dict:
     county = await _county_of(session, campaign)
     here = or_(PartyPost.county_id.is_(None), PartyPost.county_id == county)
     events = await session.scalars(
-        select(PartyPost)
-        .where(
-            PartyPost.published.is_(True),
-            PartyPost.kind == PostKind.EVENT,
-            PartyPost.event_date >= today,
-            here,
-        )
+        public_posts()
+        .where(PartyPost.kind == PostKind.EVENT, PartyPost.event_date >= today, here)
         .order_by(PartyPost.event_date, PartyPost.title)
         .limit(FEED_EVENTS)
     )
     notices = await session.scalars(
-        select(PartyPost)
-        .where(
-            PartyPost.published.is_(True),
-            PartyPost.kind == PostKind.NEWS,
-            PartyPost.label == PostLabel.STATEMENT,
-            here,
-        )
+        public_posts()
+        .where(PartyPost.kind == PostKind.NEWS, PartyPost.label == PostLabel.STATEMENT, here)
         .order_by(PartyPost.published_on.desc(), PartyPost.title)
         .limit(FEED_NOTICES)
     )

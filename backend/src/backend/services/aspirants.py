@@ -66,7 +66,7 @@ async def _approved_member(session: AsyncSession, member_id: uuid.UUID) -> Party
     if member is None:
         raise NotFound("No such member.")
     await session.refresh(member, ["status"])
-    if member.status is not PartyMemberStatus.APPROVED:
+    if not member.is_approved:
         raise Refused("Only an approved party member can be an approved aspirant.")
     return member
 

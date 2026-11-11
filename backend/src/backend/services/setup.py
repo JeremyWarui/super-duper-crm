@@ -22,7 +22,7 @@ from backend.models import (
 )
 from backend.schemas.setup import Area, ServiceState, SetupRequest, SetupResult
 from backend.security import sha256_hex
-from backend.services import oidc, party_workspace, texting, tokens
+from backend.services import geography, oidc, party_workspace, texting, tokens
 from backend.services.accounts import new_login
 from backend.services.admin import build_workspace
 from backend.services.audit import record
@@ -82,19 +82,11 @@ async def areas(
 ) -> list[Area]:
     """Counties, a county's constituencies or a constituency's wards, for picking the seat."""
     await check(session, token)
-    model, parent_column = {
-        "county": (County, None),
-        "constituency": (Constituency, Constituency.county_id),
-        "ward": (Ward, Ward.constituency_id),
-    }[level]
-    query = select(model.id, model.name).where(model.retired.is_(False)).order_by(model.name)
-    if parent_column is not None:
-        if parent is None:
-            raise Refused(
-                f"Pick the {'county' if level == 'constituency' else 'constituency'} first."
-            )
-        query = query.where(parent_column == parent)
-    return [Area(id=row.id, name=row.name) for row in await session.execute(query)]
+    model = {"county": County, "constituency": Constituency, "ward": Ward}[level]
+    if model is not County and parent is None:
+        raise Refused(f"Pick the {'county' if level == 'constituency' else 'constituency'} first.")
+    found = await geography.places(session, model, None if model is County else parent)
+    return [Area(id=row.id, name=row.name) for row in found]
 
 
 async def run(session: AsyncSession, payload: SetupRequest) -> SetupResult:

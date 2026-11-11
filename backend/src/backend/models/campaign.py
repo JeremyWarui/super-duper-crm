@@ -60,6 +60,14 @@ SEAT_MATCHES_SCOPE = (
 SINGLE_KINDS = "kind <> 'hosted'"
 
 
+# The attribute naming the area a seat at each office level contests.
+AREA_FIELD = {
+    OfficeLevel.COUNTY: "county",
+    OfficeLevel.CONSTITUENCY: "constituency",
+    OfficeLevel.WARD: "ward",
+}
+
+
 class Campaign(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "campaigns"
     __table_args__ = (
@@ -162,15 +170,16 @@ class Campaign(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     @property
     def area(self) -> "County | Constituency | Ward | None":
         """The county, constituency or ward contested, None nationally; needs it loaded."""
-        attribute = {
-            OfficeLevel.WARD: "ward",
-            OfficeLevel.CONSTITUENCY: "constituency",
-            OfficeLevel.COUNTY: "county",
-        }.get(self.office_level)
+        attribute = AREA_FIELD.get(self.office_level)
         if attribute is None:
             return None
         require_loaded(self, attribute)
         return getattr(self, attribute)
+
+    @property
+    def candidate_label(self) -> str:
+        """The candidate's name, or "" without one; needs `candidate` loaded."""
+        return self.candidate.display_name if self.candidate is not None else ""
 
     @property
     def operational_grain(self) -> OperationalGrain:

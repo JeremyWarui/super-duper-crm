@@ -43,18 +43,9 @@ def _filters(
 FiltersDep = Annotated[MemberFilters, Depends(_filters)]
 
 
-def _place(row: PartyMember) -> dict:
-    ward = row.ward
-    return {
-        "ward": ward,
-        "constituency": ward.constituency,
-        "county": ward.constituency.county,
-    }
-
-
 def _read(row: PartyMember, model: type[MemberRead], logins: set[uuid.UUID]) -> MemberRead:
     values = {name: getattr(row, name) for name in model.model_fields if name not in _COMPUTED}
-    return model(**values, **_place(row), has_login=row.id in logins)
+    return model(**values, **row.places, has_login=row.id in logins)
 
 
 _COMPUTED = ("ward", "constituency", "county", "has_login")

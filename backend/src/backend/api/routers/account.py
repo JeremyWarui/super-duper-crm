@@ -10,7 +10,6 @@ from backend.api.deps import SessionDep, SignedInUser
 from backend.models import (
     Constituency,
     PartyMember,
-    PartyMemberStatus,
     User,
     UserKind,
     VolunteerStatus,
@@ -57,7 +56,7 @@ async def get_account_member(user: SignedInUser, session: SessionDep) -> PartyMe
         raise HTTPException(status.HTTP_403_FORBIDDEN, "This login has no member account.")
     await membership.process_requests(session)
     member = await _member(session, user)
-    if member is None or member.status is not PartyMemberStatus.APPROVED:
+    if member is None or not member.is_approved:
         if user.kind is UserKind.MEMBER:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Your membership is not active.")
         raise HTTPException(status.HTTP_403_FORBIDDEN, "This login has no member account.")
@@ -68,7 +67,6 @@ AccountMember = Annotated[PartyMember, Depends(get_account_member)]
 
 
 def _read(member: PartyMember) -> AccountRead:
-    ward = member.ward
     profile = member.volunteer
     volunteer = None
     if profile is not None and profile.status is not VolunteerStatus.WITHDRAWN:
@@ -88,9 +86,7 @@ def _read(member: PartyMember) -> AccountRead:
         phone=masked(member.phone),
         email=member.email,
         status=member.status,
-        ward=ward,
-        constituency=ward.constituency,
-        county=ward.constituency.county,
+        **member.places,
         registration_centre=member.registration_centre,
         member_since=member.created_at,
         consent_wording=member.consent_wording,

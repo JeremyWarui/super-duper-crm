@@ -75,7 +75,7 @@ def public(rows: list[BranchOfficial]) -> list[dict]:
     return [{"office": r.office, "label": label(r), "name": r.holder_name} for r in rows]
 
 
-async def _branch(session: AsyncSession, county_id: uuid.UUID, *, create: bool) -> Branch | None:
+async def branch_of(session: AsyncSession, county_id: uuid.UUID, *, create: bool) -> Branch | None:
     await get_or_refuse(session, County, county_id, "county")
     query = select(Branch).where(Branch.county_id == county_id)
     # Appointments to one branch run one at a time, so their date checks cannot race.
@@ -105,7 +105,7 @@ async def lapsed(session: AsyncSession, rows: list[BranchOfficial]) -> set[uuid.
 async def officials(session: AsyncSession, county_id: uuid.UUID, today: date) -> dict:
     """The county branch's terms: in office now, starting later, and ended; `lapsed` names the
     terms whose holder's membership has lapsed, which the website no longer shows."""
-    branch = await _branch(session, county_id, create=False)
+    branch = await branch_of(session, county_id, create=False)
     rows = (
         list(
             await session.scalars(
@@ -132,13 +132,13 @@ async def appoint(
 ) -> BranchOfficial:
     """Give an approved member a term in an office; the holder it overlaps leaves the day before."""
     member = await session.get(PartyMember, payload.member)
-    if member is None or member.status is not PartyMemberStatus.APPROVED:
+    if member is None or not member.is_approved:
         raise Refused("Only an approved party member can hold a branch office.")
     if payload.minutes_file is not None:
         minutes = await session.get(StoredFile, payload.minutes_file)
         if minutes is None or minutes.area is not FileArea.MINUTES:
             raise Refused("Attach the minutes through the officials screen.")
-    branch = await _branch(session, county_id, create=True)
+    branch = await branch_of(session, county_id, create=True)
     replaced = []
     if payload.office is not BranchOffice.OTHER:
         same_office = list(
