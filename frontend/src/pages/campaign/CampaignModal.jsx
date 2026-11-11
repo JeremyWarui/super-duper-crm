@@ -1,4 +1,4 @@
-import { useMobilizers } from "../../api/hooks";
+import { useMobilizers } from "@/api/hooks";
 import { isLead, unitOf, useUnits, useWardOptions } from "./helpers";
 import MobilizerForm from "./MobilizerForm";
 import ManagerForm from "./ManagerForm";

@@ -82,7 +82,6 @@ export function Field({ label, hint, className, children }: { label: React.React
   )
 }
 
-export { fieldVariants }
 
 /** A checkbox and its words in one label; every other prop goes to the checkbox. */
 export function Check({ className, children, ...props }: Omit<React.ComponentProps<'input'>, 'type'>) {

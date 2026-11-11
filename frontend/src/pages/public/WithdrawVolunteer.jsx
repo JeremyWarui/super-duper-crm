@@ -1,6 +1,6 @@
 // The public page a volunteer's private link opens: stop volunteer contact, keep the membership.
-import { useSite, useWithdrawVolunteer } from "../../api/hooks";
-import LinkAction from "../../components/LinkAction";
+import { useSite, useWithdrawVolunteer } from "@/api/hooks";
+import LinkAction from "@/components/LinkAction";
 import { partyColours } from "./colours";
 
 export default function WithdrawVolunteer({ code }) {

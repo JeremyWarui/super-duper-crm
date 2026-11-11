@@ -5,7 +5,7 @@ import { useContribute, usePayFee, usePayment, usePayOptions } from "@/api/hooks
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
-import { formatKES } from "../lib/format";
+import { formatKES } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
 import { FilterPills } from "@/components/ui/tabs";

@@ -1,6 +1,6 @@
 // The public page an applicant's private link opens: take their details off the party register.
-import { useSite, useWithdrawParty } from "../../api/hooks";
-import LinkAction from "../../components/LinkAction";
+import { useSite, useWithdrawParty } from "@/api/hooks";
+import LinkAction from "@/components/LinkAction";
 import { partyColours } from "./colours";
 
 export default function WithdrawParty({ code }) {

@@ -15,11 +15,10 @@ import { Check, Field, Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/store/auth";
 import { CONTACT_LABEL, MY_ASPIRANT_STATUS, MY_MEMBER_STATUS, SEAT_LABEL, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE, helpsWith, professionOf } from "@/lib/labels";
-import { formatDate, formatDay, formatKES, placeOf } from "../../lib/format";
+import { contactOf, formatDate, formatDay, formatKES, placeOf } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
 import { pageState } from "@/components/PageState";
-import { contactOf } from "@/lib/format";
 
 // A member's branch, shown as ward and county.
 const place = (a) => placeOf({ ward: a.ward, county: a.county }, ", ");
@@ -34,11 +33,11 @@ function MemberCard({ account }) {
           <span className="font-display text-[28px] font-extrabold">{account.full_name}</span>
         </div>
         <dl className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4 text-small">
-          <div className="flex flex-col gap-0.5"><dt className="text-[#CFE0D5]">Branch</dt><dd className="font-bold">{place(account)}</dd></div>
-          <div className="flex flex-col gap-0.5"><dt className="text-[#CFE0D5]">Polling station</dt><dd className="font-bold">{account.registration_centre?.name || "Not set"}</dd></div>
-          <div className="flex flex-col gap-0.5"><dt className="text-[#CFE0D5]">Member since</dt><dd className="font-bold">{formatDay(account.member_since, { month: "long", year: "numeric" })}</dd></div>
+          <div className="flex flex-col gap-0.5"><dt className="text-on-primary-muted">Branch</dt><dd className="font-bold">{place(account)}</dd></div>
+          <div className="flex flex-col gap-0.5"><dt className="text-on-primary-muted">Polling station</dt><dd className="font-bold">{account.registration_centre?.name || "Not set"}</dd></div>
+          <div className="flex flex-col gap-0.5"><dt className="text-on-primary-muted">Member since</dt><dd className="font-bold">{formatDay(account.member_since, { month: "long", year: "numeric" })}</dd></div>
         </dl>
-        <span className="text-small text-[#CFE0D5]">Show this card at branch meetings and party events.</span>
+        <span className="text-small text-on-primary-muted">Show this card at branch meetings and party events.</span>
       </section>
       <Card className="flex-[1_1_300px]">
         <h2 className="font-display text-card-title font-extrabold">Membership status</h2>

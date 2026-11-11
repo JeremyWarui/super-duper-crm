@@ -1,15 +1,15 @@
 // The console's Campaigns tab: each campaign's card, and opening the party's own workspace.
 import { useState } from "react";
-import { isEmail } from "../../lib/email";
-import { isUsername } from "../../lib/username";
-import { useAddMember, useDeleteCampaign, useOpenPartyWorkspace, usePartyWorkspace, useRenameCampaign, useRemoveMember } from "../../api/hooks";
-import { useInstall } from "../../app/site";
-import { formatNumber as fmt } from "../../lib/format";
+import { isEmail } from "@/lib/email";
+import { isUsername } from "@/lib/username";
+import { useAddMember, useDeleteCampaign, useOpenPartyWorkspace, usePartyWorkspace, useRenameCampaign, useRemoveMember } from "@/api/hooks";
+import { useInstall } from "@/app/site";
+import { formatNumber as fmt } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Input, NativeSelect } from "@/components/ui/input";
-import LoginFields from "../../pages/campaign/LoginFields";
+import LoginFields from "@/pages/campaign/LoginFields";
 import { Pill, INLINE, Help, Danger } from "./kit";
 
 export function CampaignCard({ campaign, users }) {

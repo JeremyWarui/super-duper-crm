@@ -2,7 +2,7 @@
 // One place that talks to Django. Attaches the token, sends/receives JSON,
 // turns DRF error payloads into a readable message, and logs you out on a 401.
 
-import { useAuth } from "../store/auth";
+import { useAuth } from "@/store/auth";
 import { BASE } from "./base";
 
 /** Signs the user out and throws when the server no longer accepts the token. */

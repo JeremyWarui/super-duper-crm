@@ -1,5 +1,5 @@
 // The public page a supporter's private link opens: take their details off the register.
-import { useWithdraw } from "../api/hooks";
+import { useWithdraw } from "@/api/hooks";
 import LinkAction from "./LinkAction";
 
 export default function Withdraw({ code }) {

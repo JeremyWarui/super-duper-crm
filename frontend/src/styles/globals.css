@@ -42,6 +42,7 @@
   --text-faint: #9A9F9C;           /* only for non-essential meta */
   --text-on-dark: #FAFAF8;
   --text-on-dark-muted: #B9C2BC;
+  --text-on-primary-muted: #CFE0D5; /* secondary text on the primary colour */
 
   --line: #E9E9E5;                 /* card borders in the apps */
   --line-2: #E8E8E4;               /* card borders on the website */
@@ -137,6 +138,7 @@
   --color-faint: var(--text-faint);
   --color-on-dark: var(--text-on-dark);
   --color-on-dark-muted: var(--text-on-dark-muted);
+  --color-on-primary-muted: var(--text-on-primary-muted);
   --color-line: var(--line);
   --color-line-2: var(--line-2);
   --color-line-soft: var(--line-soft);

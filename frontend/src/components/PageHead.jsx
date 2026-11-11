@@ -23,7 +23,7 @@ export function PageHero({ tone = "primary", crumbs, kicker, title, lead, childr
         <Crumbs onDark items={[{ label: "Home", to: "/" }, ...crumbs]} />
         {kicker ? <p className="text-ui font-bold uppercase tracking-[0.12em] text-accent">{kicker}</p> : null}
         <h1 className="font-display text-page font-extrabold tracking-[-0.03em]">{title}</h1>
-        {lead ? <p className={`max-w-[60ch] text-[18px] leading-[1.6] ${ink ? "text-on-dark-muted" : "text-[#CFE0D5]"}`}>{lead}</p> : null}
+        {lead ? <p className={`max-w-[60ch] text-[18px] leading-[1.6] ${ink ? "text-on-dark-muted" : "text-on-primary-muted"}`}>{lead}</p> : null}
         {children}
       </div>
     </section>

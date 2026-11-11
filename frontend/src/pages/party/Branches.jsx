@@ -15,7 +15,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Check, Field, Input, NativeSelect } from "@/components/ui/input";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { formatDate, nairobiDate } from "../../lib/format";
+import { formatDate, nairobiDate } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { useShowMore } from "@/lib/useShowMore";
 import { LoadMore } from "@/components/ui/load-more";

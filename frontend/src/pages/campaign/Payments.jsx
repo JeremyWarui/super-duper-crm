@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import { formatDate, formatDateTime, formatKES, plural } from "../../lib/format";
+import { formatDate, formatDateTime, formatKES, plural } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
 import { SlottedHeader } from "@/components/layout/AppPage";

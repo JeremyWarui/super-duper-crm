@@ -12,7 +12,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { api, download, upload } from "./client";
-import { useAuth } from "../store/auth";
+import { useAuth } from "@/store/auth";
 
 // ---- Shared shapes ----------------------------------------------------------
 /** "key=value&..." for the filters that have a value; written after a literal "?" so the contract test reads the path. */

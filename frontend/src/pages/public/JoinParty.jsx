@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Check, Field, Input } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
 import VolunteerFields, { CHECK_PILL, NO_VOLUNTEER, volunteerBody, volunteerReady } from "@/components/VolunteerFields";
-import { isEmail } from "../../lib/email";
+import { isEmail } from "@/lib/email";
 import { ErrorText } from "@/components/ui/error-text";
 import { pageState } from "@/components/PageState";
 import { linkTo } from "@/lib/format";

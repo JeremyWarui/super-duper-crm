@@ -1,8 +1,8 @@
 // What the campaign pages share: the nav per role, small helpers and the unit lists.
 import { useMemo } from "react";
-import { useCentres, useTargets } from "../../api/hooks";
-import { isEmail } from "../../lib/email";
-import { formatDay, nairobiDate } from "../../lib/format";
+import { useCentres, useTargets } from "@/api/hooks";
+import { isEmail } from "@/lib/email";
+import { formatDay, nairobiDate } from "@/lib/format";
 
 /**
  * An event's day as people in Nairobi read it: "Today" or "Sat 7 Nov", with the time when it has one.

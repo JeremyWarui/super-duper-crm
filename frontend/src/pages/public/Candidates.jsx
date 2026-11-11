@@ -41,11 +41,11 @@ export default function Candidates() {
     <>
       <PageHero crumbs={[{ label: "Candidates" }]} title="Our candidates" lead="Find the party's aspirant for your ward, constituency and county.">
         <div className="flex flex-wrap items-end gap-3.5">
-          <label className="flex flex-[1_1_280px] flex-col gap-1.5 text-small font-semibold text-[#DDE3DF]">
+          <label className="flex flex-[1_1_280px] flex-col gap-1.5 text-small font-semibold text-on-primary-muted">
             Search by name or area
             <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="A name, ward or constituency" className="border-0 text-ink" />
           </label>
-          <label className="flex min-w-[200px] flex-col gap-1.5 text-small font-semibold text-[#DDE3DF]">
+          <label className="flex min-w-[200px] flex-col gap-1.5 text-small font-semibold text-on-primary-muted">
             County
             <FilterSelect label="County" blank="All counties" value={county} onChange={setCounty} options={counties} className="w-full flex-none border-0 bg-white text-ink" />
           </label>

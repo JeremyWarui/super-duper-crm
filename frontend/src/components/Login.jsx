@@ -2,6 +2,7 @@
 // has it set up.
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { finishGoogle, useSignInOptions } from "@/api/hooks";
 import { BASE } from "@/api/base";
 import { Logo } from "@/components/layout/Logo";
@@ -9,40 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { useInstall } from "@/app/site";
 import { useCopy } from "@/copy";
-import { useAuth } from "../store/auth";
+import { useAuth } from "@/store/auth";
 import { ErrorText } from "@/components/ui/error-text";
-
-// Feather's eye and eye-off, drawn at the size of the field's text.
-function EyeIcon({ open }) {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      {open ? (
-        <>
-          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94" />
-          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-          <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-          <path d="M1 1l22 22" />
-        </>
-      ) : (
-        <>
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-          <circle cx="12" cy="12" r="3" />
-        </>
-      )}
-    </svg>
-  );
-}
 
 const GOOGLE_ERRORS = {
   unknown: "That Google account's email has no login here. Sign in with your email and password, or ask whoever runs your campaign.",
@@ -143,7 +112,7 @@ export default function Login() {
         <Logo size="md" onPrimary />
         <div className="flex max-w-[440px] flex-col gap-5">
           <h1 className="font-display text-[clamp(36px,4vw,56px)] leading-[1.02] font-extrabold tracking-[-0.02em]">The team behind the movement.</h1>
-          {loading ? null : <p className="text-lead text-[#CFE0D5]">{copy.signInLead}</p>}
+          {loading ? null : <p className="text-lead text-on-primary-muted">{copy.signInLead}</p>}
         </div>
         <Link to="/" className="font-bold text-accent hover:text-accent">← Back to public site</Link>
       </aside>
@@ -168,7 +137,7 @@ export default function Login() {
                   title={showPassword ? "Hide password" : "Show password"}
                   className="absolute top-0 right-0 flex size-[50px] cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:text-ink"
                 >
-                  <EyeIcon open={showPassword} />
+                  {showPassword ? <EyeOff className="size-[18px]" strokeWidth={1.8} aria-hidden /> : <Eye className="size-[18px]" strokeWidth={1.8} aria-hidden />}
                 </button>
               </span>
             </Field>

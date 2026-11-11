@@ -14,7 +14,7 @@ import {
   useReviseNominationWindow,
 } from "@/api/hooks";
 import MemberSearch from "@/components/MemberSearch";
-import LoginFields from "../campaign/LoginFields";
+import LoginFields from "@/pages/campaign/LoginFields";
 import PlaceCascade, { NO_PLACE } from "@/components/PlaceCascade";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Badge } from "@/components/ui/badge";

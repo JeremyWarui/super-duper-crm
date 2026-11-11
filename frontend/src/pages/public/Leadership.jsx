@@ -6,8 +6,7 @@ import { Photo } from "./story";
 import { LoadingText } from "@/components/ui/loading-text";
 import { ErrorText } from "@/components/ui/error-text";
 import { PageHero } from "@/components/PageHead";
-import { RuleHead } from "@/components/ui/typography";
-import { StoryMeta } from "@/components/ui/typography";
+import { RuleHead, StoryMeta } from "@/components/ui/typography";
 
 function Leader({ leader }) {
   return (

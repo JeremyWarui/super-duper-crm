@@ -5,9 +5,9 @@ import {
   Banknote, CalendarDays, Flag, ClipboardCheck, ClipboardList, Contact, Crosshair, Globe, HandHeart, Heart, LayoutDashboard, LockKeyhole, Map, MapPin, MessageCircle, QrCode,
   Settings, ShieldCheck, Target, UserPlus, UserRoundCog, Users,
 } from "lucide-react";
-import { useEvents, useMobilizers, useStrategy, useSupporters } from "../../api/hooks";
+import { useEvents, useMobilizers, useStrategy, useSupporters } from "@/api/hooks";
 import { pagesOf, reads, useWardOptions } from "./helpers";
-import { nairobiDate } from "../../lib/format";
+import { nairobiDate } from "@/lib/format";
 
 export const ICONS = {
   overview: LayoutDashboard,

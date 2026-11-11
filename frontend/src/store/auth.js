@@ -5,7 +5,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { BASE } from "../api/base";
+import { BASE } from "@/api/base";
 
 export function clearDrafts() {
   try {

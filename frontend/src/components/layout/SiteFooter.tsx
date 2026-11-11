@@ -20,7 +20,7 @@ function Newsletter({ wording }: { wording: string }) {
       <div className="site-container flex flex-wrap items-center justify-between gap-5 py-11">
         <div className="flex max-w-[520px] flex-col gap-1.5">
           <h2 id="ft-sub-h" className="font-display text-[28px] font-extrabold">{copy.newsTitle}</h2>
-          <p className="text-[#CFE0D5]">{copy.newsLead}</p>
+          <p className="text-on-primary-muted">{copy.newsLead}</p>
         </div>
         {done ? (
           <div role="status" className="flex max-w-[420px] flex-col gap-1.5">
@@ -39,7 +39,7 @@ function Newsletter({ wording }: { wording: string }) {
               </label>
               <Button type="submit" variant="accent" shape="rounded" disabled={subscribe.isPending} className="h-[50px] self-end px-6 text-base">Subscribe</Button>
             </div>
-            <label className="flex items-start gap-2 text-meta text-[#CFE0D5]">
+            <label className="flex items-start gap-2 text-meta text-on-primary-muted">
               <input type="checkbox" required checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 size-4 accent-accent" />
               <span>{wording} See the <Link to="/privacy" className="text-white hover:text-white">privacy notice</Link>.</span>
             </label>

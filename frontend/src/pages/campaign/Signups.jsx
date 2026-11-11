@@ -8,7 +8,7 @@ import { ReasonForm } from "@/components/ui/confirm";
 import { Card, CardTitle } from "@/components/ui/card";
 import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import { formatDate, linkTo } from "../../lib/format";
+import { formatDate, linkTo } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";

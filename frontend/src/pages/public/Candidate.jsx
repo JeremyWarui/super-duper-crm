@@ -13,7 +13,7 @@ import { SEAT_LABEL } from "@/lib/labels";
 import VolunteerFields, { NO_VOLUNTEER, volunteerBody, volunteerReady } from "@/components/VolunteerFields";
 import { firstName, formatDay, linkTo, whereOf } from "@/lib/format";
 import { Photo } from "./story";
-import { isEmail } from "../../lib/email";
+import { isEmail } from "@/lib/email";
 import { ErrorText } from "@/components/ui/error-text";
 import { pageState } from "@/components/PageState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,15 +42,14 @@ export function SupportForm({ c, send, withdrawPath }) {
   };
   if (send.isSuccess) {
     const link = linkTo(`${withdrawPath}${send.data.withdraw_code}`);
-    const thanks = (
-      <>
+    return (
+      <div className="flex flex-col gap-3">
         <p role="status" className="text-text-2">{send.data.message}</p>
         <p className="text-small text-muted-foreground">Keep this link: it takes your details off the campaign's list. <a href={link} className="break-all font-semibold">{link}</a></p>
-      </>
+      </div>
     );
-    return <div className="flex flex-col gap-3">{thanks}</div>;
   }
-  const form = (
+  return (
       <form onSubmit={submit} noValidate className="flex flex-col gap-3.5">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="First name"><Input value={f.first_name} onChange={set("first_name")} autoComplete="given-name" /></Field>
@@ -73,7 +72,6 @@ export function SupportForm({ c, send, withdrawPath }) {
         <Button type="submit" disabled={!ok || send.isPending}>{send.isPending ? "Sending…" : "I'll volunteer"}</Button>
       </form>
   );
-  return form;
 }
 
 /** The candidate's hero band: photo, seat, name, place and slogan, with `actions` below. */
@@ -88,7 +86,7 @@ export function CandidateHero({ c, crumbs, actions }) {
           <div className="flex min-w-0 flex-[1_1_400px] flex-col gap-3.5">
             <span className="self-start rounded-full bg-accent px-3 py-1.5 text-small font-extrabold uppercase tracking-[0.08em] text-ink">{vying(c.seat)}</span>
             <h1 className="font-display text-page font-extrabold tracking-[-0.03em]">{c.name}</h1>
-            <p className="text-[19px] text-[#CFE0D5]">{where}{c.slogan ? ` · "${c.slogan}"` : ""}</p>
+            <p className="text-[19px] text-on-primary-muted">{where}{c.slogan ? ` · "${c.slogan}"` : ""}</p>
             <div className="flex flex-wrap gap-3 pt-1">{actions}</div>
           </div>
         </div>

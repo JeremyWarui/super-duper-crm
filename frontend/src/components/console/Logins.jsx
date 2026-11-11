@@ -1,17 +1,17 @@
 // The console's Logins tab: a new login, and one row per login with its repairs.
 import { useState } from "react";
-import { isEmail } from "../../lib/email";
-import { isUsername } from "../../lib/username";
+import { isEmail } from "@/lib/email";
+import { isUsername } from "@/lib/username";
 import { PARTY_ROLES, PARTY_ROLE_LABEL } from "@/lib/labels";
-import { useGrantPartyRole, useLinkPartyMember, useMemberSearch, useRevokePartyRole, useSetActive, useSetEmail } from "../../api/hooks";
-import { useInstall } from "../../app/site";
+import { useGrantPartyRole, useLinkPartyMember, useMemberSearch, useRevokePartyRole, useSetActive, useSetEmail } from "@/api/hooks";
+import { useInstall } from "@/app/site";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
-import MemberSearch from "../MemberSearch";
-import LoginFields from "../../pages/campaign/LoginFields";
+import MemberSearch from "@/components/MemberSearch";
+import LoginFields from "@/pages/campaign/LoginFields";
 import { Pill, INLINE, Help, Danger } from "./kit";
 
 const BLANK = {

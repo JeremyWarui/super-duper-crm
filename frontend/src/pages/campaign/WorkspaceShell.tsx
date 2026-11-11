@@ -48,7 +48,7 @@ export function SeatCard({ campaign, winNumber }: { campaign: Campaign; winNumbe
       </div>
       {winNumber || (days !== null && days >= 0) ? (
         <div className="flex flex-wrap gap-1.5">
-          {winNumber ? <span className="rounded-full bg-[#FFF3CC] px-2.5 py-[3px] text-meta font-bold text-[#6B5100]">Win no. {formatNumber(winNumber)}</span> : null}
+          {winNumber ? <span className="rounded-full bg-warn px-2.5 py-[3px] text-meta font-bold text-warn-foreground">Win no. {formatNumber(winNumber)}</span> : null}
           {days !== null && days >= 0 ? (
             <span className="rounded-full bg-primary-tint px-2.5 py-[3px] text-meta font-bold text-primary">
               {days === 0 ? "Election day" : `${days} ${days === 1 ? "day" : "days"} to election day`}

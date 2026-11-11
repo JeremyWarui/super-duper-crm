@@ -40,14 +40,3 @@ export function Card({ className, variant, interactive, asChild, ...props }: Car
 export function CardTitle({ as: Tag = 'h2', className, ...props }: React.HTMLAttributes<HTMLHeadingElement> & { as?: 'h2' | 'h3' }) {
   return <Tag className={cn('text-card-title font-bold', className)} {...props} />
 }
-
-export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn('text-body text-muted-foreground', className)} {...props} />
-}
-
-/** KPI number as used on CRM overview tiles */
-export function KpiValue({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
-  return <span className={cn('font-display font-extrabold text-[28px] leading-tight', className)} {...props} />
-}
-
-export { cardVariants }

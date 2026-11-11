@@ -1,8 +1,8 @@
 // Form drafts kept on the device until they are sent, per signed-in user.
 import { useCallback, useState } from "react";
-import { useAuth } from "../store/auth";
+import { useAuth } from "@/store/auth";
 
-export { clearDrafts } from "../store/auth";
+export { clearDrafts } from "@/store/auth";
 
 const PREFIX = "draft:";
 

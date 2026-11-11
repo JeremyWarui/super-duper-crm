@@ -52,7 +52,7 @@ function Candidate({ c }) {
         <div className="flex flex-wrap items-center gap-8">
           {c.photo_url ? <img src={c.photo_url} alt="" className="size-[120px] flex-none rounded-full border-2 border-accent object-cover" /> : <span className="size-[120px] flex-none rounded-full border-2 border-accent bg-white/20" />}
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-3">
-            {lead ? <p className="text-[18px] leading-[1.7] text-[#CFE0D5]">{lead}</p> : null}
+            {lead ? <p className="text-[18px] leading-[1.7] text-on-primary-muted">{lead}</p> : null}
             {c.priorities.length ? (
               <ul className="flex flex-wrap gap-x-6 gap-y-2">
                 {c.priorities.map((p, n) => <li key={n} className="font-bold"><span className="text-accent">{n + 1}</span> {p.title}</li>)}

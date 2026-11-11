@@ -11,12 +11,12 @@ import { INK, MIN_CONTRAST, WHITE, contrast, isHex } from "@/lib/contrast";
 import { ColourFields } from "@/components/Swatch";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
-import { isEmail } from "../../lib/email";
-import { isUsername } from "../../lib/username";
+import { isEmail } from "@/lib/email";
+import { isUsername } from "@/lib/username";
 import { ErrorText } from "@/components/ui/error-text";
 import { NO_PLACE, PlaceSelects } from "@/components/PlaceCascade";
 import { SEAT_AREA, SEATS } from "@/lib/labels";
-import LoginFields from "../campaign/LoginFields";
+import LoginFields from "@/pages/campaign/LoginFields";
 
 const STEPS = ["Type", "Name and colours", "Contacts", "First superuser", "Workspace", "Check and finish"];
 

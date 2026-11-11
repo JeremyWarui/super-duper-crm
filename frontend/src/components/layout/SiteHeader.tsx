@@ -20,14 +20,14 @@ export function SiteUtilityBar() {
   const logout = useAuth((s: any) => s.logout)
   const facts = [b.registrationNo && `Reg. No. ${b.registrationNo}`, b.hotline && `Hotline ${b.hotline}`].filter(Boolean)
   return (
-    <div className="bg-ink text-small text-[#C9CDCB]">
+    <div className="bg-ink text-small text-on-dark-muted">
       <div className="site-container flex flex-wrap items-center justify-between gap-2 py-2">
         <span className="hidden sm:inline">{[copy.tagline, ...facts].join(' · ')}</span>
         <span className="sm:hidden">{b.hotline ? `Hotline ${b.hotline}` : null}</span>
         {token ? (
           <span className="flex items-center gap-3.5">
             <Link to={user?.member_account ? "/account" : homeOf(user)} className="py-2 font-semibold text-white hover:text-white">{[firstName(user?.full_name), 'My account'].filter(Boolean).join(' · ')}</Link>
-            <button type="button" onClick={logout} className="cursor-pointer py-2 text-[#C9CDCB] hover:text-white">Sign out</button>
+            <button type="button" onClick={logout} className="cursor-pointer py-2 text-on-dark-muted hover:text-white">Sign out</button>
           </span>
         ) : (
           <Link to="/signin" className="py-2 font-semibold text-white hover:text-white">Sign in</Link>

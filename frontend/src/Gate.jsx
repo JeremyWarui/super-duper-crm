@@ -142,21 +142,14 @@ function PostPage() {
   return <Post key={id} id={id} />;
 }
 
-function JoinPage() {
-  return <Join code={useParams().code} />;
-}
-
-function WithdrawPage() {
-  return <Withdraw code={useParams().code} />;
-}
-
-function WithdrawPartyPage() {
-  return <WithdrawParty code={useParams().code} />;
-}
-
-function WithdrawVolunteerPage() {
-  return <WithdrawVolunteer code={useParams().code} />;
-}
+/** `Page` given the route's `:code`. */
+const withCode = (Page) => function CodePage() {
+  return <Page code={useParams().code} />;
+};
+const JoinPage = withCode(Join);
+const WithdrawPage = withCode(Withdraw);
+const WithdrawPartyPage = withCode(WithdrawParty);
+const WithdrawVolunteerPage = withCode(WithdrawVolunteer);
 
 const page = (element) => <PublicLayout>{element}</PublicLayout>;
 

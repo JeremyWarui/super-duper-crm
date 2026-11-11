@@ -4,18 +4,18 @@
 // Shown only to a superuser; every route it calls checks the flag again.
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAdminOverview, rowsOf, useAdminUserPages, useAdminUsers, useCreateLogin, useResetPassword } from "../api/hooks";
-import { useInstall } from "../app/site";
-import { useCopy } from "../copy";
-import { useAuth } from "../store/auth";
-import { formatNumber as fmt, plural } from "../lib/format";
+import { useAdminOverview, rowsOf, useAdminUserPages, useAdminUsers, useCreateLogin, useResetPassword } from "@/api/hooks";
+import { useInstall } from "@/app/site";
+import { useCopy } from "@/copy";
+import { useAuth } from "@/store/auth";
+import { formatNumber as fmt, plural } from "@/lib/format";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatTiles } from "@/components/ui/stat-tiles";
 import { LoadingText } from "@/components/ui/loading-text";
 import { FilterPills } from "@/components/ui/tabs";
-import { PartyShell } from "../pages/party/Portal";
+import { PartyShell } from "@/pages/party/Portal";
 import AuditTrail from "./console/AuditTrail";
 import ExportPanel from "./console/ExportPanel";
 import Health from "./console/Health";

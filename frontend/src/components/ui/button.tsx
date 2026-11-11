@@ -56,5 +56,3 @@ export function Button({ className, variant, size, shape, asChild = false, type,
     />
   )
 }
-
-export { buttonVariants }

@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { ReasonForm } from "@/components/ui/confirm";
 import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import { formatDay, formatKES } from "../lib/format";
+import { formatDay, formatKES } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 
 const LABEL = { pending: "Waiting for the phone", paid: "Paid", to_confirm: "To confirm", failed: "Failed", rejected: "Rejected" };

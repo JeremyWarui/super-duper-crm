@@ -26,10 +26,13 @@ export function sourceFiles(root) {
   return found.sort();
 }
 
-/** Whether an import specifier written in `file` names the transport module. */
+/** Whether an import specifier written in `file` names the transport module; `@/` is the src folder beside it. */
 function isTransport(specifier, file, transport) {
-  if (typeof specifier !== "string" || !specifier.startsWith(".")) return false;
-  const target = resolve(dirname(file), specifier).replace(SOURCE_FILE, "");
+  if (typeof specifier !== "string") return false;
+  const src = dirname(dirname(resolve(transport)));
+  const from = specifier.startsWith("@/") ? resolve(src, specifier.slice(2)) : specifier.startsWith(".") ? resolve(dirname(file), specifier) : null;
+  if (!from) return false;
+  const target = from.replace(SOURCE_FILE, "");
   return target === resolve(transport).replace(SOURCE_FILE, "");
 }
 

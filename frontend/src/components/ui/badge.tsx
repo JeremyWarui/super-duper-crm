@@ -35,5 +35,3 @@ type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & VariantProps<typeof ba
 export function Badge({ className, tone, kind, ...props }: BadgeProps) {
   return <span data-slot="badge" className={cn(badgeVariants({ tone, kind }), className)} {...props} />
 }
-
-export { badgeVariants }

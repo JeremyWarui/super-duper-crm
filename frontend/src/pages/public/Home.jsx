@@ -224,15 +224,13 @@ export function Events() {
       <div className="site-container flex flex-col gap-7 py-[72px]">
         <SectionHead kicker="Coming up" title="Upcoming events" action={{ label: "Full calendar", to: "/events" }} onDark />
         <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
-          {events.slice(0, 3).map((e) => {
-            return (
-              <Link key={e.id} to={`/news/${e.id}`} className="flex flex-col gap-3.5 rounded-photo border border-ink-2 p-[22px] text-on-dark no-underline hover:text-white">
-                <DateTile date={e.event_date} tone="accent" />
-                <span className="text-[19px] leading-[1.3] font-bold">{e.title}</span>
-                {e.venue ? <span className="text-ui text-on-dark-muted">{e.venue}</span> : null}
-              </Link>
-            );
-          })}
+          {events.slice(0, 3).map((e) => (
+            <Link key={e.id} to={`/news/${e.id}`} className="flex flex-col gap-3.5 rounded-photo border border-ink-2 p-[22px] text-on-dark no-underline hover:text-white">
+              <DateTile date={e.event_date} tone="accent" />
+              <span className="text-[19px] leading-[1.3] font-bold">{e.title}</span>
+              {e.venue ? <span className="text-ui text-on-dark-muted">{e.venue}</span> : null}
+            </Link>
+          ))}
         </div>
       </div>
     </section>
@@ -312,7 +310,7 @@ function Leadership() {
               {l.photo_url ? <img src={l.photo_url} alt="" className="size-[72px] flex-none rounded-full border-2 border-accent object-cover" /> : <span className="size-[72px] flex-none rounded-full border-2 border-accent bg-white/20" />}
               <span className="flex flex-col gap-0.5">
                 <span className="font-bold">{l.name}</span>
-                <span className="text-ui text-[#CFE0D5]">{l.position}</span>
+                <span className="text-ui text-on-primary-muted">{l.position}</span>
               </span>
             </div>
           ))}
@@ -340,7 +338,7 @@ function TakePanel({ tone, title, text, action }) {
   return (
     <div className={`${PANEL} ${accent ? "bg-accent text-ink" : "bg-primary text-white"}`}>
       <h3 className={PANEL_TITLE}>{title}</h3>
-      <p className={accent ? "text-[#3B3415]" : "text-[#CFE0D5]"}>{text}</p>
+      <p className={accent ? "text-[#3B3415]" : "text-on-primary-muted"}>{text}</p>
       <div className="mt-auto self-start">{action}</div>
     </div>
   );
