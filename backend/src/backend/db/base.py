@@ -3,7 +3,19 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, MetaData, String, Uuid, func, inspect
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    MetaData,
+    String,
+    Uuid,
+    false,
+    func,
+    inspect,
+    text,
+)
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -90,3 +102,30 @@ def require_loaded(instance: object, *attributes: str) -> None:
             f"{type(instance).__name__}.{'/'.join(missing)} is not loaded. "
             f"Eager-load it, e.g. selectinload({type(instance).__name__}.{missing[0]})."
         )
+
+
+def partial_unique(name: str, *columns: str, where: str) -> Index:
+    """A unique index over `columns` for the rows matching `where`, on Postgres and SQLite."""
+    return Index(
+        name, *columns, unique=True, postgresql_where=text(where), sqlite_where=text(where)
+    )
+
+
+def user_ref():  # type: ignore[no-untyped-def]
+    """Who did something: a login, kept as None when that login is deleted."""
+    return mapped_column(Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None)
+
+
+def campaign_ref():  # type: ignore[no-untyped-def]
+    """The campaign a row belongs to; the row goes when the campaign does."""
+    return mapped_column(Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True)
+
+
+def file_ref():  # type: ignore[no-untyped-def]
+    """An uploaded file, kept as None when the file is deleted."""
+    return mapped_column(Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None)
+
+
+def starts_false():  # type: ignore[no-untyped-def]
+    """A flag that is False until set, in Python and in the database."""
+    return mapped_column(Boolean, default=False, server_default=false())

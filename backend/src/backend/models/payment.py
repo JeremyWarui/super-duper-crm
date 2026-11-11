@@ -8,16 +8,22 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
-    Index,
     Integer,
     String,
     Text,
     Uuid,
-    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import (
+    Base,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+    campaign_ref,
+    choice_type,
+    partial_unique,
+    user_ref,
+)
 from backend.models.enums import PaymentStatus, UserRole
 from backend.services.clock import as_utc
 
@@ -70,27 +76,21 @@ class Payment(PayoutMixin, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("amount_kes > 0", name="amount_kes_positive"),
         # One live payment per mobilizer per event; a cancelled one does not count.
-        Index(
+        partial_unique(
             "uq_payments_event_mobilizer",
             "event_id",
             "mobilizer_id",
-            unique=True,
-            postgresql_where=text("status <> 'cancelled'"),
-            sqlite_where=text("status <> 'cancelled'"),
+            where="status <> 'cancelled'",
         ),
         # One live payment per assignment.
-        Index(
+        partial_unique(
             "uq_payments_assignment",
             "assignment_id",
-            unique=True,
-            postgresql_where=text("status <> 'cancelled'"),
-            sqlite_where=text("status <> 'cancelled'"),
+            where="status <> 'cancelled'",
         ),
     )
 
-    campaign_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
-    )
+    campaign_id: Mapped[uuid.UUID] = campaign_ref()
     event_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("events.id", ondelete="SET NULL"), default=None, index=True
     )
@@ -107,16 +107,12 @@ class Payment(PayoutMixin, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     agent_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("agents.id", ondelete="SET NULL"), default=None, index=True
     )
-    scheduled_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    scheduled_by_id: Mapped[uuid.UUID | None] = user_ref()
     # The role that approves and releases it (decision 27); None means the manager.
     approver_role: Mapped[UserRole | None] = mapped_column(
         choice_type(UserRole, "approver_role"), default=None
     )
-    approved_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    approved_by_id: Mapped[uuid.UUID | None] = user_ref()
 
     event: Mapped["Event | None"] = relationship()
     mobilizer: Mapped["Mobilizer | None"] = relationship()

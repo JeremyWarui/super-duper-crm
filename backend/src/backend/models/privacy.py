@@ -6,7 +6,7 @@ from datetime import date, datetime
 from sqlalchemy import Date, DateTime, ForeignKey, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type, user_ref
 from backend.models.enums import DataRequestKind, DataRequestStatus
 
 
@@ -28,10 +28,6 @@ class DataRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         choice_type(DataRequestStatus, "data_request_status"), default=DataRequestStatus.OPEN
     )
     answer: Mapped[str] = mapped_column(Text, default="")
-    logged_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
-    answered_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    logged_by_id: Mapped[uuid.UUID | None] = user_ref()
+    answered_by_id: Mapped[uuid.UUID | None] = user_ref()
     answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

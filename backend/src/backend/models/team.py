@@ -3,10 +3,18 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, String, Text, Uuid, text
+from sqlalchemy import Date, DateTime, ForeignKey, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import (
+    Base,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+    campaign_ref,
+    choice_type,
+    partial_unique,
+    user_ref,
+)
 from backend.models.enums import AgentStatus, FieldRole, RegistrationStatus
 from backend.models.geography import RegistrationCentre, Ward
 from backend.models.user import User
@@ -23,27 +31,21 @@ class TeamRegistration(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     __tablename__ = "team_registrations"
     __table_args__ = (
-        Index(
+        partial_unique(
             "uq_team_registrations_campaign_phone",
             "campaign_id",
             "phone",
-            unique=True,
-            postgresql_where=text(STILL_COUNTS),
-            sqlite_where=text(STILL_COUNTS),
+            where=STILL_COUNTS,
         ),
-        Index(
+        partial_unique(
             "uq_team_registrations_campaign_id_number",
             "campaign_id",
             "id_number",
-            unique=True,
-            postgresql_where=text(STILL_COUNTS),
-            sqlite_where=text(STILL_COUNTS),
+            where=STILL_COUNTS,
         ),
     )
 
-    campaign_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
-    )
+    campaign_id: Mapped[uuid.UUID] = campaign_ref()
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None, unique=True
     )
@@ -64,9 +66,7 @@ class TeamRegistration(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     status: Mapped[RegistrationStatus] = mapped_column(
         choice_type(RegistrationStatus, "registration_status"), default=RegistrationStatus.PENDING
     )
-    decided_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    decided_by_id: Mapped[uuid.UUID | None] = user_ref()
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     reason: Mapped[str] = mapped_column(Text, default="")
     # Personal fields and the ID number blanked on request, once the person is off the team.
@@ -85,9 +85,7 @@ class Agent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     __tablename__ = "agents"
 
-    campaign_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
-    )
+    campaign_id: Mapped[uuid.UUID] = campaign_ref()
     user_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="CASCADE"), unique=True
     )

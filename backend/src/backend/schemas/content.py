@@ -9,7 +9,7 @@ from typing import Annotated
 from pydantic import AfterValidator, Field, computed_field, field_validator, model_validator
 
 from backend.models import BranchOffice, PostKind, PostLabel, Seat, TermEnd, TermStart
-from backend.schemas.common import ORMModel, WriteModel, plain_text, trimmed
+from backend.schemas.common import Named, ORMModel, WriteModel, partial, plain_text, trimmed
 from backend.schemas.site import email_address
 from backend.services import rich_text
 
@@ -74,6 +74,16 @@ Body = Annotated[str, Field(max_length=20_000), AfterValidator(_text)]
 RichBody = Annotated[
     str, Field(max_length=50_000), AfterValidator(lambda v: rich_text.clean(_text(v)))
 ]
+Order = Annotated[int, Field(ge=0, le=10_000)]
+
+
+class AdminFields(ORMModel):
+    """What the editor shows beside an ordered content row: its place, whether it is live, when
+    it last changed."""
+
+    sort_order: int
+    published: bool
+    updated_at: datetime
 
 
 class LeaderRead(ORMModel):
@@ -84,10 +94,8 @@ class LeaderRead(ORMModel):
     photo_url: str
 
 
-class LeaderAdminRead(LeaderRead):
-    sort_order: int
-    published: bool
-    updated_at: datetime
+class LeaderAdminRead(AdminFields, LeaderRead):
+    pass
 
 
 class LeaderCreate(WriteModel):
@@ -95,24 +103,14 @@ class LeaderCreate(WriteModel):
     position: Line
     bio: RichBody = ""
     photo_url: Image = ""
-    sort_order: int = Field(default=0, ge=0, le=10_000)
+    sort_order: Order = 0
     published: bool = False
 
 
-class LeaderUpdate(WriteModel):
-    """Only the fields sent change."""
-
-    name: Line | None = None
-    position: Line | None = None
-    bio: RichBody | None = None
-    photo_url: Image | None = None
-    sort_order: int | None = Field(default=None, ge=0, le=10_000)
-    published: bool | None = None
+LeaderUpdate = partial(LeaderCreate, "LeaderUpdate")
 
 
-class PostCounty(ORMModel):
-    id: uuid.UUID
-    name: str
+PostCounty = Named
 
 
 EXCERPT = 300
@@ -210,9 +208,7 @@ class PostUpdate(WriteModel):
         return value
 
 
-class BranchCounty(ORMModel):
-    id: uuid.UUID
-    name: str
+BranchCounty = Named
 
 
 class PublicOfficial(ORMModel):
@@ -235,9 +231,7 @@ class BranchRead(ORMModel):
     next_meeting_venue: str
 
 
-class BranchWard(ORMModel):
-    id: uuid.UUID
-    name: str
+BranchWard = Named
 
 
 class BranchConstituency(ORMModel):
@@ -267,12 +261,8 @@ class CountyBranch(ORMModel):
 class BranchUpdate(WriteModel):
     """The whole branch; the request replaces every field."""
 
-    office_address: Annotated[
-        str, Field(max_length=300), AfterValidator(lambda v: plain_text(v).strip())
-    ] = ""
-    phone: Annotated[str, Field(max_length=20), AfterValidator(lambda v: plain_text(v).strip())] = (
-        ""
-    )
+    office_address: trimmed(300) = ""
+    phone: trimmed(20) = ""
     email: Annotated[trimmed(254), AfterValidator(email_address)] = ""
     next_meeting_on: date | None = None
     next_meeting_venue: Venue = ""
@@ -291,7 +281,6 @@ def _target(value: str) -> str:
 
 
 Target = Annotated[str, Field(max_length=500), AfterValidator(_target)]
-Order = Annotated[int, Field(ge=0, le=10_000)]
 
 
 class SlideRead(ORMModel):
@@ -304,10 +293,8 @@ class SlideRead(ORMModel):
     button_url: str
 
 
-class SlideAdminRead(SlideRead):
-    sort_order: int
-    published: bool
-    updated_at: datetime
+class SlideAdminRead(AdminFields, SlideRead):
+    pass
 
 
 class SlideCreate(WriteModel):
@@ -321,19 +308,7 @@ class SlideCreate(WriteModel):
     published: bool = False
 
 
-class SlideUpdate(WriteModel):
-    """Only the fields sent change."""
-
-    image_url: Image | None = None
-    kicker: trimmed(80) | None = None
-    headline: Annotated[str, Field(min_length=1, max_length=120), AfterValidator(_line)] | None = (
-        None
-    )
-    line: trimmed(300) | None = None
-    button_label: trimmed(40) | None = None
-    button_url: Target | None = None
-    sort_order: Order | None = None
-    published: bool | None = None
+SlideUpdate = partial(SlideCreate, "SlideUpdate")
 
 
 class IssueRead(ORMModel):
@@ -344,10 +319,8 @@ class IssueRead(ORMModel):
     why_it_matters: str
 
 
-class IssueAdminRead(IssueRead):
-    sort_order: int
-    published: bool
-    updated_at: datetime
+class IssueAdminRead(AdminFields, IssueRead):
+    pass
 
 
 class IssueCreate(WriteModel):
@@ -359,15 +332,7 @@ class IssueCreate(WriteModel):
     published: bool = False
 
 
-class IssueUpdate(WriteModel):
-    """Only the fields sent change."""
-
-    title: Line | None = None
-    summary: trimmed(300) | None = None
-    what_we_will_do: Body | None = None
-    why_it_matters: Body | None = None
-    sort_order: Order | None = None
-    published: bool | None = None
+IssueUpdate = partial(IssueCreate, "IssueUpdate")
 
 
 class DocumentRead(ORMModel):
@@ -376,10 +341,8 @@ class DocumentRead(ORMModel):
     url: str
 
 
-class DocumentAdminRead(DocumentRead):
-    sort_order: int
-    published: bool
-    updated_at: datetime
+class DocumentAdminRead(AdminFields, DocumentRead):
+    pass
 
 
 class DocumentCreate(WriteModel):
@@ -389,13 +352,7 @@ class DocumentCreate(WriteModel):
     published: bool = False
 
 
-class DocumentUpdate(WriteModel):
-    """Only the fields sent change."""
-
-    title: Line | None = None
-    url: RequiredLink | None = None
-    sort_order: Order | None = None
-    published: bool | None = None
+DocumentUpdate = partial(DocumentCreate, "DocumentUpdate")
 
 
 class AboutItemRead(ORMModel):
@@ -406,10 +363,8 @@ class AboutItemRead(ORMModel):
     text: str
 
 
-class AboutItemAdminRead(AboutItemRead):
-    sort_order: int
-    published: bool
-    updated_at: datetime
+class AboutItemAdminRead(AdminFields, AboutItemRead):
+    pass
 
 
 class AboutItemCreate(WriteModel):
@@ -419,13 +374,7 @@ class AboutItemCreate(WriteModel):
     published: bool = False
 
 
-class AboutItemUpdate(WriteModel):
-    """Only the fields sent change."""
-
-    title: Line | None = None
-    text: trimmed(300) | None = None
-    sort_order: Order | None = None
-    published: bool | None = None
+AboutItemUpdate = partial(AboutItemCreate, "AboutItemUpdate")
 
 
 Votes = Annotated[int, Field(ge=0, le=10_000_000)]
@@ -457,15 +406,11 @@ class ResultCreate(WriteModel):
     published: bool = False
 
 
-class ResultUpdate(WriteModel):
-    """Only the fields sent change; a null declared_on marks the race as still counting."""
-
-    seat: Seat | None = None
-    area: Line | None = None
-    candidate: Line | None = None
-    votes: Votes | None = None
-    declared_on: date | None = None
-    published: bool | None = None
+ResultUpdate = partial(
+    ResultCreate,
+    "ResultUpdate",
+    "Only the fields sent change; a null declared_on marks the race as still counting.",
+)
 
 
 Duration = Annotated[str, Field(max_length=8, pattern=r"^(\d{1,2}:)?\d{1,2}:\d{2}$|^$")]
@@ -479,10 +424,8 @@ class VideoRead(ORMModel):
     duration: str
 
 
-class VideoAdminRead(VideoRead):
-    sort_order: int
-    published: bool
-    updated_at: datetime
+class VideoAdminRead(AdminFields, VideoRead):
+    pass
 
 
 class VideoCreate(WriteModel):
@@ -494,32 +437,20 @@ class VideoCreate(WriteModel):
     published: bool = False
 
 
-class VideoUpdate(WriteModel):
-    """Only the fields sent change."""
-
-    title: Line | None = None
-    url: RequiredLink | None = None
-    thumbnail_url: Image | None = None
-    duration: Duration | None = None
-    sort_order: Order | None = None
-    published: bool | None = None
+VideoUpdate = partial(VideoCreate, "VideoUpdate")
 
 
 class OfficialAppoint(WriteModel):
     """A term for an approved member; `title` names an office of kind "other"."""
 
     office: BranchOffice
-    title: Annotated[str, Field(max_length=80), AfterValidator(lambda v: plain_text(v).strip())] = (
-        ""
-    )
+    title: trimmed(80) = ""
     member: uuid.UUID
     term_start: date
     term_end: date | None = None
     start_reason: TermStart = TermStart.ELECTED
     minutes_file: uuid.UUID | None = None
-    note: Annotated[
-        str, Field(max_length=1000), AfterValidator(lambda v: plain_text(v).strip())
-    ] = ""
+    note: trimmed(1000) = ""
 
     @model_validator(mode="after")
     def _whole(self) -> "OfficialAppoint":

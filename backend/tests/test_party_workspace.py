@@ -104,6 +104,21 @@ async def test_the_console_replaces_the_workspace_manager_and_the_old_one_is_sig
     assert (await client.get(URL, headers=admin_headers)).json()["managers"] == ["wm-baraka"]
 
 
+async def test_opening_the_workspace_refuses_a_field_it_does_not_take(
+    session: AsyncSession, client: httpx.AsyncClient, world: World, admin_headers: dict
+) -> None:
+    refused = await client.post(
+        URL,
+        headers=admin_headers,
+        json={"manager": {"username": "wm-amani"}, "title": "Not a field"},
+    )
+
+    assert refused.status_code == 400, refused.text
+    assert (
+        await session.scalar(select(func.count()).where(Campaign.kind == WorkspaceKind.PARTY)) == 0
+    )
+
+
 async def test_the_party_has_one_national_workspace_targeting_every_ward(
     session: AsyncSession, client: httpx.AsyncClient, world: World, admin_headers: dict
 ) -> None:

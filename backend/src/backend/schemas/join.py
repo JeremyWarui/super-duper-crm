@@ -5,12 +5,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, StringConstraints
 
-from backend.schemas.common import WriteModel, consent
+from backend.schemas.common import Named, Phone, WriteModel, consent
 
-
-class JoinPlace(BaseModel):
-    id: uuid.UUID
-    name: str
+JoinPlace = Named
 
 
 class JoinRead(BaseModel):
@@ -33,7 +30,7 @@ class JoinCreate(WriteModel):
     full_name: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)
     ]
-    phone: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
+    phone: Phone
     consent_given: consent()
     # The ward or centre picked on a campaign's link; ignored on an event's.
     place: uuid.UUID | None = None

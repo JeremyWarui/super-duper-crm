@@ -12,6 +12,7 @@ from pydantic import (
     Field,
     StrictBool,
     StringConstraints,
+    create_model,
     model_validator,
 )
 
@@ -35,6 +36,34 @@ def plain_text(value: str | None, *, lines: bool = False) -> str | None:
     ):
         raise ValueError("Use letters, numbers and punctuation only.")
     return value
+
+
+def partial(
+    model: type[BaseModel], name: str, doc: str = "Only the fields sent change."
+) -> type[BaseModel]:
+    """`model` with every field optional and None unless sent, for a change where only the
+    fields sent apply. Each field keeps its checks for a value that is sent."""
+    fields = {
+        key: (
+            (Annotated[info.annotation, *info.metadata] if info.metadata else info.annotation)
+            | None,
+            None,
+        )
+        for key, info in model.model_fields.items()
+    }
+    return create_model(
+        name,
+        __base__=WriteModel,
+        __doc__=doc,
+        __module__=model.__module__,
+        **fields,
+    )
+
+
+# A new password, as every form that sets one takes it.
+Password = Annotated[str, Field(min_length=8, max_length=128)]
+# A phone number as a form takes it, before it is checked as a Kenyan number.
+Phone = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
 
 
 # Text a person typed, refused when it holds characters a person never types.
@@ -81,6 +110,20 @@ CampaignTitle = Annotated[
 
 class ORMModel(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, extra="forbid")
+
+
+class Named(ORMModel):
+    """A row shown by its name: a place, a county, a ward."""
+
+    id: uuid.UUID
+    name: str
+
+
+class Page[T](BaseModel):
+    """One page of a list and how many rows match in all."""
+
+    total: int
+    items: list[T]
 
 
 class Erasable(BaseModel):

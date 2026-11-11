@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type, user_ref
 from backend.models.enums import PayInMethod, PayInPurpose, PayInStatus
 
 
@@ -39,7 +39,5 @@ class PaymentIn(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     provider: Mapped[str] = mapped_column(String(20))
     reason: Mapped[str] = mapped_column(String(300), default="")
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    decided_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    decided_by_id: Mapped[uuid.UUID | None] = user_ref()
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

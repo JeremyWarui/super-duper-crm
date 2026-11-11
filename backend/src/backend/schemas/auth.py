@@ -5,7 +5,7 @@ import uuid
 from pydantic import Field, field_validator
 
 from backend.models.enums import LinkPurpose, PartyRoleName, UserKind, UserRole
-from backend.schemas.common import ORMModel, WriteModel
+from backend.schemas.common import ORMModel, Password, WriteModel
 
 
 class LoginRequest(WriteModel):
@@ -55,7 +55,7 @@ class LinkRead(ORMModel):
 
 
 class LinkClaim(WriteModel):
-    password: str = Field(min_length=8, max_length=128)
+    password: Password
 
 
 class AuthOptions(ORMModel):

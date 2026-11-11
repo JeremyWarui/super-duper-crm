@@ -4,10 +4,8 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
-
 from backend.models import ContactMethod, PartyMemberStatus, Profession, VolunteerStatus
-from backend.schemas.common import ORMModel, WriteModel, plain_lines
+from backend.schemas.common import ORMModel, Page, WriteModel, plain_lines
 from backend.schemas.party import MemberPlace
 
 
@@ -36,9 +34,7 @@ class VolunteerRead(ORMModel):
     created_at: datetime
 
 
-class VolunteerPage(BaseModel):
-    total: int
-    items: list[VolunteerRead]
+VolunteerPage = Page[VolunteerRead]
 
 
 class VolunteerUpdate(WriteModel):

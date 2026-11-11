@@ -4,10 +4,17 @@ workspace's drafted messages."""
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text, Uuid, text
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from backend.db.base import (
+    Base,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+    campaign_ref,
+    partial_unique,
+    user_ref,
+)
 
 
 class CampaignMessage(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -16,19 +23,13 @@ class CampaignMessage(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     __tablename__ = "campaign_messages"
 
-    campaign_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
-    )
+    campaign_id: Mapped[uuid.UUID] = campaign_ref()
     body: Mapped[str] = mapped_column(Text)
     wards: Mapped[list] = mapped_column(JSON, default=list)
     # draft, sent or declined.
     status: Mapped[str] = mapped_column(String(20), default="draft")
-    drafted_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
-    decided_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    drafted_by_id: Mapped[uuid.UUID | None] = user_ref()
+    decided_by_id: Mapped[uuid.UUID | None] = user_ref()
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     note: Mapped[str] = mapped_column(Text, default="")
     recipients: Mapped[int] = mapped_column(Integer, default=0)
@@ -54,12 +55,8 @@ class PartyMessage(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     # draft, sent or declined.
     status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
-    drafted_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
-    decided_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    drafted_by_id: Mapped[uuid.UUID | None] = user_ref()
+    decided_by_id: Mapped[uuid.UUID | None] = user_ref()
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     note: Mapped[str] = mapped_column(Text, default="")
     targeted: Mapped[int] = mapped_column(Integer, default=0)
@@ -87,9 +84,7 @@ class SmsLog(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     party_message_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("party_messages.id", ondelete="SET NULL"), index=True, default=None
     )
-    sender_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    sender_id: Mapped[uuid.UUID | None] = user_ref()
     # message, invite, party or test.
     purpose: Mapped[str] = mapped_column(String(20))
     phone: Mapped[str] = mapped_column(String(20), index=True)
@@ -107,20 +102,16 @@ class SmsOptOut(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     __tablename__ = "sms_opt_outs"
     __table_args__ = (
-        Index(
+        partial_unique(
             "uq_sms_opt_outs_campaign",
             "phone",
             "campaign_id",
-            unique=True,
-            postgresql_where=text("campaign_id IS NOT NULL"),
-            sqlite_where=text("campaign_id IS NOT NULL"),
+            where="campaign_id IS NOT NULL",
         ),
-        Index(
+        partial_unique(
             "uq_sms_opt_outs_everywhere",
             "phone",
-            unique=True,
-            postgresql_where=text("campaign_id IS NULL"),
-            sqlite_where=text("campaign_id IS NULL"),
+            where="campaign_id IS NULL",
         ),
     )
 

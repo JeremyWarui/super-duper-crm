@@ -1,13 +1,12 @@
 """Party texts to members and volunteers: drafts, who they reach, and how they went."""
 
 import uuid
-from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
 from backend.schemas.common import WriteModel, plain_text
-from backend.schemas.messages import BODY_MAX, DeliveryCounts
+from backend.schemas.messages import BODY_MAX, SmsDraftRead
 
 Audience = Literal["members", "volunteers"]
 
@@ -35,21 +34,11 @@ class PartyReach(BaseModel):
     opted_out: int
 
 
-class PartyMessageRead(BaseModel):
-    id: uuid.UUID
-    body: str
+class PartyMessageRead(SmsDraftRead):
     audience: Audience
     place: str
     status: str
-    drafted_by: str
-    decided_by: str
-    created_at: datetime
-    decided_at: datetime | None
-    note: str
     targeted: int
-    recipients: int
-    delivery: DeliveryCounts
-    mine: bool
 
 
 class PartyMessages(BaseModel):

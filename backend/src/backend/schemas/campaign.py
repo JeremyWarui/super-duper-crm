@@ -15,6 +15,7 @@ from backend.models.enums import (
     WorkspaceKind,
 )
 from backend.schemas.common import Erasable, ORMModel, WriteModel, consent
+from backend.schemas.messages import BODY_MAX
 
 
 class CampaignRead(ORMModel):
@@ -225,7 +226,7 @@ class EventInvite(WriteModel):
     """Who to invite, and what to say."""
 
     # Six SMS parts with the opt-out line added.
-    message: str = Field(min_length=1, max_length=895)
+    message: str = Field(min_length=1, max_length=BODY_MAX)
     # Blank invites everyone in the event's ward.
     support_levels: list[SupportLevel] = Field(default_factory=list)
     whole_campaign: bool = False

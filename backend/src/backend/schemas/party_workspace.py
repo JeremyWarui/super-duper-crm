@@ -5,7 +5,7 @@ import uuid
 from pydantic import BaseModel
 
 from backend.models.enums import PartyMemberStatus
-from backend.schemas.common import Invite, LoginDetails
+from backend.schemas.common import Invite, LoginDetails, WriteModel
 
 
 class PartyWorkspaceRead(BaseModel):
@@ -16,12 +16,11 @@ class PartyWorkspaceRead(BaseModel):
     managers: list[str] = []
 
 
-class PartyWorkspaceCreate(BaseModel):
+class PartyWorkspaceCreate(WriteModel):
     manager: LoginDetails
 
 
-class PartyWorkspaceManager(BaseModel):
-    manager: LoginDetails
+PartyWorkspaceManager = PartyWorkspaceCreate
 
 
 class PartyWorkspaceCreated(BaseModel):

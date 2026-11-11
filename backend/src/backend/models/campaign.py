@@ -10,7 +10,6 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
-    Index,
     Integer,
     String,
     Uuid,
@@ -24,7 +23,9 @@ from backend.db.base import (
     TimestampMixin,
     UUIDPrimaryKeyMixin,
     choice_type,
+    partial_unique,
     require_loaded,
+    user_ref,
 )
 from backend.models.enums import OfficeLevel, OperationalGrain, Seat, UserRole, WorkspaceKind
 from backend.models.geography import SeatPlaces
@@ -73,12 +74,10 @@ class Campaign(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint(SEAT_MATCHES_SCOPE, name="seat_matches_scope"),
         # One party workspace and one standalone workspace at most.
-        Index(
+        partial_unique(
             "uq_campaigns_one_party_one_standalone",
             "kind",
-            unique=True,
-            postgresql_where=text(SINGLE_KINDS),
-            sqlite_where=text(SINGLE_KINDS),
+            where=SINGLE_KINDS,
         ),
     )
 
@@ -111,9 +110,7 @@ class Campaign(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     # Closed after the election: read-only from then on.
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    closed_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    closed_by_id: Mapped[uuid.UUID | None] = user_ref()
     # Months after closing before supporter personal data may be erased.
     retention_months: Mapped[int] = mapped_column(Integer, default=6, server_default=text("6"))
     supporters_erased_at: Mapped[datetime | None] = mapped_column(

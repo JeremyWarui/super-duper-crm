@@ -2,10 +2,10 @@
 
 import uuid
 
-from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, Uuid
+from sqlalchemy import JSON, Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type, user_ref
 from backend.models.enums import FileArea
 
 
@@ -22,6 +22,4 @@ class StoredFile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     size: Mapped[int] = mapped_column(Integer)
     sha256: Mapped[str] = mapped_column(String(64), index=True)
     widths: Mapped[list[int]] = mapped_column(JSON, default=list)
-    uploaded_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    uploaded_by_id: Mapped[uuid.UUID | None] = user_ref()

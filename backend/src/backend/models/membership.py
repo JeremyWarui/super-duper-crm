@@ -10,11 +10,17 @@ from sqlalchemy import (
     Index,
     UniqueConstraint,
     Uuid,
-    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import (
+    Base,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+    campaign_ref,
+    choice_type,
+    partial_unique,
+)
 from backend.models.enums import UserRole
 
 if TYPE_CHECKING:
@@ -31,25 +37,19 @@ class CampaignMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         # The role here always equals the user's own role.
         ForeignKeyConstraint(["user_id", "role"], ["users.id", "users.role"], ondelete="CASCADE"),
         Index("uq_campaign_members_one_campaign_per_user", "user_id", unique=True),
-        Index(
+        partial_unique(
             "uq_campaign_members_one_candidate",
             "campaign_id",
-            unique=True,
-            postgresql_where=text("role = 'candidate'"),
-            sqlite_where=text("role = 'candidate'"),
+            where="role = 'candidate'",
         ),
-        Index(
+        partial_unique(
             "uq_campaign_members_one_manager",
             "campaign_id",
-            unique=True,
-            postgresql_where=text("role = 'manager'"),
-            sqlite_where=text("role = 'manager'"),
+            where="role = 'manager'",
         ),
     )
 
-    campaign_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
-    )
+    campaign_id: Mapped[uuid.UUID] = campaign_ref()
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid)
     role: Mapped[UserRole] = mapped_column(choice_type(UserRole, "member_role"))
 

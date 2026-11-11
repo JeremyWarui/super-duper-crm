@@ -27,7 +27,9 @@ from backend.db.base import (
     TimestampMixin,
     UUIDPrimaryKeyMixin,
     choice_type,
+    partial_unique,
     updated_at_column,
+    user_ref,
 )
 from backend.models.enums import (
     AspirantStatus,
@@ -124,9 +126,7 @@ class PartyMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     status_reason: Mapped[str | None] = mapped_column(Text, default=None)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    decided_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    decided_by_id: Mapped[uuid.UUID | None] = user_ref()
     consent_wording: Mapped[str] = mapped_column(Text)
     consent_channel: Mapped[PartyConsentChannel] = mapped_column(
         choice_type(PartyConsentChannel, "party_consent_channel")
@@ -186,12 +186,10 @@ class RecruitmentCode(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     __tablename__ = "recruitment_codes"
     __table_args__ = (
-        Index(
+        partial_unique(
             "uq_recruitment_codes_one_active",
             "campaign_member_id",
-            unique=True,
-            postgresql_where=text("active"),
-            sqlite_where=text("active"),
+            where="active",
         ),
     )
 
@@ -203,7 +201,14 @@ class RecruitmentCode(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 # A member has at most one nomination in these statuses.
-LIVE_NOMINATION = "status IN ('draft', 'submitted', 'approved', 'suspended')"
+# A nomination still in play; a member holds at most one.
+LIVE_STATUSES = (
+    AspirantStatus.DRAFT,
+    AspirantStatus.SUBMITTED,
+    AspirantStatus.APPROVED,
+    AspirantStatus.SUSPENDED,
+)
+LIVE_NOMINATION = f"status IN ({', '.join(repr(s.value) for s in LIVE_STATUSES)})"
 
 
 class Aspirant(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -221,12 +226,10 @@ class Aspirant(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
             name="area_matches_seat",
         ),
         UniqueConstraint("campaign_id", name="uq_aspirants_campaign_id"),
-        Index(
+        partial_unique(
             "uq_aspirants_one_live_per_member",
             "member_id",
-            unique=True,
-            sqlite_where=text(LIVE_NOMINATION),
-            postgresql_where=text(LIVE_NOMINATION),
+            where=LIVE_NOMINATION,
         ),
     )
 
@@ -250,15 +253,11 @@ class Aspirant(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     status_reason: Mapped[str | None] = mapped_column(Text, default=None)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    decided_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    decided_by_id: Mapped[uuid.UUID | None] = user_ref()
     campaign_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("campaigns.id", ondelete="SET NULL"), default=None
     )
-    created_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    created_by_id: Mapped[uuid.UUID | None] = user_ref()
     # A member's own application: the window it was made in, and what it declared and paid.
     window_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("nomination_windows.id", ondelete="SET NULL"), default=None
@@ -266,9 +265,7 @@ class Aspirant(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     fee_kes: Mapped[int] = mapped_column(Integer, default=0)
     fee_paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     fee_reference: Mapped[str] = mapped_column(String(50), default="")
-    fee_marked_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    fee_marked_by_id: Mapped[uuid.UUID | None] = user_ref()
     declared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     updated_at: Mapped[datetime] = updated_at_column()
 

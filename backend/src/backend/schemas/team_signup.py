@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 from pydantic import AfterValidator, BaseModel, Field, StringConstraints
 
 from backend.models.enums import AgentStatus, FieldRole, RegistrationStatus
-from backend.schemas.common import Invite, ORMModel, WriteModel, plain_text
+from backend.schemas.common import Invite, ORMModel, Phone, WriteModel, plain_text
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)]
 
@@ -36,7 +36,7 @@ class SignupCreate(WriteModel):
     last_name: Annotated[
         str, StringConstraints(strip_whitespace=True, max_length=150), AfterValidator(plain_text)
     ] = ""
-    phone: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
+    phone: Phone
     email: Annotated[
         str,
         StringConstraints(strip_whitespace=True, min_length=3, max_length=254),

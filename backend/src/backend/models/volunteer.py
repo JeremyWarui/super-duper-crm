@@ -14,7 +14,6 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
-    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,6 +22,7 @@ from backend.db.base import (
     TimestampMixin,
     UUIDPrimaryKeyMixin,
     choice_type,
+    partial_unique,
     updated_at_column,
 )
 from backend.models.enums import ContactMethod, Profession, VolunteerStatus
@@ -41,12 +41,10 @@ class VolunteerProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         # A party row has a member; a campaign row has none.
         CheckConstraint("(campaign_id IS NULL) = (member_id IS NOT NULL)", name="owner"),
         CheckConstraint("consent_wording <> ''", name="consent_wording_not_empty"),
-        Index(
+        partial_unique(
             "uq_volunteer_profiles_party_phone",
             "phone",
-            unique=True,
-            postgresql_where=text("campaign_id IS NULL"),
-            sqlite_where=text("campaign_id IS NULL"),
+            where="campaign_id IS NULL",
         ),
         UniqueConstraint("campaign_id", "phone", name="uq_volunteer_profiles_campaign_phone"),
         Index("ix_volunteer_profiles_campaign_id_status", "campaign_id", "status"),

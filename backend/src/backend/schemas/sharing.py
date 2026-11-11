@@ -15,10 +15,8 @@ class Switches(BaseModel):
     supporter_counts: bool
 
 
-class SwitchesWrite(WriteModel):
-    event_reach: bool
-    ward_coverage: bool
-    supporter_counts: bool
+class SwitchesWrite(Switches):
+    model_config = WriteModel.model_config
 
 
 class FeedPost(BaseModel):

@@ -9,16 +9,20 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
-    Index,
     String,
     UniqueConstraint,
     Uuid,
-    false,
-    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import (
+    Base,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+    choice_type,
+    partial_unique,
+    starts_false,
+)
 from backend.models.enums import UserKind, UserRole
 
 if TYPE_CHECKING:
@@ -45,19 +49,15 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("(kind = 'campaign') = (role IS NOT NULL)", name="kind_matches_role"),
         CheckConstraint("NOT (pending AND is_active)", name="pending_is_inactive"),
         # The sign-in name; stored lower-cased.
-        Index(
+        partial_unique(
             "uq_users_email",
             "email",
-            unique=True,
-            postgresql_where=text("email <> ''"),
-            sqlite_where=text("email <> ''"),
+            where="email <> ''",
         ),
-        Index(
+        partial_unique(
             "uq_users_member_login",
             "party_member_id",
-            unique=True,
-            postgresql_where=text("kind = 'member'"),
-            sqlite_where=text("kind = 'member'"),
+            where="kind = 'member'",
         ),
     )
 
@@ -81,7 +81,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     password_hash: Mapped[str] = mapped_column(String(128), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Registered by the person and awaiting approval; inactive until approved.
-    pending: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    pending: Mapped[bool] = starts_false()
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 

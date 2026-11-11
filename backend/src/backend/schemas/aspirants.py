@@ -12,6 +12,7 @@ from backend.schemas.common import (
     CampaignTitle,
     LoginDetails,
     ORMModel,
+    Page,
     WriteModel,
     plain_lines,
 )
@@ -57,9 +58,7 @@ class DocumentRead(BaseModel):
     label: str
 
 
-class AspirantPage(BaseModel):
-    total: int
-    items: list[AspirantRead]
+AspirantPage = Page[AspirantRead]
 
 
 class AspirantCreate(WriteModel):

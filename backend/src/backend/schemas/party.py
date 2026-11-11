@@ -23,7 +23,11 @@ from backend.models import (
 )
 from backend.schemas.common import (
     Erasable,
+    Named,
     ORMModel,
+    Page,
+    Password,
+    Phone,
     WriteModel,
     consent,
     plain_lines,
@@ -100,15 +104,11 @@ class VolunteerPart(WriteModel):
 class PartyJoinCreate(WriteModel):
     first_name: PlainName
     surname: PlainName
-    phone: Annotated[
-        str,
-        StringConstraints(strip_whitespace=True, min_length=1, max_length=20),
-        AfterValidator(plain_text),
-    ]
+    phone: Annotated[Phone, AfterValidator(plain_text)]
     email: Annotated[
         Email, StringConstraints(strip_whitespace=True, min_length=1), AfterValidator(plain_text)
     ]
-    password: str = Field(min_length=8, max_length=128)
+    password: Password
     ward: uuid.UUID
     registration_centre: uuid.UUID
     consent_given: consent(strict=True)
@@ -137,16 +137,10 @@ class PartyWithdrawn(BaseModel):
     message: str
 
 
-class PartyPlace(ORMModel):
-    """A county, constituency or ward on the public application's place picker."""
-
-    id: uuid.UUID
-    name: str
+PartyPlace = Named
 
 
-class MemberPlace(ORMModel):
-    id: uuid.UUID
-    name: str
+MemberPlace = Named
 
 
 class MemberRead(Erasable, ORMModel):
@@ -173,9 +167,7 @@ class MemberDetail(MemberRead):
     consent_at: datetime
 
 
-class MemberPage(BaseModel):
-    total: int
-    items: list[MemberRead]
+MemberPage = Page[MemberRead]
 
 
 class MemberMove(WriteModel):

@@ -114,11 +114,13 @@ def _check_lengths(line: int, row: dict[str, str], errors: list[str]) -> None:
             errors.append(f"Line {line}: {name} is longer than {limit} characters.")
 
 
-def _agree(seen: dict, key: str, value: tuple, line: int, what: str, errors: list[str]) -> None:
-    """Every row naming `key` must give it the same `value`."""
+def _agree(
+    seen: dict, key, value: tuple, line: int, what: str, errors: list[str], label: str = ""
+) -> None:
+    """Every row naming `key` must give it the same `value`; `label` names it in the refusal."""
     first = seen.setdefault(key, (value, line))
     if first[0] != value:
-        errors.append(f"Line {line}: {what} {key} differs from line {first[1]}.")
+        errors.append(f"Line {line}: {what} {label or key} differs from line {first[1]}.")
 
 
 # Boundaries
@@ -170,13 +172,15 @@ async def import_boundaries(
             errors,
         )
         if row["centre_code"]:
-            key = (row["ward_code"], row["centre_code"])
-            first = centres.setdefault(key, ((row["centre_name"],), line))
-            if first[0] != (row["centre_name"],):
-                errors.append(
-                    f"Line {line}: centre {row['centre_code']} in ward {row['ward_code']} "
-                    f"differs from line {first[1]}."
-                )
+            _agree(
+                centres,
+                (row["ward_code"], row["centre_code"]),
+                (row["centre_name"],),
+                line,
+                "centre",
+                errors,
+                label=f"{row['centre_code']} in ward {row['ward_code']}",
+            )
     if errors:
         raise ImportRefused(errors)
 
@@ -193,89 +197,84 @@ async def import_boundaries(
     def note(level: str, code: str, change: str, detail: str = "") -> None:
         report.changes.append(Change(level, code, change, detail))
 
-    def restore(row, level: str, code: str) -> None:
-        if row.retired:
-            row.retired = False
-            note(level, code, "restored", row.name)
+    def upsert(level: str, label: str, found, model: type, values: dict, parent=None):  # type: ignore[no-untyped-def]
+        """Create the place from `values`, or rename it, move it under `parent` (its field, id,
+        level and code) and restore it; each change is noted."""
+        name = values["name"]
+        if found is None:
+            found = model(**values)
+            session.add(found)
+            note(level, label, "created", name)
+            return found
+        if found.name != name:
+            note(level, label, "renamed", f"{found.name} -> {name}")
+            found.name = name
+        if parent is not None:
+            field, parent_id, parent_level, parent_code = parent
+            if getattr(found, field) != parent_id:
+                note(level, label, "moved", f"to {parent_level} {parent_code}")
+                setattr(found, field, parent_id)
+        if found.retired:
+            found.retired = False
+            note(level, label, "restored", found.name)
+        return found
+
+    def retire(level: str, label: str, found) -> None:  # type: ignore[no-untyped-def]
+        if not found.retired:
+            found.retired = True
+            note(level, label, "retired", found.name)
 
     for code, ((name,), _) in counties.items():
-        county = have_counties.get(code)
-        if county is None:
-            county = County(code=code, name=name)
-            session.add(county)
-            have_counties[code] = county
-            note("county", code, "created", name)
-            continue
-        if county.name != name:
-            note("county", code, "renamed", f"{county.name} -> {name}")
-            county.name = name
-        restore(county, "county", code)
+        have_counties[code] = upsert(
+            "county", code, have_counties.get(code), County, {"code": code, "name": name}
+        )
     await session.flush()
 
     for code, ((name, county_code), _) in constituencies.items():
         parent = have_counties[county_code]
-        found = have_constituencies.get(code)
-        if found is None:
-            found = Constituency(code=code, name=name, county_id=parent.id)
-            session.add(found)
-            have_constituencies[code] = found
-            note("constituency", code, "created", name)
-            continue
-        if found.name != name:
-            note("constituency", code, "renamed", f"{found.name} -> {name}")
-            found.name = name
-        if found.county_id != parent.id:
-            note("constituency", code, "moved", f"to county {county_code}")
-            found.county_id = parent.id
-        restore(found, "constituency", code)
+        have_constituencies[code] = upsert(
+            "constituency",
+            code,
+            have_constituencies.get(code),
+            Constituency,
+            {"code": code, "name": name, "county_id": parent.id},
+            ("county_id", parent.id, "county", county_code),
+        )
     await session.flush()
 
     for code, ((name, constituency_code), _) in wards.items():
         parent = have_constituencies[constituency_code]
-        found = have_wards.get(code)
-        if found is None:
-            found = Ward(code=code, name=name, constituency_id=parent.id)
-            session.add(found)
-            have_wards[code] = found
-            note("ward", code, "created", name)
-            continue
-        if found.name != name:
-            note("ward", code, "renamed", f"{found.name} -> {name}")
-            found.name = name
-        if found.constituency_id != parent.id:
-            note("ward", code, "moved", f"to constituency {constituency_code}")
-            found.constituency_id = parent.id
-        restore(found, "ward", code)
+        have_wards[code] = upsert(
+            "ward",
+            code,
+            have_wards.get(code),
+            Ward,
+            {"code": code, "name": name, "constituency_id": parent.id},
+            ("constituency_id", parent.id, "constituency", constituency_code),
+        )
     await session.flush()
 
     for (ward_code, code), ((name,), _) in centres.items():
-        found = have_centres.get((ward_code, code))
-        label = f"{ward_code}/{code}"
-        if found is None:
-            session.add(RegistrationCentre(code=code, name=name, ward_id=have_wards[ward_code].id))
-            note("centre", label, "created", name)
-            continue
-        if found.name != name:
-            note("centre", label, "renamed", f"{found.name} -> {name}")
-            found.name = name
-        restore(found, "centre", label)
+        upsert(
+            "centre",
+            f"{ward_code}/{code}",
+            have_centres.get((ward_code, code)),
+            RegistrationCentre,
+            {"code": code, "name": name, "ward_id": have_wards[ward_code].id},
+        )
 
     covered = {have_counties[code].id for code in counties}
     county_of_constituency = {c.id: c.county_id for c in have_constituencies.values()}
     for code, found in have_constituencies.items():
-        if found.county_id in covered and code not in constituencies and not found.retired:
-            found.retired = True
-            note("constituency", code, "retired", found.name)
+        if found.county_id in covered and code not in constituencies:
+            retire("constituency", code, found)
     for code, found in have_wards.items():
-        in_covered = county_of_constituency.get(found.constituency_id) in covered
-        if in_covered and code not in wards and not found.retired:
-            found.retired = True
-            note("ward", code, "retired", found.name)
+        if county_of_constituency.get(found.constituency_id) in covered and code not in wards:
+            retire("ward", code, found)
     listed = {ward_code for ward_code, _ in centres}
     for (ward_code, code), found in have_centres.items():
-        if ward_code in listed and (ward_code, code) not in centres and not found.retired:
-            found.retired = True
-            note("centre", f"{ward_code}/{code}", "retired", found.name)
+        if ward_code in listed and (ward_code, code) not in centres:
+            retire("centre", f"{ward_code}/{code}", found)
 
     return await _finish(session, report, text, filename, actor, dry_run)
 

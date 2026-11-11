@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, DateTime, ForeignKey, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.db.base import Base
+from backend.db.base import Base, user_ref
 
 
 class CampaignSharing(Base):
@@ -21,7 +21,5 @@ class CampaignSharing(Base):
     event_reach: Mapped[bool] = mapped_column(Boolean, default=False)
     ward_coverage: Mapped[bool] = mapped_column(Boolean, default=False)
     supporter_counts: Mapped[bool] = mapped_column(Boolean, default=False)
-    changed_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    changed_by_id: Mapped[uuid.UUID | None] = user_ref()
     changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

@@ -9,6 +9,7 @@ from backend.schemas.common import (
     CampaignTitle,
     Invite,
     LoginDetails,
+    Named,
     NewLogin,
     ORMModel,
     WriteModel,
@@ -33,9 +34,7 @@ class MemberRead(ORMModel):
     role: UserRole
 
 
-class AdminWardRead(ORMModel):
-    id: uuid.UUID
-    name: str
+AdminWardRead = Named
 
 
 class AdminCentreRead(ORMModel):

@@ -20,6 +20,7 @@ from backend.models import (
     UserKind,
     Ward,
 )
+from backend.models.party import LIVE_STATUSES
 from backend.schemas.campaign import SetupSummary
 from backend.services import admin
 from backend.services.accounts import user_with_email
@@ -35,7 +36,7 @@ from backend.services.errors import (
 from backend.services.sms import normalise_phone
 
 A = AspirantStatus
-LIVE = frozenset({A.DRAFT, A.SUBMITTED, A.APPROVED, A.SUSPENDED})
+LIVE = frozenset(LIVE_STATUSES)
 
 MOVES: dict[AspirantStatus, frozenset[AspirantStatus]] = {
     A.DRAFT: frozenset({A.SUBMITTED, A.WITHDRAWN}),

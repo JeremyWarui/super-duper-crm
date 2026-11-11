@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from backend.schemas.common import ORMModel, WriteModel
 
@@ -48,12 +48,11 @@ class DeliveryCounts(ORMModel):
     failed: int = 0
 
 
-class MessageRead(ORMModel):
+class SmsDraftRead(BaseModel):
+    """What a campaign or party text shows in its list: who wrote it, who decided, how it went."""
+
     id: uuid.UUID
     body: str
-    wards: list[str]
-    ward_names: list[str]
-    status: Literal["draft", "sent", "declined"]
     drafted_by: str
     decided_by: str
     created_at: datetime
@@ -62,6 +61,14 @@ class MessageRead(ORMModel):
     recipients: int
     delivery: DeliveryCounts
     mine: bool
+
+
+class MessageRead(SmsDraftRead):
+    model_config = ORMModel.model_config
+
+    wards: list[str]
+    ward_names: list[str]
+    status: Literal["draft", "sent", "declined"]
 
 
 class MessagesPage(ORMModel):

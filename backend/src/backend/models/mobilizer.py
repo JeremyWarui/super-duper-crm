@@ -3,10 +3,10 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Index, String, Uuid, text
+from sqlalchemy import ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, campaign_ref, partial_unique
 
 if TYPE_CHECKING:
     from backend.models.campaign import Campaign
@@ -21,27 +21,21 @@ class Mobilizer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     __tablename__ = "mobilizers"
     __table_args__ = (
-        Index(
+        partial_unique(
             "uq_mobilizers_campaign_ward",
             "campaign_id",
             "ward_id",
-            unique=True,
-            postgresql_where=text("ward_id IS NOT NULL AND registration_centre_id IS NULL"),
-            sqlite_where=text("ward_id IS NOT NULL AND registration_centre_id IS NULL"),
+            where="ward_id IS NOT NULL AND registration_centre_id IS NULL",
         ),
-        Index(
+        partial_unique(
             "uq_mobilizers_campaign_registration_centre",
             "campaign_id",
             "registration_centre_id",
-            unique=True,
-            postgresql_where=text("registration_centre_id IS NOT NULL"),
-            sqlite_where=text("registration_centre_id IS NOT NULL"),
+            where="registration_centre_id IS NOT NULL",
         ),
     )
 
-    campaign_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
-    )
+    campaign_id: Mapped[uuid.UUID] = campaign_ref()
     # None until assigned.
     ward_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("wards.id", ondelete="CASCADE"), default=None, index=True

@@ -6,7 +6,15 @@ from datetime import date
 from pydantic import Field, model_validator
 
 from backend.models import OrganisationType, Seat
-from backend.schemas.common import CampaignTitle, LoginDetails, ORMModel, WriteModel, plain_text
+from backend.schemas.common import (
+    CampaignTitle,
+    LoginDetails,
+    Named,
+    ORMModel,
+    Password,
+    WriteModel,
+    plain_text,
+)
 from backend.schemas.content import Link
 from backend.schemas.site import Email, SiteIdentity, refuse_low_contrast
 
@@ -33,7 +41,7 @@ class SetupSuperuser(WriteModel):
 
     username: str = Field(min_length=3, max_length=150, pattern=r"^[A-Za-z0-9._-]+$")
     email: Email = Field(min_length=3)
-    password: str = Field(min_length=8, max_length=128)
+    password: Password
     first_name: str = Field(default="", max_length=150)
     last_name: str = Field(default="", max_length=150)
 
@@ -76,9 +84,7 @@ class SetupRequest(SetupToken):
         return self
 
 
-class Area(ORMModel):
-    id: uuid.UUID
-    name: str
+Area = Named
 
 
 class ServiceState(ORMModel):

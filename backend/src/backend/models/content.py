@@ -16,8 +16,6 @@ from sqlalchemy import (
     Table,
     Text,
     Uuid,
-    false,
-    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,10 +24,23 @@ from backend.db.base import (
     TimestampMixin,
     UUIDPrimaryKeyMixin,
     choice_type,
+    file_ref,
+    partial_unique,
+    starts_false,
     updated_at_column,
+    user_ref,
 )
 from backend.models.enums import BranchOffice, PostKind, PostLabel, Seat, TermEnd, TermStart
 from backend.models.geography import County
+
+
+class Listed:
+    """An ordered content row the editor publishes: its place in the list, whether it shows, and
+    when it last changed."""
+
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    published: Mapped[bool] = starts_false()
+    updated_at: Mapped[datetime] = updated_at_column()
 
 
 class PartyLeader(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -41,9 +52,7 @@ class PartyLeader(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     position: Mapped[str] = mapped_column(String(150))
     bio: Mapped[str] = mapped_column(Text, default="")
     photo_url: Mapped[str] = mapped_column(String(500), default="")
-    photo_file_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
-    )
+    photo_file_id: Mapped[uuid.UUID | None] = file_ref()
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     published: Mapped[bool] = mapped_column(Boolean, default=False)
     updated_at: Mapped[datetime] = updated_at_column()
@@ -110,7 +119,7 @@ class Branch(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(254), default="", server_default="")
     next_meeting_on: Mapped[date | None] = mapped_column(Date, default=None)
     next_meeting_venue: Mapped[str] = mapped_column(String(150), default="", server_default="")
-    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    published: Mapped[bool] = starts_false()
     updated_at: Mapped[datetime] = updated_at_column()
 
     county: Mapped["County"] = relationship(lazy="raise")
@@ -127,13 +136,11 @@ class BranchOfficial(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("term_end IS NULL OR term_end >= term_start", name="term_in_order"),
         # One open-ended term per office; terms with an end date are checked in the service.
-        Index(
+        partial_unique(
             "uq_branch_officials_open_term",
             "branch_id",
             "office",
-            unique=True,
-            postgresql_where=text("term_end IS NULL AND office <> 'other'"),
-            sqlite_where=text("term_end IS NULL AND office <> 'other'"),
+            where="term_end IS NULL AND office <> 'other'",
         ),
     )
 
@@ -153,35 +160,26 @@ class BranchOfficial(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     end_reason: Mapped[TermEnd | None] = mapped_column(
         choice_type(TermEnd, "term_end_reason"), default=None
     )
-    minutes_file_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
-    )
+    minutes_file_id: Mapped[uuid.UUID | None] = file_ref()
     note: Mapped[str] = mapped_column(Text, default="", server_default="")
-    appointed_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    appointed_by_id: Mapped[uuid.UUID | None] = user_ref()
 
 
-class HeroSlide(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class HeroSlide(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """One slide of the homepage carousel, shown once published; at most five exist."""
 
     __tablename__ = "hero_slides"
 
     image_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
-    image_file_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
-    )
+    image_file_id: Mapped[uuid.UUID | None] = file_ref()
     kicker: Mapped[str] = mapped_column(String(80), default="", server_default="")
     headline: Mapped[str] = mapped_column(String(120))
     line: Mapped[str] = mapped_column(String(300), default="", server_default="")
     button_label: Mapped[str] = mapped_column(String(40), default="", server_default="")
     button_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = updated_at_column()
 
 
-class AgendaIssue(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class AgendaIssue(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """One issue of the party's agenda, on the homepage and its own page once published."""
 
     __tablename__ = "agenda_issues"
@@ -190,48 +188,35 @@ class AgendaIssue(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     summary: Mapped[str] = mapped_column(String(300), default="", server_default="")
     what_we_will_do: Mapped[str] = mapped_column(Text, default="", server_default="")
     why_it_matters: Mapped[str] = mapped_column(Text, default="", server_default="")
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = updated_at_column()
 
 
-class PartyDocument(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class PartyDocument(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """A party document linked from the About page once published, such as the constitution."""
 
     __tablename__ = "party_documents"
 
     title: Mapped[str] = mapped_column(String(150))
     url: Mapped[str] = mapped_column(String(500))
-    file_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
-    )
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = updated_at_column()
+    file_id: Mapped[uuid.UUID | None] = file_ref()
 
 
-class PartyValue(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class AboutItem(Listed):
+    """A titled line of text on the About page."""
+
+    title: Mapped[str] = mapped_column(String(150))
+    text: Mapped[str] = mapped_column(String(300), default="", server_default="")
+
+
+class PartyValue(AboutItem, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """One of the party's values, under What we believe on the About page once published."""
 
     __tablename__ = "party_values"
 
-    title: Mapped[str] = mapped_column(String(150))
-    text: Mapped[str] = mapped_column(String(300), default="", server_default="")
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = updated_at_column()
 
-
-class PartyOrgan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class PartyOrgan(AboutItem, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """A party organ, under How the party is run on the About page once published."""
 
     __tablename__ = "party_organs"
-
-    title: Mapped[str] = mapped_column(String(150))
-    text: Mapped[str] = mapped_column(String(300), default="", server_default="")
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = updated_at_column()
 
 
 class PrimaryResult(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -246,12 +231,12 @@ class PrimaryResult(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     votes: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     declared_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     # Set by the demo seed; the page then says the results are demo results.
-    demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    demo: Mapped[bool] = starts_false()
+    published: Mapped[bool] = starts_false()
     updated_at: Mapped[datetime] = updated_at_column()
 
 
-class PartyVideo(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class PartyVideo(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """A video in the homepage's Watch row once published; it links out to where it is hosted."""
 
     __tablename__ = "party_videos"
@@ -261,9 +246,6 @@ class PartyVideo(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # Empty means the page takes YouTube's thumbnail for a YouTube link.
     thumbnail_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
     duration: Mapped[str] = mapped_column(String(8), default="", server_default="")
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-    updated_at: Mapped[datetime] = updated_at_column()
 
 
 # The aspirants a party event names; it shows on each one's candidate profile.
@@ -287,9 +269,7 @@ class CandidateProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Uuid, ForeignKey("aspirants.id", ondelete="CASCADE"), unique=True, default=None
     )
     photo_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
-    photo_file_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
-    )
+    photo_file_id: Mapped[uuid.UUID | None] = file_ref()
     slogan: Mapped[str] = mapped_column(String(120), default="", server_default="")
     bio: Mapped[str] = mapped_column(Text, default="", server_default="")
     # Up to three {"title", "text"} pairs.
@@ -297,5 +277,5 @@ class CandidateProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     office_address: Mapped[str] = mapped_column(String(300), default="", server_default="")
     office_phone: Mapped[str] = mapped_column(String(20), default="", server_default="")
     office_email: Mapped[str] = mapped_column(String(254), default="", server_default="")
-    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    published: Mapped[bool] = starts_false()
     updated_at: Mapped[datetime] = updated_at_column()

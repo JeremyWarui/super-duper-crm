@@ -4,10 +4,10 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, Numeric, Uuid, text
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, Numeric, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, UUIDPrimaryKeyMixin, require_loaded
+from backend.db.base import Base, UUIDPrimaryKeyMixin, campaign_ref, partial_unique, require_loaded
 
 if TYPE_CHECKING:
     from backend.models.campaign import Campaign
@@ -38,21 +38,17 @@ class Target(UUIDPrimaryKeyMixin, Base):
 
     __tablename__ = "targets"
     __table_args__ = (
-        Index(
+        partial_unique(
             "uq_targets_campaign_ward",
             "campaign_id",
             "ward_id",
-            unique=True,
-            postgresql_where=text("registration_centre_id IS NULL"),
-            sqlite_where=text("registration_centre_id IS NULL"),
+            where="registration_centre_id IS NULL",
         ),
-        Index(
+        partial_unique(
             "uq_targets_campaign_registration_centre",
             "campaign_id",
             "registration_centre_id",
-            unique=True,
-            postgresql_where=text("registration_centre_id IS NOT NULL"),
-            sqlite_where=text("registration_centre_id IS NOT NULL"),
+            where="registration_centre_id IS NOT NULL",
         ),
         CheckConstraint(
             "votes_needed IS NULL OR votes_needed >= 0", name="votes_needed_non_negative"
@@ -65,9 +61,7 @@ class Target(UUIDPrimaryKeyMixin, Base):
         ),
     )
 
-    campaign_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
-    )
+    campaign_id: Mapped[uuid.UUID] = campaign_ref()
     ward_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("wards.id", ondelete="CASCADE"), index=True
     )

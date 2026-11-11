@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from backend.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, user_ref
 
 
 class ImportRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -19,9 +19,7 @@ class ImportRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     sha256: Mapped[str] = mapped_column(String(64))
     rows: Mapped[int] = mapped_column(Integer)
     counts: Mapped[dict] = mapped_column(JSON, default=dict)
-    actor_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
-    )
+    actor_id: Mapped[uuid.UUID | None] = user_ref()
 
     changes: Mapped[list["ImportChange"]] = relationship(
         back_populates="run", cascade="all, delete-orphan", passive_deletes=True

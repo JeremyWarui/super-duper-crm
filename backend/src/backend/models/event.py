@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import Base, UUIDPrimaryKeyMixin, campaign_ref, choice_type
 from backend.models.enums import EventStatus
 from backend.security import new_short_code
 
@@ -24,9 +24,7 @@ class Event(UUIDPrimaryKeyMixin, Base):
         CheckConstraint("number_attended >= 0", name="number_attended_non_negative"),
     )
 
-    campaign_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
-    )
+    campaign_id: Mapped[uuid.UUID] = campaign_ref()
     ward_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("wards.id", ondelete="CASCADE"), index=True
     )

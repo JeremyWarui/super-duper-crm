@@ -7,17 +7,22 @@ from sqlalchemy import (
     JSON,
     CheckConstraint,
     DateTime,
-    ForeignKey,
     Integer,
     String,
     Text,
-    Uuid,
     func,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.db.base import Base, OneTimeToken, TimestampMixin, UUIDPrimaryKeyMixin, choice_type
+from backend.db.base import (
+    Base,
+    OneTimeToken,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+    choice_type,
+    file_ref,
+)
 from backend.models.enums import OrganisationType
 from backend.models.party import hex_colour
 
@@ -42,9 +47,7 @@ class SiteSettings(Base):
     slogan: Mapped[str] = mapped_column(String(150), default="", server_default=text("''"))
     about_headline: Mapped[str] = mapped_column(String(150), default="", server_default=text("''"))
     logo_url: Mapped[str] = mapped_column(String(500), default="")
-    logo_file_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("stored_files.id", ondelete="SET NULL"), default=None
-    )
+    logo_file_id: Mapped[uuid.UUID | None] = file_ref()
     primary_colour: Mapped[str] = mapped_column(String(7), default="#1f2937")
     secondary_colour: Mapped[str] = mapped_column(String(7), default="#f59e0b")
     contact_email: Mapped[str] = mapped_column(String(254), default="")
