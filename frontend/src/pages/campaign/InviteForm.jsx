@@ -7,15 +7,18 @@ import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
-import { Field, Textarea } from "@/components/ui/input";
 import { FilterPills } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
-import { FOOTER, partsOf } from "@/lib/sms";
+import { composed } from "@/lib/sms";
+import { MessageField } from "@/components/SmsParts";
+import { SUPPORT_LEVELS } from "@/lib/labels";
 
-const LEVELS = [["supporter", "Supporters"], ["undecided", "Undecided"], ["opposed", "Opposed"]];
 // Who may really text; anyone else who changes the event can preview.
 const SENDERS = ["candidate", "manager"];
+
+// Who an invite goes to, named as groups.
+const AUDIENCE = SUPPORT_LEVELS.map(([value, label]) => [value, value === "supporter" ? "Supporters" : label]);
 
 export default function InviteForm({ event, onClose }) {
   const invite = useInviteToEvent();
@@ -25,9 +28,7 @@ export default function InviteForm({ event, onClose }) {
   const [wholeCampaign, setWholeCampaign] = useState(false);
   const [result, setResult] = useState(null);
 
-  const text = message.trim() + FOOTER;
-  const parts = partsOf(text);
-  const ok = message.trim().length > 0 && !invite.isPending;
+  const ok = composed(message).fits && !invite.isPending;
   const toggle = (key) => setLevels((L) => (L.includes(key) ? L.filter((k) => k !== key) : [...L, key]));
   const send = (dry) =>
     invite.mutate(
@@ -37,13 +38,11 @@ export default function InviteForm({ event, onClose }) {
 
   return (
     <Dialog title="Invite supporters" description={`${event.title} · ${wholeCampaign ? "whole campaign" : event.ward_name}`} onClose={onClose}>
-      <Field label="Message" hint={`${text.length} characters · ${plural(parts, "SMS part")} per person · "Reply STOP to opt out" is added`}>
-        <Textarea aria-label="Message" maxLength={895} value={message} onChange={(e) => { setMessage(e.target.value); setResult(null); }} />
-      </Field>
+      <MessageField value={message} onChange={(m) => { setMessage(m); setResult(null); }} text={composed(message).text} />
 
       <div className="flex flex-col gap-1.5">
         <span className="text-small font-semibold">Send to</span>
-        <FilterPills label="Send to" options={LEVELS} value={levels} onChange={(key) => { toggle(key); setResult(null); }} />
+        <FilterPills label="Send to" options={AUDIENCE} value={levels} onChange={(key) => { toggle(key); setResult(null); }} />
       </div>
       <label className="flex min-h-11 cursor-pointer items-start gap-3 text-ui text-muted-foreground">
         <input type="checkbox" checked={wholeCampaign} onChange={(e) => { setWholeCampaign(e.target.checked); setResult(null); }} className="mt-0.5 size-[18px] flex-none accent-primary" />

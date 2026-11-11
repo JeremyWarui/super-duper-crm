@@ -19,6 +19,7 @@ import { formatDate, nairobiDate } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { useShowMore } from "@/lib/useShowMore";
 import { LoadMore } from "@/components/ui/load-more";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const FIELDS = [
   ["office_address", "Office address", 300],
@@ -185,7 +186,7 @@ function Officials({ county }) {
   const { data, isLoading, error } = useBranchOfficials(county.id);
   const [ending, setEnding] = useState(null);
   const past = useShowMore(data?.history);
-  if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
+  if (isLoading) return <LoadingText />;
   if (error) return <ErrorText error={error} />;
   const others = data.current.filter((t) => t.office === "other");
   const onEnd = (term, open) => (open ? setEnding(term.id) : <EndTerm term={term} onDone={() => setEnding(null)} />);
@@ -225,8 +226,8 @@ export default function Branches() {
   const superuser = useAuth((s) => s.user?.is_superuser);
   const [open, setOpen] = useState(null);
   const counties = useShowMore(rows.data);
-  if (rows.isLoading) return <p className="text-muted-foreground">Loading…</p>;
-  if (rows.error) return <p role="alert">{rows.error.message}</p>;
+  if (rows.isLoading) return <LoadingText />;
+  if (rows.error) return <ErrorText error={rows.error} />;
   const list = rows.data;
   const withBranch = list.filter((r) => r.branch);
   const published = withBranch.filter((r) => r.branch.published).length;

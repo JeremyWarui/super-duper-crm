@@ -5,8 +5,9 @@ import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
 import { winNumber } from "@/winNumber";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const SAVE_STATUS = {
   saving: ["Saving…", "text-muted-foreground"],
@@ -110,10 +111,10 @@ export default function Targets({ campaign, role }) {
   const neededOf = (t) => (t.id in drafts ? winNumber(t.registered_voters, drafts[t.id]) : t.votes_needed);
   return (
     <>
-      <WsHeader context="Plan" title="Targets" sub={`Set the expected turnout in each ${noun}. The win number is half the projected votes cast, plus one.`} actions={action} />
+      <SlottedHeader context="Plan" title="Targets" sub={`Set the expected turnout in each ${noun}. The win number is half the projected votes cast, plus one.`} actions={action} />
       {refresh.isSuccess && <p role="status" className="font-semibold text-primary">Refreshed from the latest register: {fmt(refresh.data.units)} {noun}s, win number {fmt(refresh.data.win_number)}.</p>}
       <ErrorText error={refresh.error} />
-      {isLoading && <KitLoading />}
+      {isLoading && <LoadingText />}
       <ErrorText error={error} />
       {data && (
         <>

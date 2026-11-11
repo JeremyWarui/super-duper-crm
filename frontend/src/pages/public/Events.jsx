@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card";
 import { FilterSelect } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";
+import { LoadingText } from "@/components/ui/loading-text";
+import { ErrorText } from "@/components/ui/error-text";
 
 function byMonth(events) {
   const months = [];
@@ -55,8 +57,8 @@ export default function Events() {
       </section>
       <div className="site-container flex flex-wrap items-start gap-10 pt-12 pb-20">
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-3.5">
-          {events.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
-          {events.error ? <p role="alert">{events.error.message}</p> : null}
+          {events.isLoading ? <LoadingText /> : null}
+          {events.error ? <ErrorText error={events.error} /> : null}
           {events.isSuccess && !months.length ? <p className="text-muted-foreground">No events are planned{county ? " in this county" : ""} yet.</p> : null}
           {months.map((m) => (
             <section key={m.name} aria-label={m.name} className="flex flex-col gap-3.5">

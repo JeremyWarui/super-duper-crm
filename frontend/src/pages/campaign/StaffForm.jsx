@@ -4,7 +4,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { InviteDialog } from "@/components/ui/invite-dialog";
-import { ROLE_LABEL } from "./helpers";
+import { ROLE_LABEL } from "@/lib/labels";
 import LoginFields, { useLoginFields } from "./LoginFields";
 
 const SUB = {

@@ -4,14 +4,12 @@ import { useSite, usePublicIssues } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
-
-const commitments = (text) =>
-  text.split("\n").map((l) => l.trim().replace(/^\d+[.)]\s*/, "")).filter(Boolean);
+import { listItems } from "@/lib/format";
 
 export default function Manifesto() {
   const party = useSite().data || {};
   const issues = usePublicIssues().data || [];
-  const lines = commitments(party.manifesto_text || "");
+  const lines = listItems(party.manifesto_text);
   return (
     <>
       <section className="bg-ink text-on-dark">

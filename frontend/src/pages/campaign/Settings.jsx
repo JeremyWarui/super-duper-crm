@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import ConfigFields from "@/components/ConfigFields";
 import { Field, Input } from "@/components/ui/input";
 import { ErrorText } from "@/components/ui/error-text";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const LINES = [
   ["name", "Site name", 150],
@@ -74,7 +75,7 @@ export default function Settings() {
         <h1 className="font-display text-h2-app font-extrabold tracking-[-0.02em]">Settings</h1>
         <p className="text-ui text-muted-foreground">The website's name, colours and contacts.</p>
       </div>
-      {settings.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
+      {settings.isLoading ? <LoadingText /> : null}
       <ErrorText error={settings.error} />
       {settings.data ? <SettingsForm key={settings.data.updated_at} settings={settings.data} /> : null}
     </div>

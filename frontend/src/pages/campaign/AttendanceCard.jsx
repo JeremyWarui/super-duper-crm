@@ -2,6 +2,7 @@ import { useRecordEvent } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { useDraft } from "@/lib/draft";
 import SendError from "./SendError";
+import { TOO_MANY_ATTENDED, attendanceOk } from "./helpers";
 import { ErrorText } from "@/components/ui/error-text";
 
 const toCount = (v) => Math.max(0, Math.min(100000, Number.parseInt(String(v).replace(/\D/g, ""), 10) || 0));
@@ -27,13 +28,13 @@ export default function AttendanceCard({ event }) {
   const record = useRecordEvent();
   const [counts, setCounts, clear] = useDraft(`record:${event.id}`, { reached: 0, attended: 0 });
   const over = counts.attended > counts.reached;
-  const ok = counts.reached > 0 && !over;
+  const ok = attendanceOk(counts.reached, counts.attended);
   const send = () => record.mutateAsync({ id: event.id, number_reached: counts.reached, number_attended: counts.attended }).then(clear, () => {});
   return (
     <div className="flex flex-col gap-3">
       <Counter label="Reached" value={counts.reached} onChange={(reached) => setCounts((c) => ({ ...c, reached }))} />
       <Counter label="Attended" value={counts.attended} onChange={(attended) => setCounts((c) => ({ ...c, attended }))} />
-      <ErrorText error={over && "Attendance can't be more than those reached."} className="text-ui" />
+      <ErrorText error={over && TOO_MANY_ATTENDED} className="text-ui" />
       <SendError error={record.error} pending={record.isPending} onRetry={send} />
       <Button variant="accent" size="lg" className="w-full" disabled={!ok || record.isPending} onClick={send}>
         {record.isPending ? "Saving…" : "Save attendance"}

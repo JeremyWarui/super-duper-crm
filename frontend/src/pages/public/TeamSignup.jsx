@@ -6,6 +6,7 @@ import { useSignupCentres, useSubmitSignup, useTeamSignup } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { ErrorText } from "@/components/ui/error-text";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const ROLES = [
   ["mobilizer", "Mobilizer", "Recruit supporters and run events in your area."],
@@ -47,11 +48,11 @@ export default function TeamSignup() {
 
   return (
     <section className="mx-auto flex w-full max-w-[560px] flex-col gap-6 px-4 py-16">
-      {page.isLoading && <p className="text-muted-foreground">Loading…</p>}
+      {page.isLoading && <LoadingText />}
       {page.error && (
         <>
           <h1 className="font-display text-[34px] font-extrabold tracking-[-0.02em]">This link does not work</h1>
-          <p role="alert" className="text-muted-foreground">{page.error.message} Ask the campaign for its current team link.</p>
+          <ErrorText error={`${page.error.message} Ask the campaign for its current team link.`} className="font-normal text-muted-foreground" />
         </>
       )}
       {data && (

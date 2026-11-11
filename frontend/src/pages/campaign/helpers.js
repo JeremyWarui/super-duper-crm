@@ -79,15 +79,6 @@ export function navFor(role, { aspirant = false, partyWorkspace = false, hosted 
 /** A role's pages in menu order, as [key, label]. */
 export const pagesOf = (role, where) => navFor(role, where).flatMap((group) => group.items);
 
-export const ROLE_LABEL = {
-  candidate: "Candidate",
-  manager: "Campaign Manager",
-  coordinator: "Coordinator",
-  comms: "Comms officer",
-  mobilizer: "Mobilizer",
-  agent: "Agent",
-};
-
 // What a role's access covers, under its label in the sidebar; a coordinator's names their area.
 export const ROLE_NOTE = {
   candidate: "Full access to your campaign.",
@@ -138,3 +129,7 @@ export function loginBody({ name, username, email, phone }) {
   const [first, ...rest] = name.trim().split(/\s+/);
   return { username: username.trim().toLowerCase(), first_name: first, last_name: rest.join(" "), phone: phone.trim(), email: email.trim() };
 }
+
+// Attendance counts people reached, so it can't exceed them.
+export const attendanceOk = (reached, attended) => reached > 0 && attended <= reached;
+export const TOO_MANY_ATTENDED = "Attendance can't be more than those reached.";

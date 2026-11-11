@@ -5,10 +5,11 @@ import { usePartyPlaces, usePublicCandidates } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import { FilterSelect, Input } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
-import { SEATS } from "@/pages/party/helpers";
+import { SEAT_LABEL, SEATS } from "@/lib/labels";
 import { Photo } from "./story";
+import { LoadingText } from "@/components/ui/loading-text";
+import { ErrorText } from "@/components/ui/error-text";
 
-export const SEAT_NAME = Object.fromEntries(SEATS.map(([value, label]) => [value, label]));
 
 export function CandidateCard({ c, square = false }) {
   return (
@@ -16,7 +17,7 @@ export function CandidateCard({ c, square = false }) {
       <Link to={`/candidates/${c.slug}`}>
         <Photo url={c.photo_url} className={`${square ? "aspect-square" : "aspect-[4/3]"} w-full`} />
         <span className="flex flex-1 flex-col gap-1.5 p-[18px]">
-          <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{SEAT_NAME[c.seat]}</span>
+          <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{SEAT_LABEL[c.seat]}</span>
           <span className="text-[18px] font-bold">{c.name}</span>
           <span className="text-small text-muted-foreground">{[c.area, c.county].filter((v, i, all) => v && all.indexOf(v) === i).join(" · ")}</span>
           <span className="mt-auto pt-2 text-small font-bold text-primary">View profile →</span>
@@ -61,8 +62,8 @@ export default function Candidates() {
           ))}
         </div>
         {list.isSuccess ? <p className="text-[15px] text-muted-foreground"><strong className="text-ink">{people.length}</strong> {people.length === 1 ? "aspirant" : "aspirants"} shown</p> : null}
-        {list.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
-        {list.error ? <p role="alert">{list.error.message}</p> : null}
+        {list.isLoading ? <LoadingText /> : null}
+        {list.error ? <ErrorText error={list.error} /> : null}
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-5">
           {people.map((c) => <CandidateCard key={c.slug} c={c} />)}
         </div>

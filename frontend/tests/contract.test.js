@@ -121,7 +121,8 @@ describe("the fixtures against the contract", () => {
 describe("the choice strings the app switches on", () => {
   it("has every role the nav is keyed by", async () => {
     const { default: App } = await import("../src/App");
-    const { NAV, ROLE_LABEL } = await import("../src/pages/campaign/helpers");
+    const { NAV } = await import("../src/pages/campaign/helpers");
+    const { ROLE_LABEL } = await import("../src/lib/labels");
     expect(App).toBeTypeOf("function");
     for (const role of [...Object.keys(NAV), ...Object.keys(ROLE_LABEL)]) {
       expect(CONTRACT.enums["user.role"]).toContain(role);

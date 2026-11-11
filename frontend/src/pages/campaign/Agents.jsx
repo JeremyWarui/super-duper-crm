@@ -7,11 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
-const STATUSES = [["applied", "Applied"], ["vetted", "Vetted"], ["trained", "Trained"], ["ready", "Ready"]];
+import { AGENT_STEPS } from "@/lib/labels";
 const EXPORTERS = ["candidate", "manager"];
 
 function Tiles({ agents, coverage }) {
@@ -53,8 +54,8 @@ export default function Agents({ campaign, role, onModal }) {
   const action = EXPORTERS.includes(role) ? <Button shape="rounded" variant="quiet" onClick={() => exportAgents(campaign.id)}>Export for letters</Button> : null;
   return (
     <>
-      <WsHeader context="Field" title="Agents" sub="Polling agents, readied for one registration centre each before polling day." actions={action} />
-      {agents.isLoading && <KitLoading />}
+      <SlottedHeader context="Field" title="Agents" sub="Polling agents, readied for one registration centre each before polling day." actions={action} />
+      {agents.isLoading && <LoadingText />}
       <ErrorText error={agents.error} />
       {agents.data && (
         <>
@@ -73,7 +74,7 @@ export default function Agents({ campaign, role, onModal }) {
                     {ids && <TD className="tabular-nums">{a.id_number || "None"}</TD>}
                     <TD>
                       <NativeSelect aria-label={`Status of ${a.full_name}`} value={a.status} onChange={(e) => update.mutate({ id: a.id, status: e.target.value })}>
-                        {STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                        {AGENT_STEPS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                       </NativeSelect>
                     </TD>
                     <TD>

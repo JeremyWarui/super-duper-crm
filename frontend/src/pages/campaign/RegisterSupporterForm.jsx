@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import SendError from "./SendError";
 
 const BLANK = { full_name: "", phone: "", ward: "", centre: null, support_level: "supporter", consent_given: false };
-const LEVELS = [["supporter", "Supporter"], ["undecided", "Undecided"], ["opposed", "Opposed"]];
+import { SUPPORT_LEVELS as LEVELS } from "@/lib/labels";
 
 /**
  * Quick capture in the field. The entry is kept on the device until it is sent. In an MCA race

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";
+import { pageState } from "@/components/PageState";
 
 const dayWithWeekday = (iso) => formatDay(iso, { weekday: "short", day: "numeric", month: "long", year: "numeric" });
 
@@ -12,8 +13,8 @@ export default function Branch() {
   const { id } = useParams();
   const branch = usePublicBranch(id);
   const events = usePublicPosts("event", 0, { county: id }).data || [];
-  if (branch.isLoading) return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
-  if (branch.error) return <div role="alert" className="site-container py-12">{branch.error.message}</div>;
+  const state = pageState(branch);
+  if (state) return state;
   const b = branch.data;
   const officials = b.officials.map((o) => [o.label, o.name]);
   const wards = b.constituencies.reduce((n, k) => n + k.wards.length, 0);

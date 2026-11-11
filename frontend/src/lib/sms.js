@@ -3,6 +3,12 @@
 // Must match backend/src/backend/services/texting.py FOOTER.
 export const FOOTER = "\nReply STOP to opt out.";
 
+/** The longest a text may be, footer included: six SMS parts. */
+const TEXT_MAX = 918;
+
+/** The longest message a sender may type: the rest is the footer. */
+export const BODY_MAX = TEXT_MAX - FOOTER.length;
+
 /** Parts each recipient is billed: one up to 160 characters, then parts of 153. */
 export const partsOf = (text) => (!text ? 0 : text.length <= 160 ? 1 : Math.ceil(text.length / 153));
 
@@ -12,5 +18,5 @@ export const DELIVERY_STATUS = { delivered: ["Delivered", "ok"], sent: ["Waiting
 /** The whole text as sent, footer included, and whether it can go: some words, at most six SMS parts. */
 export function composed(body) {
   const text = body.trim() + FOOTER;
-  return { text, fits: body.trim().length > 0 && text.length <= 918 };
+  return { text, fits: body.trim().length > 0 && text.length <= TEXT_MAX };
 }

@@ -16,7 +16,7 @@ import {
 } from "@/api/hooks";
 import MemberSearch from "@/components/MemberSearch";
 import LoginFields from "../campaign/LoginFields";
-import PlaceCascade from "@/components/PlaceCascade";
+import PlaceCascade, { NO_PLACE } from "@/components/PlaceCascade";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,13 +32,14 @@ import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/tabl
 import { isEmail } from "@/lib/email";
 import { formatDate, formatKES } from "@/lib/format";
 import { useAuth } from "@/store/auth";
-import { ASPIRANT_MOVES, ASPIRANT_STATUS_LABEL, ASPIRANT_STATUS_TONE, NEEDS_REASON, PAGE_SIZE, SEAT_AREA, SEAT_LABEL, SEATS } from "./helpers";
+import { ASPIRANT_STATUS_LABEL, ASPIRANT_STATUS_TONE, SEAT_AREA, SEAT_LABEL, SEATS } from "@/lib/labels";
+import { ASPIRANT_MOVES, NEEDS_REASON, PAGE_SIZE } from "./helpers";
 
 function Nominate({ onClose }) {
   const [q, setQ] = useState("");
   const [member, setMember] = useState(null);
   const [seat, setSeat] = useState("mca");
-  const [area, setArea] = useState({ county: "", constituency: "", ward: "" });
+  const [area, setArea] = useState(NO_PLACE);
   const candidates = useCandidates(q);
   const nominate = useNominate();
   const level = SEAT_AREA[seat];
@@ -67,7 +68,7 @@ function Nominate({ onClose }) {
       <NativeSelect
         aria-label="Seat"
         value={seat}
-        onChange={(e) => { setSeat(e.target.value); setArea({ county: "", constituency: "", ward: "" }); }}
+        onChange={(e) => { setSeat(e.target.value); setArea(NO_PLACE); }}
       >
         {SEATS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </NativeSelect>

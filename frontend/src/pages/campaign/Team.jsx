@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import { ROLE_LABEL } from "./helpers";
-import WsHeader, { KitLoading } from "./WsHeader";
+import { ROLE_LABEL } from "@/lib/labels";
 import { ErrorText } from "@/components/ui/error-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const ORDER = ["candidate", "manager", "coordinator", "comms", "mobilizer", "agent"];
 const TONE = { candidate: "ink", manager: "primary", coordinator: "tint", comms: "info", mobilizer: "stone", agent: "stone" };
@@ -47,8 +48,8 @@ export default function Team({ campaign, role, onModal }) {
   ];
   return (
     <>
-      <WsHeader context="People" title="Team" sub="Everyone with a login on this campaign." actions={actions} />
-      {isLoading && <KitLoading />}
+      <SlottedHeader context="People" title="Team" sub="Everyone with a login on this campaign." actions={actions} />
+      {isLoading && <LoadingText />}
       <ErrorText error={error} />
       {data && (
         <>

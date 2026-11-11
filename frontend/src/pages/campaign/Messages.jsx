@@ -11,16 +11,17 @@ import { useDraft } from "@/lib/draft";
 import { plural } from "@/lib/format";
 import { composed, DELIVERY_STATUS } from "@/lib/sms";
 import SendError from "./SendError";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
 export default function Messages({ campaign }) {
   const page = useMessages(campaign.id);
   const data = page.data;
   return (
     <>
-      <WsHeader context="Reach out" title="Messages" sub={data ? senderLine(data) : "SMS to your supporters."} />
-      {page.isLoading && <KitLoading />}
+      <SlottedHeader context="Reach out" title="Messages" sub={data ? senderLine(data) : "SMS to your supporters."} />
+      {page.isLoading && <LoadingText />}
       <ErrorText error={page.error} />
       {data && (
         <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
@@ -130,7 +131,7 @@ function History({ data }) {
 
 function DeliveryLog({ id }) {
   const log = useMessageLog(id);
-  if (log.isLoading) return <KitLoading />;
+  if (log.isLoading) return <LoadingText />;
   if (log.error) return <ErrorText error={log.error} />;
   return (
     <Table stack minWidth={420}>

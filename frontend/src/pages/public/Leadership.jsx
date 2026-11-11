@@ -4,6 +4,8 @@ import { RichText } from "@/components/RichTextView";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
 import { Photo } from "./story";
+import { LoadingText } from "@/components/ui/loading-text";
+import { ErrorText } from "@/components/ui/error-text";
 
 function Leader({ leader }) {
   return (
@@ -32,8 +34,8 @@ export default function Leadership() {
         </div>
       </section>
       <div className="site-container flex flex-col gap-12 pt-14 pb-[72px]">
-        {leaders.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
-        {leaders.error ? <p role="alert">{leaders.error.message}</p> : null}
+        {leaders.isLoading ? <LoadingText /> : null}
+        {leaders.error ? <ErrorText error={leaders.error} /> : null}
         {leaders.isSuccess && !head ? <p className="text-muted-foreground">The party has not listed its leaders yet.</p> : null}
         {head ? (
           <Card className="flex-row flex-wrap gap-0 overflow-hidden p-0">

@@ -6,8 +6,9 @@ import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt, plural } from "@/lib/format";
 import { holderOf, statusOf } from "./helpers";
 import StrategyNotes from "./StrategyNotes";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const TONE = { good: "ok", warn: "warn", bad: "bad" };
 const ADDS_MOBILIZERS = ["candidate", "manager", "coordinator"];
@@ -81,8 +82,8 @@ export default function Overview({ campaign, role, onModal }) {
   );
   return (
     <>
-      <WsHeader context="Plan" title="Overview" sub={role === "candidate" ? "Where the campaign stands today." : "Your command view of the seat."} actions={actions} />
-      {strategy.isLoading && <KitLoading />}
+      <SlottedHeader context="Plan" title="Overview" sub={role === "candidate" ? "Where the campaign stands today." : "Your command view of the seat."} actions={actions} />
+      {strategy.isLoading && <LoadingText />}
       <ErrorText error={strategy.error} />
       {strategy.data && (
         <>

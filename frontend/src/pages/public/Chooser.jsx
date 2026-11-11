@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Logo } from "@/components/layout/Logo";
 import { homeOf } from "@/lib/home";
 import { useAuth } from "@/store/auth";
-import { PARTY_ROLE_LABEL } from "../party/helpers";
+import { PARTY_ROLE_LABEL } from "@/lib/labels";
 
 const ROLE = { candidate: "Candidate team", manager: "Candidate team", mobilizer: "Mobilizer" };
 

@@ -10,10 +10,11 @@ import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatDate, formatNumber as fmt } from "@/lib/format";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
-const ROLE = { mobilizer: "Mobilizer", agent: "Agent" };
+import { ROLE_LABEL } from "@/lib/labels";
 
 function LeftTeam({ campaign }) {
   const { data, isLoading, error } = useLeftTeam(campaign.id);
@@ -24,7 +25,7 @@ function LeftTeam({ campaign }) {
       <p className="text-small text-muted-foreground">
         Mobilizers and agents who were turned down or are off the team. Erasing clears their name, phone, email and ID number.
       </p>
-      {isLoading && <KitLoading />}
+      {isLoading && <LoadingText />}
       <ErrorText error={error} />
       <ErrorText error={erase.error} />
       {data && (
@@ -34,7 +35,7 @@ function LeftTeam({ campaign }) {
             {data.map((r) => (
               <TR key={r.id}>
                 <TD className="font-semibold">{r.full_name}</TD>
-                <TD>{ROLE[r.role] || r.role}</TD>
+                <TD>{ROLE_LABEL[r.role] || r.role}</TD>
                 <TD>{r.status === "rejected" ? "Turned down" : "Left the team"}</TD>
                 <TD className="text-muted-foreground">{formatDate(r.created_at)}</TD>
                 <TD align="right"><EraseButton name={r.full_name} pending={erase.isPending} onErase={(done) => erase.mutate(r.id, { onSuccess: done })} /></TD>
@@ -68,7 +69,7 @@ function Closing({ campaign, role }) {
   const eraseAll = useEraseSupporters(campaign.id);
   const [asking, setAsking] = useState(false);
   const candidate = role === "candidate";
-  if (isLoading) return <KitLoading />;
+  if (isLoading) return <LoadingText />;
   if (error) return <ErrorText error={error} />;
   const due = state.erase_from && new Date(state.erase_from) <= new Date();
   return (
@@ -118,7 +119,7 @@ function Closing({ campaign, role }) {
 export default function Privacy({ campaign, role }) {
   return (
     <>
-      <WsHeader context="People" title="Personal data" sub="Answer requests about people's details, and erase them when asked." />
+      <SlottedHeader context="People" title="Personal data" sub="Answer requests about people's details, and erase them when asked." />
       <DataRequests campaignId={campaign.id} />
       <LeftTeam campaign={campaign} />
       {campaign.kind !== "party" && <Closing campaign={campaign} role={role} />}

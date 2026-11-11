@@ -4,8 +4,10 @@ import { usePublicResults } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
-import { SEATS } from "@/pages/party/helpers";
+import { SEAT_LABEL, SEATS } from "@/lib/labels";
 import { formatDay } from "@/lib/format";
+import { LoadingText } from "@/components/ui/loading-text";
+import { ErrorText } from "@/components/ui/error-text";
 
 /** Rows (already ordered by seat, area and votes) as races: one seat in one area, most votes first. */
 export function races(rows) {
@@ -78,11 +80,11 @@ export default function Results() {
             ))}
           </div>
         ) : null}
-        {results.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
-        {results.error ? <p role="alert">{results.error.message}</p> : null}
+        {results.isLoading ? <LoadingText /> : null}
+        {results.error ? <ErrorText error={results.error} /> : null}
         {results.isSuccess && !all.length ? <p className="text-muted-foreground">No results have been declared yet.</p> : null}
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-[18px]">
-          {shown.map((race) => <Race key={`${race.seat}-${race.area}`} race={race} label={SEATS.find(([v]) => v === race.seat)[1]} />)}
+          {shown.map((race) => <Race key={`${race.seat}-${race.area}`} race={race} label={SEAT_LABEL[race.seat]} />)}
         </div>
       </div>
     </>

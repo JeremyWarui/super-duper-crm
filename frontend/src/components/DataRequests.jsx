@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { formatDate, nairobiDate } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const KINDS = { access: "Access to their data", correction: "Correction", erasure: "Erasure" };
 const DAYS = { access: 7, correction: 14, erasure: 14 };
@@ -115,7 +116,7 @@ export default function DataRequests({ campaignId }) {
         Requests to see, correct or erase someone's details. The law gives 7 days to answer access and 14 for correction or erasure.
       </p>
       {adding ? <LogForm campaignId={campaignId} onDone={() => setAdding(false)} /> : null}
-      {list.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
+      {list.isLoading ? <LoadingText /> : null}
       <ErrorText error={list.error} />
       {list.data ? (
         rows.length ? <ul className="grid">{rows.map((r) => <Row key={r.id} campaignId={campaignId} request={r} />)}</ul>

@@ -21,8 +21,9 @@ import { LoadingText } from "@/components/ui/loading-text";
 import { Pager } from "@/components/ui/pager";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatDate, placeOf } from "@/lib/format";
-import { MOVES, NO_PLACE, PAGE_SIZE, STATUS_LABEL, STATUS_TONE } from "./helpers";
-import PlaceCascade from "@/components/PlaceCascade";
+import { STATUS_LABEL, STATUS_TONE } from "@/lib/labels";
+import { MOVES, PAGE_SIZE } from "./helpers";
+import PlaceCascade, { NO_PLACE } from "@/components/PlaceCascade";
 
 const ERASABLE = ["withdrawn", "rejected"];
 

@@ -9,15 +9,15 @@ import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, FilterSelect, Input, NativeSelect } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
-import { AREAS, CONTACT_METHODS, PROFESSIONS, SEAT_LABEL, SEATS } from "@/pages/party/helpers";
+import { AREAS, CONTACT_METHODS, PROFESSIONS, SEAT_LABEL } from "@/lib/labels";
 import { formatDay } from "@/lib/format";
 import { Photo } from "./story";
 import { isEmail } from "../../lib/email";
 import { ErrorText } from "@/components/ui/error-text";
+import { pageState } from "@/components/PageState";
 
 /** The seat an aspirant is vying for, as their badge says it. */
 export const vying = (seat) => `Vying for ${SEAT_LABEL[seat]}`;
-const SEAT_NAME = Object.fromEntries(SEATS.map(([value, label]) => [value, label]));
 const TABS = ["About", "Priorities", "Events"];
 const PILL = "flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-line-control bg-white px-3.5 text-small font-semibold has-[:checked]:border-primary has-[:checked]:bg-primary-tint";
 
@@ -151,8 +151,8 @@ export function SupportCard({ c, onOpen }) {
 export default function Candidate({ slug }) {
   const query = usePublicCandidate(slug);
   const send = useCandidateVolunteer(slug);
-  if (query.isLoading) return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
-  if (query.error) return <div role="alert" className="site-container py-12">{query.error.message}</div>;
+  const state = pageState(query);
+  if (state) return state;
   const c = query.data;
   return (
     <CandidateView
@@ -160,7 +160,7 @@ export default function Candidate({ slug }) {
       send={send}
       withdrawPath="/candidates/volunteer/withdraw/"
       crumbs={[{ label: "Home", to: "/" }, { label: "Candidates", to: "/candidates" }, { label: c.area }]}
-      note={`Profile written from what the candidate sent, and published by the party. ${SEAT_NAME[c.seat]} aspirant.`}
+      note={`Profile written from what the candidate sent, and published by the party. ${SEAT_LABEL[c.seat]} aspirant.`}
       events
     />
   );

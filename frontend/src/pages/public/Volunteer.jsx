@@ -3,6 +3,7 @@ import { useSiteCandidate, useSiteVolunteer } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import { SupportForm, VOLUNTEER_NOTE, volunteerTitle } from "./Candidate";
 import PageHead from "./PageHead";
+import { LoadingText } from "@/components/ui/loading-text";
 
 export default function Volunteer() {
   const page = useSiteCandidate();
@@ -11,7 +12,7 @@ export default function Volunteer() {
   return (
     <div className="site-container py-12">
       <PageHead title="Volunteer" lead={c ? `Help ${c.name} reach every voter in ${c.area}.` : undefined} />
-      {page.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
+      {page.isLoading ? <LoadingText /> : null}
       {page.error ? <p className="text-muted-foreground">Volunteering opens once the campaign publishes its page.</p> : null}
       {c ? (
         <Card variant="elevated" className="w-full max-w-[760px] gap-4 p-6">

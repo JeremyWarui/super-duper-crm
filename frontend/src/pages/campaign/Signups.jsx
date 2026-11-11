@@ -9,13 +9,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { formatDate } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { useClipboard } from "../../lib/useClipboard";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const VIEWS = { Waiting: "pending", Approved: "approved", "Not approved": "rejected" };
-const ROLE = { mobilizer: "Mobilizer", agent: "Agent" };
+import { ROLE_LABEL } from "@/lib/labels";
 const LINK_WRITERS = ["candidate", "manager"];
 
 function TeamLinkCard({ campaign, role }) {
@@ -91,12 +92,12 @@ export default function Signups({ campaign, role }) {
   const waiting = view === "Waiting";
   return (
     <>
-      <WsHeader context="People" title="Sign-ups" sub="Mobilizers and agents who signed up on the team link." />
+      <SlottedHeader context="People" title="Sign-ups" sub="Mobilizers and agents who signed up on the team link." />
       <TeamLinkCard campaign={campaign} role={role} />
       <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Sign-ups">
         <FilterPills label="Status" options={Object.keys(VIEWS)} value={view} onChange={(v) => { setView(v); setDone(""); }} />
         {done && <p role="status" className="rounded-lg bg-primary-tint p-3 text-ui font-semibold text-primary">{done}</p>}
-        {rows.isLoading && <KitLoading />}
+        {rows.isLoading && <LoadingText />}
         <ErrorText error={rows.error} />
         {rows.data && (
           <Table stack minWidth={760}>
@@ -108,7 +109,7 @@ export default function Signups({ campaign, role }) {
               {list.map((r) => (
                 <TR key={r.id}>
                   <TD className="font-semibold">{r.full_name}</TD>
-                  <TD><Badge tone={r.role === "agent" ? "info" : "tint"}>{ROLE[r.role]}</Badge></TD>
+                  <TD><Badge tone={r.role === "agent" ? "info" : "tint"}>{ROLE_LABEL[r.role]}</Badge></TD>
                   <TD>{r.centre_name ? <><div>{r.centre_name}</div><div className="text-small text-muted-foreground">{r.ward_name}</div></> : r.ward_name}</TD>
                   <TD><div className="tabular-nums">{r.phone}</div><div className="text-small text-muted-foreground">{r.email}</div></TD>
                   {ids && <TD className="tabular-nums">{r.id_number || "None"}</TD>}

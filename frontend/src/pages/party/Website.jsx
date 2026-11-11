@@ -45,8 +45,9 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/format";
-import { SEAT_LABEL, SEATS } from "./helpers";
+import { SEAT_LABEL, SEATS } from "@/lib/labels";
 import { ErrorText } from "@/components/ui/error-text";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const HTTPS = /^https:\/\/\S+$/;
 const UPLOADED = /^\/api\/files\/[0-9a-f-]{36}\/$/;
@@ -298,7 +299,7 @@ export function SectionList({ section }) {
           </div>
           <Button shape="rounded" disabled={full} onClick={() => setEditing({ row: null })}>New {section.noun}</Button>
         </div>
-        {rows.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
+        {rows.isLoading ? <LoadingText /> : null}
         <ErrorText error={rows.error} />
         {rows.isSuccess && !list.length ? <p className="text-muted-foreground">Nothing here yet.</p> : null}
         <ul className="flex flex-col">
@@ -428,7 +429,7 @@ function CandidatesEditor() {
           <h2 className="text-card-title font-bold">Candidate profiles</h2>
           <p className="text-small text-muted-foreground">Every approved aspirant. Write the profile from what the candidate sends, then publish it.</p>
         </div>
-        {list.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
+        {list.isLoading ? <LoadingText /> : null}
         <ErrorText error={list.error} />
         {list.isSuccess && !rows.length ? <p className="text-muted-foreground">No approved aspirants yet.</p> : null}
         <ul className="flex flex-col">

@@ -12,20 +12,11 @@ import { Card } from "@/components/ui/card";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/store/auth";
-import {
-  AREAS,
-  AREA_LABEL,
-  CONTACT_LABEL,
-  CONTACT_METHODS,
-  MY_ASPIRANT_STATUS,
-  MY_MEMBER_STATUS,
-  PROFESSIONS,
-  PROFESSION_LABEL,
-  SEAT_LABEL,
-  VOLUNTEER_STATUS_LABEL,
-} from "../party/helpers";
+import { AREAS, CONTACT_LABEL, CONTACT_METHODS, MY_ASPIRANT_STATUS, MY_MEMBER_STATUS, PROFESSIONS, SEAT_LABEL, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE, helpsWith, professionOf } from "@/lib/labels";
 import { formatDate, formatDay, formatKES, placeOf } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
+import { LoadingText } from "@/components/ui/loading-text";
+import { pageState } from "@/components/PageState";
 
 // A member's branch, shown as ward and county.
 const place = (a) => placeOf({ ward: a.ward, county: a.county }, ", ");
@@ -129,21 +120,20 @@ function Volunteering({ account, wording }) {
       </Card>
     );
   }
-  const areas = v.areas.map((a) => (a === "other" ? v.area_other : AREA_LABEL[a])).filter(Boolean);
   return (
     <div className="flex flex-wrap gap-5">
       <Card className="flex-[3_1_520px]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-card-title font-extrabold">My volunteering</h2>
-          <Badge tone={v.status === "active" ? "ok" : v.status === "interested" ? "warn" : "stone"}>{VOLUNTEER_STATUS_LABEL[v.status]}</Badge>
+          <Badge tone={VOLUNTEER_STATUS_TONE[v.status]}>{VOLUNTEER_STATUS_LABEL[v.status]}</Badge>
         </div>
         {editing ? (
           <VolunteerForm volunteer={v} wording={wording} onDone={() => setEditing(false)} onCancel={() => setEditing(false)} />
         ) : (
           <>
             <dl className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 text-body">
-              <div><dt className="text-small text-muted-foreground">Ways to help</dt><dd className="font-semibold">{areas.join(", ")}</dd></div>
-              <div><dt className="text-small text-muted-foreground">Profession</dt><dd className="font-semibold">{v.profession === "other" ? v.profession_other : PROFESSION_LABEL[v.profession]}</dd></div>
+              <div><dt className="text-small text-muted-foreground">Ways to help</dt><dd className="font-semibold">{helpsWith(v.areas, v.area_other)}</dd></div>
+              <div><dt className="text-small text-muted-foreground">Profession</dt><dd className="font-semibold">{professionOf(v)}</dd></div>
               <div><dt className="text-small text-muted-foreground">Preferred contact</dt><dd className="font-semibold">{CONTACT_LABEL[v.preferred_contact]}</dd></div>
             </dl>
             <Button variant="outline" className="self-start" onClick={() => setEditing(true)}>Change my volunteer details</Button>
@@ -163,7 +153,7 @@ function Volunteering({ account, wording }) {
 
 function PartyEvents() {
   const events = usePublicPosts("event");
-  if (events.isLoading) return <p className="text-muted-foreground">Loading…</p>;
+  if (events.isLoading) return <LoadingText />;
   const list = events.data || [];
   return (
     <Card>
@@ -244,8 +234,8 @@ function DataAndPrivacy({ account, party }) {
 // then declare and submit. The nominations office vets it.
 function MyNomination() {
   const mine = useMyNomination();
-  if (mine.isLoading) return <p className="text-muted-foreground">Loading…</p>;
-  if (mine.error) return <p role="alert">{mine.error.message}</p>;
+  if (mine.isLoading) return <LoadingText />;
+  if (mine.error) return <ErrorText error={mine.error} />;
   const { window: notice, choices, application } = mine.data;
   if (application) return <Application application={application} notice={notice} />;
   if (choices.length) return <Choose notice={notice} choices={choices} />;
@@ -361,8 +351,8 @@ function Application({ application: a, notice }) {
 export default function Account() {
   const account = useAccount();
   const party = useSite().data;
-  if (account.isLoading) return <div className="site-container py-10 text-muted-foreground">Loading…</div>;
-  if (account.error) return <div role="alert" className="site-container py-10">{account.error.message}</div>;
+  const state = pageState(account);
+  if (state) return state;
   const a = account.data;
   return (
     <div className="site-container flex flex-col gap-7 pt-10 pb-20">

@@ -5,11 +5,12 @@ import { useAgents, useAssignments } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatKES } from "../../lib/format";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { formatDay } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
-const STEPS = [["applied", "Applied"], ["vetted", "Vetted"], ["trained", "Trained"], ["ready", "Ready"]];
+import { AGENT_STEPS as STEPS, ASSIGNMENT_STATUS } from "@/lib/labels";
 
 export default function MyCentre({ campaign }) {
   const agents = useAgents(campaign.id);
@@ -18,8 +19,8 @@ export default function MyCentre({ campaign }) {
   const reached = me ? STEPS.findIndex(([key]) => key === me.status) : -1;
   return (
     <>
-      <WsHeader context="My work" title="My centre" />
-      {agents.isLoading && <KitLoading />}
+      <SlottedHeader context="My work" title="My centre" />
+      {agents.isLoading && <LoadingText />}
       <ErrorText error={agents.error} />
       {agents.data && !me && <p className="text-muted-foreground">You are not on this campaign's agent list yet.</p>}
       {me && (
@@ -48,7 +49,7 @@ export default function MyCentre({ campaign }) {
                 {work.map((a) => (
                   <li key={a.id} className="flex items-center justify-between gap-3 border-t border-line-soft py-2">
                     <span><span className="font-semibold">{a.label}</span><span className="block text-small text-muted-foreground">{formatKES(a.amount_kes)}</span></span>
-                    <Badge tone={a.status === "done" ? "ok" : a.status === "cancelled" ? "stone" : "warn"}>{a.status === "done" ? "Done" : a.status === "cancelled" ? "Cancelled" : "To do"}</Badge>
+                    <Badge tone={ASSIGNMENT_STATUS[a.status][1]}>{a.status === "assigned" ? "To do" : ASSIGNMENT_STATUS[a.status][0]}</Badge>
                   </li>
                 ))}
               </ul>

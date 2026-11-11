@@ -9,6 +9,7 @@ import {
 import { FilterPills } from "@/components/ui/tabs";
 import { ErrorText } from "@/components/ui/error-text";
 import { formatDate } from "@/lib/format";
+import { LoadingText } from "@/components/ui/loading-text";
 import {
   DOCUMENT_FIELDS,
   ISSUE_FIELDS,
@@ -45,7 +46,7 @@ const TABS = ["Candidate page", ...Object.keys(SECTIONS)];
 function CandidatePage({ campaign }) {
   const page = useWorkspaceCandidatePage();
   const save = useSaveWorkspaceCandidatePage();
-  if (page.isLoading) return <p className="text-muted-foreground">Loading…</p>;
+  if (page.isLoading) return <LoadingText />;
   if (page.error) return <ErrorText error={page.error} />;
   return (
     <div className="flex max-w-[720px] flex-col gap-3">

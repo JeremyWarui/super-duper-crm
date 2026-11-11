@@ -6,13 +6,13 @@ import { Card } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { formatDate, formatNumber, plural } from "@/lib/format";
-import { composed, DELIVERY_STATUS, partsOf } from "@/lib/sms";
+import { BODY_MAX, composed, DELIVERY_STATUS, partsOf } from "@/lib/sms";
 
 /** The message box; `text` is the whole text as sent, footer included, for the length and part count. */
 export function MessageField({ value, onChange, text }) {
   return (
     <Field label="Message" hint={<>{plural(text.length, "character")} · {plural(partsOf(text), "SMS part")} each · "Reply STOP to opt out" is added</>}>
-      <Textarea rows={5} maxLength={895} value={value} onChange={(e) => onChange(e.target.value)} />
+      <Textarea rows={5} maxLength={BODY_MAX} value={value} onChange={(e) => onChange(e.target.value)} />
     </Field>
   );
 }

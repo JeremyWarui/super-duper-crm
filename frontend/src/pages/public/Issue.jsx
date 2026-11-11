@@ -6,19 +6,20 @@ import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import { useCopy } from "@/copy";
+import { pageState } from "@/components/PageState";
+import { linesOf } from "@/lib/format";
 
-const lines = (text) => text.split("\n").map((l) => l.trim()).filter(Boolean);
 
 export default function Issue() {
   const { id } = useParams();
   const issues = usePublicIssues().data || [];
   const issue = usePublicIssue(id);
   const copy = useCopy();
-  if (issue.isLoading) return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
-  if (issue.error) return <div role="alert" className="site-container py-12">{issue.error.message}</div>;
+  const state = pageState(issue);
+  if (state) return state;
   const i = issue.data;
   const num = issues.findIndex((x) => x.id === i.id) + 1;
-  const steps = lines(i.what_we_will_do);
+  const steps = linesOf(i.what_we_will_do);
   return (
     <>
       {issues.length > 1 ? (
@@ -61,7 +62,7 @@ export default function Issue() {
         {i.why_it_matters ? (
           <section aria-labelledby="f-h" className="flex flex-col gap-[18px] rounded-panel bg-ink p-8 text-on-dark">
             <h2 id="f-h" className="font-display text-[30px] font-extrabold">Why it matters</h2>
-            {lines(i.why_it_matters).map((p, n) => <p key={n} className="max-w-[70ch] text-lead text-on-dark-muted">{p}</p>)}
+            {linesOf(i.why_it_matters).map((p, n) => <p key={n} className="max-w-[70ch] text-lead text-on-dark-muted">{p}</p>)}
           </section>
         ) : null}
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-card bg-primary-tint p-6">

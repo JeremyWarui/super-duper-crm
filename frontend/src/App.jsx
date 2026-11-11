@@ -10,7 +10,8 @@ import { useCampaigns } from "./api/hooks";
 import { NoCampaign } from "./components/SignedInNotice";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
-import { ROLE_LABEL, navFor, pagesOf } from "./pages/campaign/helpers";
+import { navFor, pagesOf } from "./pages/campaign/helpers";
+import { ROLE_LABEL } from "@/lib/labels";
 import { useInstall } from "./app/site";
 import {
   AccessFooter, AreaPicker, SeatCard, WorkspaceAlerts, WorkspaceBrand, WorkspaceHelp, WorkspaceSearch,

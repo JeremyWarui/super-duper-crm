@@ -11,6 +11,7 @@ import { CandidateView, VolunteerDialog, vying } from "./Candidate";
 import { Agenda, Carousel, Events, News, TakePart, Ticker, youtubeThumb } from "./Home";
 import PageHead from "./PageHead";
 import { Photo } from "./story";
+import { pageState } from "@/components/PageState";
 
 const WITHDRAW = "/volunteer/withdraw/";
 const firstName = (c) => c.name.split(/\s+/)[0];
@@ -21,10 +22,6 @@ function ComingSoon() {
       <PageHead title="Coming soon" lead="The campaign is preparing this page. Check back shortly." />
     </div>
   );
-}
-
-function Loading() {
-  return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
 }
 
 /** `photo` is left out when the candidate's hero above already shows it. */
@@ -79,7 +76,7 @@ export default function AspirantHome() {
   const send = useSiteVolunteer();
   const news = usePublicPosts("news").data || [];
   const [volunteering, setVolunteering] = useState(false);
-  if (page.isLoading) return <Loading />;
+  if (page.isLoading) return pageState(page);
   if (page.error) return <ComingSoon />;
   const c = page.data;
   const first = firstName(c);
@@ -115,7 +112,7 @@ export default function AspirantHome() {
 export function AspirantAbout() {
   const page = useSiteCandidate();
   const send = useSiteVolunteer();
-  if (page.isLoading) return <Loading />;
+  if (page.isLoading) return pageState(page);
   if (page.error) return <ComingSoon />;
   return <CandidateView c={page.data} send={send} withdrawPath={WITHDRAW} crumbs={[{ label: "Home", to: "/" }, { label: "About" }]} />;
 }

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { usePublicBranches } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import PageHead from "./PageHead";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const chairOf = (b) => b.officials.find((o) => o.office === "chair")?.name;
 
@@ -12,7 +13,7 @@ export default function Branches() {
   return (
     <div className="site-container py-12">
       <PageHead title="Counties" lead="Find your county branch: its officials, office and next meeting." />
-      {branches.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
+      {branches.isLoading ? <LoadingText /> : null}
       {branches.isSuccess && !list.length ? <p className="text-muted-foreground">No branches are published yet.</p> : null}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
         {list.map((b) => (

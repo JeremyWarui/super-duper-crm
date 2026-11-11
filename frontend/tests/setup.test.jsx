@@ -39,7 +39,7 @@ describe("first-run setup", () => {
     const user = userEvent.setup();
     const password = fakeSecret();
     const calls = await openWizard(user, {
-      "GET /setup/areas/?level=county&parent=": [{ id: "k1", name: "Nairobi" }],
+      "GET /setup/areas/?level=county": [{ id: "k1", name: "Nairobi" }],
       "GET /setup/areas/?level=constituency&parent=k1": [{ id: "c1", name: "Westlands" }],
       "GET /setup/areas/?level=ward&parent=c1": [{ id: "w1", name: "Parklands" }],
       "POST /setup/": { organisation_type: "aspirant", superuser: "owner", workspace: "x", invites: ["email"], services: [] },

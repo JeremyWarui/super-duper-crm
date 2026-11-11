@@ -1,17 +1,16 @@
 // The campaign workspace's frame pieces: brand, seat card, access footer, and the top bar's
 // search, area picker, notifications and help. Each reads only data the role may read.
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { Bell, CircleHelp, Search } from "lucide-react";
-import { useSite } from "../../api/hooks";
-import { formatNumber, initials } from "../../lib/format";
-import { usePanel } from "../../lib/usePanel";
-import { ROLE_LABEL, ROLE_NOTE, pagesOf } from "./helpers";
+import { useMemo, useRef, useState } from "react";
+import { Search } from "lucide-react";
+import { BellPanel, HelpPanel, HitList, PANEL, useHotkeyK, type Hit } from "@/components/layout/TopBarTools";
+import { formatNumber, initials } from "@/lib/format";
+import { usePanel } from "@/lib/usePanel";
+import { ROLE_NOTE, pagesOf } from "./helpers";
+import { ROLE_LABEL } from "@/lib/labels";
 import { useWorkspaceArea, workspaceAlerts } from "./shell";
 
 type Ward = { id: string; name: string };
 type Row = { id: string; [field: string]: any };
-type Hit = { key: string; to: string; kind: string; label: string; detail: string };
 type ShellData = { wards: Ward[]; strategy?: any; events: Row[]; supporters: Row[]; mobilizers: Row[] };
 type Campaign = { title: string; candidate_name: string; seat: string; area_name: string; election_date: string | null };
 
@@ -75,22 +74,12 @@ export function AccessFooter({ role, wards }: { role: string; wards: Ward[] }) {
   );
 }
 
-const PANEL = "absolute right-0 z-50 mt-2 flex w-[min(92vw,380px)] flex-col gap-1 rounded-photo border border-line bg-white p-2 shadow-pop";
-const ICON_BUTTON = "relative flex size-11 cursor-pointer items-center justify-center rounded-full hover:bg-stone";
-const ROW = "flex min-h-11 flex-col justify-center rounded-lg px-3 py-1.5 text-ink no-underline hover:bg-stone";
-
 /** Search the wards, events, supporters and mobilizers the role reads; Ctrl K or Cmd K focuses it. */
 export function WorkspaceSearch({ data, role }: { data: ShellData; role: string }) {
   const [q, setQ] = useState("");
   const { open, setOpen, ref } = usePanel();
   const input = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); input.current?.focus(); }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  useHotkeyK(() => input.current?.focus());
   const needle = q.trim().toLowerCase();
   const hits = useMemo(() => {
     if (needle.length < 2) return [];
@@ -100,7 +89,9 @@ export function WorkspaceSearch({ data, role }: { data: ShellData; role: string 
     const out: Hit[] = [];
     const add = (rows: Row[], to: string | undefined, kind: string, label: (r: Row) => string, detail: (r: Row) => string) => {
       if (!to) return;
-      for (const r of rows) if (match(label(r), detail(r))) out.push({ key: `${kind}-${r.id}`, to: `/campaign/${to}`, kind, label: label(r), detail: detail(r) });
+      for (const r of rows) {
+        if (match(label(r), detail(r))) out.push({ key: `${kind}-${r.id}`, to: `/campaign/${to}`, label: label(r), detail: [kind, detail(r)].filter(Boolean).join(" · ") });
+      }
     };
     add(data.wards as Row[], page("units", "targets"), "Ward", (w) => w.name, () => "");
     add(data.events, page("events", "myevents"), "Event", (e) => e.title, (e) => e.venue);
@@ -127,18 +118,7 @@ export function WorkspaceSearch({ data, role }: { data: ShellData; role: string 
       {open && needle.length >= 2 ? (
         <div className={`${PANEL} left-0 right-auto w-full`}>
           {hits.length === 0 ? <span className="px-3 py-2 text-ui text-muted-foreground">Nothing you can see matches.</span> : null}
-          {hits.length ? (
-            <ul aria-label="Search results" className="m-0 flex list-none flex-col p-0">
-              {hits.map((h) => (
-                <li key={h.key}>
-                  <Link to={h.to} onClick={() => setOpen(false)} className={ROW}>
-                    <span className="text-ui font-bold">{h.label}</span>
-                    <span className="text-meta text-muted-foreground">{[h.kind, h.detail].filter(Boolean).join(" · ")}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          {hits.length ? <HitList hits={hits} onPick={() => setOpen(false)} /> : null}
         </div>
       ) : null}
     </div>
@@ -165,46 +145,11 @@ export function AreaPicker() {
 }
 
 export function WorkspaceAlerts({ data, role }: { data: ShellData; role: string }) {
-  const { open, setOpen, ref } = usePanel();
   const notes = workspaceAlerts(data, role);
-  return (
-    <div ref={ref} className="relative">
-      <button type="button" aria-expanded={open} aria-controls="workspace-notifications" onClick={() => setOpen(!open)} className={ICON_BUTTON}
-        aria-label={notes.length ? `Notifications, ${notes.length} new` : "Notifications, nothing new"}>
-        <Bell className="size-5" aria-hidden />
-        {notes.length ? <span aria-hidden className="absolute top-1.5 right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-extrabold text-white">{notes.length}</span> : null}
-      </button>
-      {open ? (
-        <div id="workspace-notifications" role="region" aria-label="Notifications" className={PANEL}>
-          {notes.length === 0 ? <span className="px-3 py-2 text-ui text-muted-foreground">Nothing needs you right now.</span> : null}
-          {notes.map((n) => (
-            <Link key={n.key} to={n.to} onClick={() => setOpen(false)} className={ROW}>
-              <span className="text-ui font-bold">{n.text}</span>
-            </Link>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
+  return <BellPanel id="workspace-notifications" notes={notes} count={notes.length} word="new" />;
 }
 
 /** Who to ask: the site's contacts. */
 export function WorkspaceHelp() {
-  const { open, setOpen, ref } = usePanel();
-  const site = (useSite().data || {}) as { contact_phone?: string; contact_email?: string };
-  return (
-    <div ref={ref} className="relative">
-      <button type="button" aria-expanded={open} aria-controls="workspace-help" aria-label="Help" onClick={() => setOpen(!open)} className={ICON_BUTTON}>
-        <CircleHelp className="size-5" aria-hidden />
-      </button>
-      {open ? (
-        <div id="workspace-help" className={PANEL}>
-          <span className="px-3 pt-2 text-ui font-bold">Need help?</span>
-          <span className="px-3 pb-1 text-meta text-muted-foreground">Your campaign manager runs this workspace. For a password or a login, ask the office.</span>
-          {site.contact_phone ? <a href={`tel:${site.contact_phone}`} className={ROW}><span className="text-ui font-semibold">Call {site.contact_phone}</span></a> : null}
-          {site.contact_email ? <a href={`mailto:${site.contact_email}`} className={ROW}><span className="text-ui font-semibold">Email {site.contact_email}</span></a> : null}
-        </div>
-      ) : null}
-    </div>
-  );
+  return <HelpPanel id="workspace-help" lead="Your campaign manager runs this workspace. For a password or a login, ask the office." />;
 }

@@ -8,11 +8,13 @@ import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatKES } from "../../lib/format";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
+
+import { ASSIGNMENT_STATUS, ROLE_LABEL } from "@/lib/labels";
 
 const VIEWS = { "To mark done": "assigned", Done: "done", Cancelled: "cancelled" };
-const TONE = { assigned: "warn", done: "ok", cancelled: "stone" };
 const KIND = { event: "Event", ward_work: "Ward work", activity: "Activity" };
 
 export default function Assignments({ campaign, onModal }) {
@@ -24,11 +26,11 @@ export default function Assignments({ campaign, onModal }) {
   const action = <Button shape="rounded" onClick={() => onModal({ type: "assign-work" })}>Assign work</Button>;
   return (
     <>
-      <WsHeader context="Field" title="Assignments" sub="Paid work for mobilizers and agents. Mark it done once it happened; then it can be paid." actions={action} />
+      <SlottedHeader context="Field" title="Assignments" sub="Paid work for mobilizers and agents. Mark it done once it happened; then it can be paid." actions={action} />
       <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Assignments">
         <FilterPills label="Status" options={Object.keys(VIEWS)} value={view} onChange={setView} />
         <ErrorText error={settle.error} />
-        {rows.isLoading && <KitLoading />}
+        {rows.isLoading && <LoadingText />}
         <ErrorText error={rows.error} />
         {rows.data && (
           <Table stack minWidth={720}>
@@ -37,10 +39,10 @@ export default function Assignments({ campaign, onModal }) {
               {list.map((a) => (
                 <TR key={a.id}>
                   <TD><div className="font-semibold">{a.label}</div><div className="text-small text-muted-foreground">{KIND[a.kind]}</div></TD>
-                  <TD>{a.member_name}<div className="text-small text-muted-foreground">{a.member_role === "agent" ? "Agent" : "Mobilizer"}</div></TD>
+                  <TD>{a.member_name}<div className="text-small text-muted-foreground">{ROLE_LABEL[a.member_role]}</div></TD>
                   <TD>{a.centre_name || a.ward_name || "None"}{a.centre_name && <div className="text-small text-muted-foreground">{a.ward_name}</div>}</TD>
                   <TD numeric className="font-bold">{formatKES(a.amount_kes)}</TD>
-                  <TD><Badge tone={TONE[a.status]}>{a.status === "assigned" ? "Assigned" : a.status === "done" ? "Done" : "Cancelled"}</Badge></TD>
+                  <TD><Badge tone={ASSIGNMENT_STATUS[a.status][1]}>{ASSIGNMENT_STATUS[a.status][0]}</Badge></TD>
                   {open && (
                     <TD align="right">
                       <div className="flex justify-end gap-2">

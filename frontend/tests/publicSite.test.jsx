@@ -208,7 +208,7 @@ describe("the public site", () => {
   });
 
   it("reaches every page from the menu", async () => {
-    stubApi({ ...ROUTES, "GET /candidates/?seat=&county=&q=": [], "GET /party/results/": [] });
+    stubApi({ ...ROUTES, "GET /candidates/": [], "GET /party/results/": [] });
     renderApp(<AppRoutes />);
     const user = userEvent.setup();
     await screen.findByRole("navigation", { name: "Main" });

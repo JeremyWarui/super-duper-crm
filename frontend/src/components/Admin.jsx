@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { isEmail } from "../lib/email";
 import { isUsername } from "../lib/username";
 import { useNavigate } from "react-router-dom";
-import { PARTY_ROLES, PARTY_ROLE_LABEL } from "../pages/party/helpers";
+import { PARTY_ROLES, PARTY_ROLE_LABEL } from "@/lib/labels";
 import {
   useAdminOverview,
   rowsOf,
@@ -29,6 +29,7 @@ import {
   useResetPassword,
   useSetActive,
   useSetEmail,
+  PARTY_FIELDS,
 } from "../api/hooks";
 import { useInstall } from "../app/site";
 import { useCopy } from "../copy";
@@ -773,7 +774,6 @@ const partyForm = (party) => ({
 });
 
 // Party-only fields, which an aspirant installation's settings leave out.
-const PARTY_ONLY = new Set(["registration_number", "founded_year", "aspirant_steps"]);
 
 function PartyForm({ party, isParty }) {
   const save = useSaveSettings({ party: isParty });
@@ -792,7 +792,7 @@ function PartyForm({ party, isParty }) {
 
   const submit = () => {
     const { links, ...all } = form;
-    const rest = isParty ? all : Object.fromEntries(Object.entries(all).filter(([key]) => !PARTY_ONLY.has(key)));
+    const rest = isParty ? all : Object.fromEntries(Object.entries(all).filter(([key]) => !PARTY_FIELDS.includes(key)));
     save.mutate(
       {
         ...rest,
@@ -810,7 +810,7 @@ function PartyForm({ party, isParty }) {
     <Card variant="outline">
       <Heading>{isParty ? "Party settings" : "Site settings"}</Heading>
       <div className="grid gap-3 sm:grid-cols-2">
-        {PARTY_TEXT.filter(([key]) => isParty || !PARTY_ONLY.has(key)).map(([key, label]) => (
+        {PARTY_TEXT.filter(([key]) => isParty || !PARTY_FIELDS.includes(key)).map(([key, label]) => (
           <Field key={key} label={label}>
             <Input
               value={form[key]}

@@ -13,11 +13,11 @@ import { useAuth } from "@/store/auth";
 import { isEmail } from "../../lib/email";
 import { isUsername } from "../../lib/username";
 import { ErrorText } from "@/components/ui/error-text";
-import { PlaceSelects } from "@/components/PlaceCascade";
+import { NO_PLACE, PlaceSelects } from "@/components/PlaceCascade";
+import { SEAT_AREA, SEATS } from "@/lib/labels";
 import LoginFields from "../campaign/LoginFields";
 
 const STEPS = ["Type", "Name and colours", "Contacts", "First superuser", "Workspace", "Check and finish"];
-const SEATS = [["mca", "MCA", "ward"], ["mp", "MP", "constituency"], ["governor", "Governor", "county"], ["senator", "Senator", "county"], ["women_rep", "Women Rep", "county"]];
 
 const BLANK = {
   organisation_type: "",
@@ -54,7 +54,7 @@ function blocker(step, f) {
   if (step === 4) {
     if (f.organisation_type === "party") return !f.openWorkspace || loginOk(f.manager) ? null : "The Workspace Manager needs a username and an email.";
     const a = f.aspirant;
-    const level = SEATS.find(([key]) => key === a.seat)[2];
+    const level = SEAT_AREA[a.seat];
     if (!a.title.trim()) return "Name the campaign.";
     if (!a[level]) return `Pick the ${level}.`;
     return loginOk(a.candidate) ? null : "The candidate needs a username and an email.";
@@ -66,7 +66,7 @@ function body(token, f) {
   const out = { token, organisation_type: f.organisation_type, site: f.site, superuser: f.superuser };
   if (f.organisation_type === "aspirant") {
     const a = f.aspirant;
-    const level = SEATS.find(([key]) => key === a.seat)[2];
+    const level = SEAT_AREA[a.seat];
     out.aspirant = { title: a.title, seat: a.seat, election_date: a.election_date || null, [level]: a[level], candidate: a.candidate };
   } else if (f.openWorkspace) {
     out.party_workspace = f.manager;
@@ -113,13 +113,13 @@ function AreaPicker({ token, level, place, onChange }) {
 function SeatStep({ token, form, change }) {
   const a = form.aspirant;
   const set = (patch) => change({ aspirant: { ...a, ...patch } });
-  const level = SEATS.find(([key]) => key === a.seat)[2];
+  const level = SEAT_AREA[a.seat];
   return (
     <div className="flex flex-col gap-4">
       <Field label="Campaign name" hint="Shown in the workspace, e.g. Jane for Parklands."><Input value={a.title} onChange={(e) => set({ title: e.target.value })} /></Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Seat">
-          <NativeSelect value={a.seat} onChange={(e) => set({ seat: e.target.value, county: "", constituency: "", ward: "" })}>
+          <NativeSelect value={a.seat} onChange={(e) => set({ seat: e.target.value, ...NO_PLACE })}>
             {SEATS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </NativeSelect>
         </Field>

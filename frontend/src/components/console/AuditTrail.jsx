@@ -7,6 +7,7 @@ import { LoadMore } from "@/components/ui/load-more";
 import { Field, Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { ErrorText } from "@/components/ui/error-text";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const BLANK = { action: "", actor: "", since: "", until: "" };
 const detail = (d) => Object.entries(d || {}).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(", ");
@@ -45,7 +46,7 @@ export default function AuditTrail() {
             {data.length === 0 && !isFetching && <TR><TD colSpan={4} className="text-muted-foreground">Nothing matches.</TD></TR>}
           </TBody>
         </Table>
-        {isFetching && !isFetchingNextPage ? <p className="text-ui text-muted-foreground">Loading…</p> : null}
+        {isFetching && !isFetchingNextPage ? <LoadingText className="text-ui" /> : null}
         <LoadMore shown={data.length} noun={data.length === 1 ? "event" : "events"} hasMore={!!pages.hasNextPage} loading={isFetchingNextPage} onMore={() => pages.fetchNextPage()} />
       </Card>
     </div>

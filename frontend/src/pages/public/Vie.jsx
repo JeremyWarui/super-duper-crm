@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/typography";
 
-import { SEAT_LABEL } from "../party/helpers";
-import { formatKES } from "../../lib/format";
-import { formatDay } from "@/lib/format";
+import { SEAT_LABEL } from "@/lib/labels";
+import { formatDay, formatKES, listItems } from "@/lib/format";
 
 
 // The published nominations timetable: open now, or the next to open.
@@ -43,11 +42,9 @@ function Timetable() {
   );
 }
 
-const steps = (text) => text.split("\n").map((l) => l.trim().replace(/^\d+[.)]\s*/, "")).filter(Boolean);
-
 export default function Vie() {
   const party = { ...useSite().data, ...useParty().data };
-  const list = steps(party.aspirant_steps || "");
+  const list = listItems(party.aspirant_steps);
   const office = [
     ["Office", party.address],
     ["Phone", party.contact_phone, party.contact_phone && `tel:${party.contact_phone.replace(/\s+/g, "")}`],

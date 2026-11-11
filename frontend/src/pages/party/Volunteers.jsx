@@ -19,13 +19,10 @@ import { LoadingText } from "@/components/ui/loading-text";
 import { Pager } from "@/components/ui/pager";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatDate, placeOf } from "@/lib/format";
-import { AREA_LABEL, AREAS, CONTACT_LABEL, NO_PLACE, PAGE_SIZE, PROFESSION_LABEL, STATUS_LABEL, STATUS_TONE, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE } from "./helpers";
-import PlaceCascade from "@/components/PlaceCascade";
+import { AREAS, CONTACT_LABEL, STATUS_LABEL, helpsWith, professionOf, STATUS_TONE, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE } from "@/lib/labels";
+import { PAGE_SIZE } from "./helpers";
+import PlaceCascade, { NO_PLACE } from "@/components/PlaceCascade";
 
-const areasOf = (v) =>
-  v.interests.map((x) => (x === "other" && v.interest_other ? `Other: ${v.interest_other}` : AREA_LABEL[x] || x)).join(", ");
-const professionOf = (v) =>
-  v.profession === "other" ? v.profession_other : PROFESSION_LABEL[v.profession] || "Not given";
 
 function Detail({ row, onClose }) {
   const update = useUpdateVolunteer();
@@ -42,8 +39,8 @@ function Detail({ row, onClose }) {
         <div><Badge tone={VOLUNTEER_STATUS_TONE[v.status]}>{VOLUNTEER_STATUS_LABEL[v.status]}</Badge></div>
         <div>Phone: {v.phone}</div>
         <div>Polling station: {v.registration_centre?.name || "Not given"}</div>
-        <div>Profession: {professionOf(v)}</div>
-        <div>Areas: {areasOf(v)}</div>
+        <div>Profession: {professionOf(v) || "Not given"}</div>
+        <div>Areas: {helpsWith(v.interests, v.interest_other)}</div>
         <div>Preferred contact: {CONTACT_LABEL[v.preferred_contact] || v.preferred_contact}</div>
         <div>Membership: {STATUS_LABEL[v.member_status]}</div>
       </div>
@@ -154,8 +151,8 @@ export default function Volunteers() {
                 <TD className="text-muted-foreground">{v.phone}</TD>
                 <TD className="text-muted-foreground">{placeOf(v)}</TD>
                 <TD><Badge tone={VOLUNTEER_STATUS_TONE[v.status]}>{VOLUNTEER_STATUS_LABEL[v.status]}</Badge></TD>
-                <TD className="text-muted-foreground">{professionOf(v)}</TD>
-                <TD className="text-muted-foreground">{areasOf(v)}</TD>
+                <TD className="text-muted-foreground">{professionOf(v) || "Not given"}</TD>
+                <TD className="text-muted-foreground">{helpsWith(v.interests, v.interest_other)}</TD>
                 <TD><Badge tone={STATUS_TONE[v.member_status]}>{STATUS_LABEL[v.member_status]}</Badge></TD>
                 <TD className="text-muted-foreground">{CONTACT_LABEL[v.preferred_contact] || v.preferred_contact}</TD>
               </TR>

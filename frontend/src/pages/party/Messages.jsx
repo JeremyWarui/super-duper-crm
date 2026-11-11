@@ -2,7 +2,7 @@
 // Admin approves and sends, and only people whose consent covers SMS receive one.
 import { useState } from "react";
 import { useDeclinePartyMessage, useDraftPartyMessage, usePartyMessageReach, usePartyMessages, useSendPartyMessage } from "@/api/hooks";
-import PlaceCascade from "@/components/PlaceCascade";
+import PlaceCascade, { NO_PLACE } from "@/components/PlaceCascade";
 import { ComposePanel, DraftList, ReachLine, SentList } from "@/components/SmsParts";
 import { composed } from "@/lib/sms";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ export default function Messages() {
 
 function Compose() {
   const [audience, setAudience] = useState("members");
-  const [where, setWhere] = useState({ county: "", constituency: "", ward: "" });
+  const [where, setWhere] = useState(NO_PLACE);
   const [body, setBody] = useState("");
   const [done, setDone] = useState("");
   const place = { audience, county: where.county || null, constituency: where.constituency || null, ward: where.ward || null };

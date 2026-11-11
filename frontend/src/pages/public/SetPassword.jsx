@@ -35,7 +35,7 @@ export default function SetPassword() {
       {link.error && (
         <>
           <h1 className="font-display text-[34px] font-extrabold tracking-[-0.02em]">This link no longer works</h1>
-          <p role="alert" className="text-muted-foreground">{link.error.message}</p>
+          <ErrorText error={link.error} className="font-normal text-muted-foreground" />
           <Link to="/forgot-password" className="self-start font-bold">Send a new link</Link>
         </>
       )}

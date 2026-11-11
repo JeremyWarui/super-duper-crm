@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { holderOf, useUnits } from "./helpers";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { initials } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
 // How many targeted units have a mobilizer, naming the ones that have none.
 function Coverage({ units, mobilizers, noun }) {
@@ -42,8 +43,8 @@ export default function Mobilizers({ campaign, onModal }) {
   const action = <Button shape="rounded" onClick={() => onModal({ type: "mobilizer" })}>Add mobilizer</Button>;
   return (
     <>
-      <WsHeader context="Field" title="Mobilizers" sub={`One lead per ${noun}. Mobilizers only see their own ${noun}.`} actions={action} />
-      {isLoading && <KitLoading />}
+      <SlottedHeader context="Field" title="Mobilizers" sub={`One lead per ${noun}. Mobilizers only see their own ${noun}.`} actions={action} />
+      {isLoading && <LoadingText />}
       <ErrorText error={error} />
       {data && (
         <>

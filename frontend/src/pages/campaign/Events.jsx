@@ -6,8 +6,9 @@ import { FilterPills } from "@/components/ui/tabs";
 import { formatDay, formatNumber as fmt } from "@/lib/format";
 import AttendanceCard from "./AttendanceCard";
 import { eventDay } from "./helpers";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const ASSIGNERS = ["candidate", "manager", "coordinator"];
 const RECORDERS = ["candidate", "manager", "coordinator", "mobilizer"];
@@ -116,9 +117,9 @@ export default function Events({ campaign, role, onModal, mine }) {
   const actions = acts ? <Button shape="rounded" onClick={() => onModal({ type: "event" })}>Schedule event</Button> : null;
   return (
     <>
-      <WsHeader context={mine ? "My work" : "Field"} title={mine ? "My events" : "Events"} sub="Rallies and meetings, with mobilization counts." actions={actions} />
+      <SlottedHeader context={mine ? "My work" : "Field"} title={mine ? "My events" : "Events"} sub="Rallies and meetings, with mobilization counts." actions={actions} />
       <FilterPills label="When" options={Object.keys(WHEN)} value={when} onChange={setWhen} />
-      {events.isLoading && <KitLoading />}
+      {events.isLoading && <LoadingText />}
       <ErrorText error={events.error} />
       {events.data && mine && when === "Upcoming" && <MyUpcoming rows={rows} records={acts} onQr={(ev) => onModal({ type: "qr", event: ev })} />}
       {events.data && !(mine && when === "Upcoming") && (

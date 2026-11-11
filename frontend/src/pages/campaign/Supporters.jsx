@@ -9,11 +9,12 @@ import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { useCopy } from "@/copy";
 import { formatNumber as fmt } from "@/lib/format";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
-const LEVELS = { All: null, Supporter: "supporter", Undecided: "undecided", Opposed: "opposed" };
+import { SUPPORT_LEVELS } from "@/lib/labels";
 const TONE = { supporter: "ok", undecided: "warn", opposed: "bad" };
 const KEEPERS = ["candidate", "manager"];
 
@@ -63,20 +64,20 @@ export default function Supporters({ campaign, role, mine, onModal }) {
   const erase = useErase(campaign.id, "supporters");
   const keeper = !mine && KEEPERS.includes(role);
   const [linkFor, setLinkFor] = useState(null);
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState("");
   const all = data || [];
-  const shown = LEVELS[filter] ? all.filter((s) => s.support_level === LEVELS[filter]) : all;
+  const shown = filter ? all.filter((s) => s.support_level === filter) : all;
   const action = keeper ? <Button shape="rounded" onClick={() => onModal({ type: "link" })}>Sign-up link</Button> : null;
   return (
     <>
-      <WsHeader context={mine ? "My work" : "Field"} title={mine ? "My supporters" : "Supporters"} sub={copy.supportersSub} actions={action} />
-      {isLoading && <KitLoading />}
+      <SlottedHeader context={mine ? "My work" : "Field"} title={mine ? "My supporters" : "Supporters"} sub={copy.supportersSub} actions={action} />
+      {isLoading && <LoadingText />}
       <ErrorText error={error} />
       {data && (
         <>
           <Summary all={all} />
           <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Supporter list">
-            <FilterPills label="Support" options={Object.keys(LEVELS)} value={filter} onChange={setFilter} />
+            <FilterPills label="Support" options={[["", "All"], ...SUPPORT_LEVELS]} value={filter} onChange={setFilter} />
             <Table stack minWidth={560}>
               <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Support</TH>{showCentre && <TH>Centre</TH>}<TH>Consent</TH>{keeper && <TH><span className="sr-only">Personal data</span></TH>}</TR></THead>
               <TBody>

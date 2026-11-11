@@ -7,9 +7,10 @@ import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatDate, formatKES, plural } from "../../lib/format";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const TONE = { scheduled: "warn", sending: "info", paid: "ok", failed: "bad", cancelled: "stone" };
 const LABEL = { scheduled: "Scheduled", sending: "Sending", paid: "Paid", failed: "To retry", cancelled: "Cancelled" };
@@ -81,14 +82,14 @@ export default function Payments({ campaign, role, mine, onModal }) {
   ) : null;
   return (
     <>
-      <WsHeader context={mine ? "My work" : "Money"} title={mine ? "My payments" : "Payments"} actions={actions} />
+      <SlottedHeader context={mine ? "My work" : "Money"} title={mine ? "My payments" : "Payments"} actions={actions} />
       {!mine && payout.data && !payout.data.moves_money && (
         <div role="note" className="flex flex-wrap gap-1 rounded-lg border border-[#F2D98A] bg-warn px-4 py-3 text-ui text-warn-foreground">
           <strong>Practice mode.</strong>
           <span>No money moves. Each released payment is marked paid under a PRACTICE reference.</span>
         </div>
       )}
-      {isLoading && <KitLoading />}
+      {isLoading && <LoadingText />}
       <ErrorText error={error} />
       {data && (
         <>

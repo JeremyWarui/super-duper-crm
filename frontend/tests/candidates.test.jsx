@@ -28,9 +28,9 @@ const DETAIL = {
 const PUBLIC = {
   "GET /site/": { name: "Umoja Party" },
   "GET /party/places/": [{ id: "c1", name: "Nairobi City" }],
-  "GET /candidates/?seat=&county=&q=": [CARD],
-  "GET /candidates/?seat=governor&county=&q=": [],
-  "GET /candidates/?seat=governor&county=&q=Kang": [],
+  "GET /candidates/": [CARD],
+  "GET /candidates/?seat=governor": [],
+  "GET /candidates/?seat=governor&q=Kang": [],
   [`GET /candidates/${CARD.slug}/`]: DETAIL,
 };
 
@@ -44,8 +44,8 @@ describe("candidates on the website", () => {
 
     expect(await screen.findByText(/No candidates match/)).toBeInTheDocument();
     await userEvent.type(screen.getByRole("searchbox", { name: "Search by name or area" }), "Kang");
-    await vi.waitFor(() => expect(calls.some((c) => c.path === "/candidates/?seat=governor&county=&q=Kang")).toBe(true));
-    expect(calls.some((c) => c.path === "/candidates/?seat=governor&county=&q=")).toBe(true);
+    await vi.waitFor(() => expect(calls.some((c) => c.path === "/candidates/?seat=governor&q=Kang")).toBe(true));
+    expect(calls.some((c) => c.path === "/candidates/?seat=governor")).toBe(true);
   });
 
   it("offers only the seat's wards, and hides the form when volunteering is closed", async () => {

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Crumbs, RailHead } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";
 import { Initials, LABELS, Photo, StoryKicker } from "./story";
+import { pageState } from "@/components/PageState";
 
 function Record({ post }) {
   return (
@@ -61,8 +62,8 @@ function LatestStatements({ id }) {
 
 export default function Post({ id }) {
   const post = usePublicPost(id);
-  if (post.isLoading) return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
-  if (post.error) return <div role="alert" className="site-container py-12">{post.error.message}</div>;
+  const state = pageState(post);
+  if (state) return state;
   const p = post.data;
   const event = p.kind === "event";
   const section = event ? { label: "Events", to: "/events" } : { label: "News", to: "/news" };

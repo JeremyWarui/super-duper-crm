@@ -16,7 +16,7 @@ import PaymentsIn from "./PaymentsIn";
 import Messages from "./Messages";
 import Volunteers from "./Volunteers";
 import Website from "./Website";
-import { PARTY_ROLE_LABEL } from "./helpers";
+import { PARTY_ROLE_LABEL } from "@/lib/labels";
 
 // Each page and the office that opens it; the superuser opens every one, and only the
 // superuser opens those marked "superuser".

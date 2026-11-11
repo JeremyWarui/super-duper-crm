@@ -14,37 +14,56 @@ import {
 import { api, download, upload } from "./client";
 import { useAuth } from "../store/auth";
 
+// ---- Shared shapes ----------------------------------------------------------
+/** "key=value&..." for the filters that have a value; written after a literal "?" so the contract test reads the path. */
+const queryOf = (filters) => {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters || {})) {
+    if (value !== "" && value != null) params.set(key, value);
+  }
+  return params.toString();
+};
+
+/** A read cached under [key, id] that waits for its id. */
+const useFor = (key, id, queryFn, more) => useQuery({ queryKey: [key, id], queryFn, enabled: !!id, ...more });
+
+// Invalidates each key; resolves once the active ones have refetched.
+function useInvalidator() {
+  const qc = useQueryClient();
+  return (...keys) => Promise.all(keys.map((k) => qc.invalidateQueries({ queryKey: [k] })));
+}
+
+function useInvalidating(when, mutationFn, keys) {
+  const invalidate = useInvalidator();
+  return useMutation({ mutationFn, [when]: () => invalidate(...keys) });
+}
+
+// A mutation that refreshes the caches named by `keys` once it succeeds; it stays pending until they have.
+const useWrite = (mutationFn, ...keys) => useInvalidating("onSuccess", mutationFn, keys);
+
+// The same, refreshing after a refusal too: a refused change may mean the row moved on.
+const useWriteSettled = (mutationFn, ...keys) => useInvalidating("onSettled", mutationFn, keys);
+
+/** A mutation whose answer becomes the cache at `key`: an array, or a function of the variables. */
+function useReplace(mutationFn, key) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: (data, variables) => data && qc.setQueryData(typeof key === "function" ? key(variables) : key, data),
+  });
+}
+
+/** Saves through `change(id, body)` with an id and `add(body)` without one. */
+const saveBy = (add, change) => ({ id, ...body }) => (id ? change(id, body) : add(body));
+
 // ---- Queries --------------------------------------------------------------
-export const useWards = () =>
-  useQuery({ queryKey: ["wards"], queryFn: () => api("/wards/") });
+export const useTargets = (campaignId) => useFor("targets", campaignId, () => api(`/targets/?campaign=${campaignId}`));
 
-export const useTargets = (campaignId) =>
-  useQuery({
-    queryKey: ["targets", campaignId],
-    queryFn: () => api(`/targets/?campaign=${campaignId}`),
-    enabled: !!campaignId,
-  });
+export const useEvents = (campaignId) => useFor("events", campaignId, () => api(`/events/?campaign=${campaignId}`));
 
-export const useEvents = (campaignId) =>
-  useQuery({
-    queryKey: ["events", campaignId],
-    queryFn: () => api(`/events/?campaign=${campaignId}`),
-    enabled: !!campaignId,
-  });
+export const useMobilizers = (campaignId) => useFor("mobilizers", campaignId, () => api(`/mobilizers/?campaign=${campaignId}`));
 
-export const useMobilizers = (campaignId) =>
-  useQuery({
-    queryKey: ["mobilizers", campaignId],
-    queryFn: () => api(`/mobilizers/?campaign=${campaignId}`),
-    enabled: !!campaignId,
-  });
-
-export const useSupporters = (campaignId) =>
-  useQuery({
-    queryKey: ["supporters", campaignId],
-    queryFn: () => api(`/supporters/?campaign=${campaignId}`),
-    enabled: !!campaignId,
-  });
+export const useSupporters = (campaignId) => useFor("supporters", campaignId, () => api(`/supporters/?campaign=${campaignId}`));
 
 export const useConsentWording = () =>
   useQuery({
@@ -53,26 +72,9 @@ export const useConsentWording = () =>
     staleTime: Infinity,
   });
 
-export const useStrategy = (campaignId) =>
-  useQuery({
-    queryKey: ["strategy", campaignId],
-    queryFn: () => api(`/strategy/?campaign=${campaignId}`),
-    enabled: !!campaignId,
-  });
+export const useStrategy = (campaignId) => useFor("strategy", campaignId, () => api(`/strategy/?campaign=${campaignId}`));
 
 // ---- Mutations ------------------------------------------------------------
-function useInvalidator() {
-  const qc = useQueryClient();
-  return (...keys) =>
-    keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
-}
-
-// A mutation that refreshes the caches named by `keys` once it succeeds.
-function useWrite(mutationFn, ...keys) {
-  const invalidate = useInvalidator();
-  return useMutation({ mutationFn, onSuccess: () => invalidate(...keys) });
-}
-
 export const useSetTarget = () =>
   useWrite(
     (payload) =>
@@ -152,11 +154,7 @@ export function useWithdraw(code) {
 
 // The campaign-wide sign-up link; only the manager may read or open it.
 export const useCampaignSignups = (campaignId) =>
-  useQuery({
-    queryKey: ["campaignSignups", campaignId],
-    queryFn: () => api(`/campaigns/${campaignId}/signups/`),
-    enabled: !!campaignId,
-  });
+  useFor("campaignSignups", campaignId, () => api(`/campaigns/${campaignId}/signups/`));
 
 export const useSetCampaignSignups = () =>
   useWrite(
@@ -173,12 +171,7 @@ export const useSetSignups = () =>
   );
 
 // ---- Payments to mobilizers ----------------------------------------------
-export const usePayments = (campaignId) =>
-  useQuery({
-    queryKey: ["payments", campaignId],
-    queryFn: () => api(`/payments/?campaign=${campaignId}`),
-    enabled: !!campaignId,
-  });
+export const usePayments = (campaignId) => useFor("payments", campaignId, () => api(`/payments/?campaign=${campaignId}`));
 
 // Whether a release moves real money ("practice" moves none).
 export const usePayoutMode = () =>
@@ -199,29 +192,17 @@ export const useReconciliation = (campaignId, enabled = true) =>
     enabled: !!campaignId && enabled,
   });
 
-export function useReconcileNow() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (campaignId) => api(`/payments/reconciliation/?campaign=${campaignId}`, { method: "POST" }),
-    onSuccess: (data, campaignId) => qc.setQueryData(["payments", "reconciliation", campaignId], data),
-  });
-}
+export const useReconcileNow = () =>
+  useReplace(
+    (campaignId) => api(`/payments/reconciliation/?campaign=${campaignId}`, { method: "POST" }),
+    (campaignId) => ["payments", "reconciliation", campaignId],
+  );
 
-export function useReleasePayment() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id }) => api(`/payments/${id}/release/`, { method: "POST" }),
-    onSettled: () => invalidate("payments"),
-  });
-}
+export const useReleasePayment = () =>
+  useWriteSettled(({ id }) => api(`/payments/${id}/release/`, { method: "POST" }), "payments");
 
-export function useMarkNotSent() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id }) => api(`/payments/${id}/not-sent/`, { method: "POST" }),
-    onSettled: () => invalidate("payments"),
-  });
-}
+export const useMarkNotSent = () =>
+  useWriteSettled(({ id }) => api(`/payments/${id}/not-sent/`, { method: "POST" }), "payments");
 
 export const useSchedulePayment = () =>
   useWrite(
@@ -229,29 +210,24 @@ export const useSchedulePayment = () =>
     "payments",
   );
 
-export function useMarkPaid() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, reference }) =>
-      api(`/payments/${id}/paid/`, { method: "POST", body: { reference } }),
-    onSettled: () => invalidate("payments"),  // a refused change may mean the row moved on
-  });
-}
+export const useMarkPaid = () =>
+  useWriteSettled(
+    ({ id, reference }) => api(`/payments/${id}/paid/`, { method: "POST", body: { reference } }),
+    "payments",
+  );
 
 // Refuses a payment with a reason; its assignment can be paid by a new one.
-export function useDeclinePayment() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, reason }) => api(`/payments/${id}/decline/`, { method: "POST", body: { reason } }),
-    onSettled: () => invalidate("payments"),  // a refused change may mean the row moved on
-  });
-}
+export const useDeclinePayment = () =>
+  useWriteSettled(
+    ({ id, reason }) => api(`/payments/${id}/decline/`, { method: "POST", body: { reason } }),
+    "payments",
+  );
 
 // ---- assignments ------------------------------------------------------------
 export const useAssignments = (campaignId, status) =>
   useQuery({
     queryKey: ["assignments", campaignId, status],
-    queryFn: () => api(`/assignments/?campaign=${campaignId}${status ? `&status=${status}` : ""}`),
+    queryFn: () => api(`/assignments/?${queryOf({ campaign: campaignId, status })}`),
     enabled: !!campaignId,
   });
 
@@ -262,12 +238,7 @@ export const useCreateAssignment = () =>
   );
 
 // Texts to supporters: drafts, approval and the delivery log.
-export const useMessages = (campaignId) =>
-  useQuery({
-    queryKey: ["messages", campaignId],
-    queryFn: () => api(`/messages/?campaign=${campaignId}`),
-    enabled: !!campaignId,
-  });
+export const useMessages = (campaignId) => useFor("messages", campaignId, () => api(`/messages/?campaign=${campaignId}`));
 
 // Who a message to these wards would reach now; the wording does not change it.
 export const useMessageReach = (campaignId, wards) =>
@@ -309,34 +280,24 @@ export const useMessageLog = (id) =>
     enabled: !!id,
   });
 
-export function useSettleAssignment() {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ id, outcome }) =>
+export const useSettleAssignment = () =>
+  useWriteSettled(
+    ({ id, outcome }) =>
       outcome === "done"
         ? api(`/assignments/${id}/done/`, { method: "POST" })
         : api(`/assignments/${id}/cancel/`, { method: "POST" }),
-    onSettled: () => invalidate("assignments"),
-  });
-}
+    "assignments",
+  );
 
 // ---- geography pickers ----------------------------------------------------
 export const useCounties = () =>
   useQuery({ queryKey: ["counties"], queryFn: () => api("/counties/") });
 
 export const useConstituencies = (countyId) =>
-  useQuery({
-    queryKey: ["constituencies", countyId],
-    queryFn: () => api(`/constituencies/?county=${countyId}`),
-    enabled: !!countyId,
-  });
+  useFor("constituencies", countyId, () => api(`/constituencies/?county=${countyId}`));
 
 export const useWardsIn = (constituencyId) =>
-  useQuery({
-    queryKey: ["wardsIn", constituencyId],
-    queryFn: () => api(`/wards/?constituency=${constituencyId}`),
-    enabled: !!constituencyId,
-  });
+  useFor("wardsIn", constituencyId, () => api(`/wards/?constituency=${constituencyId}`));
 
 // The user's campaign(s). For a single-campaign MVP, take the first.
 export const useCampaigns = () =>
@@ -361,19 +322,9 @@ export function useUpdateTarget() {
 }
 
 // Ward drill-down for MCA races: the ward's registration centres + their voters.
-export const useCentres = (wardId) =>
-  useQuery({
-    queryKey: ["centres", wardId],
-    queryFn: () => api(`/centres/?ward=${wardId}`),
-    enabled: !!wardId,
-  });
+export const useCentres = (wardId) => useFor("centres", wardId, () => api(`/centres/?ward=${wardId}`));
 
-export const useWardsInCounty = (countyId) =>
-  useQuery({
-    queryKey: ["wardsInCounty", countyId],
-    queryFn: () => api(`/wards/?county=${countyId}`),
-    enabled: !!countyId,
-  });
+export const useWardsInCounty = (countyId) => useFor("wardsInCounty", countyId, () => api(`/wards/?county=${countyId}`));
 
 // The units a chosen seat will get a target for, before it is created.
 export function useUnitsPreview({ office_level, county, constituency, ward }) {
@@ -419,12 +370,7 @@ export const useCreateUser = () =>
   );
 
 // ---- the campaign's own team ----------------------------------------------
-export const useTeam = (campaignId) =>
-  useQuery({
-    queryKey: ["team", campaignId],
-    queryFn: () => api(`/campaigns/${campaignId}/team/`),
-    enabled: !!campaignId,
-  });
+export const useTeam = (campaignId) => useFor("team", campaignId, () => api(`/campaigns/${campaignId}/team/`));
 
 // The aspirant adds the manager, or replaces the one there with `replace: true`.
 export const useSetManager = () =>
@@ -507,8 +453,7 @@ export const useAdminOverview = () =>
 export const useAdminUsers = (role) =>
   useQuery({
     queryKey: ["admin", "users", role || "all"],
-    queryFn: () =>
-      role ? api(`/admin/users/?role=${role}`) : api("/admin/users/"),
+    queryFn: () => api(`/admin/users/?${queryOf({ role })}`),
     // Each filter is its own key. Without this the list empties while the next
     // one loads and the console says nobody matches.
     placeholderData: keepPreviousData,
@@ -517,20 +462,15 @@ export const useAdminUsers = (role) =>
 // The password comes back once, so it is handed to the hook's owner rather
 // than to the form, which unmounts as soon as the list refetches.
 export function useCreateLogin({ onPassword } = {}) {
-  const invalidate = useAdminInvalidator();
+  const invalidate = useInvalidator();
   return useMutation({
     mutationFn: (payload) =>
       api("/admin/users/", { method: "POST", body: payload }),
     onSuccess: (data) => {
       onPassword?.(data);
-      return invalidate();
+      return invalidate("admin");
     },
   });
-}
-
-function useAdminInvalidator() {
-  const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: ["admin"] });
 }
 
 // Emails the login a reset link. Every callback runs on whoever owns the hook,
@@ -539,83 +479,37 @@ function useAdminInvalidator() {
 // refetches or the filter changes. A shared mutation also only remembers its latest call, so the caller
 // has to key what it keeps by id rather than read `error` or `isPending` here.
 export function useResetPassword({ onPassword, onFailed, onDone } = {}) {
-  const invalidate = useAdminInvalidator();
+  const invalidate = useInvalidator();
   return useMutation({
     mutationFn: ({ id }) => api(`/admin/users/${id}/reset-password/`, { method: "POST" }),
     onSuccess: (data, variables) => {
       onPassword?.(data, variables);
-      return invalidate();
+      return invalidate("admin");
     },
     onError: (error, variables) => onFailed?.(error, variables),
     onSettled: (_data, _error, variables) => onDone?.(variables),
   });
 }
 
-export function useSetActive() {
-  const invalidate = useAdminInvalidator();
-  return useMutation({
-    mutationFn: ({ id, active }) =>
-      api(`/admin/users/${id}/active/`, { method: "POST", body: { active } }),
-    onSuccess: invalidate,
-  });
-}
+export const useSetActive = () =>
+  useWrite(({ id, active }) => api(`/admin/users/${id}/active/`, { method: "POST", body: { active } }), "admin");
 
-export function useSetEmail() {
-  const invalidate = useAdminInvalidator();
-  return useMutation({
-    mutationFn: ({ id, email }) =>
-      api(`/admin/users/${id}/email/`, { method: "PUT", body: { email } }),
-    onSuccess: invalidate,
-  });
-}
+export const useSetEmail = () =>
+  useWrite(({ id, email }) => api(`/admin/users/${id}/email/`, { method: "PUT", body: { email } }), "admin");
 
-export function useRenameCampaign() {
-  const invalidate = useAdminInvalidator();
-  return useMutation({
-    mutationFn: ({ campaign, title }) =>
-      api(`/admin/campaigns/${campaign}/`, {
-        method: "PATCH",
-        body: { title },
-      }),
-    onSuccess: invalidate,
-  });
-}
+export const useRenameCampaign = () =>
+  useWrite(({ campaign, title }) => api(`/admin/campaigns/${campaign}/`, { method: "PATCH", body: { title } }), "admin");
 
-// Only a superuser deletes a campaign; nothing inside one can.
-export function useDeleteCampaign() {
-  const invalidate = useAdminInvalidator();
-  return useMutation({
-    mutationFn: ({ campaign }) =>
-      api(`/admin/campaigns/${campaign}/`, { method: "DELETE" }),
-    // A 404 means somebody else deleted it, so the list is stale either way.
-    onSettled: invalidate,
-  });
-}
+// Only a superuser deletes a campaign; nothing inside one can. A 404 means somebody else deleted it.
+export const useDeleteCampaign = () =>
+  useWriteSettled(({ campaign }) => api(`/admin/campaigns/${campaign}/`, { method: "DELETE" }), "admin");
 
-export function useAddMember() {
-  const invalidate = useAdminInvalidator();
-  return useMutation({
-    // No role: the place somebody takes is their login's, and the server
-    // refuses a payload that says otherwise.
-    mutationFn: ({ campaign, user }) =>
-      api(`/admin/campaigns/${campaign}/members/`, {
-        method: "POST",
-        body: { user },
-      }),
-    onSuccess: invalidate,
-  });
-}
+// No role: the place somebody takes is their login's, and the server refuses a payload that says otherwise.
+export const useAddMember = () =>
+  useWrite(({ campaign, user }) => api(`/admin/campaigns/${campaign}/members/`, { method: "POST", body: { user } }), "admin");
 
-export function useRemoveMember() {
-  const invalidate = useAdminInvalidator();
-  return useMutation({
-    mutationFn: ({ campaign, user }) =>
-      api(`/admin/campaigns/${campaign}/members/${user}/`, {
-        method: "DELETE",
-      }),
-    onSuccess: invalidate,
-  });
-}
+export const useRemoveMember = () =>
+  useWrite(({ campaign, user }) => api(`/admin/campaigns/${campaign}/members/${user}/`, { method: "DELETE" }), "admin");
 
 // ---- site and party settings, party offices --------------------------------
 export const useSite = () =>
@@ -630,7 +524,7 @@ export const useSite = () =>
 export const useParty = (enabled = true) =>
   useQuery({ queryKey: ["party"], queryFn: () => api("/party/", { anonymous: true }), enabled });
 
-const PARTY_FIELDS = ["registration_number", "founded_year", "aspirant_steps"];
+export const PARTY_FIELDS = ["registration_number", "founded_year", "aspirant_steps"];
 
 // ---- public website content ------------------------------------------------
 export const usePublicLeaders = () =>
@@ -644,10 +538,7 @@ export const usePublicLeaders = () =>
 export const usePublicPosts = (kind, offset = 0, { label = "", county = "" } = {}) =>
   useQuery({
     queryKey: ["public-posts", kind, offset, label, county],
-    queryFn: () => {
-      const only = `${label ? `&label=${label}` : ""}${county ? `&county=${county}` : ""}`;
-      return api(`/party/posts/?kind=${kind}&offset=${offset}${only}`, { anonymous: true });
-    },
+    queryFn: () => api(`/party/posts/?${queryOf({ kind, offset, label, county })}`, { anonymous: true }),
   });
 
 export const usePublicPost = (id) =>
@@ -663,43 +554,28 @@ export const useSiteLeaders = () =>
 export const useSitePosts = () =>
   useQuery({ queryKey: ["site", "posts"], queryFn: () => api("/admin/party/posts/") });
 
+// The editor's lists and every public page read.
+const siteOrPublic = ({ queryKey: [key] }) => key === "site" || String(key).startsWith("public-");
+
 function useSiteWrite(mutationFn) {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn,
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["site"] });
-      qc.invalidateQueries({ queryKey: ["public-leaders"] });
-      qc.invalidateQueries({ queryKey: ["public-posts"] });
-      qc.invalidateQueries({ queryKey: ["public-slides"] });
-      qc.invalidateQueries({ queryKey: ["public-issues"] });
-      qc.invalidateQueries({ queryKey: ["public-documents"] });
-      qc.invalidateQueries({ queryKey: ["public-values"] });
-      qc.invalidateQueries({ queryKey: ["public-organs"] });
-      qc.invalidateQueries({ queryKey: ["public-results"] });
-      qc.invalidateQueries({ queryKey: ["public-videos"] });
-      qc.invalidateQueries({ queryKey: ["public-candidates"] });
-    },
-  });
+  return useMutation({ mutationFn, onSettled: () => qc.invalidateQueries({ predicate: siteOrPublic }) });
 }
 
-// With an `id` the row is changed, without one it is added.
 export const useSaveLeader = () =>
-  useSiteWrite(({ id, ...body }) =>
-    id
-      ? api(`/admin/party/leaders/${id}/`, { method: "PATCH", body })
-      : api("/admin/party/leaders/", { method: "POST", body }),
-  );
+  useSiteWrite(saveBy(
+    (body) => api("/admin/party/leaders/", { method: "POST", body }),
+    (id, body) => api(`/admin/party/leaders/${id}/`, { method: "PATCH", body }),
+  ));
 
 export const useDeleteLeader = () =>
   useSiteWrite((id) => api(`/admin/party/leaders/${id}/`, { method: "DELETE" }));
 
 export const useSavePost = () =>
-  useSiteWrite(({ id, ...body }) =>
-    id
-      ? api(`/admin/party/posts/${id}/`, { method: "PATCH", body })
-      : api("/admin/party/posts/", { method: "POST", body }),
-  );
+  useSiteWrite(saveBy(
+    (body) => api("/admin/party/posts/", { method: "POST", body }),
+    (id, body) => api(`/admin/party/posts/${id}/`, { method: "PATCH", body }),
+  ));
 
 export const useDeletePost = () =>
   useSiteWrite((id) => api(`/admin/party/posts/${id}/`, { method: "DELETE" }));
@@ -721,17 +597,15 @@ export const useSiteIssues = () =>
   useQuery({ queryKey: ["site", "issues"], queryFn: () => api("/admin/party/issues/") });
 
 export const useSaveSlide = () =>
-  useSiteWrite(({ id, ...body }) =>
-    id
-      ? api(`/admin/party/slides/${id}/`, { method: "PATCH", body })
-      : api("/admin/party/slides/", { method: "POST", body }),
-  );
+  useSiteWrite(saveBy(
+    (body) => api("/admin/party/slides/", { method: "POST", body }),
+    (id, body) => api(`/admin/party/slides/${id}/`, { method: "PATCH", body }),
+  ));
 export const useSaveIssue = () =>
-  useSiteWrite(({ id, ...body }) =>
-    id
-      ? api(`/admin/party/issues/${id}/`, { method: "PATCH", body })
-      : api("/admin/party/issues/", { method: "POST", body }),
-  );
+  useSiteWrite(saveBy(
+    (body) => api("/admin/party/issues/", { method: "POST", body }),
+    (id, body) => api(`/admin/party/issues/${id}/`, { method: "PATCH", body }),
+  ));
 export const useDeleteSlide = () => useSiteWrite((id) => api(`/admin/party/slides/${id}/`, { method: "DELETE" }));
 export const useDeleteIssue = () => useSiteWrite((id) => api(`/admin/party/issues/${id}/`, { method: "DELETE" }));
 
@@ -743,11 +617,10 @@ export const useSiteDocuments = () =>
   useQuery({ queryKey: ["site", "documents"], queryFn: () => api("/admin/party/documents/") });
 
 export const useSaveDocument = () =>
-  useSiteWrite(({ id, ...body }) =>
-    id
-      ? api(`/admin/party/documents/${id}/`, { method: "PATCH", body })
-      : api("/admin/party/documents/", { method: "POST", body }),
-  );
+  useSiteWrite(saveBy(
+    (body) => api("/admin/party/documents/", { method: "POST", body }),
+    (id, body) => api(`/admin/party/documents/${id}/`, { method: "PATCH", body }),
+  ));
 export const useDeleteDocument = () => useSiteWrite((id) => api(`/admin/party/documents/${id}/`, { method: "DELETE" }));
 
 // The About page's values and party organs, and its member and branch counts.
@@ -767,17 +640,15 @@ export const useSiteOrgans = () =>
   useQuery({ queryKey: ["site", "organs"], queryFn: () => api("/admin/party/organs/") });
 
 export const useSaveValue = () =>
-  useSiteWrite(({ id, ...body }) =>
-    id
-      ? api(`/admin/party/values/${id}/`, { method: "PATCH", body })
-      : api("/admin/party/values/", { method: "POST", body }),
-  );
+  useSiteWrite(saveBy(
+    (body) => api("/admin/party/values/", { method: "POST", body }),
+    (id, body) => api(`/admin/party/values/${id}/`, { method: "PATCH", body }),
+  ));
 export const useSaveOrgan = () =>
-  useSiteWrite(({ id, ...body }) =>
-    id
-      ? api(`/admin/party/organs/${id}/`, { method: "PATCH", body })
-      : api("/admin/party/organs/", { method: "POST", body }),
-  );
+  useSiteWrite(saveBy(
+    (body) => api("/admin/party/organs/", { method: "POST", body }),
+    (id, body) => api(`/admin/party/organs/${id}/`, { method: "PATCH", body }),
+  ));
 export const useDeleteValue = () => useSiteWrite((id) => api(`/admin/party/values/${id}/`, { method: "DELETE" }));
 export const useDeleteOrgan = () => useSiteWrite((id) => api(`/admin/party/organs/${id}/`, { method: "DELETE" }));
 
@@ -789,11 +660,10 @@ export const useSiteVideos = () =>
   useQuery({ queryKey: ["site", "videos"], queryFn: () => api("/admin/party/videos/") });
 
 export const useSaveVideo = () =>
-  useSiteWrite(({ id, ...body }) =>
-    id
-      ? api(`/admin/party/videos/${id}/`, { method: "PATCH", body })
-      : api("/admin/party/videos/", { method: "POST", body }),
-  );
+  useSiteWrite(saveBy(
+    (body) => api("/admin/party/videos/", { method: "POST", body }),
+    (id, body) => api(`/admin/party/videos/${id}/`, { method: "PATCH", body }),
+  ));
 export const useDeleteVideo = () => useSiteWrite((id) => api(`/admin/party/videos/${id}/`, { method: "DELETE" }));
 
 // Primary results: each row is one candidate's votes in one seat and area.
@@ -804,11 +674,10 @@ export const useSiteResults = () =>
   useQuery({ queryKey: ["site", "results"], queryFn: () => api("/admin/party/results/") });
 
 export const useSaveResult = () =>
-  useSiteWrite(({ id, ...body }) =>
-    id
-      ? api(`/admin/party/results/${id}/`, { method: "PATCH", body })
-      : api("/admin/party/results/", { method: "POST", body }),
-  );
+  useSiteWrite(saveBy(
+    (body) => api("/admin/party/results/", { method: "POST", body }),
+    (id, body) => api(`/admin/party/results/${id}/`, { method: "PATCH", body }),
+  ));
 export const useDeleteResult = () => useSiteWrite((id) => api(`/admin/party/results/${id}/`, { method: "DELETE" }));
 
 // Counties, or one county's constituencies, or one constituency's wards.
@@ -817,12 +686,8 @@ export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = 
     // A lookup waiting for its place keys apart, so it never shows the counties.
     queryKey: ["party-places", county || null, constituency || null, ward || null, enabled],
     enabled,
-    queryFn: () => {
-      if (ward) return api(`/party/places/?ward=${ward}`, { anonymous: true });
-      if (constituency) return api(`/party/places/?constituency=${constituency}`, { anonymous: true });
-      if (county) return api(`/party/places/?county=${county}`, { anonymous: true });
-      return api("/party/places/", { anonymous: true });
-    },
+    // The server answers for the narrowest place given, so only that one is sent.
+    queryFn: () => api(`/party/places/?${queryOf(ward ? { ward } : constituency ? { constituency } : { county })}`, { anonymous: true }),
     staleTime: Infinity,
   });
 
@@ -846,37 +711,20 @@ export const usePublicBranch = (countyId) =>
     queryFn: () => api(`/party/branches/${countyId}/`, { anonymous: true }),
   });
 
-export function useSaveBranch() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ county, ...payload }) =>
-      api(`/admin/party/branches/${county}/`, { method: "PUT", body: payload }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-branches"] });
-      qc.invalidateQueries({ queryKey: ["office-branches"] });
-      qc.invalidateQueries({ queryKey: ["public-branches"] });
-    },
-  });
-}
+export const useSaveBranch = () =>
+  useWrite(
+    ({ county, ...payload }) => api(`/admin/party/branches/${county}/`, { method: "PUT", body: payload }),
+    "office-branches", "public-branches",
+  );
 
 // The signed-in member's own account.
 export const useAccount = () => useQuery({ queryKey: ["account"], queryFn: () => api("/account/") });
 
-export function useChangeVolunteering() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (payload) => api("/account/volunteer/", { method: "PUT", body: payload }),
-    onSuccess: (account) => qc.setQueryData(["account"], account),
-  });
-}
+export const useChangeVolunteering = () =>
+  useReplace((payload) => api("/account/volunteer/", { method: "PUT", body: payload }), ["account"]);
 
-export function useStopVolunteering() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () => api("/account/volunteer/stop/", { method: "POST" }),
-    onSuccess: (account) => qc.setQueryData(["account"], account),
-  });
-}
+export const useStopVolunteering = () =>
+  useReplace(() => api("/account/volunteer/stop/", { method: "POST" }), ["account"]);
 export const useLeaveParty = () =>
   useMutation({ mutationFn: () => api("/account/leave/", { method: "POST" }) });
 
@@ -933,26 +781,11 @@ export function useSaveSettings({ party: withParty = true } = {}) {
   });
 }
 
-export function useGrantPartyRole() {
-  const invalidate = useAdminInvalidator();
-  return useMutation({
-    mutationFn: ({ user, role }) =>
-      api(`/admin/users/${user}/party-roles/`, {
-        method: "POST",
-        body: { role },
-      }),
-    onSuccess: invalidate,
-  });
-}
+export const useGrantPartyRole = () =>
+  useWrite(({ user, role }) => api(`/admin/users/${user}/party-roles/`, { method: "POST", body: { role } }), "admin");
 
-export function useRevokePartyRole() {
-  const invalidate = useAdminInvalidator();
-  return useMutation({
-    mutationFn: ({ user, role }) =>
-      api(`/admin/users/${user}/party-roles/${role}/`, { method: "DELETE" }),
-    onSuccess: invalidate,
-  });
-}
+export const useRevokePartyRole = () =>
+  useWrite(({ user, role }) => api(`/admin/users/${user}/party-roles/${role}/`, { method: "DELETE" }), "admin");
 
 // ---- signed-in login ------------------------------------------------------
 // Refreshes the stored user, so roles changed since sign-in take effect.
@@ -968,35 +801,22 @@ export function useMe() {
 }
 
 // ---- party member register ------------------------------------------------
-const memberQuery = (filters) => {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(filters || {})) {
-    if (value !== "" && value != null) params.set(key, value);
-  }
-  return params.toString();
-};
-
 // The superuser's party-wide counts; `from` and `to` bound events.
 export const usePartyDashboard = (filters) =>
   useQuery({
     queryKey: ["party-dashboard", filters],
-    queryFn: () => api(`/party/dashboard/?${memberQuery(filters)}`),
+    queryFn: () => api(`/party/dashboard/?${queryOf(filters)}`),
     placeholderData: keepPreviousData,
   });
 
 export const usePartyMembers = (filters) =>
   useQuery({
     queryKey: ["party-members", filters],
-    queryFn: () => api(`/party/members/?${memberQuery(filters)}`),
+    queryFn: () => api(`/party/members/?${queryOf(filters)}`),
     placeholderData: keepPreviousData,
   });
 
-export const usePartyMember = (id) =>
-  useQuery({
-    queryKey: ["party-member", id],
-    queryFn: () => api(`/party/members/${id}/`),
-    enabled: !!id,
-  });
+export const usePartyMember = (id) => useFor("party-member", id, () => api(`/party/members/${id}/`));
 
 export const useMoveMember = () =>
   useWrite(
@@ -1009,7 +829,7 @@ export const useMoveMember = () =>
   );
 
 export const exportPartyMembers = (filters) =>
-  download(`/party/members/export.csv?${memberQuery(filters)}`, "party-members.csv");
+  download(`/party/members/export.csv?${queryOf(filters)}`, "party-members.csv");
 
 // ---- party volunteer register ---------------------------------------------
 export const useUpdateVolunteer = () =>
@@ -1020,20 +840,20 @@ export const useUpdateVolunteer = () =>
   );
 
 export const exportPartyVolunteers = (filters) =>
-  download(`/party/volunteers/export.csv?${memberQuery(filters)}`, "party-volunteers.csv");
+  download(`/party/volunteers/export.csv?${queryOf(filters)}`, "party-volunteers.csv");
 
 // ---- nominations ----------------------------------------------------------
 export const useAspirants = (filters) =>
   useQuery({
     queryKey: ["aspirants", filters],
-    queryFn: () => api(`/party/aspirants/?${memberQuery(filters)}`),
+    queryFn: () => api(`/party/aspirants/?${queryOf(filters)}`),
     placeholderData: keepPreviousData,
   });
 
 export const usePartyVolunteers = (filters) =>
   useQuery({
     queryKey: ["party-volunteers", filters],
-    queryFn: () => api(`/party/volunteers/?${memberQuery(filters)}`),
+    queryFn: () => api(`/party/volunteers/?${queryOf(filters)}`),
     placeholderData: keepPreviousData,
   });
 
@@ -1048,7 +868,7 @@ const nextPlain = (last, pages) => (last.length === PAGE_ROWS ? pages.length * P
 export const useAdminUserPages = (role) =>
   useInfiniteQuery({
     queryKey: ["admin", "users", "pages", role || "all"],
-    queryFn: ({ pageParam }) => api(`/admin/users/?${memberQuery({ role, limit: PAGE_ROWS, offset: pageParam })}`),
+    queryFn: ({ pageParam }) => api(`/admin/users/?${queryOf({ role, limit: PAGE_ROWS, offset: pageParam })}`),
     initialPageParam: 0,
     getNextPageParam: nextPlain,
     placeholderData: keepPreviousData,
@@ -1057,7 +877,7 @@ export const useAdminUserPages = (role) =>
 export const useAuditPages = ({ action, actor, since, until }) =>
   useInfiniteQuery({
     queryKey: ["admin", "audit", "pages", action, actor, since, until],
-    queryFn: ({ pageParam }) => api(`/admin/audit/?${memberQuery({ action, actor, since, until, limit: PAGE_ROWS, offset: pageParam })}`),
+    queryFn: ({ pageParam }) => api(`/admin/audit/?${queryOf({ action, actor, since, until, limit: PAGE_ROWS, offset: pageParam })}`),
     initialPageParam: 0,
     getNextPageParam: nextPlain,
   });
@@ -1065,12 +885,7 @@ export const useAuditPages = ({ action, actor, since, until }) =>
 /** Every row of a paged list loaded so far, in order. */
 export const rowsOf = (pages, read = (page) => page) => (pages?.pages || []).flatMap(read);
 
-export const useAspirant = (id) =>
-  useQuery({
-    queryKey: ["aspirant", id],
-    queryFn: () => api(`/party/aspirants/${id}/`),
-    enabled: !!id,
-  });
+export const useAspirant = (id) => useFor("aspirant", id, () => api(`/party/aspirants/${id}/`));
 
 export const useCandidates = (q) =>
   useQuery({
@@ -1117,20 +932,14 @@ export const usePartyNotifications = () =>
     refetchInterval: 60_000,
   });
 
-export function useLinkPartyMember() {
-  const invalidate = useAdminInvalidator();
-  return useMutation({
-    mutationFn: ({ user, member }) =>
-      api(`/admin/users/${user}/party-member/`, { method: "PUT", body: { member } }),
-    onSuccess: invalidate,
-  });
-}
+export const useLinkPartyMember = () =>
+  useWrite(({ user, member }) => api(`/admin/users/${user}/party-member/`, { method: "PUT", body: { member } }), "admin");
 
 // Candidates on the website: the directory, one profile, and its "Support" form.
 export const usePublicCandidates = ({ seat = "", county = "", q = "" } = {}) =>
   useQuery({
     queryKey: ["public-candidates", seat, county, q],
-    queryFn: () => api(`/candidates/?seat=${seat}&county=${county}&q=${encodeURIComponent(q)}`, { anonymous: true }),
+    queryFn: () => api(`/candidates/?${queryOf({ seat, county, q })}`, { anonymous: true }),
   });
 
 export const usePublicCandidate = (slug) =>
@@ -1173,20 +982,13 @@ export const useSavePostAspirants = () =>
 
 // A campaign's volunteers from its candidate's website page; the manager's list.
 export const useCampaignVolunteers = (campaignId) =>
-  useQuery({
-    queryKey: ["campaign-volunteers", campaignId],
-    queryFn: () => api(`/campaigns/${campaignId}/volunteers/`),
-    enabled: !!campaignId,
-  });
+  useFor("campaign-volunteers", campaignId, () => api(`/campaigns/${campaignId}/volunteers/`));
 
-export function useUpdateCampaignVolunteer(campaignId) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, ...body }) => api(`/campaigns/${campaignId}/volunteers/${id}/`, { method: "PATCH", body }),
-    onSettled: () => qc.invalidateQueries({ queryKey: ["campaign-volunteers", campaignId] }),
-  });
-}
-
+export const useUpdateCampaignVolunteer = (campaignId) =>
+  useWriteSettled(
+    ({ id, ...body }) => api(`/campaigns/${campaignId}/volunteers/${id}/`, { method: "PATCH", body }),
+    "campaign-volunteers",
+  );
 
 
 // ---- an aspirant installation's website ------------------------------------
@@ -1203,68 +1005,52 @@ export const useSiteVolunteer = () =>
   });
 
 // The workspace's website editor (site.write): one list, save and delete per kind of item.
-function useWorkspaceWrite(mutationFn) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn,
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["workspace-site"] });
-      qc.invalidateQueries({ queryKey: ["site"] });
-      qc.invalidateQueries({ queryKey: ["site-candidate"] });
-    },
-  });
-}
+const useWorkspaceWrite = (mutationFn) => useWriteSettled(mutationFn, "workspace-site", "site", "site-candidate");
 
-function useWsList(kind, queryFn) {
-  return useQuery({ queryKey: ["workspace-site", kind], queryFn });
-}
+/** One editor section: its list, save and delete hooks, and where its images go. */
+const wsSection = (kind, list, add, change, remove) => ({
+  upload: "/workspace/site/images/",
+  query: function useList() { return useQuery({ queryKey: ["workspace-site", kind], queryFn: list }); },
+  save: function useSave() { return useWorkspaceWrite(saveBy(add, change)); },
+  del: function useDelete() { return useWorkspaceWrite(remove); },
+});
 
 export const WORKSPACE_SECTIONS = {
-  posts: {
-    upload: "/workspace/site/images/",
-    query: function usePosts() { return useWsList("posts", () => api("/workspace/site/posts/")); },
-    save: function useSavePost() {
-      return useWorkspaceWrite(({ id, ...body }) =>
-        id ? api(`/workspace/site/posts/${id}/`, { method: "PATCH", body }) : api("/workspace/site/posts/", { method: "POST", body }));
-    },
-    del: function useDeletePost() { return useWorkspaceWrite((id) => api(`/workspace/site/posts/${id}/`, { method: "DELETE" })); },
-  },
-  slides: {
-    upload: "/workspace/site/images/",
-    query: function useSlides() { return useWsList("slides", () => api("/workspace/site/slides/")); },
-    save: function useSaveSlide() {
-      return useWorkspaceWrite(({ id, ...body }) =>
-        id ? api(`/workspace/site/slides/${id}/`, { method: "PATCH", body }) : api("/workspace/site/slides/", { method: "POST", body }));
-    },
-    del: function useDeleteSlide() { return useWorkspaceWrite((id) => api(`/workspace/site/slides/${id}/`, { method: "DELETE" })); },
-  },
-  issues: {
-    upload: "/workspace/site/images/",
-    query: function useIssues() { return useWsList("issues", () => api("/workspace/site/issues/")); },
-    save: function useSaveIssue() {
-      return useWorkspaceWrite(({ id, ...body }) =>
-        id ? api(`/workspace/site/issues/${id}/`, { method: "PATCH", body }) : api("/workspace/site/issues/", { method: "POST", body }));
-    },
-    del: function useDeleteIssue() { return useWorkspaceWrite((id) => api(`/workspace/site/issues/${id}/`, { method: "DELETE" })); },
-  },
-  documents: {
-    upload: "/workspace/site/images/",
-    query: function useDocuments() { return useWsList("documents", () => api("/workspace/site/documents/")); },
-    save: function useSaveDocument() {
-      return useWorkspaceWrite(({ id, ...body }) =>
-        id ? api(`/workspace/site/documents/${id}/`, { method: "PATCH", body }) : api("/workspace/site/documents/", { method: "POST", body }));
-    },
-    del: function useDeleteDocument() { return useWorkspaceWrite((id) => api(`/workspace/site/documents/${id}/`, { method: "DELETE" })); },
-  },
-  videos: {
-    upload: "/workspace/site/images/",
-    query: function useVideos() { return useWsList("videos", () => api("/workspace/site/videos/")); },
-    save: function useSaveVideo() {
-      return useWorkspaceWrite(({ id, ...body }) =>
-        id ? api(`/workspace/site/videos/${id}/`, { method: "PATCH", body }) : api("/workspace/site/videos/", { method: "POST", body }));
-    },
-    del: function useDeleteVideo() { return useWorkspaceWrite((id) => api(`/workspace/site/videos/${id}/`, { method: "DELETE" })); },
-  },
+  posts: wsSection(
+    "posts",
+    () => api("/workspace/site/posts/"),
+    (body) => api("/workspace/site/posts/", { method: "POST", body }),
+    (id, body) => api(`/workspace/site/posts/${id}/`, { method: "PATCH", body }),
+    (id) => api(`/workspace/site/posts/${id}/`, { method: "DELETE" }),
+  ),
+  slides: wsSection(
+    "slides",
+    () => api("/workspace/site/slides/"),
+    (body) => api("/workspace/site/slides/", { method: "POST", body }),
+    (id, body) => api(`/workspace/site/slides/${id}/`, { method: "PATCH", body }),
+    (id) => api(`/workspace/site/slides/${id}/`, { method: "DELETE" }),
+  ),
+  issues: wsSection(
+    "issues",
+    () => api("/workspace/site/issues/"),
+    (body) => api("/workspace/site/issues/", { method: "POST", body }),
+    (id, body) => api(`/workspace/site/issues/${id}/`, { method: "PATCH", body }),
+    (id) => api(`/workspace/site/issues/${id}/`, { method: "DELETE" }),
+  ),
+  documents: wsSection(
+    "documents",
+    () => api("/workspace/site/documents/"),
+    (body) => api("/workspace/site/documents/", { method: "POST", body }),
+    (id, body) => api(`/workspace/site/documents/${id}/`, { method: "PATCH", body }),
+    (id) => api(`/workspace/site/documents/${id}/`, { method: "DELETE" }),
+  ),
+  videos: wsSection(
+    "videos",
+    () => api("/workspace/site/videos/"),
+    (body) => api("/workspace/site/videos/", { method: "POST", body }),
+    (id, body) => api(`/workspace/site/videos/${id}/`, { method: "PATCH", body }),
+    (id) => api(`/workspace/site/videos/${id}/`, { method: "DELETE" }),
+  ),
 };
 
 export const useWorkspaceSettings = () =>
@@ -1286,7 +1072,7 @@ export const usePartyWorkspace = (enabled) =>
 
 /** Opens the party workspace, or with `replace` gives it a new Workspace Manager. */
 export function useOpenPartyWorkspace({ onInvite, replace = false } = {}) {
-  const invalidate = useAdminInvalidator();
+  const invalidate = useInvalidator();
   return useMutation({
     mutationFn: ({ manager }) =>
       replace
@@ -1294,7 +1080,7 @@ export function useOpenPartyWorkspace({ onInvite, replace = false } = {}) {
         : api("/party/workspace/", { method: "POST", body: { manager } }),
     onSuccess: (data) => {
       onInvite?.(data);
-      return invalidate();
+      return invalidate("admin");
     },
   });
 }
@@ -1309,13 +1095,8 @@ export const useAreaMembers = (page) =>
 export const useRecruitment = () =>
   useQuery({ queryKey: ["recruitment"], queryFn: () => api("/party/workspace/recruitment/") });
 
-export function useReplaceRecruitment() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () => api("/party/workspace/recruitment/", { method: "POST" }),
-    onSuccess: (data) => qc.setQueryData(["recruitment"], data),
-  });
-}
+export const useReplaceRecruitment = () =>
+  useReplace(() => api("/party/workspace/recruitment/", { method: "POST" }), ["recruitment"]);
 
 // ---- team sign-up and agents ------------------------------------------------
 // The public page behind a workspace's team link.
@@ -1349,22 +1130,15 @@ export const useDecideRegistration = () =>
     "registrations", "team", "mobilizers", "agents", "agent-coverage",
   );
 
-export const useTeamLink = (campaignId) =>
-  useQuery({ queryKey: ["team-link", campaignId], queryFn: () => api(`/campaigns/${campaignId}/team-link/`), enabled: !!campaignId });
+export const useTeamLink = (campaignId) => useFor("team-link", campaignId, () => api(`/campaigns/${campaignId}/team-link/`));
 
-export function useReplaceTeamLink() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (campaignId) => api(`/campaigns/${campaignId}/team-link/`, { method: "POST" }),
-    onSuccess: (data, campaignId) => qc.setQueryData(["team-link", campaignId], data),
-  });
-}
+export const useReplaceTeamLink = () =>
+  useReplace((campaignId) => api(`/campaigns/${campaignId}/team-link/`, { method: "POST" }), (campaignId) => ["team-link", campaignId]);
 
-export const useAgents = (campaignId) =>
-  useQuery({ queryKey: ["agents", campaignId], queryFn: () => api(`/agents/?campaign=${campaignId}`), enabled: !!campaignId });
+export const useAgents = (campaignId) => useFor("agents", campaignId, () => api(`/agents/?campaign=${campaignId}`));
 
 export const useAgentCoverage = (campaignId) =>
-  useQuery({ queryKey: ["agent-coverage", campaignId], queryFn: () => api(`/agents/coverage/?campaign=${campaignId}`), enabled: !!campaignId });
+  useFor("agent-coverage", campaignId, () => api(`/agents/coverage/?campaign=${campaignId}`));
 
 export const useUpdateAgent = () =>
   useWrite(
@@ -1382,7 +1156,7 @@ export const useSetupAreas = (token, level, parent) =>
   useQuery({
     queryKey: ["setup-areas", level, parent],
     enabled: Boolean(token) && (level === "county" || Boolean(parent)),
-    queryFn: () => api(`/setup/areas/?level=${level}&parent=${parent || ""}`, { anonymous: true, headers: { "X-Setup-Token": token } }),
+    queryFn: () => api(`/setup/areas/?${queryOf({ level, parent })}`, { anonymous: true, headers: { "X-Setup-Token": token } }),
   });
 
 export const useRunSetup = () =>
@@ -1441,32 +1215,19 @@ export const useOfficeBranches = () =>
 
 // Branch officials: terms in each county branch office.
 export const useBranchOfficials = (countyId) =>
-  useQuery({
-    queryKey: ["branch-officials", countyId],
-    enabled: Boolean(countyId),
-    queryFn: () => api(`/party/office/branches/${countyId}/officials/`),
-  });
+  useFor("branch-officials", countyId, () => api(`/party/office/branches/${countyId}/officials/`));
 
-function useOfficialsChanged() {
-  const qc = useQueryClient();
-  return () => ["branch-officials", "office-branches", "admin-branches", "public-branches"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
-}
+export const useAppointOfficial = () =>
+  useWrite(
+    ({ county, ...body }) => api(`/party/office/branches/${county}/officials/`, { method: "POST", body }),
+    "branch-officials", "office-branches", "public-branches",
+  );
 
-export function useAppointOfficial() {
-  const changed = useOfficialsChanged();
-  return useMutation({
-    mutationFn: ({ county, ...body }) => api(`/party/office/branches/${county}/officials/`, { method: "POST", body }),
-    onSuccess: changed,
-  });
-}
-
-export function useEndTerm() {
-  const changed = useOfficialsChanged();
-  return useMutation({
-    mutationFn: ({ id, ...body }) => api(`/party/office/officials/${id}/end/`, { method: "POST", body }),
-    onSuccess: changed,
-  });
-}
+export const useEndTerm = () =>
+  useWrite(
+    ({ id, ...body }) => api(`/party/office/officials/${id}/end/`, { method: "POST", body }),
+    "branch-officials", "office-branches", "public-branches",
+  );
 
 export const useUploadMinutes = () => useMutation({ mutationFn: (file) => upload("/party/office/minutes/", file) });
 // A public site image, sent to the party's file store or to an aspirant workspace's.
@@ -1479,10 +1240,7 @@ export const useNominationNotice = () =>
 export const useMyNomination = () =>
   useQuery({ queryKey: ["nominations", "mine"], queryFn: () => api("/party/nominations/mine/") });
 
-function useMine(mutationFn) {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn, onSuccess: (data) => data && qc.setQueryData(["nominations", "mine"], data) });
-}
+const useMine = (mutationFn) => useReplace(mutationFn, ["nominations", "mine"]);
 
 export const useApplyToVie = () => useMine((seat) => api("/party/nominations/mine/", { method: "POST", body: { seat } }));
 export const useAttachNominationDocument = () =>
@@ -1524,12 +1282,7 @@ export const useMarkNominationFeePaid = () =>
   );
 
 // A hosted workspace's party feed and what it shares; the party's view of those counts.
-export const usePartyFeed = (campaignId) =>
-  useQuery({
-    queryKey: ["party-feed", campaignId],
-    queryFn: () => api(`/party-feed/?campaign=${campaignId}`),
-    enabled: !!campaignId,
-  });
+export const usePartyFeed = (campaignId) => useFor("party-feed", campaignId, () => api(`/party-feed/?campaign=${campaignId}`));
 
 export const useChangeSharing = (campaignId) =>
   useWrite(
@@ -1582,8 +1335,7 @@ export const useUpdateDataRequest = (campaignId) =>
     "data-requests",
   );
 
-export const useLeftTeam = (campaignId) =>
-  useQuery({ queryKey: ["left-team", campaignId], queryFn: () => api(`/campaigns/${campaignId}/data/left-team/`), enabled: !!campaignId });
+export const useLeftTeam = (campaignId) => useFor("left-team", campaignId, () => api(`/campaigns/${campaignId}/data/left-team/`));
 
 const ERASE = {
   supporters: (campaignId, id) => api(`/campaigns/${campaignId}/data/supporters/${id}/erase/`, { method: "POST" }),
@@ -1605,8 +1357,7 @@ export const useWithdrawalLink = (campaignId, supporterId) =>
 export const useTextWithdrawalLink = (campaignId) =>
   useMutation({ mutationFn: (id) => api(`/campaigns/${campaignId}/data/supporters/${id}/withdrawal/`, { method: "POST" }) });
 
-export const useCloseState = (campaignId) =>
-  useQuery({ queryKey: ["data-close", campaignId], queryFn: () => api(`/campaigns/${campaignId}/data/close/`), enabled: !!campaignId });
+export const useCloseState = (campaignId) => useFor("data-close", campaignId, () => api(`/campaigns/${campaignId}/data/close/`));
 
 export const useSetRetention = (campaignId) =>
   useWrite((retention_months) => api(`/campaigns/${campaignId}/data/retention/`, { method: "PUT", body: { retention_months } }), "data-close");

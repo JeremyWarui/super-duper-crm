@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatDate, formatNumber as fmt } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const SWITCHES = [
   ["event_reach", "Event reach summary", "Totals reached and attended at your events"],
@@ -22,8 +23,8 @@ export default function PartyFeed({ campaign }) {
   const data = page.data;
   return (
     <>
-      <WsHeader context="Reach out" title="Party feed & sharing" sub="What the party shares with you, and what you share back." />
-      {page.isLoading && <KitLoading />}
+      <SlottedHeader context="Reach out" title="Party feed & sharing" sub="What the party shares with you, and what you share back." />
+      {page.isLoading && <LoadingText />}
       <ErrorText error={page.error} />
       {data && (
         <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">

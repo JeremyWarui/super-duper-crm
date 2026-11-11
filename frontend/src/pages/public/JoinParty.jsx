@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
-import { AREAS, CONTACT_METHODS, PROFESSIONS } from "../party/helpers";
+import { AREAS, CONTACT_METHODS, PROFESSIONS } from "@/lib/labels";
 import { isEmail } from "../../lib/email";
 import { ErrorText } from "@/components/ui/error-text";
+import { pageState } from "@/components/PageState";
 
 const STEPS = ["Your details", "Your branch", "Consent"];
 const TICK = "mt-0.5 size-5 flex-none accent-primary";
@@ -86,9 +87,8 @@ export default function JoinParty() {
   const toggleArea = (value) =>
     setAreas((now) => (now.includes(value) ? now.filter((x) => x !== value) : [...now, value]));
 
-  if (site.isLoading || party.isLoading) return <div className="site-container py-12 text-muted-foreground">Loading…</div>;
-  const error = site.error || party.error;
-  if (error) return <div role="alert" className="site-container py-12">{error.message}</div>;
+  const state = pageState(site, party);
+  if (state) return state;
   const p = { ...site.data, ...party.data };
 
   const send = () =>

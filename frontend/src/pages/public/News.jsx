@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { RailHead } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";
 import { Initials, LABELS, Photo, StoryKicker } from "./story";
+import { LoadingText } from "@/components/ui/loading-text";
+import { ErrorText } from "@/components/ui/error-text";
 
 const PAGE = 20;
 const short = (iso) => formatDay(iso, { day: "numeric", month: "short" });
@@ -145,8 +147,8 @@ export default function News() {
   return (
     <div className="site-container flex flex-col gap-12 pt-10 pb-[72px]">
       <h1 className="sr-only">News</h1>
-      {news.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
-      {news.error ? <p role="alert">{news.error.message}</p> : null}
+      {news.isLoading ? <LoadingText /> : null}
+      {news.error ? <ErrorText error={news.error} /> : null}
       {news.isSuccess && !posts.length && offset === 0 ? <p className="text-muted-foreground">No news yet.</p> : null}
       {top.length ? <Lead lead={top[0]} beside={top.slice(1)} /> : null}
       {posts.length || offset > 0 ? (

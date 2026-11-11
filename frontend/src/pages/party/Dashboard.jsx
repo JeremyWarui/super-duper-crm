@@ -11,7 +11,7 @@ import { LoadingText } from "@/components/ui/loading-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatDate, formatNumber } from "@/lib/format";
-import { AREA_LABEL, SEAT_LABEL, SEATS } from "./helpers";
+import { AREA_LABEL, SEAT_LABEL, SEATS } from "@/lib/labels";
 
 const EMPTY = { county: "", constituency: "", ward: "", seat: "", aspirant: "", from: "", to: "" };
 

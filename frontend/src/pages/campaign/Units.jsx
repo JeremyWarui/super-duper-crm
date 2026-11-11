@@ -8,8 +8,9 @@ import { FilterPills } from "@/components/ui/tabs";
 import { formatNumber as fmt } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { assignerFor, holderOf, statusOf } from "./helpers";
-import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const TONE = { good: "ok", warn: "warn", bad: "bad" };
 const BAR = { good: "bg-primary", warn: "bg-accent", bad: "bg-bad-foreground" };
@@ -44,8 +45,8 @@ export default function Units({ campaign, role, onModal }) {
   const sorted = useMemo(() => [...(units || [])].sort(SORTS[sortKey]), [units, sortKey]);
   return (
     <>
-      <WsHeader context="Plan" title={role === "candidate" ? `${noun} performance` : `${noun}s`} sub="Win number, progress and coverage in each one." />
-      {strategy.isLoading && <KitLoading />}
+      <SlottedHeader context="Plan" title={role === "candidate" ? `${noun} performance` : `${noun}s`} sub="Win number, progress and coverage in each one." />
+      {strategy.isLoading && <LoadingText />}
       <ErrorText error={strategy.error} />
       {units && (
         <Card variant="outline" className="min-w-0 gap-3" role="region" aria-labelledby="units-h">

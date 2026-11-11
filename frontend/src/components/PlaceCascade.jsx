@@ -6,6 +6,9 @@ const LEVELS = ["county", "constituency", "ward", "centre"];
 const LABEL = { county: "County", constituency: "Constituency", ward: "Ward", centre: "Polling station" };
 const MANY = { county: "counties", constituency: "constituencies", ward: "wards", centre: "centres" };
 
+/** A place with nothing chosen. */
+export const NO_PLACE = { county: "", constituency: "", ward: "" };
+
 /**
  * The selects down to `level`, filled from `lists` ({ counties, constituencies, wards, centres }); `onChange`
  * gets the whole place. `blank(level)` reads each empty option; `labelled` shows labels above.

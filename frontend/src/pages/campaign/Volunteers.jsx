@@ -11,19 +11,14 @@ import { Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { useCopy } from "@/copy";
-import { AREA_LABEL, CONTACT_LABEL, PROFESSION_LABEL } from "../party/helpers";
-import WsHeader, { KitLoading } from "./WsHeader";
+import { CONTACT_LABEL, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE, helpsWith, professionOf } from "@/lib/labels";
 import { ErrorText } from "@/components/ui/error-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
-const TONE = { interested: "warn", active: "ok", inactive: "bad", withdrawn: "stone" };
-const LABEL = { interested: "Interested", active: "Active", inactive: "Inactive", withdrawn: "Withdrawn" };
 const ERASERS = ["candidate", "manager"];
 const FILTERS = { All: null, Interested: "interested", Active: "active", Inactive: "inactive" };
-
-function helps(v) {
-  return v.interests.map((a) => (a === "other" ? v.interest_other : AREA_LABEL[a])).filter(Boolean).join(", ");
-}
 
 export default function Volunteers({ campaign, role }) {
   const copy = useCopy();
@@ -43,8 +38,8 @@ export default function Volunteers({ campaign, role }) {
   ];
   return (
     <>
-      <WsHeader context="Field" title="Volunteers" sub="People who offered to help on the candidate's website page." />
-      {isLoading && <KitLoading />}
+      <SlottedHeader context="Field" title="Volunteers" sub="People who offered to help on the candidate's website page." />
+      {isLoading && <LoadingText />}
       <ErrorText error={error} />
       {data && (
         <>
@@ -67,10 +62,10 @@ export default function Volunteers({ campaign, role }) {
                       <TD className="font-semibold">{name}</TD>
                       <TD className="text-muted-foreground">{v.phone}</TD>
                       <TD>{v.ward.name}{v.registration_centre && <div className="text-small text-muted-foreground">{v.registration_centre.name}</div>}</TD>
-                      <TD>{helps(v) || "None given"}</TD>
-                      <TD className="text-muted-foreground">{v.profession === "other" ? v.profession_other : PROFESSION_LABEL[v.profession] || "None given"}</TD>
+                      <TD>{helpsWith(v.interests, v.interest_other) || "None given"}</TD>
+                      <TD className="text-muted-foreground">{professionOf(v) || "None given"}</TD>
                       <TD className="text-muted-foreground">{CONTACT_LABEL[v.preferred_contact]}</TD>
-                      <TD><Badge tone={v.erased_at ? "stone" : TONE[v.status]}>{v.erased_at ? "Erased" : LABEL[v.status]}</Badge></TD>
+                      <TD><Badge tone={v.erased_at ? "stone" : VOLUNTEER_STATUS_TONE[v.status]}>{v.erased_at ? "Erased" : VOLUNTEER_STATUS_LABEL[v.status]}</Badge></TD>
                       <TD align="right">
                         {v.status !== "withdrawn" ? (
                           <Button shape="rounded" size="sm" variant="quiet" disabled={update.isPending} onClick={() => update.mutate({ id: v.id, status: next })}>

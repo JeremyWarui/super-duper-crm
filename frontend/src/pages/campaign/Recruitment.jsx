@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { useClipboard } from "../../lib/useClipboard";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const STATUSES = [
   ["pending", "Waiting for a decision"],
@@ -27,7 +28,7 @@ export default function Recruitment() {
         <h1 className="font-display text-h2-app font-extrabold tracking-[-0.02em]">Recruitment</h1>
         <p className="text-ui text-muted-foreground">Share your link: everyone who applies through it is counted to you. Membership officers still decide each application.</p>
       </div>
-      {recruitment.isLoading ? <p className="text-muted-foreground">Loading…</p> : null}
+      {recruitment.isLoading ? <LoadingText /> : null}
       <ErrorText error={recruitment.error} />
       {data ? (
         <div className="flex flex-wrap items-start gap-6">

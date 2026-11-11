@@ -6,19 +6,19 @@ import { Card } from "@/components/ui/card";
 import { Pager } from "@/components/ui/pager";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
-import { STATUS_LABEL } from "../party/helpers";
-import WsHeader, { KitLoading } from "./WsHeader";
+import { STATUS_LABEL, STATUS_TONE } from "@/lib/labels";
 import { ErrorText } from "@/components/ui/error-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
+import { LoadingText } from "@/components/ui/loading-text";
 
-const TONE = { pending: "warn", approved: "ok", suspended: "warn", rejected: "bad", withdrawn: "stone" };
 
 export default function Members() {
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useAreaMembers(page);
   return (
     <>
-      <WsHeader context="Recruit" title="Party members" sub="Party members living in your area. View only: each time you open this list, it is recorded." />
-      {isLoading && <KitLoading />}
+      <SlottedHeader context="Recruit" title="Party members" sub="Party members living in your area. View only: each time you open this list, it is recorded." />
+      {isLoading && <LoadingText />}
       <ErrorText error={error} />
       {data && (
         <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Party members">
@@ -32,7 +32,7 @@ export default function Members() {
                   <TD className="text-muted-foreground tabular-nums">{m.phone}</TD>
                   <TD>{m.ward_name}</TD>
                   <TD className="text-muted-foreground">{m.registration_centre_name || "None given"}</TD>
-                  <TD><Badge tone={TONE[m.status]}>{STATUS_LABEL[m.status]}</Badge></TD>
+                  <TD><Badge tone={STATUS_TONE[m.status]}>{STATUS_LABEL[m.status]}</Badge></TD>
                 </TR>
               ))}
               {data.members.length === 0 && <TR><TD colSpan={5} className="text-muted-foreground">No party members in your area yet.</TD></TR>}

@@ -7,6 +7,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
 import { formatKES } from "../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
+import { LoadingText } from "@/components/ui/loading-text";
 
 const AMOUNTS = [200, 500, 1000, 2500, 5000];
 const CODE = /^[A-Z0-9]{10}$/;
@@ -110,7 +111,7 @@ export default function PayDialog({ title, fee, amount: preset, phone: knownPhon
   return (
     <Dialog title={title} description={fee ? `Nomination fee: ${formatKES(fee)}` : "Pay by M-Pesa. Every shilling is recorded for the declaration the law requires."} onClose={onClose} className="w-[min(640px,calc(100vw-32px))]">
       {!options ? (
-        <p className="text-muted-foreground">Loading…</p>
+        <LoadingText />
       ) : reference ? (
         <Status reference={reference} onRetry={retry} onDone={onClose} />
       ) : (
