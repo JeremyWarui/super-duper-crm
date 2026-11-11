@@ -8,15 +8,18 @@ import {
 import PayDialog from "@/components/PayDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Confirm } from "@/components/ui/confirm";
+import VolunteerFields, { NO_VOLUNTEER, volunteerBody, volunteerReady } from "@/components/VolunteerFields";
 import { Card } from "@/components/ui/card";
-import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { Field, Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/store/auth";
-import { AREAS, CONTACT_LABEL, CONTACT_METHODS, MY_ASPIRANT_STATUS, MY_MEMBER_STATUS, PROFESSIONS, SEAT_LABEL, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE, helpsWith, professionOf } from "@/lib/labels";
+import { CONTACT_LABEL, MY_ASPIRANT_STATUS, MY_MEMBER_STATUS, SEAT_LABEL, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE, helpsWith, professionOf } from "@/lib/labels";
 import { formatDate, formatDay, formatKES, placeOf } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
 import { pageState } from "@/components/PageState";
+import { contactOf } from "@/lib/format";
 
 // A member's branch, shown as ward and county.
 const place = (a) => placeOf({ ward: a.ward, county: a.county }, ", ");
@@ -46,7 +49,7 @@ function MemberCard({ account }) {
   );
 }
 
-const blank = { profession: "", profession_other: "", areas: [], area_other: "", preferred_contact: "", consent_given: false };
+const blank = { ...NO_VOLUNTEER, consent_given: false };
 
 /** The volunteer fields, for a first sign-up or a change. */
 function VolunteerForm({ volunteer, wording, onDone, onCancel }) {
@@ -57,51 +60,20 @@ function VolunteerForm({ volunteer, wording, onDone, onCancel }) {
       : blank,
   );
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
-  const toggle = (value) =>
-    set({ areas: form.areas.includes(value) ? form.areas.filter((a) => a !== value) : [...form.areas, value] });
   const submit = (e) => {
     e.preventDefault();
-    const { profession, profession_other, areas, area_other, preferred_contact, consent_given } = form;
-    change.mutate({ profession, profession_other, areas, area_other, preferred_contact, consent_given }, { onSuccess: onDone });
+    change.mutate({ ...volunteerBody(form), consent_given: form.consent_given }, { onSuccess: onDone });
   };
   return (
     <form onSubmit={submit} className="flex max-w-[620px] flex-col gap-4">
-      <Field label="Profession">
-        <NativeSelect required value={form.profession} onChange={(e) => set({ profession: e.target.value })}>
-          <option value="">Pick your profession</option>
-          {PROFESSIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </NativeSelect>
-      </Field>
-      {form.profession === "other" ? (
-        <Field label="Your profession"><Input required maxLength={100} value={form.profession_other} onChange={(e) => set({ profession_other: e.target.value })} /></Field>
-      ) : null}
-      <fieldset className="flex flex-col gap-2">
-        <legend className="pb-1 text-small font-semibold">How would you like to help?</legend>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-x-4 gap-y-1">
-          {AREAS.map(([value, label]) => (
-            <label key={value} className="flex min-h-11 items-center gap-2.5 text-body">
-              <input type="checkbox" className="size-[18px] accent-primary" checked={form.areas.includes(value)} onChange={() => toggle(value)} />
-              {label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      {form.areas.includes("other") ? (
-        <Field label="Other ways to help"><Input required maxLength={100} value={form.area_other} onChange={(e) => set({ area_other: e.target.value })} /></Field>
-      ) : null}
-      <Field label="Preferred contact">
-        <NativeSelect required value={form.preferred_contact} onChange={(e) => set({ preferred_contact: e.target.value })}>
-          <option value="">Pick a contact method</option>
-          {CONTACT_METHODS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </NativeSelect>
-      </Field>
+      <VolunteerFields value={form} onChange={set} />
       <label className="flex items-start gap-2.5 text-body">
         <input type="checkbox" required className="mt-1 size-[18px] accent-primary" checked={form.consent_given} onChange={(e) => set({ consent_given: e.target.checked })} />
         {wording}
       </label>
       <ErrorText error={change.error} className="text-small" />
       <div className="flex flex-wrap gap-2.5">
-        <Button type="submit" disabled={change.isPending || form.areas.length === 0}>{volunteer ? "Save my volunteer details" : "Volunteer for events"}</Button>
+        <Button type="submit" disabled={change.isPending || !volunteerReady(form)}>{volunteer ? "Save my volunteer details" : "Volunteer for events"}</Button>
         {onCancel ? <Button type="button" variant="quiet" onClick={onCancel}>Cancel</Button> : null}
       </div>
     </form>
@@ -180,8 +152,7 @@ function DataAndPrivacy({ account, party }) {
   const stop = useStopVolunteering();
   const leave = useLeaveParty();
   const logout = useAuth((s) => s.logout);
-  const [leaving, setLeaving] = useState(false);
-  const office = [party?.contact_email, party?.contact_phone].filter(Boolean).join(" or ");
+  const office = contactOf(party);
   return (
     <div className="flex flex-wrap gap-5">
       <Card className="flex-[1_1_360px]">
@@ -214,15 +185,8 @@ function DataAndPrivacy({ account, party }) {
           {account.volunteer ? (
             <Button variant="outline" disabled={stop.isPending} onClick={() => stop.mutate()}>Stop volunteering</Button>
           ) : null}
-          {leaving ? (
-            <span className="flex flex-wrap items-center gap-2.5">
-              <span className="text-small font-semibold">Leave {party?.name || "the party"}? This signs you out.</span>
-              <Button variant="danger" disabled={leave.isPending} onClick={() => leave.mutate(undefined, { onSuccess: logout })}>Yes, leave the party</Button>
-              <Button variant="quiet" onClick={() => setLeaving(false)}>Keep my membership</Button>
-            </span>
-          ) : (
-            <Button variant="danger" onClick={() => setLeaving(true)}>Leave the party</Button>
-          )}
+          <Confirm label="Leave the party" question={`Leave ${party?.name || "the party"}? This signs you out.`} yes="Yes, leave the party" no="Keep my membership"
+            pending={leave.isPending} onConfirm={() => leave.mutate(undefined, { onSuccess: logout })} />
         </div>
         <Link to="/privacy" className="text-small font-semibold">Read the privacy notice</Link>
       </Card>

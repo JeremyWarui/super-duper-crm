@@ -5,8 +5,8 @@ import {
   Banknote, CalendarDays, Flag, ClipboardCheck, ClipboardList, Contact, Crosshair, Globe, HandHeart, Heart, LayoutDashboard, LockKeyhole, Map, MapPin, MessageCircle, QrCode,
   Settings, ShieldCheck, Target, UserPlus, UserRoundCog, Users,
 } from "lucide-react";
-import { useEvents, useMobilizers, useStrategy, useSupporters, useTargets } from "../../api/hooks";
-import { pagesOf, reads } from "./helpers";
+import { useEvents, useMobilizers, useStrategy, useSupporters } from "../../api/hooks";
+import { pagesOf, reads, useWardOptions } from "./helpers";
 import { nairobiDate } from "../../lib/format";
 
 export const ICONS = {
@@ -41,19 +41,12 @@ export const ICONS = {
 /** The data the shell reads for this role; a query the role may not make is never sent. */
 export function useShellData(campaign, role) {
   const id = (what) => (reads(role, what) ? campaign.id : undefined);
-  const targets = useTargets(id("targets"));
+  const wardOptions = useWardOptions(id("targets"));
   const strategy = useStrategy(id("strategy"));
   const events = useEvents(id("events"));
   const supporters = useSupporters(id("supporters"));
   const mobilizers = useMobilizers(id("mobilizers"));
-  const wards = useMemo(() => {
-    const seen = new Set();
-    const out = [];
-    for (const t of targets.data || []) {
-      if (t.ward && !seen.has(t.ward)) { seen.add(t.ward); out.push({ id: t.ward, name: t.ward_name }); }
-    }
-    return out.sort((a, b) => a.name.localeCompare(b.name));
-  }, [targets.data]);
+  const wards = useMemo(() => [...wardOptions].sort((a, b) => a.name.localeCompare(b.name)), [wardOptions]);
   return { wards, strategy: strategy.data, events: events.data || [], supporters: supporters.data || [], mobilizers: mobilizers.data || [] };
 }
 

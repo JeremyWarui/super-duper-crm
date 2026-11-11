@@ -5,6 +5,7 @@ import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { InviteDialog } from "@/components/ui/invite-dialog";
 import LoginFields, { useLoginFields } from "./LoginFields";
+import { displayName } from "@/lib/format";
 
 // The aspirant adds the manager, or replaces `sitting`, whose login is then turned off.
 export default function ManagerForm({ campaignId, sitting, onClose }) {
@@ -22,7 +23,7 @@ export default function ManagerForm({ campaignId, sitting, onClose }) {
 
   const save = () => set.mutate({ campaign: campaignId, ...fields.body, replace: !!sitting });
   return (
-    <Dialog title={sitting ? "Replace manager" : "Add manager"} description={sitting ? `${sitting.full_name || sitting.username} comes off the campaign and their login is turned off.` : "One manager per campaign. They add mobilizers and run the day-to-day."} onClose={onClose}>
+    <Dialog title={sitting ? "Replace manager" : "Add manager"} description={sitting ? `${displayName(sitting)} comes off the campaign and their login is turned off.` : "One manager per campaign. They add mobilizers and run the day-to-day."} onClose={onClose}>
       <LoginFields form={fields.form} set={fields.set} />
       <ErrorText error={set.error} />
       <FormActions>

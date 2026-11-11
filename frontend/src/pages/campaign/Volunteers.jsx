@@ -16,8 +16,8 @@ import { ErrorText } from "@/components/ui/error-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
+import { isLead } from "./helpers";
 
-const ERASERS = ["candidate", "manager"];
 const FILTERS = { All: null, Interested: "interested", Active: "active", Inactive: "inactive" };
 
 export default function Volunteers({ campaign, role }) {
@@ -71,7 +71,7 @@ export default function Volunteers({ campaign, role }) {
                           <Button shape="rounded" size="sm" variant="quiet" disabled={update.isPending} onClick={() => update.mutate({ id: v.id, status: next })}>
                             {next === "active" ? "Make active" : "Make inactive"}
                           </Button>
-                        ) : !v.erased_at && ERASERS.includes(role) ? (
+                        ) : !v.erased_at && isLead(role) ? (
                           <EraseButton name={name} pending={erase.isPending} onErase={(done) => erase.mutate(v.id, { onSuccess: done })} />
                         ) : null}
                       </TD>

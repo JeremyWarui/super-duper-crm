@@ -5,11 +5,11 @@ import { QRCodeSVG } from "qrcode.react";
 import { useDecideRegistration, useRegistrations, useReplaceTeamLink, useTeamLink } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { ReasonForm } from "@/components/ui/confirm";
+import { Card, CardTitle } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import { formatDate } from "../../lib/format";
+import { formatDate, linkTo } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { useClipboard } from "../../lib/useClipboard";
 import { SlottedHeader } from "@/components/layout/AppPage";
@@ -17,17 +17,17 @@ import { LoadingText } from "@/components/ui/loading-text";
 
 const VIEWS = { Waiting: "pending", Approved: "approved", "Not approved": "rejected" };
 import { ROLE_LABEL } from "@/lib/labels";
-const LINK_WRITERS = ["candidate", "manager"];
+import { isLead } from "./helpers";
 
 function TeamLinkCard({ campaign, role }) {
   const link = useTeamLink(campaign.id);
   const replace = useReplaceTeamLink();
   const { copied, copy } = useClipboard();
-  const url = link.data ? `${window.location.origin}/team/${link.data.code}` : "";
+  const url = link.data ? linkTo(`/team/${link.data.code}`) : "";
   return (
     <Card variant="outline" className="min-w-0 flex-[1_1_360px] gap-4" role="region" aria-label="Team link">
       <div className="flex flex-col gap-1">
-        <h2 className="text-card-title font-bold">Team sign-up link</h2>
+        <CardTitle>Team sign-up link</CardTitle>
         <p className="text-ui text-muted-foreground">Share it with people who want to be mobilizers or agents. Every sign-up waits for a decision here.</p>
       </div>
       <ErrorText error={link.error} />
@@ -38,9 +38,9 @@ function TeamLinkCard({ campaign, role }) {
             <a href={url} className="break-all font-semibold">{url}</a>
             <div className="flex flex-wrap gap-2">
               <Button shape="rounded" variant="quiet" size="sm" onClick={() => copy(url)}>{copied ? "Copied" : "Copy link"}</Button>
-              {LINK_WRITERS.includes(role) && <Button shape="rounded" variant="ghost" size="sm" disabled={replace.isPending} onClick={() => replace.mutate(campaign.id)}>Replace link</Button>}
+              {isLead(role) && <Button shape="rounded" variant="ghost" size="sm" disabled={replace.isPending} onClick={() => replace.mutate(campaign.id)}>Replace link</Button>}
             </div>
-            {LINK_WRITERS.includes(role) && <p className="text-small text-muted-foreground">Replacing it stops the old link and QR code from working.</p>}
+            {isLead(role) && <p className="text-small text-muted-foreground">Replacing it stops the old link and QR code from working.</p>}
           </div>
         </div>
       )}
@@ -56,11 +56,8 @@ function Decision({ campaign, row, onDone }) {
   if (rejecting) {
     return (
       <div className="flex flex-col gap-2">
-        <Input aria-label={`Reason for not approving ${row.full_name}`} placeholder="Why not" value={reason} onChange={(e) => setReason(e.target.value)} />
-        <div className="flex gap-2">
-          <Button shape="rounded" size="sm" variant="danger" disabled={reason.trim().length < 3 || decide.isPending} onClick={() => send("reject")}>Reject with this reason</Button>
-          <Button shape="rounded" size="sm" variant="ghost" onClick={() => setRejecting(false)}>Back</Button>
-        </div>
+        <ReasonForm label={`Reason for not approving ${row.full_name}`} placeholder="Why not" value={reason} onChange={setReason} min={3}
+          yes="Reject with this reason" no="Back" busy={decide.isPending} onYes={() => send("reject")} onNo={() => setRejecting(false)} />
         <ErrorText error={decide.error} className="text-small" />
       </div>
     );

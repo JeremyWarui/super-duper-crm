@@ -5,7 +5,7 @@ import { useDecidePaymentIn, usePaymentsIn } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { ReasonForm } from "@/components/ui/confirm";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatDay, formatKES } from "../lib/format";
@@ -52,11 +52,9 @@ export default function PaymentsInTable({ campaignId }) {
                   </span>
                 ) : null}
                 {rejecting === r.id ? (
-                  <span className="inline-flex flex-wrap items-center justify-end gap-2">
-                    <Input aria-label={`Why reject ${r.mpesa_code}`} value={reason} placeholder="Not on the statement" onChange={(e) => setReason(e.target.value)} />
-                    <Button size="sm" shape="rounded" disabled={!reason.trim() || decide.isPending} onClick={() => decide.mutate({ id: r.id, reason: reason.trim() }, { onSuccess: () => setRejecting(null) })}>Reject</Button>
-                    <Button size="sm" shape="rounded" variant="quiet" onClick={() => setRejecting(null)}>Keep</Button>
-                  </span>
+                  <ReasonForm label={`Why reject ${r.mpesa_code}`} placeholder="Not on the statement" value={reason} onChange={setReason} yes="Reject" no="Keep"
+                    busy={decide.isPending} onNo={() => setRejecting(null)}
+                    onYes={() => decide.mutate({ id: r.id, reason: reason.trim() }, { onSuccess: () => setRejecting(null) })} />
                 ) : null}
               </TD>
             </TR>

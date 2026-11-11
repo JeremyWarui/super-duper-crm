@@ -1,7 +1,7 @@
 // A PDF's first page drawn on the page itself, with a link to download the file.
 import { useEffect, useRef, useState } from "react";
 import { Download } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { loadPdf } from "@/lib/pdf";
 
 /** Shows the first page of the PDF at `url` at the width of its column; only the link when it cannot be drawn. */
@@ -37,7 +37,7 @@ export function PdfViewer({ url, title }) {
   return (
     <section aria-label={title} className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-card-title font-bold">{title}</h2>
+        <CardTitle>{title}</CardTitle>
         <a href={url} download className="inline-flex items-center gap-1.5 text-ui font-bold">
           <Download size={18} aria-hidden />Download the PDF
         </a>

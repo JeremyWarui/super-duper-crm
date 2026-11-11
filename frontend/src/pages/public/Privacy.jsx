@@ -2,7 +2,8 @@
 import { useSite } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import { useCopy } from "@/copy";
-import PageHead from "./PageHead";
+import PageHead from "@/components/PageHead";
+import { contactOf } from "@/lib/format";
 
 export default function Privacy() {
   const party = useSite().data;
@@ -23,9 +24,7 @@ export default function Privacy() {
         <p className="text-base text-muted-foreground">
           {party.name} holds personal data under the Data Protection Act, 2019. To see, correct or
           delete what it holds about you, contact {copy.organisation}
-          {[party.contact_email, party.contact_phone].filter(Boolean).length
-            ? ` at ${[party.contact_email, party.contact_phone].filter(Boolean).join(" or ")}`
-            : ""}
+          {contactOf(party) ? ` at ${contactOf(party)}` : ""}
           .
         </p>
       </section>

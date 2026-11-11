@@ -3,14 +3,15 @@ import { useState } from "react";
 import { useBackups, useHealth, useTestSend, useTestService } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { ErrorText } from "@/components/ui/error-text";
+import { formatDateTime } from "@/lib/format";
 
 const GB = 1024 ** 3;
 const size = (bytes) => (bytes == null ? "unknown" : bytes >= GB ? `${(bytes / GB).toFixed(1)} GB` : `${(bytes / 1024 ** 2).toFixed(1)} MB`);
-const when = (iso) => (iso ? new Date(iso).toLocaleString() : "never");
+const when = (iso) => (iso ? formatDateTime(iso) : "never");
 
 function Row({ label, children }) {
   return (
@@ -59,7 +60,7 @@ function SignIn({ google }) {
   const check = useTestService();
   return (
     <Card variant="outline" className="gap-3" role="region" aria-label="Sign-in">
-      <h2 className="text-card-title font-bold">Sign-in</h2>
+      <CardTitle>Sign-in</CardTitle>
       <p className="text-ui text-muted-foreground">Everyone signs in with email and password; Google sign-in shows beside it once its keys are set.</p>
       <div className="flex flex-col gap-2">
         <Button type="button" shape="rounded" variant="quiet" className="self-start" disabled={!google || check.isPending} onClick={() => check.mutate("google")}>
@@ -82,7 +83,7 @@ export default function Health() {
   return (
     <div className="kit flex flex-col gap-4">
       <Card variant="outline" className="gap-1" role="region" aria-label="Installation">
-        <h2 className="text-card-title font-bold">Installation</h2>
+        <CardTitle>Installation</CardTitle>
         <Row label="Version">{h.version}</Row>
         <Row label="Database">{h.database.reachable ? <Badge tone="ok">Reachable</Badge> : <Badge tone="bad">{h.database.detail || "Unreachable"}</Badge>}</Row>
         {h.database.size_bytes != null && <Row label="Database size">{size(h.database.size_bytes)}</Row>}
@@ -95,7 +96,7 @@ export default function Health() {
         {h.disks.map((d) => <Row key={d.label} label={`Free space, ${d.label.toLowerCase()}`}>{size(d.free_bytes)} of {size(d.total_bytes)}</Row>)}
       </Card>
       <Card variant="outline" className="gap-1" role="region" aria-label="Outside services">
-        <h2 className="text-card-title font-bold">Outside services</h2>
+        <CardTitle>Outside services</CardTitle>
         <p className="text-ui text-muted-foreground">Set in the server's <code>.env</code>; anything not configured runs in practice mode and sends nothing.</p>
         {h.services.map((s) => (
           <Row key={s.key} label={s.label}>{s.configured ? <Badge tone="ok">Configured ({s.mode})</Badge> : <Badge tone="stone">Not configured</Badge>}</Row>
@@ -108,7 +109,7 @@ export default function Health() {
       </Card>
       <SignIn google={h.services.some((s) => s.key === "google" && s.configured)} />
       <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Backups">
-        <h2 className="text-card-title font-bold">Backups</h2>
+        <CardTitle>Backups</CardTitle>
         <p className="text-ui">
           Last backup: <strong>{last ? `${when(last.at)} (${last.status})` : "never"}</strong>.{" "}
           <span className="text-muted-foreground">A nightly job runs <code>campaign-crm backup</code>; it keeps 14 daily and 8 weekly archives.</span>

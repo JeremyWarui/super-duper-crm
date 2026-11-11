@@ -130,3 +130,7 @@ export const AGENT_STEPS = [["applied", "Applied"], ["vetted", "Vetted"], ["trai
 
 // An assignment's status as [label, badge tone].
 export const ASSIGNMENT_STATUS = { assigned: ["Assigned", "warn"], done: ["Done", "ok"], cancelled: ["Cancelled", "stone"] };
+
+/** A login's party offices as words: `superAdmin` for a superuser. */
+export const officeOf = (user, superAdmin) =>
+  user?.is_superuser ? superAdmin : (user?.party_roles || []).map((r) => PARTY_ROLE_LABEL[r] || r).join(", ");

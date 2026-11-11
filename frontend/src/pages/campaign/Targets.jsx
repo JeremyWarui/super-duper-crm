@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRefreshTargets, useTargets, useUpdateTarget } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
 import { winNumber } from "@/winNumber";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
+import { isLead, unitOf } from "./helpers";
 
 const SAVE_STATUS = {
   saving: ["Saving…", "text-muted-foreground"],
@@ -90,14 +91,14 @@ export default function Targets({ campaign, role }) {
   const { data, isLoading, error } = useTargets(campaign.id);
   const refresh = useRefreshTargets();
   // Win numbers follow a new voter register only when someone who runs the campaign asks.
-  const refreshes = role === "candidate" || role === "manager";
+  const refreshes = isLead(role);
   const action = refreshes ? (
     <Button shape="rounded" variant="quiet" disabled={refresh.isPending} onClick={() => refresh.mutate(campaign.id)}
       title="Recompute every win number from the latest voter register; turnouts and committed votes stay.">
       {refresh.isPending ? "Refreshing…" : "Refresh targets"}
     </Button>
   ) : null;
-  const noun = campaign.operational_grain === "centre" ? "centre" : "ward";
+  const { noun } = unitOf(campaign);
   const [drafts, setDrafts] = useState({});  // turnout per target id, until its save settles
   const onDraft = useCallback((id, pct) => setDrafts((d) => ({ ...d, [id]: pct })), []);
   // A failed save always puts the saved number back; a good one keeps a newer drag.
@@ -120,7 +121,7 @@ export default function Targets({ campaign, role }) {
         <>
           <Totals rows={rows} turnoutOf={turnoutOf} neededOf={neededOf} />
           <Card variant="outline" className="min-w-0 gap-3" role="region" aria-labelledby="turnout-h">
-            <h2 id="turnout-h" className="text-card-title font-bold">Turnout per {noun}</h2>
+            <CardTitle id="turnout-h">Turnout per {noun}</CardTitle>
             <Table minWidth={600}>
               <THead><TR>
                 <TH>{noun === "centre" ? "Centre" : "Ward"}</TH><TH align="right">Registered</TH><TH>Expected turnout</TH><TH align="right">Win number</TH>

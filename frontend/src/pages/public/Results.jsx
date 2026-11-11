@@ -3,11 +3,12 @@ import { useState } from "react";
 import { usePublicResults } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Crumbs } from "@/components/ui/typography";
 import { SEAT_LABEL, SEATS } from "@/lib/labels";
-import { formatDay } from "@/lib/format";
+import { formatDay, formatNumber } from "@/lib/format";
 import { LoadingText } from "@/components/ui/loading-text";
 import { ErrorText } from "@/components/ui/error-text";
+import { PageHero } from "@/components/PageHead";
+import { FilterPills } from "@/components/ui/tabs";
 
 /** Rows (already ordered by seat, area and votes) as races: one seat in one area, most votes first. */
 export function races(rows) {
@@ -41,12 +42,12 @@ function Race({ race, label }) {
             return (
               <li key={r.id} className="flex justify-between gap-3 border-t border-line-soft py-2 text-[15px]">
                 <span className={won ? "font-extrabold text-primary" : "font-medium"}>{won ? "✓ " : ""}{r.candidate}</span>
-                <span className="font-semibold tabular-nums">{r.votes.toLocaleString("en-KE")} votes</span>
+                <span className="font-semibold tabular-nums">{formatNumber(r.votes)} votes</span>
               </li>
             );
           })}
         </ol>
-        <span className="text-small text-muted-foreground">{total.toLocaleString("en-KE")} votes cast</span>
+        <span className="text-small text-muted-foreground">{formatNumber(total)} votes cast</span>
       </article>
     </Card>
   );
@@ -60,25 +61,14 @@ export default function Results() {
   const seats = SEATS.filter(([value]) => all.some((r) => r.seat === value));
   const demo = (results.data || []).some((r) => r.demo);
   const year = all.map((r) => r.declared?.slice(0, 4)).filter(Boolean).sort().at(-1);
-  const pill = (on) => `min-h-11 cursor-pointer rounded-full border-[1.5px] px-[18px] text-[15px] font-semibold ${on ? "border-ink bg-ink text-white" : "border-line-control bg-white text-ink"}`;
   return (
     <>
-      <section className="bg-ink text-on-dark">
-        <div className="site-container flex flex-col gap-3 py-12">
-          <Crumbs onDark items={[{ label: "Home", to: "/" }, { label: "Primary results" }]} />
-          <h1 className="font-display text-[clamp(40px,5vw,60px)] leading-none font-extrabold tracking-[-0.03em]">Primary results{year ? ` ${year}` : ""}</h1>
-          <p className="max-w-[640px] text-[17px] leading-[1.6] text-on-dark-muted">Results declared by the party's Elections Board for each seat and area.</p>
-          {demo ? <p role="note" className="self-start rounded-full bg-accent px-3.5 py-1.5 text-ui font-extrabold text-ink">Demo results: made up to show how this page works.</p> : null}
-        </div>
-      </section>
+      <PageHero tone="ink" crumbs={[{ label: "Primary results" }]} title={<>Primary results{year ? ` ${year}` : ""}</>} lead="Results declared by the party's Elections Board for each seat and area.">
+        {demo ? <p role="note" className="self-start rounded-full bg-accent px-3.5 py-1.5 text-ui font-extrabold text-ink">Demo results: made up to show how this page works.</p> : null}
+      </PageHero>
       <div className="site-container flex flex-col gap-[22px] pt-9 pb-[72px]">
         {seats.length > 1 ? (
-          <div role="group" aria-label="Seat" className="flex flex-wrap gap-2">
-            <button type="button" aria-pressed={!seat} onClick={() => setSeat("")} className={pill(!seat)}>All</button>
-            {seats.map(([value, label]) => (
-              <button key={value} type="button" aria-pressed={seat === value} onClick={() => setSeat(value)} className={pill(seat === value)}>{label}</button>
-            ))}
-          </div>
+          <FilterPills look="ink" label="Seat" options={[["", "All"], ...seats.map(([value, label]) => [value, label])]} value={seat} onChange={setSeat} />
         ) : null}
         {results.isLoading ? <LoadingText /> : null}
         {results.error ? <ErrorText error={results.error} /> : null}

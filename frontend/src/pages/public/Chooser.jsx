@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { Logo } from "@/components/layout/Logo";
 import { homeOf } from "@/lib/home";
 import { useAuth } from "@/store/auth";
-import { PARTY_ROLE_LABEL } from "@/lib/labels";
+import { officeOf } from "@/lib/labels";
+import { firstName } from "@/lib/format";
 
 const ROLE = { candidate: "Candidate team", manager: "Candidate team", mobilizer: "Mobilizer" };
 
@@ -16,7 +17,7 @@ export function placesOf(user) {
       : {
           title: user.is_superuser ? "Console" : "Party CRM",
           desc: "Members, volunteers, aspirants and website, as your roles allow",
-          role: user.is_superuser ? "Party super admin" : (user.party_roles || []).map((r) => PARTY_ROLE_LABEL[r] || r).join(", "),
+          role: officeOf(user, "Party super admin"),
           initial: "C",
           box: "bg-primary text-white",
         };
@@ -28,7 +29,7 @@ export function placesOf(user) {
 
 export default function Chooser() {
   const user = useAuth((s) => s.user);
-  const first = (user?.full_name || "").split(" ")[0];
+  const first = firstName(user?.full_name);
   return (
     <div className="flex min-h-dvh justify-center bg-background px-6 py-14">
       <div className="flex w-full max-w-[760px] flex-col gap-6">

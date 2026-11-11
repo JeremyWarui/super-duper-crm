@@ -3,11 +3,11 @@ import { Link, NavLink, useParams } from "react-router-dom";
 import { usePublicIssue, usePublicIssues } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Crumbs } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import { useCopy } from "@/copy";
 import { pageState } from "@/components/PageState";
 import { linesOf } from "@/lib/format";
+import { PageHero } from "@/components/PageHead";
 
 
 export default function Issue() {
@@ -37,14 +37,7 @@ export default function Issue() {
           </nav>
         </div>
       ) : null}
-      <section className="bg-primary text-white">
-        <div className="site-container flex flex-col gap-4 py-14">
-          <Crumbs onDark items={[{ label: "Home", to: "/" }, { label: "Agenda & issues", to: copy.agendaHome }, { label: i.title }]} />
-          <p className="text-ui font-bold uppercase tracking-[0.12em] text-accent">Our position{num ? ` · issue ${num}` : ""}</p>
-          <h1 className="font-display text-page font-extrabold tracking-[-0.03em]">{i.title}</h1>
-          {i.summary ? <p className="max-w-[46ch] text-[19px] leading-[1.6] text-[#CFE0D5]">{i.summary}</p> : null}
-        </div>
-      </section>
+      <PageHero crumbs={[{ label: "Agenda & issues", to: copy.agendaHome }, { label: i.title }]} kicker={<>Our position{num ? ` · issue ${num}` : ""}</>} title={i.title} lead={i.summary} />
       <div className="site-container flex flex-col gap-12 pt-14 pb-[72px]">
         {steps.length ? (
           <section aria-labelledby="w-h" className="flex flex-col gap-5">

@@ -8,6 +8,7 @@ import { homeOf } from '@/lib/home'
 import { useAuth } from '@/store/auth'
 import { useCopy } from '@/copy'
 import { Logo } from './Logo'
+import { firstName } from '@/lib/format'
 
 
 /** Dark 13px utility bar above the header: registration, hotline, and sign-in or the signed-in login. */
@@ -25,7 +26,7 @@ export function SiteUtilityBar() {
         <span className="sm:hidden">{b.hotline ? `Hotline ${b.hotline}` : null}</span>
         {token ? (
           <span className="flex items-center gap-3.5">
-            <Link to={user?.member_account ? "/account" : homeOf(user)} className="py-2 font-semibold text-white hover:text-white">{[(user?.full_name || '').split(' ')[0], 'My account'].filter(Boolean).join(' · ')}</Link>
+            <Link to={user?.member_account ? "/account" : homeOf(user)} className="py-2 font-semibold text-white hover:text-white">{[firstName(user?.full_name), 'My account'].filter(Boolean).join(' · ')}</Link>
             <button type="button" onClick={logout} className="cursor-pointer py-2 text-[#C9CDCB] hover:text-white">Sign out</button>
           </span>
         ) : (

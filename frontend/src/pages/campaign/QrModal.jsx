@@ -6,10 +6,11 @@ import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import ShareLink from "./ShareLink";
+import { linkTo } from "@/lib/format";
 
 export default function QrModal({ event, canClose, onClose }) {
   const setSignups = useSetSignups();
-  const link = `${window.location.origin}/join/${event.signup_code}`;
+  const link = linkTo(`/join/${event.signup_code}`);
   const [open, setOpen] = useState(event.signups_open);
   const toggle = () => setSignups.mutate({ id: event.id, open: !open }, { onSuccess: () => setOpen(!open) });
   return (

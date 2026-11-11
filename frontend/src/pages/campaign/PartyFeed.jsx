@@ -5,6 +5,7 @@ import { useChangeSharing, usePartyFeed } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatDate, formatNumber as fmt } from "@/lib/format";
+import { FilterPills } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
@@ -44,14 +45,7 @@ function Feed({ data }) {
   return (
     <Card className="min-w-0 gap-4 p-5" role="region" aria-label="From the party">
       <h2 className="font-display text-card-title font-extrabold">From the party</h2>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Show">
-        {FILTERS.map((f) => (
-          <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}
-            className={cn("min-h-10 rounded-full border px-4 text-small font-semibold", filter === f ? "border-ink bg-ink text-on-dark" : "border-line bg-card")}>
-            {f}
-          </button>
-        ))}
-      </div>
+      <FilterPills look="ink" label="Show" options={FILTERS} value={filter} onChange={setFilter} />
       {empty && <p className="text-muted-foreground">Nothing from the party for your area yet.</p>}
       <ul className="flex flex-col">
         {show("Events") && data.events.map((e) => (

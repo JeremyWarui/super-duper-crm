@@ -5,11 +5,12 @@ import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { LoadingText } from "@/components/ui/loading-text";
-import { useUnits } from "./helpers";
+import { unitOf, useUnits } from "./helpers";
+import { displayName } from "@/lib/format";
 
 // Picks a coordinator's area from the campaign's targeted units: wards, or centres in an MCA race.
 export default function AreaPicker({ campaign, person, onClose }) {
-  const byCentre = campaign.operational_grain === "centre";
+  const { byCentre } = unitOf(campaign);
   const units = useUnits(campaign.id);
   const area = useArea(campaign.id, person.id);
   const save = useSetArea();
@@ -31,7 +32,7 @@ export default function AreaPicker({ campaign, person, onClose }) {
   const noun = byCentre ? "centres" : "wards";
 
   return (
-    <Dialog title={`Area for ${person.full_name || person.username}`} description={`The ${noun} this coordinator works. They see nothing outside them.`} onClose={onClose}>
+    <Dialog title={`Area for ${displayName(person)}`} description={`The ${noun} this coordinator works. They see nothing outside them.`} onClose={onClose}>
       {area.isLoading || picked === null ? (area.error ? <ErrorText error={area.error} /> : <LoadingText />) : (
         <div className="flex flex-col">
           {options.map((o) => (

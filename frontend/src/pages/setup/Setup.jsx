@@ -5,9 +5,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCheckSetupToken, useRunSetup, useSetupAreas, useSetupServices, useTestService } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { INK, MIN_CONTRAST, WHITE, contrast, isHex } from "@/lib/contrast";
+import { ColourFields } from "@/components/Swatch";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
 import { isEmail } from "../../lib/email";
@@ -126,22 +127,9 @@ function SeatStep({ token, form, change }) {
         <Field label="Election date"><Input type="date" value={a.election_date} onChange={(e) => set({ election_date: e.target.value })} /></Field>
       </div>
       <AreaPicker token={token} level={level} place={a} onChange={({ county, constituency, ward }) => set({ county, constituency, ward })} />
-      <h3 className="text-card-title font-bold">The candidate's login</h3>
+      <CardTitle as="h3">The candidate's login</CardTitle>
       <Login who="Candidate" value={a.candidate} onChange={(candidate) => set({ candidate })} />
     </div>
-  );
-}
-
-function Swatch({ label, value, onChange, against, textOn }) {
-  const ok = isHex(value) && contrast(value, against) >= MIN_CONTRAST;
-  return (
-    <Field label={label} hint={isHex(value) ? `Contrast with ${textOn} text: ${contrast(value, against).toFixed(1)} (needs ${MIN_CONTRAST})` : "Use #rrggbb."}>
-      <div className="flex items-center gap-2">
-        <input type="color" aria-label={`${label} picker`} value={isHex(value) ? value : "#000000"} onChange={(e) => onChange(e.target.value)} className="h-11 w-14 flex-none cursor-pointer rounded-lg border border-line-control bg-white p-1" />
-        <Input value={value} onChange={(e) => onChange(e.target.value)} aria-invalid={!ok} />
-        <span className="flex h-11 flex-none items-center rounded-lg px-3 text-ui font-bold" style={{ background: isHex(value) ? value : "#fff", color: against }}>Aa</span>
-      </div>
-    </Field>
   );
 }
 
@@ -156,7 +144,7 @@ function Services({ result }) {
   });
   return (
     <Card variant="outline" className="gap-3" role="region" aria-label="Outside services">
-      <h2 className="text-card-title font-bold">Outside services</h2>
+      <CardTitle>Outside services</CardTitle>
       <p className="text-ui text-muted-foreground">Set in the server's <code>.env</code>. Practice mode records what would go out and sends nothing.</p>
       <ul className="flex flex-col">
         {services.map((s) => (
@@ -263,8 +251,7 @@ export default function Setup() {
               <Field label="Short name" hint="Up to 30 letters, for small screens. 3 letters or fewer go on the logo tile; longer, the initials do."><Input value={form.site.short_name} onChange={site("short_name")} /></Field>
             </div>
             <Field label="Logo link" hint="An https:// address of the logo image; you can change it later."><Input type="url" value={form.site.logo_url} onChange={site("logo_url")} /></Field>
-            <Swatch label="Primary colour" value={form.site.primary_colour} onChange={site("primary_colour")} against={WHITE} textOn="white" />
-            <Swatch label="Secondary colour" value={form.site.secondary_colour} onChange={site("secondary_colour")} against={INK} textOn="dark" />
+            <ColourFields form={form.site} set={site} />
           </div>
         )}
         {step === 2 && (

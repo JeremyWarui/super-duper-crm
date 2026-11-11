@@ -4,10 +4,11 @@ import { useNominationNotice, useParty, useSite } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Crumbs } from "@/components/ui/typography";
 
 import { SEAT_LABEL } from "@/lib/labels";
 import { formatDay, formatKES, listItems } from "@/lib/format";
+import { PageHero } from "@/components/PageHead";
+import { RuleHead } from "@/components/ui/typography";
 
 
 // The published nominations timetable: open now, or the next to open.
@@ -52,21 +53,12 @@ export default function Vie() {
   ].filter(([, value]) => value);
   return (
     <>
-      <section className="bg-primary text-white">
-        <div className="site-container flex flex-col gap-5 py-14">
-          <Crumbs onDark items={[{ label: "Home", to: "/" }, { label: "Vie with us" }]} />
-          <p className="text-ui font-bold uppercase tracking-[0.12em] text-accent">Seeking a seat?</p>
-          <h1 className="font-display text-[clamp(40px,5vw,64px)] leading-none font-extrabold tracking-[-0.03em]">Vie with us</h1>
-          <p className="max-w-[640px] text-[18px] leading-[1.6] text-[#CFE0D5]">
-            Run for MCA, MP, Governor, Senator or Women Rep on the {party.short_name || party.name || "party"} ticket. Here is how to become an aspirant.
-          </p>
-        </div>
-      </section>
+      <PageHero crumbs={[{ label: "Vie with us" }]} kicker="Seeking a seat?" title="Vie with us" lead={<>Run for MCA, MP, Governor, Senator or Women Rep on the {party.short_name || party.name || "party"} ticket. Here is how to become an aspirant.</>} />
       <div className="site-container flex flex-wrap items-start gap-10 pt-14 pb-[72px]">
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-10">
         <Timetable />
         <section aria-labelledby="steps-h" className="flex min-w-0 flex-col gap-5">
-          <h2 id="steps-h" className="rule-top font-display text-[32px] font-extrabold">How to become an aspirant</h2>
+          <RuleHead id="steps-h">How to become an aspirant</RuleHead>
           {list.length ? (
             <ol className="flex flex-col gap-3.5">
               {list.map((step, n) => (

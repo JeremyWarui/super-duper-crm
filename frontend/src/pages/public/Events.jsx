@@ -3,10 +3,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import { usePartyPlaces, usePublicPosts } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import { FilterSelect } from "@/components/ui/input";
-import { Crumbs } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";
 import { LoadingText } from "@/components/ui/loading-text";
 import { ErrorText } from "@/components/ui/error-text";
+import { PageHero } from "@/components/PageHead";
 
 function byMonth(events) {
   const months = [];
@@ -45,16 +45,12 @@ export default function Events() {
   const pick = (county) => setParams(county ? { county } : {}, { replace: true });
   return (
     <>
-      <section className="bg-ink text-on-dark">
-        <div className="site-container flex flex-col gap-6 py-12">
-          <Crumbs onDark items={[{ label: "Home", to: "/" }, { label: "Events" }]} />
-          <h1 className="font-display text-[clamp(40px,5vw,64px)] leading-none font-extrabold tracking-[-0.03em]">Events near you</h1>
-          <label className="flex w-full max-w-[280px] flex-col gap-1.5 text-small font-semibold text-on-dark-muted">
-            County
-            <FilterSelect label="County" blank="All counties" value={county} onChange={pick} options={counties} className="w-full flex-none border-0 bg-white text-ink" />
-          </label>
-        </div>
-      </section>
+      <PageHero tone="ink" crumbs={[{ label: "Events" }]} title="Events near you">
+        <label className="flex w-full max-w-[280px] flex-col gap-1.5 text-small font-semibold text-on-dark-muted">
+          County
+          <FilterSelect label="County" blank="All counties" value={county} onChange={pick} options={counties} className="w-full flex-none border-0 bg-white text-ink" />
+        </label>
+      </PageHero>
       <div className="site-container flex flex-wrap items-start gap-10 pt-12 pb-20">
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-3.5">
           {events.isLoading ? <LoadingText /> : null}

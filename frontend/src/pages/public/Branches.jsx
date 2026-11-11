@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { usePublicBranches } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
-import PageHead from "./PageHead";
+import PageHead from "@/components/PageHead";
 import { LoadingText } from "@/components/ui/loading-text";
 
 const chairOf = (b) => b.officials.find((o) => o.office === "chair")?.name;

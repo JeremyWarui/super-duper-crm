@@ -7,7 +7,7 @@ import PayDialog from "@/components/PayDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCopy } from "@/copy";
-import PageHead from "./PageHead";
+import PageHead from "@/components/PageHead";
 
 export default function Contribute() {
   const site = useSite().data;

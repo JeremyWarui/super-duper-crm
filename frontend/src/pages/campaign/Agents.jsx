@@ -3,7 +3,7 @@
 import { exportAgents, useAgentCoverage, useAgents, useUpdateAgent } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
@@ -13,7 +13,7 @@ import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
 
 import { AGENT_STEPS } from "@/lib/labels";
-const EXPORTERS = ["candidate", "manager"];
+import { isLead } from "./helpers";
 
 function Tiles({ agents, coverage }) {
   const ready = agents.filter((a) => a.status === "ready").length;
@@ -32,7 +32,7 @@ function Coverage({ coverage }) {
   return (
     <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Coverage">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-card-title font-bold">Centres with no agent</h2>
+        <CardTitle>Centres with no agent</CardTitle>
         <span className="text-ui text-muted-foreground">{fmt(coverage.centres - coverage.covered)} of {fmt(coverage.centres)}</span>
       </div>
       {missing.length ? (
@@ -51,7 +51,7 @@ export default function Agents({ campaign, role, onModal }) {
   const update = useUpdateAgent();
   const rows = agents.data || [];
   const ids = rows.some((a) => a.id_number);
-  const action = EXPORTERS.includes(role) ? <Button shape="rounded" variant="quiet" onClick={() => exportAgents(campaign.id)}>Export for letters</Button> : null;
+  const action = isLead(role) ? <Button shape="rounded" variant="quiet" onClick={() => exportAgents(campaign.id)}>Export for letters</Button> : null;
   return (
     <>
       <SlottedHeader context="Field" title="Agents" sub="Polling agents, readied for one registration centre each before polling day." actions={action} />
@@ -62,7 +62,7 @@ export default function Agents({ campaign, role, onModal }) {
           <Tiles agents={rows} coverage={coverage.data} />
           {coverage.data && <Coverage coverage={coverage.data} />}
           <Card variant="outline" className="min-w-0 gap-3">
-            <h2 className="text-card-title font-bold">Everyone</h2>
+            <CardTitle>Everyone</CardTitle>
             <ErrorText error={update.error} />
             <Table stack minWidth={720}>
               <THead><TR><TH>Agent</TH><TH>Centre</TH>{ids && <TH>ID number</TH>}<TH>Status</TH><TH>Training date</TH><TH className="relative"><span className="sr-only">Assign</span></TH></TR></THead>

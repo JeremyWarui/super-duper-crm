@@ -1,6 +1,6 @@
 // What the campaign pages share: the nav per role, small helpers and the unit lists.
 import { useMemo } from "react";
-import { useTargets } from "../../api/hooks";
+import { useCentres, useTargets } from "../../api/hooks";
 import { isEmail } from "../../lib/email";
 import { formatDay, nairobiDate } from "../../lib/format";
 
@@ -117,9 +117,21 @@ export function useWardOptions(campaignId) {
   }, [targets.data]);
 }
 
+/**
+ * The centres of `ward` that carry a target (`centres`), every centre of the ward (`all`), the targeted
+ * centre ids, whether the targets are in (`ready`) and whether the centres have come back (`fetched`).
+ */
+export function useTargetedCentres(campaignId, ward) {
+  const targets = useTargets(campaignId);
+  const query = useCentres(ward);
+  const all = query.data || [];
+  const targeted = new Set((targets.data || []).map((t) => t.registration_centre));
+  return { centres: all.filter((c) => targeted.has(c.id)), all, targeted, ready: targets.isSuccess, fetched: !query.isFetching && !query.isError };
+}
+
 // Who may put a mobilizer on a unit; undefined hides the button.
 export const assignerFor = (role, onModal) =>
-  role === "manager" || role === "candidate" ? (unit, holder) => onModal({ type: "assign", unit, holder }) : undefined;
+  isLead(role) ? (unit, holder) => onModal({ type: "assign", unit, holder }) : undefined;
 
 /** Whether a new login's username (3 or more characters) and email are usable. */
 export const loginReady = ({ username, email }) => username.trim().length >= 3 && isEmail(email);
@@ -133,3 +145,12 @@ export function loginBody({ name, username, email, phone }) {
 // Attendance counts people reached, so it can't exceed them.
 export const attendanceOk = (reached, attended) => reached > 0 && attended <= reached;
 export const TOO_MANY_ATTENDED = "Attendance can't be more than those reached.";
+
+/** Whether the role leads the campaign: the candidate or the manager. */
+export const isLead = (role) => role === "candidate" || role === "manager";
+
+/** The campaign's unit of work: whether it is a polling centre, and its word in lower and title case. */
+export function unitOf(campaign) {
+  const byCentre = campaign.operational_grain === "centre";
+  return { byCentre, noun: byCentre ? "centre" : "ward", Noun: byCentre ? "Centre" : "Ward" };
+}

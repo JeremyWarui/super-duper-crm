@@ -1,4 +1,4 @@
-import { useWardOptions } from "./helpers";
+import { unitOf, useWardOptions } from "./helpers";
 import RegisterSupporterForm from "./RegisterSupporterForm";
 import { SlottedHeader } from "@/components/layout/AppPage";
 
@@ -7,7 +7,7 @@ export default function Register({ campaign }) {
   return (
     <>
       <SlottedHeader context="My work" title="Register a supporter" sub="Quick capture in the field." />
-      <RegisterSupporterForm campaignId={campaign.id} wardOptions={wardOptions} byCentre={campaign.operational_grain === "centre"} />
+      <RegisterSupporterForm campaignId={campaign.id} wardOptions={wardOptions} byCentre={unitOf(campaign).byCentre} />
     </>
   );
 }

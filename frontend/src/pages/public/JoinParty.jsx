@@ -6,16 +6,16 @@ import { useJoinParty, useParty, useSite } from "@/api/hooks";
 import PlaceCascade from "@/components/PlaceCascade";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { Field, Input } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
-import { AREAS, CONTACT_METHODS, PROFESSIONS } from "@/lib/labels";
+import VolunteerFields, { CHECK_PILL, NO_VOLUNTEER, volunteerBody, volunteerReady } from "@/components/VolunteerFields";
 import { isEmail } from "../../lib/email";
 import { ErrorText } from "@/components/ui/error-text";
 import { pageState } from "@/components/PageState";
+import { linkTo } from "@/lib/format";
 
 const STEPS = ["Your details", "Your branch", "Consent"];
 const TICK = "mt-0.5 size-5 flex-none accent-primary";
-const PILL = "flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-line-control px-4 font-semibold has-[:checked]:border-primary has-[:checked]:bg-primary-tint";
 
 function Steps({ step }) {
   return (
@@ -35,7 +35,7 @@ function Intro({ name }) {
     <div className="flex min-w-0 flex-[1_1_340px] flex-col gap-5">
       <Crumbs items={[{ label: "Home", to: "/" }, { label: "Join the party" }]} />
       <p className="text-ui font-bold uppercase tracking-[0.12em] text-primary">Membership</p>
-      <h1 className="font-display text-[clamp(40px,5vw,60px)] leading-none font-extrabold tracking-[-0.03em]">Become a member of {name}</h1>
+      <h1 className="font-display text-page font-extrabold tracking-[-0.03em]">Become a member of {name}</h1>
       <p className="text-[18px] leading-[1.6] text-text-2">Members vote in branch elections and party nominations, and can vie for office.</p>
       <Card className="gap-2.5 p-5 text-[15px]">
         <strong>Before you start, have:</strong>
@@ -65,27 +65,15 @@ export default function JoinParty() {
   const { ward, centre } = place;
   const [smsUpdates, setSmsUpdates] = useState(false);
   const [volunteer, setVolunteer] = useState(false);
-  const [profession, setProfession] = useState("");
-  const [professionOther, setProfessionOther] = useState("");
-  const [areas, setAreas] = useState([]);
-  const [areaOther, setAreaOther] = useState("");
-  const [contact, setContact] = useState("");
+  const [vol, setVol] = useState(NO_VOLUNTEER);
   const [consent, setConsent] = useState(false);
   const [volunteerConsent, setVolunteerConsent] = useState(false);
 
   const detailsOk =
     firstName.trim() && surname.trim() && phone.trim() && isEmail(email) && password.length >= 8;
-  const volunteerOk =
-    !volunteer ||
-    (profession &&
-      (profession !== "other" || professionOther.trim()) &&
-      areas.length > 0 &&
-      (!areas.includes("other") || areaOther.trim()) &&
-      contact);
+  const volunteerOk = !volunteer || volunteerReady(vol);
   const branchOk = ward && centre && volunteerOk;
   const consentOk = consent && (!volunteer || volunteerConsent);
-  const toggleArea = (value) =>
-    setAreas((now) => (now.includes(value) ? now.filter((x) => x !== value) : [...now, value]));
 
   const state = pageState(site, party);
   if (state) return state;
@@ -104,21 +92,14 @@ export default function JoinParty() {
       sms_updates: smsUpdates,
       ...(recruitment && { recruitment: recruitment.slice(0, 32) }),
       ...(volunteer && {
-        volunteer: {
-          profession,
-          profession_other: profession === "other" ? professionOther.trim() : "",
-          areas,
-          area_other: areas.includes("other") ? areaOther.trim() : "",
-          preferred_contact: contact,
-          consent_given: true,
-        },
+        volunteer: { ...volunteerBody(vol), consent_given: true },
       }),
     });
 
   let body;
   if (join.isSuccess) {
-    const link = `${window.location.origin}${join.data.withdraw_url}`;
-    const volunteerLink = join.data.volunteer_withdraw_url ? `${window.location.origin}${join.data.volunteer_withdraw_url}` : "";
+    const link = linkTo(join.data.withdraw_url);
+    const volunteerLink = join.data.volunteer_withdraw_url ? linkTo(join.data.volunteer_withdraw_url) : "";
     body = (
       <div className="flex flex-col items-start gap-4 py-3">
         <span className="flex size-14 items-center justify-center rounded-full bg-primary text-white"><Check className="size-7" strokeWidth={3} /></span>
@@ -168,41 +149,13 @@ export default function JoinParty() {
             <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
               <PlaceCascade labelled level="centre" place={place} onChange={setPlace} blank={(lv) => (lv === "centre" ? "Pick your polling station" : `Pick your ${lv}`)} />
             </div>
-            <label className={`${PILL} self-start`}>
+            <label className={`${CHECK_PILL} self-start`}>
               <input type="checkbox" className="size-[18px] accent-primary" checked={volunteer} onChange={(e) => setVolunteer(e.target.checked)} />
               Volunteer for events
             </label>
             {volunteer ? (
               <div className="flex flex-col gap-4 rounded-photo bg-stone p-5">
-                <Field label="Profession">
-                  <NativeSelect value={profession} onChange={(e) => setProfession(e.target.value)}>
-                    <option value="">Pick your profession</option>
-                    {PROFESSIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                  </NativeSelect>
-                </Field>
-                {profession === "other" ? (
-                  <Field label="Your profession"><Input value={professionOther} maxLength={100} onChange={(e) => setProfessionOther(e.target.value)} /></Field>
-                ) : null}
-                <fieldset className="flex flex-col gap-2.5">
-                  <legend className="mb-2.5 text-small font-semibold">How would you like to help?</legend>
-                  <div className="flex flex-wrap gap-2.5">
-                    {AREAS.map(([value, label]) => (
-                      <label key={value} className={`${PILL} bg-white text-[15px]`}>
-                        <input type="checkbox" className="size-[18px] accent-primary" checked={areas.includes(value)} onChange={() => toggleArea(value)} />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-                {areas.includes("other") ? (
-                  <Field label="Other ways to help"><Input value={areaOther} maxLength={100} onChange={(e) => setAreaOther(e.target.value)} /></Field>
-                ) : null}
-                <Field label="Preferred contact">
-                  <NativeSelect value={contact} onChange={(e) => setContact(e.target.value)}>
-                    <option value="">Pick a contact method</option>
-                    {CONTACT_METHODS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                  </NativeSelect>
-                </Field>
+                <VolunteerFields pills value={vol} onChange={(patch) => setVol((v) => ({ ...v, ...patch }))} />
               </div>
             ) : null}
           </div>

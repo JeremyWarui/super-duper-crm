@@ -4,7 +4,7 @@ import { useAspirants, usePartyDashboard, usePartyShared } from "@/api/hooks";
 import PlaceCascade from "@/components/PlaceCascade";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Field, FilterSelect, Input } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
@@ -18,7 +18,7 @@ const EMPTY = { county: "", constituency: "", ward: "", seat: "", aspirant: "", 
 function Counts({ title, head, rows }) {
   return (
     <Card variant="outline" className="min-w-0 gap-3">
-      <h2 className="text-card-title font-bold">{title}</h2>
+      <CardTitle>{title}</CardTitle>
       <Table minWidth={240}>
         <THead><TR><TH>{head}</TH><TH align="right">Count</TH></TR></THead>
         <TBody>
@@ -43,7 +43,7 @@ function Shared() {
   const rows = shared.data || [];
   return (
     <Card variant="outline" className="min-w-0 gap-3">
-      <h2 className="text-card-title font-bold">Shared by campaigns</h2>
+      <CardTitle>Shared by campaigns</CardTitle>
       <Table stack minWidth={720} aria-label="Shared by campaigns">
         <THead><TR><TH>Campaign</TH><TH>Event reach</TH><TH>Ward coverage</TH><TH>Supporters by ward</TH></TR></THead>
         <TBody>

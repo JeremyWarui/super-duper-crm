@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import { useMobilizers, useStrategy } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatNumber as fmt } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { assignerFor, holderOf, statusOf } from "./helpers";
+import { assignerFor, holderOf, statusOf, unitOf } from "./helpers";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
@@ -40,7 +40,7 @@ export default function Units({ campaign, role, onModal }) {
   const mobilizers = useMobilizers(campaign.id);
   const assign = assignerFor(role, onModal);
   const [sortKey, setSortKey] = useState("Biggest gap");
-  const noun = campaign.operational_grain === "centre" ? "Centre" : "Ward";
+  const { Noun: noun } = unitOf(campaign);
   const units = strategy.data?.units;
   const sorted = useMemo(() => [...(units || [])].sort(SORTS[sortKey]), [units, sortKey]);
   return (
@@ -51,7 +51,7 @@ export default function Units({ campaign, role, onModal }) {
       {units && (
         <Card variant="outline" className="min-w-0 gap-3" role="region" aria-labelledby="units-h">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="units-h" className="text-card-title font-bold">{noun} targets</h2>
+            <CardTitle id="units-h">{noun} targets</CardTitle>
             <FilterPills label="Sort by" options={Object.keys(SORTS)} value={sortKey} onChange={setSortKey} />
           </div>
           <Table stack minWidth={680}>

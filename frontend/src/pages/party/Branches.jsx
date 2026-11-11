@@ -2,14 +2,14 @@
 // superuser the office, next meeting and whether each branch is public.
 import { useState } from "react";
 import {
-  useAppointOfficial, useBranchOfficials, useEndTerm, useOfficeBranches, usePartyMembers, useSaveBranch, useUploadMinutes,
+  useAppointOfficial, useBranchOfficials, useEndTerm, useOfficeBranches, useMemberSearch, useSaveBranch, useUploadMinutes,
 } from "@/api/hooks";
 import { useAuth } from "@/store/auth";
 import ConfigFields from "@/components/ConfigFields";
 import MemberSearch from "@/components/MemberSearch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { StatTiles } from "@/components/ui/stat-tiles";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
@@ -58,7 +58,7 @@ function BranchForm({ row, onDone }) {
   };
   return (
     <form onSubmit={submit} className="flex flex-col gap-3.5 border-t border-line-soft pt-4" aria-label="Branch office">
-      <h3 className="text-card-title font-bold">Branch office</h3>
+      <CardTitle as="h3">Branch office</CardTitle>
       <ConfigFields fields={FIELDS} form={form} set={set} />
       <Field label="Next meeting date">
         <Input type="date" value={form.next_meeting_on} onChange={set("next_meeting_on")} />
@@ -119,8 +119,7 @@ function Appoint({ county }) {
   const blank = { office: "chair", title: "", member: null, start_reason: "elected", term_start: nairobiDate(), note: "", minutes: null };
   const [form, setForm] = useState(blank);
   const [q, setQ] = useState("");
-  const found = usePartyMembers({ q, status: "approved", county: county.id });
-  const searching = q.trim().length >= 2;
+  const [found, searching] = useMemberSearch(q, { status: "approved", county: county.id });
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const pickFile = (e) => {
     const file = e.target.files?.[0];
@@ -139,7 +138,7 @@ function Appoint({ county }) {
   const ready = form.member && form.term_start && (form.office !== "other" || form.title.trim());
   return (
     <form onSubmit={submit} className="flex flex-col gap-3 border-t border-line-soft pt-4" aria-label="Appoint an official">
-      <h3 className="text-card-title font-bold">Appoint</h3>
+      <CardTitle as="h3">Appoint</CardTitle>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Office">
           <NativeSelect value={form.office} onChange={(e) => set({ office: e.target.value })}>
@@ -192,7 +191,7 @@ function Officials({ county }) {
   const onEnd = (term, open) => (open ? setEnding(term.id) : <EndTerm term={term} onDone={() => setEnding(null)} />);
   return (
     <section className="flex flex-col gap-4" aria-label="Officials">
-      <h3 className="text-card-title font-bold">Officials</h3>
+      <CardTitle as="h3">Officials</CardTitle>
       <div className="grid gap-3 sm:grid-cols-2">
         {OFFICES.filter(([o]) => o !== "other").map(([office, label]) => (
           <OfficeBox key={office} label={label}
@@ -242,7 +241,7 @@ export default function Branches() {
         ["Chairpersons", chaired, "in office"],
       ]} />
       <Card variant="outline" className="min-w-0 gap-3.5">
-        <h2 className="text-card-title font-bold">County branches</h2>
+        <CardTitle>County branches</CardTitle>
         <Table stack minWidth={640}>
           <THead>
             <TR><TH>County</TH><TH>Chairperson</TH><TH>Secretary</TH><TH>Next meeting</TH><TH>Status</TH></TR>

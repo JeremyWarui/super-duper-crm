@@ -12,6 +12,7 @@ import {
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Confirm } from "@/components/ui/confirm";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
@@ -29,21 +30,13 @@ const ERASABLE = ["withdrawn", "rejected"];
 
 function Erase({ member }) {
   const erase = useEraseMember();
-  const [asking, setAsking] = useState(false);
   if (member.erased_at) return <p className="text-ui text-muted-foreground">Details erased on {formatDate(member.erased_at)}.</p>;
   if (!ERASABLE.includes(member.status)) return null;
   return (
     <>
       <FormActions>
-        {asking ? (
-          <>
-            <span className="text-ui text-muted-foreground">Erase their name, phone, email and account for good?</span>
-            <Button shape="rounded" variant="danger" disabled={erase.isPending} onClick={() => erase.mutate(member.id)}>Yes, erase</Button>
-            <Button shape="rounded" variant="quiet" onClick={() => setAsking(false)}>Cancel</Button>
-          </>
-        ) : (
-          <Button shape="rounded" variant="danger" onClick={() => setAsking(true)}>Erase their details</Button>
-        )}
+        <Confirm label="Erase their details" question="Erase their name, phone, email and account for good?" yes="Yes, erase"
+          pending={erase.isPending} onConfirm={() => erase.mutate(member.id)} />
       </FormActions>
       <ErrorText error={erase.error} className="text-small" />
     </>

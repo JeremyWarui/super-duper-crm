@@ -1,9 +1,9 @@
 import { useMobilizers } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
-import { holderOf, useUnits } from "./helpers";
+import { holderOf, unitOf, useUnits } from "./helpers";
 import { initials } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
@@ -15,7 +15,7 @@ function Coverage({ units, mobilizers, noun }) {
   return (
     <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Coverage">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-card-title font-bold">Coverage</h2>
+        <CardTitle>Coverage</CardTitle>
         <span className="text-ui text-muted-foreground">{units.length - vacant.length} of {units.length} {noun}s have a mobilizer</span>
       </div>
       {vacant.length ? (
@@ -31,11 +31,10 @@ function Coverage({ units, mobilizers, noun }) {
 // The campaign's ground organisers: who they are, where they work, and how to reach them.
 export default function Mobilizers({ campaign, onModal }) {
   const units = useUnits(campaign.id);
-  const byCentre = campaign.operational_grain === "centre";
-  const noun = byCentre ? "centre" : "ward";
+  const { byCentre, noun, Noun } = unitOf(campaign);
   const { data, isLoading, error } = useMobilizers(campaign.id);
   const people = data || [];
-  const unitOf = (m) => {
+  const workplace = (m) => {
     if (!byCentre) return m.ward_name;
     if (!m.registration_centre) return null;
     return units.find((u) => u.registration_centre === m.registration_centre)?.name || "A centre with no target";
@@ -50,9 +49,9 @@ export default function Mobilizers({ campaign, onModal }) {
         <>
           {units.length > 0 && <Coverage units={units} mobilizers={people} noun={noun} />}
           <Card variant="outline" className="min-w-0 gap-3">
-            <h2 className="text-card-title font-bold">Everyone</h2>
+            <CardTitle>Everyone</CardTitle>
             <Table stack minWidth={560}>
-              <THead><TR><TH>Name</TH><TH>{byCentre ? "Centre" : "Ward"}</TH><TH>Phone</TH><TH /></TR></THead>
+              <THead><TR><TH>Name</TH><TH>{Noun}</TH><TH>Phone</TH><TH /></TR></THead>
               <TBody>
                 {people.map((m) => (
                   <TR key={m.id}>
@@ -62,7 +61,7 @@ export default function Mobilizers({ campaign, onModal }) {
                         <span className="font-semibold">{m.full_name}</span>
                       </div>
                     </TD>
-                    <TD className={unitOf(m) ? undefined : "text-muted-foreground"}>{unitOf(m) || `No ${noun} yet`}</TD>
+                    <TD className={workplace(m) ? undefined : "text-muted-foreground"}>{workplace(m) || `No ${noun} yet`}</TD>
                     <TD className="text-muted-foreground tabular-nums">{m.phone || "None"}</TD>
                     <TD align="right">
                       <div className="flex justify-end gap-2">

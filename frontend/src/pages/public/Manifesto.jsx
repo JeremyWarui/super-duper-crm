@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { useSite, usePublicIssues } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Crumbs } from "@/components/ui/typography";
 import { listItems } from "@/lib/format";
+import { PageHero } from "@/components/PageHead";
+import { RuleHead } from "@/components/ui/typography";
 
 export default function Manifesto() {
   const party = useSite().data || {};
@@ -12,22 +13,17 @@ export default function Manifesto() {
   const lines = listItems(party.manifesto_text);
   return (
     <>
-      <section className="bg-ink text-on-dark">
-        <div className="site-container flex flex-col gap-5 py-14">
-          <Crumbs onDark items={[{ label: "Home", to: "/" }, { label: "Manifesto" }]} />
-          <p className="text-ui font-bold uppercase tracking-[0.12em] text-accent">Our plan for Kenya</p>
-          <h1 className="font-display text-[clamp(40px,5vw,64px)] leading-none font-extrabold tracking-[-0.03em]">Manifesto</h1>
-          {party.slogan ? <p className="font-display text-[24px] font-extrabold text-accent">{party.slogan}</p> : null}
-          {party.manifesto_url ? (
-            <Button asChild variant="accent" className="self-start">
-              <a href={party.manifesto_url} target="_blank" rel="noreferrer">Read the full manifesto</a>
-            </Button>
-          ) : null}
-        </div>
-      </section>
+      <PageHero tone="ink" crumbs={[{ label: "Manifesto" }]} kicker="Our plan for Kenya" title="Manifesto">
+        {party.slogan ? <p className="font-display text-[24px] font-extrabold text-accent">{party.slogan}</p> : null}
+        {party.manifesto_url ? (
+          <Button asChild variant="accent" className="self-start">
+            <a href={party.manifesto_url} target="_blank" rel="noreferrer">Read the full manifesto</a>
+          </Button>
+        ) : null}
+      </PageHero>
       <div className="site-container flex flex-col gap-12 pt-14 pb-[72px]">
         <section aria-labelledby="commit-h" className="flex flex-col gap-5">
-          <h2 id="commit-h" className="rule-top font-display text-[32px] font-extrabold">What we commit to</h2>
+          <RuleHead id="commit-h">What we commit to</RuleHead>
           {lines.length ? (
             <ol className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
               {lines.map((line, n) => (
@@ -45,7 +41,7 @@ export default function Manifesto() {
         </section>
         {issues.length ? (
           <section aria-labelledby="issues-h" className="flex flex-col gap-5">
-            <h2 id="issues-h" className="rule-top font-display text-[32px] font-extrabold">Our positions</h2>
+            <RuleHead id="issues-h">Our positions</RuleHead>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
               {issues.map((i) => (
                 <Card key={i.id} asChild interactive className="p-[22px]">

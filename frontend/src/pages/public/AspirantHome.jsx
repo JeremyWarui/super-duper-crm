@@ -9,12 +9,12 @@ import { Card } from "@/components/ui/card";
 import { SectionHead } from "@/components/ui/typography";
 import { CandidateView, VolunteerDialog, vying } from "./Candidate";
 import { Agenda, Carousel, Events, News, TakePart, Ticker, youtubeThumb } from "./Home";
-import PageHead from "./PageHead";
+import PageHead from "@/components/PageHead";
 import { Photo } from "./story";
 import { pageState } from "@/components/PageState";
+import { firstName } from "@/lib/format";
 
 const WITHDRAW = "/volunteer/withdraw/";
-const firstName = (c) => c.name.split(/\s+/)[0];
 
 function ComingSoon() {
   return (
@@ -37,7 +37,7 @@ function CandidateCard({ c }) {
         </span>
       </div>
       <div className="flex flex-col border-t border-line-2">
-        {[["About " + firstName(c), "/about"], ["The agenda", "/agenda"], ["Events near me", "/events"], ["Contribute", "/contribute"]].map(([label, to]) => (
+        {[["About " + firstName(c.name), "/about"], ["The agenda", "/agenda"], ["Events near me", "/events"], ["Contribute", "/contribute"]].map(([label, to]) => (
           <Link key={to} to={to} className="flex justify-between border-b border-line-soft py-3 font-semibold text-ink no-underline last:border-0 hover:text-primary">
             <span>{label}</span><span aria-hidden>→</span>
           </Link>
@@ -49,7 +49,7 @@ function CandidateCard({ c }) {
 
 /** Where the party's homepage shows its leadership: the candidate. */
 function Candidate({ c }) {
-  const first = firstName(c);
+  const first = firstName(c.name);
   const [lead] = paragraphs(c.bio);
   return (
     <section id="about" className="bg-primary text-white">
@@ -79,7 +79,7 @@ export default function AspirantHome() {
   if (page.isLoading) return pageState(page);
   if (page.error) return <ComingSoon />;
   const c = page.data;
-  const first = firstName(c);
+  const first = firstName(c.name);
   const open = () => setVolunteering(true);
   const volunteer = c.volunteering_open
     ? <Button variant="accent" size="lg" onClick={open}>Volunteer for {first}</Button>

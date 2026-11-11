@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
-import { formatDate, formatKES, plural } from "../../lib/format";
+import { formatDate, formatDateTime, formatKES, plural } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
+import { isLead } from "./helpers";
 
 const TONE = { scheduled: "warn", sending: "info", paid: "ok", failed: "bad", cancelled: "stone" };
 const LABEL = { scheduled: "Scheduled", sending: "Sending", paid: "Paid", failed: "To retry", cancelled: "Cancelled" };
@@ -119,14 +120,13 @@ export default function Payments({ campaign, role, mine, onModal }) {
               </TBody>
             </Table>
           </Card>
-          {!mine && LEADS.includes(role) && <Differences campaign={campaign} />}
+          {!mine && isLead(role) && <Differences campaign={campaign} />}
         </>
       )}
     </>
   );
 }
 
-const LEADS = ["candidate", "manager"];
 
 // Where the payments ledger and the payout provider's own records disagree; a person settles
 // each one, the check changes nothing.
@@ -143,7 +143,7 @@ function Differences({ campaign }) {
       </div>
       <ErrorText error={found.error || now.error} />
       <p className="text-small text-muted-foreground">
-        {!run ? "Not checked yet. It runs once a day." : run.status === "practice" ? run.detail : run.status === "failed" ? `The last check failed: ${run.detail}` : `Last checked ${new Date(run.created_at).toLocaleString()}: ${plural(run.checked, "payment")} compared.`}
+        {!run ? "Not checked yet. It runs once a day." : run.status === "practice" ? run.detail : run.status === "failed" ? `The last check failed: ${run.detail}` : `Last checked ${formatDateTime(run.created_at)}: ${plural(run.checked, "payment")} compared.`}
       </p>
       {run && run.status !== "practice" && run.status !== "failed" && (rows.length === 0 ? <p className="font-semibold text-ok-foreground">The ledger matches the provider.</p> : (
         <Table stack minWidth={640}>

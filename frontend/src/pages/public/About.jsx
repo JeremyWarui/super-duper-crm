@@ -4,8 +4,9 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { usePartyStats, useParty, usePublicDocuments, useSite, usePublicLeaders, usePublicOrgans, usePublicValues } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
-import { Crumbs } from "@/components/ui/typography";
+import { Crumbs, RuleHead } from "@/components/ui/typography";
 import { Photo } from "./story";
+import { formatNumber } from "@/lib/format";
 
 function Stat({ label, value }) {
   return (
@@ -59,7 +60,7 @@ export default function About() {
     ["Founded", party.founded_year],
     ["Registration no.", party.registration_number],
     ["County branches", stats?.branches],
-    ["Members", stats?.members?.toLocaleString("en-KE")],
+    ["Members", stats && formatNumber(stats.members)],
   ].filter(([, value]) => value);
   const contact = [party.address, party.contact_phone, party.contact_email].filter(Boolean).join(" · ");
   return (
@@ -68,7 +69,7 @@ export default function About() {
         <div className="flex min-w-0 flex-[1_1_520px] flex-col gap-4">
           <Crumbs items={[{ label: "Home", to: "/" }, { label: "About" }]} />
           <p className="text-ui font-bold uppercase tracking-[0.12em] text-primary">About us</p>
-          <h1 className="font-display text-[clamp(40px,5vw,64px)] leading-none font-extrabold tracking-[-0.03em]">{party.about_headline || `About ${party.short_name || party.name || ""}`}</h1>
+          <h1 className="font-display text-page font-extrabold tracking-[-0.03em]">{party.about_headline || `About ${party.short_name || party.name || ""}`}</h1>
           {party.description ? <p className="text-[19px] leading-[1.65] text-text-2">{party.description}</p> : null}
         </div>
         {tiles.length ? (
@@ -80,7 +81,7 @@ export default function About() {
 
       {values.length ? (
         <section aria-labelledby="believe-h" className="flex flex-col gap-[18px]">
-          <h2 id="believe-h" className="rule-top font-display text-[32px] font-extrabold">What we believe</h2>
+          <RuleHead id="believe-h">What we believe</RuleHead>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3.5">
             {values.map((v) => (
               <div key={v.id} className="flex flex-col gap-2 rounded-photo bg-primary-tint p-5">

@@ -3,10 +3,11 @@
 import { QRCodeSVG } from "qrcode.react";
 import { useRecruitment, useReplaceRecruitment } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { useClipboard } from "../../lib/useClipboard";
 import { LoadingText } from "@/components/ui/loading-text";
+import { linkTo } from "@/lib/format";
 
 const STATUSES = [
   ["pending", "Waiting for a decision"],
@@ -21,7 +22,7 @@ export default function Recruitment() {
   const replace = useReplaceRecruitment();
   const { copied, copy } = useClipboard();
   const data = recruitment.data;
-  const link = data ? `${window.location.origin}/join-party?r=${data.code}` : "";
+  const link = data ? linkTo(`/join-party?r=${data.code}`) : "";
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
@@ -33,7 +34,7 @@ export default function Recruitment() {
       {data ? (
         <div className="flex flex-wrap items-start gap-6">
           <Card variant="outline" className="min-w-0 flex-[1_1_360px] gap-4">
-            <h2 className="text-card-title font-bold">Your link</h2>
+            <CardTitle>Your link</CardTitle>
             <a href={link} className="break-all font-semibold">{link}</a>
             <div className="self-start rounded-xl border border-line bg-white p-3">
               <QRCodeSVG value={link} size={176} title="Recruitment link QR code" />
@@ -46,7 +47,7 @@ export default function Recruitment() {
             <ErrorText error={replace.error} className="text-small" />
           </Card>
           <Card variant="outline" className="min-w-0 flex-[1_1_300px] gap-3">
-            <h2 className="text-card-title font-bold">Applicants through your link</h2>
+            <CardTitle>Applicants through your link</CardTitle>
             <ul className="flex flex-col">
               {STATUSES.map(([key, label]) => (
                 <li key={key} className="flex items-center justify-between gap-3 border-t border-line-soft py-2.5">

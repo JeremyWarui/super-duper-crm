@@ -3,7 +3,7 @@
 import { Link } from "react-router-dom";
 import { useAgents, useAssignments } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { formatKES } from "../../lib/format";
 import { formatDay } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
@@ -31,7 +31,7 @@ export default function MyCentre({ campaign }) {
             {me.ward_name && <span className="text-ui text-muted-foreground">{me.ward_name} ward</span>}
           </Card>
           <Card variant="outline" className="gap-3" role="region" aria-label="Your progress">
-            <h2 className="text-card-title font-bold">Before polling day</h2>
+            <CardTitle>Before polling day</CardTitle>
             <ol className="flex flex-col gap-2">
               {STEPS.map(([key, label], i) => (
                 <li key={key} className="flex items-center justify-between gap-3 border-t border-line-soft pt-2">
@@ -43,7 +43,7 @@ export default function MyCentre({ campaign }) {
             <p className="text-ui text-muted-foreground">Training: {me.training_date ? formatDay(me.training_date) : "the campaign will tell you the date."}</p>
           </Card>
           <Card variant="outline" className="gap-3" role="region" aria-label="Your assignments">
-            <h2 className="text-card-title font-bold">Your assignments</h2>
+            <CardTitle>Your assignments</CardTitle>
             {work.length ? (
               <ul className="flex flex-col">
                 {work.map((a) => (
@@ -56,7 +56,7 @@ export default function MyCentre({ campaign }) {
             ) : <p className="text-ui text-muted-foreground">Nothing assigned to you yet.</p>}
           </Card>
           <Card variant="outline" className="gap-2">
-            <h2 className="text-card-title font-bold">Your details</h2>
+            <CardTitle>Your details</CardTitle>
             <p className="text-ui">{me.full_name} · <span className="tabular-nums">{me.phone}</span>{me.id_number ? <> · ID {me.id_number}</> : null}</p>
             <Link to="/campaign/mypayments" className="inline-flex min-h-11 items-center self-start font-bold">My payments</Link>
           </Card>

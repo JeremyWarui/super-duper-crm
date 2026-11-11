@@ -16,7 +16,8 @@ import PaymentsIn from "./PaymentsIn";
 import Messages from "./Messages";
 import Volunteers from "./Volunteers";
 import Website from "./Website";
-import { PARTY_ROLE_LABEL } from "@/lib/labels";
+import { officeOf } from "@/lib/labels";
+import { displayName } from "@/lib/format";
 
 // Each page and the office that opens it; the superuser opens every one, and only the
 // superuser opens those marked "superuser".
@@ -36,19 +37,14 @@ const PAGES = [
  * The sidebar for a login: the pages its offices open, and the console for the superuser.
  * An aspirant installation has no party pages.
  */
+const pagesFor = (user) => PAGES.filter(([, , office]) => user?.is_superuser || (user?.party_roles || []).includes(office));
+
 export function partyNav(user, { aspirant = false } = {}) {
-  const roles = user?.party_roles || [];
-  const pages = aspirant ? [] : PAGES.filter(([, , office]) => user?.is_superuser || roles.includes(office));
+  const pages = aspirant ? [] : pagesFor(user);
   return [
     ...pages.map(([key, label]) => ({ label, to: `/party/${key}` })),
     ...(user?.is_superuser ? [{ label: "Console", to: "/console" }] : []),
   ];
-}
-
-function officeOf(user, superAdmin) {
-  return user?.is_superuser
-    ? superAdmin
-    : (user?.party_roles || []).map((r) => PARTY_ROLE_LABEL[r] || r).join(", ");
 }
 
 /** The party CRM's frame around one page; a page without a `kit` title renders its own header. */
@@ -65,7 +61,7 @@ export function PartyShell({ crumb, page, children }) {
       rootLabel={copy.consoleRoot}
       rootPath={homeOf(user)}
       subtitle={office}
-      user={{ name: user?.full_name || user?.username || "", role: office }}
+      user={{ name: displayName(user), role: office }}
       onSignOut={logout}
       tools={<ConsoleTools />}
       slotHeaders
@@ -78,8 +74,7 @@ export function PartyShell({ crumb, page, children }) {
 export default function Portal() {
   const user = useAuth((s) => s.user);
   const { pathname } = useLocation();
-  const roles = user?.party_roles || [];
-  const pages = PAGES.filter(([, , office]) => user?.is_superuser || roles.includes(office));
+  const pages = pagesFor(user);
   const current = pages.find(([key]) => pathname.startsWith(`/party/${key}`)) ?? pages[0];
 
   return (

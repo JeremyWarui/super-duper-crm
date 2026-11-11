@@ -5,31 +5,17 @@ import { useSaveWorkspaceSettings, useWorkspaceSettings } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import ConfigFields from "@/components/ConfigFields";
-import { Field, Input } from "@/components/ui/input";
+import { ColourFields } from "@/components/Swatch";
+import { SITE_LINES, SITE_TEXTS, only } from "@/lib/siteFields";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
 
-const LINES = [
-  ["name", "Site name", 150],
-  ["short_name", "Short name (3 letters or fewer go on the logo tile)", 30],
-  ["logo_url", "Logo address (https://)", 500],
-  ["contact_email", "Contact email", 254],
-  ["contact_phone", "Contact phone", 20],
-  ["address", "Address", 300],
-  ["privacy_notice_version", "Privacy notice version", 20],
-  ["mpesa_paybill", "M-Pesa Paybill number (leave blank for a Till)", 7],
-  ["mpesa_account", "Paybill account number", 20],
-  ["mpesa_till", "M-Pesa Till number (leave blank for a Paybill)", 7],
-];
-const COLOURS = [
-  ["primary_colour", "Primary colour", "Buttons and links; white text sits on it."],
-  ["secondary_colour", "Secondary colour", "Highlights; dark text sits on it."],
-];
-const TEXTS = [
-  ["description", "About the campaign", undefined, { rows: 6 }],
-  ["payment_instructions", "How to give (shown on the Contribute page)", undefined, { rows: 4 }],
-  ["privacy_notice", "Privacy notice", undefined, { rows: 8 }],
-];
+const LINES = only(SITE_LINES, [
+  "name", "short_name", "logo_url", "contact_email", "contact_phone", "address", "privacy_notice_version",
+  "mpesa_paybill", "mpesa_account", "mpesa_till",
+]);
+const TEXTS = only(SITE_TEXTS, ["description", "payment_instructions", "privacy_notice"]);
+const COLOURS = ["primary_colour", "secondary_colour"];
 // Sent back unchanged; this page does not edit them.
 const KEPT = ["about_headline", "social_links", "manifesto_text", "manifesto_url"];
 
@@ -40,7 +26,7 @@ function SettingsForm({ settings }) {
   const submit = (e) => {
     e.preventDefault();
     const body = Object.fromEntries(
-      [...LINES.map(([k]) => k), ...COLOURS.map(([k]) => k), ...TEXTS.map(([k]) => k), ...KEPT].map((k) => [k, form[k] ?? ""]),
+      [...LINES.map(([k]) => k), ...COLOURS, ...TEXTS.map(([k]) => k), ...KEPT].map((k) => [k, form[k] ?? ""]),
     );
     save.mutate({ ...body, social_links: form.social_links || {} });
   };
@@ -49,14 +35,7 @@ function SettingsForm({ settings }) {
       <form onSubmit={submit} className="flex max-w-[720px] flex-col gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <ConfigFields fields={LINES} form={form} set={set} />
-          {COLOURS.map(([key, label, hint]) => (
-            <Field key={key} label={label} hint={hint}>
-              <span className="flex items-center gap-2">
-                <span aria-hidden className="size-8 shrink-0 rounded-md border border-line" style={{ background: form[key] }} />
-                <Input value={form[key] ?? ""} maxLength={7} onChange={set(key)} placeholder="#0B5D3B" />
-              </span>
-            </Field>
-          ))}
+          <ColourFields form={form} set={(key) => (value) => setForm({ ...form, [key]: value })} />
         </div>
         <ConfigFields fields={TEXTS} form={form} set={set} />
         <ErrorText error={save.error} className="text-small" />

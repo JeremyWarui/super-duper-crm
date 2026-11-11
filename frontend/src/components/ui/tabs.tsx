@@ -55,30 +55,35 @@ export function TabsContent({ className, ...props }: React.ComponentProps<typeof
   return <TabsPrimitive.Content data-slot="tabs-content" className={cn('outline-none', className)} {...props} />
 }
 
+const PILL_LOOK = {
+  capsule: { group: 'inline-flex w-fit flex-wrap items-center rounded-full border border-line-control bg-white p-[3px]', button: 'min-h-10 rounded-full px-4 text-ui font-bold max-sm:min-h-11', on: 'bg-primary text-primary-foreground', off: 'text-ink' },
+  ink: { group: 'flex flex-wrap gap-2', button: 'min-h-11 rounded-full border-[1.5px] px-[18px] text-[15px] font-semibold', on: 'border-ink bg-ink text-white', off: 'border-line-control bg-white text-ink' },
+  tint: { group: 'flex flex-wrap gap-2', button: 'min-h-11 rounded-full border-[1.5px] px-4 text-ui font-bold', on: 'border-primary bg-primary-tint text-primary', off: 'border-line-control bg-white text-ink' },
+  rounded: { group: 'flex flex-wrap gap-2', button: 'min-h-10 rounded-lg border px-4 text-ui font-bold max-sm:min-h-11', on: 'border-primary bg-primary text-primary-foreground', off: 'border-line-control bg-white text-ink' },
+}
+
 /**
  * Same segmented look for plain filter buttons that aren't tabs (aria-pressed toggles).
+ * `look` picks the style: one capsule (the default), or separate ink, tint or rounded buttons.
  * An option is its own label, or a [value, label] pair. With an array `value` several are pressed
  * at once and `onChange` gets the value clicked.
  */
-export function FilterPills<T extends string>({ options, value, onChange, label }: {
+export function FilterPills<T extends string>({ options, value, onChange, label, look = 'capsule', className }: {
   options: readonly (T | readonly [T, string])[]
   value: T | readonly T[]
   onChange: (v: T) => void
   label: string
+  look?: keyof typeof PILL_LOOK
+  className?: string
 }) {
+  const style = PILL_LOOK[look]
   return (
-    <div role="group" aria-label={label} className="inline-flex w-fit flex-wrap items-center rounded-full border border-line-control bg-white p-[3px]">
+    <div role="group" aria-label={label} className={cn(style.group, className)}>
       {options.map((option) => {
         const [o, text] = typeof option === 'string' ? [option, option] : option
         const on = typeof value === 'string' ? o === value : value.includes(o)
         return (
-          <button
-            key={o || 'all'}
-            type="button"
-            aria-pressed={on}
-            onClick={() => onChange(o)}
-            className={cn('min-h-10 cursor-pointer rounded-full px-4 text-ui font-bold max-sm:min-h-11', on ? 'bg-primary text-primary-foreground' : 'text-ink')}
-          >
+          <button key={o || 'all'} type="button" aria-pressed={on} onClick={() => onChange(o)} className={cn('cursor-pointer', style.button, on ? style.on : style.off)}>
             {text}
           </button>
         )

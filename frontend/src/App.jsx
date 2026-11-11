@@ -10,7 +10,7 @@ import { useCampaigns } from "./api/hooks";
 import { NoCampaign } from "./components/SignedInNotice";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
-import { navFor, pagesOf } from "./pages/campaign/helpers";
+import { navFor, pagesOf, unitOf } from "./pages/campaign/helpers";
 import { ROLE_LABEL } from "@/lib/labels";
 import { useInstall } from "./app/site";
 import {
@@ -44,6 +44,7 @@ import Privacy from "./pages/campaign/Privacy";
 import ClosedNote from "./pages/campaign/ClosedNote";
 import FieldTabs from "./pages/campaign/FieldTabs";
 import { useMedia } from "./lib/useMedia";
+import { displayName } from "@/lib/format";
 
 // Roles that work from a phone get a tab bar there.
 const FIELD_ROLES = ["mobilizer", "agent"];
@@ -115,7 +116,7 @@ function Shell({ campaign, role, where }) {
         slotHeaders
         rootLabel="Campaign workspace"
         rootPath="/campaign"
-        user={{ name: user?.full_name || user?.username || "", role: ROLE_LABEL[role] }}
+        user={{ name: displayName(user), role: ROLE_LABEL[role] }}
         onSignOut={logout}
       >
         <AppPage crumb={current[1]}>
@@ -139,7 +140,7 @@ export default function App() {
   if (campaigns.isLoading) return <div className="p-10"><LoadingText /></div>;
   if (campaigns.error) return <div className="p-10"><ErrorText error={campaigns.error} /></div>;
   if (!campaign) return <p className="p-10 text-muted-foreground">You are not on a campaign yet.</p>;
-  const where = { aspirant: install.aspirant, partyWorkspace: campaign.kind === "party", hosted: campaign.kind === "hosted", byCentre: campaign.operational_grain === "centre" };
+  const where = { aspirant: install.aspirant, partyWorkspace: campaign.kind === "party", hosted: campaign.kind === "hosted", byCentre: unitOf(campaign).byCentre };
   const pages = pagesOf(role, where);
 
   return (

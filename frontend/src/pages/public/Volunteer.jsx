@@ -2,7 +2,7 @@
 import { useSiteCandidate, useSiteVolunteer } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import { SupportForm, VOLUNTEER_NOTE, volunteerTitle } from "./Candidate";
-import PageHead from "./PageHead";
+import PageHead from "@/components/PageHead";
 import { LoadingText } from "@/components/ui/loading-text";
 
 export default function Volunteer() {

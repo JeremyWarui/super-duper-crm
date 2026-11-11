@@ -809,12 +809,20 @@ export const usePartyDashboard = (filters) =>
     placeholderData: keepPreviousData,
   });
 
-export const usePartyMembers = (filters) =>
+export const usePartyMembers = (filters, enabled = true) =>
   useQuery({
     queryKey: ["party-members", filters],
     queryFn: () => api(`/party/members/?${queryOf(filters)}`),
     placeholderData: keepPreviousData,
+    enabled,
   });
+
+/** Members matching `q` and `filters`, asked for only once `q` has two letters: [query, searching]. */
+export function useMemberSearch(q, filters) {
+  const term = q.trim();
+  const searching = term.length >= 2;
+  return [usePartyMembers({ q: term, ...filters }, searching), searching];
+}
 
 export const usePartyMember = (id) => useFor("party-member", id, () => api(`/party/members/${id}/`));
 

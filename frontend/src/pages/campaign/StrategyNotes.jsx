@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 // The strategy read: what the campaign's own numbers say to do next.
@@ -6,7 +6,7 @@ export default function StrategyNotes({ notes, wide = true }) {
   return (
     <Card variant="outline" className={cn("min-w-0 gap-3", !wide && "max-w-[760px]")} aria-labelledby="strategy-h" role="region">
       <div className="flex flex-col gap-1">
-        <h2 id="strategy-h" className="text-card-title font-bold">Strategy read</h2>
+        <CardTitle id="strategy-h">Strategy read</CardTitle>
         <p className="text-ui text-muted-foreground">Computed from your targets, events and mobilizers.</p>
       </div>
       {(notes || []).map((n) => (

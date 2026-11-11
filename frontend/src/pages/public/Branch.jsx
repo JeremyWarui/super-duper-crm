@@ -24,7 +24,7 @@ export default function Branch() {
         <div className="site-container flex flex-wrap items-end justify-between gap-6 py-11">
           <div className="flex flex-col gap-2.5">
             <Crumbs items={[{ label: "Home", to: "/" }, { label: "Counties", to: "/counties" }, { label: b.county.name }]} />
-            <h1 className="font-display text-[clamp(40px,5vw,60px)] font-extrabold tracking-[-0.03em]">{b.county.name} County branch</h1>
+            <h1 className="font-display text-page font-extrabold tracking-[-0.03em]">{b.county.name} County branch</h1>
             <p className="text-[17px] text-text-2">{b.constituencies.length} constituency sub-branches · {wards} wards</p>
           </div>
           <div className="flex flex-wrap gap-2.5">

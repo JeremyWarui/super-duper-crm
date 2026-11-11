@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCentres, useErase, usePlaceSupporter, useSupporters, useTargets, useTextWithdrawalLink, useWithdrawalLink } from "@/api/hooks";
+import { useErase, usePlaceSupporter, useSupporters, useTextWithdrawalLink, useWithdrawalLink } from "@/api/hooks";
 import EraseButton from "@/components/EraseButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,8 @@ import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
 
 import { SUPPORT_LEVELS } from "@/lib/labels";
+import { isLead, unitOf, useTargetedCentres } from "./helpers";
 const TONE = { supporter: "ok", undecided: "warn", opposed: "bad" };
-const KEEPERS = ["candidate", "manager"];
 
 // A supporter's private withdrawal link, to read out or text to them.
 function WithdrawalLink({ campaign, supporter, onClose }) {
@@ -52,17 +52,14 @@ function Summary({ all }) {
 // The supporter register, private to the campaign team; in an MCA race each one sits at a centre.
 export default function Supporters({ campaign, role, mine, onModal }) {
   const copy = useCopy();
-  const centreWard = campaign.operational_grain === "centre" ? campaign.ward : null;
+  const centreWard = unitOf(campaign).byCentre ? campaign.ward : null;
   const { data, isLoading, error } = useSupporters(campaign.id);
-  const targetsQuery = useTargets(campaign.id);
-  const targeted = new Set((targetsQuery.data || []).map((t) => t.registration_centre));
-  const showCentre = centreWard && targetsQuery.isSuccess;
-  const allCentres = useCentres(centreWard).data || [];
-  const centres = allCentres.filter((c) => targeted.has(c.id));
+  const { centres, all: allCentres, targeted, ready } = useTargetedCentres(campaign.id, centreWard);
+  const showCentre = centreWard && ready;
   const centreName = (id) => allCentres.find((c) => c.id === id)?.name;
   const place = usePlaceSupporter();
   const erase = useErase(campaign.id, "supporters");
-  const keeper = !mine && KEEPERS.includes(role);
+  const keeper = !mine && isLead(role);
   const [linkFor, setLinkFor] = useState(null);
   const [filter, setFilter] = useState("");
   const all = data || [];

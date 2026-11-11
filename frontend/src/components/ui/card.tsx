@@ -36,8 +36,9 @@ export function Card({ className, variant, interactive, asChild, ...props }: Car
   return <Comp data-slot="card" className={cn(cardVariants({ variant, interactive }), className)} {...props} />
 }
 
-export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn('text-card-title font-bold', className)} {...props} />
+/** A card's heading: an h2, or the level given by `as`. */
+export function CardTitle({ as: Tag = 'h2', className, ...props }: React.HTMLAttributes<HTMLHeadingElement> & { as?: 'h2' | 'h3' }) {
+  return <Tag className={cn('text-card-title font-bold', className)} {...props} />
 }
 
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {

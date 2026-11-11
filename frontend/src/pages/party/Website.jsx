@@ -40,11 +40,11 @@ import PlaceCascade from "@/components/PlaceCascade";
 import { RichTextEditor } from "@/components/RichText";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { FilterPills } from "@/components/ui/tabs";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatNumber } from "@/lib/format";
 import { SEAT_LABEL, SEATS } from "@/lib/labels";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
@@ -157,7 +157,7 @@ const SECTIONS = {
     { noun: "document", title: "Party documents", hint: "Linked from the About page.", fields: DOCUMENT_FIELDS, query: useSiteDocuments, save: useSaveDocument, del: useDeleteDocument, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
   ],
   Results: [
-    { noun: "result", title: "Primary results", hint: "One row per candidate; rows with the same seat and area form one race.", fields: RESULT_FIELDS, query: useSiteResults, save: useSaveResult, del: useDeleteResult, name: (r) => `${r.candidate}, ${SEAT_LABEL[r.seat]} ${r.area}`, meta: (r) => `${r.votes.toLocaleString("en-KE")} votes · ${r.declared_on ? `declared ${formatDate(r.declared_on)}` : "counting"}${r.demo ? " · demo" : ""}` },
+    { noun: "result", title: "Primary results", hint: "One row per candidate; rows with the same seat and area form one race.", fields: RESULT_FIELDS, query: useSiteResults, save: useSaveResult, del: useDeleteResult, name: (r) => `${r.candidate}, ${SEAT_LABEL[r.seat]} ${r.area}`, meta: (r) => `${formatNumber(r.votes)} votes · ${r.declared_on ? `declared ${formatDate(r.declared_on)}` : "counting"}${r.demo ? " · demo" : ""}` },
   ],
 };
 
@@ -236,7 +236,7 @@ function ItemForm({ section, row, onDone }) {
     <Card variant="outline" asChild>
       <form onSubmit={submit} noValidate>
         <div className="flex flex-col gap-1">
-          <h2 className="text-card-title font-bold">{row ? `Edit ${section.name(row)}` : `New ${section.noun}`}</h2>
+          <CardTitle>{row ? `Edit ${section.name(row)}` : `New ${section.noun}`}</CardTitle>
           <p className="text-small text-muted-foreground">Saved as a draft until you publish it.</p>
         </div>
         {shown.map((f) => {
@@ -294,7 +294,7 @@ export function SectionList({ section }) {
       <Card variant="outline" className="min-w-0 flex-[1_1_420px] gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-1">
-            <h2 className="text-card-title font-bold">{section.title}</h2>
+            <CardTitle>{section.title}</CardTitle>
             {section.hint ? <p className="text-small text-muted-foreground">{section.hint}</p> : null}
           </div>
           <Button shape="rounded" disabled={full} onClick={() => setEditing({ row: null })}>New {section.noun}</Button>
@@ -344,7 +344,7 @@ function EventAspirants({ postId }) {
   return (
     <Card variant="outline" className="gap-3">
       <div className="flex flex-col gap-1">
-        <h2 className="text-card-title font-bold">Aspirants at this event</h2>
+        <CardTitle>Aspirants at this event</CardTitle>
         <p className="text-small text-muted-foreground">The event shows on each one's candidate profile.</p>
       </div>
       {aspirants.length ? (
@@ -388,7 +388,7 @@ export function ProfileForm({ title, profile: p, save, upload, extra = {}, onDon
   return (
     <Card variant="outline" asChild>
       <form onSubmit={submit} noValidate>
-        <h2 className="text-card-title font-bold">{title}</h2>
+        <CardTitle>{title}</CardTitle>
         <ImageField label="Photo (optional)" value={form.photo_url} upload={upload} area="candidates" invalid={photoBad || undefined}
           hint={photoBad ? "Choose a file, or use an address starting with https://." : undefined} onChange={(v) => setForm((now) => ({ ...now, photo_url: v }))} />
         {PROFILE_FIELDS.map(([key, label, max]) => (
@@ -426,7 +426,7 @@ function CandidatesEditor() {
     <div className="flex flex-wrap items-start gap-6">
       <Card variant="outline" className="min-w-0 flex-[1_1_420px] gap-3">
         <div className="flex flex-col gap-1">
-          <h2 className="text-card-title font-bold">Candidate profiles</h2>
+          <CardTitle>Candidate profiles</CardTitle>
           <p className="text-small text-muted-foreground">Every approved aspirant. Write the profile from what the candidate sends, then publish it.</p>
         </div>
         {list.isLoading ? <LoadingText /> : null}

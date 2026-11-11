@@ -3,9 +3,10 @@ import { useState } from "react";
 import { useImportRuns, useRunImport } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { ErrorText } from "@/components/ui/error-text";
+import { formatDateTime } from "@/lib/format";
 
 const KINDS = {
   boundaries: {
@@ -73,7 +74,7 @@ function ImportCard({ kind }) {
   const report = run.data || checked;
   return (
     <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label={title}>
-      <h2 className="text-card-title font-bold">{title}</h2>
+      <CardTitle>{title}</CardTitle>
       <p className="text-ui text-muted-foreground">{note}</p>
       <p className="text-small"><span className="font-semibold">Columns:</span> <code className="break-words">{columns}</code></p>
       <label className="flex flex-col gap-1.5 text-small font-semibold">
@@ -95,13 +96,13 @@ function RecentImports() {
   if (!data.length) return null;
   return (
     <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Recent imports">
-      <h2 className="text-card-title font-bold">Recent imports</h2>
+      <CardTitle>Recent imports</CardTitle>
       <Table stack minWidth={520}>
         <THead><TR><TH>When</TH><TH>Kind</TH><TH>File</TH><TH>Changes</TH></TR></THead>
         <TBody>
           {data.map((r) => (
             <TR key={r.id}>
-              <TD>{new Date(r.created_at).toLocaleString()}</TD>
+              <TD>{formatDateTime(r.created_at)}</TD>
               <TD className="capitalize">{r.kind}</TD>
               <TD>{r.filename || "Unnamed"}</TD>
               <TD className="text-muted-foreground">{summary(r.counts)}</TD>

@@ -1,5 +1,5 @@
 import { useMobilizers } from "../../api/hooks";
-import { useUnits, useWardOptions } from "./helpers";
+import { isLead, unitOf, useUnits, useWardOptions } from "./helpers";
 import MobilizerForm from "./MobilizerForm";
 import ManagerForm from "./ManagerForm";
 import StaffForm from "./StaffForm";
@@ -23,7 +23,7 @@ export default function CampaignModal({ modal, campaign, role, onClose }) {
   const units = useUnits(campaignId);
   const wardOptions = useWardOptions(campaignId);
   const mobilizers = useMobilizers(campaignId);
-  const byCentre = campaign.operational_grain === "centre";
+  const { byCentre } = unitOf(campaign);
   return (
     <>
       {modal?.type === "mobilizer" && <MobilizerForm campaignId={campaignId} units={units} byCentre={byCentre} mobilizers={mobilizers.data || []} mobilizer={modal.mobilizer} onClose={onClose} />}
@@ -41,7 +41,7 @@ export default function CampaignModal({ modal, campaign, role, onClose }) {
       {modal?.type === "payment-release" && <ReleaseForm payments={modal.payments} onClose={onClose} />}
       {modal?.type === "payment-notsent" && <NotSentForm payment={modal.payment} onClose={onClose} />}
       {modal?.type === "link" && <CampaignLinkModal campaign={campaign} onClose={onClose} />}
-      {modal?.type === "qr" && <QrModal event={modal.event} canClose={role === "manager" || role === "candidate"} onClose={onClose} />}
+      {modal?.type === "qr" && <QrModal event={modal.event} canClose={isLead(role)} onClose={onClose} />}
     </>
   );
 }

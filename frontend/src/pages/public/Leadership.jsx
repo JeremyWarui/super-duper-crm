@@ -2,10 +2,11 @@
 import { usePublicLeaders } from "@/api/hooks";
 import { RichText } from "@/components/RichTextView";
 import { Card } from "@/components/ui/card";
-import { Crumbs } from "@/components/ui/typography";
 import { Photo } from "./story";
 import { LoadingText } from "@/components/ui/loading-text";
 import { ErrorText } from "@/components/ui/error-text";
+import { PageHero } from "@/components/PageHead";
+import { RuleHead } from "@/components/ui/typography";
 
 function Leader({ leader }) {
   return (
@@ -25,14 +26,7 @@ export default function Leadership() {
   const [head, ...rest] = leaders.data || [];
   return (
     <>
-      <section className="bg-primary text-white">
-        <div className="site-container flex flex-col gap-4 py-14">
-          <Crumbs onDark items={[{ label: "Home", to: "/" }, { label: "About", to: "/about" }, { label: "Leadership" }]} />
-          <p className="text-ui font-bold uppercase tracking-[0.12em] text-accent">Who leads us</p>
-          <h1 className="font-display text-[clamp(40px,5vw,64px)] leading-none font-extrabold tracking-[-0.03em]">Leadership</h1>
-          <p className="max-w-[52ch] text-[19px] leading-[1.6] text-[#CFE0D5]">The officials elected by the party's members to lead it between conventions.</p>
-        </div>
-      </section>
+      <PageHero crumbs={[{ label: "About", to: "/about" }, { label: "Leadership" }]} kicker="Who leads us" title="Leadership" lead="The officials elected by the party's members to lead it between conventions." />
       <div className="site-container flex flex-col gap-12 pt-14 pb-[72px]">
         {leaders.isLoading ? <LoadingText /> : null}
         {leaders.error ? <ErrorText error={leaders.error} /> : null}
@@ -49,7 +43,7 @@ export default function Leadership() {
         ) : null}
         {rest.length ? (
           <section aria-labelledby="team-h" className="flex flex-col gap-[18px]">
-            <h2 id="team-h" className="rule-top font-display text-[32px] font-extrabold">National officials</h2>
+            <RuleHead id="team-h">National officials</RuleHead>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5">
               {rest.map((l) => <Leader key={l.id} leader={l} />)}
             </div>

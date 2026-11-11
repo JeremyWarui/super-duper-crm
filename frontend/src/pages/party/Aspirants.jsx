@@ -20,7 +20,7 @@ import PlaceCascade, { NO_PLACE } from "@/components/PlaceCascade";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
@@ -107,7 +107,7 @@ function Workspace({ aspirant, onDone }) {
   return (
     <div className="flex flex-col gap-3 border-t border-line-soft pt-4">
       <div className="flex flex-col gap-0.5">
-        <h3 className="text-card-title font-bold">Create the campaign workspace</h3>
+        <CardTitle as="h3">Create the campaign workspace</CardTitle>
         <p className="text-ui text-muted-foreground">
           It is built on the {SEAT_LABEL[aspirant.seat]} seat for {aspirant.area.name}.
         </p>
@@ -234,7 +234,7 @@ function Timetable() {
   return (
     <Card variant="outline" className="gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-card-title font-bold">Nominations timetable</h2>
+        <CardTitle>Nominations timetable</CardTitle>
         <Button shape="rounded" variant="quiet" onClick={() => setEditing({})}>Draft a timetable</Button>
       </div>
       <div className="flex flex-col" aria-label="Timetables">

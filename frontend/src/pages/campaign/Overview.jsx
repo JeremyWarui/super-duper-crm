@@ -1,10 +1,10 @@
 import { useMobilizers, useStrategy } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt, plural } from "@/lib/format";
-import { holderOf, statusOf } from "./helpers";
+import { holderOf, statusOf, unitOf } from "./helpers";
 import StrategyNotes from "./StrategyNotes";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
@@ -42,7 +42,7 @@ function Targets({ units, mobilizers, noun }) {
   const title = noun === "centre" ? "Centre targets" : "Ward targets";
   return (
     <Card variant="outline" className="min-w-0 flex-[3_1_460px] gap-3" role="region" aria-labelledby="targets-h">
-      <h2 id="targets-h" className="text-card-title font-bold">{title}</h2>
+      <CardTitle id="targets-h">{title}</CardTitle>
       <Table stack minWidth={620}>
         <THead><TR>
           <TH>{noun === "centre" ? "Centre" : "Ward"}</TH><TH align="right">Win number</TH><TH align="right">Committed</TH>
@@ -73,7 +73,7 @@ function Targets({ units, mobilizers, noun }) {
 export default function Overview({ campaign, role, onModal }) {
   const strategy = useStrategy(campaign.id);
   const mobilizers = useMobilizers(campaign.id);
-  const noun = campaign.operational_grain === "centre" ? "centre" : "ward";
+  const { noun } = unitOf(campaign);
   const actions = (
     <>
       {role !== "candidate" && <Button shape="rounded" variant="quiet" onClick={() => onModal({ type: "event" })}>Schedule event</Button>}

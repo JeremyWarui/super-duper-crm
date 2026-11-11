@@ -10,6 +10,7 @@ import {
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Confirm } from "@/components/ui/confirm";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
@@ -27,7 +28,6 @@ import PlaceCascade, { NO_PLACE } from "@/components/PlaceCascade";
 function Detail({ row, onClose }) {
   const update = useUpdateVolunteer();
   const erase = useErasePartyVolunteer();
-  const [asking, setAsking] = useState(false);
   const [notes, setNotes] = useState(row.availability_notes || "");
   const v = erase.data || update.data || row;
   const canActivate = (v.status === "interested" || v.status === "inactive") && v.member_status === "approved";
@@ -68,15 +68,8 @@ function Detail({ row, onClose }) {
           </FormActions>
           {v.status === "withdrawn" && (
             <FormActions>
-              {asking ? (
-                <>
-                  <span className="text-ui text-muted-foreground">Erase their volunteer details for good? Their membership stays.</span>
-                  <Button shape="rounded" variant="danger" disabled={erase.isPending} onClick={() => erase.mutate(v.id)}>Yes, erase</Button>
-                  <Button shape="rounded" variant="quiet" onClick={() => setAsking(false)}>Cancel</Button>
-                </>
-              ) : (
-                <Button shape="rounded" variant="danger" onClick={() => setAsking(true)}>Erase volunteer details</Button>
-              )}
+              <Confirm label="Erase volunteer details" question="Erase their volunteer details for good? Their membership stays." yes="Yes, erase"
+                pending={erase.isPending} onConfirm={() => erase.mutate(v.id)} />
             </FormActions>
           )}
         </>

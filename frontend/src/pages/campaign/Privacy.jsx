@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useCloseCampaign, useCloseState, useErase, useEraseSupporters, useLeftTeam, useSetRetention } from "@/api/hooks";
 import DataRequests from "@/components/DataRequests";
 import EraseButton from "@/components/EraseButton";
+import { Confirm } from "@/components/ui/confirm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -67,7 +68,6 @@ function Closing({ campaign, role }) {
   const { data: state, isLoading, error } = useCloseState(campaign.id);
   const close = useCloseCampaign(campaign.id);
   const eraseAll = useEraseSupporters(campaign.id);
-  const [asking, setAsking] = useState(false);
   const candidate = role === "candidate";
   if (isLoading) return <LoadingText />;
   if (error) return <ErrorText error={error} />;
@@ -86,15 +86,8 @@ function Closing({ campaign, role }) {
           {candidate ? (
             <>
               <Retention key={state.retention_months} campaign={campaign} state={state} />
-              {!asking ? (
-                <Button shape="rounded" variant="danger" className="self-start" onClick={() => setAsking(true)}>Close the campaign</Button>
-              ) : (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-ui font-semibold">Close for good? This cannot be undone.</span>
-                  <Button shape="rounded" variant="danger" disabled={close.isPending} onClick={() => close.mutate(undefined, { onSuccess: () => setAsking(false) })}>Yes, close it</Button>
-                  <Button shape="rounded" variant="ghost" onClick={() => setAsking(false)}>Cancel</Button>
-                </div>
-              )}
+              <Confirm label="Close the campaign" question="Close for good? This cannot be undone." yes="Yes, close it" className="self-start"
+                pending={close.isPending} onConfirm={(done) => close.mutate(undefined, { onSuccess: done })} />
               <ErrorText error={close.error} />
             </>
           ) : <p className="text-small text-muted-foreground">Only the candidate closes the campaign.</p>}

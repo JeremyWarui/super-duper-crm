@@ -4,11 +4,13 @@ import { Link } from "react-router-dom";
 import { usePartyPlaces, usePublicCandidates } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import { FilterSelect, Input } from "@/components/ui/input";
-import { Crumbs } from "@/components/ui/typography";
 import { SEAT_LABEL, SEATS } from "@/lib/labels";
 import { Photo } from "./story";
 import { LoadingText } from "@/components/ui/loading-text";
 import { ErrorText } from "@/components/ui/error-text";
+import { PageHero } from "@/components/PageHead";
+import { FilterPills } from "@/components/ui/tabs";
+import { whereOf } from "@/lib/format";
 
 
 export function CandidateCard({ c, square = false }) {
@@ -19,7 +21,7 @@ export function CandidateCard({ c, square = false }) {
         <span className="flex flex-1 flex-col gap-1.5 p-[18px]">
           <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{SEAT_LABEL[c.seat]}</span>
           <span className="text-[18px] font-bold">{c.name}</span>
-          <span className="text-small text-muted-foreground">{[c.area, c.county].filter((v, i, all) => v && all.indexOf(v) === i).join(" · ")}</span>
+          <span className="text-small text-muted-foreground">{whereOf(c, " · ")}</span>
           <span className="mt-auto pt-2 text-small font-bold text-primary">View profile →</span>
         </span>
       </Link>
@@ -34,33 +36,22 @@ export default function Candidates() {
   const counties = usePartyPlaces().data || [];
   const list = usePublicCandidates({ seat, county, q: q.trim() });
   const people = list.data || [];
-  const pill = (on) => `min-h-11 cursor-pointer rounded-full border-[1.5px] px-[18px] text-[15px] font-semibold ${on ? "border-ink bg-ink text-white" : "border-line-control bg-white text-ink"}`;
   return (
     <>
-      <section className="bg-primary text-white">
-        <div className="site-container flex flex-col gap-[22px] py-12">
-          <Crumbs onDark items={[{ label: "Home", to: "/" }, { label: "Candidates" }]} />
-          <h1 className="font-display text-[clamp(40px,5vw,64px)] leading-none font-extrabold tracking-[-0.03em]">Our candidates</h1>
-          <p className="max-w-[60ch] text-[18px] text-[#CFE0D5]">Find the party's aspirant for your ward, constituency and county.</p>
-          <div className="flex flex-wrap items-end gap-3.5">
-            <label className="flex flex-[1_1_280px] flex-col gap-1.5 text-small font-semibold text-[#DDE3DF]">
-              Search by name or area
-              <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="A name, ward or constituency" className="border-0 text-ink" />
-            </label>
-            <label className="flex min-w-[200px] flex-col gap-1.5 text-small font-semibold text-[#DDE3DF]">
-              County
-              <FilterSelect label="County" blank="All counties" value={county} onChange={setCounty} options={counties} className="w-full flex-none border-0 bg-white text-ink" />
-            </label>
-          </div>
+      <PageHero crumbs={[{ label: "Candidates" }]} title="Our candidates" lead="Find the party's aspirant for your ward, constituency and county.">
+        <div className="flex flex-wrap items-end gap-3.5">
+          <label className="flex flex-[1_1_280px] flex-col gap-1.5 text-small font-semibold text-[#DDE3DF]">
+            Search by name or area
+            <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="A name, ward or constituency" className="border-0 text-ink" />
+          </label>
+          <label className="flex min-w-[200px] flex-col gap-1.5 text-small font-semibold text-[#DDE3DF]">
+            County
+            <FilterSelect label="County" blank="All counties" value={county} onChange={setCounty} options={counties} className="w-full flex-none border-0 bg-white text-ink" />
+          </label>
         </div>
-      </section>
+      </PageHero>
       <div className="site-container flex flex-col gap-6 pt-9 pb-20">
-        <div role="group" aria-label="Filter by seat" className="flex flex-wrap gap-2">
-          <button type="button" aria-pressed={!seat} onClick={() => setSeat("")} className={pill(!seat)}>All</button>
-          {SEATS.map(([value, label]) => (
-            <button key={value} type="button" aria-pressed={seat === value} onClick={() => setSeat(value)} className={pill(seat === value)}>{label}</button>
-          ))}
-        </div>
+        <FilterPills look="ink" label="Filter by seat" options={[["", "All"], ...SEATS.map(([value, label]) => [value, label])]} value={seat} onChange={setSeat} />
         {list.isSuccess ? <p className="text-[15px] text-muted-foreground"><strong className="text-ink">{people.length}</strong> {people.length === 1 ? "aspirant" : "aspirants"} shown</p> : null}
         {list.isLoading ? <LoadingText /> : null}
         {list.error ? <ErrorText error={list.error} /> : null}

@@ -13,16 +13,15 @@ import { useAuth } from "@/store/auth";
 import { composed } from "@/lib/sms";
 import { MessageField } from "@/components/SmsParts";
 import { SUPPORT_LEVELS } from "@/lib/labels";
+import { isLead } from "./helpers";
 
-// Who may really text; anyone else who changes the event can preview.
-const SENDERS = ["candidate", "manager"];
 
 // Who an invite goes to, named as groups.
 const AUDIENCE = SUPPORT_LEVELS.map(([value, label]) => [value, value === "supporter" ? "Supporters" : label]);
 
 export default function InviteForm({ event, onClose }) {
   const invite = useInviteToEvent();
-  const canSend = SENDERS.includes(useAuth((s) => s.user?.role));
+  const canSend = isLead(useAuth((s) => s.user?.role));
   const [message, setMessage] = useState(`${event.title}${event.venue ? ` at ${event.venue}` : ""}. Come through.`);
   const [levels, setLevels] = useState(["supporter", "undecided"]);
   const [wholeCampaign, setWholeCampaign] = useState(false);

@@ -6,10 +6,11 @@ import { Card } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Field, FilterSelect, Input } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
+import { linkTo } from "@/lib/format";
 
 // The person's own way back off the register; shown once, after signing up.
 function WithdrawNote({ code }) {
-  const link = `${window.location.origin}/withdraw/${code}`;
+  const link = linkTo(`/withdraw/${code}`);
   return (
     <p className="text-ui leading-[1.6] text-muted-foreground">
       Changed your mind later? Keep this link. Opening it lets you take your details off the

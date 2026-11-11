@@ -3,8 +3,9 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ReasonForm } from "@/components/ui/confirm";
 import { ErrorText } from "@/components/ui/error-text";
-import { Field, Input, Textarea } from "@/components/ui/input";
+import { Field, Textarea } from "@/components/ui/input";
 import { formatDate, formatNumber, plural } from "@/lib/format";
 import { BODY_MAX, composed, DELIVERY_STATUS, partsOf } from "@/lib/sms";
 
@@ -14,17 +15,6 @@ export function MessageField({ value, onChange, text }) {
     <Field label="Message" hint={<>{plural(text.length, "character")} · {plural(partsOf(text), "SMS part")} each · "Reply STOP to opt out" is added</>}>
       <Textarea rows={5} maxLength={BODY_MAX} value={value} onChange={(e) => onChange(e.target.value)} />
     </Field>
-  );
-}
-
-/** A draft's optional reason box with Decline and Keep it. */
-export function DeclineForm({ note, onNote, busy, onDecline, onKeep }) {
-  return (
-    <div className="flex flex-wrap items-end gap-2">
-      <Field label="Why (optional)" className="min-w-0 flex-1"><Input value={note} onChange={(e) => onNote(e.target.value)} /></Field>
-      <Button shape="rounded" size="sm" variant="outline" disabled={busy} onClick={onDecline}>Decline</Button>
-      <Button shape="rounded" size="sm" variant="quiet" onClick={onKeep}>Keep it</Button>
-    </div>
   );
 }
 
@@ -60,8 +50,8 @@ export function DraftList({ drafts, about, decide, approve, decline, remove, can
             {typeof may === "string" ? (
               <p className="text-small text-muted-foreground">{may}</p>
             ) : declining === m.id ? (
-              <DeclineForm note={note} onNote={setNote} busy={busy} onKeep={() => setDeclining(null)}
-                onDecline={() => decline.mutate({ id: m.id, note }, { onSuccess: () => { setDeclining(null); setNote(""); } })} />
+              <ReasonForm visibleLabel label="Why (optional)" min={0} value={note} onChange={setNote} yes="Decline" no="Keep it" busy={busy} onNo={() => setDeclining(null)}
+                onYes={() => decline.mutate({ id: m.id, note }, { onSuccess: () => { setDeclining(null); setNote(""); } })} />
             ) : may || canDelete(m) ? (
               <div className="flex flex-wrap gap-2">
                 {may && <Button shape="rounded" size="sm" disabled={busy} onClick={() => approve.mutate(m.id)}>Approve and send</Button>}

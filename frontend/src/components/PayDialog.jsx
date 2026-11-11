@@ -8,19 +8,10 @@ import { Field, Input } from "@/components/ui/input";
 import { formatKES } from "../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
+import { FilterPills } from "@/components/ui/tabs";
 
 const AMOUNTS = [200, 500, 1000, 2500, 5000];
 const CODE = /^[A-Z0-9]{10}$/;
-const PILL = "min-h-11 cursor-pointer rounded-full border-[1.5px] px-4 text-ui font-bold";
-
-function Choice({ active, onClick, children }) {
-  return (
-    <button type="button" aria-pressed={active} onClick={onClick} className={`${PILL} ${active ? "border-primary bg-primary-tint text-primary" : "border-line-control bg-white text-ink"}`}>
-      {children}
-    </button>
-  );
-}
-
 /** Where to pay by hand, and the steps on the phone. */
 function PaybillSteps({ options, amount }) {
   const paybill = options.paybill;
@@ -119,17 +110,13 @@ export default function PayDialog({ title, fee, amount: preset, phone: knownPhon
           {!fee ? (
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-2 text-small font-semibold">Amount</legend>
-              <div className="flex flex-wrap gap-2">
-                {AMOUNTS.map((a) => <Choice key={a} active={Number(amount) === a} onClick={() => setAmount(a)}>{formatKES(a)}</Choice>)}
-              </div>
+              <FilterPills look="tint" label="Amount" options={AMOUNTS.map((a) => [String(a), formatKES(a)])} value={String(amount)} onChange={(a) => setAmount(Number(a))} />
               <Field label="Or another amount (KES)"><Input type="number" min={10} inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
             </fieldset>
           ) : null}
           {byHand ? (
-            <div role="group" aria-label="How to pay" className="flex flex-wrap gap-2">
-              <Choice active={method === "stk"} onClick={() => setMethod("stk")}>Send a prompt to my phone</Choice>
-              <Choice active={method === "manual"} onClick={() => setMethod("manual")}>I paid by {options.paybill ? "Paybill" : "Till"}</Choice>
-            </div>
+            <FilterPills look="tint" label="How to pay" value={method} onChange={setMethod}
+              options={[["stk", "Send a prompt to my phone"], ["manual", `I paid by ${options.paybill ? "Paybill" : "Till"}`]]} />
           ) : null}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {!fee ? <Field label="Your name"><Input value={f.name} onChange={set("name")} autoComplete="name" /></Field> : null}

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { download } from "@/api/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { nairobiDate } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 
@@ -17,7 +17,7 @@ export default function ExportPanel() {
   return (
     <div className="kit">
       <Card variant="outline" className="gap-3" role="region" aria-label="Export">
-        <h2 className="text-card-title font-bold">Export everything</h2>
+        <CardTitle>Export everything</CardTitle>
         <p className="text-ui">
           Every table as JSON and CSV in one zip, with a manifest of what is inside: for your own records, or to move to another
           provider. Passwords and sign-in links are left out, so logins that should move with you need a backup instead. Each

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useAuth } from "@/store/auth";
-import { useCentres, useConsentWording, useMobilizers, useRegisterSupporter, useTargets } from "@/api/hooks";
+import { useConsentWording, useMobilizers, useRegisterSupporter } from "@/api/hooks";
+import { useTargetedCentres } from "./helpers";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { useDraft } from "@/lib/draft";
-import { cn } from "@/lib/utils";
+import { FilterPills } from "@/components/ui/tabs";
 import SendError from "./SendError";
 
 const BLANK = { full_name: "", phone: "", ward: "", centre: null, support_level: "supporter", consent_given: false };
@@ -24,13 +25,10 @@ export default function RegisterSupporterForm({ campaignId, wardOptions, byCentr
   const [sent, setSent] = useState(false);
   const change = (patch) => setForm((f) => ({ ...f, ...patch }));
   const ward = form.ward || wardOptions[0]?.id || "";
-  const centresQuery = useCentres(byCentre ? ward : null);
-  const targetsQuery = useTargets(campaignId);
-  const targeted = new Set((targetsQuery.data || []).map((t) => t.registration_centre));
-  const centres = (centresQuery.data || []).filter((c) => targeted.has(c.id));
+  const { centres, targeted, ready, fetched } = useTargetedCentres(campaignId, byCentre ? ward : null);
   const ownCentre = own?.ward === ward && targeted.has(own?.registration_centre) ? own.registration_centre : null;
   const centre = form.centre ?? ownCentre ?? "";
-  const loaded = !centresQuery.isFetching && !centresQuery.isError && targetsQuery.isSuccess;
+  const loaded = fetched && ready;
   const ok = form.full_name.trim() && form.consent_given && ward && (!byCentre || (loaded && centre));
   // The promise settles even if the form has closed meanwhile, so a sent entry never stays kept.
   const send = () => reg.mutateAsync(
@@ -64,14 +62,7 @@ export default function RegisterSupporterForm({ campaignId, wardOptions, byCentr
       )}
       <div className="flex flex-col gap-1.5">
         <span className="text-small font-semibold">Support</span>
-        <div role="group" aria-label="Support" className="grid grid-cols-3 gap-2">
-          {LEVELS.map(([value, label]) => (
-            <button key={value} type="button" aria-pressed={form.support_level === value} onClick={() => change({ support_level: value })}
-              className={cn("min-h-11 cursor-pointer rounded-lg border px-2 text-ui font-bold", form.support_level === value ? "border-primary bg-primary text-primary-foreground" : "border-line-control bg-white text-ink")}>
-              {label}
-            </button>
-          ))}
-        </div>
+        <FilterPills look="rounded" label="Support" className="grid grid-cols-3" options={LEVELS} value={form.support_level} onChange={(support_level) => change({ support_level })} />
       </div>
       <label className="flex min-h-11 items-start gap-3 text-ui">
         <input type="checkbox" className="mt-0.5 size-6 flex-none accent-primary" checked={form.consent_given} onChange={(e) => change({ consent_given: e.target.checked })} />

@@ -6,6 +6,7 @@ import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { LoadingText } from "@/components/ui/loading-text";
 import ShareLink from "./ShareLink";
+import { linkTo } from "@/lib/format";
 
 // The campaign-wide sign-up link for posters and messages; the manager opens and closes it.
 export default function CampaignLinkModal({ campaign, onClose }) {
@@ -15,7 +16,7 @@ export default function CampaignLinkModal({ campaign, onClose }) {
   if (signups.isLoading) return <Dialog title="Campaign sign-up link" description={sub} onClose={onClose}><LoadingText /></Dialog>;
   if (signups.error) return <Dialog title="Campaign sign-up link" description={sub} onClose={onClose}><ErrorText error={signups.error} /></Dialog>;
   const { code, open } = signups.data;
-  const link = `${window.location.origin}/join/${code}`;
+  const link = linkTo(`/join/${code}`);
   return (
     <Dialog title="Campaign sign-up link" description={sub} onClose={onClose}>
       <div className="qr-print flex flex-col items-center gap-3 text-center">

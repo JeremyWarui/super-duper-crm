@@ -16,6 +16,11 @@ export function SectionHead({ kicker, title, action, onDark, className, rule }: 
   )
 }
 
+/** A long public page's section heading, set over a rule */
+export function RuleHead({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  return <h2 className={cn('rule-top font-display text-[32px] font-extrabold', className)} {...props} />
+}
+
 /** Small uppercase rail heading used in sidebars ("LATEST", "MOST READ") */
 export function RailHead({ className, accent, ...props }: React.HTMLAttributes<HTMLHeadingElement> & { accent?: boolean }) {
   return <h2 className={cn('mb-2 text-ui font-extrabold uppercase tracking-[0.12em]', accent && 'border-t-[3px] border-primary pt-3', className)} {...props} />

@@ -8,6 +8,7 @@ import { Field, Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
+import { formatDateTime } from "@/lib/format";
 
 const BLANK = { action: "", actor: "", since: "", until: "" };
 const detail = (d) => Object.entries(d || {}).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(", ");
@@ -37,7 +38,7 @@ export default function AuditTrail() {
           <TBody>
             {data.map((e) => (
               <TR key={e.id}>
-                <TD className="whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</TD>
+                <TD className="whitespace-nowrap">{formatDateTime(e.created_at)}</TD>
                 <TD>{e.actor_name || "System"}</TD>
                 <TD className="font-semibold">{aspirant ? e.action.replace(/^party\./, "site.") : e.action}</TD>
                 <TD className="break-words text-muted-foreground">{detail(e.detail)}</TD>
