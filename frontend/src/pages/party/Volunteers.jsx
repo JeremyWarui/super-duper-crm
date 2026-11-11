@@ -15,13 +15,14 @@ import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
-import { Input, NativeSelect, Textarea } from "@/components/ui/input";
+import { FilterSelect, Input, Textarea } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 import { Pager } from "@/components/ui/pager";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatDate, placeOf } from "@/lib/format";
 import { AREAS, CONTACT_LABEL, STATUS_LABEL, helpsWith, professionOf, STATUS_TONE, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE } from "@/lib/labels";
 import { PAGE_SIZE } from "./helpers";
+import { StatusFilter, useRegister } from "./register";
 import PlaceCascade, { NO_PLACE } from "@/components/PlaceCascade";
 
 
@@ -81,32 +82,13 @@ function Detail({ row, onClose }) {
 }
 
 export default function Volunteers() {
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState("");
-  const [area, setArea] = useState("");
-  const [where, setWhere] = useState(NO_PLACE);
-  const [offset, setOffset] = useState(0);
+  const { filters, set, offset, setOffset, list, items, total, exportCsv, exportError } =
+    useRegister(usePartyVolunteers, { q: "", status: "", area: "", where: NO_PLACE }, exportPartyVolunteers);
   const [openId, setOpenId] = useState(null);
-  const [exportError, setExportError] = useState("");
-
-  const filters = { q: q.trim(), status, area, ...where };
-  const { data, isLoading, error } = usePartyVolunteers({ ...filters, limit: PAGE_SIZE, offset });
-  const set = (setter) => (value) => { setter(value); setOffset(0); };
-  const total = data?.total ?? 0;
-  const items = data?.items || [];
   const open = items.find((v) => v.id === openId);
 
-  const exportCsv = async () => {
-    setExportError("");
-    try {
-      await exportPartyVolunteers(filters);
-    } catch (e) {
-      setExportError(e.message);
-    }
-  };
-
-  if (isLoading) return <LoadingText />;
-  if (error) return <ErrorText error={error} />;
+  if (list.isLoading) return <LoadingText />;
+  if (list.error) return <ErrorText error={list.error} />;
 
   return (
     <>
@@ -121,18 +103,12 @@ export default function Volunteers() {
           aria-label="Search volunteers"
           className="sm:col-span-2"
           placeholder="Search name or phone"
-          value={q}
-          onChange={(e) => set(setQ)(e.target.value)}
+          value={filters.q}
+          onChange={(e) => set("q")(e.target.value)}
         />
-        <NativeSelect aria-label="Status" className="w-auto min-w-0 flex-[1_1_180px]" value={status} onChange={(e) => set(setStatus)(e.target.value)}>
-          <option value="">All statuses</option>
-          {Object.entries(VOLUNTEER_STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </NativeSelect>
-        <NativeSelect aria-label="Area" className="w-auto min-w-0 flex-[1_1_180px]" value={area} onChange={(e) => set(setArea)(e.target.value)}>
-          <option value="">All areas</option>
-          {AREAS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </NativeSelect>
-        <PlaceCascade place={where} onChange={set(setWhere)} />
+        <StatusFilter labels={VOLUNTEER_STATUS_LABEL} value={filters.status} onChange={set("status")} />
+        <FilterSelect label="Area" blank="All areas" value={filters.area} onChange={set("area")} options={AREAS} />
+        <PlaceCascade place={filters.where} onChange={set("where")} />
       </div>
       <Card variant="outline">
         <Table stack minWidth={960}>

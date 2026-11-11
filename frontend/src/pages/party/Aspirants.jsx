@@ -1,6 +1,5 @@
 // The nominations officer's page: nominate approved members, move nominations, create workspaces.
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import {
   useAspirant,
   useAspirants,
@@ -23,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
-import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
+import { Field, FilterSelect, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { FormActions } from "@/components/ui/form-actions";
 import { InviteDialog } from "@/components/ui/invite-dialog";
 import { LoadingText } from "@/components/ui/loading-text";
@@ -34,6 +33,7 @@ import { formatDate, formatKES } from "@/lib/format";
 import { useAuth } from "@/store/auth";
 import { ASPIRANT_STATUS_LABEL, ASPIRANT_STATUS_TONE, SEAT_AREA, SEAT_LABEL, SEATS } from "@/lib/labels";
 import { ASPIRANT_MOVES, NEEDS_REASON, PAGE_SIZE } from "./helpers";
+import { Linked, MoveButtons, StatusFilter, useLinkedRecord, useRegister } from "./register";
 
 function Nominate({ onClose }) {
   const [q, setQ] = useState("");
@@ -137,7 +137,6 @@ function Workspace({ aspirant, onDone }) {
 function Detail({ row, onClose }) {
   const detail = useAspirant(row.id);
   const move = useMoveAspirant();
-  const [reason, setReason] = useState("");
   const [logins, setLogins] = useState(null);
   const a = detail.data || row;
   const actions = ASPIRANT_MOVES[a.status] || [];
@@ -165,32 +164,7 @@ function Detail({ row, onClose }) {
       </div>
       {a.window_title && <Application a={a} />}
       <ErrorText error={detail.error} />
-      {actions.length > 0 && (
-        <>
-          <Input
-            aria-label="Reason"
-            placeholder="Reason (needed to reject or suspend)"
-            maxLength={1000}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-          <FormActions>
-            {actions.map(([status, label]) => (
-              <Button
-                key={status + label}
-                shape="rounded"
-                variant={status === "approved" ? "primary" : "quiet"}
-                disabled={move.isPending || (NEEDS_REASON.has(status) && !reason.trim())}
-                onClick={() =>
-                  move.mutate({ id: a.id, status, reason: reason.trim() }, { onSuccess: () => setReason("") })
-                }
-              >
-                {label}
-              </Button>
-            ))}
-          </FormActions>
-        </>
-      )}
+      <MoveButtons moves={actions} move={move} id={a.id} placeholder="Reason (needed to reject or suspend)" needsReason={(s) => NEEDS_REASON.has(s)} />
       <ErrorText error={move.error} className="text-small" />
       {a.status === "approved" && !a.campaign_id && <Workspace aspirant={a} onDone={setLogins} />}
     </Dialog>
@@ -312,35 +286,14 @@ function TimetableForm({ window: w, onClose }) {
   );
 }
 
-// A record opened from a link (`?open=<id>`), once it has loaded.
-function Linked({ id, onClose }) {
-  const detail = useAspirant(id);
-  return detail.data ? <Detail row={detail.data} onClose={onClose} /> : null;
-}
-
 export default function Aspirants() {
-  const [status, setStatus] = useState("");
-  const [seat, setSeat] = useState("");
-  const [offset, setOffset] = useState(0);
+  const { filters, set, offset, setOffset, list, items, total } = useRegister(useAspirants, { status: "", seat: "" });
   const [open, setOpen] = useState(null);
   const [nominating, setNominating] = useState(false);
-  const [params, setParams] = useSearchParams();
-  const linked = params.get("open");
-  const closeLinked = () => setParams((p) => { p.delete("open"); return p; }, { replace: true });
-  // A link's `?status=` sets the filter each time the link changes.
-  const wanted = params.get("status");
-  const [applied, setApplied] = useState(null);
-  if (wanted !== null && wanted !== applied) {
-    setApplied(wanted);
-    setStatus(wanted);
-    setOffset(0);
-  }
-  const { data, isLoading, error } = useAspirants({ status, seat, limit: PAGE_SIZE, offset });
-  const total = data?.total ?? 0;
-  const items = data?.items || [];
+  const { linked, close: closeLinked } = useLinkedRecord(set("status"));
 
-  if (isLoading) return <LoadingText />;
-  if (error) return <ErrorText error={error} />;
+  if (list.isLoading) return <LoadingText />;
+  if (list.error) return <ErrorText error={list.error} />;
 
   return (
     <>
@@ -351,16 +304,8 @@ export default function Aspirants() {
       />
       <Timetable />
       <div className="flex flex-wrap gap-2">
-        <NativeSelect aria-label="Status" className="w-auto min-w-0 flex-[1_1_180px]" value={status}
-          onChange={(e) => { setStatus(e.target.value); setOffset(0); }}>
-          <option value="">All statuses</option>
-          {Object.entries(ASPIRANT_STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </NativeSelect>
-        <NativeSelect aria-label="Seat filter" className="w-auto min-w-0 flex-[1_1_180px]" value={seat}
-          onChange={(e) => { setSeat(e.target.value); setOffset(0); }}>
-          <option value="">All seats</option>
-          {SEATS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </NativeSelect>
+        <StatusFilter labels={ASPIRANT_STATUS_LABEL} value={filters.status} onChange={set("status")} />
+        <FilterSelect label="Seat filter" blank="All seats" value={filters.seat} onChange={set("seat")} options={SEATS} />
       </div>
       <Card variant="outline">
         <Table stack minWidth={640}>
@@ -382,7 +327,7 @@ export default function Aspirants() {
       <Pager offset={offset} size={PAGE_SIZE} shown={items.length} total={total} noun="nominations" onChange={setOffset} />
       {nominating && <Nominate onClose={() => setNominating(false)} />}
       {open && <Detail row={open} onClose={() => setOpen(null)} />}
-      {linked && !open && <Linked id={linked} onClose={closeLinked} />}
+      {linked && !open && <Linked id={linked} useRecord={useAspirant} Detail={Detail} onClose={closeLinked} />}
     </>
   );
 }

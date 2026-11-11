@@ -1,7 +1,6 @@
 // The membership officer's register: filter, page through, open a member, move their status, and
 // erase a withdrawn or rejected member's details on request.
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import {
   exportPartyMembers,
   useEraseMember,
@@ -17,13 +16,14 @@ import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
-import { Input, NativeSelect } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 import { Pager } from "@/components/ui/pager";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatDate, placeOf } from "@/lib/format";
 import { STATUS_LABEL, STATUS_TONE } from "@/lib/labels";
 import { MOVES, PAGE_SIZE } from "./helpers";
+import { Linked, MoveButtons, StatusFilter, useLinkedRecord, useRegister } from "./register";
 import PlaceCascade, { NO_PLACE } from "@/components/PlaceCascade";
 
 const ERASABLE = ["withdrawn", "rejected"];
@@ -46,7 +46,6 @@ function Erase({ member }) {
 function Detail({ row, onClose }) {
   const detail = usePartyMember(row.id);
   const move = useMoveMember();
-  const [reason, setReason] = useState("");
   const m = detail.data || row;
   const actions = m.erased_at ? [] : MOVES[m.status] || [];
 
@@ -66,80 +65,21 @@ function Detail({ row, onClose }) {
         )}
       </div>
       <ErrorText error={detail.error} />
-      {actions.length > 0 && (
-        <>
-          <Input
-            aria-label="Reason"
-            placeholder="Reason (optional)"
-            maxLength={1000}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-          <FormActions>
-            {actions.map(([status, label]) => (
-              <Button
-                key={status + label}
-                shape="rounded"
-                variant={status === "approved" ? "primary" : "quiet"}
-                disabled={move.isPending}
-                onClick={() =>
-                  move.mutate({ id: m.id, status, reason: reason.trim() }, { onSuccess: () => setReason("") })
-                }
-              >
-                {label}
-              </Button>
-            ))}
-          </FormActions>
-        </>
-      )}
+      <MoveButtons moves={actions} move={move} id={m.id} placeholder="Reason (optional)" />
       <ErrorText error={move.error} className="text-small" />
       {detail.data && <Erase member={m} />}
     </Dialog>
   );
 }
 
-// A record opened from a link (`?open=<id>`), once it has loaded.
-function Linked({ id, onClose }) {
-  const detail = usePartyMember(id);
-  return detail.data ? <Detail row={detail.data} onClose={onClose} /> : null;
-}
-
 export default function Members() {
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState("");
-  const [where, setWhere] = useState(NO_PLACE);
-  const [offset, setOffset] = useState(0);
+  const { filters, set, offset, setOffset, list, items, total, exportCsv, exportError } =
+    useRegister(usePartyMembers, { q: "", status: "", where: NO_PLACE }, exportPartyMembers);
   const [open, setOpen] = useState(null);
-  const [exportError, setExportError] = useState("");
-  const [params, setParams] = useSearchParams();
-  const linked = params.get("open");
-  const closeLinked = () => setParams((p) => { p.delete("open"); return p; }, { replace: true });
-  // A link's `?status=` sets the filter each time the link changes.
-  const wanted = params.get("status");
-  const [applied, setApplied] = useState(null);
-  if (wanted !== null && wanted !== applied) {
-    setApplied(wanted);
-    setStatus(wanted);
-    setOffset(0);
-  }
+  const { linked, close: closeLinked } = useLinkedRecord(set("status"));
 
-  const filters = { q: q.trim(), status, ...where };
-  const { data, isLoading, error } = usePartyMembers({ ...filters, limit: PAGE_SIZE, offset });
-  const set = (setter) => (value) => { setter(value); setOffset(0); };
-  const total = data?.total ?? 0;
-  const items = data?.items || [];
-
-  const exportCsv = async () => {
-    setExportError("");
-    try {
-      await exportPartyMembers(filters);
-    } catch (e) {
-      setExportError(e.message);
-    }
-  };
-
-  if (isLoading) return <LoadingText />;
-  if (error) return <ErrorText error={error} />;
+  if (list.isLoading) return <LoadingText />;
+  if (list.error) return <ErrorText error={list.error} />;
 
   return (
     <>
@@ -154,14 +94,11 @@ export default function Members() {
           aria-label="Search members"
           className="w-auto flex-[2_1_240px]"
           placeholder="Search name, phone or email"
-          value={q}
-          onChange={(e) => set(setQ)(e.target.value)}
+          value={filters.q}
+          onChange={(e) => set("q")(e.target.value)}
         />
-        <NativeSelect aria-label="Status" className="w-auto min-w-0 flex-[1_1_180px]" value={status} onChange={(e) => set(setStatus)(e.target.value)}>
-          <option value="">All statuses</option>
-          {Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </NativeSelect>
-        <PlaceCascade place={where} onChange={set(setWhere)} />
+        <StatusFilter labels={STATUS_LABEL} value={filters.status} onChange={set("status")} />
+        <PlaceCascade place={filters.where} onChange={set("where")} />
       </div>
       <Card variant="outline">
         <Table stack minWidth={720}>
@@ -182,7 +119,7 @@ export default function Members() {
       </Card>
       <Pager offset={offset} size={PAGE_SIZE} shown={items.length} total={total} noun="members" onChange={setOffset} />
       {open && <Detail row={open} onClose={() => setOpen(null)} />}
-      {linked && !open && <Linked id={linked} onClose={closeLinked} />}
+      {linked && !open && <Linked id={linked} useRecord={usePartyMember} Detail={Detail} onClose={closeLinked} />}
     </>
   );
 }
