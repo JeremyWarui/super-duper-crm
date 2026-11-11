@@ -83,3 +83,13 @@ export function Field({ label, hint, className, children }: { label: React.React
 }
 
 export { fieldVariants }
+
+/** A checkbox and its words in one label; every other prop goes to the checkbox. */
+export function Check({ className, children, ...props }: Omit<React.ComponentProps<'input'>, 'type'>) {
+  return (
+    <label className={cn('group flex min-h-11 cursor-pointer items-start gap-3', className)}>
+      <input type="checkbox" className="mt-0.5 size-[18px] flex-none accent-primary group-[.items-center]:mt-0" {...props} />
+      {children}
+    </label>
+  )
+}

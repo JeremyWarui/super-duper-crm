@@ -1,5 +1,5 @@
 // Profession, ways to help and preferred contact: the volunteer questions every sign-up form asks.
-import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { Check, Field, Input, NativeSelect } from "@/components/ui/input";
 import { AREAS, CONTACT_METHODS, PROFESSIONS } from "@/lib/labels";
 
 /** The answers before anything is picked. */
@@ -39,12 +39,14 @@ export default function VolunteerFields({ value, onChange, pills = false }) {
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-small font-semibold">How would you like to help?</legend>
         <div className={pills ? "flex flex-wrap gap-2" : "grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-x-4 gap-y-1"}>
-          {AREAS.map(([v, l]) => (
-            <label key={v} className={pills ? CHECK_PILL : "flex min-h-11 items-center gap-2.5 text-body"}>
+          {AREAS.map(([v, l]) => (pills ? (
+            <label key={v} className={CHECK_PILL}>
               <input type="checkbox" className="size-[18px] accent-primary" checked={value.areas.includes(v)} onChange={() => toggle(v)} />
               {l}
             </label>
-          ))}
+          ) : (
+            <Check key={v} className="items-center gap-2.5 text-body" checked={value.areas.includes(v)} onChange={() => toggle(v)}>{l}</Check>
+          )))}
         </div>
       </fieldset>
       {value.areas.includes("other") ? (

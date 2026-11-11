@@ -1,11 +1,10 @@
 // Polling agents: how far each has come before polling day, and which registration centres still
 // have nobody.
 import { exportAgents, useAgentCoverage, useAgents, useUpdateAgent } from "@/api/hooks";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Input, NativeSelect } from "@/components/ui/input";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
@@ -14,6 +13,7 @@ import { LoadingText } from "@/components/ui/loading-text";
 
 import { AGENT_STEPS } from "@/lib/labels";
 import { isLead } from "./helpers";
+import CoverageCard from "./CoverageCard";
 
 function Tiles({ agents, coverage }) {
   const ready = agents.filter((a) => a.status === "ready").length;
@@ -24,24 +24,6 @@ function Tiles({ agents, coverage }) {
   ];
   return (
     <StatTiles tiles={tiles} />
-  );
-}
-
-function Coverage({ coverage }) {
-  const missing = coverage.uncovered;
-  return (
-    <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Coverage">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <CardTitle>Centres with no agent</CardTitle>
-        <span className="text-ui text-muted-foreground">{fmt(coverage.centres - coverage.covered)} of {fmt(coverage.centres)}</span>
-      </div>
-      {missing.length ? (
-        <ul className="flex flex-wrap gap-2">
-          {missing.map((c) => <li key={c.id} className="max-w-full"><Badge tone="bad" className="whitespace-normal">{c.name}<span className="font-semibold opacity-80"> · {c.ward_name}</span></Badge></li>)}
-          {coverage.more_uncovered > 0 && <li className="text-small text-muted-foreground">and {fmt(coverage.more_uncovered)} more</li>}
-        </ul>
-      ) : <p className="text-ui font-semibold text-primary">Every centre has an agent.</p>}
-    </Card>
   );
 }
 
@@ -60,12 +42,15 @@ export default function Agents({ campaign, role, onModal }) {
       {agents.data && (
         <>
           <Tiles agents={rows} coverage={coverage.data} />
-          {coverage.data && <Coverage coverage={coverage.data} />}
+          {coverage.data && (
+            <CoverageCard title="Centres with no agent" count={`${fmt(coverage.data.centres - coverage.data.covered)} of ${fmt(coverage.data.centres)}`}
+              gaps={coverage.data.uncovered.map((c) => ({ key: c.id, label: c.name, detail: c.ward_name }))} more={coverage.data.more_uncovered} done="Every centre has an agent." />
+          )}
           <Card variant="outline" className="min-w-0 gap-3">
             <CardTitle>Everyone</CardTitle>
             <ErrorText error={update.error} />
             <Table stack minWidth={720}>
-              <THead><TR><TH>Agent</TH><TH>Centre</TH>{ids && <TH>ID number</TH>}<TH>Status</TH><TH>Training date</TH><TH className="relative"><span className="sr-only">Assign</span></TH></TR></THead>
+              <THead><TR><TH>Agent</TH><TH>Centre</TH>{ids && <TH>ID number</TH>}<TH>Status</TH><TH>Training date</TH><TH srOnly className="relative">Assign</TH></TR></THead>
               <TBody>
                 {rows.map((a) => (
                   <TR key={a.id}>
@@ -83,7 +68,7 @@ export default function Agents({ campaign, role, onModal }) {
                     <TD align="right"><Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "assign-work", member: { role: "agent", id: a.id } })} aria-label={`Assign work to ${a.full_name}`}>Assign work</Button></TD>
                   </TR>
                 ))}
-                {rows.length === 0 && <TR><TD colSpan={6} className="text-muted-foreground">No agents yet. Share the team link from Sign-ups.</TD></TR>}
+                {rows.length === 0 && <EmptyRow>No agents yet. Share the team link from Sign-ups.</EmptyRow>}
               </TBody>
             </Table>
           </Card>

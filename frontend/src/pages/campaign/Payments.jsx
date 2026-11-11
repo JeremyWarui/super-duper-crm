@@ -4,7 +4,7 @@ import { useAuth } from "@/store/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatDate, formatDateTime, formatKES, plural } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
@@ -12,6 +12,7 @@ import { StatTiles } from "@/components/ui/stat-tiles";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
 import { isLead } from "./helpers";
+import { Notice } from "@/components/ui/notice";
 
 const TONE = { scheduled: "warn", sending: "info", paid: "ok", failed: "bad", cancelled: "stone" };
 const LABEL = { scheduled: "Scheduled", sending: "Sending", paid: "Paid", failed: "To retry", cancelled: "Cancelled" };
@@ -85,10 +86,10 @@ export default function Payments({ campaign, role, mine, onModal }) {
     <>
       <SlottedHeader context={mine ? "My work" : "Money"} title={mine ? "My payments" : "Payments"} actions={actions} />
       {!mine && payout.data && !payout.data.moves_money && (
-        <div role="note" className="flex flex-wrap gap-1 rounded-lg border border-[#F2D98A] bg-warn px-4 py-3 text-ui text-warn-foreground">
+        <Notice className="flex flex-wrap gap-1">
           <strong>Practice mode.</strong>
           <span>No money moves. Each released payment is marked paid under a PRACTICE reference.</span>
-        </div>
+        </Notice>
       )}
       {isLoading && <LoadingText />}
       <ErrorText error={error} />
@@ -99,7 +100,7 @@ export default function Payments({ campaign, role, mine, onModal }) {
             {!mine && <FilterPills label="Status" options={Object.keys(VIEWS)} value={view} onChange={setView} />}
             <Table stack minWidth={mine ? 560 : 760}>
               <THead><TR>
-                <TH>Date</TH>{!mine && <TH>Payee</TH>}<TH>For</TH><TH align="right">Amount</TH><TH>Status</TH><TH>Reference</TH>{showActions && <TH className="relative"><span className="sr-only">Actions</span></TH>}
+                <TH>Date</TH>{!mine && <TH>Payee</TH>}<TH>For</TH><TH align="right">Amount</TH><TH>Status</TH><TH>Reference</TH>{showActions && <TH srOnly className="relative">Actions</TH>}
               </TR></THead>
               <TBody>
                 {shown.map((p) => (
@@ -116,7 +117,7 @@ export default function Payments({ campaign, role, mine, onModal }) {
                     {showActions && <TD align="right">{approves(p) ? <RowActions p={p} onModal={onModal} /> : p.status === "scheduled" ? <span className="text-small text-muted-foreground">Awaiting the {p.approver_role === "candidate" ? "candidate" : "manager"}</span> : null}</TD>}
                   </TR>
                 ))}
-                {shown.length === 0 && <TR><TD colSpan={7} className="text-muted-foreground">{rows.length ? "No payments here." : "No payments yet."}</TD></TR>}
+                {shown.length === 0 && <EmptyRow>{rows.length ? "No payments here." : "No payments yet."}</EmptyRow>}
               </TBody>
             </Table>
           </Card>

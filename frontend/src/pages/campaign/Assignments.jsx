@@ -5,7 +5,7 @@ import { useAssignments, useSettleAssignment } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatKES } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
@@ -34,7 +34,7 @@ export default function Assignments({ campaign, onModal }) {
         <ErrorText error={rows.error} />
         {rows.data && (
           <Table stack minWidth={720}>
-            <THead><TR><TH>Work</TH><TH>Who</TH><TH>Where</TH><TH align="right">Amount</TH><TH>Status</TH>{open && <TH className="relative"><span className="sr-only">Actions</span></TH>}</TR></THead>
+            <THead><TR><TH>Work</TH><TH>Who</TH><TH>Where</TH><TH align="right">Amount</TH><TH>Status</TH>{open && <TH srOnly className="relative">Actions</TH>}</TR></THead>
             <TBody>
               {list.map((a) => (
                 <TR key={a.id}>
@@ -53,7 +53,7 @@ export default function Assignments({ campaign, onModal }) {
                   )}
                 </TR>
               ))}
-              {list.length === 0 && <TR><TD colSpan={6} className="text-muted-foreground">{open ? "Nothing waits to be marked done." : "None yet."}</TD></TR>}
+              {list.length === 0 && <EmptyRow>{open ? "Nothing waits to be marked done." : "None yet."}</EmptyRow>}
             </TBody>
           </Table>
         )}

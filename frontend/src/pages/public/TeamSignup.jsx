@@ -1,12 +1,13 @@
 // The public team sign-up behind a workspace's team link: a mobilizer picks a ward (or a centre
 // in an MCA race), an agent a registration centre; the campaign approves before they sign in.
-import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useSignupCentres, useSubmitSignup, useTeamSignup } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
-import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { Check, Field, Input, NativeSelect } from "@/components/ui/input";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
+import { StatusText } from "@/components/ui/notice";
+import { useForm } from "@/lib/form";
 
 const ROLES = [
   ["mobilizer", "Mobilizer", "Recruit supporters and run events in your area."],
@@ -30,8 +31,7 @@ export default function TeamSignup() {
   const { code } = useParams();
   const page = useTeamSignup(code);
   const submit = useSubmitSignup(code);
-  const [form, setForm] = useState({ role: "mobilizer", first_name: "", last_name: "", phone: "", email: "", id_number: "", ward: "", registration_centre: "", consent_given: false });
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+  const [form, setForm, set] = useForm({ role: "mobilizer", first_name: "", last_name: "", phone: "", email: "", id_number: "", ward: "", registration_centre: "", consent_given: false });
   const data = page.data;
   const wantsCentre = form.role === "agent" || data?.mobilizer_place === "centre";
   const centres = useSignupCentres(code, wantsCentre ? form.ward : "");
@@ -63,7 +63,7 @@ export default function TeamSignup() {
             <p className="text-muted-foreground">The campaign reviews every sign-up. Once approved you get an email with a link to choose your password.</p>
           </div>
           {submit.isSuccess ? (
-            <p role="status" className="rounded-lg bg-primary-tint p-4 font-semibold text-primary">{submit.data.message}</p>
+            <StatusText boxed>{submit.data.message}</StatusText>
           ) : !data.open ? (
             <p role="alert" className="rounded-lg bg-warn p-4 font-semibold text-warn-foreground">This campaign is not taking sign-ups right now.</p>
           ) : (
@@ -95,10 +95,9 @@ export default function TeamSignup() {
                   </NativeSelect>
                 </Field>
               )}
-              <label className="flex items-start gap-2.5 text-ui">
-                <input type="checkbox" checked={form.consent_given} onChange={set("consent_given")} className="mt-1 size-[18px] accent-primary" />
+              <Check className="gap-2.5 text-ui" checked={form.consent_given} onChange={set("consent_given")}>
                 <span>{data.consent_wording}</span>
-              </label>
+              </Check>
               <ErrorText error={submit.error} className="text-ui" />
               <Button type="submit" size="lg" disabled={submit.isPending || !ready}>{submit.isPending ? "Sending…" : "Sign up"}</Button>
             </form>

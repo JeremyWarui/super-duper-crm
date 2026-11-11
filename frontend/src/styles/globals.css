@@ -51,7 +51,7 @@
 
   /* Status pills */
   --ok-bg: #E3F1E8;   --ok-fg: #0B5D3B;
-  --warn-bg: #FFF3CC; --warn-fg: #6B5100;
+  --warn-bg: #FFF3CC; --warn-fg: #6B5100; --warn-line: #F2D98A;
   --bad-bg: #FCE4E2;  --bad-fg: #9A1C12;
   --info-bg: #F1F1ED; --info-fg: #3D4441;
   --danger: #B42318;
@@ -142,7 +142,7 @@
   --color-line-soft: var(--line-soft);
   --color-line-control: var(--line-control);
   --color-ok: var(--ok-bg);       --color-ok-foreground: var(--ok-fg);
-  --color-warn: var(--warn-bg);   --color-warn-foreground: var(--warn-fg);
+  --color-warn: var(--warn-bg);   --color-warn-foreground: var(--warn-fg); --color-warn-line: var(--warn-line);
   --color-bad: var(--bad-bg);     --color-bad-foreground: var(--bad-fg);
   --color-info: var(--info-bg);   --color-info-foreground: var(--info-fg);
 

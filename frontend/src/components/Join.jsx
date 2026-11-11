@@ -4,9 +4,10 @@ import { useJoin, useJoinPage } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
-import { Field, FilterSelect, Input } from "@/components/ui/input";
+import { Check, Field, FilterSelect, Input } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 import { linkTo } from "@/lib/format";
+import { StatusText } from "@/components/ui/notice";
 
 // The person's own way back off the register; shown once, after signing up.
 function WithdrawNote({ code }) {
@@ -47,7 +48,7 @@ export default function Join({ code }) {
     return shell(
       <>
         {heading}
-        <p role="status" className="text-lead font-semibold text-primary">{join.data.message}</p>
+        <StatusText className="text-lead">{join.data.message}</StatusText>
         <WithdrawNote code={join.data.withdraw_code} />
       </>,
     );
@@ -68,10 +69,9 @@ export default function Join({ code }) {
           <FilterSelect label="Where you vote" blank={p.place === "centre" ? "Not sure" : "Pick your ward"} value={place} onChange={setPlace} options={p.places} className="w-full flex-none" />
         </Field>
       )}
-      <label className="flex cursor-pointer items-start gap-3 text-ui leading-[1.5] text-muted-foreground">
-        <input type="checkbox" className="mt-0.5 size-5 flex-none accent-primary" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+      <Check className="text-ui leading-[1.5] text-muted-foreground" checked={consent} onChange={(e) => setConsent(e.target.checked)}>
         {p.consent_wording}
-      </label>
+      </Check>
       <ErrorText error={join.error} className="text-small" />
       <Button
         className="w-full"

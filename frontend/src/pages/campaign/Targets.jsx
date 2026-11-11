@@ -9,6 +9,8 @@ import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
 import { isLead, unitOf } from "./helpers";
+import { FigureBand } from "@/components/ui/stat-tiles";
+import { StatusText } from "@/components/ui/notice";
 
 const SAVE_STATUS = {
   saving: ["Saving…", "text-muted-foreground"],
@@ -74,17 +76,8 @@ function Totals({ rows, turnoutOf, neededOf }) {
   const registered = rows.reduce((s, t) => s + (t.registered_voters || 0), 0);
   const cast = rows.reduce((s, t) => s + Math.round(((t.registered_voters || 0) * turnoutOf(t)) / 100), 0);
   const win = rows.reduce((s, t) => s + (neededOf(t) || 0), 0);
-  const figures = [["Registered voters", fmt(registered)], ["Projected votes cast", fmt(cast)], ["Win number (50% + 1)", fmt(win), "text-accent"]];
-  return (
-    <section aria-label="Win number" className="flex flex-wrap gap-8 rounded-card bg-ink px-7 py-6 text-on-dark">
-      {figures.map(([label, value, tone]) => (
-        <div key={label} className="flex flex-col gap-1">
-          <span className="text-small text-on-dark-muted">{label}</span>
-          <span className={`font-display text-[30px] leading-tight font-extrabold tabular-nums ${tone || ""}`}>{value}</span>
-        </div>
-      ))}
-    </section>
-  );
+  const figures = [["Registered voters", fmt(registered)], ["Projected votes cast", fmt(cast)], ["Win number (50% + 1)", fmt(win), null, "text-accent"]];
+  return <FigureBand label="Win number" figures={figures} />;
 }
 
 export default function Targets({ campaign, role }) {
@@ -113,7 +106,7 @@ export default function Targets({ campaign, role }) {
   return (
     <>
       <SlottedHeader context="Plan" title="Targets" sub={`Set the expected turnout in each ${noun}. The win number is half the projected votes cast, plus one.`} actions={action} />
-      {refresh.isSuccess && <p role="status" className="font-semibold text-primary">Refreshed from the latest register: {fmt(refresh.data.units)} {noun}s, win number {fmt(refresh.data.win_number)}.</p>}
+      {refresh.isSuccess && <StatusText>Refreshed from the latest register: {fmt(refresh.data.units)} {noun}s, win number {fmt(refresh.data.win_number)}.</StatusText>}
       <ErrorText error={refresh.error} />
       {isLoading && <LoadingText />}
       <ErrorText error={error} />

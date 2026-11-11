@@ -1,32 +1,13 @@
 import { useMobilizers } from "@/api/hooks";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { holderOf, unitOf, useUnits } from "./helpers";
 import { initials } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
-
-// How many targeted units have a mobilizer, naming the ones that have none.
-function Coverage({ units, mobilizers, noun }) {
-  const vacant = units.filter((u) => !holderOf(mobilizers, u));
-  return (
-    <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Coverage">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <CardTitle>Coverage</CardTitle>
-        <span className="text-ui text-muted-foreground">{units.length - vacant.length} of {units.length} {noun}s have a mobilizer</span>
-      </div>
-      {vacant.length ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-ui font-semibold">No one covering:</span>
-          {vacant.map((u) => <Badge key={u.key} tone="bad">{u.name}</Badge>)}
-        </div>
-      ) : <p className="text-ui text-primary font-semibold">Every {noun} is covered.</p>}
-    </Card>
-  );
-}
+import CoverageCard from "./CoverageCard";
 
 // The campaign's ground organisers: who they are, where they work, and how to reach them.
 export default function Mobilizers({ campaign, onModal }) {
@@ -34,6 +15,7 @@ export default function Mobilizers({ campaign, onModal }) {
   const { byCentre, noun, Noun } = unitOf(campaign);
   const { data, isLoading, error } = useMobilizers(campaign.id);
   const people = data || [];
+  const vacant = units.filter((u) => !holderOf(people, u));
   const workplace = (m) => {
     if (!byCentre) return m.ward_name;
     if (!m.registration_centre) return null;
@@ -47,7 +29,10 @@ export default function Mobilizers({ campaign, onModal }) {
       <ErrorText error={error} />
       {data && (
         <>
-          {units.length > 0 && <Coverage units={units} mobilizers={people} noun={noun} />}
+          {units.length > 0 && (
+            <CoverageCard title="Coverage" count={`${units.length - vacant.length} of ${units.length} ${noun}s have a mobilizer`}
+              gaps={vacant.map((u) => ({ key: u.key, label: u.name }))} done={`Every ${noun} is covered.`} />
+          )}
           <Card variant="outline" className="min-w-0 gap-3">
             <CardTitle>Everyone</CardTitle>
             <Table stack minWidth={560}>
@@ -71,7 +56,7 @@ export default function Mobilizers({ campaign, onModal }) {
                     </TD>
                   </TR>
                 ))}
-                {people.length === 0 && <TR><TD colSpan={4} className="text-muted-foreground">No mobilizers yet.</TD></TR>}
+                {people.length === 0 && <EmptyRow>No mobilizers yet.</EmptyRow>}
               </TBody>
             </Table>
           </Card>

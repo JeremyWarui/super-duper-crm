@@ -10,6 +10,7 @@ import { FilterPills } from "@/components/ui/tabs";
 import { ErrorText } from "@/components/ui/error-text";
 import { formatDate } from "@/lib/format";
 import { LoadingText } from "@/components/ui/loading-text";
+import { SlottedHeader } from "@/components/layout/AppPage";
 import {
   DOCUMENT_FIELDS,
   ISSUE_FIELDS,
@@ -60,10 +61,7 @@ export default function Website({ campaign }) {
   const [tab, setTab] = useState(TABS[0]);
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-display text-h2-app font-extrabold tracking-[-0.02em]">Website</h1>
-        <p className="text-ui text-muted-foreground">What the public site shows. Changes go live when published.</p>
-      </div>
+      <SlottedHeader title="Website" sub="What the public site shows. Changes go live when published." />
       <FilterPills label="Website content" options={TABS} value={tab} onChange={setTab} />
       {tab === "Candidate page" ? <CandidatePage campaign={campaign} /> : SECTIONS[tab].map((s) => <SectionList key={s.noun} section={s} />)}
     </div>

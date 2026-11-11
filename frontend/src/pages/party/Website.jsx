@@ -42,12 +42,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
+import { Check, Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatDate, formatNumber } from "@/lib/format";
 import { SEAT_LABEL, SEATS } from "@/lib/labels";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
+import { useForm } from "@/lib/form";
 
 const HTTPS = /^https:\/\/\S+$/;
 const UPLOADED = /^\/api\/files\/[0-9a-f-]{36}\/$/;
@@ -219,10 +220,9 @@ export function ImageField({ label, hint, value, onChange, invalid, upload: path
 
 function ItemForm({ section, row, onDone }) {
   const save = section.save();
-  const [form, setForm] = useState(() => formOf(section.fields, row));
+  const [form, setForm, set] = useForm(() => formOf(section.fields, row));
   const [tried, setTried] = useState(false);
   const errors = problems(section.fields, form);
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
   const submit = (e) => {
     e.preventDefault();
     setTried(true);
@@ -350,10 +350,9 @@ function EventAspirants({ postId }) {
       {aspirants.length ? (
         <div className="flex flex-col gap-1">
           {aspirants.map((a) => (
-            <label key={a.aspirant_id} className="flex min-h-11 items-center gap-3">
-              <input type="checkbox" className="size-[18px] accent-primary" checked={chosen.includes(a.aspirant_id)} onChange={() => toggle(a.aspirant_id)} />
+            <Check key={a.aspirant_id} className="items-center" checked={chosen.includes(a.aspirant_id)} onChange={() => toggle(a.aspirant_id)}>
               <span>{a.name} <span className="text-small text-muted-foreground">· {SEAT_LABEL[a.seat]} {a.area}</span></span>
-            </label>
+            </Check>
           ))}
         </div>
       ) : <p className="text-muted-foreground">No approved aspirants yet.</p>}
@@ -374,8 +373,7 @@ const NO_PRIORITY = { title: "", text: "" };
 
 /** A candidate page's fields; `save` is the mutation that stores them, sent `extra` as well. */
 export function ProfileForm({ title, profile: p, save, upload, extra = {}, onDone }) {
-  const [form, setForm] = useState({ ...p, priorities: [0, 1, 2].map((n) => p.priorities[n] || NO_PRIORITY) });
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+  const [form, setForm, set] = useForm({ ...p, priorities: [0, 1, 2].map((n) => p.priorities[n] || NO_PRIORITY) });
   const setPriority = (n, key) => (e) => setForm({ ...form, priorities: form.priorities.map((x, i) => (i === n ? { ...x, [key]: e.target.value } : x)) });
   const photoBad = !imageOk(form.photo_url.trim());
   const submit = (e) => {
@@ -403,10 +401,9 @@ export function ProfileForm({ title, profile: p, save, upload, extra = {}, onDon
             <Field label={`Priority ${n + 1} detail (optional)`}><Input value={x.text} maxLength={300} onChange={setPriority(n, "text")} /></Field>
           </div>
         ))}
-        <label className="flex min-h-11 items-center gap-3 font-semibold">
-          <input type="checkbox" className="size-[18px] accent-primary" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} />
+        <Check className="items-center font-semibold" checked={form.published} onChange={set("published")}>
           Published on the website
-        </label>
+        </Check>
         <ErrorText error={save.error} className="text-small" />
         <div className="flex flex-wrap gap-2.5">
           <Button type="submit" shape="rounded" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save profile"}</Button>

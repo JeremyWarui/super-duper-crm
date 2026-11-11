@@ -6,8 +6,9 @@ import { RichText } from "@/components/RichTextView";
 import { Card } from "@/components/ui/card";
 import { Crumbs, RailHead } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";
-import { Initials, LABELS, Photo, StoryKicker } from "./story";
+import { Initials, LABELS, StoryKicker } from "./story";
 import { pageState } from "@/components/PageState";
+import { StoryCard } from "./story";
 
 function Record({ post }) {
   return (
@@ -30,12 +31,7 @@ function ReadNext({ id }) {
       <h2 id="next-h" className="rule-top font-display text-[26px] font-extrabold">Read next</h2>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
         {next.map((n) => (
-          <Link key={n.id} to={`/news/${n.id}`} className="flex flex-col gap-2 text-ink no-underline hover:text-primary">
-            <Photo url={n.image_url} className="aspect-[16/10] w-full rounded-photo" />
-            <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{LABELS[n.label] || "News"}</span>
-            <span className="text-[18px] leading-[1.3] font-bold">{n.title}</span>
-            <span className="text-small text-muted-foreground">{formatDay(n.published_on)} · {n.read_minutes} min read</span>
-          </Link>
+          <StoryCard key={n.id} post={n} />
         ))}
       </div>
     </section>

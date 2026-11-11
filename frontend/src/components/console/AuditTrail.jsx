@@ -1,22 +1,21 @@
 // The console's Audit tab: who did what and when, read-only.
-import { useState } from "react";
 import { rowsOf, useAuditPages } from "@/api/hooks";
 import { useInstall } from "@/app/site";
 import { Card } from "@/components/ui/card";
 import { LoadMore } from "@/components/ui/load-more";
 import { Field, Input } from "@/components/ui/input";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
 import { formatDateTime } from "@/lib/format";
+import { useForm } from "@/lib/form";
 
 const BLANK = { action: "", actor: "", since: "", until: "" };
 const detail = (d) => Object.entries(d || {}).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(", ");
 
 export default function AuditTrail() {
   const { aspirant } = useInstall();
-  const [filters, setFilters] = useState(BLANK);
-  const set = (key) => (e) => setFilters((f) => ({ ...f, [key]: e.target.value }));
+  const [filters, , set] = useForm(BLANK);
   const pages = useAuditPages(filters);
   const { isFetching, isFetchingNextPage, error } = pages;
   const data = rowsOf(pages.data);
@@ -44,7 +43,7 @@ export default function AuditTrail() {
                 <TD className="break-words text-muted-foreground">{detail(e.detail)}</TD>
               </TR>
             ))}
-            {data.length === 0 && !isFetching && <TR><TD colSpan={4} className="text-muted-foreground">Nothing matches.</TD></TR>}
+            {data.length === 0 && !isFetching && <EmptyRow>Nothing matches.</EmptyRow>}
           </TBody>
         </Table>
         {isFetching && !isFetchingNextPage ? <LoadingText className="text-ui" /> : null}

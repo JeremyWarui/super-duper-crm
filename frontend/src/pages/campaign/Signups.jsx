@@ -1,28 +1,27 @@
 // The team link mobilizers and agents sign up through, and the queue of sign-ups the candidate,
 // manager and coordinators (in their area) approve or reject.
 import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { useDecideRegistration, useRegistrations, useReplaceTeamLink, useTeamLink } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ReasonForm } from "@/components/ui/confirm";
 import { Card, CardTitle } from "@/components/ui/card";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatDate, linkTo } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
-import { useClipboard } from "../../lib/useClipboard";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
 
 const VIEWS = { Waiting: "pending", Approved: "approved", "Not approved": "rejected" };
 import { ROLE_LABEL } from "@/lib/labels";
 import { isLead } from "./helpers";
+import { LinkCard } from "./ShareLink";
+import { StatusText } from "@/components/ui/notice";
 
 function TeamLinkCard({ campaign, role }) {
   const link = useTeamLink(campaign.id);
   const replace = useReplaceTeamLink();
-  const { copied, copy } = useClipboard();
   const url = link.data ? linkTo(`/team/${link.data.code}`) : "";
   return (
     <Card variant="outline" className="min-w-0 flex-[1_1_360px] gap-4" role="region" aria-label="Team link">
@@ -32,17 +31,9 @@ function TeamLinkCard({ campaign, role }) {
       </div>
       <ErrorText error={link.error} />
       {link.data && (
-        <div className="flex flex-wrap items-start gap-5">
-          <div className="rounded-xl border border-line bg-white p-3"><QRCodeSVG value={url} size={132} title="Team sign-up QR code" /></div>
-          <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-3">
-            <a href={url} className="break-all font-semibold">{url}</a>
-            <div className="flex flex-wrap gap-2">
-              <Button shape="rounded" variant="quiet" size="sm" onClick={() => copy(url)}>{copied ? "Copied" : "Copy link"}</Button>
-              {isLead(role) && <Button shape="rounded" variant="ghost" size="sm" disabled={replace.isPending} onClick={() => replace.mutate(campaign.id)}>Replace link</Button>}
-            </div>
-            {isLead(role) && <p className="text-small text-muted-foreground">Replacing it stops the old link and QR code from working.</p>}
-          </div>
-        </div>
+        <LinkCard url={url} qrTitle="Team sign-up QR code" replacing={replace.isPending}
+          onReplace={isLead(role) ? () => replace.mutate(campaign.id) : undefined}
+          note="Replacing it stops the old link and QR code from working." />
       )}
     </Card>
   );
@@ -93,14 +84,14 @@ export default function Signups({ campaign, role }) {
       <TeamLinkCard campaign={campaign} role={role} />
       <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Sign-ups">
         <FilterPills label="Status" options={Object.keys(VIEWS)} value={view} onChange={(v) => { setView(v); setDone(""); }} />
-        {done && <p role="status" className="rounded-lg bg-primary-tint p-3 text-ui font-semibold text-primary">{done}</p>}
+        {done && <StatusText boxed className="p-3 text-ui">{done}</StatusText>}
         {rows.isLoading && <LoadingText />}
         <ErrorText error={rows.error} />
         {rows.data && (
           <Table stack minWidth={760}>
             <THead><TR>
               <TH>Name</TH><TH>Role</TH><TH>Ward or centre</TH><TH>Contact</TH>{ids && <TH>ID number</TH>}<TH>Signed up</TH>
-              {waiting ? <TH><span className="sr-only">Decision</span></TH> : <TH>{view === "Not approved" ? "Reason" : ""}</TH>}
+              {waiting ? <TH srOnly>Decision</TH> : <TH>{view === "Not approved" ? "Reason" : ""}</TH>}
             </TR></THead>
             <TBody>
               {list.map((r) => (
@@ -114,7 +105,7 @@ export default function Signups({ campaign, role }) {
                   <TD align="right" className="relative">{waiting ? <Decision campaign={campaign} row={r} onDone={(d, row, data) => setDone(outcome(d, row, data))} /> : <span className="text-small text-muted-foreground">{r.reason}</span>}</TD>
                 </TR>
               ))}
-              {list.length === 0 && <TR><TD colSpan={7} className="text-muted-foreground">{waiting ? "Nobody is waiting for a decision." : "None yet."}</TD></TR>}
+              {list.length === 0 && <EmptyRow>{waiting ? "Nobody is waiting for a decision." : "None yet."}</EmptyRow>}
             </TBody>
           </Table>
         )}

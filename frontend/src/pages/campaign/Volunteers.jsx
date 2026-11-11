@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { useCopy } from "@/copy";
 import { CONTACT_LABEL, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE, helpsWith, professionOf } from "@/lib/labels";
@@ -52,7 +52,7 @@ export default function Volunteers({ campaign, role }) {
             <ErrorText error={update.error} />
             <ErrorText error={erase.error} />
             <Table stack minWidth={900}>
-              <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Ward</TH><TH>Helps with</TH><TH>Profession</TH><TH>Contact by</TH><TH>Status</TH><TH className="relative"><span className="sr-only">Actions</span></TH></TR></THead>
+              <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Ward</TH><TH>Helps with</TH><TH>Profession</TH><TH>Contact by</TH><TH>Status</TH><TH srOnly className="relative">Actions</TH></TR></THead>
               <TBody>
                 {shown.map((v) => {
                   const name = `${v.first_name} ${v.last_name}`.trim();
@@ -78,7 +78,7 @@ export default function Volunteers({ campaign, role }) {
                     </TR>
                   );
                 })}
-                {shown.length === 0 && <TR><TD colSpan={8} className="text-muted-foreground">{all.length ? "Nobody matches." : copy.volunteersNone}</TD></TR>}
+                {shown.length === 0 && <EmptyRow>{all.length ? "Nobody matches." : copy.volunteersNone}</EmptyRow>}
               </TBody>
             </Table>
           </Card>

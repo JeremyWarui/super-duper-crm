@@ -5,6 +5,7 @@ import { useRequestReset } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { ErrorText } from "@/components/ui/error-text";
+import { StatusText } from "@/components/ui/notice";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -20,7 +21,7 @@ export default function ForgotPassword() {
         <p className="text-muted-foreground">Give the email you sign in with. We send a link to choose a new password; it works for an hour.</p>
       </div>
       {request.isSuccess ? (
-        <p role="status" className="rounded-lg bg-primary-tint p-4 font-semibold text-primary">{request.data.detail}</p>
+        <StatusText boxed>{request.data.detail}</StatusText>
       ) : (
         <form onSubmit={submit} className="flex flex-col gap-[18px]" noValidate>
           <Field label="Email">

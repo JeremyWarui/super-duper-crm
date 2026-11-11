@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { useCopy } from "@/copy";
 import { formatNumber as fmt } from "@/lib/format";
@@ -76,7 +76,7 @@ export default function Supporters({ campaign, role, mine, onModal }) {
           <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Supporter list">
             <FilterPills label="Support" options={[["", "All"], ...SUPPORT_LEVELS]} value={filter} onChange={setFilter} />
             <Table stack minWidth={560}>
-              <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Support</TH>{showCentre && <TH>Centre</TH>}<TH>Consent</TH>{keeper && <TH><span className="sr-only">Personal data</span></TH>}</TR></THead>
+              <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Support</TH>{showCentre && <TH>Centre</TH>}<TH>Consent</TH>{keeper && <TH srOnly>Personal data</TH>}</TR></THead>
               <TBody>
                 {shown.map((s) => (
                   <TR key={s.id}>
@@ -105,7 +105,7 @@ export default function Supporters({ campaign, role, mine, onModal }) {
                     )}
                   </TR>
                 ))}
-                {shown.length === 0 && <TR><TD colSpan={6} className="text-muted-foreground">None yet.</TD></TR>}
+                {shown.length === 0 && <EmptyRow>None yet.</EmptyRow>}
               </TBody>
             </Table>
             <ErrorText error={place.error} />

@@ -23,3 +23,20 @@ export function StatTiles({ tiles, min = 200, valueClassName }: { tiles: Tile[];
     </section>
   )
 }
+
+type Figure = [label: string, value: React.ReactNode, note?: React.ReactNode, tone?: string]
+
+/** The dark band of headline figures: label, figure in `tone` (e.g. "text-accent") and an optional note. */
+export function FigureBand({ figures, label }: { figures: Figure[]; label: string }) {
+  return (
+    <section aria-label={label} className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6 rounded-card bg-ink p-7 text-on-dark">
+      {figures.map(([name, value, note, tone]) => (
+        <div key={name} className="flex flex-col gap-1.5">
+          <span className="text-ui font-semibold text-on-dark-muted">{name}</span>
+          <span className={cn('font-display text-[36px] leading-none font-extrabold tabular-nums', tone)}>{value}</span>
+          {note ? <span className="text-small text-on-dark-muted">{note}</span> : null}
+        </div>
+      ))}
+    </section>
+  )
+}

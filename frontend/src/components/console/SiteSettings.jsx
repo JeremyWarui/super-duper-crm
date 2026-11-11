@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 import { SITE_LINES, SITE_TEXTS } from "@/lib/siteFields";
 import { Failed, Help } from "./kit";
+import { StatusText } from "@/components/ui/notice";
 
 const MPESA = ["mpesa_paybill", "mpesa_account", "mpesa_till"];
 const KEYS = [...SITE_LINES, ...SITE_TEXTS].map(([key]) => key).concat("primary_colour", "secondary_colour");
@@ -72,7 +73,7 @@ function SettingsForm({ site, isParty }) {
         </div>
       </div>
       <ErrorText error={save.error} className="text-ui" />
-      {saved && <p role="status" className="text-ui font-semibold text-primary">Saved.</p>}
+      {saved && <StatusText>Saved.</StatusText>}
       <div className="flex flex-wrap gap-2">
         <Button shape="rounded" size="sm" disabled={save.isPending} onClick={submit}>
           {save.isPending ? "Saving…" : isParty ? "Save the party settings" : "Save the site settings"}

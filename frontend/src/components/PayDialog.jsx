@@ -9,6 +9,7 @@ import { formatKES } from "../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
 import { FilterPills } from "@/components/ui/tabs";
+import { useForm } from "@/lib/form";
 
 const AMOUNTS = [200, 500, 1000, 2500, 5000];
 const CODE = /^[A-Z0-9]{10}$/;
@@ -82,9 +83,8 @@ export default function PayDialog({ title, fee, amount: preset, phone: knownPhon
   const byHand = !!(options?.paybill || options?.till);
   const [method, setMethod] = useState("stk");
   const [amount, setAmount] = useState(fee || preset || 1000);
-  const [f, setF] = useState({ name: "", phone: knownPhone, email: "", code: "" });
+  const [f, , set] = useForm({ name: "", phone: knownPhone, email: "", code: "" });
   const [reference, setReference] = useState(null);
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   const code = f.code.trim().toUpperCase();
   const ready =

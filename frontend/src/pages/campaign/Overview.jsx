@@ -9,6 +9,7 @@ import StrategyNotes from "./StrategyNotes";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
+import { FigureBand } from "@/components/ui/stat-tiles";
 
 const TONE = { good: "ok", warn: "warn", bad: "bad" };
 const ADDS_MOBILIZERS = ["candidate", "manager", "coordinator"];
@@ -25,15 +26,7 @@ function Hero({ s, noun }) {
     ["Mobilizers", `${staffed} / ${units}`, `${plural(quiet, noun)} with no event yet`],
   ];
   return (
-    <section aria-label="Win number" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6 rounded-card bg-ink p-7 text-on-dark">
-      {tiles.map(([label, value, note, tone]) => (
-        <div key={label} className="flex flex-col gap-1.5">
-          <span className="text-ui font-semibold text-on-dark-muted">{label}</span>
-          <span className={`font-display text-[36px] leading-none font-extrabold ${tone || ""}`}>{value}</span>
-          <span className="text-small text-on-dark-muted">{note}</span>
-        </div>
-      ))}
-    </section>
+    <FigureBand label="Win number" figures={tiles} />
   );
 }
 

@@ -14,6 +14,7 @@ import { composed } from "@/lib/sms";
 import { MessageField } from "@/components/SmsParts";
 import { SUPPORT_LEVELS } from "@/lib/labels";
 import { isLead } from "./helpers";
+import { Check } from "@/components/ui/input";
 
 
 // Who an invite goes to, named as groups.
@@ -43,10 +44,9 @@ export default function InviteForm({ event, onClose }) {
         <span className="text-small font-semibold">Send to</span>
         <FilterPills label="Send to" options={AUDIENCE} value={levels} onChange={(key) => { toggle(key); setResult(null); }} />
       </div>
-      <label className="flex min-h-11 cursor-pointer items-start gap-3 text-ui text-muted-foreground">
-        <input type="checkbox" checked={wholeCampaign} onChange={(e) => { setWholeCampaign(e.target.checked); setResult(null); }} className="mt-0.5 size-[18px] flex-none accent-primary" />
+      <Check className="text-ui text-muted-foreground" checked={wholeCampaign} onChange={(e) => { setWholeCampaign(e.target.checked); setResult(null); }}>
         Everyone on the campaign, not just {event.ward_name}
-      </label>
+      </Check>
 
       {!canSend && <p className="text-small text-muted-foreground">Only the candidate or the campaign manager sends texts.</p>}
       {result && <InviteResult result={result} />}

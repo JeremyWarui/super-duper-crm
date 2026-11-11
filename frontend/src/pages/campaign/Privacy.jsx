@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { formatDate, formatNumber as fmt } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
@@ -31,7 +31,7 @@ function LeftTeam({ campaign }) {
       <ErrorText error={erase.error} />
       {data && (
         <Table stack minWidth={520}>
-          <THead><TR><TH>Name</TH><TH>Signed up as</TH><TH>Outcome</TH><TH>Signed up</TH><TH><span className="sr-only">Erase</span></TH></TR></THead>
+          <THead><TR><TH>Name</TH><TH>Signed up as</TH><TH>Outcome</TH><TH>Signed up</TH><TH srOnly>Erase</TH></TR></THead>
           <TBody>
             {data.map((r) => (
               <TR key={r.id}>
@@ -42,7 +42,7 @@ function LeftTeam({ campaign }) {
                 <TD align="right"><EraseButton name={r.full_name} pending={erase.isPending} onErase={(done) => erase.mutate(r.id, { onSuccess: done })} /></TD>
               </TR>
             ))}
-            {data.length === 0 && <TR><TD colSpan={5} className="text-muted-foreground">Nobody to erase.</TD></TR>}
+            {data.length === 0 && <EmptyRow>Nobody to erase.</EmptyRow>}
           </TBody>
         </Table>
       )}

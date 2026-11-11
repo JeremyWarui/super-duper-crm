@@ -3,12 +3,13 @@ import { useEvents } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FilterPills } from "@/components/ui/tabs";
-import { formatDay, formatNumber as fmt } from "@/lib/format";
+import { formatNumber as fmt } from "@/lib/format";
 import AttendanceCard from "./AttendanceCard";
 import { eventDay } from "./helpers";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
+import DateTile from "@/components/DateTile";
 
 const ASSIGNERS = ["candidate", "manager", "coordinator"];
 const RECORDERS = ["candidate", "manager", "coordinator", "mobilizer"];
@@ -30,14 +31,7 @@ function EventCard({ event: e, onRecord, onInvite, onQr, onAssign }) {
   const rate = e.number_attended > 0 ? ` (${Math.round((e.signups / e.number_attended) * 100)}%)` : "";
   return (
     <article className="flex flex-wrap items-center gap-[18px] rounded-xl border border-line bg-card p-5">
-      <div className="flex h-[72px] w-16 flex-none flex-col items-center justify-center rounded-lg bg-primary-tint text-primary">
-        {day ? (
-          <>
-            <span className="text-[11px] font-extrabold tracking-[0.08em] uppercase">{formatDay(e.scheduled_date, { month: "short" })}</span>
-            <span className="font-display text-[24px] leading-none font-extrabold">{formatDay(e.scheduled_date, { day: "numeric" })}</span>
-          </>
-        ) : <span className="text-meta font-bold">No date</span>}
-      </div>
+      <DateTile date={day ? e.scheduled_date : null} />
       <div className="flex min-w-0 flex-[1_1_240px] flex-col gap-1">
         <span className="text-meta font-extrabold tracking-[0.08em] text-primary uppercase">{e.ward_name}</span>
         <h2 className="text-[18px] font-bold">{e.title}</h2>

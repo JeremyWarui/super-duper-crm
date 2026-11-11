@@ -4,7 +4,7 @@ import { useAreaMembers } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Pager } from "@/components/ui/pager";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { formatNumber as fmt } from "@/lib/format";
 import { STATUS_LABEL, STATUS_TONE } from "@/lib/labels";
 import { ErrorText } from "@/components/ui/error-text";
@@ -35,7 +35,7 @@ export default function Members() {
                   <TD><Badge tone={STATUS_TONE[m.status]}>{STATUS_LABEL[m.status]}</Badge></TD>
                 </TR>
               ))}
-              {data.members.length === 0 && <TR><TD colSpan={5} className="text-muted-foreground">No party members in your area yet.</TD></TR>}
+              {data.members.length === 0 && <EmptyRow>No party members in your area yet.</EmptyRow>}
             </TBody>
           </Table>
           {data.total > data.page_size && (

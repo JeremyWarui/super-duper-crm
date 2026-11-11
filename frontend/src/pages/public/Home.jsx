@@ -1,7 +1,6 @@
 // The party's public homepage: carousel, agenda, news and videos, events, branches, candidates, leadership and ways to take part.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Play } from "lucide-react";
 import {
   useSite,
   usePublicBranches,
@@ -19,8 +18,9 @@ import { SectionHead } from "@/components/ui/typography";
 import { useBranding } from "@/theme/branding";
 import { useCopy } from "@/copy";
 import { formatDay } from "@/lib/format";
-import { LABELS, StoryKicker } from "./story";
+import { Photo, QuickLinks, StoryKicker, StoryRow, VideoCard } from "./story";
 import { CandidateCard } from "./Candidates";
+import DateTile from "@/components/DateTile";
 
 const ROTATE_MS = 6000;
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -51,13 +51,7 @@ function BranchFinder() {
         </NativeSelect>
       </label>
       <Button asChild shape="rounded" size="lg"><Link to={county ? `/counties/${county}` : "/counties"}>{county ? "Go to your branch" : "See all counties"}</Link></Button>
-      <div className="flex flex-col border-t border-line-2">
-        {[["Events near me", "/events"], ["Check my membership", "/signin"], ["Primary results", "/results"]].map(([label, to]) => (
-          <Link key={to} to={to} className="flex justify-between border-b border-line-soft py-3 font-semibold text-ink no-underline last:border-0 hover:text-primary">
-            <span>{label}</span><span aria-hidden>→</span>
-          </Link>
-        ))}
-      </div>
+      <QuickLinks links={[["Events near me", "/events"], ["Check my membership", "/signin"], ["Primary results", "/results"]]} />
     </aside>
   );
 }
@@ -174,16 +168,6 @@ export function Agenda({ limit }) {
   );
 }
 
-function Photo({ url, className }) {
-  return url ? <img src={url} alt="" className={`object-cover ${className}`} /> : <div className={`ph ${className}`} />;
-}
-
-/** YouTube's own thumbnail for a YouTube link, else nothing. */
-export function youtubeThumb(url) {
-  const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([\w-]{11})/)?.[1];
-  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
-}
-
 export function Watch() {
   const videos = (usePublicVideos().data || []).slice(0, 3);
   const youtube = Object.entries(useSite().data?.social_links || {}).find(([name]) => /youtube/i.test(name))?.[1];
@@ -195,19 +179,7 @@ export function Watch() {
         {youtube ? <a href={youtube} target="_blank" rel="noreferrer" className="font-bold">All videos →</a> : null}
       </div>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
-        {videos.map((v) => {
-          const thumb = v.thumbnail_url || youtubeThumb(v.url);
-          return (
-            <a key={v.id} href={v.url} target="_blank" rel="noreferrer" className="group flex flex-col gap-2 text-ink no-underline hover:text-primary">
-              <span className="relative flex aspect-video items-center justify-center overflow-hidden rounded-photo bg-[#34443B]">
-                {thumb ? <img src={thumb} alt="" className="absolute inset-0 size-full object-cover" /> : null}
-                <span aria-hidden className="relative flex size-[46px] items-center justify-center rounded-full bg-accent text-ink transition-transform group-hover:scale-110"><Play className="size-[18px] translate-x-px fill-current" /></span>
-                {v.duration ? <span className="absolute right-2.5 bottom-2.5 rounded-sm bg-black/60 px-2 py-[3px] text-meta font-bold text-white">{v.duration}</span> : null}
-              </span>
-              <span className="leading-[1.35] font-bold">{v.title}</span>
-            </a>
-          );
-        })}
+        {videos.map((v) => <VideoCard key={v.id} video={v} />)}
       </div>
     </section>
   );
@@ -234,14 +206,7 @@ export function News({ news }) {
           </Link>
           <div className="flex min-w-0 flex-[2_1_320px] flex-col">
             {rest.slice(0, 3).map((n) => (
-              <Link key={n.id} to={`/news/${n.id}`} className="flex gap-4 border-b border-line-2 py-4 text-ink no-underline hover:text-primary">
-                <Photo url={n.image_url} className="h-[76px] w-[104px] flex-none rounded-photo" />
-                <span className="flex min-w-0 flex-col gap-1.5">
-                  <span className="text-meta font-bold uppercase tracking-[0.08em] text-primary">{LABELS[n.label] || "News"}{n.place ? ` · ${n.place}` : ""}</span>
-                  <span className="line-clamp-2 font-bold leading-[1.35]">{n.title}</span>
-                  <span className="text-small text-muted-foreground">{ago(n.published_on)}</span>
-                </span>
-              </Link>
+              <StoryRow key={n.id} post={n} when={ago(n.published_on)} photoClass="h-[76px] w-[104px]" />
             ))}
           </div>
         </div>
@@ -262,10 +227,7 @@ export function Events() {
           {events.slice(0, 3).map((e) => {
             return (
               <Link key={e.id} to={`/news/${e.id}`} className="flex flex-col gap-3.5 rounded-photo border border-ink-2 p-[22px] text-on-dark no-underline hover:text-white">
-                <span className="flex h-16 w-[58px] flex-col items-center justify-center rounded-lg bg-accent text-ink">
-                  <span className="text-[11px] font-extrabold tracking-[0.08em] uppercase">{formatDay(e.event_date, { month: "short" })}</span>
-                  <span className="font-display text-2xl leading-none font-extrabold">{formatDay(e.event_date, { day: "numeric" })}</span>
-                </span>
+                <DateTile date={e.event_date} tone="accent" />
                 <span className="text-[19px] leading-[1.3] font-bold">{e.title}</span>
                 {e.venue ? <span className="text-ui text-on-dark-muted">{e.venue}</span> : null}
               </Link>

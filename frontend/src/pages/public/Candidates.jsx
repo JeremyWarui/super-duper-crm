@@ -11,6 +11,7 @@ import { ErrorText } from "@/components/ui/error-text";
 import { PageHero } from "@/components/PageHead";
 import { FilterPills } from "@/components/ui/tabs";
 import { whereOf } from "@/lib/format";
+import { StoryMeta } from "@/components/ui/typography";
 
 
 export function CandidateCard({ c, square = false }) {
@@ -19,7 +20,7 @@ export function CandidateCard({ c, square = false }) {
       <Link to={`/candidates/${c.slug}`}>
         <Photo url={c.photo_url} className={`${square ? "aspect-square" : "aspect-[4/3]"} w-full`} />
         <span className="flex flex-1 flex-col gap-1.5 p-[18px]">
-          <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{SEAT_LABEL[c.seat]}</span>
+          <StoryMeta category={SEAT_LABEL[c.seat]} />
           <span className="text-[18px] font-bold">{c.name}</span>
           <span className="text-small text-muted-foreground">{whereOf(c, " · ")}</span>
           <span className="mt-auto pt-2 text-small font-bold text-primary">View profile →</span>

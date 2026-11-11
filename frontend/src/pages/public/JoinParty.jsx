@@ -1,12 +1,12 @@
 // /join-party: anyone applies to join the party in three steps, with no login.
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Check } from "lucide-react";
+import { Check as Tick } from "lucide-react";
 import { useJoinParty, useParty, useSite } from "@/api/hooks";
 import PlaceCascade from "@/components/PlaceCascade";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Input } from "@/components/ui/input";
+import { Check, Field, Input } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/typography";
 import VolunteerFields, { CHECK_PILL, NO_VOLUNTEER, volunteerBody, volunteerReady } from "@/components/VolunteerFields";
 import { isEmail } from "../../lib/email";
@@ -15,7 +15,6 @@ import { pageState } from "@/components/PageState";
 import { linkTo } from "@/lib/format";
 
 const STEPS = ["Your details", "Your branch", "Consent"];
-const TICK = "mt-0.5 size-5 flex-none accent-primary";
 
 function Steps({ step }) {
   return (
@@ -102,7 +101,7 @@ export default function JoinParty() {
     const volunteerLink = join.data.volunteer_withdraw_url ? linkTo(join.data.volunteer_withdraw_url) : "";
     body = (
       <div className="flex flex-col items-start gap-4 py-3">
-        <span className="flex size-14 items-center justify-center rounded-full bg-primary text-white"><Check className="size-7" strokeWidth={3} /></span>
+        <span className="flex size-14 items-center justify-center rounded-full bg-primary text-white"><Tick className="size-7" strokeWidth={3} /></span>
         <h2 className="font-display text-[32px] font-extrabold">Karibu! Your application is in.</h2>
         <p role="status" className="leading-[1.6] text-text-2">Thank you, the party has received your application.</p>
         <p className="text-[15px] leading-[1.6] text-text-2">
@@ -163,21 +162,18 @@ export default function JoinParty() {
         {step === 3 ? (
           <div className="flex flex-col gap-[18px]">
             <h2 className="text-[24px] font-bold">Consent</h2>
-            <label className="flex items-start gap-3 text-[15px] leading-[1.5]">
-              <input type="checkbox" className={TICK} checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+            <Check className="text-[15px] leading-[1.5]" checked={consent} onChange={(e) => setConsent(e.target.checked)}>
               {p.consent_wording}
-            </label>
+            </Check>
             {p.sms_consent_wording ? (
-              <label className="flex items-start gap-3 text-[15px] leading-[1.5]">
-                <input type="checkbox" className={TICK} checked={smsUpdates} onChange={(e) => setSmsUpdates(e.target.checked)} />
+              <Check className="text-[15px] leading-[1.5]" checked={smsUpdates} onChange={(e) => setSmsUpdates(e.target.checked)}>
                 <span>{p.sms_consent_wording} <span className="text-muted-foreground">(optional)</span></span>
-              </label>
+              </Check>
             ) : null}
             {volunteer ? (
-              <label className="flex items-start gap-3 text-[15px] leading-[1.5]">
-                <input type="checkbox" className={TICK} checked={volunteerConsent} onChange={(e) => setVolunteerConsent(e.target.checked)} />
+              <Check className="text-[15px] leading-[1.5]" checked={volunteerConsent} onChange={(e) => setVolunteerConsent(e.target.checked)}>
                 {p.volunteer_consent_wording}
-              </label>
+              </Check>
             ) : null}
           </div>
         ) : null}

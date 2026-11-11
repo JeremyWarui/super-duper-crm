@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { StatTiles } from "@/components/ui/stat-tiles";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { Check, Field, Input, NativeSelect } from "@/components/ui/input";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatDate, nairobiDate } from "../../lib/format";
@@ -20,6 +20,7 @@ import { ErrorText } from "@/components/ui/error-text";
 import { useShowMore } from "@/lib/useShowMore";
 import { LoadMore } from "@/components/ui/load-more";
 import { LoadingText } from "@/components/ui/loading-text";
+import { useForm } from "@/lib/form";
 
 const FIELDS = [
   ["office_address", "Office address", 300],
@@ -50,8 +51,7 @@ const formOf = (branch) => ({
 
 function BranchForm({ row, onDone }) {
   const save = useSaveBranch();
-  const [form, setForm] = useState(() => formOf(row.branch));
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+  const [form, , set] = useForm(() => formOf(row.branch));
   const submit = (e) => {
     e.preventDefault();
     save.mutate({ county: row.county.id, ...form, next_meeting_on: form.next_meeting_on || null }, { onSuccess: onDone });
@@ -63,10 +63,9 @@ function BranchForm({ row, onDone }) {
       <Field label="Next meeting date">
         <Input type="date" value={form.next_meeting_on} onChange={set("next_meeting_on")} />
       </Field>
-      <label className="flex min-h-11 items-center gap-2.5 text-body">
-        <input type="checkbox" className="size-[18px] accent-primary" checked={form.published} onChange={set("published")} />
+      <Check className="items-center gap-2.5 text-body" checked={form.published} onChange={set("published")}>
         Show this branch on the website
-      </label>
+      </Check>
       <ErrorText error={save.error} className="text-small" />
       <Button type="submit" shape="rounded" className="self-start" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save branch"}</Button>
     </form>
@@ -75,12 +74,12 @@ function BranchForm({ row, onDone }) {
 
 function EndTerm({ term, onDone }) {
   const end = useEndTerm();
-  const [form, setForm] = useState({ term_end: nairobiDate(), end_reason: "resigned" });
+  const [form, , set] = useForm({ term_end: nairobiDate(), end_reason: "resigned" });
   return (
     <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); end.mutate({ id: term.id, ...form }, { onSuccess: onDone }); }}>
-      <Field label="Last day"><Input type="date" value={form.term_end} min={term.term_start} onChange={(e) => setForm({ ...form, term_end: e.target.value })} /></Field>
+      <Field label="Last day"><Input type="date" value={form.term_end} min={term.term_start} onChange={set("term_end")} /></Field>
       <Field label="Why">
-        <NativeSelect value={form.end_reason} onChange={(e) => setForm({ ...form, end_reason: e.target.value })}>
+        <NativeSelect value={form.end_reason} onChange={set("end_reason")}>
           {ENDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </NativeSelect>
       </Field>

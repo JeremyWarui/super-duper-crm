@@ -7,6 +7,8 @@ import { formatDay } from "@/lib/format";
 import { LoadingText } from "@/components/ui/loading-text";
 import { ErrorText } from "@/components/ui/error-text";
 import { PageHero } from "@/components/PageHead";
+import DateTile from "@/components/DateTile";
+import { StoryMeta } from "@/components/ui/typography";
 
 function byMonth(events) {
   const months = [];
@@ -22,12 +24,9 @@ function EventCard({ e }) {
   return (
     <Card asChild interactive className="flex-row flex-wrap items-center gap-5 p-5">
       <Link to={`/news/${e.id}`}>
-        <span className="flex h-20 w-[72px] flex-none flex-col items-center justify-center rounded-[8px] bg-primary-tint text-primary">
-          <span className="text-meta font-extrabold uppercase tracking-[0.08em]">{formatDay(e.event_date, { weekday: "short" })}</span>
-          <span className="font-display text-[30px] leading-none font-extrabold">{formatDay(e.event_date, { day: "numeric" })}</span>
-        </span>
+        <DateTile date={e.event_date} top={{ weekday: "short" }} />
         <span className="flex min-w-0 flex-[1_1_220px] flex-col gap-1.5">
-          <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">Event{e.county ? ` · ${e.county.name}` : ""}</span>
+          <StoryMeta category="Event" place={e.county?.name} />
           <span className="text-[20px] font-bold">{e.title}</span>
           {e.venue ? <span className="text-[15px] text-muted-foreground">{e.venue}</span> : null}
         </span>

@@ -6,6 +6,7 @@ import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { formatKES } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Notice } from "@/components/ui/notice";
 
 // Sends payments one after another and reports how each went.
 export default function ReleaseForm({ payments, onClose }) {
@@ -34,7 +35,7 @@ export default function ReleaseForm({ payments, onClose }) {
   return (
     <Dialog title={payments.length === 1 ? "Release payment" : `Release ${payments.length} payments`} description={`${formatKES(sum)} in total.`} locked={running} onClose={running ? () => {} : onClose}>
       {payout.error && <ErrorText error={`Could not tell whether releases move money: ${payout.error.message}`} />}
-      {mode && !mode.moves_money && <div role="note" className="rounded-lg border border-[#F2D98A] bg-warn px-4 py-3 text-ui font-medium text-warn-foreground">Practice mode: no money moves. Each payment is marked paid under a PRACTICE reference, against a made-up balance.</div>}
+      {mode && !mode.moves_money && <Notice className="font-medium">Practice mode: no money moves. Each payment is marked paid under a PRACTICE reference, against a made-up balance.</Notice>}
       <ErrorText error={check.error} />
       {cover && !results && (
         <dl className="flex flex-col gap-2" aria-label="Balance">

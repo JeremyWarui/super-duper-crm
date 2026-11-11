@@ -22,18 +22,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
-import { Field, FilterSelect, Input, NativeSelect, Textarea } from "@/components/ui/input";
+import { Check, Field, FilterSelect, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { FormActions } from "@/components/ui/form-actions";
 import { InviteDialog } from "@/components/ui/invite-dialog";
 import { LoadingText } from "@/components/ui/loading-text";
 import { Pager } from "@/components/ui/pager";
-import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, RowButton, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { isEmail } from "@/lib/email";
 import { formatDate, formatKES } from "@/lib/format";
 import { useAuth } from "@/store/auth";
 import { ASPIRANT_STATUS_LABEL, ASPIRANT_STATUS_TONE, SEAT_AREA, SEAT_LABEL, SEATS } from "@/lib/labels";
 import { ASPIRANT_MOVES, NEEDS_REASON, PAGE_SIZE } from "./helpers";
 import { Linked, MoveButtons, StatusFilter, useLinkedRecord, useRegister } from "./register";
+import { useForm } from "@/lib/form";
 
 function Nominate({ onClose }) {
   const [q, setQ] = useState("");
@@ -89,8 +90,7 @@ function Nominate({ onClose }) {
 function Workspace({ aspirant, onDone }) {
   const create = useCreateWorkspace();
   const memberEmail = aspirant.member.email || "";
-  const [form, setForm] = useState({ title: "", election_date: "", candidate: "", candidate_email: memberEmail, manager: "", manager_email: "" });
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+  const [form, , set] = useForm({ title: "", election_date: "", candidate: "", candidate_email: memberEmail, manager: "", manager_email: "" });
 
   const submit = () =>
     create.mutate(
@@ -244,9 +244,8 @@ function TimetableForm({ window: w, onClose }) {
   const revise = useReviseNominationWindow();
   const save = w.id ? revise : draft;
   const fees = Object.fromEntries((w.seats || []).map((x) => [x.seat, String(x.fee_kes)]));
-  const [form, setForm] = useState({ title: w.title || "", opens_on: w.opens_on || "", closes_on: w.closes_on || "", requirements: w.requirements || "" });
+  const [form, , set] = useForm({ title: w.title || "", opens_on: w.opens_on || "", closes_on: w.closes_on || "", requirements: w.requirements || "" });
   const [seats, setSeats] = useState(fees);
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const chosen = Object.entries(seats).map(([seat, fee]) => ({ seat, fee_kes: Number(fee) || 0 }));
   const ready = form.title.trim() && form.opens_on && form.closes_on && form.closes_on >= form.opens_on && chosen.length > 0;
   const submit = () => {
@@ -264,11 +263,10 @@ function TimetableForm({ window: w, onClose }) {
         <legend className="mb-2 text-small font-semibold">Seats and nomination fees (KES)</legend>
         {SEATS.map(([value, label]) => (
           <div key={value} className="flex flex-wrap items-center gap-3">
-            <label className="flex min-h-11 min-w-32 items-center gap-2.5 text-body">
-              <input type="checkbox" className="size-[18px] accent-primary" checked={value in seats}
-                onChange={(e) => { const next = { ...seats }; if (e.target.checked) next[value] = "0"; else delete next[value]; setSeats(next); }} />
+            <Check className="min-w-32 items-center gap-2.5 text-body" checked={value in seats}
+                onChange={(e) => { const next = { ...seats }; if (e.target.checked) next[value] = "0"; else delete next[value]; setSeats(next); }}>
               {label}
-            </label>
+            </Check>
             {value in seats && (
               <Input aria-label={`${label} fee`} type="number" min={0} className="w-auto flex-[1_1_140px]" value={seats[value]}
                 onChange={(e) => setSeats({ ...seats, [value]: e.target.value })} />
@@ -320,7 +318,7 @@ export default function Aspirants() {
                 <TD className="text-muted-foreground">{a.campaign_id ? "Created" : "—"}</TD>
               </TR>
             ))}
-            {items.length === 0 && <TR><TD colSpan={5} className="text-center text-muted-foreground">No nominations match.</TD></TR>}
+            {items.length === 0 && <EmptyRow className="text-center">No nominations match.</EmptyRow>}
           </TBody>
         </Table>
       </Card>

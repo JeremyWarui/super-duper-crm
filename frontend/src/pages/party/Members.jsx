@@ -19,7 +19,7 @@ import { FormActions } from "@/components/ui/form-actions";
 import { Input } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 import { Pager } from "@/components/ui/pager";
-import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, RowButton, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { formatDate, placeOf } from "@/lib/format";
 import { STATUS_LABEL, STATUS_TONE } from "@/lib/labels";
 import { MOVES, PAGE_SIZE } from "./helpers";
@@ -113,7 +113,7 @@ export default function Members() {
                 <TD className="text-muted-foreground">{formatDate(m.created_at)}</TD>
               </TR>
             ))}
-            {items.length === 0 && <TR><TD colSpan={5} className="text-center text-muted-foreground">No members match.</TD></TR>}
+            {items.length === 0 && <EmptyRow className="text-center">No members match.</EmptyRow>}
           </TBody>
         </Table>
       </Card>

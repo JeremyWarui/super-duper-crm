@@ -1,13 +1,12 @@
-import { useState } from "react";
 import { Field, Input } from "@/components/ui/input";
 import { loginBody, loginReady } from "./helpers";
+import { useForm } from "@/lib/form";
 
 // Name, username, email and phone for a new login; `body` is what the team routes take.
 export function useLoginFields() {
-  const [form, setForm] = useState({ name: "", username: "", email: "", phone: "" });
+  const [form, , set] = useForm({ name: "", username: "", email: "", phone: "" });
   const ok = !!form.name.trim() && loginReady(form);
   const body = loginBody(form);
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
   return { form, set, ok, body };
 }
 

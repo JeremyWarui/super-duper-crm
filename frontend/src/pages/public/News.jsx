@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RailHead } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";
-import { Initials, LABELS, Photo, StoryKicker } from "./story";
+import { Initials, Photo, StoryKicker } from "./story";
 import { LoadingText } from "@/components/ui/loading-text";
 import { ErrorText } from "@/components/ui/error-text";
+import { StoryCard, StoryRow } from "./story";
 
 const PAGE = 20;
 const short = (iso) => formatDay(iso, { day: "numeric", month: "short" });
@@ -29,14 +30,7 @@ function Lead({ lead, beside }) {
       </article>
       <div className="flex min-w-0 flex-[2_1_320px] flex-col">
         {beside.map((n) => (
-          <Link key={n.id} to={`/news/${n.id}`} className="flex gap-4 border-b border-line-2 py-4 text-ink no-underline first:pt-0 hover:text-primary">
-            <Photo url={n.image_url} className="size-[104px] flex-none rounded-photo" />
-            <span className="flex min-w-0 flex-col gap-1.5">
-              <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{LABELS[n.label] || "News"}</span>
-              <span className="line-clamp-3 text-[18px] leading-[1.3] font-bold">{n.title}</span>
-              <span className="text-small text-muted-foreground">{short(n.published_on)}</span>
-            </span>
-          </Link>
+          <StoryRow key={n.id} post={n} when={short(n.published_on)} />
         ))}
       </div>
     </section>
@@ -53,12 +47,7 @@ function More({ stories, offset, setOffset, full }) {
       {stories.length ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-x-6 gap-y-8">
           {stories.map((n) => (
-            <Link key={n.id} to={`/news/${n.id}`} className="flex flex-col gap-2 text-ink no-underline hover:text-primary">
-              <Photo url={n.image_url} className="aspect-[16/10] w-full rounded-photo" />
-              <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{LABELS[n.label] || "News"}{n.place ? ` · ${n.place}` : ""}</span>
-              <span className="text-[18px] leading-[1.3] font-bold">{n.title}</span>
-              <span className="text-small text-muted-foreground">{formatDay(n.published_on)} · {n.read_minutes} min read</span>
-            </Link>
+            <StoryCard key={n.id} post={n} />
           ))}
         </div>
       ) : (

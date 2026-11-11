@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Confirm } from "@/components/ui/confirm";
 import VolunteerFields, { NO_VOLUNTEER, volunteerBody, volunteerReady } from "@/components/VolunteerFields";
 import { Card } from "@/components/ui/card";
-import { Field, Input } from "@/components/ui/input";
+import { Check, Field, Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/store/auth";
 import { CONTACT_LABEL, MY_ASPIRANT_STATUS, MY_MEMBER_STATUS, SEAT_LABEL, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE, helpsWith, professionOf } from "@/lib/labels";
@@ -67,10 +67,9 @@ function VolunteerForm({ volunteer, wording, onDone, onCancel }) {
   return (
     <form onSubmit={submit} className="flex max-w-[620px] flex-col gap-4">
       <VolunteerFields value={form} onChange={set} />
-      <label className="flex items-start gap-2.5 text-body">
-        <input type="checkbox" required className="mt-1 size-[18px] accent-primary" checked={form.consent_given} onChange={(e) => set({ consent_given: e.target.checked })} />
+      <Check className="gap-2.5 text-body" required checked={form.consent_given} onChange={(e) => set({ consent_given: e.target.checked })}>
         {wording}
-      </label>
+      </Check>
       <ErrorText error={change.error} className="text-small" />
       <div className="flex flex-wrap gap-2.5">
         <Button type="submit" disabled={change.isPending || !volunteerReady(form)}>{volunteer ? "Save my volunteer details" : "Volunteer for events"}</Button>
@@ -295,10 +294,9 @@ function Application({ application: a, notice }) {
       )}
       {draft && (
         <>
-          <label className="flex items-start gap-3">
-            <input type="checkbox" className="mt-1" checked={declared} onChange={(e) => setDeclared(e.target.checked)} />
+          <Check checked={declared} onChange={(e) => setDeclared(e.target.checked)}>
             <span>I confirm the information and documents are true, I meet the requirements for this seat, and I will abide by the party's nomination rules and the outcome of the process.</span>
-          </label>
+          </Check>
           <div className="flex flex-wrap gap-2">
             <Button disabled={!declared || feeDue || submit.isPending} onClick={() => submit.mutate()}>{submit.isPending ? "Submitting…" : "Submit application"}</Button>
             <Button variant="quiet" disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Withdraw</Button>

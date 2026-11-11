@@ -7,6 +7,7 @@ import { FormActions } from "@/components/ui/form-actions";
 import { LoadingText } from "@/components/ui/loading-text";
 import { unitOf, useUnits } from "./helpers";
 import { displayName } from "@/lib/format";
+import { Check } from "@/components/ui/input";
 
 // Picks a coordinator's area from the campaign's targeted units: wards, or centres in an MCA race.
 export default function AreaPicker({ campaign, person, onClose }) {
@@ -36,9 +37,8 @@ export default function AreaPicker({ campaign, person, onClose }) {
       {area.isLoading || picked === null ? (area.error ? <ErrorText error={area.error} /> : <LoadingText />) : (
         <div className="flex flex-col">
           {options.map((o) => (
-            <label key={o.id} className="flex min-h-11 cursor-pointer items-center gap-3">
-              <input type="checkbox" className="size-[18px] flex-none accent-primary" checked={picked.has(o.id)} onChange={() => toggle(o.id)} />{o.name}
-            </label>
+            <Check key={o.id} className="items-center" checked={picked.has(o.id)} onChange={() => toggle(o.id)}>{o.name}
+            </Check>
           ))}
           {options.length === 0 && <p className="text-muted-foreground">This campaign has no targeted {noun} yet. Set targets first.</p>}
         </div>

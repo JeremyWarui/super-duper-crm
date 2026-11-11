@@ -9,7 +9,7 @@ import { ErrorText } from "@/components/ui/error-text";
 import { Field, FilterSelect, Input } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { formatDate, formatNumber } from "@/lib/format";
 import { AREA_LABEL, SEAT_LABEL, SEATS } from "@/lib/labels";
 
@@ -25,7 +25,7 @@ function Counts({ title, head, rows }) {
           {rows.map(([key, label, count]) => (
             <TR key={key}><TD>{label}</TD><TD numeric className="font-semibold">{formatNumber(count)}</TD></TR>
           ))}
-          {rows.length === 0 && <TR><TD colSpan={2} className="text-center text-muted-foreground">None.</TD></TR>}
+          {rows.length === 0 && <EmptyRow className="text-center">None.</EmptyRow>}
         </TBody>
       </Table>
     </Card>
@@ -62,7 +62,7 @@ function Shared() {
               </TR>
             );
           })}
-          {shared.isSuccess && rows.length === 0 && <TR><TD colSpan={4} className="text-center text-muted-foreground">No nominee workspaces yet.</TD></TR>}
+          {shared.isSuccess && rows.length === 0 && <EmptyRow className="text-center">No nominee workspaces yet.</EmptyRow>}
         </TBody>
       </Table>
     </Card>

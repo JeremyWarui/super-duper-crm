@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { nairobiDate } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
+import { StatusText } from "@/components/ui/notice";
 
 export default function ExportPanel() {
   const [state, setState] = useState({ busy: false, error: null, done: false });
@@ -27,7 +28,7 @@ export default function ExportPanel() {
           On the server: <code>campaign-crm export</code>. For a full copy you can restore, use <code>campaign-crm backup</code>.
         </p>
         <Button shape="rounded" className="self-start" disabled={state.busy} onClick={run}>{state.busy ? "Preparing…" : "Download export"}</Button>
-        {state.done && <p role="status" className="text-ui font-semibold text-primary">Downloaded.</p>}
+        {state.done && <StatusText>Downloaded.</StatusText>}
         <ErrorText error={state.error} className="text-ui" />
       </Card>
     </div>

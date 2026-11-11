@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Confirm } from "@/components/ui/confirm";
 import { Card } from "@/components/ui/card";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { ROLE_LABEL } from "@/lib/labels";
 import { ErrorText } from "@/components/ui/error-text";
@@ -15,6 +15,7 @@ import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
 import { isLead } from "./helpers";
 import { displayName } from "@/lib/format";
+import { Notice } from "@/components/ui/notice";
 
 const ORDER = ["candidate", "manager", "coordinator", "comms", "mobilizer", "agent"];
 const TONE = { candidate: "ink", manager: "primary", coordinator: "tint", comms: "info", mobilizer: "stone", agent: "stone" };
@@ -56,14 +57,12 @@ export default function Team({ campaign, role, onModal }) {
         <>
           <StatTiles tiles={tiles} valueClassName="truncate text-[24px] leading-tight" />
           {!manager && role === "candidate" && (
-            <div role="note" className="rounded-lg border border-[#F2D98A] bg-warn px-4 py-3 text-ui text-warn-foreground">
-              This campaign has no manager yet. Add one to run the day-to-day.
-            </div>
+            <Notice>This campaign has no manager yet. Add one to run the day-to-day.</Notice>
           )}
           <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Team">
             <FilterPills label="Role" options={Object.keys(VIEWS)} value={view} onChange={setView} />
             <Table stack minWidth={560}>
-              <THead><TR><TH>Name</TH><TH>Username</TH><TH>Role</TH><TH className="relative"><span className="sr-only">Actions</span></TH></TR></THead>
+              <THead><TR><TH>Name</TH><TH>Username</TH><TH>Role</TH><TH srOnly className="relative">Actions</TH></TR></THead>
               <TBody>
                 {shown.map((p) => (
                   <TR key={p.id}>
@@ -88,7 +87,7 @@ export default function Team({ campaign, role, onModal }) {
                     </TD>
                   </TR>
                 ))}
-                {shown.length === 0 && <TR><TD colSpan={4} className="text-muted-foreground">Nobody here yet.</TD></TR>}
+                {shown.length === 0 && <EmptyRow>Nobody here yet.</EmptyRow>}
               </TBody>
             </Table>
           </Card>

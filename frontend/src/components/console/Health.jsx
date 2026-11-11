@@ -8,6 +8,7 @@ import { Field, Input } from "@/components/ui/input";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { ErrorText } from "@/components/ui/error-text";
 import { formatDateTime } from "@/lib/format";
+import { StatusText } from "@/components/ui/notice";
 
 const GB = 1024 ** 3;
 const size = (bytes) => (bytes == null ? "unknown" : bytes >= GB ? `${(bytes / GB).toFixed(1)} GB` : `${(bytes / 1024 ** 2).toFixed(1)} MB`);
@@ -22,6 +23,9 @@ function Row({ label, children }) {
   );
 }
 
+/** A test's answer in green, or its error. */
+const Outcome = ({ of }) => (of.data ? <StatusText>{of.data.message}</StatusText> : <ErrorText error={of.error} className="text-ui" />);
+
 function TestSend({ kind, label, note }) {
   const send = useTestSend();
   const [phone, setPhone] = useState("");
@@ -33,8 +37,7 @@ function TestSend({ kind, label, note }) {
       <Button type="submit" shape="rounded" variant="quiet" className="self-start" disabled={phone.trim().length < 3 || send.isPending}>
         {send.isPending ? "Sending…" : label}
       </Button>
-      {send.data && <p role="status" className="text-ui font-semibold text-primary">{send.data.message}</p>}
-      <ErrorText error={send.error} className="text-ui" />
+      <Outcome of={send} />
     </form>
   );
 }
@@ -49,8 +52,7 @@ function TestEmail() {
       <Button type="button" shape="rounded" variant="quiet" className="self-start" disabled={send.isPending} onClick={() => send.mutate("email")}>
         {send.isPending ? "Sending…" : "Send a test email"}
       </Button>
-      {send.data && <p role="status" className="text-ui font-semibold text-primary">{send.data.message}</p>}
-      <ErrorText error={send.error} className="text-ui" />
+      <Outcome of={send} />
     </div>
   );
 }
@@ -67,8 +69,7 @@ function SignIn({ google }) {
           {check.isPending ? "Checking…" : "Check Google sign-in"}
         </Button>
         {!google && <p className="text-small text-muted-foreground">Google sign-in is off. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to <code>.env</code> and restart.</p>}
-        {check.data && <p role="status" className="text-ui font-semibold text-primary">{check.data.message}</p>}
-        <ErrorText error={check.error} className="text-ui" />
+        <Outcome of={check} />
       </div>
     </Card>
   );

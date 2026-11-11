@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ReasonForm } from "@/components/ui/confirm";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatDay, formatKES } from "../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
@@ -34,7 +34,7 @@ export default function PaymentsInTable({ campaignId }) {
       <ErrorText error={list.error} />
       <ErrorText error={decide.error} />
       <Table stack minWidth={720}>
-        <THead><TR><TH>Date</TH><TH>Payer</TH><TH>For</TH><TH align="right">Amount</TH><TH>M-Pesa code</TH><TH>Status</TH><TH><span className="sr-only">Actions</span></TH></TR></THead>
+        <THead><TR><TH>Date</TH><TH>Payer</TH><TH>For</TH><TH align="right">Amount</TH><TH>M-Pesa code</TH><TH>Status</TH><TH srOnly>Actions</TH></TR></THead>
         <TBody>
           {rows.map((r) => (
             <TR key={r.id}>
@@ -59,7 +59,7 @@ export default function PaymentsInTable({ campaignId }) {
               </TD>
             </TR>
           ))}
-          {!list.isLoading && rows.length === 0 ? <TR><TD colSpan={7} className="text-muted-foreground">Nothing here.</TD></TR> : null}
+          {!list.isLoading && rows.length === 0 ? <EmptyRow>Nothing here.</EmptyRow> : null}
         </TBody>
       </Table>
     </Card>

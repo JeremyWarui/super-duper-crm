@@ -7,7 +7,7 @@ import { RichText } from "@/components/RichTextView";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, FilterSelect, Input } from "@/components/ui/input";
+import { Check, Field, FilterSelect, Input } from "@/components/ui/input";
 import { Crumbs, RuleHead } from "@/components/ui/typography";
 import { SEAT_LABEL } from "@/lib/labels";
 import VolunteerFields, { NO_VOLUNTEER, volunteerBody, volunteerReady } from "@/components/VolunteerFields";
@@ -17,6 +17,7 @@ import { isEmail } from "../../lib/email";
 import { ErrorText } from "@/components/ui/error-text";
 import { pageState } from "@/components/PageState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useForm } from "@/lib/form";
 
 /** The seat an aspirant is vying for, as their badge says it. */
 export const vying = (seat) => `Vying for ${SEAT_LABEL[seat]}`;
@@ -29,9 +30,8 @@ export const volunteerTitle = (c, sent) => (sent ? "Thank you" : `Volunteer for 
 
 /** The volunteer form, the same in the dialog and on the /volunteer page. */
 export function SupportForm({ c, send, withdrawPath }) {
-  const [f, setF] = useState({ first_name: "", last_name: "", email: "", phone: "", ward: "", registration_centre: "", ...NO_VOLUNTEER, consent_given: false });
+  const [f, setF, set] = useForm({ first_name: "", last_name: "", email: "", phone: "", ward: "", registration_centre: "", ...NO_VOLUNTEER, consent_given: false });
   const centres = usePartyPlaces({ ward: f.ward, enabled: !!f.ward }).data || [];
-  const set = (key) => (e) => setF({ ...f, [key]: e.target.value });
   const ok =
     f.first_name.trim() && f.last_name.trim() && isEmail(f.email) && f.phone.trim() && f.ward && f.registration_centre &&
     volunteerReady(f) && f.consent_given;
@@ -64,11 +64,10 @@ export function SupportForm({ c, send, withdrawPath }) {
           <FilterSelect labelled label="Ward" blank="Pick your ward" value={f.ward} options={c.wards} onChange={(ward) => setF({ ...f, ward, registration_centre: "" })} />
           <FilterSelect labelled label="Polling station" blank="Pick your polling station" value={f.registration_centre} options={centres} disabled={!f.ward} onChange={(registration_centre) => setF({ ...f, registration_centre })} />
         </div>
-        <VolunteerFields pills value={f} onChange={(patch) => setF({ ...f, ...patch })} />
-        <label className="flex items-start gap-2.5 text-small leading-[1.5] text-muted-foreground">
-          <input type="checkbox" className="mt-0.5 size-[18px] flex-none accent-primary" checked={f.consent_given} onChange={(e) => setF({ ...f, consent_given: e.target.checked })} />
+        <VolunteerFields pills value={f} onChange={(patch) => setF((v) => ({ ...v, ...patch }))} />
+        <Check className="gap-2.5 text-small leading-[1.5] text-muted-foreground" checked={f.consent_given} onChange={set("consent_given")}>
           {c.consent_wording}
-        </label>
+        </Check>
         <ErrorText error={send.error} className="text-small" />
         {!ok ? <p className="text-small text-muted-foreground">Fill in every field, tick at least one way to help and agree above to send this.</p> : null}
         <Button type="submit" disabled={!ok || send.isPending}>{send.isPending ? "Sending…" : "I'll volunteer"}</Button>

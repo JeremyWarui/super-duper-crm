@@ -9,6 +9,7 @@ import { LoadingText } from "@/components/ui/loading-text";
 import { ErrorText } from "@/components/ui/error-text";
 import { PageHero } from "@/components/PageHead";
 import { FilterPills } from "@/components/ui/tabs";
+import { StoryMeta } from "@/components/ui/typography";
 
 /** Rows (already ordered by seat, area and votes) as races: one seat in one area, most votes first. */
 export function races(rows) {
@@ -31,7 +32,7 @@ function Race({ race, label }) {
       <article aria-label={`${label} · ${race.area}`}>
         <div className="flex items-start justify-between gap-2.5">
           <span className="flex flex-col gap-0.5">
-            <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{label}</span>
+            <StoryMeta category={label} />
             <strong className="text-[19px]">{race.area}</strong>
           </span>
           {race.declared ? <Badge tone="tint">Declared {formatDay(race.declared)}</Badge> : <Badge tone="stone">Counting</Badge>}

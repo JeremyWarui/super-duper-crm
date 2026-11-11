@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
-import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { Check, Field, Input, NativeSelect } from "@/components/ui/input";
 import { InviteDialog } from "@/components/ui/invite-dialog";
 import { holderOf, loginBody, loginReady } from "./helpers";
 import LoginFields from "./LoginFields";
+import { useForm } from "@/lib/form";
 
 // Units (wards, or centres in a ward race) with no mobilizer, plus the one `keep` holds.
 const freeUnits = (units, mobilizers, keep) =>
@@ -22,7 +23,7 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
   const [picked, setPicked] = useState(null);  // null until the user changes the ward box
   const unitKey = picked ?? (units.find((u) => mobilizer && holderOf([mobilizer], u))?.key || "");
   const [withLogin, setWithLogin] = useState(false);
-  const [login, setLogin] = useState({ username: "", email: "" });
+  const [login, , setLogin] = useForm({ username: "", email: "" });
   const [made, setMade] = useState(null);
   const busy = add.isPending || update.isPending || createUser.isPending;
   const error = add.error || update.error || createUser.error;
@@ -65,13 +66,12 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
         </NativeSelect>
       </Field>
       {!mobilizer && (
-        <label className="flex min-h-11 cursor-pointer items-start gap-3 text-ui text-muted-foreground">
-          <input type="checkbox" checked={withLogin} onChange={(e) => setWithLogin(e.target.checked)} className="mt-0.5 size-[18px] flex-none accent-primary" />
+        <Check className="text-ui text-muted-foreground" checked={withLogin} onChange={(e) => setWithLogin(e.target.checked)}>
           Give them a login, so they can record their own events and supporters.
-        </label>
+        </Check>
       )}
       {withLogin && (
-        <LoginFields fields={["username", "email"]} form={login} set={(key) => (e) => setLogin({ ...login, [key]: e.target.value })} />
+        <LoginFields fields={["username", "email"]} form={login} set={setLogin} />
       )}
       <ErrorText error={error} />
       <FormActions>

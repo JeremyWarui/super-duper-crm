@@ -18,7 +18,7 @@ import { FormActions } from "@/components/ui/form-actions";
 import { FilterSelect, Input, Textarea } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 import { Pager } from "@/components/ui/pager";
-import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { EmptyRow, RowButton, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { formatDate, placeOf } from "@/lib/format";
 import { AREAS, CONTACT_LABEL, STATUS_LABEL, helpsWith, professionOf, STATUS_TONE, VOLUNTEER_STATUS_LABEL, VOLUNTEER_STATUS_TONE } from "@/lib/labels";
 import { PAGE_SIZE } from "./helpers";
@@ -126,7 +126,7 @@ export default function Volunteers() {
                 <TD className="text-muted-foreground">{CONTACT_LABEL[v.preferred_contact] || v.preferred_contact}</TD>
               </TR>
             ))}
-            {items.length === 0 && <TR><TD colSpan={8} className="text-center text-muted-foreground">No volunteers match.</TD></TR>}
+            {items.length === 0 && <EmptyRow className="text-center">No volunteers match.</EmptyRow>}
           </TBody>
         </Table>
       </Card>

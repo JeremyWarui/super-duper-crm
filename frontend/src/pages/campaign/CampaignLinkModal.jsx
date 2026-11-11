@@ -1,11 +1,10 @@
-import { QRCodeSVG } from "qrcode.react";
 import { useCampaignSignups, useSetCampaignSignups } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { LoadingText } from "@/components/ui/loading-text";
-import ShareLink from "./ShareLink";
+import ShareLink, { QrPrint } from "./ShareLink";
 import { linkTo } from "@/lib/format";
 
 // The campaign-wide sign-up link for posters and messages; the manager opens and closes it.
@@ -19,11 +18,7 @@ export default function CampaignLinkModal({ campaign, onClose }) {
   const link = linkTo(`/join/${code}`);
   return (
     <Dialog title="Campaign sign-up link" description={sub} onClose={onClose}>
-      <div className="qr-print flex flex-col items-center gap-3 text-center">
-        <div className="text-lead font-semibold">{campaign.title}</div>
-        <QRCodeSVG value={link} size={220} marginSize={2} title={`Sign-up link for ${campaign.title}`} />
-        <div className="break-all text-small text-muted-foreground">{link}</div>
-      </div>
+      <QrPrint title={campaign.title} link={link} />
       {open
         ? <ShareLink link={link} message={`Sign up to support ${campaign.title}:`} />
         : <p className="text-small text-muted-foreground">The link is closed: anyone who opens it sees a "closed" page. Open it to start taking sign-ups.</p>}

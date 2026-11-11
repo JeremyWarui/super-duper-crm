@@ -49,11 +49,20 @@ export function TBody(props: React.HTMLAttributes<HTMLTableSectionElement>) {
 export function TR({ className, selected, ...props }: React.HTMLAttributes<HTMLTableRowElement> & { selected?: boolean }) {
   return <tr aria-selected={selected || undefined} className={cn(selected && 'bg-[#F4F8F5]', className)} {...props} />
 }
-export function TH({ className, align, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th scope="col" className={cn('px-3 py-2.5 text-left text-small font-semibold text-muted-foreground border-b border-line', align === 'right' && 'text-right', className)} {...props} />
+/** A column head; `srOnly` keeps its words for screen readers only, as over a column of buttons. */
+export function TH({ className, align, srOnly, children, ...props }: React.ThHTMLAttributes<HTMLTableCellElement> & { srOnly?: boolean }) {
+  return (
+    <th scope="col" className={cn('px-3 py-2.5 text-left text-small font-semibold text-muted-foreground border-b border-line', align === 'right' && 'text-right', className)} {...props}>
+      {srOnly ? <span className="sr-only">{children}</span> : children}
+    </th>
+  )
 }
 export function TD({ className, align, numeric, ...props }: React.TdHTMLAttributes<HTMLTableCellElement> & { numeric?: boolean }) {
   return <td className={cn('p-3 border-b border-line-soft max-sm:[&[data-label]]:before:content-[attr(data-label)] max-sm:[&[data-label]]:before:text-small max-sm:[&[data-label]]:before:font-semibold max-sm:[&[data-label]]:before:text-muted-foreground', (align === 'right' || numeric) && 'text-right', numeric && 'tabular-nums', className)} {...props} />
+}
+/** The one row a table shows when it has nothing to list; it spans every column. */
+export function EmptyRow({ className, children }: { className?: string; children: React.ReactNode }) {
+  return <TR><TD colSpan={99} className={cn('text-muted-foreground', className)}>{children}</TD></TR>
 }
 /** Row name that opens a detail panel: bold, underlined with a soft line */
 export function RowButton({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {

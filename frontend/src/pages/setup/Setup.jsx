@@ -6,7 +6,7 @@ import { useCheckSetupToken, useRunSetup, useSetupAreas, useSetupServices, useTe
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
+import { Check, Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { INK, MIN_CONTRAST, WHITE, contrast, isHex } from "@/lib/contrast";
 import { ColourFields } from "@/components/Swatch";
 import { cn } from "@/lib/utils";
@@ -277,10 +277,9 @@ export default function Setup() {
         {step === 4 && form.organisation_type === "aspirant" && <SeatStep token={token.trim()} form={form} change={change} />}
         {step === 4 && form.organisation_type === "party" && (
           <div className="flex flex-col gap-4">
-            <label className="flex min-h-11 items-center gap-3 font-semibold">
-              <input type="checkbox" className="size-5 accent-primary" checked={form.openWorkspace} onChange={(e) => change({ openWorkspace: e.target.checked })} />
+            <Check className="items-center font-semibold" checked={form.openWorkspace} onChange={(e) => change({ openWorkspace: e.target.checked })}>
               Open the party workspace now, with its first Workspace Manager
-            </label>
+            </Check>
             {form.openWorkspace ? <Login who="Manager" value={form.manager} onChange={(manager) => change({ manager })} /> : <p className="text-ui text-muted-foreground">You can open it later from the console.</p>}
           </div>
         )}

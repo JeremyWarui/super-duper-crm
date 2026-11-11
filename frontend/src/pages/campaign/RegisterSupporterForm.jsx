@@ -4,7 +4,7 @@ import { useConsentWording, useMobilizers, useRegisterSupporter } from "@/api/ho
 import { useTargetedCentres } from "./helpers";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { Check, Field, Input, NativeSelect } from "@/components/ui/input";
 import { useDraft } from "@/lib/draft";
 import { FilterPills } from "@/components/ui/tabs";
 import SendError from "./SendError";
@@ -64,10 +64,9 @@ export default function RegisterSupporterForm({ campaignId, wardOptions, byCentr
         <span className="text-small font-semibold">Support</span>
         <FilterPills look="rounded" label="Support" className="grid grid-cols-3" options={LEVELS} value={form.support_level} onChange={(support_level) => change({ support_level })} />
       </div>
-      <label className="flex min-h-11 items-start gap-3 text-ui">
-        <input type="checkbox" className="mt-0.5 size-6 flex-none accent-primary" checked={form.consent_given} onChange={(e) => change({ consent_given: e.target.checked })} />
+      <Check className="text-ui" checked={form.consent_given} onChange={(e) => change({ consent_given: e.target.checked })}>
         <span>{wording}</span>
-      </label>
+      </Check>
       <SendError error={reg.error} pending={reg.isPending} onRetry={send} />
       <Button shape="rounded" size="lg" className="w-full sm:w-auto sm:self-start" disabled={!ok || !wording || reg.isPending} onClick={send}>
         {reg.isPending ? "Saving…" : "Register supporter"}

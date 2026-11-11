@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SectionHead } from "@/components/ui/typography";
 import { CandidateView, VolunteerDialog, vying } from "./Candidate";
-import { Agenda, Carousel, Events, News, TakePart, Ticker, youtubeThumb } from "./Home";
+import { Agenda, Carousel, Events, News, TakePart, Ticker } from "./Home";
 import PageHead from "@/components/PageHead";
-import { Photo } from "./story";
+import { Photo, QuickLinks, VideoCard } from "./story";
 import { pageState } from "@/components/PageState";
 import { firstName } from "@/lib/format";
 
@@ -36,13 +36,7 @@ function CandidateCard({ c }) {
           <span className="text-ui text-muted-foreground">{vying(c.seat)} · {c.area}</span>
         </span>
       </div>
-      <div className="flex flex-col border-t border-line-2">
-        {[["About " + firstName(c.name), "/about"], ["The agenda", "/agenda"], ["Events near me", "/events"], ["Contribute", "/contribute"]].map(([label, to]) => (
-          <Link key={to} to={to} className="flex justify-between border-b border-line-soft py-3 font-semibold text-ink no-underline last:border-0 hover:text-primary">
-            <span>{label}</span><span aria-hidden>→</span>
-          </Link>
-        ))}
-      </div>
+      <QuickLinks links={[["About " + firstName(c.name), "/about"], ["The agenda", "/agenda"], ["Events near me", "/events"], ["Contribute", "/contribute"]]} />
     </aside>
   );
 }
@@ -138,16 +132,7 @@ export function AspirantMedia() {
         <section aria-labelledby="videos-h" className="flex flex-col gap-4">
           <h2 id="videos-h" className="rule-top font-display text-[28px] font-extrabold">Videos</h2>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-5">
-            {videos.map((v) => {
-              const thumb = v.thumbnail_url || youtubeThumb(v.url);
-              return (
-                <a key={v.id} href={v.url} target="_blank" rel="noreferrer" className="flex flex-col gap-2 text-ink no-underline hover:text-primary">
-                  <span className="relative block aspect-video overflow-hidden rounded-photo bg-[#34443B]">{thumb ? <img src={thumb} alt="" className="absolute inset-0 size-full object-cover" /> : null}</span>
-                  <span className="font-bold">{v.title}</span>
-                  {v.duration ? <span className="text-small text-muted-foreground">{v.duration}</span> : null}
-                </a>
-              );
-            })}
+            {videos.map((v) => <VideoCard key={v.id} video={v} />)}
           </div>
         </section>
       ) : null}

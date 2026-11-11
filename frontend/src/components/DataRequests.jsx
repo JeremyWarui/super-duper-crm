@@ -9,15 +9,15 @@ import { Field, Input, Textarea } from "@/components/ui/input";
 import { formatDate, nairobiDate } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
+import { useForm } from "@/lib/form";
 
 const KINDS = { access: "Access to their data", correction: "Correction", erasure: "Erasure" };
 const DAYS = { access: 7, correction: 14, erasure: 14 };
 const BLANK = { kind: "access", requester_name: "", requester_contact: "", details: "", received_on: "" };
 
 function LogForm({ campaignId, onDone }) {
-  const [form, setForm] = useState({ ...BLANK, received_on: nairobiDate() });
+  const [form, , set] = useForm({ ...BLANK, received_on: nairobiDate() });
   const save = useLogDataRequest(campaignId);
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
   const submit = (e) => {
     e.preventDefault();
     save.mutate(form, { onSuccess: onDone });

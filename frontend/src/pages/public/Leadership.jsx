@@ -7,6 +7,7 @@ import { LoadingText } from "@/components/ui/loading-text";
 import { ErrorText } from "@/components/ui/error-text";
 import { PageHero } from "@/components/PageHead";
 import { RuleHead } from "@/components/ui/typography";
+import { StoryMeta } from "@/components/ui/typography";
 
 function Leader({ leader }) {
   return (
@@ -14,7 +15,7 @@ function Leader({ leader }) {
       <Photo url={leader.photo_url} className="aspect-[4/5] w-full" />
       <span className="flex flex-col gap-1.5 p-5">
         <strong className="text-[19px]">{leader.name}</strong>
-        <span className="text-meta font-extrabold uppercase tracking-[0.08em] text-primary">{leader.position}</span>
+        <StoryMeta category={leader.position} />
         {leader.bio ? <RichText html={leader.bio} className="text-ui leading-[1.55] text-text-2" /> : null}
       </span>
     </Card>
