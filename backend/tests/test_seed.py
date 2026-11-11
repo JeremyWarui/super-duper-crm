@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 from backend.models import (
     Campaign,
     Constituency,
+    ImportRun,
     Mobilizer,
     Target,
     User,
@@ -50,6 +51,39 @@ async def test_every_centre_that_belongs_to_a_ward_lands(session: AsyncSession) 
     assert summary.unmatched == []
     assert summary.wards_covered == KENYA_WARDS
     assert summary.centres > 27_000
+
+
+CAW_HEADER = (
+    "County Code,County Name,Constituency Code,Constituency  Name,County Assembly Code,"
+    "County Assembly Ward Name,Registered Voters\n"
+)
+
+
+async def test_a_reload_matches_wards_by_code_through_the_boundary_import(
+    session: AsyncSession, tmp_path
+) -> None:
+    caw = tmp_path / "caw.csv"
+    caw.write_text(
+        CAW_HEADER + "1,Mombasa,1,Changamwe,1,Port Reitz,100\n1,Mombasa,1,Changamwe,2,Kipevu,200\n"
+    )
+    await import_geography(session, caw=caw, county_voters=None, county_results=None)
+    port_reitz = await session.scalar(select(Ward).where(Ward.code == "1"))
+    caw.write_text(CAW_HEADER + "1,Mombasa,1,Changamwe,1,Port Reitz East,150\n")
+
+    await import_geography(session, caw=caw, county_voters=None, county_results=None)
+
+    wards = {
+        w.code: w
+        for w in await session.scalars(select(Ward).execution_options(populate_existing=True))
+    }
+    assert (wards["1"].id, wards["1"].name, wards["1"].registered_voters) == (
+        port_reitz.id,
+        "Port Reitz East",
+        150,
+    )
+    assert wards["2"].retired is True
+    kinds = list(await session.scalars(select(ImportRun.kind).order_by(ImportRun.created_at)))
+    assert kinds == ["boundaries", "register", "boundaries", "register"]
 
 
 async def _demo(session: AsyncSession, **kwargs):

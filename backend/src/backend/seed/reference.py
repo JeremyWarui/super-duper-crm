@@ -1,16 +1,23 @@
-"""Load geography and registration centres from `backend/data`; re-running updates."""
+"""Load geography and registration centres from the IEBC files in `backend/data`.
+
+The IEBC files are turned into a boundary file and a register file and loaded through
+`services.imports`, so a first load and a console import write places the same way. Re-running
+updates the places in place, matched by code.
+"""
 
 import csv
+import io
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.models import Constituency, County, RegistrationCentre, Ward
+from backend.models import Constituency, RegistrationCentre, Ward
+from backend.services import imports
 
 DATA_DIR = Path(__file__).resolve().parents[3] / "data"
 CAW_CSV = DATA_DIR / "ke_ge22_01_grv_caw_v100.csv"
@@ -79,6 +86,26 @@ def normalise(name: str | None) -> str:
     return " ".join(folded.split()).strip().upper()
 
 
+def _csv(columns: tuple[str, ...], lines: list[tuple]) -> str:
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(columns)
+    writer.writerows(lines)
+    return out.getvalue()
+
+
+async def _load(
+    session: AsyncSession, boundaries: list[tuple], register: list[tuple], filename: str
+) -> None:
+    await imports.import_boundaries(
+        session, _csv(imports.BOUNDARY_COLUMNS, boundaries), filename=filename, actor=None
+    )
+    if register:
+        await imports.import_register(
+            session, _csv(imports.REGISTER_COLUMNS, register), filename=filename, actor=None
+        )
+
+
 async def import_geography(
     session: AsyncSession,
     *,
@@ -90,103 +117,87 @@ async def import_geography(
     if county_results is not None and county_voters is None:
         raise ValueError("county_results needs county_voters: turnout divides by it.")
 
-    counties: dict[str, County] = {}
-    constituencies: dict[tuple[str, str], Constituency] = {}
-
-    for existing in (await session.execute(select(County))).scalars():
-        counties[existing.code] = existing
-    for existing in (
-        await session.execute(select(Constituency).options(selectinload(Constituency.county)))
-    ).scalars():
-        constituencies[(existing.county.code, normalise(existing.name))] = existing
-
-    ward_index: dict[tuple[str, str], Ward] = {}
-    for existing_ward in (
-        await session.execute(select(Ward).options(selectinload(Ward.constituency)))
-    ).scalars():
-        ward_index[(str(existing_ward.constituency_id), normalise(existing_ward.name))] = (
-            existing_ward
-        )
-
+    boundaries: list[tuple] = []
+    register: list[tuple] = []
+    counties: set[str] = set()
+    constituencies: set[str] = set()
     for row in rows(caw):
-        county_code = str(to_int(row["County Code"]))
-        county = counties.get(county_code)
-        if county is None:
-            county = County(code=county_code, name=row["County Name"])
-            counties[county_code] = county
-            session.add(county)
-        else:
-            county.name = row["County Name"]
-
-        key = (county_code, normalise(row["Constituency Name"]))
-        constituency = constituencies.get(key)
-        if constituency is None:
-            constituency = Constituency(
-                county=county,
-                name=row["Constituency Name"],
-                code=str(to_int(row["Constituency Code"])),
+        county = str(to_int(row["County Code"]))
+        constituency = str(to_int(row["Constituency Code"]))
+        ward = row["County Assembly Code"]
+        counties.add(county)
+        constituencies.add(constituency)
+        boundaries.append(
+            (
+                county,
+                row["County Name"],
+                constituency,
+                row["Constituency Name"],
+                ward,
+                row["County Assembly Ward Name"],
+                "",
+                "",
             )
-            constituencies[key] = constituency
-            session.add(constituency)
-        else:
-            constituency.code = str(to_int(row["Constituency Code"]))
+        )
+        register.append(("", ward, "", to_int(row["Registered Voters"]), ""))
 
-        ward_key = (str(constituency.id), normalise(row["County Assembly Ward Name"]))
-        ward = ward_index.get(ward_key)
-        if ward is None:
-            ward = Ward(constituency=constituency, name=row["County Assembly Ward Name"])
-            ward_index[ward_key] = ward
-            session.add(ward)
-        ward.code = row["County Assembly Code"]
-        ward.registered_voters = to_int(row["Registered Voters"])
-
-    await session.flush()
-
+    voters: dict[str, int] = {}
     if county_voters is not None:
         for row in rows(county_voters):
-            county = counties.get(str(to_int(row["County Code"])))
-            if county is not None:
-                county.registered_voters = to_int(row["Registered Voters"])
+            county = str(to_int(row["County Code"]))
+            if county in counties:
+                voters[county] = to_int(row["Registered Voters"])
 
-    turnout_set = 0
+    turnout: dict[str, Decimal] = {}
     if county_results is not None:
         for row in rows(county_results):
-            county = counties.get(str(to_int(row["County Code"])))
-            if county is None or not county.registered_voters:
+            county = str(to_int(row["County Code"]))
+            if not voters.get(county):
                 continue
             cast = to_int(row.get("Total Valid Votes")) + to_int(row.get("Rejected"))
-            pct = Decimal(cast * 100) / Decimal(county.registered_voters)
-            county.turnout_2022_pct = pct.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            turnout_set += 1
+            pct = Decimal(cast * 100) / Decimal(voters[county])
+            turnout[county] = pct.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    await session.commit()
+    register += [(code, "", "", count, turnout.get(code, "")) for code, count in voters.items()]
+    await _load(session, boundaries, register, caw.name)
     return GeographySummary(
         counties=len(counties),
         constituencies=len(constituencies),
-        wards=len(ward_index),
-        turnout_set=turnout_set,
+        wards=len(boundaries),
+        turnout_set=len(turnout),
     )
 
 
 async def import_centres(session: AsyncSession, csv_path: Path = CENTRES_CSV) -> CentreSummary:
-    """Registration centres, attached to their ward. Run `import_geography` first."""
-    ward_by_key: dict[tuple[str, str, str], Ward] = {}
-    statement = select(Ward).options(
-        selectinload(Ward.constituency).selectinload(Constituency.county)
+    """Registration centres, attached to their ward by name. Run `import_geography` first."""
+    statement = (
+        select(Ward)
+        .where(Ward.retired.is_(False), Ward.code != "")
+        .options(selectinload(Ward.constituency).selectinload(Constituency.county))
     )
-    for ward in (await session.execute(statement)).scalars():
-        ward_by_key[
-            (ward.constituency.county.code, normalise(ward.constituency.name), normalise(ward.name))
-        ] = ward
-    if not ward_by_key:
+    wards = list(await session.scalars(statement))
+    if not wards:
         raise ValueError("No wards loaded - run import_geography first.")
 
-    existing: dict[tuple[str, str], RegistrationCentre] = {
-        (str(centre.ward_id), centre.code): centre
-        for centre in (await session.execute(select(RegistrationCentre))).scalars()
-    }
+    def place(ward: Ward) -> tuple[str, ...]:
+        constituency = ward.constituency
+        county = constituency.county
+        return (
+            county.code,
+            county.name,
+            constituency.code,
+            constituency.name,
+            ward.code,
+            ward.name,
+        )
 
-    loaded = 0
+    ward_by_key = {
+        (w.constituency.county.code, normalise(w.constituency.name), normalise(w.name)): w
+        for w in wards
+    }
+    # Every live ward is listed, so the import retires no ward the centres file leaves out.
+    boundaries: list[tuple] = [(*place(w), "", "") for w in wards]
+    register: list[tuple] = []
     skipped_special = 0
     unmatched: list[tuple[str, str]] = []
     for row in rows(csv_path, header=lambda name: name.strip().lower()):
@@ -200,19 +211,18 @@ async def import_centres(session: AsyncSession, csv_path: Path = CENTRES_CSV) ->
             unmatched.append((row.get("ward_name") or "", row.get("centre_name") or ""))
             continue
         code = row.get("centre_code") or ""
-        centre = existing.get((str(ward.id), code))
-        if centre is None:
-            centre = RegistrationCentre(ward=ward, code=code, name="")
-            existing[(str(ward.id), code)] = centre
-            session.add(centre)
-        centre.name = row.get("centre_name") or ""
-        centre.registered_voters = to_int(row.get("registered_voters"))
-        loaded += 1
+        boundaries.append((*place(ward), code, row.get("centre_name") or ""))
+        register.append(("", ward.code, code, to_int(row.get("registered_voters")), ""))
 
-    await session.commit()
+    await _load(session, boundaries, register, csv_path.name)
+    covered = await session.scalar(
+        select(func.count(func.distinct(RegistrationCentre.ward_id))).where(
+            RegistrationCentre.retired.is_(False)
+        )
+    )
     return CentreSummary(
-        centres=loaded,
-        wards_covered=len({ward_id for ward_id, _ in existing}),
+        centres=len(register),
+        wards_covered=covered or 0,
         unmatched=unmatched,
         skipped_special=skipped_special,
     )

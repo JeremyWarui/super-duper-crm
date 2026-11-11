@@ -52,7 +52,9 @@ its reason and exits 1.
 constituencies, 1450 wards and 27,273 registration centres, with each county's
 turnout. Ward names from the gazetted register and the centres file are matched
 after folding punctuation, and a clipped name matches when only one ward fits.
-Diaspora (48) and prison (49) rows are skipped.
+Diaspora (48) and prison (49) rows are skipped. The files go through the same
+boundary and register imports as the console's Imports page, so places match by
+code on a reload and each load shows in the import history.
 
 `demo` builds the Roysambu MP campaign with mobilizers, events and supporters on
 some wards, and prints three logins, generated per run unless `--password` or
