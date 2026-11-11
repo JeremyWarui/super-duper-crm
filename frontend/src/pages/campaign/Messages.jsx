@@ -4,13 +4,12 @@ import { useState } from "react";
 import { useDeclineMessage, useDeleteMessage, useDraftMessage, useMessageLog, useMessageReach, useMessages, useSendMessage } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { DraftList, MessageField, SentList } from "@/components/SmsParts";
+import { ComposePanel, DraftList, ReachLine, SentList } from "@/components/SmsParts";
 import { FilterPills } from "@/components/ui/tabs";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { useDraft } from "@/lib/draft";
 import { plural } from "@/lib/format";
-import { DELIVERY_STATUS, FOOTER } from "@/lib/sms";
+import { composed, DELIVERY_STATUS } from "@/lib/sms";
 import SendError from "./SendError";
 import WsHeader, { KitLoading } from "./WsHeader";
 import { ErrorText } from "@/components/ui/error-text";
@@ -47,9 +46,10 @@ function Compose({ campaign, data }) {
   const [done, setDone] = useState(null);
   const reach = useMessageReach(campaign.id, form.wards);
   const save = useDraftMessage();
-  const text = form.body.trim() + FOOTER;
   const count = reach.data?.recipients ?? null;
-  const ready = form.body.trim().length > 0 && text.length <= 918 && !save.isPending;
+  const opted = reach.data?.opted_out ?? 0;
+  const unusable = reach.data?.no_number ?? 0;
+  const ready = composed(form.body).fits && !save.isPending;
 
   const change = (patch) => { setForm((f) => ({ ...f, ...patch })); setConfirming(false); setDone(null); };
   const toggle = (id) => change({ wards: form.wards.includes(id) ? form.wards.filter((w) => w !== id) : [...form.wards, id] });
@@ -59,9 +59,7 @@ function Compose({ campaign, data }) {
       { onSuccess: (m) => { clear(); setConfirming(false); setDone(send ? `Sent to ${plural(m.recipients, "supporter")}.` : "Saved. The candidate or manager sends it."); } },
     );
 
-  return (
-    <Card variant="outline" className="min-w-0 content-start gap-4" role="region" aria-label="New SMS">
-      <h2 className="text-h3 font-bold">New SMS</h2>
+  const picker = (
       <div className="grid gap-2">
         <span className="text-small font-semibold">Send to</span>
         <FilterPills
@@ -70,23 +68,10 @@ function Compose({ campaign, data }) {
           value={form.wards.length ? form.wards : [""]}
           onChange={(id) => (id ? toggle(id) : change({ wards: [] }))}
         />
-        <p className="text-small text-muted-foreground" aria-live="polite">
-          {count === null ? "Counting…" : (
-            <>
-              <strong className="text-ink">{plural(count, "recipient")}</strong>: supporters who agreed to hear from this campaign
-              {reach.data.opted_out > 0 && `. ${plural(reach.data.opted_out, "person", "people")} who opted out ${reach.data.opted_out === 1 ? "is" : "are"} left out`}
-              {reach.data.no_number > 0 && `. ${plural(reach.data.no_number, "number")} unusable`}.
-            </>
-          )}
-        </p>
         {data.wards.length === 0 && <p className="text-small text-muted-foreground">No supporter has agreed to texts yet.</p>}
       </div>
-
-      <MessageField value={form.body} onChange={(body) => change({ body })} text={text} />
-
-      {save.error && <SendError error={save.error} onRetry={() => submit(confirming)} />}
-      {done && <p role="status" className="font-semibold text-ok-foreground">{done}</p>}
-
+  );
+  const actions = (
       <div className="flex flex-wrap items-center gap-2">
         {data.can_send ? (
           confirming ? (
@@ -104,8 +89,22 @@ function Compose({ campaign, data }) {
           <Button shape="rounded" disabled={!ready} onClick={() => submit(false)}>{save.isPending ? "Saving…" : "Send for approval"}</Button>
         )}
       </div>
-      <p className="text-small text-muted-foreground">SMS only: WhatsApp's business platform doesn't allow political messaging. Messages go only to people who agreed to hear from this campaign.</p>
-    </Card>
+  );
+  return (
+    <ComposePanel
+      title="New SMS"
+      picker={picker}
+      reach={<ReachLine count={count} who="supporters who agreed to hear from this campaign" left={[
+        opted > 0 && `${plural(opted, "person", "people")} who opted out ${opted === 1 ? "is" : "are"} left out`,
+        unusable > 0 && `${plural(unusable, "number")} unusable`,
+      ]} />}
+      body={form.body}
+      onBody={(body) => change({ body })}
+      error={save.error && <SendError error={save.error} onRetry={() => submit(confirming)} />}
+      done={done}
+      actions={actions}
+      note="SMS only: WhatsApp's business platform doesn't allow political messaging. Messages go only to people who agreed to hear from this campaign."
+    />
   );
 }
 

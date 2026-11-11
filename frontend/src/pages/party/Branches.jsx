@@ -9,7 +9,8 @@ import ConfigFields from "@/components/ConfigFields";
 import MemberSearch from "@/components/MemberSearch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, KpiValue } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { StatTiles } from "@/components/ui/stat-tiles";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { RowButton, TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
@@ -234,11 +235,11 @@ export default function Branches() {
 
   return (
     <>
-      <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-4">
-        <Card variant="tile"><span className="text-ui font-semibold text-muted-foreground">County branches</span><KpiValue>{withBranch.length} / {list.length}</KpiValue><span className="text-small text-muted-foreground">set up</span></Card>
-        <Card variant="tile"><span className="text-ui font-semibold text-muted-foreground">On the website</span><KpiValue>{published}</KpiValue><span className="text-small text-muted-foreground">published</span></Card>
-        <Card variant="tile"><span className="text-ui font-semibold text-muted-foreground">Chairpersons</span><KpiValue>{chaired}</KpiValue><span className="text-small text-muted-foreground">in office</span></Card>
-      </section>
+      <StatTiles tiles={[
+        ["County branches", `${withBranch.length} / ${list.length}`, "set up"],
+        ["On the website", published, "published"],
+        ["Chairpersons", chaired, "in office"],
+      ]} />
       <Card variant="outline" className="min-w-0 gap-3.5">
         <h2 className="text-card-title font-bold">County branches</h2>
         <Table stack minWidth={640}>

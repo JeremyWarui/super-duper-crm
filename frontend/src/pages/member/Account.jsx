@@ -17,6 +17,8 @@ import {
   AREA_LABEL,
   CONTACT_LABEL,
   CONTACT_METHODS,
+  MY_ASPIRANT_STATUS,
+  MY_MEMBER_STATUS,
   PROFESSIONS,
   PROFESSION_LABEL,
   SEAT_LABEL,
@@ -25,12 +27,11 @@ import {
 import { formatDate, formatDay, formatKES, placeOf } from "../../lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 
-const MEMBER_STATUS = { approved: ["Active member", "ok"], pending: ["Application pending", "warn"], suspended: ["Suspended", "bad"] };
 // A member's branch, shown as ward and county.
 const place = (a) => placeOf({ ward: a.ward, county: a.county }, ", ");
 
 function MemberCard({ account }) {
-  const [label, tone] = MEMBER_STATUS[account.status] || [account.status, "stone"];
+  const [label, tone] = MY_MEMBER_STATUS[account.status] || [account.status, "stone"];
   return (
     <div className="flex flex-wrap gap-5">
       <section aria-label="Member card" className="flex min-w-0 flex-[1_1_380px] flex-col gap-5 rounded-panel bg-primary p-7 text-white">
@@ -239,8 +240,6 @@ function DataAndPrivacy({ account, party }) {
   );
 }
 
-const ASPIRANT_STATUS = { draft: ["Not submitted", "warn"], submitted: ["With the vetting team", "info"], approved: ["Approved aspirant", "ok"], suspended: ["Suspended", "bad"] };
-
 // Applying to vie: pick a seat open in the window, attach documents, have the fee marked paid,
 // then declare and submit. The nominations office vets it.
 function MyNomination() {
@@ -295,7 +294,7 @@ function Application({ application: a, notice }) {
   const [file, setFile] = useState(null);
   const [declared, setDeclared] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [statusLabel, tone] = ASPIRANT_STATUS[a.status] || [a.status, "stone"];
+  const [statusLabel, tone] = MY_ASPIRANT_STATUS[a.status] || [a.status, "stone"];
   const draft = a.status === "draft" && a.from_window;
   const failed = attach.error || detach.error || submit.error || withdraw.error;
   const feeDue = a.fee_kes > 0 && !a.fee_paid;

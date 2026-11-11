@@ -3,14 +3,13 @@
 import { useState } from "react";
 import { useDeclinePartyMessage, useDraftPartyMessage, usePartyMessageReach, usePartyMessages, useSendPartyMessage } from "@/api/hooks";
 import PlaceCascade from "@/components/PlaceCascade";
-import { DraftList, MessageField, SentList } from "@/components/SmsParts";
+import { ComposePanel, DraftList, ReachLine, SentList } from "@/components/SmsParts";
+import { composed } from "@/lib/sms";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
 import { FilterPills } from "@/components/ui/tabs";
 import { plural } from "@/lib/format";
-import { FOOTER } from "@/lib/sms";
 
 const AUDIENCES = [
   ["members", "Members", "members who ticked SMS updates when they joined"],
@@ -42,38 +41,40 @@ function Compose() {
   const place = { audience, county: where.county || null, constituency: where.constituency || null, ward: where.ward || null };
   const reach = usePartyMessageReach(place);
   const save = useDraftPartyMessage();
-  const text = body.trim() + FOOTER;
   const count = reach.data?.recipients ?? null;
-  const ready = body.trim().length > 0 && text.length <= 918 && !save.isPending;
+  const opted = reach.data?.opted_out ?? 0;
+  const ready = composed(body).fits && !save.isPending;
   const touch = (fn) => (v) => { fn(v); setDone(""); };
 
   return (
-    <Card variant="outline" className="min-w-0 content-start gap-4" role="region" aria-label="New message">
-      <h2 className="text-h3 font-bold">New message</h2>
-      <div className="grid gap-2">
-        <span className="text-small font-semibold">Audience</span>
-        <FilterPills label="Audience" options={AUDIENCES} value={audience} onChange={touch(setAudience)} />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <PlaceCascade labelled place={where} onChange={touch(setWhere)} blank={(lv) => (lv === "county" ? "All counties" : "All")} />
-      </div>
-      <p className="text-small text-muted-foreground" aria-live="polite">
-        {count === null ? "Counting…" : (
-          <>
-            <strong className="text-ink">{plural(count, "recipient")}</strong>: {AUDIENCES.find(([k]) => k === audience)[2]}
-            {reach.data.opted_out > 0 && `. ${plural(reach.data.opted_out, "number")} that replied STOP ${reach.data.opted_out === 1 ? "is" : "are"} left out`}.
-          </>
-        )}
-      </p>
-      <MessageField value={body} onChange={touch(setBody)} text={text} />
-      <ErrorText error={save.error} />
-      {done && <p role="status" className="font-semibold text-ok-foreground">{done}</p>}
-      <Button shape="rounded" className="self-start" disabled={!ready}
-        onClick={() => save.mutate({ ...place, body: body.trim() }, { onSuccess: () => { setBody(""); setDone("Saved. The Party Super Admin approves it before it is sent."); } })}>
-        {save.isPending ? "Saving…" : "Send for approval"}
-      </Button>
-      <p className="text-small text-muted-foreground">Nothing is sent until the Party Super Admin approves it, and never by whoever drafted it.</p>
-    </Card>
+    <ComposePanel
+      title="New message"
+      picker={
+        <>
+          <div className="grid gap-2">
+            <span className="text-small font-semibold">Audience</span>
+            <FilterPills label="Audience" options={AUDIENCES} value={audience} onChange={touch(setAudience)} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <PlaceCascade labelled place={where} onChange={touch(setWhere)} blank={(lv) => (lv === "county" ? "All counties" : "All")} />
+          </div>
+        </>
+      }
+      reach={<ReachLine count={count} who={AUDIENCES.find(([k]) => k === audience)[2]} left={[
+        opted > 0 && `${plural(opted, "number")} that replied STOP ${opted === 1 ? "is" : "are"} left out`,
+      ]} />}
+      body={body}
+      onBody={touch(setBody)}
+      error={<ErrorText error={save.error} />}
+      done={done}
+      actions={
+        <Button shape="rounded" className="self-start" disabled={!ready}
+          onClick={() => save.mutate({ ...place, body: body.trim() }, { onSuccess: () => { setBody(""); setDone("Saved. The Party Super Admin approves it before it is sent."); } })}>
+          {save.isPending ? "Saving…" : "Send for approval"}
+        </Button>
+      }
+      note="Nothing is sent until the Party Super Admin approves it, and never by whoever drafted it."
+    />
   );
 }
 

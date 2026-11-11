@@ -104,6 +104,10 @@ export const ASPIRANT_STATUS_TONE = {
   withdrawn: "stone",
 };
 
+// A member's own view of their membership and nomination: [label, badge tone] per status.
+export const MY_MEMBER_STATUS = { approved: ["Active member", "ok"], pending: ["Application pending", "warn"], suspended: ["Suspended", "bad"] };
+export const MY_ASPIRANT_STATUS = { draft: ["Not submitted", "warn"], submitted: ["With the vetting team", "info"], approved: ["Approved aspirant", "ok"], suspended: ["Suspended", "bad"] };
+
 // The moves an officer offers for each nomination status: [new status, button label].
 export const ASPIRANT_MOVES = {
   draft: [["submitted", "Mark submitted"], ["withdrawn", "Withdraw"]],

@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { formatDate, formatNumber, plural } from "@/lib/format";
-import { DELIVERY_STATUS, partsOf } from "@/lib/sms";
+import { composed, DELIVERY_STATUS, partsOf } from "@/lib/sms";
 
 /** The message box; `text` is the whole text as sent, footer included, for the length and part count. */
 export function MessageField({ value, onChange, text }) {
@@ -107,6 +107,36 @@ export function SentList({ messages, title, about, sentBy, Log }) {
           {Log && open === m.id && <Log id={m.id} />}
         </article>
       ))}
+    </Card>
+  );
+}
+
+/** How many a text reaches: "Counting…" until known, then the count, `who` they are and each of `left` left out. */
+export function ReachLine({ count, who, left = [] }) {
+  return (
+    <p className="text-small text-muted-foreground" aria-live="polite">
+      {count === null ? "Counting…" : (
+        <><strong className="text-ink">{plural(count, "recipient")}</strong>: {who}{left.filter(Boolean).map((l) => `. ${l}`).join("")}.</>
+      )}
+    </p>
+  );
+}
+
+/**
+ * The new-text card: `picker` chooses who gets it, `reach` says how many, then the message box,
+ * `error`, the `done` confirmation, the `actions` and a closing `note`.
+ */
+export function ComposePanel({ title, picker, reach, body, onBody, error, done, actions, note }) {
+  return (
+    <Card variant="outline" className="min-w-0 content-start gap-4" role="region" aria-label={title}>
+      <h2 className="text-h3 font-bold">{title}</h2>
+      {picker}
+      {reach}
+      <MessageField value={body} onChange={onBody} text={composed(body).text} />
+      {error}
+      {done && <p role="status" className="font-semibold text-ok-foreground">{done}</p>}
+      {actions}
+      <p className="text-small text-muted-foreground">{note}</p>
     </Card>
   );
 }
