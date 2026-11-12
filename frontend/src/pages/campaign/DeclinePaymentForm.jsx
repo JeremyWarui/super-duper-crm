@@ -18,8 +18,8 @@ export default function DeclinePaymentForm({ payment, onClose }) {
       </Field>
       <ErrorText error={decline.error} />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Back</Button>
-        <Button shape="rounded" disabled={reason.trim().length < 3 || decline.isPending} onClick={() => decline.mutate({ id: payment.id, reason: reason.trim() }, { onSuccess: onClose })}>Decline payment</Button>
+        <Button variant="quiet" onClick={onClose}>Back</Button>
+        <Button disabled={reason.trim().length < 3 || decline.isPending} onClick={() => decline.mutate({ id: payment.id, reason: reason.trim() }, { onSuccess: onClose })}>Decline payment</Button>
       </FormActions>
     </Dialog>
   );

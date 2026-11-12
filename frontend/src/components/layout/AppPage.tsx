@@ -46,7 +46,7 @@ export function SlottedHeader(props: React.ComponentProps<typeof PageHeader>) {
  * then renders the content with 28px/32px padding. Without a title there is no page header.
  *
  *   <AppPage crumb="Members" context="Verification queue" title="Membership verification"
- *            actions={<Button shape="rounded">Export</Button>}>
+ *            actions={<Button>Export</Button>}>
  *     …cards…
  *   </AppPage>
  */

@@ -24,9 +24,9 @@ export default function CampaignLinkModal({ campaign, onClose }) {
         : <p className="text-small text-muted-foreground">The link is closed: anyone who opens it sees a "closed" page. Open it to start taking sign-ups.</p>}
       <ErrorText error={setSignups.error} />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={() => setSignups.mutate({ campaign: campaign.id, open: !open })} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Open sign-ups"}</Button>
-        <Button shape="rounded" variant="quiet" onClick={() => window.print()}>Print</Button>
-        <Button shape="rounded" onClick={onClose}>Done</Button>
+        <Button variant="quiet" onClick={() => setSignups.mutate({ campaign: campaign.id, open: !open })} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Open sign-ups"}</Button>
+        <Button variant="quiet" onClick={() => window.print()}>Print</Button>
+        <Button onClick={onClose}>Done</Button>
       </FormActions>
     </Dialog>
   );

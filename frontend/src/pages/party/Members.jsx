@@ -86,7 +86,7 @@ export default function Members() {
       <SlottedHeader
         title="Members"
         sub={`${total} on the register`}
-        actions={<Button shape="rounded" variant="quiet" onClick={exportCsv}>Export CSV</Button>}
+        actions={<Button variant="quiet" onClick={exportCsv}>Export CSV</Button>}
       />
       <ErrorText error={exportError} />
       <div className="flex flex-wrap gap-2">

@@ -33,7 +33,7 @@ export default function Agents({ campaign, role, onModal }) {
   const update = useUpdateAgent();
   const rows = agents.data || [];
   const ids = rows.some((a) => a.id_number);
-  const action = isLead(role) ? <Button shape="rounded" variant="quiet" onClick={() => exportAgents(campaign.id)}>Export for letters</Button> : null;
+  const action = isLead(role) ? <Button variant="quiet" onClick={() => exportAgents(campaign.id)}>Export for letters</Button> : null;
   return (
     <>
       <SlottedHeader context="Field" title="Agents" sub="Polling agents, readied for one registration centre each before polling day." actions={action} />
@@ -65,7 +65,7 @@ export default function Agents({ campaign, role, onModal }) {
                     <TD>
                       <Input type="date" aria-label={`Training date of ${a.full_name}`} value={a.training_date || ""} onChange={(e) => update.mutate({ id: a.id, training_date: e.target.value || null })} />
                     </TD>
-                    <TD align="right"><Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "assign-work", member: { role: "agent", id: a.id } })} aria-label={`Assign work to ${a.full_name}`}>Assign work</Button></TD>
+                    <TD align="right"><Button size="sm" variant="quiet" onClick={() => onModal({ type: "assign-work", member: { role: "agent", id: a.id } })} aria-label={`Assign work to ${a.full_name}`}>Assign work</Button></TD>
                   </TR>
                 ))}
                 {rows.length === 0 && <EmptyRow>No agents yet. Share the team link from Sign-ups.</EmptyRow>}

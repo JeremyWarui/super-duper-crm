@@ -19,7 +19,7 @@ export default function MemberSearch({ label, hint, placeholder, query, onQuery,
           <span className="font-semibold">{picked.full_name}</span>
           <span className="text-ui text-muted-foreground">{detailOf(picked)}</span>
         </span>
-        <Button shape="rounded" variant="quiet" size="sm" onClick={() => onPick(null)}>Choose someone else</Button>
+        <Button variant="quiet" size="sm" onClick={() => onPick(null)}>Choose someone else</Button>
       </Card>
     );
   return (

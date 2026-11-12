@@ -15,7 +15,7 @@ import { Card } from "@/components/ui/card";
 import { StatTiles } from "@/components/ui/stat-tiles";
 import { LoadingText } from "@/components/ui/loading-text";
 import { FilterPills } from "@/components/ui/tabs";
-import { PartyShell } from "@/pages/party/Portal";
+import { PartyShell } from "@/components/layout/PartyShell";
 import AuditTrail from "./console/AuditTrail";
 import ExportPanel from "./console/ExportPanel";
 import Health from "./console/Health";
@@ -156,7 +156,7 @@ export default function Admin() {
 
         {tab === "campaigns" && !aspirant && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <Button shape="rounded" size="sm" variant="quiet" onClick={() => navigate("/party/aspirants")}>New campaign</Button>
+            <Button size="sm" variant="quiet" onClick={() => navigate("/party/aspirants")}>New campaign</Button>
             <span className="text-ui text-muted-foreground">
               A workspace is made from an approved aspirant, in Aspirants.
             </span>
@@ -179,7 +179,7 @@ export default function Admin() {
 
         {tab === "party" && !aspirant && (
           <div>
-            <Button shape="rounded" size="sm" variant="quiet" onClick={() => navigate("/party/aspirants")}>Open aspirants</Button>
+            <Button size="sm" variant="quiet" onClick={() => navigate("/party/aspirants")}>Open aspirants</Button>
           </div>
         )}
         {tab === "party" && <SiteSettings />}

@@ -114,9 +114,9 @@ export function RichTextEditor({ label, hint, value, onChange, upload, area }) {
           <div className="flex flex-wrap items-center gap-2 border-b border-line px-2 py-2">
             <Input aria-label="Link address" className="min-w-0 flex-[1_1_220px]" placeholder={copy.linkPlaceholder} value={linking} autoFocus
               onChange={(e) => setLinking(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && linkOk) { e.preventDefault(); applyLink(); } }} />
-            <Button type="button" size="sm" shape="rounded" disabled={!linkOk} onClick={applyLink}>Apply link</Button>
-            {on?.link ? <Button type="button" size="sm" shape="rounded" variant="quiet" onClick={removeLink}>Remove link</Button> : null}
-            <Button type="button" size="sm" shape="rounded" variant="ghost" onClick={() => setLinking(null)}>Cancel</Button>
+            <Button type="button" size="sm" disabled={!linkOk} onClick={applyLink}>Apply link</Button>
+            {on?.link ? <Button type="button" size="sm" variant="quiet" onClick={removeLink}>Remove link</Button> : null}
+            <Button type="button" size="sm" variant="ghost" onClick={() => setLinking(null)}>Cancel</Button>
           </div>
         ) : null}
         <EditorContent editor={editor} />

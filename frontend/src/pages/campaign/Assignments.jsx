@@ -23,7 +23,7 @@ export default function Assignments({ campaign, onModal }) {
   const settle = useSettleAssignment();
   const list = rows.data || [];
   const open = view === "To mark done";
-  const action = <Button shape="rounded" onClick={() => onModal({ type: "assign-work" })}>Assign work</Button>;
+  const action = <Button onClick={() => onModal({ type: "assign-work" })}>Assign work</Button>;
   return (
     <>
       <SlottedHeader context="Field" title="Assignments" sub="Paid work for mobilizers and agents. Mark it done once it happened; then it can be paid." actions={action} />
@@ -46,8 +46,8 @@ export default function Assignments({ campaign, onModal }) {
                   {open && (
                     <TD align="right">
                       <div className="flex justify-end gap-2">
-                        <Button shape="rounded" size="sm" disabled={settle.isPending} onClick={() => settle.mutate({ id: a.id, outcome: "done" })} aria-label={`Mark ${a.label} done`}>Mark done</Button>
-                        <Button shape="rounded" size="sm" variant="quiet" disabled={settle.isPending} onClick={() => settle.mutate({ id: a.id, outcome: "cancel" })} aria-label={`Cancel ${a.label}`}>Cancel</Button>
+                        <Button size="sm" disabled={settle.isPending} onClick={() => settle.mutate({ id: a.id, outcome: "done" })} aria-label={`Mark ${a.label} done`}>Mark done</Button>
+                        <Button size="sm" variant="quiet" disabled={settle.isPending} onClick={() => settle.mutate({ id: a.id, outcome: "cancel" })} aria-label={`Cancel ${a.label}`}>Cancel</Button>
                       </div>
                     </TD>
                   )}

@@ -39,8 +39,8 @@ function LogForm({ campaignId, onDone }) {
       <Field label="What they asked for"><Textarea rows={3} value={form.details} maxLength={4000} onChange={set("details")} /></Field>
       <ErrorText error={save.error} className="text-small" />
       <div className="flex gap-2">
-        <Button type="submit" shape="rounded" disabled={save.isPending}>{save.isPending ? "Saving…" : "Log request"}</Button>
-        <Button type="button" shape="rounded" variant="ghost" onClick={onDone}>Cancel</Button>
+        <Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Log request"}</Button>
+        <Button type="button" variant="ghost" onClick={onDone}>Cancel</Button>
       </div>
     </form>
   );
@@ -62,11 +62,11 @@ function Answer({ campaignId, request }) {
             <Field label={`Due date: ${request.requester_name}`} className="w-[190px]">
               <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
             </Field>
-            <Button size="sm" shape="rounded" variant="quiet" disabled={save.isPending} onClick={() => save.mutate({ id: request.id, answer, due_on: due })}>Save</Button>
-            <Button size="sm" shape="rounded" disabled={save.isPending || !answer.trim()} onClick={() => save.mutate({ id: request.id, answer, status: "done" })}>Mark answered</Button>
+            <Button size="sm" variant="quiet" disabled={save.isPending} onClick={() => save.mutate({ id: request.id, answer, due_on: due })}>Save</Button>
+            <Button size="sm" disabled={save.isPending || !answer.trim()} onClick={() => save.mutate({ id: request.id, answer, status: "done" })}>Mark answered</Button>
           </>
         ) : (
-          <Button size="sm" shape="rounded" variant="quiet" disabled={save.isPending} onClick={() => save.mutate({ id: request.id, status: "open" })}>Reopen</Button>
+          <Button size="sm" variant="quiet" disabled={save.isPending} onClick={() => save.mutate({ id: request.id, status: "open" })}>Reopen</Button>
         )}
       </div>
       <ErrorText error={save.error} className="text-small" />
@@ -91,7 +91,7 @@ function Row({ campaignId, request }) {
         {request.requester_contact} · received {formatDate(request.received_on)}{request.details ? ` · ${request.details}` : ""}
       </p>
       {open ? <Answer campaignId={campaignId} request={request} /> : (
-        <Button size="sm" shape="rounded" variant="quiet" className="justify-self-start" onClick={() => setOpen(true)}>
+        <Button size="sm" variant="quiet" className="justify-self-start" onClick={() => setOpen(true)}>
           {request.status === "done" ? "See the answer" : "Answer"}
         </Button>
       )}
@@ -110,7 +110,7 @@ export default function DataRequests({ campaignId }) {
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="font-display text-[18px] font-bold">Data requests</h2>
         {overdue ? <Badge tone="bad">{overdue} overdue</Badge> : null}
-        {!adding ? <Button size="sm" shape="rounded" className="ml-auto" onClick={() => setAdding(true)}>Log a request</Button> : null}
+        {!adding ? <Button size="sm" className="ml-auto" onClick={() => setAdding(true)}>Log a request</Button> : null}
       </div>
       <p className="text-small text-muted-foreground">
         Requests to see, correct or erase someone's details. The law gives 7 days to answer access and 14 for correction or erasure.

@@ -4,7 +4,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { InviteDialog } from "@/components/ui/invite-dialog";
-import LoginFields, { useLoginFields } from "./LoginFields";
+import LoginFields, { useLoginFields } from "@/components/LoginFields";
 import { displayName } from "@/lib/format";
 
 // The aspirant adds the manager, or replaces `sitting`, whose login is then turned off.
@@ -27,8 +27,8 @@ export default function ManagerForm({ campaignId, sitting, onClose }) {
       <LoginFields form={fields.form} set={fields.set} />
       <ErrorText error={set.error} />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button shape="rounded" disabled={!fields.ok || set.isPending} onClick={save}>{set.isPending ? "Saving…" : sitting ? "Replace manager" : "Add manager"}</Button>
+        <Button variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button disabled={!fields.ok || set.isPending} onClick={save}>{set.isPending ? "Saving…" : sitting ? "Replace manager" : "Add manager"}</Button>
       </FormActions>
     </Dialog>
   );

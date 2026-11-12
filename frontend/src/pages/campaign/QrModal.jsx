@@ -19,9 +19,9 @@ export default function QrModal({ event, canClose, onClose }) {
       {!open && <p className="font-semibold text-bad-foreground">Sign-ups are closed: the code shows a "closed" page.</p>}
       <ErrorText error={setSignups.error} />
       <FormActions>
-        {canClose && <Button shape="rounded" variant="quiet" onClick={toggle} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Reopen sign-ups"}</Button>}
-        <Button shape="rounded" variant="quiet" onClick={() => window.print()}>Print</Button>
-        <Button shape="rounded" onClick={onClose}>Done</Button>
+        {canClose && <Button variant="quiet" onClick={toggle} disabled={setSignups.isPending}>{open ? "Close sign-ups" : "Reopen sign-ups"}</Button>}
+        <Button variant="quiet" onClick={() => window.print()}>Print</Button>
+        <Button onClick={onClose}>Done</Button>
       </FormActions>
     </Dialog>
   );

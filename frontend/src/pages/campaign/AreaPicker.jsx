@@ -45,8 +45,8 @@ export default function AreaPicker({ campaign, person, onClose }) {
       )}
       <ErrorText error={save.error} />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button shape="rounded" disabled={picked === null || save.isPending} onClick={submit}>{save.isPending ? "Saving…" : `Save ${picked?.size ?? 0} ${noun}`}</Button>
+        <Button variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button disabled={picked === null || save.isPending} onClick={submit}>{save.isPending ? "Saving…" : `Save ${picked?.size ?? 0} ${noun}`}</Button>
       </FormActions>
     </Dialog>
   );

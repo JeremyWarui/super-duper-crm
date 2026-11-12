@@ -19,7 +19,7 @@ export function LoadMore({ shown, total, noun, hasMore, loading, onMore }: {
         {total === undefined ? `Showing ${shown} ${noun}` : `Showing ${shown} of ${total} ${noun}`}
       </p>
       {hasMore ? (
-        <Button shape="rounded" variant="quiet" disabled={loading} onClick={onMore}>
+        <Button variant="quiet" disabled={loading} onClick={onMore}>
           {loading ? 'Loading…' : 'Load more'}
         </Button>
       ) : null}

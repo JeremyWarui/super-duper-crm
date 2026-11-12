@@ -45,13 +45,17 @@ export interface ButtonProps
   asChild?: boolean
 }
 
+/** The shape a Button takes when it names none: pills on the website, rounded inside the signed-in apps. */
+export const ButtonShape = React.createContext<'pill' | 'rounded'>('pill')
+
 export function Button({ className, variant, size, shape, asChild = false, type, ...props }: ButtonProps) {
   const Comp = asChild ? Slot : 'button'
+  const fallback = React.useContext(ButtonShape)
   return (
     <Comp
       data-slot="button"
       type={asChild ? undefined : (type ?? 'button')}
-      className={cn(buttonVariants({ variant, size, shape }), className)}
+      className={cn(buttonVariants({ variant, size, shape: shape ?? fallback }), className)}
       {...props}
     />
   )

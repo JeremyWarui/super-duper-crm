@@ -19,8 +19,8 @@ export default function RecordForm({ event, onClose }) {
       {reached !== "" && attended !== "" && a > r && <ErrorText error={TOO_MANY_ATTENDED} />}
       <ErrorText error={record.isError && record.error} />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button shape="rounded" disabled={!ok || record.isPending} onClick={() => record.mutate({ id: event.id, number_reached: r, number_attended: a }, { onSuccess: onClose })}>{record.isPending ? "Saving…" : "Save & mark done"}</Button>
+        <Button variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button disabled={!ok || record.isPending} onClick={() => record.mutate({ id: event.id, number_reached: r, number_attended: a }, { onSuccess: onClose })}>{record.isPending ? "Saving…" : "Save & mark done"}</Button>
       </FormActions>
     </Dialog>
   );

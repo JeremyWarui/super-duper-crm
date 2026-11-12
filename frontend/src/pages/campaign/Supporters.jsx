@@ -30,11 +30,11 @@ function WithdrawalLink({ campaign, supporter, onClose }) {
       {link.data ? <Input readOnly aria-label="Withdrawal link" value={link.data.url} onFocus={(e) => e.target.select()} /> : null}
       <div className="flex flex-wrap items-center gap-2">
         {link.data?.can_text && !campaign.closed_at ? (
-          <Button size="sm" shape="rounded" disabled={text.isPending || text.isSuccess} onClick={() => text.mutate(supporter.id)}>
+          <Button size="sm" disabled={text.isPending || text.isSuccess} onClick={() => text.mutate(supporter.id)}>
             {text.isSuccess ? "Texted" : text.isPending ? "Texting…" : "Text it to them"}
           </Button>
         ) : null}
-        <Button size="sm" shape="rounded" variant="ghost" onClick={onClose}>Close</Button>
+        <Button size="sm" variant="ghost" onClick={onClose}>Close</Button>
       </div>
       <ErrorText error={text.error} />
     </div>
@@ -64,7 +64,7 @@ export default function Supporters({ campaign, role, mine, onModal }) {
   const [filter, setFilter] = useState("");
   const all = data || [];
   const shown = filter ? all.filter((s) => s.support_level === filter) : all;
-  const action = keeper ? <Button shape="rounded" onClick={() => onModal({ type: "link" })}>Sign-up link</Button> : null;
+  const action = keeper ? <Button onClick={() => onModal({ type: "link" })}>Sign-up link</Button> : null;
   return (
     <>
       <SlottedHeader context={mine ? "My work" : "Field"} title={mine ? "My supporters" : "Supporters"} sub={copy.supportersSub} actions={action} />
@@ -97,7 +97,7 @@ export default function Supporters({ campaign, role, mine, onModal }) {
                       <TD align="right">
                         {!s.erased_at && (
                           <span className="inline-flex flex-wrap justify-end gap-2">
-                            <Button size="sm" shape="rounded" variant="quiet" onClick={() => setLinkFor(s)}>Withdrawal link</Button>
+                            <Button size="sm" variant="quiet" onClick={() => setLinkFor(s)}>Withdrawal link</Button>
                             <EraseButton name={s.full_name} pending={erase.isPending} onErase={(done) => erase.mutate(s.id, { onSuccess: () => { done(); setLinkFor(null); } })} />
                           </span>
                         )}

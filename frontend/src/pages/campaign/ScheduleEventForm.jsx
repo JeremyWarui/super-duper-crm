@@ -33,8 +33,8 @@ export default function ScheduleEventForm({ campaignId, wardOptions, byCentre, o
       <Field label="Date"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
       <ErrorText error={schedule.isError && schedule.error} />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button shape="rounded" disabled={!ok || schedule.isPending} onClick={() => schedule.mutate({ campaign: campaignId, ward, registration_centre: centre || null, title: title.trim(), venue: venue.trim(), scheduled_date: date, status: "planned" }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule event"}</Button>
+        <Button variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button disabled={!ok || schedule.isPending} onClick={() => schedule.mutate({ campaign: campaignId, ward, registration_centre: centre || null, title: title.trim(), venue: venue.trim(), scheduled_date: date, status: "planned" }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule event"}</Button>
       </FormActions>
     </Dialog>
   );

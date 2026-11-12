@@ -34,7 +34,7 @@ function TestSend({ kind, label, note }) {
       <Field label={`${label}: phone number`} hint={note}>
         <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
       </Field>
-      <Button type="submit" shape="rounded" variant="quiet" className="self-start" disabled={phone.trim().length < 3 || send.isPending}>
+      <Button type="submit" variant="quiet" className="self-start" disabled={phone.trim().length < 3 || send.isPending}>
         {send.isPending ? "Sending…" : label}
       </Button>
       <Outcome of={send} />
@@ -49,7 +49,7 @@ function TestEmail() {
     <div className="flex flex-col gap-2">
       <span className="text-ui font-semibold">Send a test email</span>
       <span className="text-small text-muted-foreground">Goes to your own login's email; in practice mode it is only logged.</span>
-      <Button type="button" shape="rounded" variant="quiet" className="self-start" disabled={send.isPending} onClick={() => send.mutate("email")}>
+      <Button type="button" variant="quiet" className="self-start" disabled={send.isPending} onClick={() => send.mutate("email")}>
         {send.isPending ? "Sending…" : "Send a test email"}
       </Button>
       <Outcome of={send} />
@@ -65,7 +65,7 @@ function SignIn({ google }) {
       <CardTitle>Sign-in</CardTitle>
       <p className="text-ui text-muted-foreground">Everyone signs in with email and password; Google sign-in shows beside it once its keys are set.</p>
       <div className="flex flex-col gap-2">
-        <Button type="button" shape="rounded" variant="quiet" className="self-start" disabled={!google || check.isPending} onClick={() => check.mutate("google")}>
+        <Button type="button" variant="quiet" className="self-start" disabled={!google || check.isPending} onClick={() => check.mutate("google")}>
           {check.isPending ? "Checking…" : "Check Google sign-in"}
         </Button>
         {!google && <p className="text-small text-muted-foreground">Google sign-in is off. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to <code>.env</code> and restart.</p>}

@@ -29,9 +29,9 @@ export default function AssignMobilizerForm({ unit, holder, mobilizers, onClose 
       )}
       <ErrorText error={update.error} />
       <FormActions>
-        {holder && <Button shape="rounded" variant="quiet" onClick={remove} disabled={update.isPending}>Remove {holder.full_name}</Button>}
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button shape="rounded" disabled={!chosen || update.isPending} onClick={assign}>{update.isPending ? "Saving…" : "Assign"}</Button>
+        {holder && <Button variant="quiet" onClick={remove} disabled={update.isPending}>Remove {holder.full_name}</Button>}
+        <Button variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button disabled={!chosen || update.isPending} onClick={assign}>{update.isPending ? "Saving…" : "Assign"}</Button>
       </FormActions>
     </Dialog>
   );

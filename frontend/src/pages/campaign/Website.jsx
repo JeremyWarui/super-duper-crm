@@ -19,7 +19,7 @@ import {
   SLIDE_FIELDS,
   SectionList,
   VIDEO_FIELDS,
-} from "@/pages/party/Website";
+} from "@/components/SiteEditor";
 
 const section = (kind, rest) => ({ ...WORKSPACE_SECTIONS[kind], ...rest });
 

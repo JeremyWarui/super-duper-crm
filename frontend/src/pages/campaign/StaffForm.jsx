@@ -5,7 +5,7 @@ import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { InviteDialog } from "@/components/ui/invite-dialog";
 import { ROLE_LABEL } from "@/lib/labels";
-import LoginFields, { useLoginFields } from "./LoginFields";
+import LoginFields, { useLoginFields } from "@/components/LoginFields";
 
 const SUB = {
   coordinator: "A coordinator works the wards you give them, and sees only those.",
@@ -32,8 +32,8 @@ export default function StaffForm({ campaignId, role, onClose }) {
       <LoginFields form={fields.form} set={fields.set} />
       <ErrorText error={add.error} />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button shape="rounded" disabled={!fields.ok || add.isPending} onClick={() => add.mutate({ campaign: campaignId, role, ...fields.body })}>{add.isPending ? "Saving…" : `Add ${label.toLowerCase()}`}</Button>
+        <Button variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button disabled={!fields.ok || add.isPending} onClick={() => add.mutate({ campaign: campaignId, role, ...fields.body })}>{add.isPending ? "Saving…" : `Add ${label.toLowerCase()}`}</Button>
       </FormActions>
     </Dialog>
   );

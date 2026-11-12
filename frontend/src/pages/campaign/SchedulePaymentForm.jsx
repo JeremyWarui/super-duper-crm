@@ -29,8 +29,8 @@ export default function SchedulePaymentForm({ campaignId, role, onClose }) {
       {work && <p className="text-small text-muted-foreground">{formatKES(work.amount_kes)} to {work.member_name}.</p>}
       <ErrorText error={schedule.error} />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button shape="rounded" disabled={!work || schedule.isPending} onClick={() => schedule.mutate({ assignment: work.id }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule"}</Button>
+        <Button variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button disabled={!work || schedule.isPending} onClick={() => schedule.mutate({ assignment: work.id }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule"}</Button>
       </FormActions>
     </Dialog>
   );

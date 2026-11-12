@@ -68,7 +68,7 @@ export default function Volunteers({ campaign, role }) {
                       <TD><Badge tone={v.erased_at ? "stone" : VOLUNTEER_STATUS_TONE[v.status]}>{v.erased_at ? "Erased" : VOLUNTEER_STATUS_LABEL[v.status]}</Badge></TD>
                       <TD align="right">
                         {v.status !== "withdrawn" ? (
-                          <Button shape="rounded" size="sm" variant="quiet" disabled={update.isPending} onClick={() => update.mutate({ id: v.id, status: next })}>
+                          <Button size="sm" variant="quiet" disabled={update.isPending} onClick={() => update.mutate({ id: v.id, status: next })}>
                             {next === "active" ? "Make active" : "Make inactive"}
                           </Button>
                         ) : !v.erased_at && isLead(role) ? (

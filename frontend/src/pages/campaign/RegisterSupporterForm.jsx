@@ -39,7 +39,7 @@ export default function RegisterSupporterForm({ campaignId, wardOptions, byCentr
     return (
       <Card variant="outline" className="max-w-[560px] gap-3" role="status">
         <p className="text-card-title font-bold">Registered.</p>
-        <Button shape="rounded" className="self-start" onClick={() => { reg.reset(); setSent(false); }}>Register another</Button>
+        <Button className="self-start" onClick={() => { reg.reset(); setSent(false); }}>Register another</Button>
       </Card>
     );
   }
@@ -68,7 +68,7 @@ export default function RegisterSupporterForm({ campaignId, wardOptions, byCentr
         <span>{wording}</span>
       </Check>
       <SendError error={reg.error} pending={reg.isPending} onRetry={send} />
-      <Button shape="rounded" size="lg" className="w-full sm:w-auto sm:self-start" disabled={!ok || !wording || reg.isPending} onClick={send}>
+      <Button size="lg" className="w-full sm:w-auto sm:self-start" disabled={!ok || !wording || reg.isPending} onClick={send}>
         {reg.isPending ? "Saving…" : "Register supporter"}
       </Button>
       <p className="text-small text-muted-foreground">What you type is kept on this phone until it is sent.</p>

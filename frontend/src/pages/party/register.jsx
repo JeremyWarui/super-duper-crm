@@ -64,7 +64,7 @@ export function MoveButtons({ moves, move, id, placeholder, needsReason = () => 
       <Input aria-label="Reason" placeholder={placeholder} maxLength={1000} value={reason} onChange={(e) => setReason(e.target.value)} />
       <FormActions>
         {moves.map(([status, label]) => (
-          <Button key={status + label} shape="rounded" variant={status === "approved" ? "primary" : "quiet"}
+          <Button key={status + label} variant={status === "approved" ? "primary" : "quiet"}
             disabled={move.isPending || (needsReason(status) && !reason.trim())}
             onClick={() => move.mutate({ id, status, reason: reason.trim() }, { onSuccess: () => setReason("") })}>
             {label}

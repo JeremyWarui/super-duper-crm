@@ -65,17 +65,17 @@ function SettingsForm({ site, isParty }) {
           <div key={i} className="flex flex-wrap items-center gap-2">
             <Input className="w-full sm:w-44" aria-label={`Social link ${i + 1} name`} value={name} onChange={(e) => setLink(i, 0, e.target.value)} placeholder="facebook" />
             <Input className="w-full sm:w-auto sm:min-w-56 sm:flex-1" aria-label={`Social link ${i + 1} address`} value={url} onChange={(e) => setLink(i, 1, e.target.value)} placeholder="https://" />
-            <Button shape="rounded" size="sm" variant="quiet" onClick={() => set({ links: form.links.filter((_, j) => j !== i) })}>Remove</Button>
+            <Button size="sm" variant="quiet" onClick={() => set({ links: form.links.filter((_, j) => j !== i) })}>Remove</Button>
           </div>
         ))}
         <div>
-          <Button shape="rounded" size="sm" variant="quiet" onClick={() => set({ links: [...form.links, ["", ""]] })}>Add a link</Button>
+          <Button size="sm" variant="quiet" onClick={() => set({ links: [...form.links, ["", ""]] })}>Add a link</Button>
         </div>
       </div>
       <ErrorText error={save.error} className="text-ui" />
       {saved && <StatusText>Saved.</StatusText>}
       <div className="flex flex-wrap gap-2">
-        <Button shape="rounded" size="sm" disabled={save.isPending} onClick={submit}>
+        <Button size="sm" disabled={save.isPending} onClick={submit}>
           {save.isPending ? "Saving…" : isParty ? "Save the party settings" : "Save the site settings"}
         </Button>
       </div>

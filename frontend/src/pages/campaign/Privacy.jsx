@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import { formatDate, formatNumber as fmt } from "@/lib/format";
+import { formatDate, formatNumber as fmt, nairobiDate } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
@@ -58,7 +58,7 @@ function Retention({ campaign, state }) {
       <Field label="Keep supporter details after closing (months)" className="w-[260px]">
         <Input type="number" min={1} max={60} value={months} onChange={(e) => setMonths(e.target.value)} />
       </Field>
-      <Button size="sm" shape="rounded" variant="quiet" disabled={save.isPending || Number(months) === state.retention_months} onClick={() => save.mutate(Number(months))}>Save</Button>
+      <Button size="sm" variant="quiet" disabled={save.isPending || Number(months) === state.retention_months} onClick={() => save.mutate(Number(months))}>Save</Button>
       <ErrorText error={save.error} className="w-full text-small" />
     </div>
   );
@@ -71,7 +71,7 @@ function Closing({ campaign, role }) {
   const candidate = role === "candidate";
   if (isLoading) return <LoadingText />;
   if (error) return <ErrorText error={error} />;
-  const due = state.erase_from && new Date(state.erase_from) <= new Date();
+  const due = state.erase_from && state.erase_from.slice(0, 10) <= nairobiDate();
   return (
     <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="After the election">
       <div className="flex flex-wrap items-center gap-2">

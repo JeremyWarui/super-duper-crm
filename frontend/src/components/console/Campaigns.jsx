@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Input, NativeSelect } from "@/components/ui/input";
-import LoginFields from "@/pages/campaign/LoginFields";
+import LoginFields from "@/components/LoginFields";
 import { Pill, INLINE, Help, Danger } from "./kit";
 
 export function CampaignCard({ campaign, users }) {
@@ -43,7 +43,7 @@ export function CampaignCard({ campaign, users }) {
                 onChange={(e) => setTitle(e.target.value)}
                 aria-label="Campaign name"
               />
-              <Button shape="rounded" size="sm"
+              <Button size="sm"
                 variant="primary"
                 disabled={!title.trim() || rename.isPending}
                 onClick={() =>
@@ -55,12 +55,12 @@ export function CampaignCard({ campaign, users }) {
               >
                 {rename.isPending ? "Saving…" : "Save"}
               </Button>
-              <Button shape="rounded" size="sm" variant="quiet" onClick={() => setRenaming(false)}>Cancel</Button>
+              <Button size="sm" variant="quiet" onClick={() => setRenaming(false)}>Cancel</Button>
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               <CardTitle className="break-words">{campaign.title}</CardTitle>
-              <Button shape="rounded" size="sm" variant="quiet"
+              <Button size="sm" variant="quiet"
                 onClick={() => {
                   setTitle(campaign.title);
                   setRenaming(true);
@@ -155,7 +155,7 @@ export function CampaignCard({ campaign, users }) {
             <span className="text-ui text-muted-foreground">
               as {available.find((u) => u.id === pick)?.role || "themselves"}
             </span>
-            <Button shape="rounded" size="sm"
+            <Button size="sm"
               variant="primary"
               disabled={!pick || add.isPending}
               onClick={() =>
@@ -172,10 +172,10 @@ export function CampaignCard({ campaign, users }) {
             >
               {add.isPending ? "Adding…" : "Put them on"}
             </Button>
-            <Button shape="rounded" size="sm" variant="quiet" onClick={() => setAdding(false)}>Cancel</Button>
+            <Button size="sm" variant="quiet" onClick={() => setAdding(false)}>Cancel</Button>
           </div>
         ) : (
-          <Button shape="rounded" size="sm" variant="quiet" onClick={() => setAdding(true)}>Add somebody</Button>
+          <Button size="sm" variant="quiet" onClick={() => setAdding(true)}>Add somebody</Button>
         )}
       </div>
     </Card>
@@ -204,7 +204,7 @@ export function OpenPartyWorkspace({ onInvite }) {
   if (!asking)
     return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Button shape="rounded" size="sm" variant="quiet" onClick={() => setAsking(true)}>{title}</Button>
+        <Button size="sm" variant="quiet" onClick={() => setAsking(true)}>{title}</Button>
         {replace && sitting && <span className="text-ui text-muted-foreground">Workspace Manager: {sitting}</span>}
       </div>
     );
@@ -233,10 +233,10 @@ export function OpenPartyWorkspace({ onInvite }) {
       </Help>
       <ErrorText error={open.error} className="text-ui" />
       <div className="flex flex-wrap gap-2">
-        <Button shape="rounded" size="sm" variant="primary" disabled={!ready || open.isPending} onClick={submit}>
+        <Button size="sm" variant="primary" disabled={!ready || open.isPending} onClick={submit}>
           {open.isPending ? (replace ? "Replacing…" : "Opening…") : replace ? "Replace" : "Open it"}
         </Button>
-        <Button shape="rounded" size="sm" variant="quiet" onClick={() => setAsking(false)}>Cancel</Button>
+        <Button size="sm" variant="quiet" onClick={() => setAsking(false)}>Cancel</Button>
       </div>
     </Card>
   );

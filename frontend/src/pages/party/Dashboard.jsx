@@ -100,7 +100,7 @@ export default function Dashboard() {
           </Field>
         </div>
         <div className="flex justify-end">
-          <Button shape="rounded" variant="quiet" onClick={() => setFilters(EMPTY)}>Clear filters</Button>
+          <Button variant="quiet" onClick={() => setFilters(EMPTY)}>Clear filters</Button>
         </div>
       </Card>
       <ErrorText error={board.error} />

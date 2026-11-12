@@ -50,10 +50,10 @@ function EventCard({ event: e, onRecord, onInvite, onQr, onAssign }) {
       </div>
       {(onRecord || onInvite || onQr || onAssign) && (
         <div className="flex w-full flex-wrap gap-2 border-t border-line-soft pt-3">
-          {!done && onRecord && <Button shape="rounded" size="sm" onClick={() => onRecord(e)}>Record</Button>}
-          {onInvite && <Button shape="rounded" size="sm" variant="quiet" onClick={() => onInvite(e)}>Invite</Button>}
-          {onQr && e.signup_code && <Button shape="rounded" size="sm" variant="quiet" onClick={() => onQr(e)}>{e.signups_open ? "Sign-up QR" : "Closed"}</Button>}
-          {onAssign && e.status !== "cancelled" && <Button shape="rounded" size="sm" variant="quiet" onClick={() => onAssign(e)} aria-label={`Assign ${e.title}`}>Assign</Button>}
+          {!done && onRecord && <Button size="sm" onClick={() => onRecord(e)}>Record</Button>}
+          {onInvite && <Button size="sm" variant="quiet" onClick={() => onInvite(e)}>Invite</Button>}
+          {onQr && e.signup_code && <Button size="sm" variant="quiet" onClick={() => onQr(e)}>{e.signups_open ? "Sign-up QR" : "Closed"}</Button>}
+          {onAssign && e.status !== "cancelled" && <Button size="sm" variant="quiet" onClick={() => onAssign(e)} aria-label={`Assign ${e.title}`}>Assign</Button>}
         </div>
       )}
     </article>
@@ -75,7 +75,7 @@ function MyUpcoming({ rows, records, onQr }) {
           <span className="text-ui text-muted-foreground">{[active.venue, active.ward_name].filter(Boolean).join(" · ") || "No venue yet"}</span>
         </div>
         {records && <AttendanceCard key={active.id} event={active} />}
-        {records && active.signup_code && <Button shape="rounded" size="sm" variant="quiet" className="self-start" onClick={() => onQr(active)}>{active.signups_open ? "Sign-up QR" : "Closed"}</Button>}
+        {records && active.signup_code && <Button size="sm" variant="quiet" className="self-start" onClick={() => onQr(active)}>{active.signups_open ? "Sign-up QR" : "Closed"}</Button>}
       </section>
       {rest.length > 0 && (
         <section aria-label="Coming up" className="flex flex-col gap-1 rounded-[18px] border border-line bg-card p-[18px]">
@@ -86,8 +86,8 @@ function MyUpcoming({ rows, records, onQr }) {
                 <span className="min-w-0"><span className="block font-semibold">{e.title}</span><span className="text-small text-muted-foreground">{eventDay(e)}</span></span>
                 {records && (
                   <span className="flex flex-none flex-wrap justify-end gap-2">
-                    {e.signup_code && <Button shape="rounded" size="sm" variant="quiet" aria-label={`Sign-up QR for ${e.title}`} onClick={() => onQr(e)}>{e.signups_open ? "Sign-up QR" : "Closed"}</Button>}
-                    <Button shape="rounded" size="sm" variant="quiet" aria-label={`Count ${e.title}`} onClick={() => { setActiveId(e.id); window.scrollTo?.({ top: 0 }); }}>Count</Button>
+                    {e.signup_code && <Button size="sm" variant="quiet" aria-label={`Sign-up QR for ${e.title}`} onClick={() => onQr(e)}>{e.signups_open ? "Sign-up QR" : "Closed"}</Button>}
+                    <Button size="sm" variant="quiet" aria-label={`Count ${e.title}`} onClick={() => { setActiveId(e.id); window.scrollTo?.({ top: 0 }); }}>Count</Button>
                   </span>
                 )}
               </li>
@@ -108,7 +108,7 @@ export default function Events({ campaign, role, onModal, mine }) {
     const [x, y] = [dayOf(a)?.getTime() ?? Infinity, dayOf(b)?.getTime() ?? Infinity];
     return when === "Upcoming" ? x - y : y - x;
   });
-  const actions = acts ? <Button shape="rounded" onClick={() => onModal({ type: "event" })}>Schedule event</Button> : null;
+  const actions = acts ? <Button onClick={() => onModal({ type: "event" })}>Schedule event</Button> : null;
   return (
     <>
       <SlottedHeader context={mine ? "My work" : "Field"} title={mine ? "My events" : "Events"} sub="Rallies and meetings, with mobilization counts." actions={actions} />

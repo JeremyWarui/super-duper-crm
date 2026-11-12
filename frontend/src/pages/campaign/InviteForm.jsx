@@ -53,9 +53,9 @@ export default function InviteForm({ event, onClose }) {
       <ErrorText error={invite.isError && invite.error} />
 
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Close</Button>
-        <Button shape="rounded" variant="quiet" onClick={() => send(true)} disabled={!ok}>{invite.isPending ? "Working…" : "Preview"}</Button>
-        {canSend && <Button shape="rounded" disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</Button>}
+        <Button variant="quiet" onClick={onClose}>Close</Button>
+        <Button variant="quiet" onClick={() => send(true)} disabled={!ok}>{invite.isPending ? "Working…" : "Preview"}</Button>
+        {canSend && <Button disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</Button>}
       </FormActions>
     </Dialog>
   );

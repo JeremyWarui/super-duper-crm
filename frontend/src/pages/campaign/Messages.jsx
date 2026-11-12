@@ -77,17 +77,17 @@ function Compose({ campaign, data }) {
         {data.can_send ? (
           confirming ? (
             <>
-              <Button shape="rounded" disabled={!ready} onClick={() => submit(true)}>{save.isPending ? "Sending…" : `Send to ${plural(count ?? 0, "person", "people")}`}</Button>
-              <Button shape="rounded" variant="quiet" onClick={() => setConfirming(false)}>Not yet</Button>
+              <Button disabled={!ready} onClick={() => submit(true)}>{save.isPending ? "Sending…" : `Send to ${plural(count ?? 0, "person", "people")}`}</Button>
+              <Button variant="quiet" onClick={() => setConfirming(false)}>Not yet</Button>
             </>
           ) : (
             <>
-              <Button shape="rounded" disabled={!ready || !count} onClick={() => setConfirming(true)}>Send SMS</Button>
-              <Button shape="rounded" variant="outline" disabled={!ready} onClick={() => submit(false)}>Save draft</Button>
+              <Button disabled={!ready || !count} onClick={() => setConfirming(true)}>Send SMS</Button>
+              <Button variant="outline" disabled={!ready} onClick={() => submit(false)}>Save draft</Button>
             </>
           )
         ) : (
-          <Button shape="rounded" disabled={!ready} onClick={() => submit(false)}>{save.isPending ? "Saving…" : "Send for approval"}</Button>
+          <Button disabled={!ready} onClick={() => submit(false)}>{save.isPending ? "Saving…" : "Send for approval"}</Button>
         )}
       </div>
   );

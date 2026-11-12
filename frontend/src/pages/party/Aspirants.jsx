@@ -14,7 +14,7 @@ import {
   useReviseNominationWindow,
 } from "@/api/hooks";
 import MemberSearch from "@/components/MemberSearch";
-import LoginFields from "@/pages/campaign/LoginFields";
+import LoginFields from "@/components/LoginFields";
 import PlaceCascade, { NO_PLACE } from "@/components/PlaceCascade";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Badge } from "@/components/ui/badge";
@@ -78,8 +78,8 @@ function Nominate({ onClose }) {
       </div>
       <ErrorText error={nominate.error} className="text-small" />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button shape="rounded" disabled={!ready || nominate.isPending} onClick={submit}>
+        <Button variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button disabled={!ready || nominate.isPending} onClick={submit}>
           {nominate.isPending ? "Nominating…" : "Nominate"}
         </Button>
       </FormActions>
@@ -126,7 +126,7 @@ function Workspace({ aspirant, onDone }) {
         set={(key) => set(key === "username" ? "manager" : "manager_email")} />
       <ErrorText error={create.error} className="text-small" />
       <FormActions>
-        <Button shape="rounded" disabled={form.candidate.trim().length < 3 || !isEmail(form.candidate_email) || (form.manager.trim() && !isEmail(form.manager_email)) || create.isPending} onClick={submit}>
+        <Button disabled={form.candidate.trim().length < 3 || !isEmail(form.candidate_email) || (form.manager.trim() && !isEmail(form.manager_email)) || create.isPending} onClick={submit}>
           {create.isPending ? "Creating…" : "Create workspace"}
         </Button>
       </FormActions>
@@ -189,7 +189,7 @@ function Application({ a }) {
       {a.fee_kes > 0 && !a.fee_paid_at && a.status === "draft" && (
         <div className="flex flex-wrap gap-2">
           <Input aria-label="Fee reference" className="w-auto flex-[1_1_200px]" placeholder="M-Pesa or bank reference" maxLength={50} value={reference} onChange={(e) => setReference(e.target.value)} />
-          <Button shape="rounded" variant="quiet" disabled={pay.isPending || reference.trim().length < 3} onClick={() => pay.mutate({ id: a.id, reference: reference.trim() })}>Mark fee paid</Button>
+          <Button variant="quiet" disabled={pay.isPending || reference.trim().length < 3} onClick={() => pay.mutate({ id: a.id, reference: reference.trim() })}>Mark fee paid</Button>
         </div>
       )}
       <ErrorText error={pay.error} className="text-small" />
@@ -209,7 +209,7 @@ function Timetable() {
     <Card variant="outline" className="gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <CardTitle>Nominations timetable</CardTitle>
-        <Button shape="rounded" variant="quiet" onClick={() => setEditing({})}>Draft a timetable</Button>
+        <Button variant="quiet" onClick={() => setEditing({})}>Draft a timetable</Button>
       </div>
       <div className="flex flex-col" aria-label="Timetables">
         {windows.data.length === 0 && <p className="text-ui text-muted-foreground">No timetable yet. Members can apply only inside a published one.</p>}
@@ -219,9 +219,9 @@ function Timetable() {
             <span className="text-muted-foreground">{formatDate(w.opens_on)} – {formatDate(w.closes_on)}</span>
             <span className="text-muted-foreground">{w.seats.map((x) => `${SEAT_LABEL[x.seat]} ${x.fee_kes ? formatKES(x.fee_kes) : "no fee"}`).join(" · ")}</span>
             <Badge tone={w.status === "published" ? "ok" : "warn"}>{w.status === "published" ? "Published" : "Draft"}</Badge>
-            {w.status === "draft" && <Button shape="rounded" variant="quiet" size="sm" onClick={() => setEditing(w)}>Edit</Button>}
+            {w.status === "draft" && <Button variant="quiet" size="sm" onClick={() => setEditing(w)}>Edit</Button>}
             {w.status === "draft" && superuser && !w.mine && (
-              <Button shape="rounded" size="sm" disabled={publish.isPending} onClick={() => publish.mutate(w.id)}>Publish</Button>
+              <Button size="sm" disabled={publish.isPending} onClick={() => publish.mutate(w.id)}>Publish</Button>
             )}
             {w.status === "draft" && w.mine && (
               <span className="text-muted-foreground">
@@ -277,8 +277,8 @@ function TimetableForm({ window: w, onClose }) {
       <Textarea aria-label="Requirements" rows={4} maxLength={5000} placeholder="Requirements aspirants must meet" value={form.requirements} onChange={set("requirements")} />
       <ErrorText error={save.error} className="text-small" />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button shape="rounded" disabled={!ready || save.isPending} onClick={submit}>{save.isPending ? "Saving…" : "Save draft"}</Button>
+        <Button variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button disabled={!ready || save.isPending} onClick={submit}>{save.isPending ? "Saving…" : "Save draft"}</Button>
       </FormActions>
     </Dialog>
   );
@@ -298,7 +298,7 @@ export default function Aspirants() {
       <SlottedHeader
         title="Aspirants"
         sub={`${total} nominations`}
-        actions={<Button shape="rounded" onClick={() => setNominating(true)}>Nominate a member</Button>}
+        actions={<Button onClick={() => setNominating(true)}>Nominate a member</Button>}
       />
       <Timetable />
       <div className="flex flex-wrap gap-2">

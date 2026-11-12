@@ -18,8 +18,8 @@ export default function MarkPaidForm({ payment, onClose }) {
       </Field>
       <ErrorText error={markPaid.error} />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Back</Button>
-        <Button shape="rounded" disabled={!reference.trim() || markPaid.isPending} onClick={save}>{markPaid.isPending ? "Saving…" : "Mark paid"}</Button>
+        <Button variant="quiet" onClick={onClose}>Back</Button>
+        <Button disabled={!reference.trim() || markPaid.isPending} onClick={save}>{markPaid.isPending ? "Saving…" : "Mark paid"}</Button>
       </FormActions>
     </Dialog>
   );

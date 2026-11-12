@@ -57,14 +57,14 @@ function Detail({ row, onClose }) {
             onChange={(e) => setNotes(e.target.value)}
           />
           <FormActions>
-            <Button shape="rounded" variant="quiet" disabled={update.isPending} onClick={() => save({ availability_notes: notes.trim() || null })}>
+            <Button variant="quiet" disabled={update.isPending} onClick={() => save({ availability_notes: notes.trim() || null })}>
               Save notes
             </Button>
             {canActivate && (
-              <Button shape="rounded" disabled={update.isPending} onClick={() => save({ status: "active" })}>Activate</Button>
+              <Button disabled={update.isPending} onClick={() => save({ status: "active" })}>Activate</Button>
             )}
             {v.status === "active" && (
-              <Button shape="rounded" variant="quiet" disabled={update.isPending} onClick={() => save({ status: "inactive" })}>Deactivate</Button>
+              <Button variant="quiet" disabled={update.isPending} onClick={() => save({ status: "inactive" })}>Deactivate</Button>
             )}
           </FormActions>
           {v.status === "withdrawn" && (
@@ -95,7 +95,7 @@ export default function Volunteers() {
       <SlottedHeader
         title="Volunteers"
         sub={`${total} on the register`}
-        actions={<Button shape="rounded" variant="quiet" onClick={exportCsv}>Export CSV</Button>}
+        actions={<Button variant="quiet" onClick={exportCsv}>Export CSV</Button>}
       />
       <ErrorText error={exportError} />
       <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-2">

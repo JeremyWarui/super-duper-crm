@@ -25,12 +25,12 @@ function MobilizerCell({ holder, onAssign }) {
     return (
       <div className="flex items-center gap-2">
         <span className="font-semibold">{holder.full_name}</span>
-        {onAssign && <Button shape="rounded" variant="quiet" size="sm" onClick={() => onAssign(holder)}>Change</Button>}
+        {onAssign && <Button variant="quiet" size="sm" onClick={() => onAssign(holder)}>Change</Button>}
       </div>
     );
   }
   return onAssign
-    ? <Button shape="rounded" variant="quiet" size="sm" onClick={() => onAssign(null)}>Assign</Button>
+    ? <Button variant="quiet" size="sm" onClick={() => onAssign(null)}>Assign</Button>
     : <span className="font-semibold text-bad-foreground">None</span>;
 }
 

@@ -67,7 +67,7 @@ function BranchForm({ row, onDone }) {
         Show this branch on the website
       </Check>
       <ErrorText error={save.error} className="text-small" />
-      <Button type="submit" shape="rounded" className="self-start" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save branch"}</Button>
+      <Button type="submit" className="self-start" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save branch"}</Button>
     </form>
   );
 }
@@ -83,8 +83,8 @@ function EndTerm({ term, onDone }) {
           {ENDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </NativeSelect>
       </Field>
-      <Button type="submit" shape="rounded" variant="danger" size="sm" disabled={end.isPending}>End the term</Button>
-      <Button type="button" shape="rounded" variant="ghost" size="sm" onClick={onDone}>Keep</Button>
+      <Button type="submit" variant="danger" size="sm" disabled={end.isPending}>End the term</Button>
+      <Button type="button" variant="ghost" size="sm" onClick={onDone}>Keep</Button>
       <ErrorText error={end.error} className="w-full text-small" />
     </form>
   );
@@ -105,7 +105,7 @@ function OfficeBox({ label, term, next, onEnd, ending }) {
             {!term.member && <span className="block text-small text-warn-foreground">{term.note || "Not linked to a member."}</span>}
             {term.lapsed && <span className="block text-small text-bad-foreground">No longer an approved member, so the website no longer names them. End the term and appoint someone.</span>}
           </span>
-          {ending ? onEnd(term) : <Button shape="rounded" size="sm" variant="quiet" className="self-start" onClick={() => onEnd(term, true)} aria-label={`End the ${label.toLowerCase()}'s term`}>End term</Button>}
+          {ending ? onEnd(term) : <Button size="sm" variant="quiet" className="self-start" onClick={() => onEnd(term, true)} aria-label={`End the ${label.toLowerCase()}'s term`}>End term</Button>}
         </>
       ) : next ? <span className="text-ui">{next.holder_name}</span> : null}
     </div>
@@ -172,7 +172,7 @@ function Appoint({ county }) {
       <ErrorText error={uploadMinutes.error} className="text-small" />
       <Field label="Note"><Input value={form.note} maxLength={1000} onChange={(e) => set({ note: e.target.value })} /></Field>
       <ErrorText error={appoint.error} className="text-small" />
-      <Button type="submit" shape="rounded" className="self-start" disabled={!ready || appoint.isPending || uploadMinutes.isPending}>
+      <Button type="submit" className="self-start" disabled={!ready || appoint.isPending || uploadMinutes.isPending}>
         {appoint.isPending ? "Saving…" : "Appoint"}
       </Button>
       <p className="text-small text-muted-foreground">Appointing someone ends the current holder's term the day before. Every change is recorded in the audit trail.</p>

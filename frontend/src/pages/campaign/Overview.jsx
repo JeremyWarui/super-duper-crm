@@ -69,8 +69,8 @@ export default function Overview({ campaign, role, onModal }) {
   const { noun } = unitOf(campaign);
   const actions = (
     <>
-      {role !== "candidate" && <Button shape="rounded" variant="quiet" onClick={() => onModal({ type: "event" })}>Schedule event</Button>}
-      {ADDS_MOBILIZERS.includes(role) && <Button shape="rounded" onClick={() => onModal({ type: "mobilizer" })}>Add mobilizer</Button>}
+      {role !== "candidate" && <Button variant="quiet" onClick={() => onModal({ type: "event" })}>Schedule event</Button>}
+      {ADDS_MOBILIZERS.includes(role) && <Button onClick={() => onModal({ type: "mobilizer" })}>Add mobilizer</Button>}
     </>
   );
   return (

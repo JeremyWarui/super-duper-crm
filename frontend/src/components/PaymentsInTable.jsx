@@ -47,8 +47,8 @@ export default function PaymentsInTable({ campaignId }) {
               <TD align="right">
                 {r.status === "to_confirm" && rejecting !== r.id ? (
                   <span className="inline-flex flex-wrap justify-end gap-2">
-                    <Button size="sm" shape="rounded" disabled={decide.isPending} onClick={() => decide.mutate({ id: r.id })} aria-label={`Confirm ${r.mpesa_code}`}>Confirm</Button>
-                    <Button size="sm" shape="rounded" variant="quiet" onClick={() => { setReason(""); setRejecting(r.id); }} aria-label={`Reject ${r.mpesa_code}`}>Reject</Button>
+                    <Button size="sm" disabled={decide.isPending} onClick={() => decide.mutate({ id: r.id })} aria-label={`Confirm ${r.mpesa_code}`}>Confirm</Button>
+                    <Button size="sm" variant="quiet" onClick={() => { setReason(""); setRejecting(r.id); }} aria-label={`Reject ${r.mpesa_code}`}>Reject</Button>
                   </span>
                 ) : null}
                 {rejecting === r.id ? (

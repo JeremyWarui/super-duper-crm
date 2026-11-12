@@ -54,9 +54,9 @@ export function DraftList({ drafts, about, decide, approve, decline, remove, can
                 onYes={() => decline.mutate({ id: m.id, note }, { onSuccess: () => { setDeclining(null); setNote(""); } })} />
             ) : may || canDelete(m) ? (
               <div className="flex flex-wrap gap-2">
-                {may && <Button shape="rounded" size="sm" disabled={busy} onClick={() => approve.mutate(m.id)}>Approve and send</Button>}
-                {may && <Button shape="rounded" size="sm" variant="outline" disabled={busy} onClick={() => setDeclining(m.id)}>Decline…</Button>}
-                {canDelete(m) && <Button shape="rounded" size="sm" variant="quiet" disabled={busy} onClick={() => remove.mutate(m.id)}>Delete</Button>}
+                {may && <Button size="sm" disabled={busy} onClick={() => approve.mutate(m.id)}>Approve and send</Button>}
+                {may && <Button size="sm" variant="outline" disabled={busy} onClick={() => setDeclining(m.id)}>Decline…</Button>}
+                {canDelete(m) && <Button size="sm" variant="quiet" disabled={busy} onClick={() => remove.mutate(m.id)}>Delete</Button>}
               </div>
             ) : null}
           </article>
@@ -88,7 +88,7 @@ export function SentList({ messages, title, about, sentBy, Log }) {
             <div className="flex flex-wrap items-center gap-2">
               <DeliveryBadges delivery={m.delivery} />
               {Log && (
-                <Button shape="rounded" size="sm" variant="quiet" aria-expanded={open === m.id} onClick={() => setOpen(open === m.id ? null : m.id)}>
+                <Button size="sm" variant="quiet" aria-expanded={open === m.id} onClick={() => setOpen(open === m.id ? null : m.id)}>
                   {open === m.id ? "Hide delivery log" : "Delivery log"}
                 </Button>
               )}

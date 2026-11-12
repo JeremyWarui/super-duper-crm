@@ -1,7 +1,6 @@
 // What the campaign pages share: the nav per role, small helpers and the unit lists.
 import { useMemo } from "react";
 import { useCentres, useTargets } from "@/api/hooks";
-import { isEmail } from "@/lib/email";
 import { formatDay, nairobiDate } from "@/lib/format";
 
 /**
@@ -133,14 +132,6 @@ export function useTargetedCentres(campaignId, ward) {
 export const assignerFor = (role, onModal) =>
   isLead(role) ? (unit, holder) => onModal({ type: "assign", unit, holder }) : undefined;
 
-/** Whether a new login's username (3 or more characters) and email are usable. */
-export const loginReady = ({ username, email }) => username.trim().length >= 3 && isEmail(email);
-
-/** A new login's name, username, email and phone as the team routes take them. */
-export function loginBody({ name, username, email, phone }) {
-  const [first, ...rest] = name.trim().split(/\s+/);
-  return { username: username.trim().toLowerCase(), first_name: first, last_name: rest.join(" "), phone: phone.trim(), email: email.trim() };
-}
 
 // Attendance counts people reached, so it can't exceed them.
 export const attendanceOk = (reached, attended) => reached > 0 && attended <= reached;

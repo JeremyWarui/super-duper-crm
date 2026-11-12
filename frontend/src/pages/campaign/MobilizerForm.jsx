@@ -6,8 +6,9 @@ import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { Check, Field, Input, NativeSelect } from "@/components/ui/input";
 import { InviteDialog } from "@/components/ui/invite-dialog";
-import { holderOf, loginBody, loginReady } from "./helpers";
-import LoginFields from "./LoginFields";
+import { holderOf } from "./helpers";
+import { loginBody, loginReady } from "@/components/LoginFields";
+import LoginFields from "@/components/LoginFields";
 import { useForm } from "@/lib/form";
 
 // Units (wards, or centres in a ward race) with no mobilizer, plus the one `keep` holds.
@@ -75,8 +76,8 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
       )}
       <ErrorText error={error} />
       <FormActions>
-        <Button shape="rounded" variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button shape="rounded" disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : "Save mobilizer"}</Button>
+        <Button variant="quiet" onClick={onClose}>Cancel</Button>
+        <Button disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : "Save mobilizer"}</Button>
       </FormActions>
     </Dialog>
   );

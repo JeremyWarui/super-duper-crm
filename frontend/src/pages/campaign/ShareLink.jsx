@@ -8,8 +8,8 @@ export default function ShareLink({ link, message }) {
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(`${message} ${link}`)}`;
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button shape="rounded" variant="quiet" onClick={() => copy(link)}>{copied ? "Copied" : "Copy link"}</Button>
-      <Button asChild shape="rounded" variant="outline"><a href={whatsapp} target="_blank" rel="noreferrer">Share on WhatsApp</a></Button>
+      <Button variant="quiet" onClick={() => copy(link)}>{copied ? "Copied" : "Copy link"}</Button>
+      <Button asChild variant="outline"><a href={whatsapp} target="_blank" rel="noreferrer">Share on WhatsApp</a></Button>
       {copied === false && <span className="text-small text-muted-foreground">This browser blocked copying; select the link above instead.</span>}
     </div>
   );
@@ -35,8 +35,8 @@ export function LinkCard({ url, qrTitle, onReplace, replacing, note }) {
       <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-3">
         <a href={url} className="break-all font-semibold">{url}</a>
         <div className="flex flex-wrap gap-2">
-          <Button shape="rounded" variant="quiet" size="sm" onClick={() => copy(url)}>{copied ? "Copied" : "Copy link"}</Button>
-          {onReplace && <Button shape="rounded" variant="ghost" size="sm" disabled={replacing} onClick={onReplace}>Replace link</Button>}
+          <Button variant="quiet" size="sm" onClick={() => copy(url)}>{copied ? "Copied" : "Copy link"}</Button>
+          {onReplace && <Button variant="ghost" size="sm" disabled={replacing} onClick={onReplace}>Replace link</Button>}
         </div>
         {onReplace && <p className="text-small text-muted-foreground">{note}</p>}
       </div>

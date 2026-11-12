@@ -1,6 +1,6 @@
 /** The party CRM sidebar: each office sees only the pages it may open. */
 import { describe, expect, it } from "vitest";
-import { partyNav } from "../src/pages/party/Portal";
+import { partyNav } from "../src/lib/partyNav";
 
 const labels = (user) => partyNav(user).map((n) => n.label);
 

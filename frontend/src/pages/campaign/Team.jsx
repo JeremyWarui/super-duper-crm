@@ -37,9 +37,9 @@ export default function Team({ campaign, role, onModal }) {
   const count = (r) => people.filter((p) => p.role === r).length;
   const actions = (
     <>
-      <Button shape="rounded" variant="quiet" onClick={() => onModal({ type: "staff", role: "coordinator" })}>Add coordinator</Button>
-      <Button shape="rounded" variant="quiet" onClick={() => onModal({ type: "staff", role: "comms" })}>Add comms officer</Button>
-      {role === "candidate" && <Button shape="rounded" onClick={() => onModal({ type: "manager", sitting: manager })}>{manager ? "Replace manager" : "Add manager"}</Button>}
+      <Button variant="quiet" onClick={() => onModal({ type: "staff", role: "coordinator" })}>Add coordinator</Button>
+      <Button variant="quiet" onClick={() => onModal({ type: "staff", role: "comms" })}>Add comms officer</Button>
+      {role === "candidate" && <Button onClick={() => onModal({ type: "manager", sitting: manager })}>{manager ? "Replace manager" : "Add manager"}</Button>}
     </>
   );
   const tiles = [
@@ -75,7 +75,7 @@ export default function Team({ campaign, role, onModal }) {
                     <TD align="right">
                       <span className="inline-flex flex-wrap items-center justify-end gap-2">
                         {p.role === "coordinator" && (
-                          <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "area", person: p })} aria-label={`Area for ${displayName(p)}`}>Area</Button>
+                          <Button size="sm" variant="quiet" onClick={() => onModal({ type: "area", person: p })} aria-label={`Area for ${displayName(p)}`}>Area</Button>
                         )}
                         {(p.role === "coordinator" || p.role === "comms") && (
                           <Confirm size="sm" variant="quiet" yesVariant="primary" label="Take off" ariaLabel={`Take ${displayName(p)} off the team`}

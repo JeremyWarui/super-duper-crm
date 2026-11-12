@@ -1,5 +1,5 @@
 import { Field, Input } from "@/components/ui/input";
-import { loginBody, loginReady } from "./helpers";
+import { isEmail } from "@/lib/email";
 import { useForm } from "@/lib/form";
 
 // Name, username, email and phone for a new login; `body` is what the team routes take.
@@ -31,4 +31,13 @@ export default function LoginFields({ form, set, fields = ["name", "username", "
       />
     </Field>
   ));
+}
+
+/** Whether a new login's username (3 or more characters) and email are usable. */
+export const loginReady = ({ username, email }) => username.trim().length >= 3 && isEmail(email);
+
+/** A new login's name, username, email and phone as the team routes take them. */
+export function loginBody({ name, username, email, phone }) {
+  const [first, ...rest] = name.trim().split(/\s+/);
+  return { username: username.trim().toLowerCase(), first_name: first, last_name: rest.join(" "), phone: phone.trim(), email: email.trim() };
 }

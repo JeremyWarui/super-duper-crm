@@ -58,10 +58,10 @@ export default function ReleaseForm({ payments, onClose }) {
         })}
       </div>
       <FormActions>
-        {results ? <Button shape="rounded" onClick={onClose}>Done</Button> : (
+        {results ? <Button onClick={onClose}>Done</Button> : (
           <>
-            <Button shape="rounded" variant="quiet" onClick={onClose} disabled={running}>Back</Button>
-            <Button shape="rounded" disabled={!mode || !cover?.enough || running} onClick={send}>{running ? "Sending…" : payments.length === 1 ? "Release" : `Release ${payments.length}`}</Button>
+            <Button variant="quiet" onClick={onClose} disabled={running}>Back</Button>
+            <Button disabled={!mode || !cover?.enough || running} onClick={send}>{running ? "Sending…" : payments.length === 1 ? "Release" : `Release ${payments.length}`}</Button>
           </>
         )}
       </FormActions>

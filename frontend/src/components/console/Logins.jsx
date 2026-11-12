@@ -11,7 +11,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import MemberSearch from "@/components/MemberSearch";
-import LoginFields from "@/pages/campaign/LoginFields";
+import LoginFields from "@/components/LoginFields";
 import { Pill, INLINE, Help, Danger } from "./kit";
 
 const BLANK = {
@@ -54,7 +54,7 @@ export function NewLogin({ campaigns, create }) {
   if (!open)
     return (
       <div>
-        <Button shape="rounded" size="sm" variant="quiet" onClick={() => setOpen(true)}>Add a login</Button>
+        <Button size="sm" variant="quiet" onClick={() => setOpen(true)}>Add a login</Button>
       </div>
     );
 
@@ -178,10 +178,10 @@ export function NewLogin({ campaigns, create }) {
       <ErrorText error={create.error} className="text-ui" />
 
       <div className="flex flex-wrap gap-2">
-        <Button shape="rounded" size="sm" variant="primary" disabled={!ready || create.isPending} onClick={submit}>
+        <Button size="sm" variant="primary" disabled={!ready || create.isPending} onClick={submit}>
           {create.isPending ? "Creating…" : "Create the login"}
         </Button>
-        <Button shape="rounded" size="sm" variant="quiet"
+        <Button size="sm" variant="quiet"
           onClick={() => {
             setForm(BLANK);
             setOpen(false);
@@ -205,7 +205,7 @@ function MemberLink({ user, onLinked }) {
         <span className="flex flex-wrap items-center gap-2">
           Party member: {user.party_member.full_name} ({user.party_member.status})
           {!user.party_roles?.length && (
-            <Button shape="rounded" size="sm" variant="quiet"
+            <Button size="sm" variant="quiet"
               disabled={link.isPending}
               onClick={() => link.mutate({ user: user.id, member: null })}
             >
@@ -296,7 +296,7 @@ export function UserRow({ user, me, onReset, resetting, resetError }) {
                 value={email}
                 onChange={(e) => setEmailText(e.target.value)}
               />
-              <Button shape="rounded" size="sm"
+              <Button size="sm"
                 variant="primary"
                 disabled={!isEmail(email) || setEmail.isPending}
                 onClick={() =>
@@ -308,7 +308,7 @@ export function UserRow({ user, me, onReset, resetting, resetError }) {
               >
                 {setEmail.isPending ? "Saving…" : "Save email"}
               </Button>
-              <Button shape="rounded" size="sm" variant="quiet" onClick={() => setEditingEmail(false)}>Cancel</Button>
+              <Button size="sm" variant="quiet" onClick={() => setEditingEmail(false)}>Cancel</Button>
             </div>
           ) : null}
           <div className="flex flex-wrap items-center gap-x-1 text-small wrap-anywhere text-muted-foreground">
@@ -350,7 +350,7 @@ export function UserRow({ user, me, onReset, resetting, resetError }) {
                         </option>
                       ))}
                     </NativeSelect>
-                    <Button shape="rounded" size="sm"
+                    <Button size="sm"
                       variant="primary"
                       disabled={!office || grant.isPending}
                       onClick={() =>
@@ -388,7 +388,7 @@ export function UserRow({ user, me, onReset, resetting, resetError }) {
               onConfirm={() => active.mutate({ id: user.id, active: false })}
             />
           ) : (
-            <Button shape="rounded" size="sm" variant="quiet"
+            <Button size="sm" variant="quiet"
               disabled={isMe || active.isPending}
               onClick={() => active.mutate({ id: user.id, active: true })}
             >

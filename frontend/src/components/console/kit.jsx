@@ -27,7 +27,7 @@ export function Failed({ error, onRetry }) {
     <Card variant="outline" className="gap-3">
       <ErrorText error={error} />
       <div>
-        <Button shape="rounded" size="sm" variant="quiet" onClick={onRetry}>Try again</Button>
+        <Button size="sm" variant="quiet" onClick={onRetry}>Try again</Button>
       </div>
     </Card>
   );

@@ -16,7 +16,7 @@ import { isUsername } from "@/lib/username";
 import { ErrorText } from "@/components/ui/error-text";
 import { NO_PLACE, PlaceSelects } from "@/components/PlaceCascade";
 import { SEAT_AREA, SEATS } from "@/lib/labels";
-import LoginFields from "@/pages/campaign/LoginFields";
+import LoginFields from "@/components/LoginFields";
 
 const STEPS = ["Type", "Name and colours", "Contacts", "First superuser", "Workspace", "Check and finish"];
 

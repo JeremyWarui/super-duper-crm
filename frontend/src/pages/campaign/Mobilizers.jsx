@@ -21,7 +21,7 @@ export default function Mobilizers({ campaign, onModal }) {
     if (!m.registration_centre) return null;
     return units.find((u) => u.registration_centre === m.registration_centre)?.name || "A centre with no target";
   };
-  const action = <Button shape="rounded" onClick={() => onModal({ type: "mobilizer" })}>Add mobilizer</Button>;
+  const action = <Button onClick={() => onModal({ type: "mobilizer" })}>Add mobilizer</Button>;
   return (
     <>
       <SlottedHeader context="Field" title="Mobilizers" sub={`One lead per ${noun}. Mobilizers only see their own ${noun}.`} actions={action} />
@@ -50,8 +50,8 @@ export default function Mobilizers({ campaign, onModal }) {
                     <TD className="text-muted-foreground tabular-nums">{m.phone || "None"}</TD>
                     <TD align="right">
                       <div className="flex justify-end gap-2">
-                        <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "assign-work", member: { role: "mobilizer", id: m.id } })} aria-label={`Assign work to ${m.full_name}`}>Assign work</Button>
-                        <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "mobilizer", mobilizer: m })}>Edit</Button>
+                        <Button size="sm" variant="quiet" onClick={() => onModal({ type: "assign-work", member: { role: "mobilizer", id: m.id } })} aria-label={`Assign work to ${m.full_name}`}>Assign work</Button>
+                        <Button size="sm" variant="quiet" onClick={() => onModal({ type: "mobilizer", mobilizer: m })}>Edit</Button>
                       </div>
                     </TD>
                   </TR>

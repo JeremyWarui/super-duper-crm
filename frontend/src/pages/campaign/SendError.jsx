@@ -10,7 +10,7 @@ export default function SendError({ error, onRetry, pending }) {
   return (
     <Notice role="alert" className="flex flex-col gap-3 p-4">
       <p className="text-ui"><strong>Not sent: no network.</strong> Your entry is kept on this phone. Try again when you have signal.</p>
-      <Button shape="rounded" variant="quiet" className="self-start" disabled={pending} onClick={onRetry}>{pending ? "Sending…" : "Try again"}</Button>
+      <Button variant="quiet" className="self-start" disabled={pending} onClick={onRetry}>{pending ? "Sending…" : "Try again"}</Button>
     </Notice>
   );
 }

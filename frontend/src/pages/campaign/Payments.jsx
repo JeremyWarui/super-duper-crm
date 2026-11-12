@@ -45,17 +45,17 @@ function RowActions({ p, onModal }) {
   if (OPEN.includes(p.status)) {
     return (
       <div className="flex flex-wrap justify-end gap-2">
-        <Button shape="rounded" size="sm" onClick={() => onModal({ type: "payment-release", payments: [p] })}>{p.status === "failed" ? "Retry" : "Approve"}</Button>
-        <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "payment-paid", payment: p })}>Mark paid</Button>
-        <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "payment-decline", payment: p })}>Decline</Button>
+        <Button size="sm" onClick={() => onModal({ type: "payment-release", payments: [p] })}>{p.status === "failed" ? "Retry" : "Approve"}</Button>
+        <Button size="sm" variant="quiet" onClick={() => onModal({ type: "payment-paid", payment: p })}>Mark paid</Button>
+        <Button size="sm" variant="quiet" onClick={() => onModal({ type: "payment-decline", payment: p })}>Decline</Button>
       </div>
     );
   }
   if (p.status !== "sending") return null;
   return p.stuck ? (
     <div className="flex justify-end gap-2">
-      <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "payment-paid", payment: p })}>Mark paid</Button>
-      <Button shape="rounded" size="sm" variant="quiet" onClick={() => onModal({ type: "payment-notsent", payment: p })}>Didn't go out</Button>
+      <Button size="sm" variant="quiet" onClick={() => onModal({ type: "payment-paid", payment: p })}>Mark paid</Button>
+      <Button size="sm" variant="quiet" onClick={() => onModal({ type: "payment-notsent", payment: p })}>Didn't go out</Button>
     </div>
   ) : <span className="text-small text-muted-foreground">Waiting for the provider…</span>;
 }
@@ -78,8 +78,8 @@ export default function Payments({ campaign, role, mine, onModal }) {
   const scheduled = rows.filter((p) => p.status === "scheduled" && approves(p));
   const actions = canSchedule || scheduled.length ? (
     <>
-      {scheduled.length > 0 && <Button shape="rounded" variant="quiet" onClick={() => onModal({ type: "payment-release", payments: scheduled })}>Approve all awaiting me</Button>}
-      {canSchedule && <Button shape="rounded" onClick={() => onModal({ type: "payment-schedule" })}>Schedule payment</Button>}
+      {scheduled.length > 0 && <Button variant="quiet" onClick={() => onModal({ type: "payment-release", payments: scheduled })}>Approve all awaiting me</Button>}
+      {canSchedule && <Button onClick={() => onModal({ type: "payment-schedule" })}>Schedule payment</Button>}
     </>
   ) : null;
   return (
@@ -140,7 +140,7 @@ function Differences({ campaign }) {
     <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Differences with the payout provider">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-h3 font-bold">Differences with the payout provider</h2>
-        <Button shape="rounded" size="sm" variant="quiet" disabled={now.isPending} onClick={() => now.mutate(campaign.id)}>{now.isPending ? "Checking…" : "Check now"}</Button>
+        <Button size="sm" variant="quiet" disabled={now.isPending} onClick={() => now.mutate(campaign.id)}>{now.isPending ? "Checking…" : "Check now"}</Button>
       </div>
       <ErrorText error={found.error || now.error} />
       <p className="text-small text-muted-foreground">

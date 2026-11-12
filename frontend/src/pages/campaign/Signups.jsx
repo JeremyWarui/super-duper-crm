@@ -56,8 +56,8 @@ function Decision({ campaign, row, onDone }) {
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex justify-end gap-2">
-        <Button shape="rounded" size="sm" disabled={decide.isPending} onClick={() => send("approve")} aria-label={`Approve ${row.full_name}`}>Approve</Button>
-        <Button shape="rounded" size="sm" variant="quiet" onClick={() => setRejecting(true)} aria-label={`Reject ${row.full_name}`}>Reject</Button>
+        <Button size="sm" disabled={decide.isPending} onClick={() => send("approve")} aria-label={`Approve ${row.full_name}`}>Approve</Button>
+        <Button size="sm" variant="quiet" onClick={() => setRejecting(true)} aria-label={`Reject ${row.full_name}`}>Reject</Button>
       </div>
       <ErrorText error={decide.error} className="text-small" />
     </div>
