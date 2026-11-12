@@ -77,8 +77,8 @@ AGENDA = [
         "Mothers in Ruai still travel to the city centre to give birth.",
     ),
 ]
-# The candidate's priorities are the first four agenda issues.
-PRIORITIES = 4
+# The candidate's priorities are the first three agenda issues, as many as a profile holds.
+PRIORITIES = 3
 AGENDA_PICTURES = [
     UNSPLASH.format(n)
     for n in (

@@ -39,7 +39,7 @@ async def test_the_aspirant_demo_signs_everyone_in_with_a_published_page(
     agenda = (await client.get("/api/party/issues/")).json()
     slides = (await client.get("/api/party/slides/")).json()
     assert page["name"] == "David Otieno"
-    shared = [(i["title"], i["image_url"]) for i in agenda[: len(page["priorities"])]]
+    shared = [(i["title"], i["image_url"]) for i in agenda[:3]]
     assert [(p["title"], p["image_url"]) for p in page["priorities"]] == shared
     assert all(i["image_url"].startswith("https://") for i in agenda)
     assert (len(agenda), len(slides)) == (6, 3)
