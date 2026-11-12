@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api } from "../src/api/client";
+import { api, upload } from "../src/api/client";
 import { useAuth } from "../src/store/auth";
 import { TEST_TOKEN, signIn, stubApi } from "./helpers";
 
@@ -25,6 +25,14 @@ describe("the API client", () => {
     expect(useAuth.getState().token).toBeNull();
   });
 
+  it("keeps the user signed in when a public request is refused with a 401", async () => {
+    signIn();
+    stubApi({ "GET /party/places/": { status: 401, body: { detail: "No." } } });
+
+    await expect(api("/party/places/", { anonymous: true })).rejects.toThrow("No.");
+    expect(useAuth.getState().token).toBe(TEST_TOKEN);
+  });
+
   it("raises the server's message rather than a status code", async () => {
     signIn();
     stubApi({
@@ -39,4 +47,14 @@ describe("the API client", () => {
     );
   });
 
+  it("reads an upload's refusal the way it reads any other, with its status and code", async () => {
+    signIn();
+    stubApi({ "POST /files/": { status: 413, body: { file: ["The file is larger than 5 MB."], code: "too_large" } } });
+
+    await expect(upload("/files/", new Blob(["x"]), { area: "site" })).rejects.toMatchObject({
+      message: "The file is larger than 5 MB.",
+      status: 413,
+      code: "too_large",
+    });
+  });
 });

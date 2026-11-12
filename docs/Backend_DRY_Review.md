@@ -2,7 +2,7 @@
 
 Scope: `backend/src/backend` (26,209 lines, working tree of 2026-11-10). Tests, evals, the migration and the CSV data are out of scope. Comments and docstrings were ignored: every finding below rests on the code itself.
 
-Status: findings only. No backend code was changed by this review. Revised twice: a second pass re-checked the first pass's claims, and a third pass read every file in `backend/src/backend` end to end (section 5).
+Status: done. Every family (B1 to B41) is in the code, in the commits titled "Backend review ..."; B32's second half, the seed loading through the imports, is a88f8c9. The rest of this file is the review as written; line references are to the tree before those commits.
 
 ## 1. Method
 

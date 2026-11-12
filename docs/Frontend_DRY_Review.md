@@ -2,7 +2,7 @@
 
 Scope: `frontend/src` (166 files, 15,825 lines, working tree of 2026-11-10, uncommitted edits included). `frontend/tests`, `frontend/scripts`, `ui-kit/` and the build config are out of scope. Comments and docstrings were ignored: every finding below rests on the code itself.
 
-Status: findings only. No frontend code was changed by this review. It replaces the earlier draft of this file, whose 23 families (F1 to F23) are kept in section 8 with what this pass found wrong in them. New families continue the numbering from F24.
+Status: done. Every family (F24 to F42) and every KISS item (K1 to K12) is in the code, in the commits titled "Frontend review batch 1" to "Frontend review batch 5". The rest of this file is the review as written; line references are to the tree before those commits.
 
 ## 1. Method
 
