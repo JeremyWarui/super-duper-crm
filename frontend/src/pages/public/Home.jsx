@@ -136,21 +136,22 @@ export function Ticker({ news }) {
   );
 }
 
-export function Agenda({ limit }) {
+/** The agenda cards; `titled` false leaves out the heading and the "see all" link, for a page that is the whole agenda. */
+export function Agenda({ limit, titled = true }) {
   const more = useCopy().agendaMore;
   const all = usePublicIssues().data || [];
   const issues = limit ? all.slice(0, limit) : all;
   if (!issues.length) return null;
   return (
     <section id="issues" className="scroll-mt-24 bg-white">
-      <div className="site-container flex flex-col gap-8 py-20">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className={`site-container flex flex-col gap-8 ${titled ? "py-20" : "pt-10 pb-20"}`}>
+        {titled ? <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex max-w-[640px] flex-col gap-2.5">
             <p className="kicker">Our agenda</p>
             <h2 className="font-display text-section font-extrabold tracking-[-0.02em]">Where we stand</h2>
           </div>
           <Link to={more.to} className="font-bold">{more.label}</Link>
-        </div>
+        </div> : null}
         <div className={PHOTO_GRID}>
           {issues.map((i) => (
             <PhotoCard key={i.id} to={`/issues/${i.id}`} image={i.image_url} title={i.title} foot={<span className="mt-2.5 text-ui font-bold text-accent">Our position →</span>} />

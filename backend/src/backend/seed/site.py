@@ -62,6 +62,15 @@ PICTURE = "https://cdn.stocksnap.io/img-thumbs/960w/{}.jpg"
 SLIDE_PICTURES = ["HBADKDBJYU", "X60YH1SWTF", "5TRB09XUBX", "6DWU4LVLXE", "FOMJTSRHS3"]
 NEWS_PICTURES = ["GZLDAMHFU4", "6B6QMRB4XI", "ZMTW3XX4SO", "UE4PDNKNCS"]
 EVENT_PICTURES = ["6KRBT8MYES", "PYULJR0I6W", "HOSIXQG6JS"]
+# Free Unsplash photos for the agenda cards, named by their Unsplash id.
+UNSPLASH = "https://images.unsplash.com/photo-{}?w=900&q=75&auto=format&fit=crop"
+SKILLS_PICTURE = "1576830886922-02b61aee42ad"
+ISSUE_PICTURES = [
+    SKILLS_PICTURE,
+    "1558907530-fe311178388a",
+    "1783408355447-b01a88767e6a",
+    "1741991110666-88115e724741",
+]
 
 SETTINGS = {
     "name": "Pamoja Party",
@@ -327,6 +336,7 @@ async def seed_home(session: AsyncSession) -> int:
                     summary=summary,
                     what_we_will_do=what,
                     why_it_matters=why,
+                    image_url=UNSPLASH.format(ISSUE_PICTURES[n % len(ISSUE_PICTURES)]),
                     sort_order=n,
                     published=True,
                 )

@@ -40,6 +40,8 @@ async def test_the_aspirant_demo_signs_everyone_in_with_a_published_page(
     slides = (await client.get("/api/party/slides/")).json()
     assert page["name"] == "David Otieno"
     assert [p["title"] for p in page["priorities"]] == [i["title"] for i in agenda]
+    assert [p["image_url"] for p in page["priorities"]] == [i["image_url"] for i in agenda]
+    assert all(i["image_url"].startswith("https://") for i in agenda)
     assert (len(agenda), len(slides)) == (4, 3)
     for who in ("candidate", "manager", "mobilizer"):
         campaigns = await client.get("/api/campaigns/", headers=auth(tokens[who]))

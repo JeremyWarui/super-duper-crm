@@ -24,7 +24,7 @@ from backend.schemas.setup import InvitedLogin, SetupRequest, SetupSeat, SetupSi
 from backend.security import hash_password
 from backend.seed.demo import demo_email, seed_ground_game
 from backend.seed.sign_ins import SignIn
-from backend.seed.site import BODY, PICTURE, SLIDE_PICTURES, portrait
+from backend.seed.site import BODY, PICTURE, SKILLS_PICTURE, SLIDE_PICTURES, UNSPLASH, portrait
 from backend.services import setup
 from backend.services.accounts import add_member, new_login
 from backend.services.errors import Refused
@@ -64,6 +64,15 @@ AGENDA = [
         "Light the main walkways and fund ward security committees from the NG-CDF.",
         "Dark paths after 7pm are where most evening attacks happen.",
     ),
+]
+AGENDA_PICTURES = [
+    UNSPLASH.format(n)
+    for n in (
+        "1740741705746-74e6f9b93b4f",
+        SKILLS_PICTURE,
+        "1735837836870-17bf7e6d2bd6",
+        "1636814281352-cdfa309425b7",
+    )
 ]
 SLIDES = [
     (
@@ -180,7 +189,10 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
         "David Otieno grew up in Mwiki, trained as a civil engineer and has spent ten years "
         "building roads and water lines across Nairobi."
     )
-    profile.priorities = [{"title": title, "text": summary} for title, summary, _, _ in AGENDA]
+    profile.priorities = [
+        {"title": title, "text": summary, "image_url": picture}
+        for (title, summary, _, _), picture in zip(AGENDA, AGENDA_PICTURES, strict=True)
+    ]
     profile.office_address = "Campaign office, Mwiki Road, Kasarani"
     profile.office_phone = "0700 111222"
     profile.office_email = "office@example.com"
@@ -203,6 +215,7 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
                 summary=summary,
                 what_we_will_do=what,
                 why_it_matters=why,
+                image_url=AGENDA_PICTURES[n],
                 sort_order=n,
                 published=True,
             )

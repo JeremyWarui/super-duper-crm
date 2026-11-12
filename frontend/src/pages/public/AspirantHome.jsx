@@ -116,7 +116,7 @@ export function AspirantAgenda() {
   return (
     <>
       <div className="site-container pt-12"><PageHead title="Agenda" lead="Where the campaign stands, issue by issue." /></div>
-      <Agenda />
+      <Agenda titled={false} />
     </>
   );
 }
