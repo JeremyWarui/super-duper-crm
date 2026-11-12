@@ -89,6 +89,15 @@ describe("an aspirant installation's website", () => {
     for (const path of ["/about", "/agenda", "/media", "/volunteer"]) expect(menu).toContain(path);
   });
 
+  it("shows each agenda issue as a card with its photo behind the title", async () => {
+    stubApi({ ...ROUTES, "GET /party/issues/": [{ ...ISSUE, image_url: "https://example.org/water.jpg" }] });
+    renderApp(<AppRoutes />);
+
+    const card = await screen.findByRole("link", { name: /Clean water/ });
+    expect(card).toHaveAttribute("href", "/issues/i1");
+    expect(card.querySelector("img")).toHaveAttribute("src", "https://example.org/water.jpg");
+  });
+
   it("rotates published slides in the hero, and shows the candidate page's slogan when there are none", async () => {
     const slide = { id: "s1", kicker: "Roysambu 2027", headline: "Water for every ward", line: "", image_url: "", button_label: "", button_url: "" };
     stubApi({ ...ROUTES, "GET /party/slides/": [slide] });

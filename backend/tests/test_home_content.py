@@ -40,3 +40,17 @@ async def test_the_carousel_holds_at_most_five_slides(
     ]
 
     assert answers == [201] * 5 + [400]
+
+
+async def test_a_published_issue_carries_its_photo_for_the_homepage_card(
+    client: httpx.AsyncClient, admin_headers: dict
+) -> None:
+    photo = "https://example.org/clinic.jpg"
+    made = await client.post(
+        "/api/admin/party/issues/",
+        headers=admin_headers,
+        json={"title": "Health for every family", "image_url": photo, "published": True},
+    )
+
+    assert made.status_code == 201
+    assert [i["image_url"] for i in (await client.get("/api/party/issues/")).json()] == [photo]

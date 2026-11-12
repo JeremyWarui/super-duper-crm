@@ -317,6 +317,7 @@ class IssueRead(ORMModel):
     summary: str
     what_we_will_do: str
     why_it_matters: str
+    image_url: str
 
 
 class IssueAdminRead(AdminFields, IssueRead):
@@ -328,6 +329,7 @@ class IssueCreate(WriteModel):
     summary: trimmed(300) = ""
     what_we_will_do: Body = ""
     why_it_matters: Body = ""
+    image_url: Image = ""
     sort_order: Order = 0
     published: bool = False
 

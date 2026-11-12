@@ -136,6 +136,24 @@ export function Ticker({ news }) {
   );
 }
 
+/** An agenda issue as a photo card: the title over a dark fade; on hover or focus the party colour covers the photo. */
+function IssueCard({ issue }) {
+  return (
+    <Link
+      to={`/issues/${issue.id}`}
+      className="group relative isolate flex aspect-square flex-col justify-end overflow-hidden rounded-photo bg-gradient-to-br from-ink-2 to-ink p-7 text-white no-underline hover:text-white focus-visible:outline-offset-4"
+    >
+      {issue.image_url ? (
+        <img src={issue.image_url} alt="" className="absolute inset-0 -z-10 size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+      ) : null}
+      <span aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/45 to-transparent" />
+      <span aria-hidden className="absolute inset-0 -z-10 bg-primary opacity-0 transition-opacity duration-300 group-hover:opacity-95 group-focus-visible:opacity-95" />
+      <span className="font-display text-[26px] leading-[1.15] font-extrabold tracking-[-0.01em] uppercase">{issue.title}</span>
+      <span className="mt-2.5 text-ui font-bold text-accent">Our position →</span>
+    </Link>
+  );
+}
+
 export function Agenda({ limit }) {
   const more = useCopy().agendaMore;
   const all = usePublicIssues().data || [];
@@ -151,17 +169,8 @@ export function Agenda({ limit }) {
           </div>
           <Link to={more.to} className="font-bold">{more.label}</Link>
         </div>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
-          {issues.map((issue, i) => (
-            <Card key={issue.id} asChild interactive>
-              <Link to={`/issues/${issue.id}`} className="text-ink no-underline hover:text-ink">
-                <span className="flex size-11 items-center justify-center rounded-lg bg-primary-tint font-display font-extrabold text-primary">{i + 1}</span>
-                <span className="text-card-title font-bold">{issue.title}</span>
-                <span className="text-body text-muted-foreground">{issue.summary}</span>
-                <span className="mt-auto text-ui font-bold text-primary">Our position →</span>
-              </Link>
-            </Card>
-          ))}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-3">
+          {issues.map((issue) => <IssueCard key={issue.id} issue={issue} />)}
         </div>
       </div>
     </section>

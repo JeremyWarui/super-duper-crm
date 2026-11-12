@@ -81,6 +81,7 @@ export const ISSUE_FIELDS = [
   { key: "summary", label: "Summary (optional)", max: 300, kind: "area" },
   { key: "what_we_will_do", label: "What we will do (optional)", max: 20000, kind: "area", hint: "One step per line; each becomes a numbered card." },
   { key: "why_it_matters", label: "Why it matters (optional)", max: 20000, kind: "area" },
+  { key: "image_url", label: "Card photo (optional)", max: 500, kind: "image", area: "site", hint: "Shown behind the title on the homepage card." },
   ORDER,
 ];
 
@@ -143,7 +144,7 @@ const PARTY_UPLOAD = "/files/";
 const SECTIONS = {
   Homepage: [
     { noun: "slide", upload: PARTY_UPLOAD, title: "Carousel slides", hint: "Up to 5, rotating every 6 seconds.", fields: SLIDE_FIELDS, query: useSiteSlides, save: useSaveSlide, del: useDeleteSlide, name: (r) => r.headline, meta: (r) => `Order ${r.sort_order}`, max: 5 },
-    { noun: "issue", title: "Agenda issues", hint: "Each opens its own page from the homepage.", fields: ISSUE_FIELDS, query: useSiteIssues, save: useSaveIssue, del: useDeleteIssue, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
+    { noun: "issue", upload: PARTY_UPLOAD, title: "Agenda issues", hint: "Each opens its own page from the homepage.", fields: ISSUE_FIELDS, query: useSiteIssues, save: useSaveIssue, del: useDeleteIssue, name: (r) => r.title, meta: (r) => `Order ${r.sort_order}` },
     { noun: "video", upload: PARTY_UPLOAD, title: "Watch videos", hint: "The first three show under News on the homepage.", fields: VIDEO_FIELDS, query: useSiteVideos, save: useSaveVideo, del: useDeleteVideo, name: (r) => r.title, meta: (r) => [r.duration, `order ${r.sort_order}`].filter(Boolean).join(" · ") },
   ],
   Posts: [

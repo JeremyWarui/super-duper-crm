@@ -188,6 +188,7 @@ class AgendaIssue(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     summary: Mapped[str] = mapped_column(String(300), default="", server_default="")
     what_we_will_do: Mapped[str] = mapped_column(Text, default="", server_default="")
     why_it_matters: Mapped[str] = mapped_column(Text, default="", server_default="")
+    image_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
 
 
 class PartyDocument(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):

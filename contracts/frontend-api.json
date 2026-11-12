@@ -602,7 +602,8 @@
       "title",
       "summary",
       "what_we_will_do",
-      "why_it_matters"
+      "why_it_matters",
+      "image_url"
     ],
     "GET /api/party/issues/{issue_id}/": [
       "id",
@@ -629,7 +630,8 @@
       "what_we_will_do",
       "why_it_matters",
       "sort_order",
-      "published"
+      "published",
+      "image_url"
     ],
     "GET /api/party/documents/": [
       "id",
@@ -833,7 +835,8 @@
       "what_we_will_do",
       "why_it_matters",
       "sort_order",
-      "published"
+      "published",
+      "image_url"
     ],
     "GET /api/workspace/site/documents/": [
       "id",
@@ -2162,7 +2165,8 @@
       "summary",
       "what_we_will_do",
       "why_it_matters",
-      "sort_order"
+      "sort_order",
+      "image_url"
     ],
     "PATCH /api/admin/party/issues/{issue_id}/": [
       "title",
@@ -2170,7 +2174,8 @@
       "what_we_will_do",
       "why_it_matters",
       "sort_order",
-      "published"
+      "published",
+      "image_url"
     ],
     "POST /api/admin/party/documents/": [
       "title",
@@ -2334,7 +2339,8 @@
       "summary",
       "what_we_will_do",
       "why_it_matters",
-      "sort_order"
+      "sort_order",
+      "image_url"
     ],
     "PATCH /api/workspace/site/issues/{item_id}/": [
       "title",
@@ -2342,7 +2348,8 @@
       "what_we_will_do",
       "why_it_matters",
       "sort_order",
-      "published"
+      "published",
+      "image_url"
     ],
     "POST /api/workspace/site/documents/": [
       "title",
