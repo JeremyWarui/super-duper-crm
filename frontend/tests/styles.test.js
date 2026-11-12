@@ -21,6 +21,11 @@ function classesDefined() {
 }
 
 describe("the stylesheet", () => {
+  it("tells browsers the site is light only, so a dark device setting cannot darken it", () => {
+    expect(readFileSync(resolve(process.cwd(), "index.html"), "utf8")).toContain('<meta name="color-scheme" content="only light" />');
+    expect(read("styles/globals.css")).toMatch(/color-scheme: only light;/);
+  });
+
   it("keeps no rule for a class no component uses", () => {
     const unused = classesDefined().filter((name) => !new RegExp(`["'\`\\s]${name}["'\`\\s]`).test(SOURCES));
     expect(unused, `styles/globals.css styles ${unused.join(", ")}, which nothing uses`).toEqual([]);

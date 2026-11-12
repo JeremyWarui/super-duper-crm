@@ -88,7 +88,7 @@
   --sidebar-border: var(--ink-2);
   --sidebar-ring: var(--party-accent);
 
-  color-scheme: light;             /* stop browsers darkening form controls */
+  color-scheme: only light;        /* the site is light only: browsers must not darken it */
 }
 
 /* The CRM and candidate workspace use a slightly deeper ground and
