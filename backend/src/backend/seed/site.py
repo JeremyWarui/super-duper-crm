@@ -70,6 +70,8 @@ ISSUE_PICTURES = [
     "1558907530-fe311178388a",
     "1783408355447-b01a88767e6a",
     "1741991110666-88115e724741",
+    "1632215861513-130b66fe97f4",
+    "1736967327745-b66c0e2a609d",
 ]
 
 SETTINGS = {
@@ -306,6 +308,18 @@ ISSUES = [
         "Public money spent in the open.",
         "Publish county budgets and contracts, and audit them every year.",
         "Trust in leaders depends on how they use public money.",
+    ),
+    (
+        "Education",
+        "A good school within walking distance of every child.",
+        "Hire teachers, pay them on time and finish stalled classrooms in every ward.",
+        "Crowded classrooms hold children back for life.",
+    ),
+    (
+        "Farming and food",
+        "Fair prices and steady markets for farmers.",
+        "Cut the cost of fertiliser and build county cold stores and produce markets.",
+        "Most Kenyan families earn their living from the land.",
     ),
 ]
 

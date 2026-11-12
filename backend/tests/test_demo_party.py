@@ -42,6 +42,9 @@ async def test_the_party_demo_signs_everyone_in_with_work_waiting(
     assert {a["status"] for a in aspirants["items"]} >= {"approved", "submitted"}
     candidates = (await client.get("/api/candidates/")).json()
     assert "Jane Wanjiru" in {c["name"] for c in candidates}
+    agenda = (await client.get("/api/party/issues/")).json()
+    assert len(agenda) == 6
+    assert all(i["image_url"].startswith("https://") for i in agenda)
     campaigns = await client.get("/api/campaigns/", headers=auth(tokens["aspirant"]))
     assert [c["title"] for c in campaigns.json()] == ["Jane for Roysambu"]
 
