@@ -11,6 +11,30 @@ export function Photo({ url, className = "" }) {
   return url ? <img src={url} alt="" className={`object-cover ${className}`} /> : <div className={`ph ${className}`} />;
 }
 
+/** The grid of square photo cards: tight gaps, as many columns as fit. */
+export const PHOTO_GRID = "grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-3";
+
+/**
+ * A square card with the title over a dark fade on its photo; on hover or focus the party colour covers it.
+ * With `to` it is a link; `foot` sits under the title.
+ */
+export function PhotoCard({ to, image, title, kicker, foot }) {
+  const look = "group relative isolate flex aspect-square flex-col justify-end overflow-hidden rounded-photo bg-gradient-to-br from-ink-2 to-ink p-7 text-white no-underline";
+  const inner = (
+    <>
+      {image ? <img src={image} alt="" className="absolute inset-0 -z-10 size-full object-cover transition-transform duration-500 group-hover:scale-105" /> : null}
+      <span aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/45 to-transparent" />
+      <span aria-hidden className="absolute inset-0 -z-10 bg-primary opacity-0 transition-opacity duration-300 group-hover:opacity-95 group-focus-visible:opacity-95" />
+      {kicker ? <span className="mb-2 font-display text-[18px] font-extrabold text-accent">{kicker}</span> : null}
+      <span className="font-display text-[26px] leading-[1.15] font-extrabold tracking-[-0.01em] uppercase">{title}</span>
+      {foot}
+    </>
+  );
+  return to
+    ? <Link to={to} className={`${look} hover:text-white focus-visible:outline-offset-4`}>{inner}</Link>
+    : <div className={look}>{inner}</div>;
+}
+
 export function Initials({ name, url, className = "" }) {
   if (url) return <img src={url} alt="" className={`rounded-full object-cover ${className}`} />;
   const letters = initials(name);

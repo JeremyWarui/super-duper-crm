@@ -64,6 +64,19 @@ describe("candidates on the website", () => {
     expect(screen.queryByRole("button", { name: "Volunteer for Brian" })).toBeNull();
   });
 
+  it("shows each priority as a photo card", async () => {
+    const water = { title: "Water", text: "Piped water in every ward.", image_url: "https://example.org/water.jpg" };
+    stubApi({ ...PUBLIC, [`GET /candidates/${CARD.slug}/`]: { ...DETAIL, priorities: [water] } });
+    renderApp(<AppRoutes />, { path: `/candidates/${CARD.slug}` });
+
+    await userEvent.click(await screen.findByRole("tab", { name: "Priorities" }));
+
+    const card = (await screen.findByText("Water")).closest(".aspect-square");
+    expect(card.querySelector("img").getAttribute("src")).toBe(water.image_url);
+    expect(within(card).getByText("01")).toBeInTheDocument();
+    expect(within(card).getByText(water.text)).toBeInTheDocument();
+  });
+
   it("sends the volunteer form only once every field is filled", async () => {
     const calls = stubApi({
       ...PUBLIC,

@@ -12,7 +12,7 @@ import { Crumbs, RuleHead } from "@/components/ui/typography";
 import { SEAT_LABEL } from "@/lib/labels";
 import VolunteerFields, { NO_VOLUNTEER, volunteerBody, volunteerReady } from "@/components/VolunteerFields";
 import { firstName, formatDay, linkTo, whereOf } from "@/lib/format";
-import { Photo } from "./story";
+import { Photo, PHOTO_GRID, PhotoCard } from "./story";
 import { isEmail } from "@/lib/email";
 import { ErrorText } from "@/components/ui/error-text";
 import { pageState } from "@/components/PageState";
@@ -178,12 +178,14 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
           {tab === "Priorities" ? (
             <>
               <RuleHead>Priorities for {c.area}</RuleHead>
-              {c.priorities.length ? c.priorities.map((p, n) => (
-                <Card key={n} className="flex-row gap-4 p-5">
-                  <span className="font-display text-[22px] font-extrabold text-primary">{n + 1}</span>
-                  <span className="flex flex-col gap-1"><strong className="text-[18px]">{p.title}</strong>{p.text ? <span className="text-muted-foreground">{p.text}</span> : null}</span>
-                </Card>
-              )) : <p className="text-muted-foreground">No priorities published yet.</p>}
+              {c.priorities.length ? (
+                <div className={PHOTO_GRID}>
+                  {c.priorities.map((p, n) => (
+                    <PhotoCard key={n} image={p.image_url} kicker={String(n + 1).padStart(2, "0")} title={p.title}
+                      foot={p.text ? <span className="mt-2.5 text-[15px] leading-[1.5] text-white/85">{p.text}</span> : null} />
+                  ))}
+                </div>
+              ) : <p className="text-muted-foreground">No priorities published yet.</p>}
             </>
           ) : null}
           {tab === "Events" ? (

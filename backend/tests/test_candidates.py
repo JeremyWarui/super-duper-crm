@@ -113,6 +113,21 @@ async def test_only_approved_aspirants_with_a_published_profile_are_listed(
 
 
 @pytest.mark.party_only
+async def test_a_priority_keeps_its_card_photo(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
+) -> None:
+    aspirant = await _aspirant(session, world)
+    photo = "https://example.org/water.jpg"
+    await _publish(
+        client, admin_headers, aspirant, priorities=[{"title": "Water", "image_url": photo}]
+    )
+
+    page = (await client.get(f"/api/candidates/{await _slug(client)}/")).json()
+
+    assert page["priorities"] == [{"title": "Water", "text": "", "image_url": photo}]
+
+
+@pytest.mark.party_only
 async def test_the_profile_lists_only_published_upcoming_events_naming_the_aspirant(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:

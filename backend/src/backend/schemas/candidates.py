@@ -18,6 +18,7 @@ from backend.schemas.volunteers import VolunteerUpdate
 class Priority(WriteModel):
     title: Annotated[str, Field(min_length=1, max_length=80), AfterValidator(plain_text)]
     text: Annotated[str, Field(max_length=300), AfterValidator(plain_text)] = ""
+    image_url: Image = ""
 
 
 class ProfileWrite(WriteModel):

@@ -311,18 +311,19 @@ const PROFILE_FIELDS = [
   ["office_phone", "Campaign office phone (optional)", 20],
   ["office_email", "Campaign office email (optional)", 254],
 ];
-const NO_PRIORITY = { title: "", text: "" };
+const NO_PRIORITY = { title: "", text: "", image_url: "" };
 
 /** A candidate page's fields; `save` is the mutation that stores them, sent `extra` as well. */
 export function ProfileForm({ title, profile: p, save, upload, extra = {}, onDone }) {
   const [form, setForm, set] = useForm({ ...p, priorities: [0, 1, 2].map((n) => p.priorities[n] || NO_PRIORITY) });
   const setPriority = (n, key) => (e) => setForm({ ...form, priorities: form.priorities.map((x, i) => (i === n ? { ...x, [key]: e.target.value } : x)) });
   const photoBad = !imageOk(form.photo_url.trim());
+  const priorityBad = form.priorities.map((x) => !imageOk((x.image_url || "").trim()));
   const submit = (e) => {
     e.preventDefault();
-    if (photoBad) return;
+    if (photoBad || priorityBad.some(Boolean)) return;
     const body = { photo_url: form.photo_url.trim(), ...Object.fromEntries(PROFILE_FIELDS.map(([key]) => [key, form[key].trim()])) };
-    const priorities = form.priorities.map((x) => ({ title: x.title.trim(), text: x.text.trim() })).filter((x) => x.title);
+    const priorities = form.priorities.map((x) => ({ title: x.title.trim(), text: x.text.trim(), image_url: (x.image_url || "").trim() })).filter((x) => x.title);
     save.mutate({ ...extra, ...body, bio: form.bio, published: form.published, priorities }, { onSuccess: onDone });
   };
   return (
@@ -341,6 +342,11 @@ export function ProfileForm({ title, profile: p, save, upload, extra = {}, onDon
           <div key={n} className="grid gap-2 sm:grid-cols-[1fr_2fr]">
             <Field label={`Priority ${n + 1} (optional)`}><Input value={x.title} maxLength={80} onChange={setPriority(n, "title")} /></Field>
             <Field label={`Priority ${n + 1} detail (optional)`}><Input value={x.text} maxLength={300} onChange={setPriority(n, "text")} /></Field>
+            <div className="sm:col-span-2">
+              <ImageField label={`Priority ${n + 1} card photo (optional)`} value={x.image_url || ""} upload={upload} area="candidates" invalid={priorityBad[n] || undefined}
+                hint={priorityBad[n] ? "Choose a file, or use an address starting with https://." : "Shown behind the priority on the candidate page."}
+                onChange={(v) => setForm((now) => ({ ...now, priorities: now.priorities.map((p, i) => (i === n ? { ...p, image_url: v } : p)) }))} />
+            </div>
           </div>
         ))}
         <Check className="items-center font-semibold" checked={form.published} onChange={set("published")}>
