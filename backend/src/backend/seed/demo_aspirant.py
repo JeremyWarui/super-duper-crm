@@ -64,7 +64,21 @@ AGENDA = [
         "Light the main walkways and fund ward security committees from the NG-CDF.",
         "Dark paths after 7pm are where most evening attacks happen.",
     ),
+    (
+        "Education",
+        "A school place for every child in Kasarani.",
+        "Finish the stalled classrooms in Mwiki and Ruai and widen NG-CDF bursaries.",
+        "Too many families cannot keep a child in secondary school.",
+    ),
+    (
+        "Health care",
+        "A working dispensary in every ward.",
+        "Stock the ward dispensaries and open a maternity wing at Ruai health centre.",
+        "Mothers in Ruai still travel to the city centre to give birth.",
+    ),
 ]
+# The candidate's priorities are the first four agenda issues.
+PRIORITIES = 4
 AGENDA_PICTURES = [
     UNSPLASH.format(n)
     for n in (
@@ -72,6 +86,8 @@ AGENDA_PICTURES = [
         SKILLS_PICTURE,
         "1735837836870-17bf7e6d2bd6",
         "1636814281352-cdfa309425b7",
+        "1632215861513-130b66fe97f4",
+        "1783408355447-b01a88767e6a",
     )
 ]
 SLIDES = [
@@ -192,7 +208,7 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
     profile.priorities = [
         {"title": title, "text": summary, "image_url": picture}
         for (title, summary, _, _), picture in zip(AGENDA, AGENDA_PICTURES, strict=True)
-    ]
+    ][:PRIORITIES]
     profile.office_address = "Campaign office, Mwiki Road, Kasarani"
     profile.office_phone = "0700 111222"
     profile.office_email = "office@example.com"
