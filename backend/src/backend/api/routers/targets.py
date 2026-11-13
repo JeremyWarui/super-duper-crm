@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
@@ -25,6 +25,7 @@ from backend.schemas.campaign import (
     TargetRefresh,
     TargetUpdate,
 )
+from backend.services.errors import Refused
 from backend.services.targets import refresh_targets
 
 router = APIRouter(prefix="/targets", tags=["targets"])
@@ -64,10 +65,7 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
         session, user, "targets.write", payload.campaign, payload.ward, payload.registration_centre
     )
     if campaign.operational_grain is OperationalGrain.WARD and payload.registration_centre:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"This race ({campaign.seat_label}) sets targets per ward, not per centre.",
-        )
+        raise Refused(f"This race ({campaign.seat_label}) sets targets per ward, not per centre.")
     taken = set(
         (
             await session.execute(
@@ -78,7 +76,7 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
         ).scalars()
     )
     if payload.registration_centre in taken:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, TARGET_TAKEN)
+        raise Refused(TARGET_TAKEN)
 
     target = Target(
         campaign_id=payload.campaign,
@@ -92,7 +90,7 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
         await session.flush()
     except IntegrityError:
         await session.rollback()
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, TARGET_TAKEN) from None
+        raise Refused(TARGET_TAKEN) from None
     return await _saved(session, target, new=True)
 
 
@@ -110,11 +108,10 @@ async def update_target(
 
 
 @router.delete("/{target_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_target(target_id: uuid.UUID, session: SessionDep, user: Writer) -> Response:
+async def delete_target(target_id: uuid.UUID, session: SessionDep, user: Writer) -> None:
     target = await require_visible(session, user, Target, target_id, "target", "targets.write")
     await session.delete(target)
     await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 async def _saved(session: SessionDep, target: Target, *, new: bool = False) -> Target:

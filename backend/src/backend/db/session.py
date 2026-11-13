@@ -78,7 +78,8 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 
 def upsert(session: AsyncSession, model: type):
-    """An INSERT into `model` that takes `on_conflict_do_update`, on Postgres or SQLite."""
+    """An INSERT into `model` that takes `on_conflict_do_update` or `_do_nothing`, on Postgres
+    or SQLite."""
     dialect = postgresql if session.get_bind().dialect.name == "postgresql" else sqlite
     return dialect.insert(model)
 

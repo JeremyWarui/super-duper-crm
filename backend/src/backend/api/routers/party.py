@@ -4,7 +4,7 @@ import uuid
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, Query, Request, status
 from sqlalchemy import func, select
 
 from backend.api.deps import AdminUser, SessionDep, Today
@@ -68,6 +68,7 @@ from backend.services import (
 )
 from backend.services import party as service
 from backend.services.accounts import clean_email
+from backend.services.errors import Refused
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import require_phone
 
@@ -166,7 +167,7 @@ async def party_dashboard(
 ) -> Dashboard:
     """Party-wide counts; without dates, events cover the next 30 days."""
     if start and end and start > end:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "The start date is after the end date.")
+        raise Refused("The start date is after the end date.")
     filters = dashboard.Filters(county, constituency, ward, seat, aspirant, start, end)
     return await dashboard.dashboard(session, filters, today)
 
@@ -205,12 +206,10 @@ async def join(payload: PartyJoinCreate, request: Request, session: SessionDep) 
     check(JOINS, request, "Too many applications from this device; try later.")
     phone = require_phone(payload.phone)
     if await session.get(Ward, payload.ward) is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such ward.")
+        raise Refused("No such ward.")
     centre = await session.get(RegistrationCentre, payload.registration_centre)
     if centre is None or centre.ward_id != payload.ward:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Choose a polling station in the ward you chose."
-        )
+        raise Refused("Choose a polling station in the ward you chose.")
     code, volunteer_code = membership.request_join(
         session,
         first_name=payload.first_name,
@@ -262,7 +261,7 @@ async def subscribe(
     if "@" in payload.contact:
         contact = clean_email(payload.contact)
         if not EMAIL.match(contact):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, EMAIL_EXAMPLE)
+            raise Refused(EMAIL_EXAMPLE)
         channel = "email"
     else:
         contact = require_phone(payload.contact)

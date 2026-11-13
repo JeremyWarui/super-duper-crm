@@ -42,6 +42,7 @@ from backend.schemas.payment import (
 )
 from backend.services import assignments, payment_routing, payments_in, payout_flow, reconcile
 from backend.services.audit import record
+from backend.services.errors import Forbidden, NotFound, Refused
 from backend.services.payout_flow import OPEN
 from backend.services.payouts import get_payout_provider
 from backend.services.paystack import paystack_signed
@@ -95,16 +96,14 @@ async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Sc
     """Pay a done assignment, once, to its mobilizer or agent; routed to its approver."""
     found = await session.get(Assignment, payload.assignment)
     if found is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such assignment.")
+        raise Refused("No such assignment.")
     campaign = await require_visible_campaign(session, user, found.campaign_id)
     work = await assignments.assignment(session, campaign.id, found.id, None)
     await require_in_area(
         session, user, "payments.schedule", work.ward_id, work.registration_centre_id
     )
     if work.status is not AssignmentStatus.DONE:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Only an assignment marked done can be paid."
-        )
+        raise Refused("Only an assignment marked done can be paid.")
     approver = payment_routing.approver_for(user, campaign)
     taken = await session.scalar(
         select(Payment.id).where(
@@ -112,7 +111,7 @@ async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Sc
         )
     )
     if taken is not None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, ASSIGNMENT_PAID)
+        raise Refused(ASSIGNMENT_PAID)
     if work.mobilizer is not None:
         name, phone = work.mobilizer.full_name, work.mobilizer.phone
     else:
@@ -136,7 +135,7 @@ async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Sc
         await session.flush()
     except IntegrityError:
         await session.rollback()
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, ASSIGNMENT_PAID) from None
+        raise Refused(ASSIGNMENT_PAID) from None
     record(
         session,
         actor=user,
@@ -153,7 +152,7 @@ async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Sc
 async def _visible(session: SessionDep, user: User, payment_id: uuid.UUID) -> Payment:
     payment = await session.get(Payment, payment_id)
     if payment is None or payment.campaign_id not in await visible_campaign_ids(session, user):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such payment.")
+        raise NotFound("No such payment.")
     return payment
 
 
@@ -166,7 +165,7 @@ async def _approvable(session: SessionDep, user: User, payment_id: uuid.UUID) ->
         else:
             role = payment_routing.approver_of(payment).label
             detail = f"This payment is for the {role} to approve."
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail)
+        raise Forbidden(detail)
     return payment
 
 
@@ -245,15 +244,12 @@ async def release_payment(payment_id: uuid.UUID, session: SessionDep, user: Appr
     """Approve a scheduled or failed payment and send it to the number it was scheduled for."""
     payment = await _approvable(session, user, payment_id)
     if payment.status not in OPEN:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, f"That payment is already {payment.status.label.lower()}."
-        )
+        raise Refused(f"That payment is already {payment.status.label.lower()}.")
     phone = normalise_phone(payment.recipient_phone)
     if phone is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
+        raise Refused(
             f"No usable phone number for {payment.recipient_name}; "
-            "cancel this payment, add the number on the Mobilizers page, and schedule it again.",
+            "cancel this payment, add the number on the Mobilizers page, and schedule it again."
         )
     current = phone
     if payment.mobilizer_id:
@@ -265,10 +261,9 @@ async def release_payment(payment_id: uuid.UUID, session: SessionDep, user: Appr
         )
         current = normalise_phone(agent.user.phone) if agent is not None else phone
     if current != phone:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
+        raise Refused(
             f"{payment.recipient_name}'s number changed since this was scheduled; "
-            "cancel it and schedule again to pay the new number.",
+            "cancel it and schedule again to pay the new number."
         )
     provider = get_payout_provider()
     await payout_flow.require_cover(provider, payment.amount_kes)

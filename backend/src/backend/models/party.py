@@ -48,14 +48,6 @@ if TYPE_CHECKING:
     from backend.models.user import User
     from backend.models.volunteer import VolunteerProfile
 
-HEX_DIGITS = "'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'"
-
-
-def hex_colour(column: str) -> str:
-    """A CHECK expression for `#rrggbb` that Postgres and SQLite both run."""
-    digits = " AND ".join(f"lower(substr({column}, {i}, 1)) IN ({HEX_DIGITS})" for i in range(2, 8))
-    return f"length({column}) = 7 AND substr({column}, 1, 1) = '#' AND {digits}"
-
 
 class PartySettings(Base):
     """The party-only settings: registration, founding year, aspirant steps and how to pay."""

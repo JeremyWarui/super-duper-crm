@@ -1,4 +1,4 @@
-"""Moving a payment through scheduled, sending, paid, failed and cancelled, for any payment table.
+"""Moving a payment through scheduled, sending, paid, failed and cancelled.
 
 Every move is one conditional UPDATE, so two requests cannot both move the same payment, and a
 provider's answer lands only on the attempt it belongs to.
@@ -14,7 +14,7 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Payment, PaymentStatus
-from backend.models.payment import OUTCOME_UNKNOWN, PayoutMixin
+from backend.models.payment import OUTCOME_UNKNOWN
 from backend.services.errors import Refused
 from backend.services.payouts import BalanceUnavailable, PayoutProvider
 
@@ -26,22 +26,25 @@ OPEN = (PaymentStatus.SCHEDULED, PaymentStatus.FAILED)
 SETTLED = (PaymentStatus.PAID, PaymentStatus.SENDING, PaymentStatus.FAILED)
 SEND_TIMEOUT = 30  # seconds a provider has to answer
 
-# The attempt reference each table sends, so a webhook finds its row: `pay-<id>-<attempt>`.
-PREFIX: dict[type, str] = {Payment: "pay"}
-ATTEMPT = re.compile(r"^(pay)-([0-9a-f-]{36})-(\d+)$")
+# The reference each send carries, so a webhook finds its attempt: `pay-<id>-<attempt>`.
+ATTEMPT = re.compile(r"^pay-([0-9a-f-]{36})-(\d+)$")
 
 
-def _already(row: PayoutMixin) -> Refused:
+def reference_of(payment_id: uuid.UUID, attempt: int) -> str:
+    return f"pay-{payment_id}-{attempt}"
+
+
+def _already(row: Payment) -> Refused:
     return Refused(f"That payment is already {row.status.label.lower()}.")
 
 
 async def move(
     session: AsyncSession,
-    row: PayoutMixin,
+    row: Payment,
     to: PaymentStatus,
     from_: tuple[PaymentStatus, ...] = OPEN,
     **values: object,
-) -> PayoutMixin:
+) -> Payment:
     model = type(row)
     moved = await session.scalar(
         update(model)
@@ -59,11 +62,11 @@ async def move(
 
 async def finish(
     session: AsyncSession,
-    row: PayoutMixin,
+    row: Payment,
     attempt: int,
     from_: tuple[PaymentStatus, ...] = (PaymentStatus.SENDING,),
     **values: object,
-) -> PayoutMixin:
+) -> Payment:
     """Record an attempt's outcome, unless a person or a later attempt has settled it since."""
     model = type(row)
     landed = await session.execute(
@@ -117,24 +120,23 @@ async def require_cover(provider: PayoutProvider, amount_kes: int) -> None:
 
 
 async def release(
-    session: AsyncSession, row: PayoutMixin, provider: PayoutProvider, phone: str
-) -> PayoutMixin:
+    session: AsyncSession, row: Payment, provider: PayoutProvider, phone: str
+) -> Payment:
     """Send an open payment to `phone`, already checked by the caller as the number to pay."""
     if row.status not in OPEN:
         raise _already(row)
-    model = type(row)
     attempt = await session.scalar(
-        update(model)
-        .where(model.id == row.id, model.status.in_(OPEN))
+        update(Payment)
+        .where(Payment.id == row.id, Payment.status.in_(OPEN))
         .values(
             status=PaymentStatus.SENDING,
-            attempts=model.attempts + 1,
+            attempts=Payment.attempts + 1,
             sending_since=datetime.now(UTC),
             provider=provider.name,
             recipient_phone=phone,
             failure_reason="",
         )
-        .returning(model.attempts)
+        .returning(Payment.attempts)
     )
     if attempt is None:
         await session.refresh(row)
@@ -145,7 +147,7 @@ async def release(
         result = await asyncio.wait_for(
             provider.send(
                 payment_id=row.id,
-                reference=f"{PREFIX[model]}-{row.id}-{attempt}",
+                reference=reference_of(row.id, attempt),
                 phone=phone,
                 name=row.recipient_name,
                 amount_kes=row.amount_kes,
@@ -169,13 +171,13 @@ async def release(
     return await finish(session, row, attempt, **done)
 
 
-def require_settleable(row: PayoutMixin) -> None:
+def require_settleable(row: Payment) -> None:
     """A payment still waiting on its provider is not settled by hand."""
     if row.status is PaymentStatus.SENDING and not row.stuck:
         raise Refused("That payment is still sending; wait for the payout provider to answer.")
 
 
-async def mark_not_sent(session: AsyncSession, row: PayoutMixin) -> PayoutMixin:
+async def mark_not_sent(session: AsyncSession, row: Payment) -> Payment:
     """After checking the provider: a payment stuck in sending did not go out, so it can retry."""
     if row.status is not PaymentStatus.SENDING:
         raise Refused("Only a payment stuck in sending can be marked not sent.")
@@ -189,7 +191,7 @@ async def mark_not_sent(session: AsyncSession, row: PayoutMixin) -> PayoutMixin:
     )
 
 
-async def mark_paid(session: AsyncSession, row: PayoutMixin, reference: str) -> PayoutMixin:
+async def mark_paid(session: AsyncSession, row: Payment, reference: str) -> Payment:
     """Record by hand that the money went out, under its M-Pesa or bank reference."""
     require_settleable(row)
     return await move(
@@ -204,7 +206,7 @@ async def mark_paid(session: AsyncSession, row: PayoutMixin, reference: str) -> 
     )
 
 
-async def cancel(session: AsyncSession, row: PayoutMixin) -> PayoutMixin:
+async def cancel(session: AsyncSession, row: Payment) -> Payment:
     return await move(session, row, PaymentStatus.CANCELLED)
 
 
@@ -220,11 +222,10 @@ async def apply_transfer_event(session: AsyncSession, event: str, data: dict) ->
     found = ATTEMPT.match(str(data.get("reference") or ""))
     if found is None:
         return False
-    model = next(m for m, prefix in PREFIX.items() if prefix == found[1])
-    row = await session.get(model, uuid.UUID(found[2]))
+    row = await session.get(Payment, uuid.UUID(found[1]))
     if row is None or row.provider != "paystack":
         return False
-    attempt = int(found[3])
+    attempt = int(found[2])
     code = str(data.get("transfer_code") or "")[:50]
     if row.attempts == attempt and (
         (event == "transfer.success" and row.status is PaymentStatus.PAID)

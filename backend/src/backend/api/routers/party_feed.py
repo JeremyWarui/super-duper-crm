@@ -3,13 +3,14 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
 from backend.api.deps import SessionDep, Today, require
 from backend.api.scope import require_visible_campaign
 from backend.models import Campaign, User, WorkspaceKind
 from backend.schemas.sharing import PartyFeed, Switches, SwitchesWrite
 from backend.services import sharing
+from backend.services.errors import NotFound
 from backend.services.permissions import reach
 
 router = APIRouter(prefix="/party-feed", tags=["party-feed"])
@@ -22,7 +23,7 @@ async def _hosted(session, user: User, campaign_id: uuid.UUID) -> Campaign:
     """The caller's campaign when it is a hosted one; the party and standalone have no feed."""
     campaign = await require_visible_campaign(session, user, campaign_id)
     if campaign.kind is not WorkspaceKind.HOSTED:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Only a party nominee's workspace has this.")
+        raise NotFound("Only a party nominee's workspace has this.")
     return campaign
 
 

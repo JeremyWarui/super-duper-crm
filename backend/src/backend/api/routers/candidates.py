@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, Query, Request, status
 
 from backend.api.deps import SessionDep, Today
 from backend.api.install import PartyOnlyRoute
@@ -14,6 +14,7 @@ from backend.schemas.join import JoinDone, Withdrawn
 from backend.services import campaign_volunteers
 from backend.services import candidates as service
 from backend.services.campaign_volunteers import THANKS
+from backend.services.errors import Refused
 from backend.services.ratelimit import RateLimit
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
@@ -38,7 +39,7 @@ async def list_candidates(
         seat_value = Seat(seat).value if seat else None
         county_id = uuid.UUID(county) if county else None
     except ValueError:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unknown seat or county.") from None
+        raise Refused("Unknown seat or county.") from None
     return await service.candidates(session, seat=seat_value, county=county_id, q=q)
 
 

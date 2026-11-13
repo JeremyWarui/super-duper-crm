@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 
 from backend.api.deps import SessionDep, require
@@ -118,9 +118,7 @@ async def place_supporter(
     refuse_erased(supporter)
     campaign = await require_visible_campaign(session, user, supporter.campaign_id)
     if campaign.operational_grain is not OperationalGrain.CENTRE:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Only an MCA race counts supporters per centre."
-        )
+        raise Refused("Only an MCA race counts supporters per centre.")
     await require_ward_in_campaign(
         session, campaign, supporter.ward_id, payload.registration_centre
     )

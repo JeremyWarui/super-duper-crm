@@ -13,6 +13,7 @@ from backend.api.uploads import store_upload
 from backend.models import FileArea, StoredFile, User
 from backend.schemas.files import FileRead
 from backend.services import files
+from backend.services.errors import NotFound
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -58,11 +59,11 @@ async def fetch(
     file = await session.get(StoredFile, file_id)
     allowed = file is not None and (file.public or (caller is not None and caller.is_superuser))
     if not allowed:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such file.")
+        raise NotFound("No such file.")
     width = files.width_for(file, w)
     path = files.path_of(file, width)
     if not path.is_file():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such file.")
+        raise NotFound("No such file.")
     return FileResponse(
         path,
         media_type=file.content_type,

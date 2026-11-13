@@ -3,12 +3,14 @@ reaches with the action (`services/permissions.py`)."""
 
 import uuid
 from collections.abc import Sequence
+from typing import Annotated
 
-from fastapi import HTTPException, status
+from fastapi import Depends
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.interfaces import ORMOption
 
+from backend.api.deps import CurrentUser, SessionDep
 from backend.models import (
     Agent,
     Campaign,
@@ -21,6 +23,7 @@ from backend.models import (
     UserRole,
 )
 from backend.services.accounts import campaign_mobilizer
+from backend.services.errors import Forbidden, NotFound, Refused
 from backend.services.permissions import Area, Reach, narrow, reach
 from backend.services.targets import require_targeted, require_ward
 
@@ -136,8 +139,18 @@ async def require_visible_campaign(
     """The caller's campaign, or 404."""
     campaign = await session.get(Campaign, campaign_id)
     if campaign is None or campaign.id not in await visible_campaign_ids(session, user):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such campaign.")
+        raise NotFound("No such campaign.")
     return campaign
+
+
+async def visible_campaign(
+    campaign_id: uuid.UUID, session: SessionDep, user: CurrentUser
+) -> Campaign:
+    """The path's campaign, once the caller may see it."""
+    return await require_visible_campaign(session, user, campaign_id)
+
+
+VisibleCampaign = Annotated[Campaign, Depends(visible_campaign)]
 
 
 async def require_visible(
@@ -155,7 +168,7 @@ async def require_visible(
     """
     row = await load(session, model, row_id, options)
     if row is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No such {noun}.")
+        raise NotFound(f"No such {noun}.")
     await require_visible_campaign(session, user, row.campaign_id)
     await require_in_area(
         session, user, action, row.ward_id, getattr(row, "registration_centre_id", None)
@@ -175,10 +188,8 @@ async def require_in_area(
     if area is None or area.holds(ward_id, centre_id):
         return
     if user.role is UserRole.MOBILIZER:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "A mobilizer may only work in their own ward."
-        )
-    raise HTTPException(status.HTTP_403_FORBIDDEN, "That is outside your area.")
+        raise Forbidden("A mobilizer may only work in their own ward.")
+    raise Forbidden("That is outside your area.")
 
 
 async def require_mobilizer_in_area(
@@ -208,18 +219,13 @@ async def require_ward_in_campaign(
             select(RegistrationCentre.ward_id).where(RegistrationCentre.id == centre_id)
         )
         if centre_ward is None or centre_ward != ward_id:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, "That registration centre is not in that ward."
-            )
+            raise Refused("That registration centre is not in that ward.")
 
 
 def require_centre_in_ward_race(campaign: Campaign, centre_id: uuid.UUID | None) -> None:
     """In a ward (MCA) race a registration centre is required."""
     if campaign.operational_grain is OperationalGrain.CENTRE and centre_id is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "In an MCA race this happens at a registration centre; pick one.",
-        )
+        raise Refused("In an MCA race this happens at a registration centre; pick one.")
 
 
 async def require_place(

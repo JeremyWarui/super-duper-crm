@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 
 from backend.api.deps import SessionDep, require
@@ -17,6 +17,7 @@ from backend.models import Mobilizer, User, UserRole, Ward
 from backend.schemas.user import UserCreate, UserCreated
 from backend.services.accounts import add_mobilizer
 from backend.services.audit import record
+from backend.services.errors import Forbidden, NotFound, Refused
 from backend.services.login_links import new_invited_login
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -71,18 +72,17 @@ async def create_user(payload: UserCreate, session: SessionDep, user: Writer) ->
 
 
 @router.delete("/{user_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: uuid.UUID, session: SessionDep, user: Writer) -> Response:
+async def delete_user(user_id: uuid.UUID, session: SessionDep, user: Writer) -> None:
     """Remove a mobilizer's login from the caller's campaign; their ground row stays."""
     if user_id == user.id:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "You cannot remove your own login.")
+        raise Refused("You cannot remove your own login.")
     target = await session.get(User, user_id)
     if target is None or user_id not in await visible_user_ids(session, user):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such user.")
+        raise NotFound("No such user.")
     if target.role is not UserRole.MOBILIZER:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
+        raise Forbidden(
             "Only a mobilizer is removed from inside a campaign. "
-            "An admin can disable any other login.",
+            "An admin can disable any other login."
         )
     ground = await session.scalar(select(Mobilizer).where(Mobilizer.user_id == target.id))
     await require_in_area(
@@ -101,4 +101,3 @@ async def delete_user(user_id: uuid.UUID, session: SessionDep, user: Writer) -> 
     )
     await session.delete(target)
     await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

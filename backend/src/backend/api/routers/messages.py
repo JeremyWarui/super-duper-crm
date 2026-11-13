@@ -4,7 +4,7 @@ declined by the Candidate or Manager (`services/messages.py`)."""
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, status
 
 from backend.api.deps import SessionDep, require
 from backend.api.scope import area_of, require_visible_campaign
@@ -19,6 +19,7 @@ from backend.schemas.messages import (
     Reach,
 )
 from backend.services import messages
+from backend.services.errors import Forbidden, NotFound, Refused
 from backend.services.permissions import Reach as Extent
 from backend.services.permissions import reach, refusal
 from backend.services.sms import get_sms_provider
@@ -39,7 +40,7 @@ async def _visible(session, user: User, message_id: uuid.UUID) -> CampaignMessag
     await require_visible_campaign(session, user, message.campaign_id)
     mine = _own_only(user)
     if mine is not None and message.drafted_by_id != mine:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such message.")
+        raise NotFound("No such message.")
     return message
 
 
@@ -53,10 +54,7 @@ async def _drafter_area(session, message: CampaignMessage):
     nobody."""
     drafter = await session.get(User, message.drafted_by_id) if message.drafted_by_id else None
     if drafter is None or reach(drafter, "sms.draft") is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "Whoever drafted this can no longer write messages; draft it again.",
-        )
+        raise Refused("Whoever drafted this can no longer write messages; draft it again.")
     return await area_of(session, drafter, "sms.draft")
 
 
@@ -86,7 +84,7 @@ async def preview(payload: MessageDraft, session: SessionDep, user: Drafter) -> 
 async def create(payload: MessageDraft, session: SessionDep, user: Drafter) -> dict:
     """Save a draft; with `send`, the Candidate or Manager sends it at once."""
     if payload.send and reach(user, "sms.send") is None:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, refusal(user, "sms.send"))
+        raise Forbidden(refusal(user, "sms.send"))
     await require_visible_campaign(session, user, payload.campaign)
     area = await area_of(session, user, "sms.draft")
     message = await messages.draft(
@@ -116,15 +114,12 @@ async def decline(
 
 
 @router.delete("/{message_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete(message_id: uuid.UUID, session: SessionDep, user: Drafter) -> Response:
+async def delete(message_id: uuid.UUID, session: SessionDep, user: Drafter) -> None:
     """Delete a draft: its drafter, or whoever may send."""
     message = await _visible(session, user, message_id)
     if message.drafted_by_id != user.id and reach(user, "sms.send") is None:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "Only its drafter or a sender may delete it."
-        )
+        raise Forbidden("Only its drafter or a sender may delete it.")
     await messages.discard(session, message)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{message_id}/log/", response_model=list[LogRow])

@@ -9,10 +9,10 @@ from sqlalchemy import select
 
 from backend.api.deps import CurrentUser, SessionDep, require
 from backend.api.scope import (
+    VisibleCampaign,
     all_rows,
     area_of,
     load,
-    require_visible_campaign,
     visible_campaign_ids,
 )
 from backend.models import Campaign, User, VolunteerProfile, VolunteerStatus, WorkspaceKind
@@ -62,27 +62,24 @@ async def list_campaigns(session: SessionDep, user: CurrentUser) -> list[Campaig
 
 @router.get("/{campaign_id}/", response_model=CampaignRead)
 async def get_campaign(
-    campaign_id: uuid.UUID, session: SessionDep, user: CurrentUser
+    session: SessionDep, user: CurrentUser, campaign: VisibleCampaign
 ) -> CampaignRead:
-    await require_visible_campaign(session, user, campaign_id)
-    return await _named(session, await load(session, Campaign, campaign_id, CAMPAIGN_NAMES))
+    return await _named(session, await load(session, Campaign, campaign.id, CAMPAIGN_NAMES))
 
 
 @router.get("/{campaign_id}/signups/", response_model=CampaignSignups)
 async def read_signups(
-    campaign_id: uuid.UUID, session: SessionDep, user: SignupsWriter
+    session: SessionDep, user: SignupsWriter, campaign: VisibleCampaign
 ) -> CampaignSignups:
     """The campaign-wide sign-up link, to share."""
-    campaign = await require_visible_campaign(session, user, campaign_id)
     return CampaignSignups(code=campaign.signup_code, open=campaign.signups_open)
 
 
 @router.post("/{campaign_id}/signups/", response_model=CampaignSignups)
 async def set_signups(
-    campaign_id: uuid.UUID, payload: EventSignups, session: SessionDep, user: SignupsWriter
+    payload: EventSignups, session: SessionDep, user: SignupsWriter, campaign: VisibleCampaign
 ) -> CampaignSignups:
     """Open or close the campaign-wide sign-up link."""
-    campaign = await require_visible_campaign(session, user, campaign_id)
     campaign.signups_open = payload.open
     await session.commit()
     return CampaignSignups(code=campaign.signup_code, open=campaign.signups_open)
@@ -90,27 +87,25 @@ async def set_signups(
 
 @router.post("/{campaign_id}/generate_targets/", response_model=SetupSummary)
 async def regenerate_targets(
-    campaign_id: uuid.UUID, session: SessionDep, user: TargetsWriter
+    session: SessionDep, user: TargetsWriter, campaign: VisibleCampaign
 ) -> SetupSummary:
     """Rebuild the targets after new centres or wards are loaded, as Refresh targets does."""
-    campaign = await require_visible_campaign(session, user, campaign_id)
     return await refresh_targets(session, campaign, actor=user)
 
 
 @router.get("/{campaign_id}/volunteers/", response_model=list[CampaignVolunteerRead])
 async def list_volunteers(
-    campaign_id: uuid.UUID,
     session: SessionDep,
     user: VolunteerReader,
+    campaign: VisibleCampaign,
     q: Annotated[str, Query(max_length=100)] = "",
     ward: uuid.UUID | None = None,
     volunteer_status: Annotated[VolunteerStatus | None, Query(alias="status")] = None,
 ) -> list[VolunteerProfile]:
     """The volunteers the candidate's website page signed up, newest first."""
-    await require_visible_campaign(session, user, campaign_id)
     return await campaign_volunteers.volunteers(
         session,
-        campaign_id,
+        campaign.id,
         q=q,
         ward=ward,
         status=volunteer_status,
@@ -120,17 +115,16 @@ async def list_volunteers(
 
 @router.patch("/{campaign_id}/volunteers/{volunteer_id}/", response_model=CampaignVolunteerRead)
 async def update_volunteer(
-    campaign_id: uuid.UUID,
     volunteer_id: uuid.UUID,
     payload: CampaignVolunteerUpdate,
     session: SessionDep,
     user: VolunteerWriter,
+    campaign: VisibleCampaign,
 ) -> VolunteerProfile:
     """Make a volunteer active or inactive, and edit the notes about them."""
-    await require_visible_campaign(session, user, campaign_id)
     return await campaign_volunteers.update_volunteer(
         session,
-        campaign_id,
+        campaign.id,
         volunteer_id,
         payload,
         actor=user,

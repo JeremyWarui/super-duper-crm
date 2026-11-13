@@ -80,6 +80,15 @@ class TimestampMixin:
     )
 
 
+HEX_DIGITS = "'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'"
+
+
+def hex_colour(column: str) -> str:
+    """A CHECK expression for `#rrggbb` that Postgres and SQLite both run."""
+    digits = " AND ".join(f"lower(substr({column}, {i}, 1)) IN ({HEX_DIGITS})" for i in range(2, 8))
+    return f"length({column}) = 7 AND substr({column}, 1, 1) = '#' AND {digits}"
+
+
 def choice_type(enum_cls: type, name: str, length: int = 20) -> "SAEnum":
     """Store an enum as VARCHAR with a CHECK constraint listing the valid values."""
     return SAEnum(

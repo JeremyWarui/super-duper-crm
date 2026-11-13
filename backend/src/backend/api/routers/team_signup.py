@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Request, status
 
 from backend.api.deps import SessionDep, require
 from backend.api.limits import check
-from backend.api.scope import area_of, require_visible_campaign
+from backend.api.scope import VisibleCampaign, area_of
 from backend.models import OperationalGrain, RegistrationStatus, TeamRegistration, User
 from backend.schemas.team_signup import (
     Approved,
@@ -103,16 +103,15 @@ async def sign_up(
 
 @router.get("/campaigns/{campaign_id}/registrations/", response_model=list[RegistrationRead])
 async def list_registrations(
-    campaign_id: uuid.UUID,
     session: SessionDep,
     user: Approver,
+    campaign: VisibleCampaign,
     status: RegistrationStatus | None = None,
 ) -> list[RegistrationRead]:
     """Sign-ups in the caller's reach, newest first; ID numbers only for the candidate and
     manager."""
-    await require_visible_campaign(session, user, campaign_id)
     area = await area_of(session, user, "team.approve")
-    rows = await team_signup.registrations(session, campaign_id, area, status)
+    rows = await team_signup.registrations(session, campaign.id, area, status)
     return [_read(row, _sees_ids(user)) for row in rows]
 
 
@@ -120,14 +119,13 @@ async def list_registrations(
     "/campaigns/{campaign_id}/registrations/{registration_id}/approve/", response_model=Approved
 )
 async def approve(
-    campaign_id: uuid.UUID, registration_id: uuid.UUID, session: SessionDep, user: Approver
+    registration_id: uuid.UUID, session: SessionDep, user: Approver, campaign: VisibleCampaign
 ) -> Approved:
     """Activate the login, put the person on the workspace, and email them an invite link."""
-    campaign = await require_visible_campaign(session, user, campaign_id)
     area = await area_of(session, user, "team.approve")
-    row = await team_signup.registration(session, campaign_id, registration_id, area)
+    row = await team_signup.registration(session, campaign.id, registration_id, area)
     invite, placed = await team_signup.approve(session, campaign, row, actor=user)
-    row = await team_signup.registration(session, campaign_id, registration_id, None)
+    row = await team_signup.registration(session, campaign.id, registration_id, None)
     return Approved(registration=_read(row, _sees_ids(user)), invite=invite, placed=placed)
 
 
@@ -136,31 +134,30 @@ async def approve(
     response_model=RegistrationRead,
 )
 async def reject(
-    campaign_id: uuid.UUID,
     registration_id: uuid.UUID,
     payload: Rejection,
     session: SessionDep,
     user: Approver,
+    campaign: VisibleCampaign,
 ) -> RegistrationRead:
     """Refuse a sign-up with a reason; its login is deleted."""
-    campaign = await require_visible_campaign(session, user, campaign_id)
     area = await area_of(session, user, "team.approve")
-    row = await team_signup.registration(session, campaign_id, registration_id, area)
+    row = await team_signup.registration(session, campaign.id, registration_id, area)
     await team_signup.reject(session, campaign, row, payload.reason, actor=user)
-    row = await team_signup.registration(session, campaign_id, registration_id, None)
+    row = await team_signup.registration(session, campaign.id, registration_id, None)
     return _read(row, _sees_ids(user))
 
 
 @router.get("/campaigns/{campaign_id}/team-link/", response_model=TeamLink)
-async def read_team_link(campaign_id: uuid.UUID, session: SessionDep, user: Approver) -> TeamLink:
-    campaign = await require_visible_campaign(session, user, campaign_id)
+async def read_team_link(
+    session: SessionDep, user: Approver, campaign: VisibleCampaign
+) -> TeamLink:
     return TeamLink(code=campaign.team_code)
 
 
 @router.post("/campaigns/{campaign_id}/team-link/", response_model=TeamLink)
 async def replace_team_link(
-    campaign_id: uuid.UUID, session: SessionDep, user: TeamWriter
+    session: SessionDep, user: TeamWriter, campaign: VisibleCampaign
 ) -> TeamLink:
     """A new team link; the old one and its QR code stop working."""
-    campaign = await require_visible_campaign(session, user, campaign_id)
     return TeamLink(code=await team_signup.replace_code(session, campaign, actor=user))

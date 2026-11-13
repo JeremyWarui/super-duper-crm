@@ -1,12 +1,12 @@
 """Uploaded files as routes take and give them: storing a form's file, serving a private one."""
 
-from fastapi import HTTPException, UploadFile, status
+from fastapi import UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import FileArea, StoredFile, User
 from backend.services import files
-from backend.services.errors import Refused
+from backend.services.errors import NotFound, Refused
 
 PRIVATE = {"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"}
 
@@ -42,7 +42,7 @@ def private_file(stored: StoredFile, missing: str) -> FileResponse:
     """A stored private file as a download no cache keeps; 404 with `missing` when it is gone."""
     path = files.path_of(stored, files.width_for(stored, None))
     if not path.is_file():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, missing)
+        raise NotFound(missing)
     return FileResponse(
         path, media_type=stored.content_type, filename=stored.original_name, headers=PRIVATE
     )

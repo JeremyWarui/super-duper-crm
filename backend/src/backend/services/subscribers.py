@@ -1,9 +1,9 @@
 """News sign-ups from the website footer, and undoing them by their code."""
 
 from sqlalchemy import delete
-from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.db.session import upsert
 from backend.models import Subscriber
 from backend.security import new_withdraw_code
 from backend.services.consent import subscribe_wording
@@ -18,9 +18,8 @@ async def subscribe(session: AsyncSession, contact: str, channel: str) -> str:
     """
     settings = await read_settings(session)
     code = new_withdraw_code()
-    dialect = postgresql if session.bind.dialect.name == "postgresql" else sqlite
     await session.execute(
-        dialect.insert(Subscriber)
+        upsert(session, Subscriber)
         .values(
             contact=contact,
             channel=channel,

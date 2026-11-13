@@ -1,6 +1,6 @@
 """A party member's own account: their details, their volunteering, and leaving the party."""
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, status
 from sqlalchemy import update
 
 from backend.api.deps import AccountMember, SessionDep, SignedInUser, account_member
@@ -79,7 +79,7 @@ async def stop_volunteering(
 
 
 @router.post("/leave/", status_code=status.HTTP_204_NO_CONTENT)
-async def leave_party(member: AccountMember, user: SignedInUser, session: SessionDep) -> Response:
+async def leave_party(member: AccountMember, user: SignedInUser, session: SessionDep) -> None:
     """Queue the member's withdrawal, as their withdrawal link does, and sign them out."""
     code = member.withdraw_code
     if code is None:
@@ -90,4 +90,3 @@ async def leave_party(member: AccountMember, user: SignedInUser, session: Sessio
     membership.request_withdraw(session, code)
     await sign_out(session, user.id)
     await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

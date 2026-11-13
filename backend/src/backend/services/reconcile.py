@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Payment, PaymentStatus, ReconcileDifference, ReconcileRun
 from backend.services.clock import as_utc
-from backend.services.payout_flow import ATTEMPT
+from backend.services.payout_flow import ATTEMPT, reference_of
 from backend.services.payouts import PAYSTACK_DEAD, PayoutProvider, Transfer, get_payout_provider
 
 logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ async def run(
         match = ATTEMPT.match(transfer.reference)
         if match is None:
             continue
-        payment_id, attempt = uuid.UUID(match[2]), int(match[3])
+        payment_id, attempt = uuid.UUID(match[1]), int(match[2])
         row = rows.get(payment_id) or await session.get(Payment, payment_id)
         ours.add(transfer.reference)
         if row is None:
@@ -131,7 +131,7 @@ async def run(
             differ(row, transfer.reference, row.status.value, transfer.status, why)
 
     for row in rows.values():
-        reference = f"pay-{row.id}-{row.attempts}"
+        reference = reference_of(row.id, row.attempts)
         if reference in ours:
             continue
         if row.status is PaymentStatus.PAID or (

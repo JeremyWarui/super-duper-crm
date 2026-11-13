@@ -4,7 +4,7 @@ import uuid
 from datetime import date
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, Query, status
 from sqlalchemy import select
 
 from backend.api.content_routes import items, posts
@@ -151,12 +151,9 @@ async def rename_campaign(
 
 
 @router.delete("/campaigns/{campaign_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_campaign(
-    campaign_id: uuid.UUID, session: SessionDep, admin: AdminUser
-) -> Response:
+async def delete_campaign(campaign_id: uuid.UUID, session: SessionDep, admin: AdminUser) -> None:
     """Delete a campaign, everything on it, and its people's logins."""
     await service.delete_campaign(session, campaign_id, actor=admin)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post(
@@ -176,9 +173,8 @@ async def add_member(
 )
 async def remove_member(
     campaign_id: uuid.UUID, user_id: uuid.UUID, session: SessionDep, admin: AdminUser
-) -> Response:
+) -> None:
     await service.remove_member(session, campaign_id, user_id, actor=admin)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/users/", response_model=list[AdminUserRead])
@@ -262,10 +258,9 @@ async def link_party_member(
 @party_router.delete("/users/{user_id}/party-roles/{role}/", status_code=status.HTTP_204_NO_CONTENT)
 async def revoke_party_role(
     user_id: uuid.UUID, role: PartyRoleName, session: SessionDep, admin: AdminUser
-) -> Response:
+) -> None:
     """Take a party office from a login."""
     await service.revoke_party_role(session, user_id, role, actor=admin)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/audit/", response_model=list[AuditEventRead])

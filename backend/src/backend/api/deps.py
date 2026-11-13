@@ -23,7 +23,7 @@ from backend.models import (
     Ward,
 )
 from backend.services import access, clock, membership, permissions, site
-from backend.services.errors import CampaignClosed, NotFound
+from backend.services.errors import CampaignClosed, Forbidden, NotFound
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -88,7 +88,7 @@ async def get_current_user(user: SignedInUser, session: SessionDep, request: Req
     A member login is refused: it opens only the member account.
     """
     if user.kind is UserKind.MEMBER:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "A member login opens only its account.")
+        raise Forbidden("A member login opens only its account.")
     if user.role is None or user.is_superuser:
         return user
     found = await access.login_access(session, user.id)
@@ -99,7 +99,7 @@ async def get_current_user(user: SignedInUser, session: SessionDep, request: Req
         and request.method not in ("GET", "HEAD", "OPTIONS")
         and not OPEN_WHEN_CLOSED.match(request.url.path)
     ):
-        raise HTTPException(status.HTTP_403_FORBIDDEN, found.reason)
+        raise Forbidden(found.reason)
     return user
 
 
@@ -116,7 +116,7 @@ def require(action: str, *, whole: bool = False):
     async def dependency(user: CurrentUser) -> User:
         found = permissions.reach(user, action)
         if found is None or (whole and found is not permissions.Reach.ALL):
-            raise HTTPException(status.HTTP_403_FORBIDDEN, permissions.refusal(user, action))
+            raise Forbidden(permissions.refusal(user, action))
         return user
 
     return dependency
@@ -124,7 +124,7 @@ def require(action: str, *, whole: bool = False):
 
 async def require_superuser(user: CurrentUser) -> User:
     if not user.is_superuser:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "This is not yours to see.")
+        raise Forbidden("This is not yours to see.")
     return user
 
 
@@ -138,9 +138,7 @@ def require_party_role(*roles: PartyRoleName):
 
     async def dependency(user: CurrentUser, session: SessionDep) -> User:
         if not user.is_superuser and not any(held.role in roles for held in user.party_roles):
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN, "This needs a party office you do not hold."
-            )
+            raise Forbidden("This needs a party office you do not hold.")
         await membership.process_requests(session)
         if user.is_superuser:
             return user
@@ -152,10 +150,7 @@ def require_party_role(*roles: PartyRoleName):
             else None
         )
         if own is not PartyMemberStatus.APPROVED:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN,
-                "This login needs to be linked to an approved party member.",
-            )
+            raise Forbidden("This login needs to be linked to an approved party member.")
         return user
 
     return dependency
@@ -190,13 +185,13 @@ async def get_account_member(user: SignedInUser, session: SessionDep) -> PartyMe
     approved member gets 403.
     """
     if user.party_member_id is None:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "This login has no member account.")
+        raise Forbidden("This login has no member account.")
     await membership.process_requests(session)
     member = await account_member(session, user)
     if member is None or not member.is_approved:
         if user.kind is UserKind.MEMBER:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Your membership is not active.")
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "This login has no member account.")
+        raise Forbidden("This login has no member account.")
     return member
 
 

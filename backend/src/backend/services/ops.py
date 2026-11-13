@@ -52,6 +52,11 @@ def migration_head() -> str | None:
         return None
 
 
+def _stamp(at: datetime) -> dict:
+    """When an archive was made, by which version, at which migration."""
+    return {"created_at": at.isoformat(), "version": __version__, "migration": migration_head()}
+
+
 def _disk(label: str, folder: str) -> dict:
     path = Path(folder).resolve()
     probe = path
@@ -172,9 +177,7 @@ async def export_archive(
                 )
             archive.writestr(f"csv/{table.name}.csv", out.getvalue())
         manifest = {
-            "created_at": created.isoformat(),
-            "version": __version__,
-            "migration": migration_head(),
+            **_stamp(created),
             "organisation_type": organisation_type.value if organisation_type else None,
             "tables": counts,
             "left_out": sorted(SECRET_TABLES)
@@ -255,13 +258,7 @@ def _write_backup(folder: Path, stamp: datetime) -> Path:
             uploads = files.upload_dir()
             if uploads.is_dir():
                 archive.add(uploads, arcname="uploads")
-            manifest = json.dumps(
-                {
-                    "created_at": stamp.isoformat(),
-                    "version": __version__,
-                    "migration": migration_head(),
-                }
-            ).encode()
+            manifest = json.dumps(_stamp(stamp)).encode()
             info = tarfile.TarInfo("manifest.json")
             info.size = len(manifest)
             archive.addfile(info, io.BytesIO(manifest))

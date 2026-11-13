@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Header, Response, status
+from fastapi import APIRouter, Header, status
 
 from backend.api.deps import AdminUser, SessionDep
 from backend.schemas.setup import (
@@ -25,9 +25,8 @@ async def setup_state(session: SessionDep) -> dict[str, bool]:
 
 
 @router.post("/check/", status_code=status.HTTP_204_NO_CONTENT)
-async def check_token(payload: SetupToken, session: SessionDep) -> Response:
+async def check_token(payload: SetupToken, session: SessionDep) -> None:
     await setup.check(session, payload.token)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/areas/", response_model=list[Area])

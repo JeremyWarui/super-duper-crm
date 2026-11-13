@@ -6,12 +6,12 @@ Every workspace route here stays open after the campaign closes (`api/deps.py`).
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy import func, select
 
 from backend.api.deps import MembershipOfficer, SessionDep, require
 from backend.api.install import PartyOnlyRoute
-from backend.api.scope import require_visible_campaign
+from backend.api.scope import VisibleCampaign
 from backend.db.session import get_or_refuse
 from backend.models import (
     Campaign,
@@ -55,16 +55,14 @@ async def _row[T: (Supporter, VolunteerProfile, TeamRegistration)](
 
 
 @router.get("/requests/", response_model=list[DataRequestRead])
-async def list_requests(campaign_id: uuid.UUID, session: SessionDep, user: Manager) -> list:
-    campaign = await require_visible_campaign(session, user, campaign_id)
+async def list_requests(session: SessionDep, user: Manager, campaign: VisibleCampaign) -> list:
     return list(await session.scalars(privacy.requests(campaign.id)))
 
 
 @router.post("/requests/", response_model=DataRequestRead, status_code=status.HTTP_201_CREATED)
 async def log_request(
-    campaign_id: uuid.UUID, payload: DataRequestCreate, session: SessionDep, user: Manager
+    payload: DataRequestCreate, session: SessionDep, user: Manager, campaign: VisibleCampaign
 ) -> DataRequest:
-    campaign = await require_visible_campaign(session, user, campaign_id)
     row = privacy.log_request(session, campaign.id, payload, actor=user)
     await session.commit()
     return row
@@ -72,13 +70,12 @@ async def log_request(
 
 @router.patch("/requests/{request_id}/", response_model=DataRequestRead)
 async def update_request(
-    campaign_id: uuid.UUID,
     request_id: uuid.UUID,
     payload: DataRequestUpdate,
     session: SessionDep,
     user: Manager,
+    campaign: VisibleCampaign,
 ) -> DataRequest:
-    campaign = await require_visible_campaign(session, user, campaign_id)
     row = await privacy.find_request(session, campaign.id, request_id)
     privacy.update_request(row, payload, actor=user)
     await session.commit()
@@ -90,42 +87,35 @@ async def update_request(
 
 @router.post("/supporters/{supporter_id}/erase/", status_code=status.HTTP_204_NO_CONTENT)
 async def erase_supporter(
-    campaign_id: uuid.UUID, supporter_id: uuid.UUID, session: SessionDep, user: Manager
-) -> Response:
-    campaign = await require_visible_campaign(session, user, campaign_id)
+    supporter_id: uuid.UUID, session: SessionDep, user: Manager, campaign: VisibleCampaign
+) -> None:
     supporter = await _row(session, Supporter, supporter_id, campaign)
     await privacy.erase_supporter(session, supporter, actor=user)
     await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/volunteers/{volunteer_id}/erase/", status_code=status.HTTP_204_NO_CONTENT)
 async def erase_volunteer(
-    campaign_id: uuid.UUID, volunteer_id: uuid.UUID, session: SessionDep, user: Manager
-) -> Response:
-    campaign = await require_visible_campaign(session, user, campaign_id)
+    volunteer_id: uuid.UUID, session: SessionDep, user: Manager, campaign: VisibleCampaign
+) -> None:
     profile = await _row(session, VolunteerProfile, volunteer_id, campaign)
     await privacy.erase_volunteer(session, profile, actor=user)
     await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/left-team/", response_model=list[LeftTeamRead])
-async def left_team(campaign_id: uuid.UUID, session: SessionDep, user: Manager) -> list:
+async def left_team(session: SessionDep, user: Manager, campaign: VisibleCampaign) -> list:
     """Mobilizers and agents who were turned down or have left, whose sign-up can be erased."""
-    campaign = await require_visible_campaign(session, user, campaign_id)
     return list(await session.scalars(privacy.left_team(campaign.id)))
 
 
 @router.post("/registrations/{registration_id}/erase/", status_code=status.HTTP_204_NO_CONTENT)
 async def erase_registration(
-    campaign_id: uuid.UUID, registration_id: uuid.UUID, session: SessionDep, user: Manager
-) -> Response:
-    campaign = await require_visible_campaign(session, user, campaign_id)
+    registration_id: uuid.UUID, session: SessionDep, user: Manager, campaign: VisibleCampaign
+) -> None:
     registration = await _row(session, TeamRegistration, registration_id, campaign)
     await privacy.erase_registration(session, registration, actor=user)
     await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # A supporter's withdrawal link.
@@ -133,9 +123,8 @@ async def erase_registration(
 
 @router.get("/supporters/{supporter_id}/withdrawal/", response_model=WithdrawalLink)
 async def withdrawal_link(
-    campaign_id: uuid.UUID, supporter_id: uuid.UUID, session: SessionDep, user: Manager
+    supporter_id: uuid.UUID, session: SessionDep, user: Manager, campaign: VisibleCampaign
 ) -> WithdrawalLink:
-    campaign = await require_visible_campaign(session, user, campaign_id)
     supporter = await _row(session, Supporter, supporter_id, campaign)
     refuse_erased(supporter)
     if not supporter.withdraw_code:
@@ -147,16 +136,14 @@ async def withdrawal_link(
 
 @router.post("/supporters/{supporter_id}/withdrawal/", status_code=status.HTTP_204_NO_CONTENT)
 async def text_withdrawal_link(
-    campaign_id: uuid.UUID, supporter_id: uuid.UUID, session: SessionDep, user: Manager
-) -> Response:
-    campaign = await require_visible_campaign(session, user, campaign_id)
+    supporter_id: uuid.UUID, session: SessionDep, user: Manager, campaign: VisibleCampaign
+) -> None:
     supporter = await _row(session, Supporter, supporter_id, campaign)
     refuse_erased(supporter)
     if campaign.closed_at is not None:
         raise Refused(privacy.CLOSED)
     await privacy.text_withdrawal(session, supporter, campaign, actor=user)
     await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # Closing the campaign.
@@ -181,16 +168,16 @@ async def _close_state(session: SessionDep, campaign: Campaign) -> CampaignClose
 
 
 @router.get("/close/", response_model=CampaignClose)
-async def read_close(campaign_id: uuid.UUID, session: SessionDep, user: Manager) -> CampaignClose:
-    campaign = await require_visible_campaign(session, user, campaign_id)
+async def read_close(
+    session: SessionDep, user: Manager, campaign: VisibleCampaign
+) -> CampaignClose:
     return await _close_state(session, campaign)
 
 
 @router.put("/retention/", response_model=CampaignClose)
 async def set_retention(
-    campaign_id: uuid.UUID, payload: Retention, session: SessionDep, user: Closer
+    payload: Retention, session: SessionDep, user: Closer, campaign: VisibleCampaign
 ) -> CampaignClose:
-    campaign = await require_visible_campaign(session, user, campaign_id)
     privacy.set_retention(campaign, payload.retention_months, actor=user)
     await session.commit()
     return await _close_state(session, campaign)
@@ -198,17 +185,15 @@ async def set_retention(
 
 @router.post("/close/", response_model=CampaignClose)
 async def close_campaign(
-    campaign_id: uuid.UUID, session: SessionDep, user: Closer
+    session: SessionDep, user: Closer, campaign: VisibleCampaign
 ) -> CampaignClose:
-    campaign = await require_visible_campaign(session, user, campaign_id)
     privacy.close(session, campaign, actor=user)
     await session.commit()
     return await _close_state(session, campaign)
 
 
 @router.post("/erase-supporters/", response_model=Erased)
-async def erase_supporters(campaign_id: uuid.UUID, session: SessionDep, user: Closer) -> Erased:
-    campaign = await require_visible_campaign(session, user, campaign_id)
+async def erase_supporters(session: SessionDep, user: Closer, campaign: VisibleCampaign) -> Erased:
     erased = await privacy.erase_supporters(session, campaign, actor=user)
     await session.commit()
     return Erased(erased=erased)

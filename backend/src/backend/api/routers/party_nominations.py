@@ -3,7 +3,7 @@ a member's own application from their account, and the officer's fee and documen
 
 import uuid
 
-from fastapi import APIRouter, Form, HTTPException, Response, UploadFile, status
+from fastapi import APIRouter, Form, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 
@@ -52,16 +52,8 @@ DOCUMENT_LABEL_MAX = 100
 
 
 def _window(row: NominationWindow, me: uuid.UUID | None = None) -> WindowRead:
-    return WindowRead(
-        id=row.id,
-        title=row.title,
-        opens_on=row.opens_on,
-        closes_on=row.closes_on,
-        requirements=row.requirements,
-        status=row.status,
-        published_at=row.published_at,
-        seats=[SeatFee(seat=s.seat, fee_kes=s.fee_kes) for s in row.seats],
-        mine=me is not None and row.drafted_by_id == me,
+    return WindowRead.model_validate(row, from_attributes=True).model_copy(
+        update={"mine": me is not None and row.drafted_by_id == me}
     )
 
 
@@ -253,9 +245,8 @@ async def attach_document(
 @router.delete("/mine/documents/{document_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def detach_document(
     document_id: uuid.UUID, member: AccountMember, session: SessionDep
-) -> Response:
+) -> None:
     await nominations.detach(session, await nominations.mine(session, member), document_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/mine/submit/", response_model=MyNomination)
@@ -268,7 +259,7 @@ async def submit(
 ) -> MyNomination:
     """Send the application for vetting with the declaration; any fee must be marked paid."""
     if not payload.declaration:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Confirm the declaration to submit.")
+        raise Refused("Confirm the declaration to submit.")
     await nominations.submit(
         session, await nominations.mine(session, member), actor=user, today=today
     )

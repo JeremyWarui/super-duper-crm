@@ -22,9 +22,9 @@ from backend.db.base import (
     UUIDPrimaryKeyMixin,
     choice_type,
     file_ref,
+    hex_colour,
 )
 from backend.models.enums import OrganisationType
-from backend.models.party import hex_colour
 
 
 class SiteSettings(Base):

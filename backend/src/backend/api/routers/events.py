@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
@@ -30,6 +30,7 @@ from backend.schemas.campaign import (
     InviteRecipient,
 )
 from backend.services import messages, texting
+from backend.services.errors import Forbidden
 from backend.services.permissions import reach, refusal
 from backend.services.sms import Recipient, SendResult, get_sms_provider
 
@@ -121,11 +122,10 @@ async def record_event(
 
 
 @router.delete("/{event_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_event(event_id: uuid.UUID, session: SessionDep, user: Writer) -> Response:
+async def delete_event(event_id: uuid.UUID, session: SessionDep, user: Writer) -> None:
     event = await require_visible(session, user, Event, event_id, "event", "events.write")
     await session.delete(event)
     await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _not_sent(message: str, accepted: list[Recipient], detail: str) -> SendResult:
@@ -146,7 +146,7 @@ async def invite_to_event(
     """Text the event's consenting supporters and set `number_reached`; a dry run sends nothing
     and is open to anyone who may change the event."""
     if not payload.dry_run and reach(user, "sms.send") is None:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, refusal(user, "sms.send"))
+        raise Forbidden(refusal(user, "sms.send"))
     event = await require_visible(session, user, Event, event_id, "event", "events.write", LOADED)
 
     matched, text, numbers, unusable = await messages.invite(

@@ -4,7 +4,7 @@ appointment letters."""
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Response
 
 from backend.api.csv_export import cell, csv_response
 from backend.api.deps import SessionDep, require
@@ -13,6 +13,7 @@ from backend.models import Agent, User
 from backend.schemas.team_signup import AgentRead, AgentUpdate, Coverage, CoverageCentre
 from backend.services import agents
 from backend.services.audit import record
+from backend.services.errors import Forbidden, NotFound
 from backend.services.permissions import Reach, reach
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -66,7 +67,7 @@ async def list_agents(campaign: uuid.UUID, session: SessionDep, user: Reader) ->
 async def coverage(campaign: uuid.UUID, session: SessionDep, user: Reader) -> Coverage:
     """How many centres in the caller's reach have an agent, and which have none."""
     if reach(user, "agents.read") is Reach.OWN:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Coverage is for the campaign team.")
+        raise Forbidden("Coverage is for the campaign team.")
     found = await require_visible_campaign(session, user, campaign)
     total, covered, missing, more = await agents.coverage(
         session, found, await area_of(session, user, "agents.read")
@@ -120,7 +121,7 @@ async def update_agent(
     """Move an agent to a centre, or set their vetting status or training date."""
     row = await session.get(Agent, agent_id)
     if row is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such agent.")
+        raise NotFound("No such agent.")
     campaign = await require_visible_campaign(session, user, row.campaign_id)
     area = await area_of(session, user, "agents.write")
     row = await agents.agent(session, campaign.id, agent_id, area)

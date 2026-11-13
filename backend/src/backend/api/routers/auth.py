@@ -13,7 +13,6 @@ from fastapi import (
     HTTPException,
     Query,
     Request,
-    Response,
     status,
 )
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -47,6 +46,7 @@ from backend.security import (
 from backend.services import login_links, oidc, tokens
 from backend.services.accounts import clean_email, sign_out, user_named, user_with_email
 from backend.services.audit import record
+from backend.services.errors import NotFound, Refused
 from backend.services.ratelimit import RateLimit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -114,11 +114,10 @@ async def me(user: SignedInUser) -> User:
 
 
 @router.post("/logout/", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(user: SignedInUser, session: SessionDep) -> Response:
+async def logout(user: SignedInUser, session: SessionDep) -> None:
     """Delete the caller's token everywhere."""
     await sign_out(session, user.id)
     await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 async def _send_reset(opener, email: str) -> None:
@@ -186,7 +185,7 @@ def _to_signin(**query: str) -> RedirectResponse:
 
 def _need_google() -> None:
     if not oidc.configured():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Google sign-in is not set up here.")
+        raise NotFound("Google sign-in is not set up here.")
 
 
 @router.get("/google/start/", status_code=status.HTTP_302_FOUND)
@@ -273,7 +272,7 @@ async def google_finish(payload: GoogleFinish, request: Request, session: Sessio
     hashed = sha256_hex(f"{payload.handoff}:{payload.bind}")
     token = await session.scalar(select(AuthToken).where(AuthToken.handoff_hash == hashed))
     if token is None or not tokens.is_live(token.handoff_expires_at):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, HANDOFF_SPENT)
+        raise Refused(HANDOFF_SPENT)
     if not await tokens.spend(
         session,
         AuthToken,
@@ -282,7 +281,7 @@ async def google_finish(payload: GoogleFinish, request: Request, session: Sessio
         handoff_hash=None,
         handoff_expires_at=None,
     ):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, HANDOFF_SPENT)
+        raise Refused(HANDOFF_SPENT)
     user = await session.scalar(
         select(User)
         .where(User.id == token.user_id)

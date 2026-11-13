@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Query
 from pydantic import AfterValidator
 
 from backend.api.deps import CurrentUser, SessionDep
@@ -11,13 +11,14 @@ from backend.models import User
 from backend.schemas.common import plain_text
 from backend.schemas.console import Notification, SearchHit
 from backend.services import console
+from backend.services.errors import Forbidden
 
 router = APIRouter(prefix="/party", tags=["party"], route_class=PartyOnlyRoute)
 
 
 def _staff(user: User) -> None:
     if not console.offices(user):
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "This is for party staff.")
+        raise Forbidden("This is for party staff.")
 
 
 @router.get("/search/", response_model=list[SearchHit])

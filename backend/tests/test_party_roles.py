@@ -2,7 +2,6 @@
 
 import httpx
 import pytest
-from fastapi import HTTPException
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.deps import require_party_role
 from backend.models import PartyRole, PartyRoleName, User, UserKind, UserRole
 from backend.services import audit
+from backend.services.errors import Forbidden
 from tests.conftest import World
 from tests.factories import auth, make_officer, make_user, sign_in
 
@@ -35,9 +35,8 @@ async def test_an_officer_passes_the_guard_and_sees_no_campaign(
 
 async def test_a_candidate_gets_403_from_the_guard(session: AsyncSession, world: World):
     await session.refresh(world.candidate, ["party_roles"])
-    with pytest.raises(HTTPException) as refused:
+    with pytest.raises(Forbidden):
         await require_party_role(OFFICER)(world.candidate, session)
-    assert refused.value.status_code == 403
 
 
 async def test_a_manager_login_cannot_be_given_a_party_role(

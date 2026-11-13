@@ -6,7 +6,7 @@ Mounted only in a party installation.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from backend.api.deps import AdminUser, CurrentUser, SessionDep
 from backend.api.install import PartyOnlyRoute
@@ -33,7 +33,7 @@ async def _coordinator(user: CurrentUser, session: SessionDep) -> CampaignMember
     """The caller's coordinator place on the party workspace; 404 for anyone else."""
     member = await party_workspace.coordinator(session, user)
     if member is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found.")
+        raise NotFound("Not found.")
     return member
 
 

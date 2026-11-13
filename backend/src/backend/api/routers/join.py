@@ -6,7 +6,7 @@ No login; one supporter per phone per campaign.
 import uuid
 from dataclasses import dataclass
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Request, status
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
@@ -28,6 +28,7 @@ from backend.security import new_withdraw_code
 from backend.services.access import FULL, Access, workspace_access
 from backend.services.campaigns import CAMPAIGN_NAMES
 from backend.services.consent import WORDING, ConsentChannel
+from backend.services.errors import NotFound, Refused
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import require_phone
 from backend.services.targets import wards_in_area
@@ -79,7 +80,7 @@ async def _link(session: SessionDep, code: str) -> Link:
             select(Campaign).where(Campaign.signup_code == code).options(*CAMPAIGN_NAMES)
         )
     if campaign is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "This sign-up link is not valid.")
+        raise NotFound("This sign-up link is not valid.")
     return Link(
         campaign=campaign,
         event=event,
@@ -129,11 +130,11 @@ async def _filed_at(
         return link.event.ward_id, link.event.registration_centre_id if by_centre else None
     offered = {p.id for p in await _places(session, campaign)}
     if place is not None and place not in offered:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Pick a place from the list.")
+        raise Refused("Pick a place from the list.")
     if by_centre:
         return campaign.ward_id, place
     if place is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Pick the ward where you vote.")
+        raise Refused("Pick the ward where you vote.")
     return place, None
 
 
@@ -149,7 +150,7 @@ async def sign_up(
     check(SIGNUPS, request, TOO_MANY_SIGNUPS)
     link = await _link(session, code)
     if not link.open:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Sign-ups are closed.")
+        raise Refused("Sign-ups are closed.")
     phone = require_phone(payload.phone)
     ward_id, centre_id = await _filed_at(session, link, payload.place)
     withdraw_code = new_withdraw_code()

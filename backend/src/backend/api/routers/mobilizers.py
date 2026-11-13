@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -20,6 +20,7 @@ from backend.api.scope import (
 from backend.models import Campaign, Mobilizer, User, UserRole, Ward
 from backend.schemas.campaign import MobilizerCreate, MobilizerRead, MobilizerUpdate
 from backend.services.accounts import add_mobilizer, leave, move_mobilizer
+from backend.services.errors import Refused
 
 router = APIRouter(prefix="/mobilizers", tags=["mobilizers"])
 
@@ -67,9 +68,9 @@ async def _free_mobilizer(session: SessionDep, user_id: uuid.UUID) -> User:
     """A mobilizer login with no ground row yet; 400 or 409 otherwise."""
     named = await session.get(User, user_id)
     if named is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such user.")
+        raise Refused("No such user.")
     if named.role is not UserRole.MOBILIZER:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{named.username} is not a mobilizer.")
+        raise Refused(f"{named.username} is not a mobilizer.")
     if await session.scalar(select(Mobilizer.id).where(Mobilizer.user_id == user_id)) is not None:
         raise HTTPException(
             status.HTTP_409_CONFLICT, f"{named.username} is already on the ground somewhere."
@@ -105,7 +106,7 @@ async def update_mobilizer(
 
 
 @router.delete("/{mobilizer_id}/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_mobilizer(mobilizer_id: uuid.UUID, session: SessionDep, user: Writer) -> Response:
+async def delete_mobilizer(mobilizer_id: uuid.UUID, session: SessionDep, user: Writer) -> None:
     """Take somebody off the ground, and their login off the campaign."""
     mobilizer = await require_visible(
         session, user, Mobilizer, mobilizer_id, "mobilizer", "mobilizers.write"
@@ -114,4 +115,3 @@ async def delete_mobilizer(mobilizer_id: uuid.UUID, session: SessionDep, user: W
         await leave(session, mobilizer.campaign_id, mobilizer.user_id)
     await session.delete(mobilizer)
     await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
