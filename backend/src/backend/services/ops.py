@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend import __version__
 from backend.config import get_settings
 from backend.models import BackupRun, Base, Campaign, OrganisationType, User, WorkspaceKind
-from backend.services import texting
+from backend.services import files, texting
 from backend.services.audit import record
 from backend.services.errors import Refused
 from backend.services.payouts import get_payout_provider
@@ -252,7 +252,7 @@ def _write_backup(folder: Path, stamp: datetime) -> Path:
         partial = final.with_suffix(".part")
         with tarfile.open(partial, "w:gz") as archive:
             archive.add(dump, arcname="database.dump")
-            uploads = Path(get_settings().upload_dir)
+            uploads = files.upload_dir()
             if uploads.is_dir():
                 archive.add(uploads, arcname="uploads")
             manifest = json.dumps(

@@ -5,7 +5,8 @@ from fastapi import APIRouter, Request, status
 
 from backend.api.deps import SessionDep
 from backend.api.limits import check
-from backend.models import PayInPurpose, PaymentIn
+from backend.api.reads import payment_in_read
+from backend.models import PayInPurpose
 from backend.schemas.payments_in import PayContribution, PaymentInRead, PayOptions
 from backend.services import payments_in, site
 from backend.services.ratelimit import RateLimit
@@ -13,18 +14,6 @@ from backend.services.ratelimit import RateLimit
 router = APIRouter(prefix="/pay", tags=["pay"])
 
 STARTS = RateLimit(limit=10, window=3600)
-
-
-def read(row: PaymentIn) -> PaymentInRead:
-    return PaymentInRead(
-        reference=row.reference,
-        purpose=row.purpose,
-        method=row.method,
-        status=row.status,
-        amount_kes=row.amount_kes,
-        reason=row.reason,
-        practice=row.provider == "practice",
-    )
 
 
 @router.get("/options/", response_model=PayOptions)
@@ -51,11 +40,11 @@ async def contribute(
         mpesa_code=payload.mpesa_code,
         campaign_id=await payments_in.contribution_campaign(session, settings),
     )
-    return read(row)
+    return payment_in_read(row)
 
 
 @router.get("/{reference}/", response_model=PaymentInRead)
 async def payment(reference: str, session: SessionDep) -> PaymentInRead:
     """A payment's status by its reference, checked with Paystack when a prompt waits long."""
     row = await payments_in.by_reference(session, reference)
-    return read(await payments_in.refresh(session, row))
+    return payment_in_read(await payments_in.refresh(session, row))

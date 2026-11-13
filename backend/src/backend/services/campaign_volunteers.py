@@ -35,6 +35,9 @@ PLACES = (
     selectinload(VolunteerProfile.registration_centre),
 )
 
+# The answer to every volunteer sign-up, new or known.
+THANKS = "Thank you. The campaign team will contact you."
+
 
 def check_move(frm: VolunteerStatus, to: VolunteerStatus) -> None:
     """Refuse a move the table does not list."""
@@ -91,12 +94,12 @@ async def volunteers(
         .options(*PLACES)
         .order_by(VolunteerProfile.created_at.desc())
     )
-    if q.strip():
-        like = f"%{q.strip().lower()}%"
+    if text := q.strip():
+        name = VolunteerProfile.first_name + " " + VolunteerProfile.last_name
         statement = statement.where(
             or_(
-                (VolunteerProfile.first_name + " " + VolunteerProfile.last_name).ilike(like),
-                VolunteerProfile.phone.ilike(like),
+                name.icontains(text, autoescape=True),
+                VolunteerProfile.phone.icontains(text, autoescape=True),
             )
         )
     if ward:

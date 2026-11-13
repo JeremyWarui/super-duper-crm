@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, Form, UploadFile, status
 from backend.api.content_routes import items, posts
 from backend.api.deps import SessionDep, require
 from backend.api.install import AspirantOnlyRoute
-from backend.api.routers.files import read as file_read
+from backend.api.reads import file_read
 from backend.api.uploads import store_upload
 from backend.models import (
     AgendaIssue,

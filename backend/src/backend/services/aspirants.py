@@ -8,7 +8,7 @@ from sqlalchemy import Boolean, Select, Uuid, bindparam, func, literal, select, 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.db.session import move_row
+from backend.db.session import first_or_refuse, move_row
 from backend.models import (
     Aspirant,
     AspirantStatus,
@@ -259,14 +259,13 @@ async def aspirants(
 
 async def get_aspirant(session: AsyncSession, aspirant_id: uuid.UUID) -> Aspirant:
     """The nomination with its member and area loaded; NotFound when missing."""
-    aspirant = await session.scalar(
+    return await first_or_refuse(
+        session,
         _query(AspirantFilters())
         .where(Aspirant.id == aspirant_id)
-        .execution_options(populate_existing=True)
+        .execution_options(populate_existing=True),
+        "aspirant",
     )
-    if aspirant is None:
-        raise NotFound("No such aspirant.")
-    return aspirant
 
 
 async def candidates(session: AsyncSession, q: str) -> list[PartyMember]:

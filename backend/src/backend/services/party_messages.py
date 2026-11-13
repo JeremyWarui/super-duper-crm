@@ -243,24 +243,14 @@ async def listing(
         (await session.execute(select(County.id, County.name).where(County.id.in_(counties)))).all()
     )
     return [
-        {
-            "id": m.id,
-            "body": m.body,
+        texting.draft_row(m, names, counts, me)
+        | {
             "audience": m.audience,
             "place": ward_names.get(m.ward_id)
             or constituency_names.get(m.constituency_id)
             or county_names.get(m.county_id)
             or "Everywhere",
-            "status": m.status,
-            "drafted_by": names.get(m.drafted_by_id, ""),
-            "decided_by": names.get(m.decided_by_id, ""),
-            "created_at": m.created_at,
-            "decided_at": m.decided_at,
-            "note": m.note,
             "targeted": m.targeted,
-            "recipients": m.recipients,
-            "delivery": counts.get(m.id, {}),
-            "mine": m.drafted_by_id == me,
         }
         for m in messages
     ]

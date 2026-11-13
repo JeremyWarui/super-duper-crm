@@ -30,10 +30,8 @@ async def create_user(payload: UserCreate, session: SessionDep, user: Writer) ->
     The login is sent an invite link.
     """
     campaign = await require_visible_campaign(session, user, payload.campaign)
-    ward = await session.get(Ward, payload.ward) if payload.ward is not None else None
-    if payload.ward is not None and ward is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No such ward.")
     await require_ward_in_campaign(session, campaign, payload.ward, payload.registration_centre)
+    ward = await session.get(Ward, payload.ward) if payload.ward is not None else None
     await require_in_area(
         session, user, "mobilizers.write", payload.ward, payload.registration_centre
     )

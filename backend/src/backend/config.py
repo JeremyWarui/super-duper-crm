@@ -115,18 +115,11 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
-    @field_validator("payout_provider", mode="after")
+    @field_validator("payout_provider", "payin_provider", mode="after")
     @classmethod
     def _paystack_needs_a_key(cls, value: str, info: ValidationInfo) -> str:
         if value == "paystack" and not info.data.get("paystack_secret_key"):
-            raise ValueError("PAYOUT_PROVIDER=paystack needs PAYSTACK_SECRET_KEY.")
-        return value
-
-    @field_validator("payin_provider", mode="after")
-    @classmethod
-    def _payins_need_a_key(cls, value: str, info: ValidationInfo) -> str:
-        if value == "paystack" and not info.data.get("paystack_secret_key"):
-            raise ValueError("PAYIN_PROVIDER=paystack needs PAYSTACK_SECRET_KEY.")
+            raise ValueError(f"{info.field_name.upper()}=paystack needs PAYSTACK_SECRET_KEY.")
         return value
 
     @field_validator("email_provider", mode="after")

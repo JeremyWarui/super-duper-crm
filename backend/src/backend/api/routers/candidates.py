@@ -7,12 +7,13 @@ from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from backend.api.deps import SessionDep, Today
 from backend.api.install import PartyOnlyRoute
-from backend.api.limits import check
+from backend.api.limits import TOO_MANY_SIGNUPS, check
 from backend.models import Seat
 from backend.schemas.candidates import CandidateCard, CandidateDetail, CandidateVolunteerCreate
 from backend.schemas.join import JoinDone, Withdrawn
 from backend.services import campaign_volunteers
 from backend.services import candidates as service
+from backend.services.campaign_volunteers import THANKS
 from backend.services.ratelimit import RateLimit
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
@@ -21,7 +22,6 @@ party_router = APIRouter(prefix="/candidates", tags=["candidates"], route_class=
 
 SIGNUPS = RateLimit(limit=20, window=3600)
 WITHDRAWALS = RateLimit(limit=20, window=3600)
-THANKS = "Thank you. The campaign team will contact you."
 # The same answer for every code, so a code cannot be tested for whether it was real.
 WITHDRAWN = "Done. If you were on this campaign's volunteer list, you are off it now."
 
@@ -63,6 +63,6 @@ async def volunteer(
     session: SessionDep,
 ) -> JoinDone:
     """Sign up to volunteer for the candidate's campaign; a known phone gets the same answer."""
-    check(SIGNUPS, request, "Too many sign-ups from this device; try later.")
+    check(SIGNUPS, request, TOO_MANY_SIGNUPS)
     code = await service.sign_up(session, slug, payload)
     return JoinDone(message=THANKS, withdraw_code=code)

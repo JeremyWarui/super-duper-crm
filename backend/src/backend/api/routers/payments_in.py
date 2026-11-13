@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from backend.api.deps import NominationsOfficer, SessionDep, require
 from backend.api.install import PartyOnlyRoute
+from backend.api.reads import payment_in_read
 from backend.api.scope import require_visible_campaign
 from backend.models import Aspirant, PayInPurpose, PayInStatus, PaymentIn, User
 from backend.schemas.payments_in import PaymentInRow, PayReject
@@ -22,24 +23,6 @@ party_router = APIRouter(
 
 Treasurer = Annotated[User, Depends(require("contributions.read"))]
 LIMIT = 200
-
-
-def _row(row: PaymentIn) -> PaymentInRow:
-    return PaymentInRow(
-        id=row.id,
-        reference=row.reference,
-        purpose=row.purpose,
-        method=row.method,
-        status=row.status,
-        amount_kes=row.amount_kes,
-        reason=row.reason,
-        practice=row.provider == "practice",
-        payer_name=row.payer_name,
-        payer_phone=row.payer_phone,
-        mpesa_code=row.mpesa_code,
-        created_at=row.created_at,
-        paid_at=row.paid_at,
-    )
 
 
 def _listed(query, status_filter: PayInStatus | Literal[""]):
@@ -68,7 +51,7 @@ async def campaign_list(
     rows = await session.scalars(
         _listed(select(PaymentIn).where(PaymentIn.campaign_id == campaign_id), status_filter)
     )
-    return [_row(r) for r in rows]
+    return [payment_in_read(r, PaymentInRow) for r in rows]
 
 
 @router.post("/{payment_id}/confirm/", response_model=PaymentInRow)
@@ -77,7 +60,7 @@ async def campaign_confirm(
 ) -> PaymentInRow:
     await require_visible_campaign(session, user, campaign_id)
     row = await _campaign_row(session, campaign_id, payment_id)
-    return _row(await payments_in.confirm(session, row, actor=user))
+    return payment_in_read(await payments_in.confirm(session, row, actor=user), PaymentInRow)
 
 
 @router.post("/{payment_id}/reject/", response_model=PaymentInRow)
@@ -90,7 +73,9 @@ async def campaign_reject(
 ) -> PaymentInRow:
     await require_visible_campaign(session, user, campaign_id)
     row = await _campaign_row(session, campaign_id, payment_id)
-    return _row(await payments_in.reject(session, row, payload.reason, actor=user))
+    return payment_in_read(
+        await payments_in.reject(session, row, payload.reason, actor=user), PaymentInRow
+    )
 
 
 def _party_query(user: User):
@@ -119,7 +104,7 @@ async def party_list(
     status_filter: Annotated[PayInStatus | Literal[""], Query(alias="status")] = "",
 ) -> list[PaymentInRow]:
     rows = await session.scalars(_listed(_party_query(user), status_filter))
-    return [_row(r) for r in rows]
+    return [payment_in_read(r, PaymentInRow) for r in rows]
 
 
 @party_router.post("/{payment_id}/confirm/", response_model=PaymentInRow)
@@ -127,7 +112,7 @@ async def party_confirm(
     payment_id: uuid.UUID, session: SessionDep, user: NominationsOfficer
 ) -> PaymentInRow:
     row = await _party_row(session, user, payment_id)
-    return _row(await payments_in.confirm(session, row, actor=user))
+    return payment_in_read(await payments_in.confirm(session, row, actor=user), PaymentInRow)
 
 
 @party_router.post("/{payment_id}/reject/", response_model=PaymentInRow)
@@ -135,4 +120,6 @@ async def party_reject(
     payment_id: uuid.UUID, payload: PayReject, session: SessionDep, user: NominationsOfficer
 ) -> PaymentInRow:
     row = await _party_row(session, user, payment_id)
-    return _row(await payments_in.reject(session, row, payload.reason, actor=user))
+    return payment_in_read(
+        await payments_in.reject(session, row, payload.reason, actor=user), PaymentInRow
+    )

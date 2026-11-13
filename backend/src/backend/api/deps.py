@@ -8,17 +8,19 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
 from backend.db.session import get_session
 from backend.models import (
     AuthToken,
+    Constituency,
     OrganisationType,
     PartyMember,
     PartyMemberStatus,
     PartyRoleName,
     User,
     UserKind,
+    Ward,
 )
 from backend.services import access, clock, membership, permissions, site
 from backend.services.errors import CampaignClosed, NotFound
@@ -162,3 +164,40 @@ def require_party_role(*roles: PartyRoleName):
 AdminUser = Annotated[User, Depends(require_superuser)]
 MembershipOfficer = Annotated[User, Depends(require_party_role(PartyRoleName.MEMBERSHIP_OFFICER))]
 NominationsOfficer = Annotated[User, Depends(require_party_role(PartyRoleName.NOMINATIONS_OFFICER))]
+
+
+async def account_member(session: AsyncSession, user: User) -> PartyMember | None:
+    """The login's party member with places and volunteering loaded, read fresh."""
+    return await session.scalar(
+        select(PartyMember)
+        .where(PartyMember.id == user.party_member_id)
+        .options(
+            joinedload(PartyMember.ward)
+            .joinedload(Ward.constituency)
+            .joinedload(Constituency.county),
+            joinedload(PartyMember.registration_centre),
+            selectinload(PartyMember.volunteer),
+        )
+        .execution_options(populate_existing=True)
+    )
+
+
+async def get_account_member(user: SignedInUser, session: SessionDep) -> PartyMember:
+    """The approved member this login opens.
+
+    Applies the party inbox first, so a queued withdrawal ends the session on this request.
+    A member login whose member is no longer approved gets 401; any other login without an
+    approved member gets 403.
+    """
+    if user.party_member_id is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This login has no member account.")
+    await membership.process_requests(session)
+    member = await account_member(session, user)
+    if member is None or not member.is_approved:
+        if user.kind is UserKind.MEMBER:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Your membership is not active.")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This login has no member account.")
+    return member
+
+
+AccountMember = Annotated[PartyMember, Depends(get_account_member)]

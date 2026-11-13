@@ -7,11 +7,16 @@ from fastapi import APIRouter, Form, HTTPException, Response, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 
-from backend.api.deps import AdminUser, NominationsOfficer, SessionDep, SignedInUser, Today
+from backend.api.deps import (
+    AccountMember,
+    AdminUser,
+    NominationsOfficer,
+    SessionDep,
+    SignedInUser,
+    Today,
+)
 from backend.api.install import PartyOnlyRoute
-from backend.api.routers.account import AccountMember
-from backend.api.routers.party_aspirants import _read as read_aspirant
-from backend.api.routers.pay import read as read_payment
+from backend.api.reads import aspirant_read, payment_in_read
 from backend.api.uploads import private_file, store_upload
 from backend.models import (
     Constituency,
@@ -121,7 +126,7 @@ async def mark_fee_paid(
     """Record an application's nomination fee paid, under its M-Pesa or bank reference."""
     aspirant = await aspirants.get_aspirant(session, aspirant_id)
     await nominations.mark_fee_paid(session, aspirant, payload.reference, actor=user)
-    return read_aspirant(await aspirants.get_aspirant(session, aspirant_id))
+    return aspirant_read(await aspirants.get_aspirant(session, aspirant_id))
 
 
 @router.get("/applications/{aspirant_id}/documents/{document_id}/")
@@ -224,7 +229,7 @@ async def pay_fee(
         aspirant=aspirant,
         actor=user,
     )
-    return read_payment(row)
+    return payment_in_read(row)
 
 
 @router.post("/mine/documents/", response_model=MyNomination, status_code=status.HTTP_201_CREATED)

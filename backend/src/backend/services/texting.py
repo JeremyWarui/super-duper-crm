@@ -77,6 +77,23 @@ async def delivery_counts(
     return counts
 
 
+def draft_row(message, names: dict, counts: dict, me: uuid.UUID) -> dict:
+    """The fields a campaign or party message shows in its listing."""
+    return {
+        "id": message.id,
+        "body": message.body,
+        "status": message.status,
+        "drafted_by": names.get(message.drafted_by_id, ""),
+        "decided_by": names.get(message.decided_by_id, ""),
+        "created_at": message.created_at,
+        "decided_at": message.decided_at,
+        "note": message.note,
+        "recipients": message.recipients,
+        "delivery": counts.get(message.id, {}),
+        "mine": message.drafted_by_id == me,
+    }
+
+
 async def names_of(session: AsyncSession, user_ids: set) -> dict[uuid.UUID, str]:
     """The display name of each login named."""
     return {

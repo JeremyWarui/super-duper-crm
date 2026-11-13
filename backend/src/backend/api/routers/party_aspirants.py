@@ -8,47 +8,23 @@ from pydantic import AfterValidator
 
 from backend.api.deps import NominationsOfficer, SessionDep
 from backend.api.install import PartyOnlyRoute
-from backend.models import Aspirant, AspirantStatus, Seat
+from backend.api.reads import aspirant_read
+from backend.models import AspirantStatus, Seat
 from backend.schemas.admin import AdminUserCreated
 from backend.schemas.aspirants import (
-    AspirantArea,
     AspirantCreate,
     AspirantMove,
     AspirantPage,
     AspirantRead,
     CandidateRead,
-    DocumentRead,
     WorkspaceCreate,
     WorkspaceCreated,
 )
 from backend.schemas.common import plain_text
 from backend.services import aspirants
 from backend.services.aspirants import AspirantFilters
-from backend.services.campaigns import AREA_FIELD
 
 router = APIRouter(prefix="/party/aspirants", tags=["party"], route_class=PartyOnlyRoute)
-
-
-def _read(row: Aspirant) -> AspirantRead:
-    level = AREA_FIELD[row.seat.office_level]
-    place = getattr(row, level)
-    return AspirantRead(
-        id=row.id,
-        member=CandidateRead.model_validate(row.member),
-        seat=row.seat,
-        area=AspirantArea(level=level, id=place.id, name=place.name),
-        status=row.status,
-        status_reason=row.status_reason,
-        decided_at=row.decided_at,
-        campaign_id=row.campaign_id,
-        created_at=row.created_at,
-        window_title=row.window.title if row.window else None,
-        fee_kes=row.fee_kes,
-        fee_paid_at=row.fee_paid_at,
-        fee_reference=row.fee_reference,
-        declared_at=row.declared_at,
-        documents=[DocumentRead(id=d.id, label=d.label) for d in row.documents],
-    )
 
 
 def _filters(
@@ -83,14 +59,14 @@ async def list_aspirants(
 ) -> AspirantPage:
     """A page of nominations, newest first."""
     total, rows = await aspirants.aspirants(session, filters, limit, offset)
-    return AspirantPage(total=total, items=[_read(row) for row in rows])
+    return AspirantPage(total=total, items=[aspirant_read(row) for row in rows])
 
 
 @router.get("/{aspirant_id}/", response_model=AspirantRead)
 async def get_aspirant(
     aspirant_id: uuid.UUID, user: NominationsOfficer, session: SessionDep
 ) -> AspirantRead:
-    return _read(await aspirants.get_aspirant(session, aspirant_id))
+    return aspirant_read(await aspirants.get_aspirant(session, aspirant_id))
 
 
 @router.post("/", response_model=AspirantRead, status_code=status.HTTP_201_CREATED)
@@ -108,7 +84,7 @@ async def nominate(
         actor=user,
     )
     await session.commit()
-    return _read(await aspirants.get_aspirant(session, created.id))
+    return aspirant_read(await aspirants.get_aspirant(session, created.id))
 
 
 @router.post("/{aspirant_id}/status/", response_model=AspirantRead)
@@ -119,7 +95,7 @@ async def move_aspirant(
     aspirant = await aspirants.get_aspirant(session, aspirant_id)
     await aspirants.move(session, aspirant, payload.status, actor=user, reason=payload.reason)
     await session.commit()
-    return _read(await aspirants.get_aspirant(session, aspirant_id))
+    return aspirant_read(await aspirants.get_aspirant(session, aspirant_id))
 
 
 @router.post(
@@ -142,7 +118,7 @@ async def create_workspace(
         election_date=payload.election_date,
     )
     return WorkspaceCreated(
-        aspirant=_read(await aspirants.get_aspirant(session, aspirant_id)),
+        aspirant=aspirant_read(await aspirants.get_aspirant(session, aspirant_id)),
         setup=summary,
         logins=[AdminUserCreated.of(login, invite) for login, invite in logins],
     )

@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.db.session import move_row
+from backend.db.session import first_or_refuse, move_row
 from backend.models import (
     Agent,
     Campaign,
@@ -187,7 +187,8 @@ async def registration(
     session: AsyncSession, campaign_id: uuid.UUID, registration_id: uuid.UUID, area: Area | None
 ) -> TeamRegistration:
     """One sign-up the caller may decide; 404 outside their area."""
-    found = await session.scalar(
+    return await first_or_refuse(
+        session,
         narrow(
             select(TeamRegistration).where(
                 TeamRegistration.id == registration_id,
@@ -195,11 +196,9 @@ async def registration(
             ),
             area,
             TeamRegistration,
-        ).options(*WITH_PLACES)
+        ).options(*WITH_PLACES),
+        "sign-up",
     )
-    if found is None:
-        raise NotFound("No such sign-up.")
-    return found
 
 
 async def _claim(

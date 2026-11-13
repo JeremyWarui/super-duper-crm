@@ -19,7 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload
 
-from backend.db.session import upsert
+from backend.db.session import first_or_refuse, upsert
 from backend.models import (
     Constituency,
     ContactMethod,
@@ -41,7 +41,7 @@ from backend.services.campaign_volunteers import (
     write_status,
 )
 from backend.services.consent import VOLUNTEER_WORDING
-from backend.services.errors import NotFound, Refused, refuse_erased, refuse_own_record
+from backend.services.errors import Refused, refuse_erased, refuse_own_record
 from backend.services.register import PlaceFilters, in_place, page
 
 V = VolunteerStatus
@@ -311,14 +311,13 @@ async def export_rows(session: AsyncSession, filters: VolunteerFilters) -> list[
 
 async def get_volunteer(session: AsyncSession, volunteer_id: uuid.UUID) -> VolunteerProfile:
     """The profile with its member and places loaded; NotFound when missing."""
-    profile = await session.scalar(
+    return await first_or_refuse(
+        session,
         _query(VolunteerFilters())
         .where(VolunteerProfile.id == volunteer_id)
-        .execution_options(populate_existing=True)
+        .execution_options(populate_existing=True),
+        "volunteer",
     )
-    if profile is None:
-        raise NotFound("No such volunteer.")
-    return profile
 
 
 OWN_FIELDS = ("profession", "profession_other", "interests", "interest_other", "preferred_contact")

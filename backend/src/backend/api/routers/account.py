@@ -1,19 +1,12 @@
 """A party member's own account: their details, their volunteering, and leaving the party."""
 
-from typing import Annotated
+from fastapi import APIRouter, Response, status
+from sqlalchemy import update
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import select, update
-from sqlalchemy.orm import joinedload, selectinload
-
-from backend.api.deps import SessionDep, SignedInUser
+from backend.api.deps import AccountMember, SessionDep, SignedInUser, account_member
 from backend.models import (
-    Constituency,
     PartyMember,
-    User,
-    UserKind,
     VolunteerStatus,
-    Ward,
 )
 from backend.schemas.account import AccountRead, AccountVolunteer
 from backend.schemas.party import VolunteerPart
@@ -28,42 +21,6 @@ def masked(phone: str) -> str:
     """+254712345678 as 07•• ••• 678."""
     local = "0" + phone[4:] if phone.startswith("+254") else phone
     return f"{local[:2]}•• ••• {local[-3:]}"
-
-
-async def _member(session: SessionDep, user: User) -> PartyMember | None:
-    return await session.scalar(
-        select(PartyMember)
-        .where(PartyMember.id == user.party_member_id)
-        .options(
-            joinedload(PartyMember.ward)
-            .joinedload(Ward.constituency)
-            .joinedload(Constituency.county),
-            joinedload(PartyMember.registration_centre),
-            selectinload(PartyMember.volunteer),
-        )
-        .execution_options(populate_existing=True)
-    )
-
-
-async def get_account_member(user: SignedInUser, session: SessionDep) -> PartyMember:
-    """The approved member this login opens.
-
-    Applies the party inbox first, so a queued withdrawal ends the session on this request.
-    A member login whose member is no longer approved gets 401; any other login without an
-    approved member gets 403.
-    """
-    if user.party_member_id is None:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "This login has no member account.")
-    await membership.process_requests(session)
-    member = await _member(session, user)
-    if member is None or not member.is_approved:
-        if user.kind is UserKind.MEMBER:
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Your membership is not active.")
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "This login has no member account.")
-    return member
-
-
-AccountMember = Annotated[PartyMember, Depends(get_account_member)]
 
 
 def _read(member: PartyMember) -> AccountRead:
@@ -108,7 +65,7 @@ async def change_volunteering(
     """Change the volunteer details, or volunteer when not volunteering."""
     await volunteers.own_update(session, member, payload.model_dump(), actor=user)
     await session.commit()
-    return _read(await _member(session, user))
+    return _read(await account_member(session, user))
 
 
 @router.post("/volunteer/stop/", response_model=AccountRead)
@@ -118,7 +75,7 @@ async def stop_volunteering(
     """Stop volunteering and stay a member."""
     await volunteers.own_stop(session, member, actor=user)
     await session.commit()
-    return _read(await _member(session, user))
+    return _read(await account_member(session, user))
 
 
 @router.post("/leave/", status_code=status.HTTP_204_NO_CONTENT)

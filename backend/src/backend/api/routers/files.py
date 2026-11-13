@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, 
 from fastapi.responses import FileResponse
 
 from backend.api.deps import AdminUser, SessionDep, _header, get_signed_in_user
+from backend.api.reads import file_read
 from backend.api.uploads import store_upload
 from backend.models import FileArea, StoredFile, User
 from backend.schemas.files import FileRead
@@ -32,10 +33,6 @@ async def _caller(
         return None
 
 
-def read(file: StoredFile) -> FileRead:
-    return FileRead.model_validate(file).model_copy(update={"url": f"/api/files/{file.id}/"})
-
-
 @router.post("/", response_model=FileRead, status_code=status.HTTP_201_CREATED)
 async def upload(
     file: UploadFile,
@@ -46,7 +43,7 @@ async def upload(
 ) -> FileRead:
     """Upload a JPEG, PNG or WebP image (up to 5 MB) or a PDF (up to 10 MB)."""
     stored = await store_upload(session, file, area=area, public=public, actor=user)
-    return read(stored)
+    return file_read(stored)
 
 
 @router.get("/{file_id}/")

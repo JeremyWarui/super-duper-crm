@@ -238,21 +238,8 @@ async def listing(
         w.id: w.name for w in await session.scalars(select(Ward).where(Ward.id.in_(ward_ids)))
     }
     return [
-        {
-            "id": m.id,
-            "body": m.body,
-            "wards": m.wards,
-            "ward_names": [ward_names.get(uuid.UUID(w), "") for w in m.wards],
-            "status": m.status,
-            "drafted_by": names.get(m.drafted_by_id, ""),
-            "decided_by": names.get(m.decided_by_id, ""),
-            "created_at": m.created_at,
-            "decided_at": m.decided_at,
-            "note": m.note,
-            "recipients": m.recipients,
-            "delivery": counts.get(m.id, {}),
-            "mine": m.drafted_by_id == me,
-        }
+        texting.draft_row(m, names, counts, me)
+        | {"wards": m.wards, "ward_names": [ward_names.get(uuid.UUID(w), "") for w in m.wards]}
         for m in messages
     ]
 

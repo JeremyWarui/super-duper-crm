@@ -8,6 +8,7 @@ from fastapi import HTTPException, Request, status
 from backend.services.ratelimit import RateLimit
 
 TOO_MANY = "Too many tries; try later."
+TOO_MANY_SIGNUPS = "Too many sign-ups from this device; try later."
 
 
 def client_key(request: Request) -> str:

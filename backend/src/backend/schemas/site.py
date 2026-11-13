@@ -29,9 +29,12 @@ def _link(value: str) -> str:
     return value
 
 
+EMAIL_EXAMPLE = "Use an email address like name@example.com."
+
+
 def email_address(value: str) -> str:
     if value and not EMAIL.match(value):
-        raise ValueError("Use an email address like name@example.com.")
+        raise ValueError(EMAIL_EXAMPLE)
     return value
 
 

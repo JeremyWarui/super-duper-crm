@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from backend.db.session import move_row
+from backend.db.session import first_or_refuse, move_row
 from backend.models import (
     Agent,
     Assignment,
@@ -21,7 +21,7 @@ from backend.models import (
 )
 from backend.services.accounts import campaign_mobilizer
 from backend.services.audit import record
-from backend.services.errors import NotFound, Refused
+from backend.services.errors import Refused
 from backend.services.permissions import Area, narrow
 from backend.services.targets import require_centre, require_ward
 
@@ -64,18 +64,17 @@ async def assignments(
 async def assignment(
     session: AsyncSession, campaign_id: uuid.UUID, assignment_id: uuid.UUID, area: Area | None
 ) -> Assignment:
-    found = await session.scalar(
+    return await first_or_refuse(
+        session,
         narrow(
             select(Assignment).where(
                 Assignment.id == assignment_id, Assignment.campaign_id == campaign_id
             ),
             area,
             Assignment,
-        ).options(*WITH_DETAIL)
+        ).options(*WITH_DETAIL),
+        "assignment",
     )
-    if found is None:
-        raise NotFound("No such assignment.")
-    return found
 
 
 async def _member(

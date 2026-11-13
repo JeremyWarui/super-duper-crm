@@ -126,6 +126,18 @@ def _agree(
 # Boundaries
 
 
+async def _by_code(session: AsyncSession) -> tuple[dict, dict, dict]:
+    """Every county and ward by code, and every centre by (ward code, centre code)."""
+    counties = {c.code: c for c in await session.scalars(select(County))}
+    wards = {w.code: w for w in await session.scalars(select(Ward))}
+    ward_code_of = {w.id: w.code for w in wards.values()}
+    centres = {
+        (ward_code_of.get(c.ward_id, ""), c.code): c
+        for c in await session.scalars(select(RegistrationCentre))
+    }
+    return counties, wards, centres
+
+
 async def import_boundaries(
     session: AsyncSession,
     text: str,
@@ -185,14 +197,8 @@ async def import_boundaries(
         raise ImportRefused(errors)
 
     report = ImportReport(kind="boundaries", rows=len(rows))
-    have_counties = {c.code: c for c in await session.scalars(select(County))}
+    have_counties, have_wards, have_centres = await _by_code(session)
     have_constituencies = {c.code: c for c in await session.scalars(select(Constituency))}
-    have_wards = {w.code: w for w in await session.scalars(select(Ward))}
-    ward_code_of = {w.id: w.code for w in have_wards.values()}
-    have_centres = {
-        (ward_code_of.get(c.ward_id, ""), c.code): c
-        for c in await session.scalars(select(RegistrationCentre))
-    }
 
     def note(level: str, code: str, change: str, detail: str = "") -> None:
         report.changes.append(Change(level, code, change, detail))
@@ -325,13 +331,7 @@ async def import_register(
     alone a county. Targets keep their numbers until a manager refreshes them.
     """
     rows = _read(text, REGISTER_COLUMNS)
-    have_counties = {c.code: c for c in await session.scalars(select(County))}
-    have_wards = {w.code: w for w in await session.scalars(select(Ward))}
-    ward_code_of = {w.id: w.code for w in have_wards.values()}
-    have_centres = {
-        (ward_code_of.get(c.ward_id, ""), c.code): c
-        for c in await session.scalars(select(RegistrationCentre))
-    }
+    have_counties, have_wards, have_centres = await _by_code(session)
     errors: list[str] = []
     seen: dict[tuple, int] = {}
     planned: list[tuple[str, str, object, int | None, Decimal | None]] = []

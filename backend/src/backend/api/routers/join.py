@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from backend.api.deps import SessionDep
-from backend.api.limits import check
+from backend.api.limits import TOO_MANY_SIGNUPS, check
 from backend.models import (
     Campaign,
     Event,
@@ -146,7 +146,7 @@ async def sign_up(
     Every sign-up is handed a withdrawal code, a working one only for a new supporter, so
     the answer never shows whether the phone was on the register.
     """
-    check(SIGNUPS, request, "Too many sign-ups from this device; try later.")
+    check(SIGNUPS, request, TOO_MANY_SIGNUPS)
     link = await _link(session, code)
     if not link.open:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Sign-ups are closed.")

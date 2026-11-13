@@ -54,7 +54,7 @@ from backend.schemas.party import (
     PartyWithdrawn,
 )
 from backend.schemas.sharing import SharedCampaign
-from backend.schemas.site import EMAIL
+from backend.schemas.site import EMAIL, EMAIL_EXAMPLE
 from backend.security import hash_password
 from backend.services import (
     branches,
@@ -262,9 +262,7 @@ async def subscribe(
     if "@" in payload.contact:
         contact = clean_email(payload.contact)
         if not EMAIL.match(contact):
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, "Use an email address like name@example.com."
-            )
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, EMAIL_EXAMPLE)
         channel = "email"
     else:
         contact = require_phone(payload.contact)

@@ -7,6 +7,7 @@ from sqlalchemy import Select, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.db.session import first_or_refuse
 from backend.models import (
     Agent,
     Campaign,
@@ -17,7 +18,7 @@ from backend.models import (
     Ward,
 )
 from backend.services.audit import record
-from backend.services.errors import NotFound, Refused
+from backend.services.errors import Refused
 from backend.services.permissions import Area, narrow
 from backend.services.targets import _in_area, require_centre
 
@@ -59,14 +60,13 @@ async def id_numbers(session: AsyncSession, user_ids: list[uuid.UUID]) -> dict[u
 async def agent(
     session: AsyncSession, campaign_id: uuid.UUID, agent_id: uuid.UUID, area: Area | None
 ) -> Agent:
-    found = await session.scalar(
+    return await first_or_refuse(
+        session,
         narrow(
             select(Agent).where(Agent.id == agent_id, Agent.campaign_id == campaign_id), area, Agent
-        ).options(*WITH_PEOPLE)
+        ).options(*WITH_PEOPLE),
+        "agent",
     )
-    if found is None:
-        raise NotFound("No such agent.")
-    return found
 
 
 async def update(

@@ -347,6 +347,21 @@ async def test_the_candidate_and_manager_see_and_move_the_campaigns_volunteers(
         assert party_register.status_code == 404
 
 
+async def test_the_volunteer_search_takes_percent_and_underscore_literally(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    slug = await _page(session, world)
+    await client.post(f"/api/candidates/{slug}/volunteer/", json=_volunteer(world))
+    path = f"/api/campaigns/{world.campaign.id}/volunteers/"
+
+    def search(q: str):
+        return client.get(path, params={"q": q}, headers=world.headers("manager"))
+
+    found = [len((await search(q)).json()) for q in ("WANJIKU n", "%", "_")]
+
+    assert found == [1, 0, 0]
+
+
 async def test_withdrawal_deletes_and_answers_the_same_for_any_code(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
