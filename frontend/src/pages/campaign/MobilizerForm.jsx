@@ -77,7 +77,7 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
       <ErrorText error={error} />
       <FormActions>
         <Button variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : "Save mobilizer"}</Button>
+        <Button loading={busy} disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : "Save mobilizer"}</Button>
       </FormActions>
     </Dialog>
   );

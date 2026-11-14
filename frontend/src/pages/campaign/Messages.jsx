@@ -77,7 +77,7 @@ function Compose({ campaign, data }) {
         {data.can_send ? (
           confirming ? (
             <>
-              <Button disabled={!ready} onClick={() => submit(true)}>{save.isPending ? "Sending…" : `Send to ${plural(count ?? 0, "person", "people")}`}</Button>
+              <Button loading={save.isPending} disabled={!ready} onClick={() => submit(true)}>{save.isPending ? "Sending…" : `Send to ${plural(count ?? 0, "person", "people")}`}</Button>
               <Button variant="quiet" onClick={() => setConfirming(false)}>Not yet</Button>
             </>
           ) : (
@@ -87,7 +87,7 @@ function Compose({ campaign, data }) {
             </>
           )
         ) : (
-          <Button disabled={!ready} onClick={() => submit(false)}>{save.isPending ? "Saving…" : "Send for approval"}</Button>
+          <Button loading={save.isPending} disabled={!ready} onClick={() => submit(false)}>{save.isPending ? "Saving…" : "Send for approval"}</Button>
         )}
       </div>
   );

@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
+import { Reveal } from "@/components/ui/reveal";
 import { SectionHead } from "@/components/ui/typography";
 import { useBranding } from "@/theme/branding";
 import { useCopy } from "@/copy";
@@ -152,7 +153,7 @@ export function Agenda({ limit, titled = true }) {
           </div>
           <Link to={more.to} className="font-bold">{more.label}</Link>
         </div> : null}
-        <div className={PHOTO_GRID}>
+        <div className={`${PHOTO_GRID} reveal-stagger`}>
           {issues.map((i) => (
             <PhotoCard key={i.id} to={`/issues/${i.id}`} image={i.image_url} title={i.title} foot={<span className="mt-2.5 text-ui font-bold text-accent">Our position →</span>} />
           ))}
@@ -172,7 +173,7 @@ export function Watch() {
         <h3 id="watch-h" className="font-display text-2xl font-extrabold">Watch</h3>
         {youtube ? <a href={youtube} target="_blank" rel="noreferrer" className="font-bold">All videos →</a> : null}
       </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+      <div className="reveal-stagger grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         {videos.map((v) => <VideoCard key={v.id} video={v} />)}
       </div>
     </section>
@@ -217,7 +218,7 @@ export function Events() {
     <section id="events" className="bg-ink text-on-dark">
       <div className="site-container flex flex-col gap-7 py-[72px]">
         <SectionHead kicker="Coming up" title="Upcoming events" action={{ label: "Full calendar", to: "/events" }} onDark />
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
+        <div className="reveal-stagger grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
           {events.slice(0, 3).map((e) => (
             <Link key={e.id} to={`/news/${e.id}`} className="flex flex-col gap-3.5 rounded-photo border border-ink-2 p-[22px] text-on-dark no-underline hover:text-white">
               <DateTile date={e.event_date} tone="accent" />
@@ -238,7 +239,7 @@ function Branches() {
   const b = branches.find((x) => x.county.id === county);
   return (
     <section id="branches" className="bg-mint">
-      <div className="site-container flex flex-wrap items-center gap-10 py-20">
+      <div className="reveal-stagger site-container flex flex-wrap items-center gap-10 py-20">
         <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-4">
           <p className="kicker">In all {branches.length} counties</p>
           <h2 className="font-display text-section font-extrabold tracking-[-0.02em]">Find your branch</h2>
@@ -283,7 +284,7 @@ function OurCandidates() {
     <section id="candidates" className="bg-white">
       <div className="site-container flex flex-col gap-7 py-20">
         <SectionHead kicker="On the ballot" title="Our candidates" action={{ label: "All candidates by county", to: "/candidates" }} />
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-5">
+        <div className="reveal-stagger grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-5">
           {people.map((c) => <CandidateCard key={c.slug} c={c} square />)}
         </div>
       </div>
@@ -298,7 +299,7 @@ function Leadership() {
     <section id="about" className="bg-primary text-white">
       <div className="site-container flex flex-col gap-7 py-[72px]">
         <SectionHead kicker="Who leads us" title="Party leadership" action={{ label: "Meet the leadership", to: "/leadership" }} onDark />
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-5">
+        <div className="reveal-stagger grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-5">
           {leaders.slice(0, 4).map((l) => (
             <div key={l.id} className="flex items-center gap-3.5">
               {l.photo_url ? <img src={l.photo_url} alt="" className="size-[72px] flex-none rounded-full border-2 border-accent object-cover" /> : <span className="size-[72px] flex-none rounded-full border-2 border-accent bg-white/20" />}
@@ -350,7 +351,7 @@ export function TakePart({ panels = PARTY_PANELS }) {
     <section id="take-part" className="bg-white">
       <div className="site-container flex flex-col gap-7 py-20">
         <SectionHead kicker="Get involved" title="Three ways to take part" />
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
+        <div className="reveal-stagger grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
           {panels.map((panel) => <TakePanel key={panel.title} {...panel} />)}
         </div>
       </div>
@@ -364,13 +365,13 @@ export default function Home() {
     <>
       <Carousel />
       <Ticker news={news} />
-      <Agenda />
-      <News news={news} />
-      <Events />
-      <Branches />
-      <OurCandidates />
-      <Leadership />
-      <TakePart />
+      <Reveal><Agenda /></Reveal>
+      <Reveal><News news={news} /></Reveal>
+      <Reveal><Events /></Reveal>
+      <Reveal><Branches /></Reveal>
+      <Reveal><OurCandidates /></Reveal>
+      <Reveal><Leadership /></Reveal>
+      <Reveal><TakePart /></Reveal>
     </>
   );
 }

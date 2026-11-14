@@ -30,7 +30,7 @@ function WithdrawalLink({ campaign, supporter, onClose }) {
       {link.data ? <Input readOnly aria-label="Withdrawal link" value={link.data.url} onFocus={(e) => e.target.select()} /> : null}
       <div className="flex flex-wrap items-center gap-2">
         {link.data?.can_text && !campaign.closed_at ? (
-          <Button size="sm" disabled={text.isPending || text.isSuccess} onClick={() => text.mutate(supporter.id)}>
+          <Button size="sm" loading={text.isPending} disabled={text.isSuccess} onClick={() => text.mutate(supporter.id)}>
             {text.isSuccess ? "Texted" : text.isPending ? "Texting…" : "Text it to them"}
           </Button>
         ) : null}

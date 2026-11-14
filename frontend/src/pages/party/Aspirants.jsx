@@ -79,7 +79,7 @@ function Nominate({ onClose }) {
       <ErrorText error={nominate.error} className="text-small" />
       <FormActions>
         <Button variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button disabled={!ready || nominate.isPending} onClick={submit}>
+        <Button loading={nominate.isPending} disabled={!ready || nominate.isPending} onClick={submit}>
           {nominate.isPending ? "Nominating…" : "Nominate"}
         </Button>
       </FormActions>
@@ -126,7 +126,7 @@ function Workspace({ aspirant, onDone }) {
         set={(key) => set(key === "username" ? "manager" : "manager_email")} />
       <ErrorText error={create.error} className="text-small" />
       <FormActions>
-        <Button disabled={form.candidate.trim().length < 3 || !isEmail(form.candidate_email) || (form.manager.trim() && !isEmail(form.manager_email)) || create.isPending} onClick={submit}>
+        <Button loading={create.isPending} disabled={form.candidate.trim().length < 3 || !isEmail(form.candidate_email) || (form.manager.trim() && !isEmail(form.manager_email)) || create.isPending} onClick={submit}>
           {create.isPending ? "Creating…" : "Create workspace"}
         </Button>
       </FormActions>
@@ -278,7 +278,7 @@ function TimetableForm({ window: w, onClose }) {
       <ErrorText error={save.error} className="text-small" />
       <FormActions>
         <Button variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button disabled={!ready || save.isPending} onClick={submit}>{save.isPending ? "Saving…" : "Save draft"}</Button>
+        <Button loading={save.isPending} disabled={!ready || save.isPending} onClick={submit}>{save.isPending ? "Saving…" : "Save draft"}</Button>
       </FormActions>
     </Dialog>
   );

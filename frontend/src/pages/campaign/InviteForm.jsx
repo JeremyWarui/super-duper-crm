@@ -54,8 +54,8 @@ export default function InviteForm({ event, onClose }) {
 
       <FormActions>
         <Button variant="quiet" onClick={onClose}>Close</Button>
-        <Button variant="quiet" onClick={() => send(true)} disabled={!ok}>{invite.isPending ? "Working…" : "Preview"}</Button>
-        {canSend && <Button disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</Button>}
+        <Button loading={invite.isPending} variant="quiet" onClick={() => send(true)} disabled={!ok}>{invite.isPending ? "Working…" : "Preview"}</Button>
+        {canSend && <Button loading={invite.isPending} disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</Button>}
       </FormActions>
     </Dialog>
   );

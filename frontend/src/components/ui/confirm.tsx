@@ -31,7 +31,7 @@ export function Confirm({
   const close = () => setAsking(false)
   if (!asking) {
     return (
-      <Button size={size} variant={variant} disabled={disabled} aria-label={ariaLabel} className={className}
+      <Button size={size} variant={variant} loading={pending} disabled={disabled} aria-label={ariaLabel} className={className}
         onClick={() => { onAsk?.(); setAsking(true) }}>
         {label}
       </Button>
@@ -40,7 +40,7 @@ export function Confirm({
   return (
     <span className={cn('inline-flex flex-wrap items-center gap-2', className)}>
       <span className="text-ui font-semibold">{question}</span>
-      <Button size={size} variant={yesVariant} disabled={pending || disabled} onClick={() => onConfirm(close)}>{yes}</Button>
+      <Button size={size} variant={yesVariant} loading={pending} disabled={disabled} onClick={() => onConfirm(close)}>{yes}</Button>
       <Button size={size} variant="quiet" onClick={close}>{no}</Button>
     </span>
   )
@@ -66,7 +66,7 @@ export function ReasonForm({
   return (
     <div className="flex flex-wrap items-end gap-2">
       {visibleLabel ? <Field label={label} className="min-w-0 flex-1">{input}</Field> : <div className="min-w-0 flex-1">{input}</div>}
-      <Button size="sm" variant="danger" disabled={busy || value.trim().length < min} onClick={onYes}>{yes}</Button>
+      <Button size="sm" variant="danger" loading={busy} disabled={value.trim().length < min} onClick={onYes}>{yes}</Button>
       <Button size="sm" variant="quiet" onClick={onNo}>{no}</Button>
     </div>
   )

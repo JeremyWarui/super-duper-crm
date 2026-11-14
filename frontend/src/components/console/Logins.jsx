@@ -178,7 +178,7 @@ export function NewLogin({ campaigns, create }) {
       <ErrorText error={create.error} className="text-ui" />
 
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="primary" disabled={!ready || create.isPending} onClick={submit}>
+        <Button loading={create.isPending} size="sm" variant="primary" disabled={!ready || create.isPending} onClick={submit}>
           {create.isPending ? "Creating…" : "Create the login"}
         </Button>
         <Button size="sm" variant="quiet"
@@ -296,7 +296,7 @@ export function UserRow({ user, me, onReset, resetting, resetError }) {
                 value={email}
                 onChange={(e) => setEmailText(e.target.value)}
               />
-              <Button size="sm"
+              <Button loading={setEmail.isPending} size="sm"
                 variant="primary"
                 disabled={!isEmail(email) || setEmail.isPending}
                 onClick={() =>
@@ -350,7 +350,7 @@ export function UserRow({ user, me, onReset, resetting, resetError }) {
                         </option>
                       ))}
                     </NativeSelect>
-                    <Button size="sm"
+                    <Button loading={grant.isPending} size="sm"
                       variant="primary"
                       disabled={!office || grant.isPending}
                       onClick={() =>

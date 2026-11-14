@@ -140,7 +140,7 @@ function Differences({ campaign }) {
     <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Differences with the payout provider">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-h3 font-bold">Differences with the payout provider</h2>
-        <Button size="sm" variant="quiet" disabled={now.isPending} onClick={() => now.mutate(campaign.id)}>{now.isPending ? "Checking…" : "Check now"}</Button>
+        <Button loading={now.isPending} size="sm" variant="quiet" disabled={now.isPending} onClick={() => now.mutate(campaign.id)}>{now.isPending ? "Checking…" : "Check now"}</Button>
       </div>
       <ErrorText error={found.error || now.error} />
       <p className="text-small text-muted-foreground">

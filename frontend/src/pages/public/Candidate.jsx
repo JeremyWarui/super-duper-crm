@@ -69,7 +69,7 @@ export function SupportForm({ c, send, withdrawPath }) {
         </Check>
         <ErrorText error={send.error} className="text-small" />
         {!ok ? <p className="text-small text-muted-foreground">Fill in every field, tick at least one way to help and agree above to send this.</p> : null}
-        <Button type="submit" disabled={!ok || send.isPending}>{send.isPending ? "Sending…" : "I'll volunteer"}</Button>
+        <Button loading={send.isPending} type="submit" disabled={!ok || send.isPending}>{send.isPending ? "Sending…" : "I'll volunteer"}</Button>
       </form>
   );
 }

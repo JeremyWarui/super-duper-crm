@@ -73,7 +73,7 @@ export default function Join({ code }) {
         {p.consent_wording}
       </Check>
       <ErrorText error={join.error} className="text-small" />
-      <Button
+      <Button loading={join.isPending}
         className="w-full"
         disabled={!ok || join.isPending}
         onClick={() => join.mutate({ full_name: name.trim(), phone: phone.trim(), consent_given: true, place: place || null })}

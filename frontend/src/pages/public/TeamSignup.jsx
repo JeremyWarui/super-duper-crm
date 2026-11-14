@@ -99,7 +99,7 @@ export default function TeamSignup() {
                 <span>{data.consent_wording}</span>
               </Check>
               <ErrorText error={submit.error} className="text-ui" />
-              <Button type="submit" size="lg" disabled={submit.isPending || !ready}>{submit.isPending ? "Sending…" : "Sign up"}</Button>
+              <Button loading={submit.isPending} type="submit" size="lg" disabled={submit.isPending || !ready}>{submit.isPending ? "Sending…" : "Sign up"}</Button>
             </form>
           )}
         </>

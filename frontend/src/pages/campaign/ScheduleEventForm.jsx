@@ -34,7 +34,7 @@ export default function ScheduleEventForm({ campaignId, wardOptions, byCentre, o
       <ErrorText error={schedule.isError && schedule.error} />
       <FormActions>
         <Button variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button disabled={!ok || schedule.isPending} onClick={() => schedule.mutate({ campaign: campaignId, ward, registration_centre: centre || null, title: title.trim(), venue: venue.trim(), scheduled_date: date, status: "planned" }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule event"}</Button>
+        <Button loading={schedule.isPending} disabled={!ok || schedule.isPending} onClick={() => schedule.mutate({ campaign: campaignId, ward, registration_centre: centre || null, title: title.trim(), venue: venue.trim(), scheduled_date: date, status: "planned" }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule event"}</Button>
       </FormActions>
     </Dialog>
   );

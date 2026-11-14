@@ -28,7 +28,7 @@ export default function ForgotPassword() {
             <Input size="lg" type="email" autoComplete="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
           <ErrorText error={request.error} className="text-ui" />
-          <Button type="submit" size="lg" disabled={request.isPending || !email.trim()}>{request.isPending ? "Sending…" : "Send the link"}</Button>
+          <Button loading={request.isPending} type="submit" size="lg" disabled={request.isPending || !email.trim()}>{request.isPending ? "Sending…" : "Send the link"}</Button>
         </form>
       )}
       <Link to="/signin" className="self-start font-bold">Back to sign in</Link>

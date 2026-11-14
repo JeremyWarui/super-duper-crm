@@ -68,7 +68,7 @@ export default function RegisterSupporterForm({ campaignId, wardOptions, byCentr
         <span>{wording}</span>
       </Check>
       <SendError error={reg.error} pending={reg.isPending} onRetry={send} />
-      <Button size="lg" className="w-full sm:w-auto sm:self-start" disabled={!ok || !wording || reg.isPending} onClick={send}>
+      <Button loading={reg.isPending} size="lg" className="w-full sm:w-auto sm:self-start" disabled={!ok || !wording || reg.isPending} onClick={send}>
         {reg.isPending ? "Saving…" : "Register supporter"}
       </Button>
       <p className="text-small text-muted-foreground">What you type is kept on this phone until it is sent.</p>

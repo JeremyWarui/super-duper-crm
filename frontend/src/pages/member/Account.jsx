@@ -232,7 +232,7 @@ function Choose({ notice, choices }) {
       </fieldset>
       <p className="text-small text-muted-foreground">You vie in your own registered area.</p>
       <ErrorText error={apply.error} />
-      <Button className="self-start" disabled={apply.isPending} onClick={() => apply.mutate(seat)}>{apply.isPending ? "Starting…" : "Start application"}</Button>
+      <Button loading={apply.isPending} className="self-start" disabled={apply.isPending} onClick={() => apply.mutate(seat)}>{apply.isPending ? "Starting…" : "Start application"}</Button>
     </Card>
   );
 }
@@ -275,7 +275,7 @@ function Application({ application: a, notice }) {
             <div className="flex flex-wrap items-end gap-3">
               <Field label="Document" className="min-w-0 flex-[1_1_200px]"><Input value={label} maxLength={100} placeholder="e.g. National ID" onChange={(e) => setLabel(e.target.value)} /></Field>
               <Field label="File (PDF or photo)" className="min-w-0 flex-[1_1_200px]"><input type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} /></Field>
-              <Button variant="quiet" disabled={!label.trim() || !file || attach.isPending} onClick={() => attach.mutate({ file, label: label.trim() }, { onSuccess: () => { setLabel(""); setFile(null); } })}>{attach.isPending ? "Uploading…" : "Add document"}</Button>
+              <Button loading={attach.isPending} variant="quiet" disabled={!label.trim() || !file || attach.isPending} onClick={() => attach.mutate({ file, label: label.trim() }, { onSuccess: () => { setLabel(""); setFile(null); } })}>{attach.isPending ? "Uploading…" : "Add document"}</Button>
             </div>
           )}
         </div>
@@ -297,7 +297,7 @@ function Application({ application: a, notice }) {
             <span>I confirm the information and documents are true, I meet the requirements for this seat, and I will abide by the party's nomination rules and the outcome of the process.</span>
           </Check>
           <div className="flex flex-wrap gap-2">
-            <Button disabled={!declared || feeDue || submit.isPending} onClick={() => submit.mutate()}>{submit.isPending ? "Submitting…" : "Submit application"}</Button>
+            <Button loading={submit.isPending} disabled={!declared || feeDue || submit.isPending} onClick={() => submit.mutate()}>{submit.isPending ? "Submitting…" : "Submit application"}</Button>
             <Button variant="quiet" disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Withdraw</Button>
           </div>
           {feeDue && <p className="text-small text-muted-foreground">You can submit once the fee is paid.</p>}

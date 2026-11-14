@@ -151,8 +151,8 @@ export function ImageField({ label, hint, value, onChange, invalid, upload: path
         {!pdf && value && imageOk(value) ? <img src={value} alt="" className="size-11 flex-none rounded-lg border border-line object-cover" /> : null}
         <Input id={id} className="min-w-0 flex-[1_1_200px]" value={value} maxLength={500} placeholder="https://" aria-invalid={invalid} onChange={(e) => onChange(e.target.value)} />
         <input ref={picker} type="file" accept={pdf ? "application/pdf" : "image/jpeg,image/png,image/webp"} className="sr-only" tabIndex={-1} aria-label={`Choose a file for ${label}`} onChange={pick} />
-        <Button type="button" variant="quiet" disabled={send.isPending || !path} onClick={() => picker.current?.click()}>
-          <ImageUp size={18} aria-hidden />{send.isPending ? "Uploading…" : "Choose file"}
+        <Button type="button" variant="quiet" loading={send.isPending} disabled={!path} onClick={() => picker.current?.click()}>
+          {send.isPending ? "Uploading…" : <><ImageUp size={18} aria-hidden />Choose file</>}
         </Button>
       </div>
       <span role={send.error ? "alert" : undefined} className={send.error ? "font-semibold text-destructive" : "font-normal text-muted-foreground"}>{note}</span>
@@ -201,7 +201,7 @@ function ItemForm({ section, row, onDone }) {
         })}
         <ErrorText error={save.error} className="text-small" />
         <div className="flex flex-wrap gap-2.5">
-          <Button type="submit" disabled={save.isPending || (!row && Object.keys(errors).length > 0)}>
+          <Button loading={save.isPending} type="submit" disabled={save.isPending || (!row && Object.keys(errors).length > 0)}>
             {save.isPending ? "Saving…" : row ? `Save ${section.noun}` : `Add ${section.noun}`}
           </Button>
           <Button type="button" variant="quiet" onClick={onDone}>Cancel</Button>
@@ -354,7 +354,7 @@ export function ProfileForm({ title, profile: p, save, upload, extra = {}, onDon
         </Check>
         <ErrorText error={save.error} className="text-small" />
         <div className="flex flex-wrap gap-2.5">
-          <Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save profile"}</Button>
+          <Button loading={save.isPending} type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save profile"}</Button>
           {onDone ? <Button type="button" variant="quiet" onClick={onDone}>Cancel</Button> : null}
         </div>
       </form>

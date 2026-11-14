@@ -36,7 +36,7 @@ export default function AttendanceCard({ event }) {
       <Counter label="Attended" value={counts.attended} onChange={(attended) => setCounts((c) => ({ ...c, attended }))} />
       <ErrorText error={over && TOO_MANY_ATTENDED} className="text-ui" />
       <SendError error={record.error} pending={record.isPending} onRetry={send} />
-      <Button variant="accent" size="lg" className="w-full" disabled={!ok || record.isPending} onClick={send}>
+      <Button loading={record.isPending} variant="accent" size="lg" className="w-full" disabled={!ok || record.isPending} onClick={send}>
         {record.isPending ? "Saving…" : "Save attendance"}
       </Button>
       <p className="text-small text-muted-foreground">Counts are kept on this phone until they are saved. Saving marks the event done.</p>

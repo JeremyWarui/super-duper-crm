@@ -30,7 +30,7 @@ export default function SchedulePaymentForm({ campaignId, role, onClose }) {
       <ErrorText error={schedule.error} />
       <FormActions>
         <Button variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button disabled={!work || schedule.isPending} onClick={() => schedule.mutate({ assignment: work.id }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule"}</Button>
+        <Button loading={schedule.isPending} disabled={!work || schedule.isPending} onClick={() => schedule.mutate({ assignment: work.id }, { onSuccess: onClose })}>{schedule.isPending ? "Saving…" : "Schedule"}</Button>
       </FormActions>
     </Dialog>
   );

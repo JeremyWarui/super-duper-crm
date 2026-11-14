@@ -20,7 +20,7 @@ export default function RecordForm({ event, onClose }) {
       <ErrorText error={record.isError && record.error} />
       <FormActions>
         <Button variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button disabled={!ok || record.isPending} onClick={() => record.mutate({ id: event.id, number_reached: r, number_attended: a }, { onSuccess: onClose })}>{record.isPending ? "Saving…" : "Save & mark done"}</Button>
+        <Button loading={record.isPending} disabled={!ok || record.isPending} onClick={() => record.mutate({ id: event.id, number_reached: r, number_attended: a }, { onSuccess: onClose })}>{record.isPending ? "Saving…" : "Save & mark done"}</Button>
       </FormActions>
     </Dialog>
   );

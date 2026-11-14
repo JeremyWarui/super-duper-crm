@@ -75,7 +75,7 @@ function SettingsForm({ site, isParty }) {
       <ErrorText error={save.error} className="text-ui" />
       {saved && <StatusText>Saved.</StatusText>}
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" disabled={save.isPending} onClick={submit}>
+        <Button loading={save.isPending} size="sm" disabled={save.isPending} onClick={submit}>
           {save.isPending ? "Saving…" : isParty ? "Save the party settings" : "Save the site settings"}
         </Button>
       </div>

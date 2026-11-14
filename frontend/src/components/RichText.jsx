@@ -7,6 +7,7 @@ import { Bold, Heading2, Heading3, ImageUp, Italic, Link2, List, ListOrdered, Qu
 import { useUploadImage } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { ErrorText } from "@/components/ui/error-text";
 import { useCopy } from "@/copy";
 import { cn } from "@/lib/utils";
@@ -103,7 +104,7 @@ export function RichTextEditor({ label, hint, value, onChange, upload, area }) {
           <Tool label="Quote" icon={Quote} active={on?.quote} onClick={run((c) => c.toggleBlockquote())} />
           <span className="mx-1 h-6 w-px bg-line" aria-hidden />
           <Tool label="Link" icon={Link2} active={on?.link} onClick={openLink} />
-          <Tool label={send.isPending ? "Uploading image" : "Insert image"} icon={ImageUp} disabled={!upload || send.isPending} onClick={() => picker.current?.click()} />
+          <Tool label={send.isPending ? "Uploading image" : "Insert image"} icon={send.isPending ? Spinner : ImageUp} disabled={!upload || send.isPending} onClick={() => picker.current?.click()} />
           <input ref={picker} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label={`Choose an image for ${label}`} onChange={pick} />
           <span className="ml-auto flex">
             <Tool label="Undo" icon={Undo2} disabled={!on?.undo} onClick={run((c) => c.undo())} />

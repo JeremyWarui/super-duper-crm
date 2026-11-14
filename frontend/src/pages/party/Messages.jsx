@@ -68,7 +68,7 @@ function Compose() {
       error={<ErrorText error={save.error} />}
       done={done}
       actions={
-        <Button className="self-start" disabled={!ready}
+        <Button loading={save.isPending} className="self-start" disabled={!ready}
           onClick={() => save.mutate({ ...place, body: body.trim() }, { onSuccess: () => { setBody(""); setDone("Saved. The Party Super Admin approves it before it is sent."); } })}>
           {save.isPending ? "Saving…" : "Send for approval"}
         </Button>

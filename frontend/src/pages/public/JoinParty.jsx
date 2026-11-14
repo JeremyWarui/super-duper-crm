@@ -183,7 +183,7 @@ export default function JoinParty() {
           {step < 3 ? (
             <Button type="button" disabled={!(step === 1 ? detailsOk : branchOk)} onClick={() => setStep(step + 1)}>Continue</Button>
           ) : (
-            <Button type="button" disabled={!consentOk || join.isPending} onClick={send}>{join.isPending ? "Sending…" : "Join the party"}</Button>
+            <Button loading={join.isPending} type="button" disabled={!consentOk || join.isPending} onClick={send}>{join.isPending ? "Sending…" : "Join the party"}</Button>
           )}
         </div>
       </>

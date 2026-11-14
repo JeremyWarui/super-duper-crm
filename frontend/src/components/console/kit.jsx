@@ -18,7 +18,7 @@ export const Help = ({ children }) => <p className="text-small leading-relaxed t
 // Nothing here can be undone, and the rows are close together, so the
 // destructive actions ask first and name who they are about.
 export const Danger = ({ label, question, onConfirm, disabled, busy }) => (
-  <Confirm size="sm" variant="quiet" label={busy ? "Working…" : label} question={question} yes="Yes" disabled={disabled}
+  <Confirm size="sm" variant="quiet" label={busy ? "Working…" : label} question={question} yes="Yes" pending={busy} disabled={disabled}
     onConfirm={(close) => { close(); onConfirm(); }} />
 );
 

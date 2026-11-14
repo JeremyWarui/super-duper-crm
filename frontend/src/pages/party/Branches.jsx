@@ -67,7 +67,7 @@ function BranchForm({ row, onDone }) {
         Show this branch on the website
       </Check>
       <ErrorText error={save.error} className="text-small" />
-      <Button type="submit" className="self-start" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save branch"}</Button>
+      <Button loading={save.isPending} type="submit" className="self-start" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save branch"}</Button>
     </form>
   );
 }
@@ -172,7 +172,7 @@ function Appoint({ county }) {
       <ErrorText error={uploadMinutes.error} className="text-small" />
       <Field label="Note"><Input value={form.note} maxLength={1000} onChange={(e) => set({ note: e.target.value })} /></Field>
       <ErrorText error={appoint.error} className="text-small" />
-      <Button type="submit" className="self-start" disabled={!ready || appoint.isPending || uploadMinutes.isPending}>
+      <Button loading={appoint.isPending} type="submit" className="self-start" disabled={!ready || appoint.isPending || uploadMinutes.isPending}>
         {appoint.isPending ? "Saving…" : "Appoint"}
       </Button>
       <p className="text-small text-muted-foreground">Appointing someone ends the current holder's term the day before. Every change is recorded in the audit trail.</p>

@@ -40,7 +40,7 @@ function SettingsForm({ settings }) {
         <ConfigFields fields={TEXTS} form={form} set={set} />
         <ErrorText error={save.error} className="text-small" />
         {save.isSuccess ? <p role="status" className="text-small text-muted-foreground">Saved.</p> : null}
-        <Button type="submit" className="self-start" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save settings"}</Button>
+        <Button loading={save.isPending} type="submit" className="self-start" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save settings"}</Button>
       </form>
     </Card>
   );

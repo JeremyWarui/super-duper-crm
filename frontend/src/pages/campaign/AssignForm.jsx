@@ -72,7 +72,7 @@ export default function AssignForm({ campaignId, event, member, onClose }) {
       <ErrorText error={create.error} />
       <FormActions>
         <Button variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button disabled={!ok || create.isPending} onClick={save}>{create.isPending ? "Saving…" : "Assign"}</Button>
+        <Button loading={create.isPending} disabled={!ok || create.isPending} onClick={save}>{create.isPending ? "Saving…" : "Assign"}</Button>
       </FormActions>
     </Dialog>
   );

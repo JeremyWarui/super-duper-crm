@@ -33,7 +33,7 @@ export default function StaffForm({ campaignId, role, onClose }) {
       <ErrorText error={add.error} />
       <FormActions>
         <Button variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button disabled={!fields.ok || add.isPending} onClick={() => add.mutate({ campaign: campaignId, role, ...fields.body })}>{add.isPending ? "Saving…" : `Add ${label.toLowerCase()}`}</Button>
+        <Button loading={add.isPending} disabled={!fields.ok || add.isPending} onClick={() => add.mutate({ campaign: campaignId, role, ...fields.body })}>{add.isPending ? "Saving…" : `Add ${label.toLowerCase()}`}</Button>
       </FormActions>
     </Dialog>
   );

@@ -28,7 +28,7 @@ export default function ManagerForm({ campaignId, sitting, onClose }) {
       <ErrorText error={set.error} />
       <FormActions>
         <Button variant="quiet" onClick={onClose}>Cancel</Button>
-        <Button disabled={!fields.ok || set.isPending} onClick={save}>{set.isPending ? "Saving…" : sitting ? "Replace manager" : "Add manager"}</Button>
+        <Button loading={set.isPending} disabled={!fields.ok || set.isPending} onClick={save}>{set.isPending ? "Saving…" : sitting ? "Replace manager" : "Add manager"}</Button>
       </FormActions>
     </Dialog>
   );

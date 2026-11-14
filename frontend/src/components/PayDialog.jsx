@@ -134,7 +134,7 @@ export default function PayDialog({ title, fee, amount: preset, phone: knownPhon
             </p>
           )}
           <ErrorText error={send.error} className="text-small" />
-          <Button type="submit" disabled={!ready || send.isPending}>
+          <Button loading={send.isPending} type="submit" disabled={!ready || send.isPending}>
             {send.isPending ? "Sending…" : method === "manual" ? "Send my code" : `Pay ${formatKES(amount)}`}
           </Button>
         </form>

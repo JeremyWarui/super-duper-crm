@@ -39,7 +39,7 @@ function LogForm({ campaignId, onDone }) {
       <Field label="What they asked for"><Textarea rows={3} value={form.details} maxLength={4000} onChange={set("details")} /></Field>
       <ErrorText error={save.error} className="text-small" />
       <div className="flex gap-2">
-        <Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Log request"}</Button>
+        <Button loading={save.isPending} type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Log request"}</Button>
         <Button type="button" variant="ghost" onClick={onDone}>Cancel</Button>
       </div>
     </form>

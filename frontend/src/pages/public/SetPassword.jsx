@@ -57,7 +57,7 @@ export default function SetPassword() {
             </Field>
             {differ && <p className="text-small font-semibold text-destructive">The two passwords differ.</p>}
             <ErrorText error={claim.error} className="text-ui" />
-            <Button type="submit" size="lg" disabled={claim.isPending || !ready}>{claim.isPending ? "Saving…" : "Save and sign in"}</Button>
+            <Button loading={claim.isPending} type="submit" size="lg" disabled={claim.isPending || !ready}>{claim.isPending ? "Saving…" : "Save and sign in"}</Button>
           </form>
         </>
       )}

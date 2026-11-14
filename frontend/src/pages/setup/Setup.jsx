@@ -185,7 +185,7 @@ function Done({ result, form }) {
         <Card variant="outline" className="gap-3">
           <p className="text-ui">Sign in as the superuser to test email and SMS from here.</p>
           <ErrorText error={error} className="text-ui" />
-          <Button shape="rounded" className="self-start" disabled={busy} onClick={signIn}>{busy ? "Signing in…" : "Sign in and test"}</Button>
+          <Button loading={busy} shape="rounded" className="self-start" disabled={busy} onClick={signIn}>{busy ? "Signing in…" : "Sign in and test"}</Button>
         </Card>
       )}
       <Services result={result} />
@@ -216,7 +216,7 @@ export default function Setup() {
           <p className="text-muted-foreground">On the server, run <code className="rounded bg-stone px-1.5 py-0.5">campaign-crm setup-token</code> and paste the token it prints. It works once, for 24 hours.</p>
           <Field label="Setup token"><Input size="lg" autoComplete="off" autoFocus value={token} onChange={(e) => setToken(e.target.value)} /></Field>
           <ErrorText error={checkToken.error} className="text-ui" />
-          <Button type="submit" size="lg" disabled={!token.trim() || checkToken.isPending}>{checkToken.isPending ? "Checking…" : "Start setup"}</Button>
+          <Button loading={checkToken.isPending} type="submit" size="lg" disabled={!token.trim() || checkToken.isPending}>{checkToken.isPending ? "Checking…" : "Start setup"}</Button>
         </form>
       </Frame>
     );
@@ -301,7 +301,7 @@ export default function Setup() {
           <Button shape="rounded" variant="quiet" disabled={step === 0 || runSetup.isPending} onClick={() => setStep(step - 1)}>Back</Button>
           {step < 5
             ? <Button shape="rounded" disabled={Boolean(block)} onClick={() => setStep(step + 1)}>Next</Button>
-            : <Button shape="rounded" disabled={runSetup.isPending} onClick={finish}>{runSetup.isPending ? "Setting up…" : "Finish setup"}</Button>}
+            : <Button loading={runSetup.isPending} shape="rounded" disabled={runSetup.isPending} onClick={finish}>{runSetup.isPending ? "Setting up…" : "Finish setup"}</Button>}
         </div>
       </Card>
     </Frame>

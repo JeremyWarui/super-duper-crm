@@ -43,7 +43,7 @@ export function CampaignCard({ campaign, users }) {
                 onChange={(e) => setTitle(e.target.value)}
                 aria-label="Campaign name"
               />
-              <Button size="sm"
+              <Button loading={rename.isPending} size="sm"
                 variant="primary"
                 disabled={!title.trim() || rename.isPending}
                 onClick={() =>
@@ -155,7 +155,7 @@ export function CampaignCard({ campaign, users }) {
             <span className="text-ui text-muted-foreground">
               as {available.find((u) => u.id === pick)?.role || "themselves"}
             </span>
-            <Button size="sm"
+            <Button loading={add.isPending} size="sm"
               variant="primary"
               disabled={!pick || add.isPending}
               onClick={() =>
@@ -233,7 +233,7 @@ export function OpenPartyWorkspace({ onInvite }) {
       </Help>
       <ErrorText error={open.error} className="text-ui" />
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="primary" disabled={!ready || open.isPending} onClick={submit}>
+        <Button size="sm" variant="primary" loading={open.isPending} disabled={!ready} onClick={submit}>
           {open.isPending ? (replace ? "Replacing…" : "Opening…") : replace ? "Replace" : "Open it"}
         </Button>
         <Button size="sm" variant="quiet" onClick={() => setAsking(false)}>Cancel</Button>

@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
+import { Spinner } from './spinner'
 
 /**
  * Buttons as drawn in the mockups.
@@ -43,20 +44,28 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  /** Shows a spinner before the label and disables the button while its action runs. */
+  loading?: boolean
 }
 
 /** The shape a Button takes when it names none: pills on the website, rounded inside the signed-in apps. */
 export const ButtonShape = React.createContext<'pill' | 'rounded'>('pill')
 
-export function Button({ className, variant, size, shape, asChild = false, type, ...props }: ButtonProps) {
-  const Comp = asChild ? Slot : 'button'
+export function Button({ className, variant, size, shape, asChild = false, type, loading = false, disabled, children, ...props }: ButtonProps) {
   const fallback = React.useContext(ButtonShape)
+  const classes = cn(buttonVariants({ variant, size, shape: shape ?? fallback }), className)
+  if (asChild) return <Slot data-slot="button" className={classes} {...props}>{children}</Slot>
   return (
-    <Comp
+    <button
       data-slot="button"
-      type={asChild ? undefined : (type ?? 'button')}
-      className={cn(buttonVariants({ variant, size, shape: shape ?? fallback }), className)}
+      type={type ?? 'button'}
+      className={classes}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
-    />
+    >
+      {loading ? <Spinner /> : null}
+      {children}
+    </button>
   )
 }

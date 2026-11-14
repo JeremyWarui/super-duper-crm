@@ -86,7 +86,7 @@ export default function Targets({ campaign, role }) {
   // Win numbers follow a new voter register only when someone who runs the campaign asks.
   const refreshes = isLead(role);
   const action = refreshes ? (
-    <Button variant="quiet" disabled={refresh.isPending} onClick={() => refresh.mutate(campaign.id)}
+    <Button loading={refresh.isPending} variant="quiet" disabled={refresh.isPending} onClick={() => refresh.mutate(campaign.id)}
       title="Recompute every win number from the latest voter register; turnouts and committed votes stay.">
       {refresh.isPending ? "Refreshing…" : "Refresh targets"}
     </Button>

@@ -6,6 +6,7 @@ import { usePublicDocuments, usePublicPosts, usePublicVideos, useSiteCandidate, 
 import { paragraphs } from "@/components/RichTextView";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Reveal } from "@/components/ui/reveal";
 import { SectionHead } from "@/components/ui/typography";
 import { CandidateView, VolunteerDialog, vying } from "./Candidate";
 import { Agenda, Carousel, Events, News, TakePart, Ticker } from "./Home";
@@ -49,7 +50,7 @@ function Candidate({ c }) {
     <section id="about" className="bg-primary text-white">
       <div className="site-container flex flex-col gap-7 py-[72px]">
         <SectionHead kicker="Who is standing" title={`Why ${first}?`} action={{ label: `More about ${first}`, to: "/about" }} onDark />
-        <div className="flex flex-wrap items-center gap-8">
+        <div className="reveal-stagger flex flex-wrap items-center gap-8">
           {c.photo_url ? <img src={c.photo_url} alt="" className="size-[120px] flex-none rounded-full border-2 border-accent object-cover" /> : <span className="size-[120px] flex-none rounded-full border-2 border-accent bg-white/20" />}
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-3">
             {lead ? <p className="text-[18px] leading-[1.7] text-on-primary-muted">{lead}</p> : null}
@@ -92,11 +93,11 @@ export default function AspirantHome() {
     <>
       <Carousel fallback={{ id: "candidate", kicker: c.name, headline: c.slogan || c.name, line: "", image_url: "" }} actions={volunteer} aside={<CandidateCard c={c} />} />
       <Ticker news={news} />
-      <Agenda limit={6} />
-      <News news={news} />
-      <Events />
-      <Candidate c={c} />
-      <TakePart panels={panels} />
+      <Reveal><Agenda limit={6} /></Reveal>
+      <Reveal><News news={news} /></Reveal>
+      <Reveal><Events /></Reveal>
+      <Reveal><Candidate c={c} /></Reveal>
+      <Reveal><TakePart panels={panels} /></Reveal>
       {volunteering ? <VolunteerDialog c={c} send={send} withdrawPath={WITHDRAW} onClose={() => setVolunteering(false)} /> : null}
     </>
   );

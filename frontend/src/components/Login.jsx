@@ -142,7 +142,7 @@ export default function Login() {
               </span>
             </Field>
             <ErrorText error={error} className="text-ui" />
-            <Button type="submit" size="lg" disabled={busy || !ready}>{busy ? "Signing in…" : "Sign in"}</Button>
+            <Button loading={busy} type="submit" size="lg" disabled={busy || !ready}>{busy ? "Signing in…" : "Sign in"}</Button>
           </form>
           {google ? (
             <div className="flex flex-col gap-3">

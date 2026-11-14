@@ -27,7 +27,7 @@ export default function ExportPanel() {
         <p className="text-ui text-muted-foreground">
           On the server: <code>campaign-crm export</code>. For a full copy you can restore, use <code>campaign-crm backup</code>.
         </p>
-        <Button className="self-start" disabled={state.busy} onClick={run}>{state.busy ? "Preparing…" : "Download export"}</Button>
+        <Button loading={state.busy} className="self-start" disabled={state.busy} onClick={run}>{state.busy ? "Preparing…" : "Download export"}</Button>
         {state.done && <StatusText>Downloaded.</StatusText>}
         <ErrorText error={state.error} className="text-ui" />
       </Card>

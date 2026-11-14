@@ -269,6 +269,24 @@
   .rich-text img.ProseMirror-selectednode { outline: 3px solid var(--accent); }
 }
 
+/* Website sections slide up as they scroll into view (see Reveal). Nothing stays transformed once in,
+   so a card's hover lift still works. */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(var(--reveal-shift, 48px)); }
+}
+[data-reveal="out"] { opacity: 0; transform: translateY(48px); }
+[data-reveal="in"] { animation: reveal-up 800ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+[data-reveal="in"] .reveal-stagger > * {
+  --reveal-shift: 28px;
+  animation: reveal-up 700ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: 160ms;
+}
+[data-reveal="in"] .reveal-stagger > :nth-child(2) { animation-delay: 250ms; }
+[data-reveal="in"] .reveal-stagger > :nth-child(3) { animation-delay: 340ms; }
+[data-reveal="in"] .reveal-stagger > :nth-child(4) { animation-delay: 430ms; }
+[data-reveal="in"] .reveal-stagger > :nth-child(5) { animation-delay: 520ms; }
+[data-reveal="in"] .reveal-stagger > :nth-child(n + 6) { animation-delay: 610ms; }
+
 /* Respect people who ask for less motion */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {

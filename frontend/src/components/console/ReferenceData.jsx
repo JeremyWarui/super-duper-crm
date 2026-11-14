@@ -82,8 +82,8 @@ function ImportCard({ kind }) {
         <input type="file" accept=".csv,text/csv" onChange={pick} className="min-h-11 text-ui" />
       </label>
       <div className="flex flex-wrap gap-2">
-        <Button variant="quiet" disabled={!file || run.isPending} onClick={check}>{run.isPending && !checked ? "Checking…" : "Check file"}</Button>
-        <Button disabled={!checked || run.data?.applied || run.isPending} onClick={apply}>{run.isPending && checked ? "Importing…" : `Import ${title.toLowerCase()}`}</Button>
+        <Button variant="quiet" loading={run.isPending && !checked} disabled={!file || run.isPending} onClick={check}>{run.isPending && !checked ? "Checking…" : "Check file"}</Button>
+        <Button loading={run.isPending && checked} disabled={!checked || run.data?.applied || run.isPending} onClick={apply}>{run.isPending && checked ? "Importing…" : `Import ${title.toLowerCase()}`}</Button>
       </div>
       <ErrorText error={run.error} className="text-ui break-words" />
       {report && <Report report={report} />}
