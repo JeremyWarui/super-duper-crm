@@ -38,6 +38,9 @@ import WithdrawParty from "./pages/public/WithdrawParty";
 import WithdrawVolunteer from "./pages/public/WithdrawVolunteer";
 import { LoadingText } from "@/components/ui/loading-text";
 
+/** The whole-page wait while the site settings or a page's code arrive: a spinner mid-screen. */
+const waiting = <LoadingText className="min-h-svh py-0" />;
+
 // The signed-in areas load when first opened, so the public site's first load stays small.
 const App = lazy(() => import("./App"));
 const Portal = lazy(() => import("./pages/party/Portal"));
@@ -89,7 +92,7 @@ function Inside() {
   // A member login opens only its own account.
   if (isMember) return <Navigate to="/account" replace />;
   if (isSuperuser) {
-    if (install.loading) return null;
+    if (install.loading) return waiting;
     if (pathname.startsWith("/party")) return install.aspirant ? <Navigate to="/console" replace /> : <Portal />;
     if (pathname.startsWith("/console")) return <Admin />;
     return <Navigate to="/console" replace />;
@@ -121,7 +124,7 @@ function SignedInOnly({ children }) {
 function ChooserPage() {
   const install = useInstall();
   const user = useAuth((s) => s.user);
-  if (install.loading) return null;
+  if (install.loading) return waiting;
   return install.aspirant ? <Navigate to={homeOf(user)} replace /> : <Chooser />;
 }
 
@@ -211,7 +214,7 @@ export function AppRoutes() {
   if (install.notSetUp) settingUp.current = true;
   if (settingUp.current) {
     return (
-      <Suspense fallback={<LoadingText />}>
+      <Suspense fallback={waiting}>
         <Routes>
           <Route path="/setup" element={<Setup />} />
           <Route path="*" element={<Navigate to="/setup" replace />} />
@@ -224,13 +227,13 @@ export function AppRoutes() {
   const taken = new Set(own.map(([path]) => path));
   // Until the site settings say which kind this is, its own pages wait rather than guess.
   const typed = install.loading
-    ? [...PARTY, ...ASPIRANT].map(([path]) => <Route key={path} path={path} element={null} />)
+    ? [...PARTY, ...ASPIRANT].map(([path]) => <Route key={path} path={path} element={waiting} />)
     : [
         ...own.map(([path, element]) => <Route key={path} path={path} element={element()} />),
         ...other.filter(([path]) => !taken.has(path)).map(([path]) => <Route key={path} path={path} element={home} />),
       ];
   return (
-    <Suspense fallback={<LoadingText />}>
+    <Suspense fallback={waiting}>
       <Routes>
         <Route path="/setup" element={home} />
         {SHARED.map(([path, element]) => <Route key={path} path={path} element={element()} />)}
