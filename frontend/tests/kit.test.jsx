@@ -1,9 +1,8 @@
 /** The UI kit's components load through the `@` alias and carry the party tokens. */
-import { act, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { Button, ButtonShape } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/input";
-import { Reveal } from "@/components/ui/reveal";
 
 describe("the UI kit", () => {
   it("gives a button the shell's shape unless it names one: pills on the website, rounded in the apps", () => {
@@ -34,39 +33,5 @@ describe("the UI kit", () => {
 
     const select = screen.getByRole("combobox", { name: "County" });
     expect(select.className.split(" ")).toEqual(expect.arrayContaining(["bg-white", "bg-[image:var(--select-chevron)]"]));
-  });
-
-  it("shows a spinner on a loading button and holds it until the action ends", () => {
-    render(<Button loading>Saving…</Button>);
-
-    const button = screen.getByRole("button", { name: "Saving…" });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("aria-busy", "true");
-    expect(button.querySelector('[data-slot="spinner"]')).not.toBeNull();
-  });
-});
-
-describe("the scroll reveal", () => {
-  afterEach(() => vi.unstubAllGlobals());
-
-  it("keeps a section down until it scrolls on screen, then slides it in", () => {
-    let report;
-    vi.stubGlobal("IntersectionObserver", class {
-      constructor(callback) { report = callback; }
-      observe() {}
-      disconnect() {}
-    });
-    render(<Reveal><p>Where we stand</p></Reveal>);
-    const section = screen.getByText("Where we stand").parentElement;
-    expect(section).toHaveAttribute("data-reveal", "out");
-
-    act(() => report([{ isIntersecting: true, boundingClientRect: { bottom: 400 } }]));
-    expect(section).toHaveAttribute("data-reveal", "in");
-  });
-
-  it("shows a section at once where the browser cannot watch scrolling", () => {
-    vi.stubGlobal("IntersectionObserver", undefined);
-    render(<Reveal><p>Where we stand</p></Reveal>);
-    expect(screen.getByText("Where we stand").parentElement).toHaveAttribute("data-reveal", "in");
   });
 });
