@@ -5,7 +5,7 @@ import {
   Banknote, CalendarDays, Flag, ClipboardCheck, ClipboardList, Contact, Crosshair, Globe, HandHeart, Heart, LayoutDashboard, LockKeyhole, Map, MapPin, MessageCircle, QrCode,
   Settings, ShieldCheck, Target, UserPlus, UserRoundCog, Users,
 } from "lucide-react";
-import { useEvents, useMobilizers, useStrategy, useSupporters } from "@/api/hooks";
+import { useEvents, useMobilizers, useStrategy } from "@/api/hooks";
 import { pagesOf, reads, useWardOptions } from "./helpers";
 import { nairobiDate } from "@/lib/format";
 
@@ -38,16 +38,16 @@ export const ICONS = {
   privacy: LockKeyhole,
 };
 
-/** The data the shell reads for this role; a query the role may not make is never sent. */
+/** The data the shell reads for this role; a query the role may not make is never sent.
+ *  Contacts are searched on the server, so `contactsFor` is only the campaign to search. */
 export function useShellData(campaign, role) {
   const id = (what) => (reads(role, what) ? campaign.id : undefined);
   const wardOptions = useWardOptions(id("targets"));
   const strategy = useStrategy(id("strategy"));
   const events = useEvents(id("events"));
-  const supporters = useSupporters(id("supporters"));
   const mobilizers = useMobilizers(id("mobilizers"));
   const wards = useMemo(() => [...wardOptions].sort((a, b) => a.name.localeCompare(b.name)), [wardOptions]);
-  return { wards, strategy: strategy.data, events: events.data || [], supporters: supporters.data || [], mobilizers: mobilizers.data || [] };
+  return { wards, strategy: strategy.data, events: events.data || [], contactsFor: id("supporters"), mobilizers: mobilizers.data || [] };
 }
 
 /** The area a person has picked in the top bar, for pages to narrow to; null is every area. */

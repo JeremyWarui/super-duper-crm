@@ -183,6 +183,50 @@ async def test_the_register_is_whole_for_the_candidate_and_manager_one_ward_for_
     assert len(candidate) == 2
 
 
+async def _three_contacts(client: httpx.AsyncClient, world: World) -> None:
+    head = world.headers("manager")
+    for name, phone, level, ward in [
+        ("Wanjiku Njeri", "+254700333444", "supporter", world.ward),
+        ("Otieno K.", "+254700555666", "undecided", world.other_ward),
+        ("Achieng 50%_off", "+254700777888", "supporter", world.other_ward),
+    ]:
+        body = _supporter(
+            world, full_name=name, phone=phone, support_level=level, ward=str(ward.id)
+        )
+        assert (await client.post("/api/supporters/", headers=head, json=body)).status_code == 201
+
+
+async def test_the_register_pages_searches_and_filters_on_the_server(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    await _three_contacts(client, world)
+    head = world.headers("manager")
+
+    async def names(query: str) -> list[str]:
+        rows = (await client.get(f"/api/supporters/?{query}", headers=head)).json()
+        return [s["full_name"] for s in rows]
+
+    first, rest = await names("limit=2"), await names("limit=2&offset=2")
+    assert len(first) == 2 and len(rest) == 1
+    assert set(first) | set(rest) == {"Wanjiku Njeri", "Otieno K.", "Achieng 50%_off"}
+    assert await names("q=otieno") == ["Otieno K."]
+    assert await names("q=555666") == ["Otieno K."]
+    assert await names("q=%25_") == ["Achieng 50%_off"]
+    assert sorted(await names("support_level=supporter")) == ["Achieng 50%_off", "Wanjiku Njeri"]
+
+
+async def test_the_register_counts_only_what_the_caller_may_read(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    await _three_contacts(client, world)
+
+    whole = (await client.get("/api/supporters/summary/", headers=world.headers("manager"))).json()
+    own = (await client.get("/api/supporters/summary/", headers=world.headers("mobilizer"))).json()
+
+    assert whole == {"total": 3, "supporters": 2, "undecided": 1, "consent_missing": 0}
+    assert own == {"total": 1, "supporters": 1, "undecided": 0, "consent_missing": 0}
+
+
 @pytest.mark.parametrize(
     ("role", "codes"),
     [

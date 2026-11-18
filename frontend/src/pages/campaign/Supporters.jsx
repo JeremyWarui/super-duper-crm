@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useErase, usePlaceSupporter, useSupporters, useTextWithdrawalLink, useWithdrawalLink } from "@/api/hooks";
+import { rowsOf, useErase, usePlaceSupporter, useSupporterCounts, useSupporterPages, useTextWithdrawalLink, useWithdrawalLink } from "@/api/hooks";
 import EraseButton from "@/components/EraseButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { ErrorText } from "@/components/ui/error-text";
 import { StatTiles } from "@/components/ui/stat-tiles";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
+import { LoadMore } from "@/components/ui/load-more";
+import { useDebounced } from "@/lib/useDebounced";
 
 import { SUPPORT_LEVELS } from "@/lib/labels";
 import { isLead, unitOf, useTargetedCentres } from "./helpers";
@@ -41,19 +43,30 @@ function WithdrawalLink({ campaign, supporter, onClose }) {
   );
 }
 
-function Summary({ all }) {
-  const count = (level) => all.filter((s) => s.support_level === level).length;
-  const tiles = [["On the register", all.length], ["Supporters", count("supporter")], ["Undecided", count("undecided")], ["Consent missing", all.filter((s) => !s.consent_given).length]];
+function Summary({ counts }) {
+  const tiles = [["On the register", counts.total], ["Supporters", counts.supporters], ["Undecided", counts.undecided], ["Consent missing", counts.consent_missing]];
   return (
     <StatTiles min={150} tiles={tiles.map(([label, value]) => [label, fmt(value)])} />
   );
 }
 
+// How many rows a level filter covers, from the counts.
+const countFor = (counts, level) => ({
+  "": counts.total,
+  supporter: counts.supporters,
+  undecided: counts.undecided,
+  opposed: counts.total - counts.supporters - counts.undecided,
+})[level];
+
 // The contact register, private to the campaign team; in an MCA race each one sits at a centre.
 export default function Supporters({ campaign, role, mine, onModal }) {
   const copy = useCopy();
   const centreWard = unitOf(campaign).byCentre ? campaign.ward : null;
-  const { data, isLoading, error } = useSupporters(campaign.id);
+  const [filter, setFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const q = useDebounced(search.trim(), 300);
+  const pages = useSupporterPages(campaign.id, { q, support_level: filter });
+  const counts = useSupporterCounts(campaign.id, q);
   const { centres, all: allCentres, targeted, ready } = useTargetedCentres(campaign.id, centreWard);
   const showCentre = centreWard && ready;
   const centreName = (id) => allCentres.find((c) => c.id === id)?.name;
@@ -61,20 +74,21 @@ export default function Supporters({ campaign, role, mine, onModal }) {
   const erase = useErase(campaign.id, "supporters");
   const keeper = !mine && isLead(role);
   const [linkFor, setLinkFor] = useState(null);
-  const [filter, setFilter] = useState("");
-  const all = data || [];
-  const shown = filter ? all.filter((s) => s.support_level === filter) : all;
+  const shown = rowsOf(pages.data);
   const action = keeper ? <Button onClick={() => onModal({ type: "link" })}>Sign-up link</Button> : null;
   return (
     <>
       <SlottedHeader context={mine ? "My work" : "Field"} title={mine ? "My contacts" : "Contacts"} sub={copy.supportersSub} actions={action} />
-      {isLoading && <LoadingText />}
-      <ErrorText error={error} />
-      {data && (
+      {pages.isLoading && <LoadingText />}
+      <ErrorText error={pages.error || counts.error} />
+      {pages.data && (
         <>
-          <Summary all={all} />
+          {counts.data && <Summary counts={counts.data} />}
           <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Contact list">
-            <FilterPills label="Support" options={[["", "All"], ...SUPPORT_LEVELS]} value={filter} onChange={setFilter} />
+            <div className="flex flex-wrap items-center gap-3">
+              <FilterPills label="Support" options={[["", "All"], ...SUPPORT_LEVELS]} value={filter} onChange={setFilter} />
+              <Input type="search" aria-label="Search contacts" placeholder="Search by name or phone" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
+            </div>
             <Table stack minWidth={560}>
               <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Support</TH>{showCentre && <TH>Centre</TH>}<TH>Consent</TH>{keeper && <TH srOnly>Personal data</TH>}</TR></THead>
               <TBody>
@@ -105,9 +119,10 @@ export default function Supporters({ campaign, role, mine, onModal }) {
                     )}
                   </TR>
                 ))}
-                {shown.length === 0 && <EmptyRow>None yet.</EmptyRow>}
+                {shown.length === 0 && <EmptyRow>{q ? "No contact matches." : "None yet."}</EmptyRow>}
               </TBody>
             </Table>
+            <LoadMore shown={shown.length} total={counts.data && !pages.isPlaceholderData && !counts.isPlaceholderData ? countFor(counts.data, filter) : undefined} noun="contacts" hasMore={!!pages.hasNextPage} loading={pages.isFetchingNextPage} onMore={() => pages.fetchNextPage()} />
             <ErrorText error={place.error} />
             <ErrorText error={erase.error} />
             {linkFor && <WithdrawalLink key={linkFor.id} campaign={campaign} supporter={linkFor} onClose={() => setLinkFor(null)} />}

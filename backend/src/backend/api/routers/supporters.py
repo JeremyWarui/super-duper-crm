@@ -3,8 +3,8 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy import Select, func, or_, select
 
 from backend.api.deps import SessionDep, require
 from backend.api.scope import (
@@ -20,9 +20,10 @@ from backend.api.scope import (
     require_ward_in_campaign,
     scoped,
 )
-from backend.models import Mobilizer, OperationalGrain, Supporter, User
+from backend.models import Mobilizer, OperationalGrain, Supporter, SupportLevel, User
 from backend.schemas.campaign import (
     ConsentWording,
+    SupporterCounts,
     SupporterCreate,
     SupporterPlace,
     SupporterRead,
@@ -38,14 +39,62 @@ Reader = Annotated[User, Depends(require("supporters.read"))]
 Writer = Annotated[User, Depends(require("supporters.write"))]
 
 
+def _matching(statement: Select, q: str | None) -> Select:
+    """Rows whose name or phone contains `q`, ignoring case."""
+    needle = (q or "").strip()
+    if not needle:
+        return statement
+    escaped = needle.replace("!", "!!").replace("%", "!%").replace("_", "!_")
+    like = f"%{escaped}%"
+    return statement.where(
+        or_(Supporter.full_name.ilike(like, escape="!"), Supporter.phone.ilike(like, escape="!"))
+    )
+
+
 @router.get("/", response_model=list[SupporterRead])
 async def list_supporters(
-    session: SessionDep, user: Reader, campaign: uuid.UUID | None = None
+    session: SessionDep,
+    user: Reader,
+    campaign: uuid.UUID | None = None,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+    support_level: SupportLevel | None = None,
+    limit: Annotated[int | None, Query(ge=1, le=200)] = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[Supporter]:
+    """Newest first; every row unless `limit` is given."""
     statement = await scoped(
         session, user, select(Supporter), Supporter, campaign, "supporters.read"
     )
-    return await all_rows(session, statement.order_by(Supporter.created_at.desc()))
+    statement = _matching(statement, q)
+    if support_level is not None:
+        statement = statement.where(Supporter.support_level == support_level)
+    statement = statement.order_by(Supporter.created_at.desc(), Supporter.id).offset(offset)
+    if limit is not None:
+        statement = statement.limit(limit)
+    return await all_rows(session, statement)
+
+
+@router.get("/summary/", response_model=SupporterCounts)
+async def count_supporters(
+    session: SessionDep,
+    user: Reader,
+    campaign: uuid.UUID | None = None,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+) -> SupporterCounts:
+    level = Supporter.support_level
+    counts = select(
+        func.count(),
+        func.count().filter(level == SupportLevel.SUPPORTER),
+        func.count().filter(level == SupportLevel.UNDECIDED),
+        func.count().filter(Supporter.consent_given.is_(False)),
+    ).select_from(Supporter)
+    statement = _matching(
+        await scoped(session, user, counts, Supporter, campaign, "supporters.read"), q
+    )
+    total, supporters, undecided, missing = (await session.execute(statement)).one()
+    return SupporterCounts(
+        total=total, supporters=supporters, undecided=undecided, consent_missing=missing
+    )
 
 
 @router.get("/consent-wording/", response_model=ConsentWording)

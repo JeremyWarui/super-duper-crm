@@ -63,7 +63,33 @@ export const useEvents = (campaignId) => useFor("events", campaignId, () => api(
 
 export const useMobilizers = (campaignId) => useFor("mobilizers", campaignId, () => api(`/mobilizers/?campaign=${campaignId}`));
 
-export const useSupporters = (campaignId) => useFor("supporters", campaignId, () => api(`/supporters/?campaign=${campaignId}`));
+// The contact register, newest first, PAGE_ROWS at a time; `q` matches a name or phone on the server.
+export const useSupporterPages = (campaignId, { q = "", support_level = "" } = {}) =>
+  useInfiniteQuery({
+    queryKey: ["supporters", campaignId, "pages", q, support_level],
+    queryFn: ({ pageParam }) => api(`/supporters/?${queryOf({ campaign: campaignId, q, support_level, limit: PAGE_ROWS, offset: pageParam })}`),
+    initialPageParam: 0,
+    getNextPageParam: nextPlain,
+    placeholderData: keepPreviousData,
+    enabled: !!campaignId,
+  });
+
+/** Counts of the register, by level and missing consent, for the same `q`. */
+export const useSupporterCounts = (campaignId, q = "") =>
+  useQuery({
+    queryKey: ["supporters", campaignId, "summary", q],
+    queryFn: () => api(`/supporters/summary/?${queryOf({ campaign: campaignId, q })}`),
+    enabled: !!campaignId,
+    placeholderData: keepPreviousData,
+  });
+
+/** The first few contacts matching `q`, once it has two characters. */
+export const useSupporterSearch = (campaignId, q) =>
+  useQuery({
+    queryKey: ["supporters", campaignId, "search", q],
+    queryFn: () => api(`/supporters/?${queryOf({ campaign: campaignId, q, limit: 8 })}`),
+    enabled: !!campaignId && q.length >= 2,
+  });
 
 export const useConsentWording = () =>
   useQuery({

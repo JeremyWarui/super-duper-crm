@@ -254,6 +254,7 @@ export function dashboardRoutes(overrides = {}) {
     "GET /events/": EVENTS,
     "GET /mobilizers/": [],
     "GET /supporters/": [],
+    "GET /supporters/summary/": { total: 0, supporters: 0, undecided: 0, consent_missing: 0 },
     "GET /supporters/consent-wording/": { consent_wording: "Consent wording." },
     "POST /events/e1/invite/": INVITE_RESULT,
     "POST /users/": CREATED_USER,

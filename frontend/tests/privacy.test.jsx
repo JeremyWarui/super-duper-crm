@@ -66,6 +66,30 @@ describe("personal data", () => {
     await vi.waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/campaigns/c1/data/supporters/s1/erase/")).toBe(true));
   });
 
+  it("loads the register 50 contacts at a time from the server", async () => {
+    const user = userEvent.setup();
+    const page = Array.from({ length: 50 }, (_, i) => ({ ...SUPPORTER, id: `s${i}`, full_name: `Contact ${i}` }));
+    const calls = open("supporters", {
+      "GET /supporters/?campaign=c1&limit=50&offset=50": page.slice(0, 10).map((s) => ({ ...s, id: `n${s.id}` })),
+      "GET /supporters/": page,
+      "GET /supporters/summary/": { total: 60, supporters: 60, undecided: 0, consent_missing: 0 },
+    });
+
+    expect(await screen.findByText("Showing 50 of 60 contacts")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Load more" }));
+
+    const listed = () => calls.filter((c) => c.method === "GET" && c.path.startsWith("/supporters/?")).map((c) => c.path);
+    await vi.waitFor(() => expect(listed().some((p) => p.includes("offset=50"))).toBe(true));
+    expect(listed().every((p) => p.includes("limit=50"))).toBe(true);
+  });
+
+  it("still lists the contacts when their count fails", async () => {
+    open("supporters", { "GET /supporters/summary/": { status: 500, body: { detail: "Count failed." } } });
+
+    expect(await screen.findByText("Wanjiru Kamau")).toBeInTheDocument();
+    expect(screen.getByText("Count failed.")).toBeInTheDocument();
+  });
+
   it("tells everyone a closed campaign is read-only", async () => {
     open("supporters", {}, { ...CAMPAIGN, closed_at: "2027-09-01T00:00:00Z" });
 

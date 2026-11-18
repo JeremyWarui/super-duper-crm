@@ -201,6 +201,15 @@ class SupporterRead(Erasable, ORMModel):
     created_at: datetime
 
 
+class SupporterCounts(ORMModel):
+    """The caller's visible contacts, counted; the same rows the list pages through."""
+
+    total: int
+    supporters: int
+    undecided: int
+    consent_missing: int
+
+
 class ConsentWording(ORMModel):
     """The wording a sign-up form shows beside its consent box."""
 

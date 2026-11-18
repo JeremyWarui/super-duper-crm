@@ -80,6 +80,12 @@
     "GET /api/supporters/consent-wording/": [
       "consent_wording"
     ],
+    "GET /api/supporters/summary/": [
+      "total",
+      "supporters",
+      "undecided",
+      "consent_missing"
+    ],
     "GET /api/supporters/": [
       "id",
       "full_name",

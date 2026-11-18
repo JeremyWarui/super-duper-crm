@@ -5,13 +5,15 @@ import { Search } from "lucide-react";
 import { BellPanel, HelpPanel, HitList, PANEL, useHotkeyK, type Hit } from "@/components/layout/TopBarTools";
 import { formatNumber, initials, nairobiDate } from "@/lib/format";
 import { usePanel } from "@/lib/usePanel";
+import { useDebounced } from "@/lib/useDebounced";
+import { useSupporterSearch } from "@/api/hooks";
 import { ROLE_NOTE, pagesOf } from "./helpers";
 import { ROLE_LABEL } from "@/lib/labels";
 import { useWorkspaceArea, workspaceAlerts } from "./shell";
 
 type Ward = { id: string; name: string };
 type Row = { id: string; [field: string]: any };
-type ShellData = { wards: Ward[]; strategy?: any; events: Row[]; supporters: Row[]; mobilizers: Row[] };
+type ShellData = { wards: Ward[]; strategy?: any; events: Row[]; contactsFor?: string; mobilizers: Row[] };
 type Campaign = { title: string; candidate_name: string; seat: string; area_name: string; election_date: string | null };
 
 export function WorkspaceBrand({ name }: { name?: string }) {
@@ -82,6 +84,8 @@ export function WorkspaceSearch({ data, role }: { data: ShellData; role: string 
   const input = useRef<HTMLInputElement>(null);
   useHotkeyK(() => input.current?.focus());
   const needle = q.trim().toLowerCase();
+  const settled = useDebounced(needle, 250);
+  const contacts = useSupporterSearch(data.contactsFor, settled);
   const hits = useMemo(() => {
     if (needle.length < 2) return [];
     const has = new Set(pagesOf(role).map(([key]) => key));
@@ -96,10 +100,10 @@ export function WorkspaceSearch({ data, role }: { data: ShellData; role: string 
     };
     add(data.wards as Row[], page("units", "targets"), "Ward", (w) => w.name, () => "");
     add(data.events, page("events", "myevents"), "Event", (e) => e.title, (e) => e.venue);
-    add(data.supporters, page("supporters", "mysupporters"), "Contact", (s) => s.full_name, (s) => s.phone);
+    if (settled === needle) add(contacts.data || [], page("supporters", "mysupporters"), "Contact", (s) => s.full_name, (s) => s.phone);
     add(data.mobilizers, page("mobilizers"), "Mobilizer", (m) => m.full_name, (m) => m.phone);
     return out.slice(0, 8);
-  }, [needle, data, role]);
+  }, [needle, settled, contacts.data, data, role]);
   return (
     <div ref={ref} className="relative">
       <label className="flex h-[42px] max-sm:h-11 items-center gap-2.5 rounded-full bg-[#F4F3EF] px-4">
@@ -118,7 +122,11 @@ export function WorkspaceSearch({ data, role }: { data: ShellData; role: string 
       </label>
       {open && needle.length >= 2 ? (
         <div className={`${PANEL} left-0 right-auto w-full`}>
-          {hits.length === 0 ? <span className="px-3 py-2 text-ui text-muted-foreground">Nothing you can see matches.</span> : null}
+          {hits.length === 0 ? (
+            <span className="px-3 py-2 text-ui text-muted-foreground">
+              {data.contactsFor && (settled !== needle || contacts.isFetching) ? "Searching…" : "Nothing you can see matches."}
+            </span>
+          ) : null}
           {hits.length ? <HitList hits={hits} onPick={() => setOpen(false)} /> : null}
         </div>
       ) : null}
