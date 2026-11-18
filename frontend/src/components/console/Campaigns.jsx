@@ -70,7 +70,7 @@ export function CampaignCard({ campaign, users }) {
               </Button>
               <Danger
                 label="Delete campaign"
-                question={`Delete ${campaign.title} with its ${fmt(campaign.targets)} targets, ${fmt(campaign.mobilizers)} mobilizers, ${fmt(campaign.events)} events and ${fmt(campaign.supporters)} supporters, and the login of everyone on it except a superuser? This cannot be undone.`}
+                question={`Delete ${campaign.title} with its ${fmt(campaign.targets)} targets, ${fmt(campaign.mobilizers)} mobilizers, ${fmt(campaign.events)} events and ${fmt(campaign.supporters)} contacts, and the login of everyone on it except a superuser? This cannot be undone.`}
                 busy={drop.isPending}
                 disabled={drop.isPending}
                 onConfirm={() => drop.mutate({ campaign: campaign.id })}
@@ -93,7 +93,7 @@ export function CampaignCard({ campaign, users }) {
             <b>{fmt(campaign.events)}</b> events
           </span>
           <span>
-            <b>{fmt(campaign.supporters)}</b> supporters
+            <b>{fmt(campaign.supporters)}</b> contacts
           </span>
           <span>
             <b>{fmt(campaign.votes_committed)}</b> /{" "}

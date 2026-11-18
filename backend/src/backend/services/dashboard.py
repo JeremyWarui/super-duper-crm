@@ -32,6 +32,7 @@ from backend.models import (
     PostKind,
     Seat,
     Supporter,
+    SupportLevel,
     User,
     VolunteerArea,
     VolunteerProfile,
@@ -260,7 +261,9 @@ async def _party_workspace(
         func.date(Event.scheduled_date) <= events_to,
     )
     return PartyWorkspaceTotals(
-        supporters=await _count(session, mine(Supporter)),
+        supporters=await _count(
+            session, mine(Supporter).where(Supporter.support_level == SupportLevel.SUPPORTER)
+        ),
         mobilizers=await _count(session, mine(Mobilizer)),
         upcoming_events=await _count(session, events),
     )

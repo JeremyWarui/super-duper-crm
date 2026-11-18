@@ -68,7 +68,7 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
       </Field>
       {!mobilizer && (
         <Check className="text-ui text-muted-foreground" checked={withLogin} onChange={(e) => setWithLogin(e.target.checked)}>
-          Give them a login, so they can record their own events and supporters.
+          Give them a login, so they can record their own events and contacts.
         </Check>
       )}
       {withLogin && (

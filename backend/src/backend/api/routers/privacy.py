@@ -128,7 +128,7 @@ async def withdrawal_link(
     supporter = await _row(session, Supporter, supporter_id, campaign)
     refuse_erased(supporter)
     if not supporter.withdraw_code:
-        raise Refused("This supporter has no withdrawal link.")
+        raise Refused("This contact has no withdrawal link.")
     return WithdrawalLink(
         url=privacy.withdrawal_url(supporter.withdraw_code), can_text=bool(supporter.phone)
     )

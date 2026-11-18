@@ -13,7 +13,7 @@ export function placesOf(user) {
   const home = homeOf(user);
   const work =
     home === "/campaign"
-      ? { title: "Campaign workspace", desc: "Targets, events, mobilizers and supporters", role: ROLE[user.role] || "Campaign", initial: "W", box: "bg-ink text-accent" }
+      ? { title: "Campaign workspace", desc: "Targets, events, mobilizers and contacts", role: ROLE[user.role] || "Campaign", initial: "W", box: "bg-ink text-accent" }
       : {
           title: user.is_superuser ? "Console" : "Party CRM",
           desc: "Members, volunteers, aspirants and website, as your roles allow",

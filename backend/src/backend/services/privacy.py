@@ -243,7 +243,7 @@ async def text_withdrawal(
 ) -> None:
     """Text a supporter their withdrawal link through the one send path; the caller commits."""
     if not supporter.phone or not supporter.withdraw_code:
-        raise Refused("This supporter has no phone number to text.")
+        raise Refused("This contact has no phone number to text.")
     body = (
         f"{campaign.title} has your name on its supporter register. "
         f"To remove your details at any time, open {withdrawal_url(supporter.withdraw_code)}"
@@ -383,9 +383,9 @@ async def erase_supporters(session: AsyncSession, campaign: Campaign, *, actor: 
     if after is None:
         raise Refused("Close the campaign first.")
     if _now() < after:
-        raise Refused(f"Supporter data is kept until {after:%d %B %Y}.")
+        raise Refused(f"Contact details are kept until {after:%d %B %Y}.")
     if campaign.supporters_erased_at is not None:
-        raise Refused("Supporter data was already erased.")
+        raise Refused("Contact details were already erased.")
     phones = select(Supporter.phone).where(
         Supporter.campaign_id == campaign.id, Supporter.phone != ""
     )

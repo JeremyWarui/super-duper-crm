@@ -89,7 +89,7 @@ export default function Dashboard() {
     ...(work
       ? [
           ["Workspace events", formatNumber(work.upcoming_events), "Planned, in these dates"],
-          ["Workspace supporters", formatNumber(work.supporters)],
+          ["Supporters in the field", formatNumber(work.supporters), "Members in the making"],
           ["Workspace mobilizers", formatNumber(work.mobilizers)],
         ]
       : []),

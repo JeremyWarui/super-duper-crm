@@ -49,7 +49,7 @@ function Summary({ all }) {
   );
 }
 
-// The supporter register, private to the campaign team; in an MCA race each one sits at a centre.
+// The contact register, private to the campaign team; in an MCA race each one sits at a centre.
 export default function Supporters({ campaign, role, mine, onModal }) {
   const copy = useCopy();
   const centreWard = unitOf(campaign).byCentre ? campaign.ward : null;
@@ -67,13 +67,13 @@ export default function Supporters({ campaign, role, mine, onModal }) {
   const action = keeper ? <Button onClick={() => onModal({ type: "link" })}>Sign-up link</Button> : null;
   return (
     <>
-      <SlottedHeader context={mine ? "My work" : "Field"} title={mine ? "My supporters" : "Supporters"} sub={copy.supportersSub} actions={action} />
+      <SlottedHeader context={mine ? "My work" : "Field"} title={mine ? "My contacts" : "Contacts"} sub={copy.supportersSub} actions={action} />
       {isLoading && <LoadingText />}
       <ErrorText error={error} />
       {data && (
         <>
           <Summary all={all} />
-          <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Supporter list">
+          <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Contact list">
             <FilterPills label="Support" options={[["", "All"], ...SUPPORT_LEVELS]} value={filter} onChange={setFilter} />
             <Table stack minWidth={560}>
               <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Support</TH>{showCentre && <TH>Centre</TH>}<TH>Consent</TH>{keeper && <TH srOnly>Personal data</TH>}</TR></THead>

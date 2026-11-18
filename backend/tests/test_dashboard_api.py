@@ -265,7 +265,11 @@ async def test_a_standalone_workspace_counts_as_active_whatever_its_aspirant_say
 
 
 async def test_party_events_count_published_website_events_in_the_window_and_county(
-    client: httpx.AsyncClient, admin_headers: dict, session: AsyncSession, world: World, nakuru: dict
+    client: httpx.AsyncClient,
+    admin_headers: dict,
+    session: AsyncSession,
+    world: World,
+    nakuru: dict,
 ) -> None:
     def post(days: int, county=None, published=True) -> PartyPost:
         return PartyPost(

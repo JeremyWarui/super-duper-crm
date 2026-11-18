@@ -26,6 +26,7 @@ from backend.models import (
     PostKind,
     PostLabel,
     Supporter,
+    SupportLevel,
     User,
     Ward,
     WorkspaceKind,
@@ -155,12 +156,12 @@ async def feed(session: AsyncSession, campaign: Campaign, today: date) -> dict:
     }
 
 
-async def _by_ward(session: AsyncSession, model, ids: list[uuid.UUID]) -> dict:
-    """Rows of `model` counted per campaign and ward, with the ward's name."""
+async def _by_ward(session: AsyncSession, model, ids: list[uuid.UUID], *where) -> dict:
+    """Rows of `model` matching `where`, counted per campaign and ward, with the ward's name."""
     rows = await session.execute(
         select(model.campaign_id, Ward.id, Ward.name, func.count())
         .join(Ward, Ward.id == model.ward_id)
-        .where(model.campaign_id.in_(ids))
+        .where(model.campaign_id.in_(ids), *where)
         .group_by(model.campaign_id, Ward.id, Ward.name)
         .order_by(Ward.name)
     )
@@ -212,7 +213,12 @@ async def shared(session: AsyncSession) -> list[dict]:
         ).all()
     }
     mobilizers = await _by_ward(session, Mobilizer, on("ward_coverage"))
-    supporters = await _by_ward(session, Supporter, on("supporter_counts"))
+    supporters = await _by_ward(
+        session,
+        Supporter,
+        on("supporter_counts"),
+        Supporter.support_level == SupportLevel.SUPPORTER,
+    )
 
     out = []
     for c in campaigns:

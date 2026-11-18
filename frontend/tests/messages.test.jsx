@@ -65,6 +65,6 @@ describe("messages", () => {
     await user.click(screen.getByRole("button", { name: "Send to 2 people" }));
 
     await waitFor(() => expect(posted(calls, "/messages/")).toEqual({ campaign: "c1", body: "Polls open at 6.", wards: [], send: true }));
-    expect(await screen.findByText("Sent to 2 supporters.")).toBeInTheDocument();
+    expect(await screen.findByText("Sent to 2 contacts.")).toBeInTheDocument();
   });
 });

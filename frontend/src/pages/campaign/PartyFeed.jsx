@@ -90,8 +90,8 @@ function Sharing({ campaign, data }) {
           </li>
         ))}
         <li className="flex items-center justify-between gap-3">
-          <span><strong>Supporter list</strong><br /><span className="text-small text-muted-foreground">Always stays with your campaign</span></span>
-          <Toggle label="Supporter list" checked={false} disabled />
+          <span><strong>Contact list</strong><br /><span className="text-small text-muted-foreground">Always stays with your campaign</span></span>
+          <Toggle label="Contact list" checked={false} disabled />
         </li>
       </ul>
       <ErrorText error={change.error} />

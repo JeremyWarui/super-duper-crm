@@ -125,7 +125,7 @@ export default function Admin() {
           ["Targets", fmt(totals.targets)],
           ["Mobilizers", fmt(totals.mobilizers)],
           ["Events", fmt(totals.events)],
-          ["Supporters", fmt(totals.supporters)],
+          ["Contacts", fmt(totals.supporters)],
         ]} />
         {unstaffed > 0 && (
           <p className="text-ui font-semibold text-destructive">

@@ -41,7 +41,7 @@ describe("the party feed", () => {
     await user.click(screen.getByRole("switch", { name: "Supporter counts by ward" }));
 
     await vi.waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ ...OFF, supporter_counts: true }));
-    expect(screen.getByRole("switch", { name: "Supporter list" })).toBeDisabled();
+    expect(screen.getByRole("switch", { name: "Contact list" })).toBeDisabled();
   });
 
   it("lets the manager read the switches but not change them", async () => {

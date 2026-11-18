@@ -101,7 +101,7 @@ describe("signing up on the campaign's own link", () => {
     renderApp(<App />);
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("link", { name: "Supporters" }));
+    await user.click(await screen.findByRole("link", { name: "Contacts" }));
     await user.click(await screen.findByRole("button", { name: "Sign-up link" }));
     await screen.findByText(/\/join\/camp42$/);
     const shareableWhileClosed = screen.queryByRole("link", { name: "Share on WhatsApp" });
@@ -120,7 +120,7 @@ describe("who is offered the campaign's sign-up link", () => {
     stubApi(dashboardRoutes());
     renderApp(<App />, { path: "/campaign/supporters" });
 
-    await screen.findByRole("region", { name: "Supporter list" });
+    await screen.findByRole("region", { name: "Contact list" });
     expect(screen.queryByRole("button", { name: "Sign-up link" })).toBeNull();
   });
 });

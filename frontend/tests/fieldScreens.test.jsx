@@ -48,7 +48,7 @@ describe("registering a supporter in the field", () => {
     await user.click(screen.getByRole("checkbox"));
     offline.on = true;
 
-    await user.click(screen.getByRole("button", { name: "Register supporter" }));
+    await user.click(screen.getByRole("button", { name: "Add contact" }));
     expect(await screen.findByText(/Not sent: no network/)).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Full name" })).toHaveValue("Wanjiku Njeri");
 
@@ -68,7 +68,7 @@ describe("registering a supporter in the field", () => {
     await user.type(await screen.findByRole("textbox", { name: "Full name" }), "Wanjiku Njeri");
     await user.click(screen.getByRole("checkbox"));
 
-    await user.click(screen.getByRole("button", { name: "Register supporter" }));
+    await user.click(screen.getByRole("button", { name: "Add contact" }));
 
     await waitFor(() => expect(useAuth.getState().token).toBeNull());
     expect(JSON.parse(localStorage.getItem("draft:u1:register:c1"))).toMatchObject({ full_name: "Wanjiku Njeri" });

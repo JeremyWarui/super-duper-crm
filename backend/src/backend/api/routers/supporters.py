@@ -118,7 +118,7 @@ async def place_supporter(
     refuse_erased(supporter)
     campaign = await require_visible_campaign(session, user, supporter.campaign_id)
     if campaign.operational_grain is not OperationalGrain.CENTRE:
-        raise Refused("Only an MCA race counts supporters per centre.")
+        raise Refused("Only an MCA race files contacts per centre.")
     await require_ward_in_campaign(
         session, campaign, supporter.ward_id, payload.registration_centre
     )

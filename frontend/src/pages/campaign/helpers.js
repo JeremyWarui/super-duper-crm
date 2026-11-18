@@ -27,7 +27,7 @@ export const holderOf = (mobilizers, unit) =>
   mobilizers.find((m) => m.ward === unit.ward && (m.registration_centre ?? null) === (unit.registration_centre ?? null));
 
 
-const ALL_FIELD = { label: "Field", items: [["events", "Events"], ["mobilizers", "Mobilizers"], ["agents", "Agents"], ["assignments", "Assignments"], ["supporters", "Supporters"], ["volunteers", "Volunteers"]] };
+const ALL_FIELD = { label: "Field", items: [["events", "Events"], ["mobilizers", "Mobilizers"], ["agents", "Agents"], ["assignments", "Assignments"], ["supporters", "Contacts"], ["volunteers", "Volunteers"]] };
 const REACH_OUT = { label: "Reach out", items: [["messages", "Messages"]] };
 const LEAD = [
   { label: "Plan", items: [["overview", "Overview"], ["strategy", "Strategy"], ["targets", "Targets"], ["units", "Wards"]] },
@@ -50,7 +50,7 @@ export const NAV = {
     { label: "Money", items: [["payments", "Payments"]] },
   ],
   comms: [{ label: "Field", items: [["events", "Events"]] }, REACH_OUT],
-  mobilizer: OWN_WORK([["myevents", "My events"], ["register", "Register supporter"], ["mysupporters", "My supporters"], ["mypayments", "My payments"]]),
+  mobilizer: OWN_WORK([["myevents", "My events"], ["register", "Add contact"], ["mysupporters", "My contacts"], ["mypayments", "My payments"]]),
   agent: OWN_WORK([["mycentre", "My centre"], ["myevents", "My events"], ["mypayments", "My payments"]]),
 };
 

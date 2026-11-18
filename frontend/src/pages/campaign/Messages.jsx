@@ -1,4 +1,4 @@
-// Texts to the campaign's supporters: Comms and Coordinators draft, the Candidate or Manager
+// Texts to the campaign's contacts: Comms and Coordinators draft, the Candidate or Manager
 // approves and sends, and the delivery log shows what the gateway reported.
 import { useState } from "react";
 import { useDeclineMessage, useDeleteMessage, useDraftMessage, useMessageLog, useMessageReach, useMessages, useSendMessage } from "@/api/hooks";
@@ -20,7 +20,7 @@ export default function Messages({ campaign }) {
   const data = page.data;
   return (
     <>
-      <SlottedHeader context="Reach out" title="Messages" sub={data ? senderLine(data) : "SMS to your supporters."} />
+      <SlottedHeader context="Reach out" title="Messages" sub={data ? senderLine(data) : "SMS to your contacts."} />
       {page.isLoading && <LoadingText />}
       <ErrorText error={page.error} />
       {data && (
@@ -57,7 +57,7 @@ function Compose({ campaign, data }) {
   const submit = (send) =>
     save.mutate(
       { campaign: campaign.id, body: form.body.trim(), wards: form.wards, send },
-      { onSuccess: (m) => { clear(); setConfirming(false); setDone(send ? `Sent to ${plural(m.recipients, "supporter")}.` : "Saved. The candidate or manager sends it."); } },
+      { onSuccess: (m) => { clear(); setConfirming(false); setDone(send ? `Sent to ${plural(m.recipients, "contact")}.` : "Saved. The candidate or manager sends it."); } },
     );
 
   const picker = (
@@ -69,7 +69,7 @@ function Compose({ campaign, data }) {
           value={form.wards.length ? form.wards : [""]}
           onChange={(id) => (id ? toggle(id) : change({ wards: [] }))}
         />
-        {data.wards.length === 0 && <p className="text-small text-muted-foreground">No supporter has agreed to texts yet.</p>}
+        {data.wards.length === 0 && <p className="text-small text-muted-foreground">No contact has agreed to texts yet.</p>}
       </div>
   );
   const actions = (
@@ -95,7 +95,7 @@ function Compose({ campaign, data }) {
     <ComposePanel
       title="New SMS"
       picker={picker}
-      reach={<ReachLine count={count} who="supporters who agreed to hear from this campaign" left={[
+      reach={<ReachLine count={count} who="contacts who agreed to hear from this campaign" left={[
         opted > 0 && `${plural(opted, "person", "people")} who opted out ${opted === 1 ? "is" : "are"} left out`,
         unusable > 0 && `${plural(unusable, "number")} unusable`,
       ]} />}

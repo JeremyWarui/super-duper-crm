@@ -55,7 +55,7 @@ function Retention({ campaign, state }) {
   const save = useSetRetention(campaign.id);
   return (
     <div className="flex flex-wrap items-end gap-2">
-      <Field label="Keep supporter details after closing (months)" className="w-[260px]">
+      <Field label="Keep contact details after closing (months)" className="w-[260px]">
         <Input type="number" min={1} max={60} value={months} onChange={(e) => setMonths(e.target.value)} />
       </Field>
       <Button size="sm" variant="quiet" disabled={save.isPending || Number(months) === state.retention_months} onClick={() => save.mutate(Number(months))}>Save</Button>
@@ -81,7 +81,7 @@ function Closing({ campaign, role }) {
       {!state.closed_at ? (
         <>
           <p className="text-small text-muted-foreground">
-            Closing makes this workspace read-only for everyone and stops new sign-ups. Supporter details are kept for {state.retention_months} months after that, then the candidate can erase them. Nothing is erased on its own.
+            Closing makes this workspace read-only for everyone and stops new sign-ups. Contact details are kept for {state.retention_months} months after that, then the candidate can erase them. Nothing is erased on its own.
           </p>
           {candidate ? (
             <>
@@ -93,14 +93,14 @@ function Closing({ campaign, role }) {
           ) : <p className="text-small text-muted-foreground">Only the candidate closes the campaign.</p>}
         </>
       ) : state.supporters_erased_at ? (
-        <p className="text-ui">Supporter details were erased on {formatDate(state.supporters_erased_at)}. {fmt(state.supporters)} supporters stay counted.</p>
+        <p className="text-ui">Contact details were erased on {formatDate(state.supporters_erased_at)}. {fmt(state.supporters)} contacts stay counted.</p>
       ) : (
         <>
           <p className="text-ui">
-            {fmt(state.supporters - state.erased)} of {fmt(state.supporters)} supporters still have their details. They can be erased from {formatDate(state.erase_from)}.
+            {fmt(state.supporters - state.erased)} of {fmt(state.supporters)} contacts still have their details. They can be erased from {formatDate(state.erase_from)}.
           </p>
           {candidate && due ? (
-            <EraseButton name="every supporter's details" pending={eraseAll.isPending} onErase={(done) => eraseAll.mutate(undefined, { onSuccess: done })} />
+            <EraseButton name="every contact's details" pending={eraseAll.isPending} onErase={(done) => eraseAll.mutate(undefined, { onSuccess: done })} />
           ) : null}
           <ErrorText error={eraseAll.error} />
         </>

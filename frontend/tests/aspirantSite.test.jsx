@@ -249,7 +249,7 @@ describe("an aspirant installation when signed in", () => {
   });
 
   it.each([
-    ["supporters", "Supporters"],
+    ["supporters", "Contacts"],
     ["volunteers", "Volunteers"],
   ])("never says party on the workspace's %s page", async (page, heading) => {
     signIn("manager");

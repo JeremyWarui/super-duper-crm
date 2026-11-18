@@ -37,7 +37,7 @@ export default function InviteForm({ event, onClose }) {
     );
 
   return (
-    <Dialog title="Invite supporters" description={`${event.title} · ${wholeCampaign ? "whole campaign" : event.ward_name}`} onClose={onClose}>
+    <Dialog title="Invite contacts" description={`${event.title} · ${wholeCampaign ? "whole campaign" : event.ward_name}`} onClose={onClose}>
       <MessageField value={message} onChange={(m) => { setMessage(m); setResult(null); }} text={composed(message).text} />
 
       <div className="flex flex-col gap-1.5">
@@ -70,7 +70,7 @@ function InviteResult({ result }) {
         <Badge tone={tone}>{result.provider}</Badge>
       </div>
       <p className="text-small text-muted-foreground">
-        {plural(result.supporters_matched, "supporter")} matched ·
+        {plural(result.supporters_matched, "contact")} matched ·
         {" "}{plural(result.requested, "usable number")} ·
         {" "}{plural(result.parts, "part")} each
         {result.opted_out > 0 && <> · {fmt(result.opted_out)} opted out, left out</>}

@@ -38,7 +38,7 @@ const groups = () =>
 
 const LEAD = {
   Plan: ["Overview", "Strategy", "Targets", "Wards"],
-  Field: ["Events", "Mobilizers", "Agents", "Assignments", "Supporters", "Volunteers"],
+  Field: ["Events", "Mobilizers", "Agents", "Assignments", "Contacts", "Volunteers"],
   "Reach out": ["Messages"],
   People: ["Team", "Sign-ups", "Personal data"],
   Money: ["Payments", "Contributions"],
@@ -54,7 +54,7 @@ describe("what each role is shown", () => {
       { Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, "Reach out": ["Messages"], People: ["Sign-ups"], Money: ["Payments"] },
     ],
     ["comms", "Comms officer", { Field: ["Events"], "Reach out": ["Messages"] }],
-    ["mobilizer", "Mobilizer", { "My work": ["My events", "Register supporter", "My supporters", "My payments"] }],
+    ["mobilizer", "Mobilizer", { "My work": ["My events", "Add contact", "My contacts", "My payments"] }],
     ["agent", "Agent", { "My work": ["My centre", "My events", "My payments"] }],
   ])("gives a %s exactly their groups", async (role, label, expected) => {
     await open(role);
@@ -181,14 +181,14 @@ describe("the forms", () => {
     });
 
     await user.click(
-      screen.getByRole("link", { name: "Register supporter" }),
+      screen.getByRole("link", { name: "Add contact" }),
     );
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Wanjiku Njeri");
     await user.type(boxes[1], "+254700333444");
     await user.click(screen.getByRole("checkbox"));
     await user.click(
-      screen.getAllByRole("button", { name: "Register supporter" }).at(-1),
+      screen.getAllByRole("button", { name: "Add contact" }).at(-1),
     );
 
     await waitFor(() => {
@@ -233,7 +233,7 @@ describe("an MCA race's supporters", () => {
       "PATCH /supporters/s1/": { id: "s1" },
     });
 
-    await user.click(screen.getByRole("link", { name: "Supporters" }));
+    await user.click(screen.getByRole("link", { name: "Contacts" }));
     const picker = await screen.findByRole("combobox", {
       name: "Centre for Wanjiku Njeri",
     });
@@ -276,7 +276,7 @@ describe("registering a supporter in an MCA race", () => {
 
   async function fill(user) {
     await user.click(
-      screen.getByRole("link", { name: "Register supporter" }),
+      screen.getByRole("link", { name: "Add contact" }),
     );
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Wanjiku Njeri");
@@ -289,7 +289,7 @@ describe("registering a supporter in an MCA race", () => {
     const { calls } = await open("mobilizer", mca("rc2"));
     await fill(user);
     await user.click(
-      screen.getAllByRole("button", { name: "Register supporter" }).at(-1),
+      screen.getAllByRole("button", { name: "Add contact" }).at(-1),
     );
 
     await waitFor(() => {
@@ -307,7 +307,7 @@ describe("registering a supporter in an MCA race", () => {
     const calls = stubApi(routes);
     const { queryClient } = renderApp(<App />);
     await user.click(
-      await screen.findByRole("link", { name: "Register supporter" }),
+      await screen.findByRole("link", { name: "Add contact" }),
     );
     routes["GET /targets/"] = MCA_TARGETS;
     await queryClient.invalidateQueries({ queryKey: ["targets"] });
@@ -316,7 +316,7 @@ describe("registering a supporter in an MCA race", () => {
     await user.click(screen.getByRole("checkbox"));
     await screen.findByRole("option", { name: "Githurai Primary" });
     await user.click(
-      screen.getAllByRole("button", { name: "Register supporter" }).at(-1),
+      screen.getAllByRole("button", { name: "Add contact" }).at(-1),
     );
 
     await waitFor(() => {
@@ -335,7 +335,7 @@ describe("registering a supporter in an MCA race", () => {
     await open("mobilizer", mca(null));
     await fill(user);
     const submit = screen
-      .getAllByRole("button", { name: "Register supporter" })
+      .getAllByRole("button", { name: "Add contact" })
       .at(-1);
 
     expect(submit).toBeDisabled();

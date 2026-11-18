@@ -14,6 +14,7 @@ from backend.models import (
     PartyRoleName,
     PostKind,
     Supporter,
+    SupportLevel,
     WorkspaceKind,
 )
 from tests.conftest import World
@@ -37,7 +38,15 @@ async def _shared(client: httpx.AsyncClient, admin: dict, world: World) -> dict:
 async def test_nothing_is_shared_until_the_candidate_switches_it_on_and_off_hides_it_at_once(
     client: httpx.AsyncClient, session: AsyncSession, world: World, admin_headers: dict
 ) -> None:
-    session.add(Supporter(campaign_id=world.campaign.id, ward_id=world.ward.id, full_name="A"))
+    for name, level in (("A", SupportLevel.SUPPORTER), ("B", SupportLevel.UNDECIDED)):
+        session.add(
+            Supporter(
+                campaign_id=world.campaign.id,
+                ward_id=world.ward.id,
+                full_name=name,
+                support_level=level,
+            )
+        )
     await session.commit()
 
     before = await _shared(client, admin_headers, world)

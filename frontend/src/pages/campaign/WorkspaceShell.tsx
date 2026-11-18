@@ -75,7 +75,7 @@ export function AccessFooter({ role, wards }: { role: string; wards: Ward[] }) {
   );
 }
 
-/** Search the wards, events, supporters and mobilizers the role reads; Ctrl K or Cmd K focuses it. */
+/** Search the wards, events, contacts and mobilizers the role reads; Ctrl K or Cmd K focuses it. */
 export function WorkspaceSearch({ data, role }: { data: ShellData; role: string }) {
   const [q, setQ] = useState("");
   const { open, setOpen, ref } = usePanel();
@@ -96,7 +96,7 @@ export function WorkspaceSearch({ data, role }: { data: ShellData; role: string 
     };
     add(data.wards as Row[], page("units", "targets"), "Ward", (w) => w.name, () => "");
     add(data.events, page("events", "myevents"), "Event", (e) => e.title, (e) => e.venue);
-    add(data.supporters, page("supporters", "mysupporters"), "Supporter", (s) => s.full_name, (s) => s.phone);
+    add(data.supporters, page("supporters", "mysupporters"), "Contact", (s) => s.full_name, (s) => s.phone);
     add(data.mobilizers, page("mobilizers"), "Mobilizer", (m) => m.full_name, (m) => m.phone);
     return out.slice(0, 8);
   }, [needle, data, role]);
@@ -108,7 +108,7 @@ export function WorkspaceSearch({ data, role }: { data: ShellData; role: string 
           ref={input}
           type="search"
           aria-label="Search the workspace"
-          placeholder="Search supporters, wards, events…"
+          placeholder="Search contacts, wards, events…"
           value={q}
           onChange={(e) => { setQ(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}

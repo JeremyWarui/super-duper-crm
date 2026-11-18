@@ -19,6 +19,7 @@ from backend.models import (
     PartyMember,
     PartyMemberStatus,
     Supporter,
+    SupportLevel,
     Target,
     User,
     UserRole,
@@ -172,9 +173,17 @@ async def test_the_dashboard_counts_the_party_workspace_apart_from_hosted_ones(
     session: AsyncSession, client: httpx.AsyncClient, world: World, admin_headers: dict
 ) -> None:
     campaign, password = await _workspace(session, client, admin_headers)
-    session.add(
-        Supporter(campaign_id=campaign.id, ward_id=world.ward.id, full_name="P", phone="+2547001")
-    )
+    levels = (("+2547001", SupportLevel.SUPPORTER), ("+2547002", SupportLevel.UNDECIDED))
+    for phone, level in levels:
+        session.add(
+            Supporter(
+                campaign_id=campaign.id,
+                ward_id=world.ward.id,
+                full_name="P",
+                phone=phone,
+                support_level=level,
+            )
+        )
     await session.commit()
 
     body = (await client.get("/api/party/dashboard/", headers=admin_headers)).json()
