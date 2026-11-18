@@ -2,7 +2,8 @@
 
 A place filter keeps members and volunteers living in it, and campaigns, aspirants and
 events whose own area lies inside it. `seat` and `aspirant` act through the campaign.
-Campaign counts are hosted workspaces; the party's own workspace is counted apart. Only
+Campaign counts are hosted workspaces; the party's own workspace is counted apart. Party events
+on the website are placed by county only, so only the county filter narrows them. Only
 counts, county names and recruiting coordinators' names leave; no campaign record's text does.
 """
 
@@ -27,6 +28,8 @@ from backend.models import (
     Mobilizer,
     PartyMember,
     PartyMemberStatus,
+    PartyPost,
+    PostKind,
     Seat,
     Supporter,
     User,
@@ -172,6 +175,14 @@ async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard
     ).all()
 
     party = await _party_workspace(session, f, events_from, events_to)
+    party_events = select(PartyPost.id).where(
+        PartyPost.kind == PostKind.EVENT,
+        PartyPost.published.is_(True),
+        PartyPost.event_date >= events_from,
+        PartyPost.event_date <= events_to,
+    )
+    if f.county:
+        party_events = party_events.where(PartyPost.county_id == f.county)
 
     query = select(PartyMember.recruited_by_id, PartyMember.recruitment_county_id).where(
         PartyMember.recruited_by_id.is_not(None)
@@ -221,6 +232,7 @@ async def dashboard(session: AsyncSession, f: Filters, today: date) -> Dashboard
             )
         ],
         party_workspace=party,
+        upcoming_party_events=await _count(session, party_events),
         applications_by_county=_by_county(Counter(c for _, c in recruited if c is not None), names),
         applications_by_coordinator=[
             CoordinatorCount(coordinator=recruiters[m], count=n)

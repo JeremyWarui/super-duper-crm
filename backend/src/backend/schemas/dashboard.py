@@ -46,6 +46,8 @@ class Dashboard(BaseModel):
     campaigns_by_county_and_seat: list[CountySeatCount]
     # Hosted workspaces only above; the party's own workspace is counted here.
     party_workspace: "PartyWorkspaceTotals | None" = None
+    # Published party events on the website between events_from and events_to.
+    upcoming_party_events: int = 0
     applications_by_county: list[CountyCount] = []
     applications_by_coordinator: list["CoordinatorCount"] = []
 

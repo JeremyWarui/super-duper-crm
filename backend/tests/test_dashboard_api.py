@@ -19,7 +19,9 @@ from backend.models import (
     PartyConsentChannel,
     PartyMember,
     PartyMemberStatus,
+    PartyPost,
     PartyRoleName,
+    PostKind,
     Seat,
     VolunteerProfile,
     VolunteerStatus,
@@ -260,3 +262,34 @@ async def test_a_standalone_workspace_counts_as_active_whatever_its_aspirant_say
     standalone = (await client.get(URL, headers=admin_headers)).json()["active_campaigns"]
 
     assert (hosted, standalone) == (0, 1)
+
+
+async def test_party_events_count_published_website_events_in_the_window_and_county(
+    client: httpx.AsyncClient, admin_headers: dict, session: AsyncSession, world: World, nakuru: dict
+) -> None:
+    def post(days: int, county=None, published=True) -> PartyPost:
+        return PartyPost(
+            kind=PostKind.EVENT,
+            title="Rally",
+            event_date=TEST_TODAY + timedelta(days=days),
+            county_id=county.id if county else None,
+            published=published,
+        )
+
+    session.add_all(
+        [
+            post(0),
+            post(30, nakuru["county"]),
+            post(5, published=False),
+            post(-1),
+            post(31),
+        ]
+    )
+    await session.commit()
+
+    board = (await client.get(URL, headers=admin_headers)).json()
+    in_nakuru = (
+        await client.get(URL, headers=admin_headers, params={"county": str(nakuru["county"].id)})
+    ).json()
+
+    assert (board["upcoming_party_events"], in_nakuru["upcoming_party_events"]) == (2, 1)

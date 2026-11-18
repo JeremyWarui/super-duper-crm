@@ -83,6 +83,17 @@ export default function Dashboard() {
     ["Approved aspirants", formatNumber(d.approved_aspirants)],
     ["Active campaigns", formatNumber(d.active_campaigns)],
   ];
+  const work = d?.party_workspace;
+  const own = d && [
+    ["Party events on the website", formatNumber(d.upcoming_party_events), "Published, in these dates"],
+    ...(work
+      ? [
+          ["Workspace events", formatNumber(work.upcoming_events), "Planned, in these dates"],
+          ["Workspace supporters", formatNumber(work.supporters)],
+          ["Workspace mobilizers", formatNumber(work.mobilizers)],
+        ]
+      : []),
+  ];
 
   return (
     <>
@@ -111,6 +122,10 @@ export default function Dashboard() {
           <p className="text-small text-muted-foreground">
             Events from {formatDate(d.events_from)} to {formatDate(d.events_to)}.
           </p>
+          <Card variant="outline" className="min-w-0 gap-3" role="region" aria-labelledby="own-work-h">
+            <CardTitle id="own-work-h">The party's own work</CardTitle>
+            <StatTiles tiles={own} min={150} />
+          </Card>
           <div className="grid gap-4 md:grid-cols-2">
             <Counts
               title="Campaigns by county and seat"

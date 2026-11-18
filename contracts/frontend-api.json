@@ -516,7 +516,9 @@
       "events_to",
       "upcoming_events_by_county",
       "upcoming_events_by_seat",
-      "campaigns_by_county_and_seat"
+      "campaigns_by_county_and_seat",
+      "party_workspace",
+      "upcoming_party_events"
     ],
     "POST /api/party/subscribe/": [
       "message",
@@ -1566,6 +1568,11 @@
       "county",
       "seat",
       "count"
+    ],
+    "GET /api/party/dashboard/.party_workspace": [
+      "supporters",
+      "mobilizers",
+      "upcoming_events"
     ],
     "GET /api/account/.volunteer": [
       "status",
