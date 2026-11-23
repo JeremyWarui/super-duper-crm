@@ -11,7 +11,7 @@ const STACK = [
 ].join(' ')
 
 /**
- * Data tables as in Members, Targets, Supporters, Tally. Wraps in a horizontal scroller for phones;
+ * Data tables as in Targets, Supporters, Tally. Wraps in a horizontal scroller for phones;
  * `stack` instead turns each row into a card on phones, so nothing is wider than the screen.
  */
 export function Table({ className, minWidth = 600, stack = false, style, ...props }: React.TableHTMLAttributes<HTMLTableElement> & { minWidth?: number; stack?: boolean }) {

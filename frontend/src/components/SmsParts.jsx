@@ -1,4 +1,4 @@
-// Pieces shared by the campaign's and the party's SMS pages.
+// Pieces of the campaign's SMS pages.
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

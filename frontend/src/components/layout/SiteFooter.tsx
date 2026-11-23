@@ -55,18 +55,18 @@ function Newsletter({ wording }: { wording: string }) {
 export function SiteFooter({ newsletter = true }: { newsletter?: boolean }) {
   const b = useBranding()
   const copy = useCopy()
-  const party: any = useSite().data
-  const socials = Object.entries(party?.social_links || {}) as [string, string][]
-  const contact = [party?.contact_phone, party?.contact_email].filter(Boolean)
+  const site: any = useSite().data
+  const socials = Object.entries(site?.social_links || {}) as [string, string][]
+  const contact = [site?.contact_phone, site?.contact_email].filter(Boolean)
   return (
     <div className="w-full">
-      {newsletter && party ? <Newsletter wording={party.subscribe_consent_wording} /> : null}
+      {newsletter && site ? <Newsletter wording={site.subscribe_consent_wording} /> : null}
       <footer className="bg-ink text-on-dark-muted">
         <div className="site-container flex flex-col gap-8 pt-14 pb-6">
           <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-7 text-body">
             <div className="flex flex-col gap-2.5">
               <Logo size="md" onDark />
-              {party?.address ? <span>{party.address}</span> : null}
+              {site?.address ? <span>{site.address}</span> : null}
               {contact.length ? <span>{contact.join(' · ')}</span> : null}
               {socials.length ? (
                 <span className="flex flex-wrap gap-x-3.5 gap-y-2 pt-1">
@@ -82,7 +82,7 @@ export function SiteFooter({ newsletter = true }: { newsletter?: boolean }) {
             ))}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 border-t border-ink-2 pt-[18px] text-small">
-            <span>© {new Date().getFullYear()} {b.partyName}{b.registrationNo ? ` · Reg. No. ${b.registrationNo}` : ''}</span>
+            <span>© {new Date().getFullYear()} {b.siteName}</span>
             <Link to="/privacy" className="text-on-dark-muted hover:text-white">Privacy notice</Link>
             <Link to="/privacy#data-protection" className="text-on-dark-muted hover:text-white">Data protection</Link>
           </div>

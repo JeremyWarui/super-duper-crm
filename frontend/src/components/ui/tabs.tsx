@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 
 /**
  * Two tab looks from the mockups:
- *  look="segmented" — pill buttons inside a white capsule (CRM filters, Members, Events)
+ *  look="segmented" — pill buttons inside a white capsule (CRM filters, Events)
  *  look="underline" — newspaper section bar (News sections), 3px green underline
  */
 type Look = 'segmented' | 'underline'
@@ -43,7 +43,7 @@ export function TabsTrigger({ className, ...props }: React.ComponentProps<typeof
         'cursor-pointer font-bold text-ink transition-colors',
         look === 'segmented'
           ? 'min-h-10 rounded-full px-4 text-ui data-[state=active]:bg-primary data-[state=active]:text-primary-foreground'
-          : 'pt-4 pb-[13px] text-body data-[state=active]:text-primary data-[state=active]:shadow-[inset_0_-3px_0_var(--party-primary)]',
+          : 'pt-4 pb-[13px] text-body data-[state=active]:text-primary data-[state=active]:shadow-[inset_0_-3px_0_var(--brand-primary)]',
         className,
       )}
       {...props}

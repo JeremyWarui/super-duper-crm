@@ -38,16 +38,14 @@ against the same campaign. Sign out and back in to switch between them.
 The passwords are generated per run and printed by `campaign-crm demo`. Pass
 `--password <value>` to pin all three instead.
 
-## By organisation type
+## The website and the workspace
 
-`src/app/site.js` reads the installation's type from `GET /api/site/` once, and
-`src/copy.js` holds every word that differs by type. `Gate.jsx` serves the
-shared website pages in both, the party's pages in a party installation, and in
-an aspirant installation the candidate homepage at `/`, `/volunteer` and
-`/volunteer/withdraw/:code`; a path only the other type serves goes to `/`. In
-an aspirant installation the Candidate, Manager and Comms get the workspace
-**Website** and **Settings** pages; in the party workspace a coordinator gets
-**Recruitment**, their link and QR code to the Join the Party form.
+`Gate.jsx` serves the campaign website (the candidate homepage at `/`, `/about`,
+`/agenda`, `/media`, `/volunteer` and the shared pages), sign-in, the setup wizard
+until the installation exists, the superuser console at `/console` and the
+campaign workspace at `/campaign`. `src/copy.js` holds the words the website and
+console share. The Candidate, Manager and Comms get the workspace **Website** and
+**Settings** pages.
 
 ## Styling
 
@@ -129,10 +127,9 @@ every registration centre in the ward, each with its register and a total. A
 ward with no centres loaded says so there, rather than looking ready and coming
 back with a win number of zero.
 
-**Nobody sets a campaign up for themselves.** An aspirant copy's one workspace is
-made at setup (`pages/setup/Setup.jsx`). On a party copy the console's **New
-campaign** opens Aspirants, where a Nominations Officer makes an approved
-aspirant's workspace; its logins are emailed invite links.
+**Nobody sets a campaign up for themselves.** The installation's one campaign is
+made at setup (`pages/setup/Setup.jsx`); its candidate login is emailed an invite
+link.
 
 **A login on no campaign is told so.** An aspirant, manager or mobilizer whose
 campaign list is empty sees "You are not on a campaign yet" and can sign out;

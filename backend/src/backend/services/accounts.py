@@ -5,7 +5,6 @@ import uuid
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from backend.models import (
     AuthToken,
@@ -26,26 +25,16 @@ def clean_email(email: str) -> str:
     return email.strip().lower()
 
 
-async def user_with_email(
-    session: AsyncSession, email: str, *, with_party_roles: bool = False
-) -> User | None:
+async def user_with_email(session: AsyncSession, email: str) -> User | None:
     """The login signing in with this email, or None."""
     email = clean_email(email)
     if not email:
         return None
-    query = select(User).where(User.email == email).options(selectinload(User.party_member))
-    if with_party_roles:
-        query = query.options(selectinload(User.party_roles))
-    return await session.scalar(query)
+    return await session.scalar(select(User).where(User.email == email))
 
 
-async def user_named(
-    session: AsyncSession, username: str, *, with_party_roles: bool = False
-) -> User | None:
-    query = select(User).where(User.username == username)
-    if with_party_roles:
-        query = query.options(selectinload(User.party_roles))
-    return await session.scalar(query)
+async def user_named(session: AsyncSession, username: str) -> User | None:
+    return await session.scalar(select(User).where(User.username == username))
 
 
 async def new_login(

@@ -1,4 +1,4 @@
-"""Homepage, About-page, Results-page and leader content; the public sees published ones."""
+"""Homepage content: slides, issues, documents and videos; the public sees published ones."""
 
 import uuid
 
@@ -7,53 +7,21 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.session import get_or_refuse
-from backend.models import (
-    AgendaIssue,
-    HeroSlide,
-    PartyDocument,
-    PartyLeader,
-    PartyOrgan,
-    PartyValue,
-    PartyVideo,
-    PrimaryResult,
-    User,
-)
+from backend.models import AgendaIssue, Document, HeroSlide, User, Video
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
 
 MAX_SLIDES = 5
-# Fields a null clears instead of leaving unchanged.
-CLEARABLE = {"declared_on"}
-Row = (
-    HeroSlide
-    | AgendaIssue
-    | PartyDocument
-    | PartyValue
-    | PartyOrgan
-    | PrimaryResult
-    | PartyVideo
-    | PartyLeader
-)
+Row = HeroSlide | AgendaIssue | Document | Video
 NAMES = {
     HeroSlide: "hero_slide",
     AgendaIssue: "agenda_issue",
-    PartyDocument: "document",
-    PartyValue: "value",
-    PartyOrgan: "organ",
-    PrimaryResult: "result",
-    PartyVideo: "video",
-    PartyLeader: "leader",
+    Document: "document",
+    Video: "video",
 }
-# The audit subject and the missing-row noun, where they differ from NAMES and "item".
-SUBJECTS = {PartyLeader: "party_leader"}
-NOUNS = {PartyLeader: "leader"}
 
 
 def _ordered(model: type[Row]):
-    if model is PrimaryResult:
-        return select(model).order_by(model.seat, model.area, model.votes.desc(), model.candidate)
-    if model is PartyLeader:
-        return select(model).order_by(model.sort_order, model.name)
     return select(model).order_by(model.sort_order, model.created_at)
 
 
@@ -79,8 +47,8 @@ def _audit(session: AsyncSession, actor: User, verb: str, row: Row, **detail: ob
     record(
         session,
         actor=actor,
-        action=f"party.{name}.{verb}",
-        subject_type=SUBJECTS.get(type(row), name),
+        action=f"site.{name}.{verb}",
+        subject_type=name,
         subject_id=row.id,
         detail=detail,
     )
@@ -104,11 +72,11 @@ async def create(
 async def update(
     session: AsyncSession, model: type[Row], row_id: uuid.UUID, payload: BaseModel, *, actor: User
 ) -> Row:
-    row = await get_or_refuse(session, model, row_id, NOUNS.get(model, "item"))
+    row = await get_or_refuse(session, model, row_id, "item")
     changes = {
         name: value
         for name, value in payload.model_dump(exclude_unset=True).items()
-        if value is not None or name in CLEARABLE
+        if value is not None
     }
     for name, value in changes.items():
         setattr(row, name, value)
@@ -121,7 +89,7 @@ async def update(
 async def delete(
     session: AsyncSession, model: type[Row], row_id: uuid.UUID, *, actor: User
 ) -> None:
-    row = await get_or_refuse(session, model, row_id, NOUNS.get(model, "item"))
+    row = await get_or_refuse(session, model, row_id, "item")
     _audit(session, actor, "delete", row)
     await session.delete(row)
     await session.commit()

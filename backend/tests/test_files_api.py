@@ -48,7 +48,7 @@ async def _upload(
         URL,
         headers=headers,
         files={"file": (name, data, content_type)},
-        data={"area": "leaders", "public": str(public).lower()},
+        data={"area": "documents", "public": str(public).lower()},
     )
 
 

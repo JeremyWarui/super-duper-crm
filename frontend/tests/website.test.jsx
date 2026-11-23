@@ -1,10 +1,9 @@
-/** The superuser's website editor in the party portal. */
+/** The workspace's website editor. */
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import Root from "../src/Gate";
-import { useAuth } from "../src/store/auth";
-import { renderApp, signIn, stubApi } from "./helpers";
+import App from "../src/App";
+import { dashboardRoutes, renderApp, signIn, stubApi } from "./helpers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -25,28 +24,22 @@ const POST = {
 
 const UPLOADED = "/api/files/0b6f1c1e-5a7d-4c1e-9f3a-2d4e6f8a0b1c/";
 
-const ROUTES = {
-  "POST /files/": { status: 201, body: { id: "f1", url: UPLOADED } },
-  "GET /site/": { name: "Umoja Party" },
-  "GET /admin/party/posts/": [POST],
-  "GET /admin/party/leaders/": [],
-  "POST /admin/party/leaders/": { status: 201, body: { id: "l1" } },
-  "POST /admin/party/posts/": { ...POST, id: "p2" },
-  "PATCH /admin/party/posts/p1/": { ...POST, published: true },
-  "DELETE /admin/party/posts/p1/": { status: 204, body: null },
-};
+const ROUTES = dashboardRoutes({
+  "POST /workspace/site/images/": { status: 201, body: { id: "f1", url: UPLOADED } },
+  "GET /workspace/site/candidate/": { name: "Jane", photo_url: "", bio: "", priorities: [], published: false },
+  "GET /workspace/site/posts/": [POST],
+  "POST /workspace/site/posts/": { ...POST, id: "p2" },
+  "PATCH /workspace/site/posts/p1/": { ...POST, published: true },
+  "DELETE /workspace/site/posts/p1/": { status: 204, body: null },
+});
 
 const sent = (calls, method, path) => calls.find((c) => c.method === method && c.path === path);
 
-function signInAsSuperuser() {
-  signIn("manager");
-  useAuth.setState({ user: { ...useAuth.getState().user, is_superuser: true } });
-}
-
 async function openWebsite() {
-  signInAsSuperuser();
+  signIn("manager");
   const calls = stubApi(ROUTES);
-  renderApp(<Root />, { path: "/party/website" });
+  renderApp(<App />, { path: "/campaign/website" });
+  await userEvent.setup().click(await screen.findByRole("button", { name: "News" }));
   await screen.findByText("Congress opens");
   return calls;
 }
@@ -68,22 +61,7 @@ describe("the website editor", () => {
     await user.type(screen.getByRole("textbox", { name: "Text" }), "Come early");
     await user.click(screen.getByRole("button", { name: "Add post" }));
 
-    await waitFor(() => expect(sent(calls, "POST", "/admin/party/posts/")?.body.body).toBe("<p><strong>Come early</strong></p>"));
-  });
-
-  it("writes a leader's bio with the formatted text editor", async () => {
-    const user = userEvent.setup();
-    const calls = await openWebsite();
-
-    await user.click(screen.getByRole("button", { name: "Leaders" }));
-    await user.click(await screen.findByRole("button", { name: "New leader" }));
-    await user.type(screen.getByLabelText("Name"), "Grace Chebet");
-    await user.type(screen.getByLabelText("Position"), "Chair");
-    await user.click(screen.getByRole("button", { name: "Italic" }));
-    await user.type(screen.getByRole("textbox", { name: "Bio (optional)" }), "Teacher");
-    await user.click(screen.getByRole("button", { name: "Add leader" }));
-
-    await waitFor(() => expect(sent(calls, "POST", "/admin/party/leaders/")?.body.bio).toBe("<p><em>Teacher</em></p>"));
+    await waitFor(() => expect(sent(calls, "POST", "/workspace/site/posts/")?.body.body).toBe("<p><strong>Come early</strong></p>"));
   });
 
   it("uploads a statement's signed PDF to the documents area", async () => {
@@ -97,8 +75,8 @@ describe("the website editor", () => {
     await waitFor(() => expect(screen.getByLabelText("Signed PDF (optional)")).toHaveValue(UPLOADED));
     await user.click(screen.getByRole("button", { name: "Add post" }));
 
-    expect(sent(calls, "POST", "/files/").body.get("area")).toBe("documents");
-    await waitFor(() => expect(sent(calls, "POST", "/admin/party/posts/")?.body.pdf_url).toBe(UPLOADED));
+    expect(sent(calls, "POST", "/workspace/site/images/").body.get("area")).toBe("documents");
+    await waitFor(() => expect(sent(calls, "POST", "/workspace/site/posts/")?.body.pdf_url).toBe(UPLOADED));
   });
 
   it("uploads a chosen image and saves its address on the post", async () => {
@@ -112,8 +90,8 @@ describe("the website editor", () => {
     await waitFor(() => expect(screen.getByLabelText("Image (optional)")).toHaveValue(url));
     await user.click(screen.getByRole("button", { name: "Add post" }));
 
-    expect(sent(calls, "POST", "/files/").body.get("area")).toBe("site");
-    await waitFor(() => expect(sent(calls, "POST", "/admin/party/posts/")?.body.image_url).toBe(url));
+    expect(sent(calls, "POST", "/workspace/site/images/").body.get("area")).toBe("site");
+    await waitFor(() => expect(sent(calls, "POST", "/workspace/site/posts/")?.body.image_url).toBe(url));
   });
 
   it("adds, publishes and deletes a post through its routes", async () => {
@@ -124,7 +102,7 @@ describe("the website editor", () => {
     await user.type(screen.getByLabelText("Title"), "Rally next week");
     await user.click(screen.getByRole("button", { name: "Add post" }));
     await waitFor(() =>
-      expect(sent(calls, "POST", "/admin/party/posts/")?.body).toEqual({
+      expect(sent(calls, "POST", "/workspace/site/posts/")?.body).toEqual({
         kind: "news",
         label: "news",
         title: "Rally next week",
@@ -138,26 +116,26 @@ describe("the website editor", () => {
 
     await user.click(screen.getByRole("button", { name: "Publish" }));
     await waitFor(() =>
-      expect(sent(calls, "PATCH", "/admin/party/posts/p1/")?.body).toEqual({ published: true }),
+      expect(sent(calls, "PATCH", "/workspace/site/posts/p1/")?.body).toEqual({ published: true }),
     );
 
     await user.click(screen.getByRole("button", { name: "Delete" }));
     const dialog = screen.getByRole("dialog");
     await user.click(within(dialog).getByRole("button", { name: "Delete" }));
-    await waitFor(() => expect(sent(calls, "DELETE", "/admin/party/posts/p1/")).toBeDefined());
+    await waitFor(() => expect(sent(calls, "DELETE", "/workspace/site/posts/p1/")).toBeDefined());
   });
 
   it("saves slides with the order the editor gives them", async () => {
     const user = userEvent.setup();
     const calls = stubApi({
       ...ROUTES,
-      "GET /admin/party/slides/": [{ id: "s1", headline: "Jobs for all", kicker: "", line: "", button_label: "", button_url: "", image_url: "", sort_order: 1, published: true }],
-      "GET /admin/party/issues/": [],
-      "POST /admin/party/slides/": { id: "s2" },
-      "PATCH /admin/party/slides/s1/": { id: "s1" },
+      "GET /workspace/site/slides/": [{ id: "s1", headline: "Jobs for all", kicker: "", line: "", button_label: "", button_url: "", image_url: "", sort_order: 1, published: true }],
+      "GET /workspace/site/issues/": [],
+      "POST /workspace/site/slides/": { id: "s2" },
+      "PATCH /workspace/site/slides/s1/": { id: "s1" },
     });
-    signInAsSuperuser();
-    renderApp(<Root />, { path: "/party/website" });
+    signIn("manager");
+    renderApp(<App />, { path: "/campaign/website" });
     await user.click(await screen.findByRole("button", { name: "Homepage" }));
 
     await user.click(await screen.findByRole("button", { name: "New slide" }));
@@ -166,7 +144,7 @@ describe("the website editor", () => {
     await user.type(screen.getByLabelText(/^Order/), "2");
     await user.click(screen.getByRole("button", { name: "Add slide" }));
     await waitFor(() =>
-      expect(sent(calls, "POST", "/admin/party/slides/")?.body).toMatchObject({ headline: "Fair prices", sort_order: 2 }),
+      expect(sent(calls, "POST", "/workspace/site/slides/")?.body).toMatchObject({ headline: "Fair prices", sort_order: 2 }),
     );
 
     await user.click(screen.getByRole("button", { name: "Edit" }));
@@ -174,7 +152,7 @@ describe("the website editor", () => {
     await user.type(screen.getByLabelText(/^Order/), "3");
     await user.click(screen.getByRole("button", { name: "Save slide" }));
     await waitFor(() =>
-      expect(sent(calls, "PATCH", "/admin/party/slides/s1/")?.body).toEqual({ sort_order: 3 }),
+      expect(sent(calls, "PATCH", "/workspace/site/slides/s1/")?.body).toEqual({ sort_order: 3 }),
     );
   });
 
@@ -192,7 +170,7 @@ describe("the website editor", () => {
 
     expect(offWithoutDate).toBe(true);
     await waitFor(() =>
-      expect(sent(calls, "POST", "/admin/party/posts/")?.body).toMatchObject({
+      expect(sent(calls, "POST", "/workspace/site/posts/")?.body).toMatchObject({
         kind: "event",
         event_date: "2026-11-20",
       }),

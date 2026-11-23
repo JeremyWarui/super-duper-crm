@@ -1,4 +1,4 @@
-"""The website's identity and the organisation type: one row, id 1."""
+"""The website's identity: one row, id 1, written at setup."""
 
 import uuid
 from datetime import UTC, datetime
@@ -20,15 +20,13 @@ from backend.db.base import (
     OneTimeToken,
     TimestampMixin,
     UUIDPrimaryKeyMixin,
-    choice_type,
     file_ref,
     hex_colour,
 )
-from backend.models.enums import OrganisationType
 
 
 class SiteSettings(Base):
-    """Name, branding, contacts, manifesto and privacy notice, shared by every organisation type."""
+    """Name, branding, contacts, manifesto and privacy notice."""
 
     __tablename__ = "site_settings"
     __table_args__ = (
@@ -38,10 +36,6 @@ class SiteSettings(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False, default=1)
-    # Written once at setup; no schema, screen or command changes it.
-    organisation_type: Mapped[OrganisationType] = mapped_column(
-        choice_type(OrganisationType, "organisation_type")
-    )
     name: Mapped[str] = mapped_column(String(150))
     short_name: Mapped[str] = mapped_column(String(30), default="")
     slogan: Mapped[str] = mapped_column(String(150), default="", server_default=text("''"))

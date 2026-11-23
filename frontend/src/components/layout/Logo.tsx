@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils'
 import { useBranding } from '@/theme/branding'
 
 /**
- * Logo tile + party name. size "lg" = website header (44px), "md" = footer/CRM (40px / 34px).
- * onPrimary is for a party-green panel: a gold tile and light text.
+ * Logo tile + site name. size "lg" = website header (44px), "md" = footer/CRM (40px / 34px).
+ * onPrimary is for a primary-colour panel: a gold tile and light text.
  */
 export function Logo({ size = 'lg', onDark, onPrimary, withSlogan, to = '/' }: { size?: 'lg' | 'md' | 'sm'; onDark?: boolean; onPrimary?: boolean; withSlogan?: boolean; to?: string }) {
   const b = useBranding()
@@ -22,7 +22,7 @@ export function Logo({ size = 'lg', onDark, onPrimary, withSlogan, to = '/' }: {
         <span aria-hidden className={cn(tile, 'flex flex-none items-center justify-center font-display font-extrabold', size === 'sm' || onPrimary ? 'bg-accent text-ink' : 'bg-primary text-accent')}>{b.shortName}</span>
       )}
       <span className="flex flex-col leading-[1.1]">
-        <span className={cn('font-display font-extrabold', size === 'sm' ? 'text-lead' : 'text-[22px]')}>{b.partyName}</span>
+        <span className={cn('font-display font-extrabold', size === 'sm' ? 'text-lead' : 'text-[22px]')}>{b.siteName}</span>
         {withSlogan ? <span className="text-meta font-semibold text-muted-foreground">{b.slogan}</span> : null}
       </span>
     </Link>

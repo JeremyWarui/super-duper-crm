@@ -15,9 +15,6 @@ by the `DB_*` values in `backend/.env`. It recreates the database
 before each test, and drops it when the run ends, so two runs at once never collide. It refuses any `DB_HOST` but this machine. Use it for
 migrations, row locks and anything else SQLite cannot prove.
 
-Every test that uses the `client` fixture runs twice, as a party and as an
-aspirant installation (`[party]` and `[aspirant]` in its id). A test or module
-marked `party_only` runs once, as a party.
 CI (`.github/workflows/backend-tests.yml`) runs everything on SQLite and on
 Postgres.
 
@@ -35,8 +32,7 @@ Postgres.
 | `test_geography_api.py` | Reference reads, and a mobilizer's one ward |
 | `test_campaigns_api.py` | Campaign reads, setup refusals, and that nobody sets one up for themselves |
 | `test_users_api.py` | Mobilizer logins added and removed from inside a campaign |
-| `test_team_api.py` | The aspirant sets the one manager, nobody on the team resets a password, and an MCA mobilizer's centre |
-| `test_campaign_access.py` | A hosted workspace is open exactly while its aspirant is approved; party and standalone workspaces are always open and there is at most one of each; the removed hosting and finance routes are gone |
+| `test_team_api.py` | The candidate sets the one manager, nobody on the team resets a password, and an MCA mobilizer's centre |
 | `test_clock.py` | Every request's today is the date in Nairobi |
 | `test_ground_api.py` | Mobilizers, events and the supporter register |
 | `test_ward_in_campaign.py` | A ward or centre in a request must lie inside the seat |
@@ -46,16 +42,13 @@ Postgres.
 | `test_invite_api.py` | Texting an event's supporters |
 | `test_sms.py` | Phone normalising and both SMS providers |
 | `test_admin_api.py` | The admin console and its superuser gate |
-| `test_route_guards.py` | Every route needs a login unless public; exactly the party routes are party-only, and each answers 404 in an aspirant installation |
+| `test_route_guards.py` | Every route needs a login unless public, and only me and logout skip the closed-campaign check |
 | `test_permissions.py` | The permissions map is section 0.2, every role reaches exactly its routes, a coordinator stays in their area, a coordinator's payment needs the manager |
-| `test_party_workspace.py` | One national party workspace, staff refused, hosted workspaces never see it, coordinators' area register, recruitment codes |
 | `test_files_api.py` | Uploads: disguised and over-size files refused, metadata stripped, private files hidden, public ones cached |
-| `test_workspace_site.py` | The aspirant workspace website: Comms edits posts and slides, contrast enforced, edits audited, other roles refused |
-| `test_boundaries.py` | Campaign code never imports party code, and a planted import is caught |
+| `test_workspace_site.py` | The website, edited from the workspace: Comms edits posts and slides, contrast enforced, edits audited, other roles refused |
 | `test_cli.py` | campaign-crm |
 | `test_seed.py` | The bundled CSVs and the demo |
 | `../evals/test_frontend_contract.py` | The API offers what the SPA reads and accepts what it sends |
-| `../evals/test_aspirant_access_walk.py` | Every aspirant status: the team's reads and writes, the sign-up link and the volunteer form open together or not at all |
 
 SQLite cannot prove Postgres-only SQL, so `test_migrations.py` renders the
 migration for Postgres and checks the partial `WHERE` clauses and the

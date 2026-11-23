@@ -93,7 +93,6 @@ export default function Health() {
             ? <Badge tone="ok">Up to date ({h.migration.current})</Badge>
             : <Badge tone="warn">At {h.migration.current || "unknown"}, latest {h.migration.head || "unknown"}: the database needs updating (docker compose up -d, or alembic upgrade head)</Badge>}
         </Row>
-        <Row label="Organisation type"><span className="capitalize">{h.organisation_type || "not set up"}</span></Row>
         {h.disks.map((d) => <Row key={d.label} label={`Free space, ${d.label.toLowerCase()}`}>{size(d.free_bytes)} of {size(d.total_bytes)}</Row>)}
       </Card>
       <Card variant="outline" className="gap-1" role="region" aria-label="Outside services">

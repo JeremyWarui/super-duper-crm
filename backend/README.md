@@ -119,43 +119,18 @@ Everything is under `/api`, with a trailing slash, and needs
 A foreign key travels under the bare name (`ward`, not `ward_id`), and reads
 carry the parent's name beside it. Every error is `{"detail": "<sentence>"}`.
 
-### By organisation type
+### Setup and access
 
-`site_settings.organisation_type` decides what exists. In an aspirant
-installation the party office (`/api/party/members/`, `…/volunteers/`,
-`…/aspirants/`, the dashboard and console), the party's own website pages
-(leaders, organs, values, branches, results, join and withdraw, the candidates
-directory) and their console editors answer 404, as if they were never
-mounted. The website content both types share (posts, slides, issues,
-documents, videos, places, subscribe) stays under `/api/party/`.
-Party-only routes are `PartyOnlyRoute`s (`api/install.py`): the routers that
-mix both kinds put them on a `party_router`. The `InstallationType`
-middleware reads the type for any request shaped like a party route, and a
-`PartyOnlyRoute` matches nothing outside a party installation, so any method,
-body or missing slash gets the same 404 as an unknown path. The party inbox
-task runs only in a party installation.
+Until setup writes the site settings row, every `/api` route but setup's answers 503
+(`api/install.py`). Campaign access is decided in `services/access.py`: a campaign is open
+until it is closed after the election, then read-only for its team.
 
-Campaign workspace access is decided in `services/access.py`: party and
-standalone workspaces are always open; a hosted one is open while its aspirant
-is approved, or when it has none.
+A candidate page (`candidate_profiles`) belongs to the campaign. The campaign's volunteers
+(`models/volunteer.py`) are read, moved, signed up and withdrawn through
+`services/campaign_volunteers.py`.
 
-The party workspace (`kind = 'party'`, national, no seat or candidate) is
-created once by a superuser (`POST /api/party/workspace/`) with its first
-Workspace Manager, and gets a target in every ward. Its coordinators read the
-party members living in their area (`GET /api/party/workspace/members/`,
-read-only, a page at a time, each page audited as `members.area_read`) and
-hold one active recruitment code each (`…/recruitment/`; POST replaces it).
-A Join the Party application carrying an active code records the coordinator
-and the county of the applicant's ward; any other code is ignored, and
-membership officers still decide every application. A coordinator of a
-hosted workspace gets 404 on these routes. The dashboard counts the party
-workspace apart from hosted ones.
-
-A candidate page (`candidate_profiles`) belongs to a campaign, one each; a
-hosted campaign's page also names its aspirant. A campaign's volunteers
-(`models/volunteer.py`, `campaign_id` set) are read, moved, signed up and
-withdrawn through `services/campaign_volunteers.py`; `services/volunteers.py`
-handles the party's own.
+The public website reads its content under `/api/website/` (posts, slides, issues, documents,
+videos, places, subscribe).
 
 ## Rules
 
@@ -220,29 +195,21 @@ its team, wards and size; every login and its campaign; rename and delete a camp
 login; reset a password; disable or enable a login. An admin cannot disable themselves or the last active superuser,
 and a superuser is never put on a campaign.
 
-The console makes no campaign. An aspirant copy's one workspace is made at setup
-(`POST /api/setup/`); a party copy's hosted workspaces are made from approved aspirants
-(`POST /api/party/aspirants/{aspirant_id}/workspace/`).
+The console makes no campaign. The installation's one campaign is made at setup
+(`POST /api/setup/`).
 
-## The workspace website (aspirant installations)
+## The workspace website
 
-In an aspirant installation the Candidate, the Manager and Comms edit the
-website from the workspace under `site.write`: `/api/workspace/site/settings/`
-(GET, PUT) and the posts, slides, issues, documents and videos under
-`/api/workspace/site/{kind}/` (GET, POST, and PATCH or DELETE on `{id}/`).
-They call the services the console uses, so the same checks apply (colours must
-pass the contrast check) and every edit is audited. These routes are
-`AspirantOnlyRoute`s (`api/install.py`) and answer 404 in a party installation,
-where the website is edited from the console and the party office.
+The Candidate, the Manager and Comms edit the website from the workspace under `site.write`:
+`/api/workspace/site/settings/` (GET, PUT) and the posts, slides, issues, documents and videos
+under `/api/workspace/site/{kind}/` (GET, POST, and PATCH or DELETE on `{id}/`). Colours must
+pass the contrast check and every edit is audited (`site.<kind>.<verb>`).
 
-In an aspirant installation the homepage is the standalone campaign's
-candidate page: `GET /api/site/candidate/` (404 until published) and
-`POST /api/site/volunteer/`, which signs a volunteer up to the campaign
-(`services/campaign_page.py`); the workspace edits it at
-`/api/workspace/site/candidate/`. The site settings carry
-`payment_instructions`, which the Contribute page shows; the site takes no
-money. The news sign-up's consent wording follows the installation type
-(`consent.subscribe_wording`), and is the text recorded with each sign-up.
+The homepage is the campaign's candidate page: `GET /api/site/candidate/` (404 until
+published) and `POST /api/site/volunteer/`, which signs a volunteer up to the campaign
+(`services/campaign_page.py`); the workspace edits it at `/api/workspace/site/candidate/`. The
+site settings carry `payment_instructions`, which the Contribute page shows. The news sign-up's
+consent wording (`consent.SUBSCRIBE_WORDING`) is the text recorded with each sign-up.
 
 ## Uploads
 
@@ -254,13 +221,13 @@ type is read from the content and must match the type the file was sent as.
 Files live in `UPLOAD_DIR`; `stored_files` records each one.
 `GET /api/files/{id}/` (add `?w=` for a narrower image) serves a public file to
 anyone with a year-long cache, and a private one only to a superuser, as 404 to
-everyone else. `site_settings`, `hero_slides`, `party_leaders`,
-`party_documents` and `candidate_profiles` each have a `*_file_id` beside the
+everyone else. `site_settings`, `hero_slides`, `documents` and
+`candidate_profiles` each have a `*_file_id` beside the
 `*_url` they keep as a fallback.
 
 The website editors' image fields upload with a Choose file button and keep the
 file's `/api/files/{id}/` address; image fields accept that address or an
-`https://` one. An aspirant workspace uploads public images at
+`https://` one. The workspace uploads public images at
 `POST /api/workspace/site/images/` (multipart: `file`, `area`) under `site.write`.
 
 ## Post text
@@ -330,14 +297,13 @@ A new database has no site settings, so every `/api` route except `/api/setup/*`
 
 ```bash
 uv run alembic upgrade head
-uv run campaign-crm seed            # counties, wards and centres, for an aspirant's seat
+uv run campaign-crm seed            # counties, wards and centres, for the seat
 uv run campaign-crm setup-token     # prints a token: valid 24 hours, one use
 ```
 
-Open `/setup` and paste the token. The six steps set the organisation type (fixed for good),
-the name, logo link and colours (contrast checked), contacts and privacy notice, the first
-superuser, and then either the aspirant's seat, area, election date and candidate login, or
-optionally the party workspace and its Workspace Manager. `POST /api/setup/` makes all of it
+Open `/setup` and paste the token. The steps set the name, logo link and colours (contrast
+checked), contacts and privacy notice, the first superuser, and the seat, area, election date
+and candidate login. `POST /api/setup/` makes all of it
 in one transaction, audited as `setup.completed`; a refused request writes nothing and leaves
 the token unspent. Afterwards the summary lists the email, SMS and payout providers `.env`
 picks, with a test email and text sent to the signed-in superuser.
@@ -417,10 +383,10 @@ uv run campaign-crm import-register docs/handover/samples/register.csv
 ## Operating the installation
 
 The console (`/console`, superusers only) has **Health**, **Audit** and **Export** tabs beside
-the campaign, login, party and area tabs.
+the campaign, login and area tabs.
 
-- **Health:** version and migration state, whether the database answers and its size, the
-  organisation type, each outside service from `.env` (configured, or "not configured" and
+- **Health:** version and migration state, whether the database answers and its size, each
+  outside service from `.env` (configured, or "not configured" and
   running in practice mode), the last backup, and free disk space for uploads and backups. A
   test SMS goes to any number; a practice payout of KES 1 runs only while payouts are in
   practice mode, never where they move real money.
@@ -445,83 +411,6 @@ uv run campaign-crm export --out records.zip
   `pg_restore --clean` in one transaction, moves the current uploads aside to
   `uploads.before-restore-<time>`, and puts the archive's in place. Restart the app after.
 
-## Branch officials
-
-Each county branch's officials are terms in `branch_officials`: an office (chairperson,
-secretary, treasurer, organising secretary, youth leader, women leader, or a named other
-office), the approved party member holding it, the first and last day, why it began and
-ended, and optionally the signed minutes as a private upload. The Membership Officer and the
-superuser keep them from the party CRM's Branches page; the superuser also edits the branch's
-office, next meeting and whether it is published.
-
-- Only an approved member can be appointed. Appointing someone ends the office's current term
-  the day before the new one starts, so an office has one holder at a time; a term already
-  starting on or after that date has to be ended first. "Other" offices may run side by side.
-- A term ends early as resigned, removed or completed; the office is vacant from the next day.
-- The public branch pages and the home page name only the officials in office today.
-- The chairperson and secretary text that branches used to hold became terms on migration,
-  linked to the one approved member with that name, or kept as the name with a note.
-- Every appointment, ending and minutes upload is audited.
-
-The officials mockup sends changes to HQ for approval. Here the people editing are HQ (the
-Membership Officer and the superuser), so changes apply at once and the audit trail records them.
-
-## Applying to vie
-
-A nominations timetable (`nomination_windows`) has a title, the days applications open and
-close, the requirements, and the seats on offer with each seat's fee in KES. The Nominations
-Officer or the superuser drafts and edits it on the Aspirants page; only the superuser publishes
-it, and never a timetable they drafted or last changed. A published timetable cannot change, cannot have closed
-already, and cannot overlap another published one. The public Vie page shows the current or next
-published timetable (`GET /api/party/nominations/current/`).
-
-A member applies from their account's "My nomination" tab (`/api/party/nominations/mine/`):
-
-- Only an approved member applies, only while the timetable is open, only for a seat it offers,
-  and only with no other live nomination. The area is their own ward, its constituency or its
-  county, by seat.
-- The application starts as a draft. The member attaches documents (PDF or photo, private
-  uploads), and the nominations office marks the fee paid with its M-Pesa or bank reference.
-  The member submits it with the declaration only once any fee is marked paid and before the
-  timetable closes.
-- An officer cannot move a member's draft to submitted, and cannot decide their own
-  application. Approval is always an officer's decision on the Aspirants page; nothing is
-  approved automatically.
-- The member withdraws a draft or submitted application. Every step is audited.
-
-## Shared counts with the party
-
-The party never reads a campaign's supporters, except counts the campaign has chosen to share.
-A hosted workspace's "Party feed" page (`/api/party-feed/?campaign=`, for the Candidate, the
-Manager and Comms) shows the party's published events and statements for the campaign's county
-or the whole country, and the party's approved members counted per ward of the seat. Its three
-switches, all off until the Candidate turns one on (`sharing.write`), decide what the
-superuser's dashboard reads from `/api/party/shared/`:
-
-- **Event reach**: done events, and the numbers reached and attended.
-- **Ward coverage**: how many wards of the seat have a mobilizer, ward by ward.
-- **Supporter counts by ward**: numbers only.
-
-The counts are worked out on each read and kept nowhere on the party side, so a switch turned
-off shows "Not shared" on the next read. Each change is audited and listed on the page. The
-party workspace and a standalone workspace have no such page (404).
-
-## Party texts to members and volunteers
-
-The Comms Officer, a party office like the others, drafts texts on the party CRM's Messages page
-(`/api/party/messages/`) to members or volunteers, everywhere or in one county or ward, and sees
-how many people the draft reaches. Only the Party Super Admin sends one, and never a draft they
-wrote; a draft is sent or declined once. Sending goes through `services/texting.py`, so every
-number gets an `sms_log` row with `purpose = 'party'` and the message's id, and the page shows
-how delivery went.
-
-- **Members** get a party text only if they ticked the join form's optional "Send me party
-  updates by SMS" box; the wording and time are kept on the member. Members who joined before
-  the box existed, or whom an officer added, are not texted.
-- **Volunteers** get one only while active and only if they chose SMS as their contact.
-- A STOP reply after a party text opts the number out of every text from this installation,
-  party and campaigns alike, because the party is not a campaign.
-
 ## Personal data
 
 `services/privacy.py` holds the work a buyer owes the people on its registers under the Data
@@ -534,19 +423,17 @@ Protection Act 2019.
   `sms_log`, and a login left behind with no campaign is emptied and switched off. One audit row
   per erasure names only the row, the officer and the time. An erased row cannot be erased again
   or edited.
-  - In a workspace the Candidate or Manager erases any supporter, a withdrawn volunteer, or the
+  - The Candidate or Manager erases any supporter, a withdrawn volunteer, or the
     sign-up of a mobilizer or agent who was turned down or has left the team (its ID number
     included): `/api/campaigns/<id>/data/...`.
-  - In the party the Membership Officer erases a withdrawn or rejected member (with their
-    volunteer profile and account) or a withdrawn volunteer profile.
 - **Every supporter has a withdrawal code.** One a mobilizer registers gets it texted through
   `services/texting.py` (`purpose = 'withdrawal_link'`); the Supporters page shows the link and
   can text it again. The `data_protection` migration gives a code to every supporter who had none.
-- **Data requests** (access, correction, erasure) are logged per workspace and for the party,
+- **Data requests** (access, correction, erasure) are logged per campaign,
   due 7 days after receipt for access and 14 for correction or erasure (Data Protection
   (General) Regulations 2021, regulations 9, 10 and 12); the officer can move the date. Marking
   one answered needs a note of how.
-- **Closing a campaign** (the Candidate, never the party workspace) makes it read-only: every
+- **Closing a campaign** (the Candidate) makes it read-only: every
   write by its team is refused except sign-out and the data routes, and its public sign-up and
   team links stop taking people. After the retention period (default 6 months, set before
   closing) the Candidate can erase every supporter's personal data in one action. Nothing is
@@ -554,9 +441,8 @@ Protection Act 2019.
 
 ### Known gaps
 
-- Payments keep the payee's name and number, as financial records. A party member's past
-  aspirant applications and audit rows written before this ticket are not blanked.
-- The party member and volunteer CSV exports list erased rows with the placeholder number.
+- Payments keep the payee's name and number, as financial records. Audit rows written before
+  this ticket are not blanked.
 - The due dates follow the regulations as published; have counsel confirm them for the buyer.
 - A superuser's admin routes are not held by a closed campaign's read-only rule. Replies kept in
   `sms_inbound` and the bodies of past texts are not blanked on erasure.
@@ -632,8 +518,7 @@ each carrying its amount and its ward (and centre), so a coordinator's area
 covers it. A payment is scheduled against one done assignment, for its amount,
 once (`uq_payments_assignment`). Whoever schedules never approves
 (`services/payment_routing.py`): a coordinator's payment waits for the manager,
-a manager's for the candidate; in the party workspace only coordinators
-schedule and the Workspace Manager approves. Approving releases it through the
+a manager's for the candidate. Approving releases it through the
 payout provider; the approver can also mark it paid by hand or decline it with
 a reason. Every schedule, approval, decline and not-sent is audited.
 
@@ -727,7 +612,7 @@ required and at least 32 characters.
   Team page. Downgrading `campaign_roles` turns a pending login into a plain
   inactive one.
 - The map holds only the actions a route serves today; `team.approve`,
-  `agents.*`, `team.id_read`, `assignments.write`, `sharing.write`,
+  `agents.*`, `team.id_read`, `assignments.write`,
   `site.write` and `export` arrive with their routes. Payment release stays
   with the Manager until approval routing (PD-37).
 - One row differs from section 0.2 by decision: a Mobilizer reads targets
@@ -748,33 +633,3 @@ required and at least 32 characters.
   its start and end markers only and is served inline (in a CSP sandbox). A
   private file is for superusers only until receipts arrive. HEAD on a file
   answers 405.
-- The party workspace: the member register lists members of every status; the
-  dashboard's seat filter does not narrow its totals or the recruitment counts;
-  a member who reapplies takes the recruiter of the new application, or none;
-  the admin console builds the workspace's ~1,450 ward rows on each list.
-- The website editor lists every approved aspirant but saves a candidate
-  page only for one with a workspace; it does not mark the others. Saving a
-  page for an aspirant whose campaign already holds a page with no aspirant
-  fails at the database (500), and a page keeps its campaign if the
-  aspirant's link ever changes; neither happens through today's flows.
-- `tests/test_boundaries.py` reads import statements only: a star import,
-  `importlib`, or reaching party code through a package attribute
-  (`models.party.X`) is not caught, and a new campaign module must be added
-  to its `CAMPAIGN` list by hand.
-- The `InstallationType` middleware matches the raw request path, so serving
-  the API under a path prefix (`root_path`) hides party routes in a party
-  installation too.
-- Code that prints a campaign's seat (`api/routers/campaigns.py`,
-  `api/routers/targets.py`, `services/admin.py`) assumes one is set. A party
-  workspace has none; PD-7 creates the first.
-- Applying to vie: a member's area comes from their ward, with no way to vie elsewhere. A
-  rejected or withdrawn application drops out of their account, and they may apply again
-  while the timetable is open; there is no appeal step. The timetable has no IEBC deadline
-  check, reduced fees, nomination method, rules PDF, SMS notice or dates-only-move-later rule
-  from the mockup.
-- Party texts: a STOP reply after a party text opts the number out of campaign texts too.
-  There is no scheduling, test send, member groups (youth league, branch officials) or SMS
-  credit balance from the Communications mockup.
-- Party texts: a STOP reply after a campaign text opts the number out of that campaign only, so
-  party texts still reach it. The recipient list is worked out again at send time, so the number
-  sent can differ from the count shown when the draft was written.

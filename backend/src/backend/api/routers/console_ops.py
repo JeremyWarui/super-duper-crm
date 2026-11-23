@@ -1,28 +1,25 @@
 """The console's Health, Export, backups and test sends; superuser only."""
 
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Response
 from sqlalchemy import select
 
-from backend.api.deps import AdminUser, SessionDep, get_organisation_type
-from backend.models import BackupRun, OrganisationType
+from backend.api.deps import AdminUser, SessionDep
+from backend.models import BackupRun
 from backend.schemas.ops import BackupRunRead, Health, TestResult, TestSend
 from backend.services import ops
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-Kind = Annotated[OrganisationType | None, Depends(get_organisation_type)]
 
 
 @router.get("/health/", response_model=Health)
-async def health(session: SessionDep, _: AdminUser, kind: Kind) -> dict:
-    return await ops.health(session, kind)
+async def health(session: SessionDep, _: AdminUser) -> dict:
+    return await ops.health(session)
 
 
 @router.get("/export/")
-async def export(session: SessionDep, admin: AdminUser, kind: Kind) -> Response:
+async def export(session: SessionDep, admin: AdminUser) -> Response:
     """The installation's data as one zip of JSON and CSV; audited."""
-    name, data = await ops.export_archive(session, actor=admin, organisation_type=kind)
+    name, data = await ops.export_archive(session, actor=admin)
     return Response(
         data,
         media_type="application/zip",

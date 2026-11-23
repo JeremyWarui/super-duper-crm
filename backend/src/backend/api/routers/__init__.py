@@ -3,15 +3,12 @@
 from fastapi import APIRouter
 
 from backend.api.routers import (
-    account,
     admin,
     agents,
     aspirant_site,
     assignments,
     auth,
-    branch_officials,
     campaigns,
-    candidates,
     console_ops,
     events,
     files,
@@ -19,15 +16,6 @@ from backend.api.routers import (
     join,
     messages,
     mobilizers,
-    party,
-    party_aspirants,
-    party_console,
-    party_feed,
-    party_members,
-    party_messages,
-    party_nominations,
-    party_volunteers,
-    party_workspace,
     pay,
     payments,
     payments_in,
@@ -41,40 +29,32 @@ from backend.api.routers import (
     team,
     team_signup,
     users,
+    volunteer_withdraw,
+    website,
     workspace_site,
 )
 
 api_router = APIRouter(prefix="/api")
 for module in (
     setup,
-    branch_officials,
     auth,
-    account,
     admin,
     console_ops,
     join,
     geography,
     files,
     campaigns,
-    candidates,
+    volunteer_withdraw,
     targets,
     mobilizers,
     site,
-    party_workspace,
-    party,
-    party_aspirants,
-    party_console,
-    party_members,
-    party_messages,
-    party_nominations,
-    party_volunteers,
+    website,
     events,
     pay,
     payments,
     payments_in,
     supporters,
     messages,
-    party_feed,
     sms_callbacks,
     strategy,
     team,
@@ -87,8 +67,5 @@ for module in (
     privacy,
 ):
     api_router.include_router(module.router)
-for module in (admin, candidates, party, payments_in):
-    api_router.include_router(module.party_router)
-api_router.include_router(privacy.office_router)
 
 __all__ = ["api_router"]

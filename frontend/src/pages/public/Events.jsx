@@ -1,6 +1,6 @@
-// /events: the party's coming events by month, narrowed to one county with ?county=.
+// /events: the campaign's coming events by month, narrowed to one county with ?county=.
 import { Link, useSearchParams } from "react-router-dom";
-import { usePartyPlaces, usePublicPosts } from "@/api/hooks";
+import { usePlaces, usePublicPosts } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import { FilterSelect } from "@/components/ui/input";
 import { formatDay } from "@/lib/format";
@@ -38,7 +38,7 @@ function EventCard({ e }) {
 export default function Events() {
   const [params, setParams] = useSearchParams();
   const county = params.get("county") || "";
-  const counties = usePartyPlaces().data || [];
+  const counties = usePlaces().data || [];
   const events = usePublicPosts("event", 0, { county });
   const months = byMonth(events.data || []);
   const pick = (county) => setParams(county ? { county } : {}, { replace: true });
@@ -63,16 +63,9 @@ export default function Events() {
           ))}
         </div>
         <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-5">
-          {county ? (
-            <Card variant="panel" className="bg-primary-tint">
-              <h2 className="text-[18px] font-bold">Your county branch</h2>
-              <p className="text-[15px] text-text-2">Officials, the branch office and the next meeting.</p>
-              <Link to={`/counties/${county}`} className="font-bold">See the branch →</Link>
-            </Card>
-          ) : null}
           <Card variant="ink">
-            <h2 className="text-[18px] font-bold">Branch official or volunteer?</h2>
-            <p className="text-[15px] text-on-dark-muted">Add events and track attendance from the portal.</p>
+            <h2 className="text-[18px] font-bold">On the campaign team?</h2>
+            <p className="text-[15px] text-on-dark-muted">Add events and track attendance from the workspace.</p>
             <Link to="/signin" className="font-bold text-accent hover:text-accent">Sign in →</Link>
           </Card>
         </aside>

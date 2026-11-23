@@ -1,7 +1,7 @@
 // The website editor's pieces: field lists, the item form, a section's list and the profile form.
 import { useId, useRef, useState } from "react";
 import { ImageUp } from "lucide-react";
-import { usePostAspirants, useSavePostAspirants, useSiteCandidates, useUploadImage } from "@/api/hooks";
+import { useUploadImage } from "@/api/hooks";
 import PlaceCascade from "@/components/PlaceCascade";
 import { RichTextEditor } from "@/components/RichText";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Check, Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
-import { SEAT_LABEL, SEATS } from "@/lib/labels";
 import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
 import { useForm } from "@/lib/form";
@@ -23,10 +22,9 @@ const CHECKS = {
   image: (v) => imageOk(v) || "Choose a file, or use an address starting with https://.",
   pdf: (v) => imageOk(v) || "Choose a PDF, or use an address starting with https://.",
   https: (v) => !v || HTTPS.test(v) || "Use an address starting with https://.",
-  link: (v, f) => !v || HTTPS.test(v) || (/^\/(?!\/)\S*$/.test(v)) || `Use a page on this site such as ${f.example || "/join-party"}, or an https:// address.`,
+  link: (v, f) => !v || HTTPS.test(v) || (/^\/(?!\/)\S*$/.test(v)) || `Use a page on this site such as ${f.example || "/volunteer"}, or an https:// address.`,
   order: (v) => (/^\d{1,5}$/.test(v) && Number(v) <= 10000) || "Use a whole number from 0 to 10000.",
   duration: (v) => !v || /^(\d{1,2}:)?\d{1,2}:\d{2}$/.test(v) || "Use minutes and seconds, such as 4:15.",
-  count: (v) => /^\d{1,8}$/.test(v) && Number(v) <= 10000000 || "Use a whole number of votes.",
 };
 const ORDER = { key: "sort_order", label: "Order", kind: "order", hint: "Lower numbers come first." };
 
@@ -35,7 +33,7 @@ export const SLIDE_FIELDS = [
   { key: "kicker", label: "Kicker (optional)", max: 80, hint: "The small line above the headline." },
   { key: "line", label: "Supporting text (optional)", max: 300, kind: "area" },
   { key: "button_label", label: "Button label (optional)", max: 40 },
-  { key: "button_url", label: "Button link (optional)", max: 500, kind: "link", hint: "A page on this site such as /counties, or an https:// address." },
+  { key: "button_url", label: "Button link (optional)", max: 500, kind: "link", hint: "A page on this site such as /volunteer, or an https:// address." },
   { key: "image_url", label: "Photo (optional)", max: 500, kind: "image", area: "slides" },
   ORDER,
 ];
@@ -46,14 +44,6 @@ export const ISSUE_FIELDS = [
   { key: "what_we_will_do", label: "What we will do (optional)", max: 20000, kind: "area", hint: "One step per line; each becomes a numbered card." },
   { key: "why_it_matters", label: "Why it matters (optional)", max: 20000, kind: "area" },
   { key: "image_url", label: "Card photo (optional)", max: 500, kind: "image", area: "site", hint: "Shown behind the title on the homepage card." },
-  ORDER,
-];
-
-export const LEADER_FIELDS = [
-  { key: "name", label: "Name", max: 150, required: true },
-  { key: "position", label: "Position", max: 150, required: true },
-  { key: "bio", label: "Bio (optional)", kind: "rich", area: "leaders" },
-  { key: "photo_url", label: "Photo (optional)", max: 500, kind: "image", area: "leaders" },
   ORDER,
 ];
 
@@ -76,14 +66,8 @@ export const POST_FIELDS = [
   { key: "image_url", label: "Image (optional)", max: 500, kind: "image", area: "site" },
 ];
 
-export const ABOUT_FIELDS = [
-  { key: "title", label: "Title", max: 150, required: true },
-  { key: "text", label: "Text (optional)", max: 300, kind: "area" },
-  ORDER,
-];
-
 export const DOCUMENT_FIELDS = [
-  { key: "title", label: "Title", max: 150, required: true, hint: "Such as Party constitution (PDF)." },
+  { key: "title", label: "Title", max: 150, required: true, hint: "Such as Campaign plan (PDF)." },
   { key: "url", label: "Address", max: 500, kind: "https", required: true },
   ORDER,
 ];
@@ -96,15 +80,7 @@ export const VIDEO_FIELDS = [
   ORDER,
 ];
 
-export const RESULT_FIELDS = [
-  { key: "seat", label: "Seat", kind: "select", options: SEATS.map(([value, label]) => [value, label]) },
-  { key: "area", label: "Area", max: 150, required: true, hint: "The ward, constituency or county, such as Westlands." },
-  { key: "candidate", label: "Candidate", max: 150, required: true },
-  { key: "votes", label: "Votes", kind: "count", required: true },
-  { key: "declared_on", label: "Declared on (optional)", kind: "date", hint: "Leave empty while the count goes on." },
-];
-
-const blank = (fields) => Object.fromEntries(fields.map((f) => [f.key, f.kind === "order" || f.kind === "count" ? "0" : f.kind === "select" ? f.options[0][0] : ""]));
+const blank = (fields) => Object.fromEntries(fields.map((f) => [f.key, f.kind === "order" ? "0" : f.kind === "select" ? f.options[0][0] : ""]));
 const formOf = (fields, row) => (row ? Object.fromEntries(fields.map((f) => [f.key, row[f.key] == null ? "" : String(row[f.key])])) : blank(fields));
 
 function problems(fields, form) {
@@ -126,7 +102,7 @@ function payload(fields, form, row) {
   for (const f of fields) {
     if ((f.show && !f.show(form)) || (f.newOnly && row)) continue;
     const v = f.kind === "area" ? form[f.key] : form[f.key].trim();
-    body[f.key] = f.kind === "order" || f.kind === "count" ? Number(v) : f.kind === "county" || (f.kind === "date" && !f.required) ? v || null : v;
+    body[f.key] = f.kind === "order" ? Number(v) : f.kind === "county" || (f.kind === "date" && !f.required) ? v || null : v;
   }
   if (!row) return body;
   return Object.fromEntries(Object.entries(body).filter(([k, v]) => (v ?? "") !== (row[k] ?? "")));
@@ -195,7 +171,7 @@ function ItemForm({ section, row, onDone }) {
               {f.kind === "area" ? <Textarea rows={4} maxLength={f.max} {...common} />
                 : f.kind === "select" ? <NativeSelect {...common}>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</NativeSelect>
                 : f.kind === "county" ? <PlaceCascade level="county" place={{ county: form[f.key] ?? "" }} onChange={(p) => setForm((now) => ({ ...now, [f.key]: p.county }))} blank={() => "No county"} className="w-full flex-none" aria-label={f.label} aria-invalid={common["aria-invalid"]} />
-                : <Input type={f.kind === "date" ? "date" : "text"} inputMode={f.kind === "order" || f.kind === "count" ? "numeric" : undefined} maxLength={f.max} {...common} />}
+                : <Input type={f.kind === "date" ? "date" : "text"} inputMode={f.kind === "order" ? "numeric" : undefined} maxLength={f.max} {...common} />}
             </Field>
           );
         })}
@@ -267,41 +243,10 @@ export function SectionList({ section }) {
       {editing ? (
         <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-6">
           <ItemForm key={editing.row?.id || "new"} section={section} row={editing.row} onDone={() => setEditing(null)} />
-          {section.aspirants && editing.row?.kind === "event" ? <EventAspirants key={`aspirants-${editing.row.id}`} postId={editing.row.id} /> : null}
         </div>
       ) : null}
       {deleting ? <ConfirmDelete section={section} row={deleting} onClose={() => setDeleting(null)} /> : null}
     </div>
-  );
-}
-
-/** The approved aspirants an event names; each one's profile lists the event. */
-function EventAspirants({ postId }) {
-  const named = usePostAspirants(postId);
-  const aspirants = useSiteCandidates().data || [];
-  const save = useSavePostAspirants();
-  const [picked, setPicked] = useState(null);
-  const chosen = picked ?? named.data?.aspirant_ids ?? [];
-  const toggle = (id) => setPicked(chosen.includes(id) ? chosen.filter((x) => x !== id) : [...chosen, id]);
-  return (
-    <Card variant="outline" className="gap-3">
-      <div className="flex flex-col gap-1">
-        <CardTitle>Aspirants at this event</CardTitle>
-        <p className="text-small text-muted-foreground">The event shows on each one's candidate profile.</p>
-      </div>
-      {aspirants.length ? (
-        <div className="flex flex-col gap-1">
-          {aspirants.map((a) => (
-            <Check key={a.aspirant_id} className="items-center" checked={chosen.includes(a.aspirant_id)} onChange={() => toggle(a.aspirant_id)}>
-              <span>{a.name} <span className="text-small text-muted-foreground">· {SEAT_LABEL[a.seat]} {a.area}</span></span>
-            </Check>
-          ))}
-        </div>
-      ) : <p className="text-muted-foreground">No approved aspirants yet.</p>}
-      <ErrorText error={save.error} className="text-small" />
-      {save.isSuccess && picked === null ? <p role="status" className="text-small text-muted-foreground">Saved.</p> : null}
-      <Button className="self-start" disabled={picked === null || save.isPending} onClick={() => save.mutate({ id: postId, aspirant_ids: chosen }, { onSuccess: () => setPicked(null) })}>Save aspirants</Button>
-    </Card>
   );
 }
 

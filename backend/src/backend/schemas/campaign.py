@@ -12,7 +12,6 @@ from backend.models.enums import (
     OfficeLevel,
     OperationalGrain,
     SupportLevel,
-    WorkspaceKind,
 )
 from backend.schemas.common import Erasable, ORMModel, WriteModel, consent
 from backend.schemas.messages import BODY_MAX
@@ -27,7 +26,6 @@ class CampaignRead(ORMModel):
     seat: str = ""
     area_name: str = ""
     title: str
-    kind: WorkspaceKind
     office_level: OfficeLevel
     county: uuid.UUID | None = Field(default=None, validation_alias="county_id")
     constituency: uuid.UUID | None = Field(default=None, validation_alias="constituency_id")
@@ -37,12 +35,6 @@ class CampaignRead(ORMModel):
     created_at: datetime
     # Closed after the election: the workspace is read-only.
     closed_at: datetime | None = None
-
-    @field_validator("seat", mode="before")
-    @classmethod
-    def _no_seat(cls, value: object) -> object:
-        """The party workspace contests no seat; the router spells the seat out after."""
-        return "" if value is None else value
 
     @field_validator("candidate", mode="before")
     @classmethod

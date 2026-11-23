@@ -7,7 +7,7 @@ from pydantic import Field, PostgresDsn, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
-# Schemes libpq and hosted Postgres consoles hand out.
+# Schemes libpq and managed Postgres consoles hand out.
 LIBPQ_SCHEMES = ("postgres", "postgresql")
 
 
@@ -70,8 +70,6 @@ class Settings(BaseSettings):
     # The folder holding pg_dump and pg_restore; blank finds them on PATH.
     pg_bin_dir: str = ""
 
-    # Seconds between runs applying public party requests to the register; 0 switches it off.
-    party_inbox_seconds: int = 60
     # How often the payments ledger is compared with the payout provider; 0 turns it off.
     reconcile_hours: int = 24
 
@@ -104,7 +102,7 @@ class Settings(BaseSettings):
     # older x-paystack-signature header against the secret key instead.
     paystack_webhook_secret: str = ""
     paystack_secret_key: str = ""
-    # "practice" moves no money; "paystack" sends M-Pesa transfers for party and campaign payments.
+    # "practice" moves no money; "paystack" sends M-Pesa transfers for campaign payments.
     payout_provider: Literal["practice", "paystack"] = "practice"
     # "practice" marks an M-Pesa prompt paid at once and takes no money; "paystack" sends a real
     # prompt to the payer's phone. Paying by Paybill or Till code works in both.

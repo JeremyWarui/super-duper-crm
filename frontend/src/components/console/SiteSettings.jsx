@@ -1,6 +1,6 @@
-// The console's Settings tab: the site's settings, and in a party installation the party-only ones.
+// The console's Settings tab: the site's settings.
 import { useState } from "react";
-import { PARTY_FIELDS, useParty, useSaveSettings, useSite } from "@/api/hooks";
+import { useSaveSettings, useSite } from "@/api/hooks";
 import ConfigFields from "@/components/ConfigFields";
 import { ColourFields } from "@/components/Swatch";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,8 @@ const formOf = (site) => ({
   links: Object.entries(site.social_links || {}),
 });
 
-function SettingsForm({ site, isParty }) {
-  const save = useSaveSettings({ party: isParty });
+function SettingsForm({ site }) {
+  const save = useSaveSettings();
   const [form, setForm] = useState(() => formOf(site));
   const [saved, setSaved] = useState(false);
   const set = (patch) => {
@@ -29,16 +29,14 @@ function SettingsForm({ site, isParty }) {
     setForm((f) => ({ ...f, ...patch }));
   };
   const field = (key) => (e) => set({ [key]: e.target.value });
-  const shown = (fields) => fields.filter(([key]) => isParty || !PARTY_FIELDS.includes(key));
-  const lines = shown(SITE_LINES);
+  const lines = SITE_LINES;
   const setLink = (i, at, value) => set({ links: form.links.map((pair, j) => (j === i ? pair.map((v, k) => (k === at ? value : v)) : pair)) });
 
   const submit = () => {
     const { links, ...all } = form;
-    const kept = Object.entries(all).filter(([key]) => isParty || !PARTY_FIELDS.includes(key));
     save.mutate(
       {
-        ...Object.fromEntries(kept.map(([key, value]) => [key, MPESA.includes(key) ? value.trim() : value])),
+        ...Object.fromEntries(Object.entries(all).map(([key, value]) => [key, MPESA.includes(key) ? value.trim() : value])),
         social_links: Object.fromEntries(links.map(([name, url]) => [name.trim(), url.trim()]).filter(([name]) => name)),
       },
       { onSuccess: () => setSaved(true) },
@@ -47,17 +45,17 @@ function SettingsForm({ site, isParty }) {
 
   return (
     <Card variant="outline">
-      <CardTitle>{isParty ? "Party settings" : "Site settings"}</CardTitle>
+      <CardTitle>Site settings</CardTitle>
       <div className="grid gap-3 sm:grid-cols-2">
         <ConfigFields fields={lines.filter(([key]) => !MPESA.includes(key))} form={form} set={field} />
         <ColourFields form={form} set={(key) => (value) => set({ [key]: value })} />
       </div>
-      <ConfigFields fields={shown(SITE_TEXTS)} form={form} set={field} />
+      <ConfigFields fields={SITE_TEXTS} form={form} set={field} />
       <div className="flex flex-col gap-2">
         <div className="grid gap-3 sm:grid-cols-3">
           <ConfigFields fields={lines.filter(([key]) => MPESA.includes(key))} form={form} set={field} />
         </div>
-        <Help>The Contribute page and the nomination fee offer these to pay by code. Give a Paybill or a Till, not both.</Help>
+        <Help>The Contribute page offers these to pay by code. Give a Paybill or a Till, not both.</Help>
       </div>
       <div className="flex flex-col gap-2">
         <h3 className="text-body font-bold">Social links</h3>
@@ -76,7 +74,7 @@ function SettingsForm({ site, isParty }) {
       {saved && <StatusText>Saved.</StatusText>}
       <div className="flex flex-wrap gap-2">
         <Button loading={save.isPending} size="sm" disabled={save.isPending} onClick={submit}>
-          {save.isPending ? "Saving…" : isParty ? "Save the party settings" : "Save the site settings"}
+          {save.isPending ? "Saving…" : "Save the site settings"}
         </Button>
       </div>
     </Card>
@@ -85,11 +83,7 @@ function SettingsForm({ site, isParty }) {
 
 export default function SiteSettings() {
   const site = useSite();
-  const isParty = site.data?.organisation_type === "party";
-  const party = useParty(isParty);
-  if (site.isPending || (isParty && party.isPending))
-    return <LoadingText>{site.data?.organisation_type === "aspirant" ? "Loading the site settings…" : "Loading the party settings…"}</LoadingText>;
-  const failed = [site, ...(isParty ? [party] : [])].find((q) => q.error);
-  if (failed) return <Failed error={failed.error} onRetry={() => failed.refetch()} />;
-  return <SettingsForm key={`${site.data.updated_at} ${party.data?.updated_at}`} site={{ ...site.data, ...party.data }} isParty={isParty} />;
+  if (site.isPending) return <LoadingText>Loading the site settings…</LoadingText>;
+  if (site.error) return <Failed error={site.error} onRetry={() => site.refetch()} />;
+  return <SettingsForm key={site.data.updated_at} site={site.data} />;
 }

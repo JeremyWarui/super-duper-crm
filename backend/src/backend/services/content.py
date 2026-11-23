@@ -1,4 +1,4 @@
-"""The party's posts: published ones for the public, all of them for the superuser."""
+"""The website's posts: published ones for the public, all of them for the editors."""
 
 import uuid
 from datetime import date
@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.db.session import get_or_refuse
-from backend.models import County, PartyPost, PostKind, PostLabel, User
+from backend.models import County, Post, PostKind, PostLabel, User
 from backend.schemas.content import PostCreate, PostUpdate
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
@@ -21,22 +21,18 @@ NEWS_PAGE = 20
 
 def public_posts() -> Select:
     """Published posts, with their county loaded."""
-    return (
-        select(PartyPost)
-        .options(selectinload(PartyPost.county))
-        .where(PartyPost.published.is_(True))
-    )
+    return select(Post).options(selectinload(Post.county)).where(Post.published.is_(True))
 
 
 async def published_news(
     session: AsyncSession, offset: int, label: PostLabel | None = None
-) -> list[PartyPost]:
-    query = public_posts().where(PartyPost.kind == PostKind.NEWS)
+) -> list[Post]:
+    query = public_posts().where(Post.kind == PostKind.NEWS)
     if label is not None:
-        query = query.where(PartyPost.label == label)
+        query = query.where(Post.label == label)
     return list(
         await session.scalars(
-            query.order_by(PartyPost.published_on.desc(), PartyPost.created_at.desc())
+            query.order_by(Post.published_on.desc(), Post.created_at.desc())
             .offset(offset)
             .limit(NEWS_PAGE)
         )
@@ -45,15 +41,15 @@ async def published_news(
 
 async def upcoming_events(
     session: AsyncSession, on: date, county_id: uuid.UUID | None = None
-) -> list[PartyPost]:
-    query = public_posts().where(PartyPost.kind == PostKind.EVENT, PartyPost.event_date >= on)
+) -> list[Post]:
+    query = public_posts().where(Post.kind == PostKind.EVENT, Post.event_date >= on)
     if county_id is not None:
-        query = query.where(PartyPost.county_id == county_id)
-    return list(await session.scalars(query.order_by(PartyPost.event_date, PartyPost.title)))
+        query = query.where(Post.county_id == county_id)
+    return list(await session.scalars(query.order_by(Post.event_date, Post.title)))
 
 
-async def published_post(session: AsyncSession, post_id: uuid.UUID) -> PartyPost:
-    post = await session.scalar(public_posts().where(PartyPost.id == post_id))
+async def published_post(session: AsyncSession, post_id: uuid.UUID) -> Post:
+    post = await session.scalar(public_posts().where(Post.id == post_id))
     if post is None:
         raise NotFound("No such post.")
     return post
@@ -67,31 +63,27 @@ def _audit(session: AsyncSession, actor: User, action: str, row, **detail: objec
         session,
         actor=actor,
         action=action,
-        subject_type="party_post",
+        subject_type="post",
         subject_id=row.id,
         detail=detail,
     )
 
 
-async def posts(session: AsyncSession, kind: PostKind | None) -> list[PartyPost]:
-    query = select(PartyPost).order_by(PartyPost.created_at.desc())
+async def posts(session: AsyncSession, kind: PostKind | None) -> list[Post]:
+    query = select(Post).order_by(Post.created_at.desc())
     if kind is not None:
-        query = query.where(PartyPost.kind == kind)
+        query = query.where(Post.kind == kind)
     return list(await session.scalars(query))
 
 
-async def create_post(
-    session: AsyncSession, payload: PostCreate, *, actor: User, on: date
-) -> PartyPost:
+async def create_post(session: AsyncSession, payload: PostCreate, *, actor: User, on: date) -> Post:
     await _check_county(session, payload.county_id)
-    post = PartyPost(**payload.model_dump())
+    post = Post(**payload.model_dump())
     if post.published:
         post.published_on = on
     session.add(post)
     await session.flush()
-    _audit(
-        session, actor, "party.post.create", post, kind=post.kind.value, published=post.published
-    )
+    _audit(session, actor, "site.post.create", post, kind=post.kind.value, published=post.published)
     await session.commit()
     return post
 
@@ -103,8 +95,8 @@ async def _check_county(session: AsyncSession, county_id: uuid.UUID | None) -> N
 
 async def update_post(
     session: AsyncSession, post_id: uuid.UUID, payload: PostUpdate, *, actor: User, on: date
-) -> PartyPost:
-    post = await get_or_refuse(session, PartyPost, post_id, "post")
+) -> Post:
+    post = await get_or_refuse(session, Post, post_id, "post")
     changes = {
         name: value
         for name, value in payload.model_dump(exclude_unset=True).items()
@@ -120,7 +112,7 @@ async def update_post(
     _audit(
         session,
         actor,
-        "party.post.update",
+        "site.post.update",
         post,
         kind=post.kind.value,
         fields=sorted(changes),
@@ -132,7 +124,7 @@ async def update_post(
 
 
 async def delete_post(session: AsyncSession, post_id: uuid.UUID, *, actor: User) -> None:
-    post = await get_or_refuse(session, PartyPost, post_id, "post")
-    _audit(session, actor, "party.post.delete", post, kind=post.kind.value)
+    post = await get_or_refuse(session, Post, post_id, "post")
+    _audit(session, actor, "site.post.delete", post, kind=post.kind.value)
     await session.delete(post)
     await session.commit()

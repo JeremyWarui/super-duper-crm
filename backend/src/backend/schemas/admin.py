@@ -4,7 +4,7 @@ import uuid
 
 from pydantic import Field, field_validator
 
-from backend.models.enums import PartyMemberStatus, PartyRoleName, UserKind, UserRole
+from backend.models.enums import UserRole
 from backend.schemas.common import (
     CampaignTitle,
     Invite,
@@ -61,20 +61,6 @@ class AdminCampaignRead(ORMModel):
     votes_committed: int
 
 
-class LinkedMember(ORMModel):
-    """The party member a login belongs to."""
-
-    id: uuid.UUID
-    full_name: str
-    status: PartyMemberStatus
-
-
-class PartyMemberLink(WriteModel):
-    """Null unlinks."""
-
-    member: uuid.UUID | None
-
-
 class AdminUserRead(ORMModel):
     """A login and the title of the campaign it is on, if any."""
 
@@ -84,13 +70,10 @@ class AdminUserRead(ORMModel):
     email: str
     phone: str
     role: UserRole | None
-    kind: UserKind
     is_active: bool
     is_superuser: bool
     last_login_at: str | None
     campaign: str | None
-    party_roles: list[PartyRoleName] = []
-    party_member: LinkedMember | None = None
 
 
 class Overview(ORMModel):
@@ -125,23 +108,16 @@ class MemberAdd(WriteModel):
 
 
 class AdminUserCreate(LoginDetails):
-    """A new login, optionally put on a campaign; a mobilizer gets a ward, or an MCA centre.
+    """A new login, optionally put on a campaign; a mobilizer gets a ward, or an MCA centre."""
 
-    A null `role` makes a staff login for a party office.
-    """
-
-    role: UserRole | None
+    role: UserRole
     campaign: uuid.UUID | None = None
     ward: uuid.UUID | None = None
     registration_centre: uuid.UUID | None = None
 
 
 class AdminUserCreated(NewLogin):
-    role: UserRole | None
-
-
-class PartyRoleGrant(WriteModel):
-    role: PartyRoleName
+    role: UserRole
 
 
 class CampaignRename(WriteModel):

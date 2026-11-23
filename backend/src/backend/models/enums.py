@@ -24,35 +24,11 @@ class UserRole(LabelledStrEnum):
     AGENT = ("agent", "Agent")
 
 
-class UserKind(LabelledStrEnum):
-    """A login works on a campaign, holds party offices, or is a party member's own account."""
-
-    CAMPAIGN = ("campaign", "Campaign login")
-    STAFF = ("staff", "Party staff login")
-    MEMBER = ("member", "Member login")
-
-
-class PartyRoleName(LabelledStrEnum):
-    """A party office held by a login that has no campaign role."""
-
-    MEMBERSHIP_OFFICER = ("membership_officer", "Membership Officer")
-    NOMINATIONS_OFFICER = ("nominations_officer", "Nominations Officer")
-    COMMS_OFFICER = ("comms_officer", "Comms Officer")
-
-
 class OfficeLevel(LabelledStrEnum):
     WARD = ("ward", "Ward (MCA)")
     CONSTITUENCY = ("constituency", "Constituency (MP)")
     COUNTY = ("county", "County (Governor / Senator / Women Rep)")
-    NATIONAL = ("national", "National (party workspace)")
-
-
-class WorkspaceKind(LabelledStrEnum):
-    """Who a campaign workspace belongs to, which decides who may create it and when it opens."""
-
-    PARTY = ("party", "Party workspace")
-    HOSTED = ("hosted", "Hosted workspace")
-    STANDALONE = ("standalone", "Standalone workspace")
+    NATIONAL = ("national", "National (the whole country)")
 
 
 class Seat(LabelledStrEnum):
@@ -72,20 +48,6 @@ class Seat(LabelledStrEnum):
         if self is Seat.MP:
             return OfficeLevel.CONSTITUENCY
         return OfficeLevel.COUNTY
-
-
-class AspirantStatus(LabelledStrEnum):
-    DRAFT = ("draft", "Draft")
-    SUBMITTED = ("submitted", "Submitted")
-    APPROVED = ("approved", "Approved")
-    REJECTED = ("rejected", "Rejected")
-    WITHDRAWN = ("withdrawn", "Withdrawn")
-    SUSPENDED = ("suspended", "Suspended")
-
-
-class PayInPurpose(LabelledStrEnum):
-    NOMINATION_FEE = ("nomination_fee", "Nomination fee")
-    CONTRIBUTION = ("contribution", "Contribution")
 
 
 class PayInMethod(LabelledStrEnum):
@@ -157,21 +119,6 @@ class ConsentChannel(StrEnum):
     MOBILIZER = "mobilizer"
 
 
-class PartyMemberStatus(LabelledStrEnum):
-    PENDING = ("pending", "Pending")
-    APPROVED = ("approved", "Approved")
-    REJECTED = ("rejected", "Rejected")
-    SUSPENDED = ("suspended", "Suspended")
-    WITHDRAWN = ("withdrawn", "Withdrawn")
-
-
-class PartyConsentChannel(StrEnum):
-    """Where a party member gave consent."""
-
-    WEB_FORM = "web_form"
-    OFFICER_ENTRY = "officer_entry"
-
-
 class EventStatus(LabelledStrEnum):
     PLANNED = ("planned", "Planned")
     DONE = ("done", "Done")
@@ -190,14 +137,6 @@ class SupportLevel(LabelledStrEnum):
     SUPPORTER = ("supporter", "Supporter")
     UNDECIDED = ("undecided", "Undecided")
     OPPOSED = ("opposed", "Opposed")
-
-
-class PartyRequestKind(StrEnum):
-    """What a public request to the party register asks for."""
-
-    JOIN = "join"
-    WITHDRAW = "withdraw"
-    VOLUNTEER_WITHDRAW = "volunteer_withdraw"
 
 
 class VolunteerStatus(LabelledStrEnum):
@@ -236,7 +175,7 @@ class ContactMethod(LabelledStrEnum):
 
 
 class PostKind(LabelledStrEnum):
-    """What a public post is: a news item or a party event."""
+    """What a public post is: a news item or an event."""
 
     NEWS = ("news", "News")
     EVENT = ("event", "Event")
@@ -250,48 +189,13 @@ class PostLabel(LabelledStrEnum):
     OPINION = ("opinion", "Opinion")
 
 
-class OrganisationType(LabelledStrEnum):
-    """Who runs this copy: a party or a single aspirant. Set once, at setup."""
-
-    PARTY = ("party", "Party")
-    ASPIRANT = ("aspirant", "Aspirant")
-
-
 class FileArea(LabelledStrEnum):
     """Where an uploaded file is used."""
 
     SITE = ("site", "Site settings")
     SLIDES = ("slides", "Hero slides")
-    LEADERS = ("leaders", "Party leaders")
     DOCUMENTS = ("documents", "Documents")
-    CANDIDATES = ("candidates", "Candidate pages")
-    MINUTES = ("minutes", "Branch meeting minutes")
-    NOMINATIONS = ("nominations", "Nomination documents")
-
-
-class BranchOffice(LabelledStrEnum):
-    """An office on a county branch, in the order the branch lists them."""
-
-    CHAIR = ("chair", "Chairperson")
-    SECRETARY = ("secretary", "Secretary")
-    TREASURER = ("treasurer", "Treasurer")
-    ORGANISING_SECRETARY = ("organising_secretary", "Organising secretary")
-    YOUTH_LEADER = ("youth_leader", "Youth leader")
-    WOMEN_LEADER = ("women_leader", "Women leader")
-    OTHER = ("other", "Other office")
-
-
-class TermStart(LabelledStrEnum):
-    ELECTED = ("elected", "Elected at a branch meeting")
-    INTERIM = ("interim", "Interim appointment")
-    RECORDED = ("recorded", "Recorded before terms were kept")
-
-
-class TermEnd(LabelledStrEnum):
-    REPLACED = ("replaced", "Replaced")
-    RESIGNED = ("resigned", "Resigned")
-    REMOVED = ("removed", "Removed")
-    COMPLETED = ("completed", "Term completed")
+    CANDIDATES = ("candidates", "Candidate page")
 
 
 class DataRequestKind(LabelledStrEnum):

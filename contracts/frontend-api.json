@@ -43,7 +43,6 @@
       "candidate_username",
       "seat",
       "area_name",
-      "kind",
       "closed_at"
     ],
     "GET /api/targets/": [
@@ -137,13 +136,10 @@
       "email",
       "phone",
       "role",
-      "kind",
       "is_active",
       "is_superuser",
       "last_login_at",
-      "campaign",
-      "party_roles",
-      "party_member"
+      "campaign"
     ],
     "POST /api/admin/users/{user_id}/reset-password/": [
       "username",
@@ -282,21 +278,12 @@
       "manifesto_url",
       "social_links",
       "updated_at",
-      "volunteer_consent_wording",
       "slogan",
       "privacy_notice",
       "privacy_notice_version",
       "subscribe_consent_wording",
       "about_headline",
       "payment_instructions"
-    ],
-    "GET /api/party/": [
-      "consent_wording",
-      "registration_number",
-      "founded_year",
-      "aspirant_steps",
-      "updated_at",
-      "sms_consent_wording"
     ],
     "PUT /api/admin/site/": [
       "name",
@@ -321,132 +308,18 @@
       "mpesa_account",
       "mpesa_till"
     ],
-    "PUT /api/admin/party/": [
-      "updated_at",
-      "registration_number",
-      "founded_year",
-      "aspirant_steps"
-    ],
-    "POST /api/admin/users/{user_id}/party-roles/": [
-      "id",
-      "username",
-      "role",
-      "party_roles"
-    ],
-    "GET /api/party/places/": [
+    "GET /api/website/places/": [
       "id",
       "name"
-    ],
-    "POST /api/party/join/": [
-      "withdraw_url",
-      "volunteer_withdraw_url"
-    ],
-    "POST /api/party/withdraw/{code}/": [
-      "message"
     ],
     "GET /api/auth/me/": [
       "id",
       "username",
       "full_name",
       "role",
-      "is_superuser",
-      "party_roles",
-      "kind",
-      "member_account"
+      "is_superuser"
     ],
-    "GET /api/party/members/": [
-      "total",
-      "items"
-    ],
-    "GET /api/party/members/{member_id}/": [
-      "id",
-      "full_name",
-      "phone",
-      "email",
-      "status",
-      "ward",
-      "constituency",
-      "county",
-      "created_at",
-      "status_reason",
-      "decided_at",
-      "consent_channel",
-      "consent_wording",
-      "consent_at",
-      "erased_at"
-    ],
-    "POST /api/party/members/{member_id}/status/": [
-      "id",
-      "status"
-    ],
-    "POST /api/party/volunteer/withdraw/{code}/": [
-      "message"
-    ],
-    "GET /api/party/volunteers/": [
-      "total",
-      "items"
-    ],
-    "PATCH /api/party/volunteers/{volunteer_id}/": [
-      "id",
-      "full_name",
-      "phone",
-      "ward",
-      "constituency",
-      "county",
-      "registration_centre",
-      "profession",
-      "profession_other",
-      "status",
-      "interests",
-      "interest_other",
-      "preferred_contact",
-      "availability_notes",
-      "member_status"
-    ],
-    "GET /api/party/aspirants/": [
-      "total",
-      "items"
-    ],
-    "GET /api/party/aspirants/{aspirant_id}/": [
-      "id",
-      "member",
-      "seat",
-      "area",
-      "status",
-      "status_reason",
-      "decided_at",
-      "campaign_id",
-      "created_at"
-    ],
-    "GET /api/party/aspirants/candidates/": [
-      "id",
-      "full_name",
-      "ward"
-    ],
-    "POST /api/party/aspirants/": [
-      "id",
-      "status"
-    ],
-    "POST /api/party/aspirants/{aspirant_id}/status/": [
-      "id",
-      "status"
-    ],
-    "POST /api/party/aspirants/{aspirant_id}/workspace/": [
-      "aspirant",
-      "logins"
-    ],
-    "PUT /api/admin/users/{user_id}/party-member/": [
-      "id",
-      "party_member"
-    ],
-    "GET /api/party/leaders/": [
-      "id",
-      "name",
-      "position",
-      "bio",
-      "photo_url"
-    ],
-    "GET /api/party/posts/": [
+    "GET /api/website/posts/": [
       "id",
       "kind",
       "title",
@@ -465,7 +338,7 @@
       "excerpt",
       "county"
     ],
-    "GET /api/party/posts/{post_id}/": [
+    "GET /api/website/posts/{post_id}/": [
       "id",
       "kind",
       "title",
@@ -483,120 +356,14 @@
       "read_minutes",
       "county"
     ],
-    "GET /api/admin/party/leaders/": [
-      "id",
-      "name",
-      "position",
-      "bio",
-      "photo_url",
-      "sort_order",
-      "published"
-    ],
-    "GET /api/admin/party/posts/": [
-      "id",
-      "kind",
-      "title",
-      "body",
-      "image_url",
-      "event_date",
-      "venue",
-      "published_on",
-      "published",
-      "label",
-      "place",
-      "author",
-      "author_photo_url",
-      "reference",
-      "pdf_url",
-      "county_id"
-    ],
-    "GET /api/party/dashboard/": [
-      "approved_members",
-      "pending_applications",
-      "active_volunteers",
-      "volunteers_by_county",
-      "volunteers_by_interest",
-      "approved_aspirants",
-      "active_campaigns",
-      "events_from",
-      "events_to",
-      "upcoming_events_by_county",
-      "upcoming_events_by_seat",
-      "campaigns_by_county_and_seat",
-      "party_workspace",
-      "upcoming_party_events"
-    ],
-    "POST /api/party/subscribe/": [
+    "POST /api/website/subscribe/": [
       "message",
       "unsubscribe_url"
     ],
-    "POST /api/party/unsubscribe/{code}/": [
+    "POST /api/website/unsubscribe/{code}/": [
       "message"
     ],
-    "GET /api/account/": [
-      "first_name",
-      "full_name",
-      "phone",
-      "email",
-      "status",
-      "ward",
-      "county",
-      "registration_centre",
-      "member_since",
-      "consent_wording",
-      "consent_at",
-      "volunteer"
-    ],
-    "PUT /api/account/volunteer/": [
-      "first_name",
-      "full_name",
-      "phone",
-      "email",
-      "status",
-      "ward",
-      "county",
-      "registration_centre",
-      "member_since",
-      "consent_wording",
-      "consent_at",
-      "volunteer"
-    ],
-    "POST /api/account/volunteer/stop/": [
-      "first_name",
-      "full_name",
-      "phone",
-      "email",
-      "status",
-      "ward",
-      "county",
-      "registration_centre",
-      "member_since",
-      "consent_wording",
-      "consent_at",
-      "volunteer"
-    ],
-    "GET /api/party/branches/": [
-      "county",
-      "officials"
-    ],
-    "GET /api/party/branches/{county_id}/": [
-      "county",
-      "office_address",
-      "phone",
-      "email",
-      "next_meeting_on",
-      "next_meeting_venue",
-      "constituencies",
-      "officials"
-    ],
-    "GET /api/party/office/branches/": [
-      "county",
-      "branch"
-    ],
-    "PUT /api/admin/party/branches/{county_id}/": [
-      "published"
-    ],
-    "GET /api/party/slides/": [
+    "GET /api/website/slides/": [
       "id",
       "image_url",
       "kicker",
@@ -605,7 +372,7 @@
       "button_label",
       "button_url"
     ],
-    "GET /api/party/issues/": [
+    "GET /api/website/issues/": [
       "id",
       "title",
       "summary",
@@ -613,152 +380,27 @@
       "why_it_matters",
       "image_url"
     ],
-    "GET /api/party/issues/{issue_id}/": [
+    "GET /api/website/issues/{issue_id}/": [
       "id",
       "title",
       "summary",
       "what_we_will_do",
       "why_it_matters"
     ],
-    "GET /api/admin/party/slides/": [
-      "id",
-      "image_url",
-      "kicker",
-      "headline",
-      "line",
-      "button_label",
-      "button_url",
-      "sort_order",
-      "published"
-    ],
-    "GET /api/admin/party/issues/": [
-      "id",
-      "title",
-      "summary",
-      "what_we_will_do",
-      "why_it_matters",
-      "sort_order",
-      "published",
-      "image_url"
-    ],
-    "GET /api/party/documents/": [
+    "GET /api/website/documents/": [
       "id",
       "title",
       "url"
     ],
-    "GET /api/admin/party/documents/": [
-      "id",
-      "title",
-      "url",
-      "sort_order",
-      "published"
-    ],
-    "GET /api/party/values/": [
-      "id",
-      "title",
-      "text"
-    ],
-    "GET /api/admin/party/values/": [
-      "id",
-      "title",
-      "text",
-      "sort_order",
-      "published"
-    ],
-    "GET /api/party/organs/": [
-      "id",
-      "title",
-      "text"
-    ],
-    "GET /api/admin/party/organs/": [
-      "id",
-      "title",
-      "text",
-      "sort_order",
-      "published"
-    ],
-    "GET /api/party/stats/": [
-      "members",
-      "branches"
-    ],
-    "GET /api/party/results/": [
-      "id",
-      "seat",
-      "area",
-      "candidate",
-      "votes",
-      "declared_on",
-      "demo"
-    ],
-    "GET /api/admin/party/results/": [
-      "id",
-      "seat",
-      "area",
-      "candidate",
-      "votes",
-      "declared_on",
-      "demo",
-      "published"
-    ],
-    "GET /api/party/videos/": [
+    "GET /api/website/videos/": [
       "id",
       "title",
       "url",
       "thumbnail_url",
       "duration"
     ],
-    "GET /api/admin/party/videos/": [
-      "id",
-      "title",
-      "url",
-      "thumbnail_url",
-      "duration",
-      "sort_order",
-      "published"
-    ],
-    "GET /api/candidates/": [
-      "slug",
-      "name",
-      "seat",
-      "area",
-      "county",
-      "photo_url",
-      "slogan"
-    ],
-    "GET /api/candidates/{slug}/": [
-      "slug",
-      "name",
-      "seat",
-      "area",
-      "county",
-      "photo_url",
-      "slogan",
-      "bio",
-      "priorities",
-      "office_address",
-      "office_phone",
-      "office_email",
-      "events",
-      "volunteering_open",
-      "wards",
-      "consent_wording"
-    ],
-    "POST /api/candidates/{slug}/volunteer/": [
-      "message",
-      "withdraw_code"
-    ],
-    "POST /api/candidates/volunteer/withdraw/{code}/": [
+    "POST /api/website/volunteer/withdraw/{code}/": [
       "message"
-    ],
-    "GET /api/admin/party/candidates/": [
-      "aspirant_id",
-      "name",
-      "seat",
-      "area",
-      "profile"
-    ],
-    "GET /api/admin/party/posts/{post_id}/aspirants/": [
-      "aspirant_ids"
     ],
     "GET /api/campaigns/{campaign_id}/volunteers/": [
       "id",
@@ -774,16 +416,6 @@
       "interest_other",
       "preferred_contact",
       "erased_at"
-    ],
-    "GET /api/party/search/": [
-      "kind",
-      "id",
-      "label",
-      "detail"
-    ],
-    "GET /api/party/notifications/": [
-      "key",
-      "count"
     ],
     "GET /api/site/candidate/": [
       "slug",
@@ -928,32 +560,6 @@
       "office_email",
       "published"
     ],
-    "GET /api/party/workspace/": [
-      "id",
-      "managers"
-    ],
-    "POST /api/party/workspace/": [
-      "username",
-      "invite"
-    ],
-    "POST /api/party/workspace/manager/": [
-      "username",
-      "invite"
-    ],
-    "GET /api/party/workspace/members/": [
-      "total",
-      "page",
-      "page_size",
-      "members"
-    ],
-    "GET /api/party/workspace/recruitment/": [
-      "code",
-      "by_status"
-    ],
-    "POST /api/party/workspace/recruitment/": [
-      "code",
-      "by_status"
-    ],
     "GET /api/team-signup/{code}/": [
       "campaign_title",
       "seat_label",
@@ -1033,7 +639,6 @@
       "name"
     ],
     "POST /api/setup/": [
-      "organisation_type",
       "superuser",
       "invites",
       "services"
@@ -1077,7 +682,6 @@
       "version",
       "migration",
       "database",
-      "organisation_type",
       "services",
       "last_backup",
       "disks"
@@ -1104,17 +708,6 @@
     ],
     "POST /api/admin/test/payout/": [
       "message"
-    ],
-    "GET /api/party/office/branches/{county_id}/officials/": [
-      "current",
-      "upcoming",
-      "history"
-    ],
-    "POST /api/party/office/branches/{county_id}/officials/": [
-      "id"
-    ],
-    "POST /api/party/office/officials/{official_id}/end/": [
-      "id"
     ],
     "GET /api/messages/": [
       "sender_id",
@@ -1151,170 +744,7 @@
       "last_run",
       "differences"
     ],
-    "GET /api/party/nominations/current/": [
-      "title",
-      "opens_on",
-      "closes_on",
-      "requirements",
-      "open",
-      "seats"
-    ],
-    "GET /api/party/nominations/windows/": [
-      "id",
-      "title",
-      "opens_on",
-      "closes_on",
-      "requirements",
-      "status",
-      "seats",
-      "mine"
-    ],
-    "POST /api/party/nominations/windows/": [
-      "id",
-      "title",
-      "opens_on",
-      "closes_on",
-      "requirements",
-      "status",
-      "seats",
-      "mine"
-    ],
-    "PUT /api/party/nominations/windows/{window_id}/": [
-      "id",
-      "title",
-      "opens_on",
-      "closes_on",
-      "requirements",
-      "status",
-      "seats",
-      "mine"
-    ],
-    "POST /api/party/nominations/windows/{window_id}/publish/": [
-      "id",
-      "title",
-      "opens_on",
-      "closes_on",
-      "requirements",
-      "status",
-      "seats",
-      "mine"
-    ],
-    "POST /api/party/nominations/applications/{aspirant_id}/fee/": [
-      "id",
-      "fee_paid_at",
-      "fee_reference"
-    ],
-    "GET /api/party/nominations/mine/": [
-      "window",
-      "choices",
-      "application"
-    ],
-    "POST /api/party/nominations/mine/": [
-      "window",
-      "choices",
-      "application"
-    ],
-    "POST /api/party/nominations/mine/submit/": [
-      "window",
-      "choices",
-      "application"
-    ],
-    "POST /api/party/nominations/mine/withdraw/": [
-      "window",
-      "choices",
-      "application"
-    ],
-    "GET /api/party-feed/": [
-      "events",
-      "notices",
-      "members_by_ward",
-      "sharing",
-      "can_change",
-      "history"
-    ],
-    "PUT /api/party-feed/sharing/": [
-      "event_reach",
-      "ward_coverage",
-      "supporter_counts"
-    ],
-    "GET /api/party/shared/": [
-      "id",
-      "title",
-      "seat",
-      "event_reach",
-      "ward_coverage",
-      "supporter_counts"
-    ],
-    "GET /api/party/messages/": [
-      "can_send",
-      "messages"
-    ],
-    "POST /api/party/messages/preview/": [
-      "recipients",
-      "opted_out"
-    ],
-    "POST /api/party/messages/": [
-      "id",
-      "body",
-      "audience",
-      "place",
-      "status",
-      "drafted_by",
-      "decided_by",
-      "created_at",
-      "decided_at",
-      "note",
-      "targeted",
-      "recipients",
-      "delivery",
-      "mine"
-    ],
-    "POST /api/party/messages/{message_id}/send/": [
-      "id",
-      "body",
-      "audience",
-      "place",
-      "status",
-      "drafted_by",
-      "decided_by",
-      "created_at",
-      "decided_at",
-      "note",
-      "targeted",
-      "recipients",
-      "delivery",
-      "mine"
-    ],
-    "POST /api/party/messages/{message_id}/decline/": [
-      "id",
-      "body",
-      "audience",
-      "place",
-      "status",
-      "drafted_by",
-      "decided_by",
-      "created_at",
-      "decided_at",
-      "note",
-      "targeted",
-      "recipients",
-      "delivery",
-      "mine"
-    ],
     "GET /api/campaigns/{campaign_id}/data/requests/": [
-      "id",
-      "kind",
-      "requester_name",
-      "requester_contact",
-      "details",
-      "received_on",
-      "due_on",
-      "status",
-      "answer",
-      "answered_at",
-      "overdue"
-    ],
-    "GET /api/party/data-requests/": [
       "id",
       "kind",
       "requester_name",
@@ -1346,24 +776,6 @@
       "supporters",
       "erased"
     ],
-    "POST /api/party/volunteers/{volunteer_id}/erase/": [
-      "id",
-      "full_name",
-      "phone",
-      "ward",
-      "constituency",
-      "county",
-      "registration_centre",
-      "profession",
-      "profession_other",
-      "status",
-      "interests",
-      "interest_other",
-      "preferred_contact",
-      "availability_notes",
-      "member_status",
-      "erased_at"
-    ],
     "GET /api/auth/options/": [
       "google"
     ],
@@ -1381,9 +793,6 @@
     "POST /api/pay/contribution/": [
       "reference"
     ],
-    "POST /api/party/nominations/mine/pay/": [
-      "reference"
-    ],
     "GET /api/pay/{reference}/": [
       "status",
       "amount_kes",
@@ -1392,7 +801,6 @@
     ],
     "GET /api/campaigns/{campaign_id}/payments-in/": [
       "id",
-      "purpose",
       "status",
       "amount_kes",
       "reason",
@@ -1406,23 +814,6 @@
     ],
     "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/reject/": [
       "status"
-    ],
-    "GET /api/party/payments-in/": [
-      "id",
-      "purpose",
-      "status",
-      "amount_kes",
-      "reason",
-      "payer_name",
-      "payer_phone",
-      "mpesa_code",
-      "created_at"
-    ],
-    "POST /api/party/payments-in/{payment_id}/confirm/": [
-      "status"
-    ],
-    "POST /api/party/payments-in/{payment_id}/reject/": [
-      "status"
     ]
   },
   "nested_reads": {
@@ -1431,20 +822,14 @@
       "username",
       "full_name",
       "role",
-      "is_superuser",
-      "party_roles",
-      "kind",
-      "member_account"
+      "is_superuser"
     ],
     "POST /api/auth/links/{token}/.user": [
       "id",
       "username",
       "full_name",
       "role",
-      "is_superuser",
-      "party_roles",
-      "kind",
-      "member_account"
+      "is_superuser"
     ],
     "GET /api/strategy/.units": [
       "unit",
@@ -1508,129 +893,9 @@
       "id",
       "name"
     ],
-    "GET /api/party/members/.items": [
-      "id",
-      "full_name",
-      "phone",
-      "email",
-      "status",
-      "ward",
-      "constituency",
-      "county",
-      "created_at"
-    ],
-    "GET /api/party/volunteers/.items": [
-      "id",
-      "full_name",
-      "phone",
-      "ward",
-      "constituency",
-      "county",
-      "registration_centre",
-      "profession",
-      "profession_other",
-      "status",
-      "interests",
-      "interest_other",
-      "preferred_contact",
-      "availability_notes",
-      "member_status",
-      "erased_at"
-    ],
-    "GET /api/party/aspirants/.items": [
-      "id",
-      "member",
-      "seat",
-      "area",
-      "status",
-      "campaign_id",
-      "created_at"
-    ],
-    "POST /api/party/aspirants/{aspirant_id}/workspace/.logins": [
-      "username",
-      "role",
-      "invite"
-    ],
-    "GET /api/party/dashboard/.volunteers_by_county": [
-      "county_id",
-      "county",
-      "count"
-    ],
-    "GET /api/party/dashboard/.volunteers_by_interest": [
-      "interest",
-      "count"
-    ],
-    "GET /api/party/dashboard/.upcoming_events_by_county": [
-      "county_id",
-      "county",
-      "count"
-    ],
-    "GET /api/party/dashboard/.upcoming_events_by_seat": [
-      "seat",
-      "count"
-    ],
-    "GET /api/party/dashboard/.campaigns_by_county_and_seat": [
-      "county_id",
-      "county",
-      "seat",
-      "count"
-    ],
-    "GET /api/party/dashboard/.party_workspace": [
-      "supporters",
-      "mobilizers",
-      "upcoming_events"
-    ],
-    "GET /api/account/.volunteer": [
-      "status",
-      "profession",
-      "profession_other",
-      "areas",
-      "area_other",
-      "preferred_contact",
-      "consent_wording",
-      "consent_at"
-    ],
-    "GET /api/party/branches/{county_id}/.constituencies": [
-      "id",
-      "name",
-      "wards"
-    ],
-    "GET /api/party/office/branches/.branch": [
-      "office_address",
-      "phone",
-      "email",
-      "next_meeting_on",
-      "next_meeting_venue",
-      "published",
-      "officials"
-    ],
-    "GET /api/party/posts/.county": [
+    "GET /api/website/posts/.county": [
       "id",
       "name"
-    ],
-    "GET /api/candidates/{slug}/.events": [
-      "id",
-      "title",
-      "event_date",
-      "venue"
-    ],
-    "GET /api/candidates/{slug}/.wards": [
-      "id",
-      "name"
-    ],
-    "GET /api/candidates/{slug}/.priorities": [
-      "title",
-      "text"
-    ],
-    "GET /api/admin/party/candidates/.profile": [
-      "photo_url",
-      "slogan",
-      "bio",
-      "priorities",
-      "office_address",
-      "office_phone",
-      "office_email",
-      "published"
     ],
     "GET /api/campaigns/{campaign_id}/volunteers/.ward": [
       "id",
@@ -1689,52 +954,6 @@
       "free_bytes",
       "total_bytes"
     ],
-    "GET /api/party/branches/.officials": [
-      "office",
-      "label",
-      "name"
-    ],
-    "GET /api/party/branches/{county_id}/.officials": [
-      "office",
-      "label",
-      "name"
-    ],
-    "GET /api/party/office/branches/{county_id}/officials/.current": [
-      "id",
-      "office",
-      "label",
-      "member",
-      "holder_name",
-      "term_start",
-      "term_end",
-      "end_reason",
-      "note",
-      "lapsed"
-    ],
-    "GET /api/party/office/branches/{county_id}/officials/.upcoming": [
-      "id",
-      "office",
-      "label",
-      "member",
-      "holder_name",
-      "term_start",
-      "term_end",
-      "end_reason",
-      "note",
-      "lapsed"
-    ],
-    "GET /api/party/office/branches/{county_id}/officials/.history": [
-      "id",
-      "office",
-      "label",
-      "member",
-      "holder_name",
-      "term_start",
-      "term_end",
-      "end_reason",
-      "note",
-      "lapsed"
-    ],
     "GET /api/messages/.wards": [
       "id",
       "name"
@@ -1765,106 +984,6 @@
       "ledger",
       "provider",
       "detail"
-    ],
-    "GET /api/party/nominations/current/.seats": [
-      "seat",
-      "fee_kes"
-    ],
-    "GET /api/party/nominations/windows/.seats": [
-      "seat",
-      "fee_kes"
-    ],
-    "GET /api/party/nominations/mine/.window": [
-      "title",
-      "opens_on",
-      "closes_on",
-      "open"
-    ],
-    "GET /api/party/nominations/mine/.choices": [
-      "seat",
-      "fee_kes",
-      "area"
-    ],
-    "GET /api/party/nominations/mine/.application": [
-      "id",
-      "seat",
-      "area",
-      "status",
-      "fee_kes",
-      "fee_paid",
-      "declared_at",
-      "from_window",
-      "documents",
-      "fee_waiting"
-    ],
-    "GET /api/party/aspirants/{aspirant_id}/.documents": [
-      "id",
-      "label"
-    ],
-    "GET /api/party-feed/.events": [
-      "id",
-      "title",
-      "body",
-      "event_date",
-      "venue"
-    ],
-    "GET /api/party-feed/.notices": [
-      "id",
-      "title",
-      "body",
-      "published_on"
-    ],
-    "GET /api/party-feed/.members_by_ward": [
-      "ward",
-      "count"
-    ],
-    "GET /api/party-feed/.sharing": [
-      "event_reach",
-      "ward_coverage",
-      "supporter_counts"
-    ],
-    "GET /api/party-feed/.history": [
-      "at",
-      "by",
-      "switch",
-      "on"
-    ],
-    "GET /api/party/shared/.event_reach": [
-      "events",
-      "reached",
-      "attended"
-    ],
-    "GET /api/party/shared/.ward_coverage": [
-      "wards",
-      "covered"
-    ],
-    "GET /api/party/shared/.supporter_counts": [
-      "ward",
-      "count"
-    ],
-    "GET /api/party/workspace/members/.members": [
-      "id",
-      "full_name",
-      "phone",
-      "status",
-      "ward_name",
-      "registration_centre_name"
-    ],
-    "GET /api/party/messages/.messages": [
-      "id",
-      "body",
-      "audience",
-      "place",
-      "status",
-      "drafted_by",
-      "decided_by",
-      "created_at",
-      "decided_at",
-      "note",
-      "targeted",
-      "recipients",
-      "delivery",
-      "mine"
     ]
   },
   "writes": {
@@ -2028,262 +1147,15 @@
       "mpesa_account",
       "mpesa_till"
     ],
-    "PUT /api/admin/party/": [
-      "registration_number",
-      "founded_year",
-      "aspirant_steps"
-    ],
-    "POST /api/admin/users/{user_id}/party-roles/": [
-      "role"
-    ],
-    "POST /api/party/join/": [
-      "first_name",
-      "surname",
-      "phone",
-      "email",
-      "password",
-      "ward",
-      "registration_centre",
-      "consent_given",
-      "volunteer",
-      "sms_updates"
-    ],
-    "POST /api/party/withdraw/{code}/": [],
-    "POST /api/party/members/{member_id}/status/": [
-      "status",
-      "reason"
-    ],
-    "POST /api/party/join/.volunteer": [
-      "profession",
-      "profession_other",
-      "areas",
-      "area_other",
-      "preferred_contact",
-      "consent_given"
-    ],
-    "POST /api/party/volunteer/withdraw/{code}/": [],
-    "PATCH /api/party/volunteers/{volunteer_id}/": [
-      "status",
-      "availability_notes"
-    ],
-    "POST /api/party/aspirants/": [
-      "member",
-      "seat",
-      "county",
-      "constituency",
-      "ward"
-    ],
-    "POST /api/party/aspirants/{aspirant_id}/status/": [
-      "status",
-      "reason"
-    ],
-    "POST /api/party/aspirants/{aspirant_id}/workspace/": [
-      "title",
-      "election_date",
-      "candidate",
-      "manager"
-    ],
-    "PUT /api/admin/users/{user_id}/party-member/": [
-      "member"
-    ],
-    "POST /api/admin/party/leaders/": [
-      "name",
-      "position",
-      "bio",
-      "photo_url",
-      "sort_order"
-    ],
-    "PATCH /api/admin/party/leaders/{leader_id}/": [
-      "name",
-      "position",
-      "bio",
-      "photo_url",
-      "sort_order",
-      "published"
-    ],
-    "POST /api/admin/party/posts/": [
-      "kind",
-      "title",
-      "body",
-      "image_url",
-      "event_date",
-      "venue",
-      "label",
-      "place",
-      "author",
-      "author_photo_url",
-      "reference",
-      "pdf_url",
-      "county_id"
-    ],
-    "PATCH /api/admin/party/posts/{post_id}/": [
-      "title",
-      "body",
-      "image_url",
-      "event_date",
-      "venue",
-      "published",
-      "label",
-      "place",
-      "author",
-      "author_photo_url",
-      "reference",
-      "pdf_url",
-      "county_id"
-    ],
-    "POST /api/party/subscribe/": [
+    "POST /api/website/subscribe/": [
       "contact",
       "consent_given"
     ],
-    "POST /api/party/unsubscribe/{code}/": [],
-    "PUT /api/account/volunteer/": [
-      "profession",
-      "profession_other",
-      "areas",
-      "area_other",
-      "preferred_contact",
-      "consent_given"
-    ],
-    "POST /api/account/volunteer/stop/": [],
-    "POST /api/account/leave/": [],
-    "PUT /api/admin/party/branches/{county_id}/": [
-      "office_address",
-      "phone",
-      "email",
-      "next_meeting_on",
-      "next_meeting_venue",
-      "published"
-    ],
-    "POST /api/admin/party/slides/": [
-      "headline",
-      "kicker",
-      "line",
-      "button_label",
-      "button_url",
-      "image_url",
-      "sort_order"
-    ],
-    "PATCH /api/admin/party/slides/{slide_id}/": [
-      "headline",
-      "kicker",
-      "line",
-      "button_label",
-      "button_url",
-      "image_url",
-      "sort_order",
-      "published"
-    ],
-    "POST /api/admin/party/issues/": [
-      "title",
-      "summary",
-      "what_we_will_do",
-      "why_it_matters",
-      "sort_order",
-      "image_url"
-    ],
-    "PATCH /api/admin/party/issues/{issue_id}/": [
-      "title",
-      "summary",
-      "what_we_will_do",
-      "why_it_matters",
-      "sort_order",
-      "published",
-      "image_url"
-    ],
-    "POST /api/admin/party/documents/": [
-      "title",
-      "url",
-      "sort_order"
-    ],
-    "PATCH /api/admin/party/documents/{document_id}/": [
-      "title",
-      "url",
-      "sort_order",
-      "published"
-    ],
-    "POST /api/admin/party/values/": [
-      "title",
-      "text",
-      "sort_order"
-    ],
-    "PATCH /api/admin/party/values/{value_id}/": [
-      "title",
-      "text",
-      "sort_order",
-      "published"
-    ],
-    "POST /api/admin/party/organs/": [
-      "title",
-      "text",
-      "sort_order"
-    ],
-    "PATCH /api/admin/party/organs/{organ_id}/": [
-      "title",
-      "text",
-      "sort_order",
-      "published"
-    ],
-    "POST /api/admin/party/results/": [
-      "seat",
-      "area",
-      "candidate",
-      "votes",
-      "declared_on"
-    ],
-    "PATCH /api/admin/party/results/{result_id}/": [
-      "seat",
-      "area",
-      "candidate",
-      "votes",
-      "declared_on",
-      "published"
-    ],
-    "POST /api/admin/party/videos/": [
-      "title",
-      "url",
-      "thumbnail_url",
-      "duration",
-      "sort_order"
-    ],
-    "PATCH /api/admin/party/videos/{video_id}/": [
-      "title",
-      "url",
-      "thumbnail_url",
-      "duration",
-      "sort_order",
-      "published"
-    ],
-    "POST /api/candidates/{slug}/volunteer/": [
-      "first_name",
-      "last_name",
-      "email",
-      "phone",
-      "ward",
-      "registration_centre",
-      "profession",
-      "profession_other",
-      "areas",
-      "area_other",
-      "preferred_contact",
-      "consent_given"
-    ],
-    "PUT /api/admin/party/candidates/{aspirant_id}/profile/": [
-      "photo_url",
-      "slogan",
-      "bio",
-      "priorities",
-      "office_address",
-      "office_phone",
-      "office_email",
-      "published"
-    ],
-    "PUT /api/admin/party/posts/{post_id}/aspirants/": [
-      "aspirant_ids"
-    ],
+    "POST /api/website/unsubscribe/{code}/": [],
     "PATCH /api/campaigns/{campaign_id}/volunteers/{volunteer_id}/": [
       "status"
     ],
-    "POST /api/candidates/volunteer/withdraw/{code}/": [],
+    "POST /api/website/volunteer/withdraw/{code}/": [],
     "POST /api/site/volunteer/": [
       "first_name",
       "last_name",
@@ -2422,27 +1294,6 @@
       "office_email",
       "published"
     ],
-    "POST /api/party/workspace/": [
-      "manager"
-    ],
-    "POST /api/party/workspace/.manager": [
-      "username",
-      "first_name",
-      "last_name",
-      "phone",
-      "email"
-    ],
-    "POST /api/party/workspace/manager/": [
-      "manager"
-    ],
-    "POST /api/party/workspace/manager/.manager": [
-      "username",
-      "first_name",
-      "last_name",
-      "phone",
-      "email"
-    ],
-    "POST /api/party/workspace/recruitment/": [],
     "POST /api/team-signup/{code}/": [
       "role",
       "first_name",
@@ -2483,11 +1334,9 @@
     ],
     "POST /api/setup/": [
       "token",
-      "organisation_type",
       "site",
       "superuser",
-      "aspirant",
-      "party_workspace"
+      "campaign"
     ],
     "POST /api/setup/services/{key}/test/": [],
     "POST /api/admin/imports/boundaries/": [
@@ -2509,19 +1358,6 @@
     "POST /api/admin/test/payout/": [
       "phone"
     ],
-    "POST /api/party/office/branches/{county_id}/officials/": [
-      "office",
-      "title",
-      "member",
-      "term_start",
-      "start_reason",
-      "note",
-      "minutes_file"
-    ],
-    "POST /api/party/office/officials/{official_id}/end/": [
-      "term_end",
-      "end_reason"
-    ],
     "POST /api/messages/": [
       "campaign",
       "body",
@@ -2541,61 +1377,7 @@
       "payments"
     ],
     "POST /api/payments/reconciliation/": [],
-    "POST /api/party/nominations/windows/": [
-      "title",
-      "opens_on",
-      "closes_on",
-      "requirements",
-      "seats"
-    ],
-    "PUT /api/party/nominations/windows/{window_id}/": [
-      "title",
-      "opens_on",
-      "closes_on",
-      "requirements",
-      "seats"
-    ],
-    "POST /api/party/nominations/windows/{window_id}/publish/": [],
-    "POST /api/party/nominations/applications/{aspirant_id}/fee/": [
-      "reference"
-    ],
-    "POST /api/party/nominations/mine/": [
-      "seat"
-    ],
-    "POST /api/party/nominations/mine/submit/": [
-      "declaration"
-    ],
-    "POST /api/party/nominations/mine/withdraw/": [],
-    "PUT /api/party-feed/sharing/": [
-      "event_reach",
-      "ward_coverage",
-      "supporter_counts"
-    ],
-    "POST /api/party/messages/preview/": [
-      "audience",
-      "county",
-      "constituency",
-      "ward"
-    ],
-    "POST /api/party/messages/": [
-      "audience",
-      "county",
-      "constituency",
-      "ward",
-      "body"
-    ],
-    "POST /api/party/messages/{message_id}/send/": [],
-    "POST /api/party/messages/{message_id}/decline/": [
-      "note"
-    ],
     "POST /api/campaigns/{campaign_id}/data/requests/": [
-      "kind",
-      "requester_name",
-      "requester_contact",
-      "details",
-      "received_on"
-    ],
-    "POST /api/party/data-requests/": [
       "kind",
       "requester_name",
       "requester_contact",
@@ -2607,18 +1389,11 @@
       "due_on",
       "status"
     ],
-    "PATCH /api/party/data-requests/{request_id}/": [
-      "answer",
-      "due_on",
-      "status"
-    ],
     "PUT /api/campaigns/{campaign_id}/data/retention/": [
       "retention_months"
     ],
     "POST /api/campaigns/{campaign_id}/data/close/": [],
     "POST /api/campaigns/{campaign_id}/data/erase-supporters/": [],
-    "POST /api/party/members/{member_id}/erase/": [],
-    "POST /api/party/volunteers/{volunteer_id}/erase/": [],
     "POST /api/auth/google/finish/": [
       "handoff",
       "bind"
@@ -2631,19 +1406,10 @@
       "name",
       "email"
     ],
-    "POST /api/party/nominations/mine/pay/": [
-      "method",
-      "phone",
-      "mpesa_code"
-    ],
     "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/reject/": [
       "reason"
     ],
-    "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/confirm/": [],
-    "POST /api/party/payments-in/{payment_id}/reject/": [
-      "reason"
-    ],
-    "POST /api/party/payments-in/{payment_id}/confirm/": []
+    "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/confirm/": []
   },
   "enums": {
     "user.role": [
@@ -2698,29 +1464,14 @@
     ]
   },
   "error_shape": {
-    "_comment": "src/api/client.js reads detail first, then the first value of the first field. Login also reads non_field_errors[0]. A closed campaign's 403 also carries a code: src/Gate.jsx reads \"campaign_suspended\" (its aspirant is not approved).",
-    "detail": "string",
-    "code": "string, on a closed campaign's 403 only",
-    "codes": [
-      "campaign_suspended"
-    ]
+    "_comment": "src/api/client.js reads detail first, then the first value of the first field. Login also reads non_field_errors[0].",
+    "detail": "string"
   },
   "no_content": {
     "_comment": "Routes that answer 204 with no body. Only that they still exist is checked.",
     "routes": [
       "DELETE /api/admin/campaigns/{campaign_id}/",
       "DELETE /api/admin/campaigns/{campaign_id}/members/{user_id}/",
-      "DELETE /api/admin/users/{user_id}/party-roles/{role}/",
-      "DELETE /api/admin/party/leaders/{leader_id}/",
-      "DELETE /api/admin/party/posts/{post_id}/",
-      "POST /api/account/leave/",
-      "DELETE /api/admin/party/slides/{slide_id}/",
-      "DELETE /api/admin/party/issues/{issue_id}/",
-      "DELETE /api/admin/party/documents/{document_id}/",
-      "DELETE /api/admin/party/values/{value_id}/",
-      "DELETE /api/admin/party/organs/{organ_id}/",
-      "DELETE /api/admin/party/results/{result_id}/",
-      "DELETE /api/admin/party/videos/{video_id}/",
       "DELETE /api/workspace/site/posts/{post_id}/",
       "DELETE /api/workspace/site/slides/{item_id}/",
       "DELETE /api/workspace/site/issues/{item_id}/",
@@ -2729,7 +1480,6 @@
       "POST /api/setup/check/",
       "DELETE /api/messages/{message_id}/",
       "DELETE /api/campaigns/{campaign_id}/team/{user_id}/",
-      "DELETE /api/party/nominations/mine/documents/{document_id}/",
       "POST /api/campaigns/{campaign_id}/data/supporters/{supporter_id}/erase/",
       "POST /api/campaigns/{campaign_id}/data/volunteers/{volunteer_id}/erase/",
       "POST /api/campaigns/{campaign_id}/data/registrations/{registration_id}/erase/",

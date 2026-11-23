@@ -115,7 +115,7 @@ export default function Privacy({ campaign, role }) {
       <SlottedHeader context="People" title="Personal data" sub="Answer requests about people's details, and erase them when asked." />
       <DataRequests campaignId={campaign.id} />
       <LeftTeam campaign={campaign} />
-      {campaign.kind !== "party" && <Closing campaign={campaign} role={role} />}
+      <Closing campaign={campaign} role={role} />
     </>
   );
 }

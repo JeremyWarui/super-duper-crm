@@ -1,4 +1,4 @@
-// First-run setup: a one-time token, then six steps that make the installation in one go.
+// First-run setup: a one-time token, then five steps that make the installation in one go.
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -6,7 +6,7 @@ import { useCheckSetupToken, useRunSetup, useSetupAreas, useSetupServices, useTe
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { Check, Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
+import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { INK, MIN_CONTRAST, WHITE, contrast, isHex } from "@/lib/contrast";
 import { ColourFields } from "@/components/Swatch";
 import { cn } from "@/lib/utils";
@@ -18,43 +18,39 @@ import { NO_PLACE, PlaceSelects } from "@/components/PlaceCascade";
 import { SEAT_AREA, SEATS } from "@/lib/labels";
 import LoginFields from "@/components/LoginFields";
 
-const STEPS = ["Type", "Name and colours", "Contacts", "First superuser", "Workspace", "Check and finish"];
+const STEPS = ["Name and colours", "Contacts", "First superuser", "Campaign", "Check and finish"];
+const LAST = STEPS.length - 1;
 
 const BLANK = {
-  organisation_type: "",
   site: { name: "", short_name: "", logo_url: "", primary_colour: "#0B5D3B", secondary_colour: "#F2B705", contact_email: "", contact_phone: "", address: "", privacy_notice: "" },
   superuser: { username: "", email: "", password: "", first_name: "", last_name: "" },
   confirm: "",
-  aspirant: { title: "", seat: "mca", election_date: "", county: "", constituency: "", ward: "", candidate: { username: "", email: "", first_name: "", last_name: "" } },
-  openWorkspace: false,
-  manager: { username: "", email: "", first_name: "", last_name: "" },
+  campaign: { title: "", seat: "mca", election_date: "", county: "", constituency: "", ward: "", candidate: { username: "", email: "", first_name: "", last_name: "" } },
 };
 
 const loginOk = (l) => isUsername(l.username) && isEmail(l.email);
 
 /** Why a step can't go on yet, or null when it can. */
 function blocker(step, f) {
-  if (step === 0) return f.organisation_type ? null : "Pick party or aspirant.";
-  if (step === 1) {
+  if (step === 0) {
     const { name, primary_colour: p, secondary_colour: s, logo_url: logo } = f.site;
-    if (!name.trim()) return "Give the organisation's name.";
+    if (!name.trim()) return "Give the site's name.";
     if (logo && !logo.startsWith("https://")) return "The logo link must start with https://.";
     if (!isHex(p) || !isHex(s)) return "Colours are #rrggbb.";
     if (contrast(p, WHITE) < MIN_CONTRAST) return "The primary colour is too light for white text; pick a darker one.";
     if (contrast(s, INK) < MIN_CONTRAST) return "The secondary colour is too dark for dark text; pick a lighter one.";
     return null;
   }
-  if (step === 2) return f.site.contact_email && !isEmail(f.site.contact_email) ? "That contact email doesn't look right." : null;
-  if (step === 3) {
+  if (step === 1) return f.site.contact_email && !isEmail(f.site.contact_email) ? "That contact email doesn't look right." : null;
+  if (step === 2) {
     const u = f.superuser;
     if (!isUsername(u.username)) return "A username of 3 or more letters, digits, dots, dashes or underscores.";
     if (!isEmail(u.email)) return "An email to sign in with.";
     if (u.password.length < 8) return "A password of at least 8 characters.";
     return u.password === f.confirm ? null : "The two passwords differ.";
   }
-  if (step === 4) {
-    if (f.organisation_type === "party") return !f.openWorkspace || loginOk(f.manager) ? null : "The Workspace Manager needs a username and an email.";
-    const a = f.aspirant;
+  if (step === 3) {
+    const a = f.campaign;
     const level = SEAT_AREA[a.seat];
     if (!a.title.trim()) return "Name the campaign.";
     if (!a[level]) return `Pick the ${level}.`;
@@ -64,28 +60,13 @@ function blocker(step, f) {
 }
 
 function body(token, f) {
-  const out = { token, organisation_type: f.organisation_type, site: f.site, superuser: f.superuser };
-  if (f.organisation_type === "aspirant") {
-    const a = f.aspirant;
-    const level = SEAT_AREA[a.seat];
-    out.aspirant = { title: a.title, seat: a.seat, election_date: a.election_date || null, [level]: a[level], candidate: a.candidate };
-  } else if (f.openWorkspace) {
-    out.party_workspace = f.manager;
-  }
-  return out;
+  const a = f.campaign;
+  const level = SEAT_AREA[a.seat];
+  const campaign = { title: a.title, seat: a.seat, election_date: a.election_date || null, [level]: a[level], candidate: a.candidate };
+  return { token, site: f.site, superuser: f.superuser, campaign };
 }
 
-function Choice({ selected, onPick, title, children }) {
-  return (
-    <button type="button" aria-pressed={selected} onClick={onPick}
-      className={cn("flex cursor-pointer flex-col gap-1 rounded-xl border-2 bg-white p-5 text-left", selected ? "border-primary" : "border-line")}>
-      <span className="text-card-title font-bold">{title}</span>
-      <span className="text-ui text-muted-foreground">{children}</span>
-    </button>
-  );
-}
-
-// The candidate's or manager's login, two boxes to a row.
+// The candidate's login, two boxes to a row.
 function Login({ value, onChange, who }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -112,8 +93,8 @@ function AreaPicker({ token, level, place, onChange }) {
 }
 
 function SeatStep({ token, form, change }) {
-  const a = form.aspirant;
-  const set = (patch) => change({ aspirant: { ...a, ...patch } });
+  const a = form.campaign;
+  const set = (patch) => change({ campaign: { ...a, ...patch } });
   const level = SEAT_AREA[a.seat];
   return (
     <div className="flex flex-col gap-4">
@@ -178,7 +159,7 @@ function Done({ result, form }) {
     <div className="flex flex-col gap-4">
       <Card variant="outline" className="gap-2" role="status">
         <h2 className="font-display text-[26px] font-extrabold">Set up.</h2>
-        <p>{form.site.name} is {result.organisation_type === "aspirant" ? "an aspirant" : "a party"} installation, fixed for good. The superuser <strong>{result.superuser}</strong> can sign in now.</p>
+        <p>{form.site.name} is ready. The superuser <strong>{result.superuser}</strong> can sign in now.</p>
         {invites > 0 && <p className="text-ui text-muted-foreground">{result.invites.every((i) => i === "email") ? "A sign-in link went by email to the new workspace login." : "The new workspace login has no email; reset its password from the console."}</p>}
       </Card>
       {!token && (
@@ -236,15 +217,6 @@ export default function Setup() {
       <Card variant="outline" className="gap-5">
         <h2 className="text-[22px] font-extrabold">{STEPS[step]}</h2>
         {step === 0 && (
-          <div className="flex flex-col gap-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Choice selected={form.organisation_type === "party"} onPick={() => change({ organisation_type: "party" })} title="A party">Members, branches, aspirants and the party workspace.</Choice>
-              <Choice selected={form.organisation_type === "aspirant"} onPick={() => change({ organisation_type: "aspirant" })} title="An aspirant">One candidate's website and campaign workspace.</Choice>
-            </div>
-            <p className="text-ui font-semibold text-warn-foreground">This is fixed for good once setup finishes.</p>
-          </div>
-        )}
-        {step === 1 && (
           <div className="flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name"><Input value={form.site.name} onChange={site("name")} /></Field>
@@ -254,7 +226,7 @@ export default function Setup() {
             <ColourFields form={form.site} set={site} />
           </div>
         )}
-        {step === 2 && (
+        {step === 1 && (
           <div className="flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Contact email"><Input type="email" value={form.site.contact_email} onChange={site("contact_email")} /></Field>
@@ -264,9 +236,9 @@ export default function Setup() {
             <Field label="Privacy notice" hint="Shown on /privacy and agreed to at every sign-up form."><Textarea rows={8} value={form.site.privacy_notice} onChange={site("privacy_notice")} /></Field>
           </div>
         )}
-        {step === 3 && (
+        {step === 2 && (
           <div className="flex flex-col gap-4">
-            <p className="text-ui text-muted-foreground">The first console login. It manages logins, workspaces and the site.</p>
+            <p className="text-ui text-muted-foreground">The first console login. It manages logins, the campaign and the site.</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <LoginFields fields={["first_name", "last_name", "username", "email"]} form={form.superuser} set={user} />
               <Field label="Password" hint="At least 8 characters."><Input type="password" autoComplete="new-password" value={form.superuser.password} onChange={user("password")} /></Field>
@@ -274,32 +246,19 @@ export default function Setup() {
             </div>
           </div>
         )}
-        {step === 4 && form.organisation_type === "aspirant" && <SeatStep token={token.trim()} form={form} change={change} />}
-        {step === 4 && form.organisation_type === "party" && (
-          <div className="flex flex-col gap-4">
-            <Check className="items-center font-semibold" checked={form.openWorkspace} onChange={(e) => change({ openWorkspace: e.target.checked })}>
-              Open the party workspace now, with its first Workspace Manager
-            </Check>
-            {form.openWorkspace ? <Login who="Manager" value={form.manager} onChange={(manager) => change({ manager })} /> : <p className="text-ui text-muted-foreground">You can open it later from the console.</p>}
-          </div>
-        )}
-        {step === 5 && (
+        {step === 3 && <SeatStep token={token.trim()} form={form} change={change} />}
+        {step === LAST && (
           <dl className="grid gap-x-6 gap-y-2 text-ui sm:grid-cols-[max-content_1fr]">
-            <dt className="text-muted-foreground">Type</dt><dd className="font-semibold capitalize">{form.organisation_type}</dd>
             <dt className="text-muted-foreground">Name</dt><dd className="font-semibold">{form.site.name}</dd>
             <dt className="text-muted-foreground">Superuser</dt><dd className="font-semibold">{form.superuser.username} · {form.superuser.email}</dd>
-            {form.organisation_type === "aspirant" ? (
-              <><dt className="text-muted-foreground">Workspace</dt><dd className="font-semibold">{form.aspirant.title}, candidate {form.aspirant.candidate.username}</dd></>
-            ) : (
-              <><dt className="text-muted-foreground">Party workspace</dt><dd className="font-semibold">{form.openWorkspace ? `Open, managed by ${form.manager.username}` : "Not yet"}</dd></>
-            )}
+            <dt className="text-muted-foreground">Campaign</dt><dd className="font-semibold">{form.campaign.title}, candidate {form.campaign.candidate.username}</dd>
           </dl>
         )}
-        {block && step < 5 && <p className="text-ui text-muted-foreground">{block}</p>}
+        {block && step < LAST && <p className="text-ui text-muted-foreground">{block}</p>}
         <ErrorText error={runSetup.error} className="text-ui" />
         <div className="flex flex-wrap justify-between gap-2">
           <Button shape="rounded" variant="quiet" disabled={step === 0 || runSetup.isPending} onClick={() => setStep(step - 1)}>Back</Button>
-          {step < 5
+          {step < LAST
             ? <Button shape="rounded" disabled={Boolean(block)} onClick={() => setStep(step + 1)}>Next</Button>
             : <Button loading={runSetup.isPending} shape="rounded" disabled={runSetup.isPending} onClick={finish}>{runSetup.isPending ? "Setting up…" : "Finish setup"}</Button>}
         </div>

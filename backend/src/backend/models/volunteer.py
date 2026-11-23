@@ -1,4 +1,4 @@
-"""Volunteer profiles: a party member's (`campaign_id` NULL), or a campaign's."""
+"""The campaign's volunteers."""
 
 import uuid
 from datetime import datetime
@@ -22,39 +22,26 @@ from backend.db.base import (
     TimestampMixin,
     UUIDPrimaryKeyMixin,
     choice_type,
-    partial_unique,
     updated_at_column,
 )
 from backend.models.enums import ContactMethod, Profession, VolunteerStatus
 
 if TYPE_CHECKING:
-    from backend.models import PartyMember
     from backend.models.geography import RegistrationCentre, Ward
 
 
 class VolunteerProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A party member's volunteer profile (`campaign_id` NULL), or a campaign's volunteer."""
+    """Someone who signed up to volunteer for the campaign."""
 
     __tablename__ = "volunteer_profiles"
     __table_args__ = (
-        UniqueConstraint("member_id", name="uq_volunteer_profiles_member_id"),
-        # A party row has a member; a campaign row has none.
-        CheckConstraint("(campaign_id IS NULL) = (member_id IS NOT NULL)", name="owner"),
         CheckConstraint("consent_wording <> ''", name="consent_wording_not_empty"),
-        partial_unique(
-            "uq_volunteer_profiles_party_phone",
-            "phone",
-            where="campaign_id IS NULL",
-        ),
         UniqueConstraint("campaign_id", "phone", name="uq_volunteer_profiles_campaign_phone"),
         Index("ix_volunteer_profiles_campaign_id_status", "campaign_id", "status"),
     )
 
-    member_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("party_members.id", ondelete="CASCADE"), default=None
-    )
-    campaign_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), default=None
+    campaign_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("campaigns.id", ondelete="CASCADE")
     )
     first_name: Mapped[str] = mapped_column(String(75))
     last_name: Mapped[str] = mapped_column(String(75))
@@ -88,6 +75,5 @@ class VolunteerProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     erased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     updated_at: Mapped[datetime] = updated_at_column()
 
-    member: Mapped["PartyMember | None"] = relationship(back_populates="volunteer")
     ward: Mapped["Ward"] = relationship()
     registration_centre: Mapped["RegistrationCentre | None"] = relationship()

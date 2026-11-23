@@ -11,7 +11,6 @@ afterEach(() => {
 });
 
 const SITE = {
-  organisation_type: "aspirant",
   name: "Jane 2027",
   short_name: "J",
   slogan: "Roysambu first",
@@ -47,14 +46,14 @@ const ISSUE = { id: "i1", title: "Clean water", summary: "Water in every home.",
 const ROUTES = {
   "GET /site/": SITE,
   "GET /site/candidate/": PAGE,
-  "GET /party/posts/?kind=news&offset=0": [],
-  "GET /party/posts/?kind=event&offset=0": [],
-  "GET /party/places/": [],
-  "GET /party/slides/": [],
-  "GET /party/issues/": [ISSUE],
-  "GET /party/issues/i1/": ISSUE,
-  "GET /party/videos/": [{ id: "v1", title: "Town hall in Kahawa", url: "https://example.com/v1", duration: "4:10", thumbnail_url: "" }],
-  "GET /party/documents/": [{ id: "d1", title: "Campaign plan (PDF)", url: "https://example.com/plan.pdf" }],
+  "GET /website/posts/?kind=news&offset=0": [],
+  "GET /website/posts/?kind=event&offset=0": [],
+  "GET /website/places/": [],
+  "GET /website/slides/": [],
+  "GET /website/issues/": [ISSUE],
+  "GET /website/issues/i1/": ISSUE,
+  "GET /website/videos/": [{ id: "v1", title: "Town hall in Kahawa", url: "https://example.com/v1", duration: "4:10", thumbnail_url: "" }],
+  "GET /website/documents/": [{ id: "d1", title: "Campaign plan (PDF)", url: "https://example.com/plan.pdf" }],
 };
 
 /** The visible text of a page once its heading and `loaded` show. */
@@ -68,8 +67,8 @@ async function textOf(path, heading, loaded) {
   return text;
 }
 
-describe("an aspirant installation's website", () => {
-  it("lays the homepage out as the party's: carousel with the candidate beside it, then three ways to take part", async () => {
+describe("the campaign website", () => {
+  it("lays the homepage out: carousel with the candidate beside it, then three ways to take part", async () => {
     stubApi(ROUTES);
     renderApp(<AppRoutes />);
 
@@ -90,7 +89,7 @@ describe("an aspirant installation's website", () => {
   });
 
   it("shows each agenda issue as a card with its photo behind the title", async () => {
-    stubApi({ ...ROUTES, "GET /party/issues/": [{ ...ISSUE, image_url: "https://example.org/water.jpg" }] });
+    stubApi({ ...ROUTES, "GET /website/issues/": [{ ...ISSUE, image_url: "https://example.org/water.jpg" }] });
     renderApp(<AppRoutes />);
 
     const card = await screen.findByRole("link", { name: /Clean water/ });
@@ -100,7 +99,7 @@ describe("an aspirant installation's website", () => {
 
   it("rotates published slides in the hero, and shows the candidate page's slogan when there are none", async () => {
     const slide = { id: "s1", kicker: "Roysambu 2027", headline: "Water for every ward", line: "", image_url: "", button_label: "", button_url: "" };
-    stubApi({ ...ROUTES, "GET /party/slides/": [slide] });
+    stubApi({ ...ROUTES, "GET /website/slides/": [slide] });
     const first = renderApp(<AppRoutes />);
     expect(await screen.findByRole("heading", { name: "Water for every ward", level: 1 })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Volunteer for Jane" }).length).toBeGreaterThan(0);
@@ -123,16 +122,6 @@ describe("an aspirant installation's website", () => {
     expect(text).not.toMatch(/party/i);
   });
 
-  it.each(["/join-party", "/candidates", "/counties", "/vie", "/results"])(
-    "sends the party-only %s home",
-    async (path) => {
-      stubApi(ROUTES);
-      renderApp(<AppRoutes />, { path });
-
-      expect(await screen.findByRole("heading", { name: "Jane Wanjiku" })).toBeInTheDocument();
-    },
-  );
-
   it.each([
     ["/", "Roysambu first", "A teacher for twenty years."],
     ["/volunteer", "Volunteer", "Volunteer for Jane"],
@@ -150,7 +139,7 @@ describe("an aspirant installation's website", () => {
   it("signs a volunteer up through the campaign's own form", async () => {
     const calls = stubApi({
       ...ROUTES,
-      "GET /party/places/?ward=w1": [{ id: "c1", name: "Zimmerman Primary" }],
+      "GET /website/places/?ward=w1": [{ id: "c1", name: "Zimmerman Primary" }],
       "POST /site/volunteer/": { message: "Thank you.", withdraw_code: "abc" },
     });
     renderApp(<AppRoutes />, { path: "/volunteer" });
@@ -175,19 +164,17 @@ describe("an aspirant installation's website", () => {
   });
 });
 
-describe("an aspirant installation when signed in", () => {
+describe("the console and workspace", () => {
   const CONSOLE = {
     ...ROUTES,
     "GET /admin/overview/": { totals: ADMIN_TOTALS, campaigns: [ADMIN_CAMPAIGN] },
-    // A staff login among them, the row a party installation offers offices on.
-    "GET /admin/users/": ADMIN_USERS.map((u) => ({ ...u, party_roles: [], party_member: null })),
-    "GET /admin/audit/": [{ id: "a1", created_at: "2026-11-01T08:00:00+00:00", actor_name: "root", action: "party.post.create", detail: {} }],
+    "GET /admin/users/": ADMIN_USERS,
+    "GET /admin/audit/": [{ id: "a1", created_at: "2026-11-01T08:00:00+00:00", actor_name: "root", action: "site.post.create", detail: {} }],
     "GET /admin/backups/": [],
     "GET /admin/health/": {
       version: "0.1.0",
       migration: { current: "x", head: "x", up_to_date: true },
       database: { reachable: true, detail: "", size_bytes: 1 },
-      organisation_type: "aspirant",
       services: [],
       last_backup: null,
       disks: [],
@@ -197,20 +184,11 @@ describe("an aspirant installation when signed in", () => {
   function signInAsSuperuser() {
     useAuth.setState({
       token: TEST_TOKEN,
-      user: { id: "root", username: "root", full_name: "The Operator", role: "manager", is_superuser: true, party_roles: [] },
+      user: { id: "root", username: "root", full_name: "The Operator", role: "manager", is_superuser: true },
     });
   }
 
-  it("sends the superuser from /party to the console", async () => {
-    signInAsSuperuser();
-    stubApi(CONSOLE);
-    renderApp(<AppRoutes />, { path: "/party/aspirants" });
-
-    expect(await screen.findByRole("button", { name: /Campaigns \(/ })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Aspirants" })).toBeNull();
-  });
-
-  it("never says party in the console and calls no party-only route", async () => {
+  it("never says party in the console and calls only the site's shared routes", async () => {
     signInAsSuperuser();
     const calls = stubApi(CONSOLE);
     renderApp(<AppRoutes />, { path: "/console" });
@@ -225,7 +203,7 @@ describe("an aspirant installation when signed in", () => {
 
     await user.click(logins);
     await user.click(await screen.findByRole("button", { name: "Add a login" }));
-    await screen.findByText("wafula");
+    await screen.findByText("amina");
     expect(document.body.textContent).not.toMatch(/party/i);
 
     await user.click(screen.getByRole("button", { name: "Site settings" }));
@@ -238,14 +216,13 @@ describe("an aspirant installation when signed in", () => {
     expect(document.body.textContent).not.toMatch(/party/i);
 
     await user.click(screen.getByRole("button", { name: "Health" }));
-    await screen.findByText("aspirant");
+    await screen.findByText("0.1.0");
     expect(document.body.textContent).not.toMatch(/party/i);
 
     await user.click(screen.getByRole("button", { name: "Export" }));
     expect(document.body.textContent).not.toMatch(/party/i);
 
-    const shared = /^\/party\/(posts|places|slides|issues|documents|videos|subscribe|unsubscribe)\b/;
-    expect(calls.filter((c) => /party/.test(c.path) && !shared.test(c.path))).toEqual([]);
+    expect(calls.filter((c) => /party/.test(c.path))).toEqual([]);
   });
 
   it.each([
@@ -294,46 +271,3 @@ describe("the workspace website", () => {
   });
 });
 
-describe("the party workspace's recruitment page", () => {
-  it("gives a coordinator their link, its QR code and their applicants", async () => {
-    signIn("coordinator");
-    stubApi(
-      dashboardRoutes({
-        "GET /site/": { name: "Umoja Party", organisation_type: "party" },
-        "GET /campaigns/": [{ ...CAMPAIGN, kind: "party", seat: "National", area_name: "" }],
-        "GET /party/workspace/recruitment/": { code: "Zx9", by_status: { pending: 4, approved: 2 } },
-      }),
-    );
-    renderApp(<App />, { path: "/campaign/recruitment" });
-
-    expect(await screen.findByText(/\/join-party\?r=Zx9$/)).toBeInTheDocument();
-    expect(screen.getByTitle("Recruitment link QR code")).toBeInTheDocument();
-    expect(screen.getByText("Waiting for a decision").nextSibling.textContent).toBe("4");
-
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
-    await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
-    expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
-    expect(writeText.mock.calls[0][0]).toMatch(/\/join-party\?r=Zx9$/);
-  });
-
-  it("gives a coordinator a read-only list of the members in their area, with no export", async () => {
-    signIn("coordinator");
-    const member = { id: "pm1", full_name: "Achieng Otieno", phone: "+254712345678", status: "approved", ward: "w1", ward_name: "Zimmerman", registration_centre: null, registration_centre_name: "" };
-    stubApi(
-      dashboardRoutes({
-        "GET /site/": { name: "Umoja Party", organisation_type: "party" },
-        "GET /campaigns/": [{ ...CAMPAIGN, kind: "party", seat: "National", area_name: "" }],
-        "GET /party/workspace/members/": { total: 1, page: 1, page_size: 50, members: [member] },
-      }),
-    );
-    renderApp(<App />, { path: "/campaign/members" });
-
-    const list = await screen.findByRole("region", { name: "Party members" });
-    expect(await within(list).findByText("Achieng Otieno")).toBeInTheDocument();
-    expect(within(list).getByText("Approved")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Party members" })).toBeInTheDocument();
-    expect(within(list).queryAllByRole("button")).toEqual([]);
-    expect(screen.queryByRole("button", { name: /export/i })).toBeNull();
-  });
-});

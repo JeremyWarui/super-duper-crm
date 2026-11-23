@@ -65,7 +65,7 @@ function RowActions({ p, onModal }) {
 // declines it. Everyone else reads.
 export default function Payments({ campaign, role, mine, onModal }) {
   const userId = useAuth((s) => s.user?.id);
-  const canSchedule = !mine && (role === "coordinator" || (role === "manager" && campaign.kind !== "party"));
+  const canSchedule = !mine && (role === "coordinator" || role === "manager");
   const approves = (p) => !mine && mayApprove(p, role, userId);
   const VIEWS = views(approves);
   const { data, isLoading, error } = usePayments(campaign.id);

@@ -1,5 +1,5 @@
-"""Walk a mobilizer and an agent from the public team link to their own paid payment, in every
-workspace kind, through the HTTP API.
+"""Walk a mobilizer and an agent from the public team link to their own paid payment, for a
+ward-level and a constituency seat, through the HTTP API.
 
 docs/Product_Design.md, section 0.5, the PD-16 acceptance line.
 """
@@ -17,12 +17,10 @@ from backend.db.session import get_session, get_session_factory
 from backend.main import app
 from backend.models import (
     Agent,
-    OrganisationType,
     RegistrationCentre,
     User,
     UserRole,
     Ward,
-    WorkspaceKind,
 )
 from backend.security import hash_password
 from backend.services.accounts import add_member
@@ -30,20 +28,8 @@ from backend.services.email import PracticeEmailProvider
 from backend.services.targets import generate_targets
 from tests.conftest import World, app_client
 from tests.factories import auth, claim_link, fresh_password, make_campaign, make_user, sign_in
-from tests.test_candidates import _aspirant
-from tests.test_party_workspace import _coordinator, _workspace
 
-KINDS = pytest.mark.parametrize(
-    ("kind", "organisation_type"),
-    [
-        ("standalone", OrganisationType.ASPIRANT),
-        ("standalone-mca", OrganisationType.ASPIRANT),
-        ("hosted", OrganisationType.PARTY),
-        ("party", OrganisationType.PARTY),
-    ],
-    ids=["standalone", "standalone-mca", "hosted", "party"],
-    indirect=["organisation_type"],
-)
+KINDS = pytest.mark.parametrize("kind", ["mp", "mca"])
 ROLES = pytest.mark.parametrize("role", ["mobilizer", "agent"])
 AMOUNT = 1500
 NAME = "Achieng Otieno"
@@ -64,9 +50,7 @@ class Team:
 
 
 @pytest.fixture
-async def client(
-    engine: AsyncEngine, session: AsyncSession, organisation_type: OrganisationType
-) -> AsyncIterator[httpx.AsyncClient]:
+async def client(engine: AsyncEngine, session: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
     """The app with a new session per request and production's session settings, so no request
     leans on objects an earlier one loaded."""
     fresh = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
@@ -75,7 +59,7 @@ async def client(
         async with fresh() as opened:
             yield opened
 
-    async with app_client(session, organisation_type) as http_client:
+    async with app_client(session) as http_client:
         app.dependency_overrides[get_session] = per_request
         app.dependency_overrides[get_session_factory] = lambda: fresh
         yield http_client
@@ -89,19 +73,9 @@ async def _team(
     admin_headers: dict[str, str],
     ward: Ward,
 ) -> Team:
-    """The workspace of this kind and its people; a party coordinator's area is `ward`."""
-    if kind == "party":
-        campaign, _ = await _workspace(session, client, admin_headers)
-        return Team(
-            str(campaign.id),
-            lead=await _coordinator(session, client, campaign, ward, "otieno"),
-            approver=auth(await sign_in(client, "wm@example.com")),
-            approver_role="manager",
-            scheduling_refused=400,
-        )
-    if kind == "standalone-mca":
+    """The campaign of this seat and its people."""
+    if kind == "mca":
         campaign = await make_campaign(session, world.ward)
-        campaign.kind = WorkspaceKind.STANDALONE
         await add_member(session, campaign.id, await make_user(session, username="mca-manager"))
         await generate_targets(session, campaign)
         await session.commit()
@@ -112,11 +86,6 @@ async def _team(
             approver_role="candidate",
             scheduling_refused=403,
         )
-    if kind == "hosted":
-        await _aspirant(session, world)
-    else:
-        world.campaign.kind = WorkspaceKind.STANDALONE
-        await session.commit()
     return Team(
         str(world.campaign.id),
         lead=world.headers("manager"),
@@ -190,7 +159,7 @@ async def test_a_person_signs_up_and_sees_their_own_payment_paid_through_the_rou
     )
     await session.commit()
     # Juma holds Zimmerman on the world's campaign, so a mobilizer there takes the next ward.
-    takes_next = role == "mobilizer" and kind != "standalone-mca"
+    takes_next = role == "mobilizer" and kind != "mca"
     ward = world.other_ward if takes_next else world.ward
     team = await _team(kind, session, client, world, admin_headers, ward)
     in_campaign = f"?campaign={team.campaign}"
@@ -205,7 +174,7 @@ async def test_a_person_signs_up_and_sees_their_own_payment_paid_through_the_rou
     page = (await client.get(link)).json()
     assert page["open"] is True
     assert ward.name in {w["name"] for w in page["wards"]}
-    assert page["mobilizer_place"] == ("centre" if kind == "standalone-mca" else "ward")
+    assert page["mobilizer_place"] == ("centre" if kind == "mca" else "ward")
     place = {"ward": str(ward.id)}
     if role == "agent" or page["mobilizer_place"] == "centre":
         centres = (await client.get(f"{link}centres/?ward={ward.id}")).json()

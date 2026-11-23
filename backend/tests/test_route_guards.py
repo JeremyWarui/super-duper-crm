@@ -1,30 +1,14 @@
-"""Every API route needs a login unless it is on the public list, and party routes exist only
-in a party installation."""
+"""Every API route needs a login unless it is on the public list."""
 
-import re
-
-import httpx
-import pytest
 from fastapi import APIRouter, FastAPI
 from fastapi.dependencies.models import Dependant
 from fastapi.routing import APIRoute, iter_route_contexts
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import (
-    CurrentUser,
-    get_current_user,
-    get_organisation_type,
-    get_signed_in_user,
-)
-from backend.api.install import AspirantOnlyRoute, PartyOnlyRoute
+from backend.api.deps import CurrentUser, get_current_user, get_signed_in_user
 from backend.main import app
-from backend.models import OrganisationType
-from backend.services import site
-from tests.conftest import app_client
-from tests.factories import site_settings
 
 PUBLIC_ROUTES = {
-    # An aspirant installation's homepage and its volunteer form.
+    # The homepage's candidate page and its volunteer form.
     ("GET", "/api/site/candidate/"),
     ("POST", "/api/site/volunteer/"),
     ("GET", "/api/pay/options/"),
@@ -52,34 +36,18 @@ PUBLIC_ROUTES = {
     ("POST", "/api/join/{code}/"),
     ("POST", "/api/join/withdraw/{code}/"),
     ("GET", "/api/site/"),
-    ("GET", "/api/party/"),
-    ("GET", "/api/party/places/"),
-    ("GET", "/api/party/leaders/"),
-    ("GET", "/api/party/slides/"),
-    ("GET", "/api/party/issues/"),
-    ("GET", "/api/party/issues/{issue_id}/"),
-    ("GET", "/api/party/documents/"),
-    ("GET", "/api/party/values/"),
-    ("GET", "/api/party/organs/"),
-    ("GET", "/api/party/stats/"),
-    ("GET", "/api/party/results/"),
-    ("GET", "/api/party/videos/"),
-    ("GET", "/api/party/posts/"),
-    ("GET", "/api/party/posts/{post_id}/"),
-    ("POST", "/api/party/join/"),
-    ("POST", "/api/party/withdraw/{code}/"),
-    ("POST", "/api/party/volunteer/withdraw/{code}/"),
-    ("GET", "/api/party/branches/"),
-    ("GET", "/api/party/branches/{county_id}/"),
-    ("POST", "/api/party/subscribe/"),
-    ("POST", "/api/party/unsubscribe/{code}/"),
-    ("GET", "/api/candidates/"),
-    ("GET", "/api/candidates/{slug}/"),
-    ("POST", "/api/candidates/{slug}/volunteer/"),
-    ("POST", "/api/candidates/volunteer/withdraw/{code}/"),
+    ("GET", "/api/website/places/"),
+    ("GET", "/api/website/slides/"),
+    ("GET", "/api/website/issues/"),
+    ("GET", "/api/website/issues/{issue_id}/"),
+    ("GET", "/api/website/documents/"),
+    ("GET", "/api/website/videos/"),
+    ("GET", "/api/website/posts/"),
+    ("GET", "/api/website/posts/{post_id}/"),
+    ("POST", "/api/website/subscribe/"),
+    ("POST", "/api/website/unsubscribe/{code}/"),
+    ("POST", "/api/website/volunteer/withdraw/{code}/"),
     ("POST", "/api/payments/paystack/webhook/"),
-    # The published nomination timetable, for the public Vie page.
-    ("GET", "/api/party/nominations/current/"),
     # Africa's Talking's callbacks; the secret in the path is the check.
     ("POST", "/api/sms/{secret}/delivery/"),
     ("POST", "/api/sms/{secret}/inbound/"),
@@ -88,36 +56,11 @@ PUBLIC_ROUTES = {
 }
 
 
-# Routes that exist only in a party installation (docs/Product_Design.md, "Organisation type"
-# and "Website"). The public content under /api/party/ is the website's in both types.
-PARTY_ONLY_PATHS = (
-    r"^/api/party/(?!(posts|places|subscribe|unsubscribe|slides|issues|documents"
-    r"|videos)/)",
-    r"^/api/admin/party/($|(leaders|branches|values|organs|results|candidates)/"
-    r"|posts/\{post_id\}/aspirants/)",
-    r"^/api/admin/users/\{user_id\}/party-",
-    r"^/api/candidates/$",
-)
-SAMPLE = "00000000-0000-0000-0000-000000000001"
-
-
 # Signed-in routes that skip the closed-campaign check, so a closed campaign's login can still
-# see who it is and sign out; and the member account, which a member login opens.
+# see who it is and sign out.
 SIGNED_IN_ONLY = {
     ("GET", "/api/auth/me/"),
     ("POST", "/api/auth/logout/"),
-    ("GET", "/api/account/"),
-    ("PUT", "/api/account/volunteer/"),
-    ("POST", "/api/account/volunteer/stop/"),
-    ("POST", "/api/account/leave/"),
-    # A member's own application to vie.
-    ("GET", "/api/party/nominations/mine/"),
-    ("POST", "/api/party/nominations/mine/"),
-    ("POST", "/api/party/nominations/mine/pay/"),
-    ("POST", "/api/party/nominations/mine/documents/"),
-    ("DELETE", "/api/party/nominations/mine/documents/{document_id}/"),
-    ("POST", "/api/party/nominations/mine/submit/"),
-    ("POST", "/api/party/nominations/mine/withdraw/"),
 }
 
 
@@ -140,16 +83,6 @@ def _api_routes(application: FastAPI) -> dict[tuple[str, str], bool]:
         for method in route.methods:
             inventory[(method, route.path)] = _needs_login(route.dependant)
     return inventory
-
-
-def party_only_routes(kind: type = PartyOnlyRoute) -> set[tuple[str, str]]:
-    """Each (method, path) served by a route of this kind, `PartyOnlyRoute` by default."""
-    return {
-        (method, route.path)
-        for route in iter_route_contexts(app.routes)
-        if isinstance(route.original_route, kind)
-        for method in route.methods
-    }
 
 
 def test_every_api_route_needs_a_login_unless_it_is_public():
@@ -177,7 +110,7 @@ def test_the_route_walk_reports_a_route_with_no_login():
     assert inventory[("GET", "/closed")] is True
 
 
-def test_only_me_logout_and_the_member_account_skip_the_closed_campaign_check():
+def test_only_me_and_logout_skip_the_closed_campaign_check():
     skipping = set()
     for route in iter_route_contexts(app.routes):
         if not isinstance(route.original_route, APIRoute):
@@ -187,77 +120,3 @@ def test_only_me_logout_and_the_member_account_skip_the_closed_campaign_check():
             skipping |= {(method, route.path) for method in route.methods}
 
     assert skipping == SIGNED_IN_ONLY
-
-
-def test_exactly_the_party_office_and_party_website_routes_are_party_only():
-    every = set(_api_routes(app))
-    expected = {
-        (method, path)
-        for method, path in every
-        if any(re.search(pattern, path) for pattern in PARTY_ONLY_PATHS)
-    }
-
-    assert party_only_routes() == expected
-    assert len(expected) > 50
-
-
-@pytest.mark.parametrize("organisation_type", [OrganisationType.ASPIRANT], indirect=True)
-async def test_every_party_route_is_missing_in_an_aspirant_installation(
-    client: httpx.AsyncClient,
-) -> None:
-    asks = []
-    for method, path in sorted(party_only_routes()):
-        url = re.sub(r"\{[^}]+\}", SAMPLE, path)
-        other = "PATCH" if method != "PATCH" else "PUT"
-        asks += [
-            (method, url, b"{}"),
-            (method, url, b"{x"),
-            (other, url, b""),
-            (method, url[:-1], b""),
-        ]
-    answers = {
-        ask: (await client.request(ask[0], ask[1], content=ask[2])).status_code for ask in asks
-    }
-
-    assert {ask: code for ask, code in answers.items() if code != 404} == {}
-
-
-@pytest.mark.parametrize(
-    ("stored", "expected"), [(OrganisationType.PARTY, 200), (OrganisationType.ASPIRANT, 404)]
-)
-async def test_the_installation_type_is_read_from_the_site_settings(
-    session: AsyncSession, stored: OrganisationType, expected: int
-) -> None:
-    session.add(site_settings(organisation_type=stored))
-    await session.commit()
-    site._organisation_type = None
-    try:
-        async with app_client(session) as client:
-            del app.dependency_overrides[get_organisation_type]
-            answer = await client.get("/api/party/leaders/")
-    finally:
-        site._organisation_type = None
-
-    assert answer.status_code == expected
-
-
-@pytest.mark.parametrize("organisation_type", [OrganisationType.PARTY], indirect=True)
-async def test_the_aspirant_website_routes_are_aspirant_only_and_missing_in_a_party_installation(
-    client: httpx.AsyncClient,
-) -> None:
-    routes = party_only_routes(AspirantOnlyRoute)
-    answers = {
-        (method, path): (
-            await client.request(method, re.sub(r"\{[^}]+\}", SAMPLE, path), json={})
-        ).status_code
-        for method, path in routes
-    }
-
-    assert {path for _, path in routes} == {
-        path
-        for _, path in _api_routes(app)
-        if path.startswith("/api/workspace/site/")
-        or path in ("/api/site/candidate/", "/api/site/volunteer/")
-    }
-    assert len(routes) > 15
-    assert set(answers.values()) == {404}

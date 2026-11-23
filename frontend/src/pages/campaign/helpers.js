@@ -55,24 +55,16 @@ export const NAV = {
 };
 
 const SITE_WRITERS = ["candidate", "manager", "comms"];
-// A party nominee's workspace has the party feed and its sharing switches.
-const FEED_READERS = ["candidate", "manager", "comms"];
 
 /**
- * A role's menu where it works: an aspirant installation adds the Website and Settings pages for
- * those who edit the site; the party workspace adds Recruitment and Party members for its
- * coordinators; a hosted workspace adds the party feed. An MCA race (`byCentre`) names its units
- * Centres.
+ * A role's menu: those who edit the site get the Website and Settings pages, and an MCA race
+ * (`byCentre`) names its units Centres.
  */
-export function navFor(role, { aspirant = false, partyWorkspace = false, hosted = false, byCentre = false } = {}) {
-  const feed = hosted && !aspirant && FEED_READERS.includes(role);
+export function navFor(role, { byCentre = false } = {}) {
   const groups = (NAV[role] || [])
-    .map((g) => (feed && g === REACH_OUT ? { ...g, items: [...g.items, ["party", "Party feed"]] } : g))
     .map((g) => (byCentre ? { ...g, items: g.items.map(([key, label]) => [key, key === "units" ? "Centres" : label]) } : g));
-  const extra = [];
-  if (aspirant && SITE_WRITERS.includes(role)) extra.push({ label: "Website", items: [["website", "Website"], ["settings", "Settings"]] });
-  if (partyWorkspace && role === "coordinator") extra.push({ label: "Recruit", items: [["recruitment", "Recruitment"], ["members", "Party members"]] });
-  return [...groups, ...extra];
+  if (SITE_WRITERS.includes(role)) groups.push({ label: "Website", items: [["website", "Website"], ["settings", "Settings"]] });
+  return groups;
 }
 
 /** A role's pages in menu order, as [key, label]. */

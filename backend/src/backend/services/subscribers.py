@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.db.session import upsert
 from backend.models import Subscriber
 from backend.security import new_withdraw_code
-from backend.services.consent import subscribe_wording
+from backend.services.consent import SUBSCRIBE_WORDING
 from backend.services.site import read_settings
 
 
@@ -23,7 +23,7 @@ async def subscribe(session: AsyncSession, contact: str, channel: str) -> str:
         .values(
             contact=contact,
             channel=channel,
-            consent_wording=subscribe_wording(settings.organisation_type),
+            consent_wording=SUBSCRIBE_WORDING,
             notice_version=settings.privacy_notice_version,
             unsubscribe_code=code,
         )

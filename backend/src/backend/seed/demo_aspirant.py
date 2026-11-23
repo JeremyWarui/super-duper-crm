@@ -1,4 +1,4 @@
-"""The aspirant demo: a set-up aspirant installation with its candidate page, team and work."""
+"""The demo install: a set-up installation with its candidate page, team and work."""
 
 from datetime import date, timedelta
 
@@ -12,8 +12,7 @@ from backend.models import (
     Constituency,
     County,
     HeroSlide,
-    OrganisationType,
-    PartyPost,
+    Post,
     PostKind,
     Seat,
     User,
@@ -24,11 +23,23 @@ from backend.schemas.setup import InvitedLogin, SetupRequest, SetupSeat, SetupSi
 from backend.security import hash_password
 from backend.seed.demo import demo_email, seed_ground_game
 from backend.seed.sign_ins import SignIn
-from backend.seed.site import BODY, PICTURE, SKILLS_PICTURE, SLIDE_PICTURES, UNSPLASH, portrait
 from backend.services import setup
 from backend.services.accounts import add_member, new_login
 from backend.services.errors import Refused
 from backend.services.rich_text import from_plain
+
+# Free (CC0) StockSnap scenes, named by their StockSnap id.
+PICTURE = "https://cdn.stocksnap.io/img-thumbs/960w/{}.jpg"
+SLIDE_PICTURES = ["HBADKDBJYU", "X60YH1SWTF", "5TRB09XUBX"]
+# Free Unsplash photos, named by their Unsplash id.
+UNSPLASH = "https://images.unsplash.com/photo-{}?w=900&q=75&auto=format&fit=crop"
+PORTRAIT = (
+    "https://images.unsplash.com/photo-1588178454780-441fa5b99fa5?w=600&h=750&fit=crop&crop=faces"
+)
+BODY = from_plain(
+    "This is sample text for the demo website. A real post would carry the full story: "
+    "who spoke, what was agreed, and what supporters can do next."
+)
 
 COUNTY = "Nairobi City"
 CONSTITUENCY = "Kasarani"
@@ -83,7 +94,7 @@ AGENDA_PICTURES = [
     UNSPLASH.format(n)
     for n in (
         "1740741705746-74e6f9b93b4f",
-        SKILLS_PICTURE,
+        "1576830886922-02b61aee42ad",
         "1735837836870-17bf7e6d2bd6",
         "1636814281352-cdfa309425b7",
         "1632215861513-130b66fe97f4",
@@ -124,13 +135,12 @@ async def _kasarani(session: AsyncSession) -> Constituency | None:
 
 
 async def _set_up(session: AsyncSession, kasarani: Constituency, password: str) -> Campaign:
-    """The first-run setup as /setup runs it: an aspirant with their seat and candidate login."""
+    """The first-run setup as /setup runs it: the seat and the candidate login."""
     token = await setup.new_token(session)
     result = await setup.run(
         session,
         SetupRequest(
             token=token,
-            organisation_type=OrganisationType.ASPIRANT,
             site=SetupSite(
                 name=TITLE,
                 short_name="Otieno",
@@ -147,7 +157,7 @@ async def _set_up(session: AsyncSession, kasarani: Constituency, password: str) 
                 first_name="Kevin",
                 last_name="Mwangi",
             ),
-            aspirant=SetupSeat(
+            campaign=SetupSeat(
                 title=TITLE,
                 seat=Seat.MP,
                 election_date=date(2027, 8, 10),
@@ -199,7 +209,7 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
     profile = await session.scalar(
         select(CandidateProfile).where(CandidateProfile.campaign_id == campaign.id)
     )
-    profile.photo_url = portrait("david")
+    profile.photo_url = PORTRAIT
     profile.slogan = "Kasarani deserves better, and we will build it together"
     profile.bio = from_plain(
         "David Otieno grew up in Mwiki, trained as a civil engineer and has spent ten years "
@@ -215,7 +225,7 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
     profile.published = True
     for title, days_ago, picture in NEWS:
         session.add(
-            PartyPost(
+            Post(
                 kind=PostKind.NEWS,
                 title=title,
                 body=BODY,
@@ -251,7 +261,7 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
         )
     title, days_ahead, venue, picture = EVENT
     session.add(
-        PartyPost(
+        Post(
             kind=PostKind.EVENT,
             title=title,
             body=BODY,
@@ -265,9 +275,9 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
 
 
 async def build_aspirant(session: AsyncSession, *, password: str, today: date) -> list[SignIn]:
-    """Set up an empty database as the aspirant demo and return its sign-ins."""
+    """Set up an empty database as the demo and return its sign-ins."""
     if await setup.is_set_up(session):
-        raise Refused("This database is already set up; the aspirant demo needs an empty one.")
+        raise Refused("This database is already set up; the demo needs an empty one.")
     kasarani = await _kasarani(session)
     if kasarani is None:
         raise Refused("Load the reference data first: campaign-crm seed.")

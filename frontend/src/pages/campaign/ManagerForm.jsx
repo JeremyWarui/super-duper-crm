@@ -7,7 +7,7 @@ import { InviteDialog } from "@/components/ui/invite-dialog";
 import LoginFields, { useLoginFields } from "@/components/LoginFields";
 import { displayName } from "@/lib/format";
 
-// The aspirant adds the manager, or replaces `sitting`, whose login is then turned off.
+// The candidate adds the manager, or replaces `sitting`, whose login is then turned off.
 export default function ManagerForm({ campaignId, sitting, onClose }) {
   const set = useSetManager();
   const fields = useLoginFields();

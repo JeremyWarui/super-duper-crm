@@ -1,9 +1,6 @@
 """The bundled CSVs load, and the demo builds over them; both run against `backend/data`."""
 
-from datetime import date
-
 import httpx
-import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -15,7 +12,6 @@ from backend.models import (
     Mobilizer,
     Target,
     User,
-    UserKind,
     Ward,
 )
 from backend.security import verify_password
@@ -25,8 +21,7 @@ from backend.seed.reference import (
     import_centres,
     import_geography,
 )
-from backend.seed.site import seed_news, seed_site
-from tests.factories import auth, members_of
+from tests.factories import members_of
 
 # Published IEBC figures for the 2022 register.
 KENYA_COUNTIES = 47
@@ -106,23 +101,15 @@ async def test_the_demo_builds_its_campaign_and_team(
         "aspirant@demo.pamoja.test",
         "manager@demo.pamoja.test",
         "mobilizer@demo.pamoja.test",
-        "volunteer@demo.pamoja.test",
     ]
     # The demo clears only its own logins; a real login with another name is never touched.
-    assert DEMO_USERNAMES == ("aspirant", "manager", "mobilizer", "volunteer")
+    assert DEMO_USERNAMES == ("aspirant", "manager", "mobilizer")
     printed = [password for _, password, _ in summary.sign_ins]
     assert len(set(printed)) == len(printed)
     for email, password, _ in summary.sign_ins:
         assert len(password) >= 12
         user = await _user(session, email.split("@")[0])
         assert (user.email, verify_password(password, user.password_hash)) == (email, True)
-    volunteer = await _user(session, "volunteer")
-    assert (volunteer.kind, volunteer.party_member_id is not None) == (UserKind.MEMBER, True)
-    email, password, _ = summary.sign_ins[-1]
-    signed_in = await client.post("/api/auth/login/", json={"email": email, "password": password})
-    token = signed_in.json()["token"]
-    account = (await client.get("/api/account/", headers=auth(token))).json()
-    assert (account["status"], account["volunteer"] is not None) == ("approved", True)
 
     roysambu = await session.scalar(
         select(Constituency)
@@ -157,32 +144,3 @@ async def test_the_demo_builds_again_on_a_rerun(session: AsyncSession) -> None:
 
     titles = list(await session.scalars(select(Campaign.title)))
     assert titles == [summary.campaign_title]
-
-
-@pytest.mark.party_only
-async def test_the_demo_site_publishes_once(
-    client: httpx.AsyncClient, session: AsyncSession
-) -> None:
-    first = await seed_site(session, date(2026, 11, 1))
-    again = await seed_site(session, date(2026, 11, 1))
-
-    leaders = (await client.get("/api/party/leaders/")).json()
-    events = (await client.get("/api/party/posts/", params={"kind": "event"})).json()
-    assert (first, again) == (True, False)
-    assert (len(leaders), len(events)) == (6, 3)
-    assert (await client.get("/api/site/")).json()["name"] == "Pamoja Party"
-
-
-@pytest.mark.party_only
-async def test_the_demo_site_lists_its_candidates_and_names_one_in_the_next_event(
-    client: httpx.AsyncClient, session: AsyncSession
-) -> None:
-    await import_geography(session)
-    await seed_site(session, date(2026, 11, 1))
-    await seed_news(session, date(2026, 11, 1))
-
-    cards = (await client.get("/api/candidates/")).json()
-    pages = [(await client.get(f"/api/candidates/{card['slug']}/")).json() for card in cards]
-
-    assert len(cards) == 4
-    assert sorted(len(page["events"]) for page in pages) == [0, 0, 0, 1]

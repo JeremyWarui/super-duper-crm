@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend import __version__
 from backend.config import get_settings
-from backend.models import BackupRun, Base, Campaign, OrganisationType, User, WorkspaceKind
+from backend.models import BackupRun, Base, User
 from backend.services import files, texting
 from backend.services.audit import record
 from backend.services.errors import Refused
@@ -66,7 +66,7 @@ def _disk(label: str, folder: str) -> dict:
     return {"label": label, "path": str(path), "free_bytes": usage.free, "total_bytes": usage.total}
 
 
-async def health(session: AsyncSession, organisation_type: OrganisationType | None) -> dict:
+async def health(session: AsyncSession) -> dict:
     """What the console's Health tab shows; a service that is not set up is reported, not raised."""
     settings = get_settings()
     database: dict = {"reachable": True, "detail": "", "size_bytes": None}
@@ -112,7 +112,6 @@ async def health(session: AsyncSession, organisation_type: OrganisationType | No
             "up_to_date": bool(head) and current == head,
         },
         "database": database,
-        "organisation_type": organisation_type.value if organisation_type else None,
         "services": states,
         "last_backup": last,
         "disks": [_disk("Uploads", settings.upload_dir), _disk("Backups", settings.backup_dir)],
@@ -136,15 +135,9 @@ def exported_tables() -> list[str]:
     return [t.name for t in Base.metadata.sorted_tables if t.name not in SECRET_TABLES]
 
 
-async def export_archive(
-    session: AsyncSession, *, actor: User | None, organisation_type: OrganisationType | None
-) -> tuple[str, bytes]:
-    """Every table but sign-in secrets, as JSON and CSV in one zip; audited.
-
-    A party copy leaves out the supporters of hosted workspaces, which belong to their aspirants.
-    """
+async def export_archive(session: AsyncSession, *, actor: User | None) -> tuple[str, bytes]:
+    """Every table but sign-in secrets, as JSON and CSV in one zip; audited."""
     created = datetime.now(UTC)
-    party = organisation_type == OrganisationType.PARTY
     counts: dict[str, int] = {}
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -154,12 +147,6 @@ async def export_archive(
             hidden = SECRET_COLUMNS.get(table.name, set())
             columns = [c for c in table.columns if c.name not in hidden]
             query = select(*columns)
-            if party and table.name == "supporters":
-                query = query.where(
-                    table.c.campaign_id.in_(
-                        select(Campaign.id).where(Campaign.kind != WorkspaceKind.HOSTED)
-                    )
-                )
             rows = [
                 {c.name: _plain(v) for c, v in zip(columns, row, strict=True)}
                 for row in (await session.execute(query)).all()
@@ -178,11 +165,8 @@ async def export_archive(
             archive.writestr(f"csv/{table.name}.csv", out.getvalue())
         manifest = {
             **_stamp(created),
-            "organisation_type": organisation_type.value if organisation_type else None,
             "tables": counts,
-            "left_out": sorted(SECRET_TABLES)
-            + ["users.password_hash"]
-            + (["supporters of hosted workspaces"] if party else []),
+            "left_out": sorted(SECRET_TABLES) + ["users.password_hash"],
         }
         archive.writestr("manifest.json", json.dumps(manifest, indent=1))
     record(

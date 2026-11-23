@@ -5,7 +5,7 @@ from datetime import date
 
 from pydantic import Field, model_validator
 
-from backend.models import OrganisationType, Seat
+from backend.models import Seat
 from backend.schemas.common import (
     CampaignTitle,
     LoginDetails,
@@ -53,7 +53,7 @@ class InvitedLogin(LoginDetails):
 
 
 class SetupSeat(WriteModel):
-    """Step 5 for an aspirant: the seat, its area, the election and the candidate's login."""
+    """Step 5: the seat, its area, the election and the candidate's login."""
 
     title: CampaignTitle
     seat: Seat
@@ -65,23 +65,9 @@ class SetupSeat(WriteModel):
 
 
 class SetupRequest(SetupToken):
-    organisation_type: OrganisationType
     site: SetupSite
     superuser: SetupSuperuser
-    aspirant: SetupSeat | None = None
-    # A party may open its workspace now, with its first Workspace Manager.
-    party_workspace: InvitedLogin | None = None
-
-    @model_validator(mode="after")
-    def _fits_the_type(self) -> "SetupRequest":
-        if self.organisation_type is OrganisationType.ASPIRANT:
-            if self.aspirant is None:
-                raise ValueError("An aspirant installation needs its seat and candidate.")
-            if self.party_workspace is not None:
-                raise ValueError("Only a party installation has a party workspace.")
-        elif self.aspirant is not None:
-            raise ValueError("Only an aspirant installation has a seat.")
-        return self
+    campaign: SetupSeat
 
 
 Area = Named
@@ -98,9 +84,8 @@ class ServiceState(ORMModel):
 
 
 class SetupResult(ORMModel):
-    organisation_type: OrganisationType
     superuser: str
-    workspace: uuid.UUID | None
+    workspace: uuid.UUID
     # How each invite link went out: "email", or "none".
     invites: list[str]
     services: list[ServiceState]

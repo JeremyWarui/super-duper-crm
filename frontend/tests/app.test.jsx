@@ -42,6 +42,7 @@ const LEAD = {
   "Reach out": ["Messages"],
   People: ["Team", "Sign-ups", "Personal data"],
   Money: ["Payments", "Contributions"],
+  Website: ["Website", "Settings"],
 };
 
 describe("what each role is shown", () => {
@@ -53,7 +54,7 @@ describe("what each role is shown", () => {
       "Coordinator",
       { Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, "Reach out": ["Messages"], People: ["Sign-ups"], Money: ["Payments"] },
     ],
-    ["comms", "Comms officer", { Field: ["Events"], "Reach out": ["Messages"] }],
+    ["comms", "Comms officer", { Field: ["Events"], "Reach out": ["Messages"], Website: ["Website", "Settings"] }],
     ["mobilizer", "Mobilizer", { "My work": ["My events", "Add contact", "My contacts", "My payments"] }],
     ["agent", "Agent", { "My work": ["My centre", "My events", "My payments"] }],
   ])("gives a %s exactly their groups", async (role, label, expected) => {
@@ -66,7 +67,7 @@ describe("what each role is shown", () => {
 
 describe("the page frame", () => {
   it("has a page for every entry a workspace menu offers", () => {
-    const wheres = [{}, { aspirant: true }, { partyWorkspace: true }, { hosted: true }];
+    const wheres = [{}, { byCentre: true }];
     const offered = Object.keys(NAV).flatMap((role) => wheres.flatMap((w) => pagesOf(role, w).map(([key]) => key)));
 
     expect(offered.filter((key) => !PAGES[key])).toEqual([]);
@@ -94,17 +95,6 @@ describe("the seat card and the area picker", () => {
     expect(within(card).getByText("MP · Roysambu")).toBeInTheDocument();
     expect(within(area).getAllByRole("option").map((o) => o.textContent)).toEqual(["Githurai"]);
     expect(screen.getByText("Limited to Githurai.")).toBeInTheDocument();
-  });
-
-  it("shows the party workspace as National, with every ward on the picker", async () => {
-    await open("manager", {
-      "GET /campaigns/": [{ ...CAMPAIGN, kind: "party", candidate_name: "Umoja Party", seat: "National", area_name: "" }],
-    });
-    const card = screen.getByRole("region", { name: "Campaign" });
-    const area = screen.getByRole("combobox", { name: "Area" });
-
-    expect(within(card).getByText("National")).toBeInTheDocument();
-    expect(within(area).getAllByRole("option")[0].textContent).toBe("All wards");
   });
 
   it("hides the picker from a role that reads no wards", async () => {

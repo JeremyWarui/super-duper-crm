@@ -3,26 +3,23 @@
 // login, and the few repairs that cannot be done from inside a campaign.
 // Shown only to a superuser; every route it calls checks the flag again.
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAdminOverview, rowsOf, useAdminUserPages, useAdminUsers, useCreateLogin, useResetPassword } from "@/api/hooks";
-import { useInstall } from "@/app/site";
 import { useCopy } from "@/copy";
 import { useAuth } from "@/store/auth";
 import { formatNumber as fmt, plural } from "@/lib/format";
 import { SlottedHeader } from "@/components/layout/AppPage";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatTiles } from "@/components/ui/stat-tiles";
 import { LoadingText } from "@/components/ui/loading-text";
 import { FilterPills } from "@/components/ui/tabs";
-import { PartyShell } from "@/components/layout/PartyShell";
+import { ConsoleShell } from "@/components/layout/ConsoleShell";
 import AuditTrail from "./console/AuditTrail";
 import ExportPanel from "./console/ExportPanel";
 import Health from "./console/Health";
 import ReferenceData from "./console/ReferenceData";
 import { LoadMore } from "@/components/ui/load-more";
 import { Failed } from "./console/kit";
-import { CampaignCard, OpenPartyWorkspace } from "./console/Campaigns";
+import { CampaignCard } from "./console/Campaigns";
 import { NewLogin, UserRow } from "./console/Logins";
 import SiteSettings from "./console/SiteSettings";
 
@@ -51,16 +48,15 @@ function Handout({ shown }) {
 // inside it: a signed-out operator can always sign out and back in.
 function Shell({ children }) {
   return (
-    <PartyShell crumb="Console" page={{ kit: true }}>
+    <ConsoleShell crumb="Console" page={{ kit: true }}>
       <SlottedHeader title="Console" />
       {children}
-    </PartyShell>
+    </ConsoleShell>
   );
 }
 
 export default function Admin() {
   const me = useAuth((s) => s.user);
-  const { aspirant } = useInstall();
   const copy = useCopy();
   const overview = useAdminOverview();
   const [roleFilter, setRoleFilter] = useState("");
@@ -68,7 +64,6 @@ export default function Admin() {
   const users = useAdminUsers();
   const loginPages = useAdminUserPages(roleFilter);
   const [tab, setTab] = useState("campaigns");
-  const navigate = useNavigate();
   const [handouts, setHandouts] = useState([]);
   // Owned here, not in the row: a row unmounts on every refetch. One mutation
   // serves every row, and it only remembers its latest call, so what each row
@@ -146,7 +141,7 @@ export default function Admin() {
           options={[
             ["campaigns", `Campaigns (${campaigns.length})`],
             ["users", `Logins (${everyone.length})`],
-            ["party", copy.settingsTab],
+            ["settings", copy.settingsTab],
             ["areas", "Areas and register"],
             ["health", "Health"],
             ["audit", "Audit"],
@@ -154,15 +149,6 @@ export default function Admin() {
           ]}
         />
 
-        {tab === "campaigns" && !aspirant && (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <Button size="sm" variant="quiet" onClick={() => navigate("/party/aspirants")}>New campaign</Button>
-            <span className="text-ui text-muted-foreground">
-              A workspace is made from an approved aspirant, in Aspirants.
-            </span>
-          </div>
-        )}
-        {tab === "campaigns" && <OpenPartyWorkspace onInvite={handOut} />}
 
         {tab === "campaigns" &&
           (campaigns.length === 0 ? (
@@ -177,12 +163,7 @@ export default function Admin() {
             ))
           ))}
 
-        {tab === "party" && !aspirant && (
-          <div>
-            <Button size="sm" variant="quiet" onClick={() => navigate("/party/aspirants")}>Open aspirants</Button>
-          </div>
-        )}
-        {tab === "party" && <SiteSettings />}
+        {tab === "settings" && <SiteSettings />}
         {tab === "areas" && <ReferenceData />}
         {tab === "health" && <Health />}
         {tab === "audit" && <AuditTrail />}
@@ -200,7 +181,7 @@ export default function Admin() {
               options={[
                 ["", "Everyone"],
                 ["manager", "Managers"],
-                ["candidate", "Aspirants"],
+                ["candidate", "Candidates"],
                 ["mobilizer", "Mobilizers"],
               ]}
             />

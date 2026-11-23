@@ -18,13 +18,12 @@ from fastapi import (
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from backend.api.deps import SessionDep, SignedInUser
 from backend.api.limits import TOO_MANY, check, client_key
 from backend.config import get_settings
 from backend.db.session import get_session_factory
-from backend.models import AuthToken, User, UserKind
+from backend.models import AuthToken, User
 from backend.schemas.auth import (
     AuthOptions,
     GoogleFinish,
@@ -84,18 +83,13 @@ async def _signed_in(session: AsyncSession, user: User, *, handoff: str | None =
     responses={400: {"description": "Rejected"}, 429: {"description": "Too many tries"}},
 )
 async def login(payload: LoginRequest, request: Request, session: SessionDep) -> object:
-    """Exchange an email and password for a token; 10 tries an hour per device.
-
-    A member login signs in only while its member is approved, and is refused otherwise with
-    the answer a wrong password gets.
-    """
+    """Exchange an email and password for a token; 10 tries an hour per device."""
     check(TRIES, request)
-    user = await user_with_email(session, payload.email, with_party_roles=True)
+    user = await user_with_email(session, payload.email)
     if (
         user is None
         or not user.is_active
         or not verify_password(payload.password, user.password_hash)
-        or (user.kind is UserKind.MEMBER and not user.member_account)
     ):
         # `non_field_errors` is what the sign-in form reads.
         return JSONResponse(
@@ -163,7 +157,7 @@ async def claim_link(
     """Set the password from a live link and sign in; the link is spent."""
     check(CLAIMS, request)
     user = await login_links.claim(session, token, payload.password)
-    signed = await user_named(session, user.username, with_party_roles=True)
+    signed = await user_named(session, user.username)
     return await _signed_in(session, signed)
 
 
@@ -251,7 +245,7 @@ async def google_callback(
     email = clean_email(found.email)
     if not email or not found.email_verified:
         return await _google_refused(session, "unverified", email)
-    user = await user_with_email(session, email, with_party_roles=True)
+    user = await user_with_email(session, email)
     if user is None or not login_links.may_sign_in(user):
         return await _google_refused(session, "unknown", email)
     handoff = secrets.token_urlsafe(32)
@@ -282,10 +276,6 @@ async def google_finish(payload: GoogleFinish, request: Request, session: Sessio
         handoff_expires_at=None,
     ):
         raise Refused(HANDOFF_SPENT)
-    user = await session.scalar(
-        select(User)
-        .where(User.id == token.user_id)
-        .options(selectinload(User.party_roles), selectinload(User.party_member))
-    )
+    user = await session.scalar(select(User).where(User.id == token.user_id))
     await session.commit()
     return {"token": token.key, "user": user}

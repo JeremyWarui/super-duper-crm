@@ -7,7 +7,7 @@ import httpx
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import CampaignMemberArea, OrganisationType, Supporter, UserRole
+from backend.models import CampaignMemberArea, Supporter, UserRole
 from backend.services.accounts import add_member
 from backend.services.permissions import MAP
 from tests.conftest import World
@@ -50,8 +50,6 @@ TABLE = {
     "volunteers.read": {C, M, CO},
     "volunteers.write": {C, M, CO},
     "export": {C, M},
-    "party.feed": {C, M, CM},
-    "sharing.write": {C},
     "data.manage": {C, M},
     "campaign.close": {C},
     "contributions.read": {C, M},
@@ -88,8 +86,6 @@ def _route(action: str, campaign: uuid.UUID, event: uuid.UUID) -> tuple[str, str
         "site.write": ("GET", "/api/workspace/site/posts/", None),
         "volunteers.read": ("GET", f"/api/campaigns/{campaign}/volunteers/", None),
         "volunteers.write": ("PATCH", f"/api/campaigns/{campaign}/volunteers/{NOBODY}/", {}),
-        "party.feed": ("GET", f"/api/party-feed/?campaign={campaign}", None),
-        "sharing.write": ("PUT", f"/api/party-feed/sharing/?campaign={campaign}", {}),
         "data.manage": ("GET", f"/api/campaigns/{campaign}/data/requests/", None),
         "campaign.close": ("PUT", f"/api/campaigns/{campaign}/data/retention/", {}),
         "contributions.read": ("GET", f"/api/campaigns/{campaign}/payments-in/", None),
@@ -129,21 +125,14 @@ async def test_every_role_reaches_exactly_the_routes_the_map_gives_it(
     client: httpx.AsyncClient,
     world: World,
     everyone: dict[str, dict[str, str]],
-    organisation_type: OrganisationType,
 ) -> None:
     from backend.models import Event
 
     event = Event(campaign_id=world.campaign.id, ward_id=world.ward.id, title="Rally")
     session.add(event)
     await session.commit()
-    # The workspace website exists only in an aspirant installation.
-    table = {
-        action: roles
-        for action, roles in TABLE.items()
-        if action != "site.write" or organisation_type is OrganisationType.ASPIRANT
-        # A field rule, not a route: tested in test_team_signup_api.py.
-        if action != "team.id_read"
-    }
+    # A field rule, not a route: tested in test_team_signup_api.py.
+    table = {action: roles for action, roles in TABLE.items() if action != "team.id_read"}
     allowed = {}
     for action in table:
         method, url, body = _route(action, world.campaign.id, event.id)

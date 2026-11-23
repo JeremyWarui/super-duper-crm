@@ -1,8 +1,8 @@
 import { Button } from './button'
 
 /**
- * The line under a long list: "Showing 50 of 240 members" and a Load more button while more remain.
- * Leave `total` out when the server does not count; the line then reads "Showing 50 members".
+ * The line under a long list: "Showing 50 of 240 contacts" and a Load more button while more remain.
+ * Leave `total` out when the server does not count; the line then reads "Showing 50 contacts".
  */
 export function LoadMore({ shown, total, noun, hasMore, loading, onMore }: {
   shown: number

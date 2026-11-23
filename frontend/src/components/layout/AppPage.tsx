@@ -45,7 +45,7 @@ export function SlottedHeader(props: React.ComponentProps<typeof PageHeader>) {
  * One CRM / workspace screen. Pins the top bar and this page's header together (sticky),
  * then renders the content with 28px/32px padding. Without a title there is no page header.
  *
- *   <AppPage crumb="Members" context="Verification queue" title="Membership verification"
+ *   <AppPage crumb="Contacts" context="Field" title="Contacts"
  *            actions={<Button>Export</Button>}>
  *     …cards…
  *   </AppPage>

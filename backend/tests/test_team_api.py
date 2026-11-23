@@ -163,7 +163,7 @@ async def test_the_database_holds_one_manager_per_campaign_whatever_the_route(
     )
     # Postgres names the index, so it gives the narrower of the two answers.
     assert (raced.status_code, raced.json()["detail"]) in [
-        (400, "That campaign already has its aspirant or its manager."),
+        (400, "That campaign already has its candidate or its manager."),
         (400, "That campaign already has a manager."),
     ]
 

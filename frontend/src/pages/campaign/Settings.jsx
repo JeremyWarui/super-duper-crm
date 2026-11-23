@@ -1,4 +1,4 @@
-// The workspace's Settings page (aspirant installations, site.write): the website's name, colours,
+// The workspace's Settings page (site.write): the website's name, colours,
 // contacts, how to give and the privacy notice. The whole row is sent back on save.
 import { useSaveWorkspaceSettings, useWorkspaceSettings } from "@/api/hooks";
 import { Button } from "@/components/ui/button";

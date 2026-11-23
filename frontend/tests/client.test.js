@@ -27,9 +27,9 @@ describe("the API client", () => {
 
   it("keeps the user signed in when a public request is refused with a 401", async () => {
     signIn();
-    stubApi({ "GET /party/places/": { status: 401, body: { detail: "No." } } });
+    stubApi({ "GET /website/places/": { status: 401, body: { detail: "No." } } });
 
-    await expect(api("/party/places/", { anonymous: true })).rejects.toThrow("No.");
+    await expect(api("/website/places/", { anonymous: true })).rejects.toThrow("No.");
     expect(useAuth.getState().token).toBe(TEST_TOKEN);
   });
 

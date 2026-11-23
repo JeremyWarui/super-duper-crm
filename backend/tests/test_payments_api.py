@@ -4,7 +4,6 @@ who never scheduled them, then paid, declined or settled by hand."""
 import uuid
 
 import httpx
-import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,7 +18,6 @@ from backend.models import (
     EventStatus,
     Mobilizer,
     UserRole,
-    WorkspaceKind,
 )
 from backend.services.accounts import add_member
 from tests.conftest import World
@@ -174,25 +172,6 @@ async def test_a_coordinator_s_payment_needs_the_manager_and_a_manager_s_the_can
     assert candidate_on_coordinators.status_code == 403
     assert manager_on_coordinators.json()["status"] == "paid"
     assert candidate_on_managers.json()["status"] == "paid"
-
-
-@pytest.mark.party_only
-async def test_the_party_workspace_manager_cannot_schedule(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
-) -> None:
-    from backend.models import OfficeLevel
-
-    world.campaign.kind = WorkspaceKind.PARTY
-    world.campaign.office_level = OfficeLevel.NATIONAL
-    world.campaign.constituency_id = None
-    world.campaign.seat = None
-    await session.commit()
-    work = await _work(session, world)
-
-    refused = await client.post("/api/payments/", headers=world.headers("manager"), json=_pay(work))
-
-    assert refused.status_code == 400
-    assert "coordinators schedule payments" in refused.json()["detail"]
 
 
 async def test_a_payee_is_always_a_mobilizer_or_agent_of_the_workspace(

@@ -1,4 +1,5 @@
-"""The party's leaders and posts, as the public site reads them and the superuser edits them."""
+"""The website's posts and homepage items, as the public site reads them and the editors write
+them."""
 
 import math
 import re
@@ -8,9 +9,8 @@ from typing import Annotated
 
 from pydantic import AfterValidator, Field, computed_field, field_validator, model_validator
 
-from backend.models import BranchOffice, PostKind, PostLabel, Seat, TermEnd, TermStart
+from backend.models import PostKind, PostLabel
 from backend.schemas.common import Named, ORMModel, WriteModel, partial, plain_text, trimmed
-from backend.schemas.site import email_address
 from backend.services import rich_text
 
 UPLOADED = re.compile(r"^/api/files/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/$")
@@ -84,30 +84,6 @@ class AdminFields(ORMModel):
     sort_order: int
     published: bool
     updated_at: datetime
-
-
-class LeaderRead(ORMModel):
-    id: uuid.UUID
-    name: str
-    position: str
-    bio: str
-    photo_url: str
-
-
-class LeaderAdminRead(AdminFields, LeaderRead):
-    pass
-
-
-class LeaderCreate(WriteModel):
-    name: Line
-    position: Line
-    bio: RichBody = ""
-    photo_url: Image = ""
-    sort_order: Order = 0
-    published: bool = False
-
-
-LeaderUpdate = partial(LeaderCreate, "LeaderUpdate")
 
 
 PostCounty = Named
@@ -208,73 +184,12 @@ class PostUpdate(WriteModel):
         return value
 
 
-BranchCounty = Named
-
-
-class PublicOfficial(ORMModel):
-    """An official in office, as the website names them."""
-
-    office: BranchOffice
-    label: str
-    name: str
-
-
-class BranchRead(ORMModel):
-    """A published branch as the public site shows it, with its officials in office today."""
-
-    county: BranchCounty
-    officials: list[PublicOfficial]
-    office_address: str
-    phone: str
-    email: str
-    next_meeting_on: date | None
-    next_meeting_venue: str
-
-
-BranchWard = Named
-
-
-class BranchConstituency(ORMModel):
-    id: uuid.UUID
-    name: str
-    wards: list[BranchWard]
-
-
-class BranchDetail(BranchRead):
-    """One branch, with the county's constituencies and their wards as its sub-branches."""
-
-    constituencies: list[BranchConstituency]
-
-
-class BranchAdminRead(BranchRead):
-    published: bool
-    updated_at: datetime
-
-
-class CountyBranch(ORMModel):
-    """A county and its branch, or None before the superuser writes one."""
-
-    county: BranchCounty
-    branch: BranchAdminRead | None
-
-
-class BranchUpdate(WriteModel):
-    """The whole branch; the request replaces every field."""
-
-    office_address: trimmed(300) = ""
-    phone: trimmed(20) = ""
-    email: Annotated[trimmed(254), AfterValidator(email_address)] = ""
-    next_meeting_on: date | None = None
-    next_meeting_venue: Venue = ""
-    published: bool = False
-
-
 def _target(value: str) -> str:
     value = plain_text(value).strip()
     if value and not (
         (value.startswith("/") and not value.startswith("//")) or value.startswith("https://")
     ):
-        raise ValueError("Use a page on this site such as /join-party, or an https:// address.")
+        raise ValueError("Use a page on this site such as /volunteer, or an https:// address.")
     if any(c.isspace() for c in value):
         raise ValueError("A link has no spaces.")
     return value
@@ -357,64 +272,6 @@ class DocumentCreate(WriteModel):
 DocumentUpdate = partial(DocumentCreate, "DocumentUpdate")
 
 
-class AboutItemRead(ORMModel):
-    """A value or a party organ on the About page."""
-
-    id: uuid.UUID
-    title: str
-    text: str
-
-
-class AboutItemAdminRead(AdminFields, AboutItemRead):
-    pass
-
-
-class AboutItemCreate(WriteModel):
-    title: Line
-    text: trimmed(300) = ""
-    sort_order: Order = 0
-    published: bool = False
-
-
-AboutItemUpdate = partial(AboutItemCreate, "AboutItemUpdate")
-
-
-Votes = Annotated[int, Field(ge=0, le=10_000_000)]
-
-
-class ResultRead(ORMModel):
-    """One candidate's votes in a primary race, a race being one seat in one area."""
-
-    id: uuid.UUID
-    seat: Seat
-    area: str
-    candidate: str
-    votes: int
-    declared_on: date | None
-    demo: bool
-
-
-class ResultAdminRead(ResultRead):
-    published: bool
-    updated_at: datetime
-
-
-class ResultCreate(WriteModel):
-    seat: Seat
-    area: Line
-    candidate: Line
-    votes: Votes = 0
-    declared_on: date | None = None
-    published: bool = False
-
-
-ResultUpdate = partial(
-    ResultCreate,
-    "ResultUpdate",
-    "Only the fields sent change; a null declared_on marks the race as still counting.",
-)
-
-
 Duration = Annotated[str, Field(max_length=8, pattern=r"^(\d{1,2}:)?\d{1,2}:\d{2}$|^$")]
 
 
@@ -440,66 +297,3 @@ class VideoCreate(WriteModel):
 
 
 VideoUpdate = partial(VideoCreate, "VideoUpdate")
-
-
-class OfficialAppoint(WriteModel):
-    """A term for an approved member; `title` names an office of kind "other"."""
-
-    office: BranchOffice
-    title: trimmed(80) = ""
-    member: uuid.UUID
-    term_start: date
-    term_end: date | None = None
-    start_reason: TermStart = TermStart.ELECTED
-    minutes_file: uuid.UUID | None = None
-    note: trimmed(1000) = ""
-
-    @model_validator(mode="after")
-    def _whole(self) -> "OfficialAppoint":
-        if self.office is BranchOffice.OTHER and not self.title:
-            raise ValueError("Name the office.")
-        if self.term_end is not None and self.term_end < self.term_start:
-            raise ValueError("A term cannot end before it starts.")
-        if self.start_reason is TermStart.RECORDED:
-            raise ValueError("A new term is elected or an interim appointment.")
-        return self
-
-
-class OfficialEnd(WriteModel):
-    term_end: date
-    end_reason: TermEnd
-
-    @field_validator("end_reason")
-    @classmethod
-    def _not_replaced(cls, value: TermEnd) -> TermEnd:
-        if value is TermEnd.REPLACED:
-            raise ValueError("Appoint the new holder instead; that ends this term.")
-        return value
-
-
-class OfficialRead(ORMModel):
-    id: uuid.UUID
-    office: BranchOffice
-    label: str
-    title: str
-    member: uuid.UUID | None = Field(validation_alias="member_id")
-    holder_name: str
-    term_start: date
-    term_end: date | None
-    start_reason: TermStart
-    end_reason: TermEnd | None
-    has_minutes: bool
-    note: str
-    # The holder is no longer an approved member; the website no longer names them.
-    lapsed: bool = False
-
-
-class OfficialsRead(ORMModel):
-    current: list[OfficialRead]
-    upcoming: list[OfficialRead]
-    history: list[OfficialRead]
-
-
-class MinutesRead(ORMModel):
-    id: uuid.UUID
-    name: str

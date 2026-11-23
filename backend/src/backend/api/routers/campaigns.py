@@ -15,10 +15,10 @@ from backend.api.scope import (
     load,
     visible_campaign_ids,
 )
-from backend.models import Campaign, User, VolunteerProfile, VolunteerStatus, WorkspaceKind
+from backend.models import Campaign, User, VolunteerProfile, VolunteerStatus
 from backend.schemas.campaign import CampaignRead, CampaignSignups, EventSignups, SetupSummary
 from backend.schemas.candidates import CampaignVolunteerRead, CampaignVolunteerUpdate
-from backend.services import campaign_volunteers, site
+from backend.services import campaign_volunteers
 from backend.services.campaigns import CAMPAIGN_NAMES
 from backend.services.targets import refresh_targets
 
@@ -31,13 +31,10 @@ VolunteerWriter = Annotated[User, Depends(require("volunteers.write"))]
 
 
 async def _named(session: SessionDep, campaign: Campaign) -> CampaignRead:
-    """A campaign with its candidate and seat spelt out, the party's name standing for the
-    candidate of the party workspace; needs CAMPAIGN_NAMES loaded."""
+    """A campaign with its candidate and seat spelt out; needs CAMPAIGN_NAMES loaded."""
     area = campaign.area
     candidate = campaign.candidate
     name = campaign.candidate_label
-    if campaign.kind is WorkspaceKind.PARTY:
-        name = (await site.read_settings(session)).name
     return CampaignRead.model_validate(campaign).model_copy(
         update={
             "candidate_name": name,

@@ -1,12 +1,8 @@
-"""An aspirant installation's public candidate page and its volunteer form.
-
-Mounted only in an aspirant installation.
-"""
+"""The public candidate page and its volunteer form."""
 
 from fastapi import APIRouter, Request, status
 
 from backend.api.deps import SessionDep
-from backend.api.install import AspirantOnlyRoute
 from backend.api.limits import TOO_MANY_SIGNUPS, check
 from backend.schemas.candidates import CandidateDetail, CandidateVolunteerCreate
 from backend.schemas.join import JoinDone
@@ -14,7 +10,7 @@ from backend.services import campaign_page
 from backend.services.campaign_volunteers import THANKS
 from backend.services.ratelimit import RateLimit
 
-router = APIRouter(prefix="/site", tags=["site"], route_class=AspirantOnlyRoute)
+router = APIRouter(prefix="/site", tags=["site"])
 
 SIGNUPS = RateLimit(limit=20, window=3600)
 

@@ -2,9 +2,9 @@
 
 import uuid
 
-from pydantic import Field, field_validator
+from pydantic import Field
 
-from backend.models.enums import LinkPurpose, PartyRoleName, UserKind, UserRole
+from backend.models.enums import LinkPurpose, UserRole
 from backend.schemas.common import ORMModel, Password, WriteModel
 
 
@@ -20,17 +20,7 @@ class LoginUser(ORMModel):
     username: str
     full_name: str
     role: UserRole | None
-    kind: UserKind
     is_superuser: bool
-    party_roles: list[PartyRoleName]
-    # Whether this login opens an approved party member's account.
-    member_account: bool
-
-    @field_validator("party_roles", mode="before")
-    @classmethod
-    def _names(cls, held: list) -> list:
-        """Accepts the user's `PartyRole` rows or plain names."""
-        return [getattr(item, "role", item) for item in held]
 
 
 class LoginResponse(ORMModel):

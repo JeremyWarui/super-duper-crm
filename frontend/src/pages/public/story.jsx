@@ -15,7 +15,7 @@ export function Photo({ url, className = "" }) {
 export const PHOTO_GRID = "grid gap-3 sm:grid-cols-2 lg:grid-cols-3";
 
 /**
- * A square card with the title over a dark fade on its photo; on hover or focus the party colour covers it.
+ * A square card with the title over a dark fade on its photo; on hover or focus the primary colour covers it.
  * With `to` it is a link; `foot` sits under the title.
  */
 export function PhotoCard({ to, image, title, kicker, foot }) {

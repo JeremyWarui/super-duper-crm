@@ -1,4 +1,4 @@
-// /volunteer: an aspirant installation's volunteer form on its own page, laid out as the dialog.
+// /volunteer: the volunteer form on its own page, laid out as the dialog.
 import { useSiteCandidate, useSiteVolunteer } from "@/api/hooks";
 import { Card } from "@/components/ui/card";
 import { SupportForm, VOLUNTEER_NOTE, volunteerTitle } from "./Candidate";

@@ -1,4 +1,4 @@
-/** Every header shows the party from the website settings, never a product name. */
+/** Every header shows the site name from the website settings, never a product name. */
 import { globSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { screen, waitFor } from "@testing-library/react";
@@ -11,23 +11,23 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("the party's branding", () => {
-  it("names the party from its settings on the sign-in page and in the tab title", async () => {
-    stubApi({ "GET /site/": { name: "Pamoja Party", logo_url: "" } });
+describe("the site's branding", () => {
+  it("names the site from its settings on the sign-in page and in the tab title", async () => {
+    stubApi({ "GET /site/": { name: "Jane for Kasarani", logo_url: "" } });
     renderApp(<Login />);
 
-    expect(await screen.findByText("Pamoja Party")).toBeInTheDocument();
-    expect(document.title).toBe("Pamoja Party");
+    expect(await screen.findByText("Jane for Kasarani")).toBeInTheDocument();
+    expect(document.title).toBe("Jane for Kasarani");
   });
 
-  it("colours the kit from the party's primary and secondary colours", async () => {
-    stubApi({ "GET /site/": { name: "Pamoja Party", primary_colour: "#0b5d3b", secondary_colour: "#f2b705" } });
+  it("colours the kit from the site's primary and secondary colours", async () => {
+    stubApi({ "GET /site/": { name: "Jane for Kasarani", primary_colour: "#0b5d3b", secondary_colour: "#f2b705" } });
     renderApp(<BrandingProvider><span /></BrandingProvider>);
 
     const root = document.documentElement.style;
-    await waitFor(() => expect(root.getPropertyValue("--party-primary")).toBe("#0B5D3B"));
-    expect(root.getPropertyValue("--party-primary-hover")).toBe("#08442B");
-    expect(root.getPropertyValue("--party-accent")).toBe("#F2B705");
+    await waitFor(() => expect(root.getPropertyValue("--brand-primary")).toBe("#0B5D3B"));
+    expect(root.getPropertyValue("--brand-primary-hover")).toBe("#08442B");
+    expect(root.getPropertyValue("--brand-accent")).toBe("#F2B705");
   });
 
   it("shows the logo as the tab icon, or the tile letters when there is no logo", () => {

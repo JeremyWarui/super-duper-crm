@@ -14,7 +14,6 @@ from backend.models import (
     CampaignMember,
     Event,
     Mobilizer,
-    OrganisationType,
     Supporter,
     Target,
     User,
@@ -27,7 +26,6 @@ from tests.factories import (
     fresh_password,
     sign_in,
 )
-from tests.test_route_guards import party_only_routes
 
 SAMPLE = "00000000-0000-0000-0000-000000000001"
 
@@ -50,19 +48,11 @@ async def test_no_campaign_role_reads_the_console(
     world: World,
     path: str,
     role: str,
-    organisation_type: OrganisationType,
 ) -> None:
-    unmounted = organisation_type is not OrganisationType.PARTY and path in {
-        re.sub(r"\{[^}]+\}", SAMPLE, route) for _, route in party_only_routes()
-    }
-
     response = await client.get(path, headers=world.headers(role))
 
-    if unmounted:
-        assert response.status_code == 404
-    else:
-        assert response.status_code == 403
-        assert response.json()["detail"] == "This is not yours to see."
+    assert response.status_code == 403
+    assert response.json()["detail"] == "This is not yours to see."
 
 
 async def test_a_reset_emails_a_link_and_using_it_signs_the_old_session_out(
@@ -171,7 +161,7 @@ async def test_the_console_gives_a_campaign_no_second_manager_and_no_lone_aspira
     )
     assert (aspirant.status_code, aspirant.json()["detail"]) == (
         400,
-        "An aspirant gets their login with their workspace, from Aspirants or at setup.",
+        "The candidate's login is made at setup.",
     )
     for gone in ("newmgr", "loneaspirant"):
         assert await session.scalar(select(User).where(User.username == gone)) is None

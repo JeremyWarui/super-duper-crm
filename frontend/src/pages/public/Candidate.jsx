@@ -1,8 +1,6 @@
-// /candidates/:slug: one candidate's profile, the party events naming them, and the "Support" dialog.
-// CandidateView is the page body, which an aspirant installation's homepage shows as well.
+// The candidate's profile on the website, and the volunteer form and dialog.
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useCandidateVolunteer, usePartyPlaces, usePublicCandidate } from "@/api/hooks";
+import { usePlaces } from "@/api/hooks";
 import { RichText } from "@/components/RichTextView";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,17 +9,16 @@ import { Check, Field, FilterSelect, Input } from "@/components/ui/input";
 import { Crumbs, RuleHead } from "@/components/ui/typography";
 import { SEAT_LABEL } from "@/lib/labels";
 import VolunteerFields, { NO_VOLUNTEER, volunteerBody, volunteerReady } from "@/components/VolunteerFields";
-import { firstName, formatDay, linkTo, whereOf } from "@/lib/format";
+import { firstName, linkTo, whereOf } from "@/lib/format";
 import { Photo, PHOTO_GRID, PhotoCard } from "./story";
 import { isEmail } from "@/lib/email";
 import { ErrorText } from "@/components/ui/error-text";
-import { pageState } from "@/components/PageState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "@/lib/form";
 
-/** The seat an aspirant is vying for, as their badge says it. */
+/** The seat the candidate is vying for, as their badge says it. */
 export const vying = (seat) => `Vying for ${SEAT_LABEL[seat]}`;
-const TABS = ["About", "Priorities", "Events"];
+const TABS = ["About", "Priorities"];
 
 export const VOLUNTEER_NOTE = "Your details go to the campaign only.";
 
@@ -31,7 +28,7 @@ export const volunteerTitle = (c, sent) => (sent ? "Thank you" : `Volunteer for 
 /** The volunteer form, the same in the dialog and on the /volunteer page. */
 export function SupportForm({ c, send, withdrawPath }) {
   const [f, setF, set] = useForm({ first_name: "", last_name: "", email: "", phone: "", ward: "", registration_centre: "", ...NO_VOLUNTEER, consent_given: false });
-  const centres = usePartyPlaces({ ward: f.ward, enabled: !!f.ward }).data || [];
+  const centres = usePlaces({ ward: f.ward, enabled: !!f.ward }).data || [];
   const ok =
     f.first_name.trim() && f.last_name.trim() && isEmail(f.email) && f.phone.trim() && f.ward && f.registration_centre &&
     volunteerReady(f) && f.consent_given;
@@ -121,32 +118,10 @@ export function SupportCard({ c, onOpen }) {
   );
 }
 
-export default function Candidate({ slug }) {
-  const query = usePublicCandidate(slug);
-  const send = useCandidateVolunteer(slug);
-  const state = pageState(query);
-  if (state) return state;
-  const c = query.data;
-  return (
-    <CandidateView
-      c={c}
-      send={send}
-      withdrawPath="/candidates/volunteer/withdraw/"
-      crumbs={[{ label: "Home", to: "/" }, { label: "Candidates", to: "/candidates" }, { label: c.area }]}
-      note={`Profile written from what the candidate sent, and published by the party. ${SEAT_LABEL[c.seat]} aspirant.`}
-      events
-    />
-  );
-}
-
-/**
- * One candidate's page: hero, tabs (About, Priorities, and Events where `events`), the volunteer
- * form and the campaign office. `crumbs` and `note` are left out on a homepage.
- */
-export function CandidateView({ c, send, withdrawPath, crumbs, note, events = false }) {
+/** The candidate's page: hero, About and Priorities tabs, the volunteer form and the campaign office. */
+export function CandidateView({ c, send, withdrawPath, crumbs }) {
   const [tab, setTab] = useState("About");
   const [volunteering, setVolunteering] = useState(false);
-  const tabs = events ? TABS : TABS.filter((t) => t !== "Events");
   const first = firstName(c.name);
   const contact = [c.office_phone, c.office_email].filter(Boolean).join(" · ");
   return (
@@ -154,17 +129,12 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
       <CandidateHero
         c={c}
         crumbs={crumbs}
-        actions={
-          <>
-            {c.volunteering_open ? <Button variant="accent" onClick={() => setVolunteering(true)}>Volunteer for this campaign</Button> : null}
-            {events && c.events.length ? <Button asChild variant="onDark"><a href="#events" onClick={() => setTab("Events")}>Meet the candidate</a></Button> : null}
-          </>
-        }
+        actions={c.volunteering_open ? <Button variant="accent" onClick={() => setVolunteering(true)}>Volunteer for this campaign</Button> : null}
       />
       <Tabs look="underline" value={tab} onValueChange={setTab} className="gap-0">
       <div className="border-b border-line-2 bg-white">
         <TabsList aria-label="Profile sections" className="site-container">
-          {tabs.map((t) => <TabsTrigger key={t} value={t}>{t}</TabsTrigger>)}
+          {TABS.map((t) => <TabsTrigger key={t} value={t}>{t}</TabsTrigger>)}
         </TabsList>
       </div>
       <div className="site-container flex flex-wrap items-start gap-10 pt-12 pb-20">
@@ -188,19 +158,6 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
               ) : <p className="text-muted-foreground">No priorities published yet.</p>}
             </>
           ) : null}
-          {tab === "Events" ? (
-            <section id="events" className="flex flex-col gap-3.5">
-              <RuleHead>Meet {first}</RuleHead>
-              {c.events.length ? c.events.map((e) => (
-                <Card key={e.id} asChild interactive className="flex-row flex-wrap items-center justify-between gap-3 p-[18px]">
-                  <Link to={`/news/${e.id}`}>
-                    <span className="flex flex-col gap-1"><strong className="text-[17px]">{e.title}</strong><span className="text-small text-muted-foreground">{[formatDay(e.event_date, { weekday: "short", day: "numeric", month: "long" }), e.venue].filter(Boolean).join(" · ")}</span></span>
-                    <span className="font-bold text-primary">Details →</span>
-                  </Link>
-                </Card>
-              )) : <p className="text-muted-foreground">No party events are planned with {first} yet.</p>}
-            </section>
-          ) : null}
         </TabsContent>
         <aside id="support" className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
           {c.volunteering_open ? <SupportCard c={c} onOpen={() => setVolunteering(true)} /> : null}
@@ -211,7 +168,6 @@ export function CandidateView({ c, send, withdrawPath, crumbs, note, events = fa
               {contact ? <span className="text-on-dark-muted">{contact}</span> : null}
             </Card>
           ) : null}
-          {note ? <p className="text-small text-muted-foreground">{note}</p> : null}
         </aside>
       </div>
       </Tabs>

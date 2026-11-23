@@ -13,10 +13,9 @@ import { ErrorText } from "@/components/ui/error-text";
 
 const LABEL = { pending: "Waiting for the phone", paid: "Paid", to_confirm: "To confirm", failed: "Failed", rejected: "Rejected" };
 const TONE = { pending: "stone", paid: "ok", to_confirm: "warn", failed: "bad", rejected: "bad" };
-const PURPOSE = { contribution: "Contribution", nomination_fee: "Nomination fee" };
 const FILTERS = { "To confirm": "to_confirm", Paid: "paid", All: "" };
 
-/** A workspace's list with `campaignId`; the party's without. */
+/** The campaign's list. */
 export default function PaymentsInTable({ campaignId }) {
   const [view, setView] = useState("To confirm");
   const list = usePaymentsIn(campaignId, FILTERS[view]);
@@ -34,13 +33,12 @@ export default function PaymentsInTable({ campaignId }) {
       <ErrorText error={list.error} />
       <ErrorText error={decide.error} />
       <Table stack minWidth={720}>
-        <THead><TR><TH>Date</TH><TH>Payer</TH><TH>For</TH><TH align="right">Amount</TH><TH>M-Pesa code</TH><TH>Status</TH><TH srOnly>Actions</TH></TR></THead>
+        <THead><TR><TH>Date</TH><TH>Payer</TH><TH align="right">Amount</TH><TH>M-Pesa code</TH><TH>Status</TH><TH srOnly>Actions</TH></TR></THead>
         <TBody>
           {rows.map((r) => (
             <TR key={r.id}>
               <TD>{formatDay(r.created_at, { day: "numeric", month: "short" })}</TD>
               <TD><div className="font-semibold">{r.payer_name}</div><div className="text-small text-muted-foreground">{r.payer_phone}</div></TD>
-              <TD>{PURPOSE[r.purpose]}</TD>
               <TD align="right" className="tabular-nums">{formatKES(r.amount_kes)}</TD>
               <TD className="font-mono">{r.mpesa_code || "—"}</TD>
               <TD><Badge tone={TONE[r.status]}>{LABEL[r.status]}</Badge>{r.reason ? <div className="text-small text-muted-foreground">{r.reason}</div> : null}</TD>

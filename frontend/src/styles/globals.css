@@ -1,5 +1,5 @@
 /* =====================================================================
-   Party Platform — design tokens and base styles
+   Shabaha: design tokens and base styles
    Source of truth: the Design canvas mockups ("Campaign Site & Portal Mockups").
    Light theme only. shadcn's dark theme has been removed on purpose:
    there is no `.dark` block and no `dark:` variant. Do not add one
@@ -13,18 +13,18 @@
 
 /* ---------------------------------------------------------------------
    1. Raw tokens (CSS variables). shadcn components read these names.
-   --party-primary / --party-accent are overridden per party at runtime
-   from GET /api/branding (see src/theme/branding.ts).
+   --brand-primary / --brand-accent are overridden per site at runtime
+   from GET /api/site/ (see src/theme/branding.tsx).
    --------------------------------------------------------------------- */
 :root {
   /* The down arrow drawn at the right of every NativeSelect. */
   --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234E5552' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 
-  /* Brand (per party) */
-  --party-primary: #0B5D3B;
-  --party-primary-hover: #08442B;
-  --party-primary-tint: #E7F0EA;   /* active nav pill, icon tiles */
-  --party-accent: #F2B705;
+  /* Brand (per site) */
+  --brand-primary: #0B5D3B;
+  --brand-primary-hover: #08442B;
+  --brand-primary-tint: #E7F0EA;   /* active nav pill, icon tiles */
+  --brand-accent: #F2B705;
 
   /* Neutrals (faint warm, not cream) */
   --ink: #13201A;
@@ -64,29 +64,29 @@
   --card-foreground: var(--text);
   --popover: #FFFFFF;
   --popover-foreground: var(--text);
-  --primary: var(--party-primary);
+  --primary: var(--brand-primary);
   --primary-foreground: #FFFFFF;
   --secondary: #FFFFFF;
   --secondary-foreground: var(--text);
   --muted: var(--stone);
   --muted-foreground: var(--text-muted);
-  --accent: var(--party-accent);
+  --accent: var(--brand-accent);
   --accent-foreground: var(--ink);
   --destructive: var(--danger);
   --border: var(--line-2);
   --input: var(--line-input);
-  --ring: var(--party-primary);
+  --ring: var(--brand-primary);
   --radius: 12px;                  /* inputs, selects, app buttons */
 
   /* shadcn Sidebar set → dark ink CRM sidebar */
   --sidebar: var(--ink);
   --sidebar-foreground: #DDE3DF;
-  --sidebar-primary: var(--party-primary);
+  --sidebar-primary: var(--brand-primary);
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: var(--ink-2);
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: var(--ink-2);
-  --sidebar-ring: var(--party-accent);
+  --sidebar-ring: var(--brand-accent);
 
   color-scheme: only light;        /* the site is light only: browsers must not darken it */
 }
@@ -115,8 +115,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-primary-hover: var(--party-primary-hover);
-  --color-primary-tint: var(--party-primary-tint);
+  --color-primary-hover: var(--brand-primary-hover);
+  --color-primary-tint: var(--brand-primary-tint);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -216,8 +216,8 @@
   h1, h2, h3 { margin: 0; text-wrap: balance; }
   p { margin: 0; }
 
-  a { color: var(--party-primary); }
-  a:hover { color: var(--party-primary-hover); }
+  a { color: var(--brand-primary); }
+  a:hover { color: var(--brand-primary-hover); }
 
   :focus-visible {
     outline: 3px solid var(--ring);
@@ -225,7 +225,7 @@
     border-radius: 4px;
   }
 
-  ::selection { background: var(--party-primary-tint); }
+  ::selection { background: var(--brand-primary-tint); }
 }
 
 /* ---------------------------------------------------------------------
@@ -250,7 +250,7 @@
   /* Kicker label */
   .kicker {
     font-size: 14px; font-weight: 700; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--party-primary);
+    text-transform: uppercase; color: var(--brand-primary);
   }
   /* Card hover lift (website only) */
   .lift { transition: transform 160ms ease, box-shadow 160ms ease; }
@@ -264,7 +264,7 @@
   .rich-text ol { list-style: decimal; }
   .rich-text li > p { display: inline; }
   .rich-text blockquote { border-left: 4px solid var(--accent); padding: 0.1em 0 0.1em 1em; font-style: italic; color: var(--ink); }
-  .rich-text a { color: var(--party-primary); text-decoration: underline; text-underline-offset: 3px; }
+  .rich-text a { color: var(--brand-primary); text-decoration: underline; text-underline-offset: 3px; }
   .rich-text img { max-width: 100%; height: auto; border-radius: var(--radius-photo); }
   .rich-text img.ProseMirror-selectednode { outline: 3px solid var(--accent); }
 }

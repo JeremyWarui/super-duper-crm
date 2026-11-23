@@ -5,7 +5,7 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { useClaimLink, useLink } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
-import { landingOf } from "@/lib/home";
+import { homeOf } from "@/lib/home";
 import { useAuth } from "@/store/auth";
 import { ErrorText } from "@/components/ui/error-text";
 
@@ -19,7 +19,7 @@ export default function SetPassword() {
   const [again, setAgain] = useState("");
   const claim = useClaimLink(token);
   const link = useLink(token, claim.isIdle);
-  if (claim.isSuccess) return <Navigate to={landingOf(signedIn)} replace />;
+  if (claim.isSuccess) return <Navigate to={homeOf(signedIn)} replace />;
 
   const short = password.length > 0 && password.length < MIN;
   const differ = again.length > 0 && again !== password;

@@ -9,10 +9,9 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from backend.config import get_settings
-from backend.models import LinkPurpose, LoginInvite, User, UserKind
+from backend.models import LinkPurpose, LoginInvite, User
 from backend.security import hash_password, sha256_hex
 from backend.services import tokens
 from backend.services.accounts import new_login, sign_out, user_with_email
@@ -27,10 +26,8 @@ TOKEN_BYTES = 32
 
 
 def may_sign_in(user: User) -> bool:
-    """Whether the sign-in form would let this login in; needs `party_member` loaded."""
-    if not user.is_active or user.pending:
-        return False
-    return user.kind is not UserKind.MEMBER or user.member_account
+    """Whether the sign-in form would let this login in."""
+    return user.is_active and not user.pending
 
 
 def link_url(purpose: LinkPurpose, token: str) -> str:
@@ -103,9 +100,7 @@ async def _live(session: AsyncSession, token: str) -> tuple[LoginInvite, User]:
     )
     if link is None or not tokens.is_live(link.expires_at, link.used_at):
         raise Refused(SPENT)
-    user = await session.scalar(
-        select(User).where(User.id == link.user_id).options(selectinload(User.party_member))
-    )
+    user = await session.get(User, link.user_id)
     if user is None or not may_sign_in(user):
         raise Refused(SPENT)
     return link, user

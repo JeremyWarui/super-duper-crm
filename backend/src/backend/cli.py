@@ -11,10 +11,9 @@ from pathlib import Path
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_organisation_type
 from backend.db.session import get_engine, get_sessionmaker
 from backend.models import County, UserRole
-from backend.seed import demo_aspirant, demo_party
+from backend.seed import demo_aspirant
 from backend.seed.demo import seed_demo
 from backend.seed.reference import (
     CAW_CSV,
@@ -25,7 +24,6 @@ from backend.seed.reference import (
     import_geography,
 )
 from backend.seed.sign_ins import credentials_sheet
-from backend.seed.site import seed_branches, seed_home, seed_news, seed_site
 from backend.services import admin, imports, ops, setup
 from backend.services.accounts import logins_on, new_login
 from backend.services.audit import record
@@ -78,36 +76,12 @@ async def _demo(args: argparse.Namespace, session: AsyncSession) -> int:
     return 0
 
 
-async def _demo_site(args: argparse.Namespace, session: AsyncSession) -> int:
-    added = await seed_branches(session, today())
-    if added:
-        print(f"Published a demo branch for {added} counties.")
-    if await seed_home(session):
-        print("Published the demo homepage slides and agenda issues.")
-    seeded = await seed_site(session, today())
-    if await seed_news(session, today()):
-        print("Published the demo statements, opinions, event counties, About page and results.")
-    if not seeded:
-        print("The website already has leaders or posts; nothing else was added.")
-        return 0
-    print("Published 6 leaders, 4 news posts and 3 events for Pamoja Party.")
-    print("Open http://localhost:5173/ to see the site.")
-    return 0
-
-
 async def _demo_install(args: argparse.Namespace, session: AsyncSession) -> int:
     if len(args.password) < 12:
         print("The demo password needs at least 12 characters.", file=sys.stderr)
         return 1
-    if args.kind == "party":
-        title = demo_party.SETTINGS["name"]
-        sign_ins = await demo_party.build_party(session, password=args.password, today=today())
-    else:
-        title = demo_aspirant.TITLE
-        sign_ins = await demo_aspirant.build_aspirant(
-            session, password=args.password, today=today()
-        )
-    sheet = credentials_sheet(title, sign_ins, args.password, args.url)
+    sign_ins = await demo_aspirant.build_aspirant(session, password=args.password, today=today())
+    sheet = credentials_sheet(demo_aspirant.TITLE, sign_ins, args.password, args.url)
     print(sheet)
     if args.sheet:
         Path(args.sheet).write_text(sheet, encoding="utf-8")
@@ -212,8 +186,7 @@ async def _restore(args: argparse.Namespace, _: AsyncSession) -> int:
 
 
 async def _export(args: argparse.Namespace, session: AsyncSession) -> int:
-    kind = await get_organisation_type(session)
-    name, data = await ops.export_archive(session, actor=None, organisation_type=kind)
+    name, data = await ops.export_archive(session, actor=None)
     out = Path(args.out or name)
     out.write_bytes(data)
     print(f"Exported to {out.resolve()} ({len(data):,} bytes).")
@@ -369,14 +342,9 @@ def build_parser() -> argparse.ArgumentParser:
     demo = command("demo", _demo, "build the demo campaign and its sign-ins")
     demo.add_argument("-p", "--password", help="one password for every demo account")
 
-    command(
-        "demo-site", _demo_site, "brand the party; publish demo leaders, news, events and branches"
-    )
-
     install = command(
         "demo-install", _demo_install, "set up an empty database as the demo, with its sign-ins"
     )
-    install.add_argument("kind", choices=["party", "aspirant"])
     install.add_argument("-p", "--password", required=True, help="one password for every login")
     install.add_argument("--url", default="http://localhost:5173", help="where the site opens")
     install.add_argument("--sheet", help="also write the sign-ins to this Markdown file")

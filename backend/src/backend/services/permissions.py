@@ -1,8 +1,7 @@
 """What each campaign role may do, and how far it reaches (docs/Product_Design.md, section 0.2).
 
 `all` is the whole campaign, `area` the coordinator's wards and centres, `own` the caller's own
-rows (a mobilizer's ward). A role missing from an action may not do it. In the party workspace
-the Workspace Manager holds the Manager column.
+rows (a mobilizer's ward). A role missing from an action may not do it.
 """
 
 import uuid
@@ -68,14 +67,11 @@ MAP: dict[str, dict[UserRole, Reach]] = {
     "sms.draft": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA, R.COMMS: ALL},
     # Really texting: approving a draft, or an event invitation that is not a dry run.
     "sms.send": {R.CANDIDATE: ALL, R.MANAGER: ALL},
-    # Aspirant installations: the website and its settings.
+    # The website and its settings.
     "site.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COMMS: ALL},
     "volunteers.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
     "volunteers.write": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
     "export": {R.CANDIDATE: ALL, R.MANAGER: ALL},
-    # A hosted workspace's "From the party" page, and the counts it shares with the party.
-    "party.feed": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COMMS: ALL},
-    "sharing.write": {R.CANDIDATE: ALL},
     # Data requests, erasure on request, and the withdrawal links of supporters.
     "data.manage": {R.CANDIDATE: ALL, R.MANAGER: ALL},
     # Closing the campaign after the election, and erasing its supporters after retention.
@@ -92,7 +88,6 @@ REFUSALS = {
     "supporters.read": "The supporter register is for the campaign team.",
     "supporters.write": "The supporter register is for the campaign team.",
     "sms.send": "Only the candidate or the campaign manager sends texts.",
-    "sharing.write": "Only the candidate decides what the campaign shares with the party.",
     "data.manage": "Only the candidate or the campaign manager handles personal data requests.",
     "campaign.close": "Only the candidate closes the campaign.",
     "contributions.read": "Only the candidate or the campaign manager sees contributions.",

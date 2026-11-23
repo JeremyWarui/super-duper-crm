@@ -14,14 +14,13 @@ from starlette.responses import Response
 from starlette.types import Scope
 
 from backend import __version__
-from backend.api.deps import get_organisation_type
 from backend.api.errors import register_error_handlers
-from backend.api.install import InstallationType, SetupGate
+from backend.api.install import SetupGate
 from backend.api.routers import api_router
 from backend.config import get_settings
 from backend.db.session import get_engine, get_sessionmaker
-from backend.models import Base, OrganisationType  # noqa: F401
-from backend.services import membership, reconcile
+from backend.models import Base  # noqa: F401
+from backend.services import reconcile
 
 log = logging.getLogger(__name__)
 
@@ -34,26 +33,6 @@ def _show_app_logs() -> None:
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
         logger.addHandler(handler)
-
-
-async def _apply_party_requests(every: int) -> None:
-    """Apply queued public party requests on a fixed clock, every `every` seconds, in a party
-    installation only.
-
-    Runs start on the clock rather than after the last run ends, so how long a run takes does
-    not shift when the next one starts.
-    """
-    loop = asyncio.get_running_loop()
-    tick = loop.time()
-    while True:
-        tick += every
-        await asyncio.sleep(max(0.0, tick - loop.time()))
-        try:
-            async with get_sessionmaker()() as session:
-                if await get_organisation_type(session) is OrganisationType.PARTY:
-                    await membership.process_requests(session)
-        except Exception:
-            log.exception("Applying party requests failed; retrying next run.")
 
 
 async def _reconcile_daily(hours: int) -> None:
@@ -72,8 +51,7 @@ async def _reconcile_daily(hours: int) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
-    every = settings.party_inbox_seconds
-    tasks = [asyncio.create_task(_apply_party_requests(every))] if every > 0 else []
+    tasks = []
     if settings.reconcile_hours > 0:
         tasks.append(asyncio.create_task(_reconcile_daily(settings.reconcile_hours)))
     yield
@@ -105,7 +83,6 @@ def create_app() -> FastAPI:
     )
 
     _show_app_logs()
-    app.add_middleware(InstallationType)
     register_error_handlers(app)
     app.include_router(api_router)
 

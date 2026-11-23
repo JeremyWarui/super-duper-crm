@@ -3,7 +3,6 @@
 from datetime import UTC, datetime, timedelta
 
 import httpx
-import pytest
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -139,25 +138,3 @@ async def test_a_link_spent_after_it_was_read_is_refused(
         refused = False
 
     assert refused
-
-
-@pytest.mark.party_only
-async def test_a_member_not_yet_approved_gets_no_reset_and_cannot_use_a_link(
-    client: httpx.AsyncClient, session: AsyncSession, world: World
-) -> None:
-    from backend.models import LinkPurpose, User
-    from backend.services import login_links
-    from backend.services.email import PracticeEmailProvider
-    from tests.test_account_api import APPLICANT, _joined
-
-    await _joined(client, session, world)
-    asked = await client.post(RESET, json={"email": APPLICANT})
-    login = await session.scalar(select(User).where(User.email == APPLICANT))
-    token = await login_links.issue(session, login, LinkPurpose.RESET)
-    await session.commit()
-
-    claimed = await client.post(f"/api/auth/links/{token}/", json={"password": fresh_password()})
-
-    assert asked.status_code == 200
-    assert not [to for to, _, _ in PracticeEmailProvider.outbox if to == APPLICANT]
-    assert claimed.status_code == 400

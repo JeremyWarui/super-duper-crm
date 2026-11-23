@@ -1,4 +1,4 @@
-// Requests from people about their personal data, for the party (no campaign) or one workspace:
+// Requests from people about their personal data, for the campaign:
 // logged with the date the law gives, answered with a note of how.
 import { useState } from "react";
 import { useDataRequests, useLogDataRequest, useUpdateDataRequest } from "@/api/hooks";
@@ -99,7 +99,7 @@ function Row({ campaignId, request }) {
   );
 }
 
-/** The request log and its form; `campaignId` undefined is the party's own. */
+/** The request log and its form. */
 export default function DataRequests({ campaignId }) {
   const list = useDataRequests(campaignId);
   const [adding, setAdding] = useState(false);

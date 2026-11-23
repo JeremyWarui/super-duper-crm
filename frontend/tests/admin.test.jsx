@@ -1,7 +1,6 @@
 /** The admin console: what it shows, and who is shown it. */
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../src/store/auth";
 import Admin from "../src/components/Admin";
@@ -54,7 +53,7 @@ describe("who reaches the console", () => {
     stubApi({
       ...adminRoutes(),
       ...dashboardRoutes({ "GET /campaigns/": [] }),
-      "GET /site/": { organisation_type: "party", name: "Umoja Party" },
+      "GET /site/": { name: "Jane for Kasarani" },
     });
     renderApp(<Root />);
 
@@ -73,66 +72,6 @@ describe("who reaches the console", () => {
       await screen.findByRole("region", { name: "Win number" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Console" })).toBeNull();
-  });
-});
-
-describe("opening the party workspace", () => {
-  it("is offered on a party copy only until it exists, and names its first manager", async () => {
-    const user = userEvent.setup();
-    signInAsAdmin();
-    const workspace = { id: null, title: "", managers: [] };
-    const calls = stubApi(adminRoutes({
-      "GET /site/": { name: "Umoja Party", organisation_type: "party" },
-      "GET /party/workspace/": workspace,
-      "POST /party/workspace/": { status: 201, body: { id: "w1", title: "Umoja Party", units: 2, username: "wm-amani", invite: "email" } },
-    }));
-    const first = renderApp(<Admin />);
-
-    await user.click(await screen.findByRole("button", { name: "Open the party workspace" }));
-    await user.type(screen.getByRole("textbox", { name: "Username" }), "WM-Amani");
-    await user.type(screen.getByRole("textbox", { name: "Email" }), "wm@example.com");
-    workspace.id = "w1";
-    await user.click(screen.getByRole("button", { name: "Open it" }));
-
-    expect(await screen.findByText("Link emailed")).toBeInTheDocument();
-    expect(calls.find((c) => c.method === "POST" && c.path === "/party/workspace/").body).toEqual({
-      manager: { username: "wm-amani", first_name: "", last_name: "", email: "wm@example.com", phone: "" },
-    });
-    await vi.waitFor(() => expect(screen.queryByRole("button", { name: "Open it" })).toBeNull());
-    expect(screen.queryByRole("button", { name: "Open the party workspace" })).toBeNull();
-    first.unmount();
-
-    const aspirant = stubApi(adminRoutes({ "GET /site/": { name: "Jane", organisation_type: "aspirant" } }));
-    renderApp(<Admin />);
-    await screen.findByRole("button", { name: /Logins/ });
-    await vi.waitFor(() => expect(aspirant.some((c) => c.path === "/site/")).toBe(true));
-    expect(aspirant.some((c) => c.path === "/party/workspace/")).toBe(false);
-    expect(screen.queryByRole("button", { name: "Open the party workspace" })).toBeNull();
-  });
-});
-
-describe("replacing the Workspace Manager", () => {
-  it("names the sitting manager and posts the new one", async () => {
-    const user = userEvent.setup();
-    signInAsAdmin();
-    const calls = stubApi(adminRoutes({
-      "GET /site/": { name: "Umoja Party", organisation_type: "party" },
-      "GET /party/workspace/": { id: "w1", title: "Umoja Party workspace", managers: ["wm-amani"] },
-      "POST /party/workspace/manager/": { id: "u9", username: "wm-baraka", full_name: "", invite: "email", replaced: "wm-amani" },
-    }));
-    renderApp(<Admin />);
-
-    expect(await screen.findByText("Workspace Manager: wm-amani")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Replace Workspace Manager" }));
-    await user.type(screen.getByRole("textbox", { name: "Username" }), "wm-baraka");
-    await user.type(screen.getByRole("textbox", { name: "Email" }), "baraka@example.com");
-    await user.click(screen.getByRole("button", { name: "Replace" }));
-
-    expect(await screen.findByText("Link emailed")).toBeInTheDocument();
-    expect(calls.find((c) => c.path === "/party/workspace/manager/").body.manager).toMatchObject({
-      username: "wm-baraka",
-      email: "baraka@example.com",
-    });
   });
 });
 
@@ -182,55 +121,6 @@ describe("changing a login's email", () => {
   });
 });
 
-describe("party offices", () => {
-  it("offers no office on a member's own login and says where one goes", async () => {
-    const user = userEvent.setup();
-    signInAsAdmin();
-    const member = { ...USERS[3], id: "u-grace", username: "member-1f2e", email: "grace@umoja.ke", kind: "member", party_member: { id: "m1", full_name: "Grace W", status: "approved" } };
-    stubApi(adminRoutes({ "GET /admin/users/": [...USERS, member] }));
-    renderApp(<Admin />);
-
-    await user.click(await screen.findByRole("button", { name: /Logins/ }));
-
-    expect(await screen.findByText(/A member's own login/)).toBeInTheDocument();
-    const row = within(screen.getByTestId("login-member-1f2e"));
-    expect(row.getByText("grace@umoja.ke")).toBeInTheDocument();
-    expect(row.queryByText("member-1f2e")).toBeNull();
-    expect(row.queryByLabelText(/^Party office for/)).toBeNull();
-    expect(screen.getByLabelText("Party office for wafula")).toBeInTheDocument();
-  });
-
-  it("grants Membership Officer to a staff login and shows the office", async () => {
-    const user = userEvent.setup();
-    signInAsAdmin();
-    const staff = ADMIN_USERS.find((u) => u.username === "wafula");
-    const granted = { ...staff, party_roles: ["membership_officer"] };
-    const routes = adminRoutes({
-      "POST /admin/users/u-wafula/party-roles/": granted,
-    });
-    const calls = stubApi(routes);
-    renderApp(<Admin />);
-
-    await user.click(await screen.findByRole("button", { name: /Logins/ }));
-    await user.selectOptions(
-      await screen.findByLabelText("Party office for wafula"),
-      "membership_officer",
-    );
-    routes["GET /admin/users/"] = ADMIN_USERS.map((u) =>
-      u.id === granted.id ? granted : u,
-    );
-    await user.click(screen.getByRole("button", { name: "Grant" }));
-
-    expect(
-      await screen.findByRole("button", { name: "Revoke Membership Officer" }),
-    ).toBeInTheDocument();
-    const posted = calls.find(
-      (c) => c.method === "POST" && c.path === "/admin/users/u-wafula/party-roles/",
-    );
-    expect(posted.body).toEqual({ role: "membership_officer" });
-  });
-});
-
 describe("creating a login from the console", () => {
   async function openForm(user) {
     await user.click(await screen.findByRole("button", { name: /Logins/ }));
@@ -258,7 +148,7 @@ describe("creating a login from the console", () => {
     await openForm(user);
     await user.type(screen.getByRole("textbox", { name: "Username" }), "newmgr");
     await user.type(screen.getByRole("textbox", { name: "Email" }), "newmgr@example.com");
-    await user.selectOptions(screen.getByLabelText(/Campaign/), "c1");
+    await user.selectOptions(screen.getByRole("combobox", { name: /^Campaign/ }), "c1");
     await user.click(screen.getByRole("button", { name: "Create the login" }));
 
     expect(await screen.findByText("Link emailed")).toBeInTheDocument();
@@ -269,34 +159,6 @@ describe("creating a login from the console", () => {
     expect(posted.body.username).toBe("newmgr");
     expect(posted.body.role).toBe("manager");
     expect(posted.body.campaign).toBe("c1");
-  });
-});
-
-describe("creating a campaign from the console", () => {
-  it("on a party copy sends New campaign to Aspirants, where approved aspirants get workspaces", async () => {
-    const user = userEvent.setup();
-    signInAsAdmin();
-    stubApi(adminRoutes());
-    renderApp(
-      <Routes>
-        <Route path="/" element={<Admin />} />
-        <Route path="/party/aspirants" element={<p>Aspirants page</p>} />
-      </Routes>,
-    );
-
-    await user.click(await screen.findByRole("button", { name: "New campaign" }));
-
-    expect(await screen.findByText("Aspirants page")).toBeInTheDocument();
-  });
-
-  it("is not offered on an aspirant copy, whose one workspace setup made", async () => {
-    signInAsAdmin();
-    const calls = stubApi(adminRoutes({ "GET /site/": { name: "Jane", organisation_type: "aspirant" } }));
-    renderApp(<Admin />);
-
-    await screen.findByRole("button", { name: /Logins/ });
-    await vi.waitFor(() => expect(calls.some((c) => c.path === "/site/")).toBe(true));
-    expect(screen.queryByRole("button", { name: "New campaign" })).toBeNull();
   });
 });
 
@@ -337,7 +199,6 @@ describe("the console's health and audit", () => {
     version: "0.1.0",
     migration: { current: "backup_runs", head: "backup_runs", up_to_date: true },
     database: { reachable: true, detail: "", size_bytes: 52428800 },
-    organisation_type: "party",
     services: [
       { key: "email", label: "Email", mode: "practice", configured: false },
       { key: "sms", label: "SMS", mode: "console", configured: false },

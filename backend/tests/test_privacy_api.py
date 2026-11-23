@@ -4,7 +4,6 @@ import uuid
 from datetime import UTC, date, datetime, timedelta
 
 import httpx
-import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,8 +12,6 @@ from backend.models import (
     ContactMethod,
     FieldRole,
     Mobilizer,
-    PartyMember,
-    PartyMemberStatus,
     RegistrationStatus,
     SmsLog,
     Supporter,
@@ -23,11 +20,11 @@ from backend.models import (
     VolunteerProfile,
     VolunteerStatus,
 )
-from backend.models.enums import PartyConsentChannel, PartyRoleName, UserRole
+from backend.models.enums import UserRole
 from backend.services.accounts import add_member
 from backend.services.admin import remove_member
 from tests.conftest import World
-from tests.factories import auth, make_officer, make_user, sign_in
+from tests.factories import make_user
 
 PHONE = "+254711000111"
 
@@ -275,67 +272,21 @@ async def test_supporters_are_erased_only_by_the_explicit_action_after_the_reten
     assert supporter.full_name == "Erased" and supporter.ward_id == world.ward.id
 
 
-@pytest.mark.party_only
-async def test_a_data_request_is_due_by_law_and_each_scope_sees_only_its_own(
-    session: AsyncSession, client: httpx.AsyncClient, world: World
+async def test_a_data_request_is_due_by_law_and_needs_an_answer_before_it_is_done(
+    client: httpx.AsyncClient, world: World
 ) -> None:
-    officer = await make_officer(session, world.ward, PartyRoleName.MEMBERSHIP_OFFICER)
-    party_head = auth(await sign_in(client, officer.username))
+    url = f"/api/campaigns/{world.campaign.id}/data/requests/"
+    head = world.headers("manager")
     asked = {"requester_name": "Mary", "requester_contact": "0711", "received_on": "2026-11-02"}
 
-    access = await client.post(
-        f"/api/campaigns/{world.campaign.id}/data/requests/",
-        headers=world.headers("manager"),
-        json={"kind": "access", **asked},
-    )
-    erasure = await client.post(
-        "/api/party/data-requests/", headers=party_head, json={"kind": "erasure", **asked}
-    )
+    access = await client.post(url, headers=head, json={"kind": "access", **asked})
+    erasure = await client.post(url, headers=head, json={"kind": "erasure", **asked})
     bare = await client.patch(
-        f"/api/party/data-requests/{erasure.json()['id']}/",
-        headers=party_head,
-        json={"status": "done"},
+        f"{url}{erasure.json()['id']}/", headers=head, json={"status": "done"}
     )
-    party_list = (await client.get("/api/party/data-requests/", headers=party_head)).json()
-    workspace_list = (
-        await client.get(
-            f"/api/campaigns/{world.campaign.id}/data/requests/", headers=world.headers("manager")
-        )
-    ).json()
+    listed = (await client.get(url, headers=head)).json()
 
     assert access.json()["due_on"] == str(date(2026, 11, 9))
     assert erasure.json()["due_on"] == str(date(2026, 11, 16))
     assert bare.status_code == 400
-    assert [r["kind"] for r in party_list] == ["erasure"]
-    assert [r["kind"] for r in workspace_list] == ["access"]
-
-
-@pytest.mark.party_only
-async def test_a_withdrawn_party_member_is_erased_and_an_approved_one_is_not(
-    session: AsyncSession, client: httpx.AsyncClient, world: World, organisation_type
-) -> None:
-    officer = await make_officer(session, world.ward, PartyRoleName.MEMBERSHIP_OFFICER)
-    head = auth(await sign_in(client, officer.username))
-    member = PartyMember(
-        full_name="Grace Wambui",
-        phone="+254711000555",
-        email="grace@example.com",
-        ward_id=world.ward.id,
-        status=PartyMemberStatus.APPROVED,
-        consent_wording="I agree.",
-        consent_channel=PartyConsentChannel.OFFICER_ENTRY,
-        consent_at=datetime.now(UTC),
-    )
-    session.add(member)
-    await session.commit()
-
-    approved = await client.post(f"/api/party/members/{member.id}/erase/", headers=head)
-    member.status = PartyMemberStatus.WITHDRAWN
-    await session.commit()
-    erased = await client.post(f"/api/party/members/{member.id}/erase/", headers=head)
-    await session.refresh(member)
-
-    assert approved.status_code == 400
-    assert erased.status_code == 200 and erased.json()["phone"] == ""
-    assert (member.full_name, member.email) == ("Erased", None)
-    assert "555" not in member.phone and member.erased_at is not None
+    assert [r["kind"] for r in listed] == ["access", "erasure"]

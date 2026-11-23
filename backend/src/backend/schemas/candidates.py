@@ -1,18 +1,25 @@
-"""Candidate profiles as the website shows them and the website editor writes them, and the
-volunteers a candidate's page signs up for that candidate's campaign."""
+"""The candidate page as the website shows it and the website editor writes it, and the
+volunteers it signs up for the campaign."""
 
 import uuid
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, Field
 
 from backend.models import ContactMethod, Profession, Seat, VolunteerStatus
-from backend.schemas.common import Erasable, ORMModel, WriteModel, plain_text, trimmed
+from backend.schemas.common import (
+    Erasable,
+    Named,
+    ORMModel,
+    WriteModel,
+    plain_lines,
+    plain_text,
+    trimmed,
+)
 from backend.schemas.content import Image, RichBody
-from backend.schemas.party import MemberPlace, PlainName, VolunteerPart
 from backend.schemas.site import Email
-from backend.schemas.volunteers import VolunteerUpdate
+from backend.schemas.website import PlainName, VolunteerPart
 
 
 class Priority(WriteModel):
@@ -45,16 +52,6 @@ class ProfileRead(BaseModel):
     published: bool = False
 
 
-class CandidateAdminRead(BaseModel):
-    """An approved aspirant for the website editor, with the profile written so far."""
-
-    aspirant_id: uuid.UUID
-    name: str
-    seat: Seat
-    area: str
-    profile: ProfileRead
-
-
 class CandidateCard(BaseModel):
     slug: str
     name: str
@@ -79,19 +76,15 @@ class CandidateDetail(CandidateCard):
     office_phone: str
     office_email: str
     events: list[CandidateEvent]
-    # True when the aspirant has a campaign; the support form shows only then.
+    # True while the page takes volunteers.
     volunteering_open: bool
-    wards: list[MemberPlace]
+    wards: list[Named]
     # The form's consent label; the server records this same text.
     consent_wording: str
 
 
-class PostAspirants(WriteModel):
-    aspirant_ids: Annotated[list[uuid.UUID], Field(max_length=50)]
-
-
 class CandidateVolunteerCreate(VolunteerPart):
-    """The "Support <name>" form: the join's volunteer section plus who and where."""
+    """The volunteer form: how they would like to help, plus who and where."""
 
     first_name: PlainName
     last_name: PlainName
@@ -107,8 +100,8 @@ class CampaignVolunteerRead(Erasable, ORMModel):
     last_name: str
     phone: str
     email: str | None
-    ward: MemberPlace
-    registration_centre: MemberPlace | None
+    ward: Named
+    registration_centre: Named | None
     profession: Profession | None
     profession_other: str
     status: VolunteerStatus
@@ -119,5 +112,8 @@ class CampaignVolunteerRead(Erasable, ORMModel):
     created_at: datetime
 
 
-class CampaignVolunteerUpdate(VolunteerUpdate):
+class CampaignVolunteerUpdate(WriteModel):
     """The manager's change: active or inactive, and notes."""
+
+    status: Literal["active", "inactive"] | None = None
+    availability_notes: plain_lines(2000) | None = None

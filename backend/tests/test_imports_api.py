@@ -1,15 +1,12 @@
 """Boundary and voter register imports from the console, and refreshing targets after them."""
 
 import httpx
-import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import ImportChange, Ward
 from backend.services.imports import BOUNDARY_COLUMNS
 from tests.conftest import World
-
-pytestmark = pytest.mark.party_only
 
 HEADER = ",".join(BOUNDARY_COLUMNS) + "\n"
 ROYSAMBU = "047,Nairobi City,279,Roysambu"

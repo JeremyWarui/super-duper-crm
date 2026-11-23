@@ -10,7 +10,6 @@ from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import Select, false, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from backend.config import get_settings
 from backend.db.session import get_or_refuse
@@ -21,8 +20,6 @@ from backend.models import (
     DataRequestKind,
     DataRequestStatus,
     Mobilizer,
-    PartyMember,
-    PartyMemberStatus,
     RegistrationStatus,
     SmsLog,
     Supporter,
@@ -30,7 +27,6 @@ from backend.models import (
     User,
     VolunteerProfile,
     VolunteerStatus,
-    WorkspaceKind,
 )
 from backend.schemas.privacy import DataRequestCreate, DataRequestUpdate
 from backend.services import texting
@@ -62,7 +58,7 @@ def _audit(
     actor: User,
     kind: str,
     row_id: uuid.UUID,
-    campaign_id: uuid.UUID | None,
+    campaign_id: uuid.UUID,
 ) -> None:
     record(
         session,
@@ -74,14 +70,11 @@ def _audit(
     )
 
 
-async def _forget_texts(session: AsyncSession, campaign_id: uuid.UUID | None, phone: str) -> None:
+async def _forget_texts(session: AsyncSession, campaign_id: uuid.UUID, phone: str) -> None:
     """Blank the number on the texts this register sent; the counts of texts stay."""
     if not phone:
         return
-    where = SmsLog.phone == phone
-    where = where & (
-        SmsLog.campaign_id.is_(None) if campaign_id is None else SmsLog.campaign_id == campaign_id
-    )
+    where = (SmsLog.phone == phone) & (SmsLog.campaign_id == campaign_id)
     await session.execute(
         update(SmsLog).where(where).values(phone="").execution_options(synchronize_session=False)
     )
@@ -91,10 +84,8 @@ async def _forget_login(session: AsyncSession, user_id: uuid.UUID | None) -> Non
     """Blank a login left behind by someone erased; a login still on a campaign is kept."""
     if user_id is None:
         return
-    user = await session.scalar(
-        select(User).where(User.id == user_id).options(selectinload(User.party_roles))
-    )
-    if user is None or user.is_superuser or user.party_roles:
+    user = await session.get(User, user_id)
+    if user is None or user.is_superuser:
         return
     if await session.scalar(select(CampaignMember.id).where(CampaignMember.user_id == user_id)):
         return
@@ -141,29 +132,6 @@ def _blank_volunteer(profile: VolunteerProfile) -> None:
     profile.availability_notes = None
     profile.withdraw_code = None
     profile.erased_at = _now()
-
-
-async def erase_member(session: AsyncSession, member: PartyMember, *, actor: User) -> None:
-    """Blank a withdrawn or rejected party member, their volunteer profile and their account."""
-    refuse_erased(member)
-    if member.status not in (PartyMemberStatus.WITHDRAWN, PartyMemberStatus.REJECTED):
-        raise Refused("Only a withdrawn or rejected member can be erased.")
-    await _forget_texts(session, None, member.phone)
-    profile = await session.scalar(
-        select(VolunteerProfile).where(VolunteerProfile.member_id == member.id)
-    )
-    if profile is not None and profile.erased_at is None:
-        _blank_volunteer(profile)
-    login = await session.scalar(select(User.id).where(User.party_member_id == member.id))
-    member.full_name = ERASED
-    member.first_name = None
-    member.phone = placeholder(member.id)
-    member.email = None
-    member.status_reason = None
-    member.withdraw_code = None
-    member.erased_at = _now()
-    await _forget_login(session, login)
-    _audit(session, actor, "party_member", member.id, None)
 
 
 async def on_team(session: AsyncSession, registration: TeamRegistration) -> bool:
@@ -265,16 +233,11 @@ def due_on(kind: DataRequestKind, received: date) -> date:
     return received + timedelta(days=DUE_DAYS[kind])
 
 
-def requests(campaign_id: uuid.UUID | None) -> Select:
+def requests(campaign_id: uuid.UUID) -> Select:
     """Open requests first, the soonest due on top; then the answered, newest first."""
-    scope = (
-        DataRequest.campaign_id.is_(None)
-        if campaign_id is None
-        else DataRequest.campaign_id == campaign_id
-    )
     return (
         select(DataRequest)
-        .where(scope)
+        .where(DataRequest.campaign_id == campaign_id)
         .order_by(
             (DataRequest.status == DataRequestStatus.DONE).asc(),
             DataRequest.due_on.asc(),
@@ -285,7 +248,7 @@ def requests(campaign_id: uuid.UUID | None) -> Select:
 
 def log_request(
     session: AsyncSession,
-    campaign_id: uuid.UUID | None,
+    campaign_id: uuid.UUID,
     payload: DataRequestCreate,
     *,
     actor: User,
@@ -308,7 +271,7 @@ def log_request(
 
 
 async def find_request(
-    session: AsyncSession, campaign_id: uuid.UUID | None, request_id: uuid.UUID
+    session: AsyncSession, campaign_id: uuid.UUID, request_id: uuid.UUID
 ) -> DataRequest:
     row = await get_or_refuse(
         session, DataRequest, request_id, "request", match={"campaign_id": campaign_id}
@@ -360,8 +323,6 @@ def set_retention(campaign: Campaign, months: int, *, actor: User) -> None:
 
 def close(session: AsyncSession, campaign: Campaign, *, actor: User) -> None:
     """Make the workspace read-only for good."""
-    if campaign.kind is WorkspaceKind.PARTY:
-        raise Refused("The party workspace is never closed.")
     if campaign.closed_at is not None:
         raise Refused("This campaign is already closed.")
     campaign.closed_at = _now()

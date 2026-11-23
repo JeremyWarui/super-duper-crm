@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../src/Gate";
-import { PARTY, renderApp, stubApi } from "./helpers";
+import { SITE, renderApp, stubApi } from "./helpers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -13,8 +13,8 @@ describe("contributing by M-Pesa", () => {
   it("opens with the chip-in amount, shows the Paybill and sends the payer's code", async () => {
     const user = userEvent.setup();
     const calls = stubApi({
-      "GET /site/": { ...PARTY, payment_instructions: "" },
-      "GET /party/posts/": [],
+      "GET /site/": { ...SITE, payment_instructions: "" },
+      "GET /website/posts/": [],
       "GET /pay/options/": { prompt: true, practice: false, paybill: "123456", account: "DONATE", till: "", instructions: "" },
       "POST /pay/contribution/": { status: 201, body: { reference: "pin-2", status: "to_confirm", amount_kes: 500 } },
       "GET /pay/pin-2/": { reference: "pin-2", status: "to_confirm", amount_kes: 500, reason: "", practice: false },

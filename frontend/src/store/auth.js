@@ -19,7 +19,7 @@ export const useAuth = create(
   persist(
     (set) => ({
       token: null,
-      user: null, // { id, username, full_name, role, kind, member_account }
+      user: null, // { id, username, full_name, role }
 
       async login(email, password) {
         const res = await fetch(`${BASE}/auth/login/`, {

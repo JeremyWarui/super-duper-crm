@@ -23,11 +23,10 @@ from backend.db.base import (
     TimestampMixin,
     UUIDPrimaryKeyMixin,
     choice_type,
-    partial_unique,
     require_loaded,
     user_ref,
 )
-from backend.models.enums import OfficeLevel, OperationalGrain, Seat, UserRole, WorkspaceKind
+from backend.models.enums import OfficeLevel, OperationalGrain, Seat, UserRole
 from backend.models.geography import SeatPlaces
 from backend.models.membership import CampaignMember
 from backend.models.user import User
@@ -41,24 +40,20 @@ if TYPE_CHECKING:
     from backend.models.target import Target
 
 
-def _seat_for_level(level: OfficeLevel) -> Seat | None:
-    """The seat a campaign created by area alone is taken to be; none for the national scope."""
+def _seat_for_level(level: OfficeLevel) -> Seat:
+    """The seat a campaign created by area alone is taken to be."""
     return {
         OfficeLevel.WARD: Seat.MCA,
         OfficeLevel.CONSTITUENCY: Seat.MP,
         OfficeLevel.COUNTY: Seat.GOVERNOR,
-    }.get(level)
+    }[level]
 
 
-# Hosted and standalone campaigns need a seat: a CHECK passes on NULL, so it is tested first.
 SEAT_MATCHES_SCOPE = (
-    "(kind = 'party' AND seat IS NULL AND office_level = 'national') "
-    "OR (kind <> 'party' AND seat IS NOT NULL AND ("
     "(seat = 'mca' AND office_level = 'ward') "
     "OR (seat = 'mp' AND office_level = 'constituency') "
-    "OR (seat IN ('governor', 'senator', 'women_rep') AND office_level = 'county')))"
+    "OR (seat IN ('governor', 'senator', 'women_rep') AND office_level = 'county')"
 )
-SINGLE_KINDS = "kind <> 'hosted'"
 
 
 # The attribute naming the area a seat at each office level contests.
@@ -71,23 +66,12 @@ AREA_FIELD = {
 
 class Campaign(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "campaigns"
-    __table_args__ = (
-        CheckConstraint(SEAT_MATCHES_SCOPE, name="seat_matches_scope"),
-        # One party workspace and one standalone workspace at most.
-        partial_unique(
-            "uq_campaigns_one_party_one_standalone",
-            "kind",
-            where=SINGLE_KINDS,
-        ),
-    )
+    __table_args__ = (CheckConstraint(SEAT_MATCHES_SCOPE, name="seat_matches_scope"),)
 
     title: Mapped[str] = mapped_column(String(150))
-    kind: Mapped[WorkspaceKind] = mapped_column(
-        choice_type(WorkspaceKind, "workspace_kind"), default=WorkspaceKind.HOSTED
-    )
     office_level: Mapped[OfficeLevel] = mapped_column(choice_type(OfficeLevel, "office_level"))
-    # The office itself; office_level is the area it is fought over. None for the party.
-    seat: Mapped[Seat | None] = mapped_column(choice_type(Seat, "seat"))
+    # The office itself; office_level is the area it is fought over.
+    seat: Mapped[Seat] = mapped_column(choice_type(Seat, "seat"))
 
     # office_level decides which one of these three applies.
     county_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -161,12 +145,12 @@ class Campaign(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     @property
     def seat_label(self) -> str:
-        """ "MP seat", or "National" for the party workspace, which contests no seat."""
-        return f"{self.seat.label} seat" if self.seat is not None else "National"
+        """ "MP seat"."""
+        return f"{self.seat.label} seat"
 
     @property
     def area(self) -> "County | Constituency | Ward | None":
-        """The county, constituency or ward contested, None nationally; needs it loaded."""
+        """The county, constituency or ward contested; needs it loaded."""
         attribute = AREA_FIELD.get(self.office_level)
         if attribute is None:
             return None

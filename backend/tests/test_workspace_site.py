@@ -1,4 +1,4 @@
-"""The website of an aspirant installation, edited from its workspace under `site.write`."""
+"""The website, edited from the workspace under `site.write`."""
 
 import io
 from pathlib import Path
@@ -10,14 +10,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import get_settings
-from backend.models import AuditEvent, OrganisationType, UserRole
+from backend.models import AuditEvent, UserRole
 from backend.services.accounts import add_member
 from tests.conftest import World
 from tests.factories import auth, make_user, sign_in, site_settings
-
-pytestmark = pytest.mark.parametrize(
-    "organisation_type", [OrganisationType.ASPIRANT], indirect=True
-)
 
 URL = "/api/workspace/site/"
 
@@ -33,7 +29,7 @@ async def _login(
 
 @pytest.fixture
 async def comms(session: AsyncSession, client: httpx.AsyncClient, world: World) -> dict:
-    session.add(site_settings(organisation_type=OrganisationType.ASPIRANT, name="Jane 2027"))
+    session.add(site_settings(name="Jane 2027"))
     await session.commit()
     return await _login(session, client, world, UserRole.COMMS)
 
@@ -51,7 +47,7 @@ async def test_comms_edits_posts_and_hero_slides_and_every_edit_is_audited(
         f"{URL}slides/{slide.json()['id']}/", headers=comms, json={"headline": "Jane for MP"}
     )
     listed = await client.get(f"{URL}posts/", headers=comms)
-    public = await client.get("/api/party/posts/?kind=news")
+    public = await client.get("/api/website/posts/?kind=news")
     removed = await client.delete(f"{URL}posts/{post.json()['id']}/", headers=comms)
     actions = set(await session.scalars(select(AuditEvent.action)))
 
@@ -61,10 +57,10 @@ async def test_comms_edits_posts_and_hero_slides_and_every_edit_is_audited(
     assert [p["title"] for p in public.json()] == ["Town hall"]
     assert removed.status_code == 204
     assert {
-        "party.post.create",
-        "party.post.delete",
-        "party.hero_slide.create",
-        "party.hero_slide.update",
+        "site.post.create",
+        "site.post.delete",
+        "site.hero_slide.create",
+        "site.hero_slide.update",
     } <= actions
 
 
@@ -109,10 +105,8 @@ async def test_a_role_without_site_write_gets_403(
 async def test_the_homepage_shows_the_candidate_page_once_published_and_signs_volunteers_up(
     session: AsyncSession, client: httpx.AsyncClient, world: World, comms: dict
 ) -> None:
-    from backend.models import VolunteerProfile, WorkspaceKind
+    from backend.models import VolunteerProfile
 
-    world.campaign.kind = WorkspaceKind.STANDALONE
-    await session.commit()
     page = {"slogan": "Roysambu first", "bio": "Teacher.", "published": False}
     draft = await client.put(f"{URL}candidate/", headers=comms, json=page)
     hidden = await client.get("/api/site/candidate/")
@@ -158,16 +152,15 @@ async def test_the_news_sign_up_shows_and_records_the_campaigns_wording(
     session: AsyncSession, client: httpx.AsyncClient, comms: dict
 ) -> None:
     from backend.models import Subscriber
-    from backend.services.consent import CAMPAIGN_SUBSCRIBE_WORDING
+    from backend.services.consent import SUBSCRIBE_WORDING
 
     shown = (await client.get("/api/site/")).json()["subscribe_consent_wording"]
-    answer = await client.post(
-        "/api/party/subscribe/", json={"contact": "0712345678", "consent_given": True}
+    await client.post(
+        "/api/website/subscribe/", json={"contact": "0712345678", "consent_given": True}
     )
     recorded = await session.scalar(select(Subscriber.consent_wording))
 
-    assert shown == recorded == CAMPAIGN_SUBSCRIBE_WORDING
-    assert "party" not in (shown + answer.json()["message"]).lower()
+    assert shown == recorded == SUBSCRIBE_WORDING
 
 
 @pytest.fixture

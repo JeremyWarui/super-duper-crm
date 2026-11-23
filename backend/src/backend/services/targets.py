@@ -1,5 +1,4 @@
-"""The wards a seat covers (every ward for the national party workspace), and the vote
-targets built on them; re-running updates in place."""
+"""The wards a seat covers, and the vote targets built on them; re-running updates in place."""
 
 import uuid
 from decimal import Decimal

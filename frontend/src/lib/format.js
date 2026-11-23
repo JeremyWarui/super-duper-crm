@@ -39,15 +39,8 @@ export const initials = (name) =>
 export const formatDay = (value, opts = { day: "numeric", month: "long", year: "numeric" }) =>
   value ? new Date(value.length === 10 ? `${value}T00:00:00+03:00` : value).toLocaleDateString("en-GB", { ...opts, timeZone: "Africa/Nairobi" }) : "";
 
-/** A row's ward, constituency and county names, whichever it has, as "Karen / Langata / Nairobi City". */
-export const placeOf = (row, sep = " / ") =>
-  [row.ward?.name, row.constituency?.name, row.county?.name].filter(Boolean).join(sep);
-
 /** The non-blank lines of `text`, trimmed. */
 export const linesOf = (text) => (text || "").split("\n").map((l) => l.trim()).filter(Boolean);
-
-/** The items of a numbered list, each without its "1." or "1)". */
-export const listItems = (text) => linesOf(text).map((l) => l.replace(/^\d+[.)]\s*/, "")).filter(Boolean);
 
 /** What to call a login: its full name, else its username. */
 export const displayName = (user) => user?.full_name || user?.username || "";

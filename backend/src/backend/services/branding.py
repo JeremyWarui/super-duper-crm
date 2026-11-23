@@ -1,4 +1,4 @@
-"""Contrast of the party's colours against the text set on them."""
+"""Contrast of the site's colours against the text set on them."""
 
 WHITE = "#ffffff"
 INK = "#13201a"

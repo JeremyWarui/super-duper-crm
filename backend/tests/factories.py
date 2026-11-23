@@ -3,8 +3,7 @@
 import re
 import secrets
 import uuid
-import zlib
-from datetime import UTC, date, datetime
+from datetime import date
 
 from sqlalchemy import select
 
@@ -15,12 +14,6 @@ from backend.models import (
     County,
     Mobilizer,
     OfficeLevel,
-    OrganisationType,
-    PartyConsentChannel,
-    PartyMember,
-    PartyMemberStatus,
-    PartyRole,
-    PartyRoleName,
     RegistrationCentre,
     SiteSettings,
     User,
@@ -29,7 +22,6 @@ from backend.models import (
 )
 from backend.security import hash_password
 from backend.services.accounts import add_member
-from backend.services.consent import PARTY_WORDING
 
 # The date every API test runs on.
 TEST_TODAY = date(2026, 11, 1)
@@ -40,10 +32,8 @@ TEST_PASSWORD = secrets.token_urlsafe(16)
 
 
 def site_settings(**fields) -> SiteSettings:
-    """A party installation's site settings row."""
-    return SiteSettings(
-        **{"id": 1, "organisation_type": OrganisationType.PARTY, "name": "Party name", **fields}
-    )
+    """The site settings row."""
+    return SiteSettings(**{"id": 1, "name": "Site name", **fields})
 
 
 def fresh_password() -> str:
@@ -87,25 +77,6 @@ async def make_user(
     session.add(user)
     await session.commit()
     return user
-
-
-async def make_officer(session, ward: Ward, *roles: PartyRoleName, username: str = "ofisa") -> User:
-    """A staff login holding `roles`, linked to its own approved party member."""
-    member = PartyMember(
-        full_name=f"Officer {username}",
-        phone=f"+2547{zlib.crc32(username.encode()) % 100_000_000:08d}",
-        ward_id=ward.id,
-        status=PartyMemberStatus.APPROVED,
-        consent_wording=PARTY_WORDING[PartyConsentChannel.OFFICER_ENTRY],
-        consent_channel=PartyConsentChannel.OFFICER_ENTRY,
-        consent_at=datetime.now(UTC),
-    )
-    session.add(member)
-    await session.flush()
-    officer = await make_user(session, username=username, role=None, party_member_id=member.id)
-    session.add_all(PartyRole(user_id=officer.id, role=role) for role in roles)
-    await session.commit()
-    return officer
 
 
 async def make_campaign(session, ward: Ward, *, office_level=OfficeLevel.WARD) -> Campaign:
@@ -214,17 +185,3 @@ async def claim_link(client, session, email: str, password: str = TEST_PASSWORD)
 
 def auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Token {token}"}
-
-
-def join_details(centre, **overrides) -> dict:
-    """The keyword arguments of `membership.request_join` for an applicant at `centre`."""
-    return {
-        "first_name": "Achieng",
-        "surname": "Otieno",
-        "phone": "+254711222333",
-        "email": "achieng@example.com",
-        "password_hash": "$argon2id$test",
-        "ward_id": centre.ward_id,
-        "registration_centre_id": centre.id,
-        **overrides,
-    }

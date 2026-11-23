@@ -1,5 +1,5 @@
 // County, then constituency, ward and polling station: choosing one clears those below it.
-import { usePartyPlaceLists } from "@/api/hooks";
+import { usePlaceLists } from "@/api/hooks";
 import { FilterSelect } from "@/components/ui/input";
 
 const LEVELS = ["county", "constituency", "ward", "centre"];
@@ -31,7 +31,7 @@ export function PlaceSelects({ place, onChange, lists, level = "ward", blank = (
   ));
 }
 
-/** The party's places down to `level`; takes every prop PlaceSelects does but `lists`. */
+/** The places down to `level`; takes every prop PlaceSelects does but `lists`. */
 export default function PlaceCascade(props) {
-  return <PlaceSelects lists={usePartyPlaceLists(props.place, props.level)} {...props} />;
+  return <PlaceSelects lists={usePlaceLists(props.place, props.level)} {...props} />;
 }

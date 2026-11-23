@@ -140,7 +140,7 @@ def test_the_migrations_render_as_postgres_with_every_table() -> None:
     assert sql.strip().startswith("BEGIN;")
     assert sql.strip().endswith("COMMIT;")
     for table in Base.metadata.tables:
-        assert f"CREATE TABLE {table}" in sql, table
+        assert f"CREATE TABLE {table}" in sql or f"RENAME TO {table}" in sql, table
     assert "ON DELETE CASCADE" in sql
     assert "ON DELETE SET NULL" in sql
 
@@ -180,12 +180,3 @@ def test_a_password_with_a_percent_survives_the_alembic_config(
     config = Config()
     config.set_main_option("sqlalchemy.url", alembic_url())
     assert config.get_main_option("sqlalchemy.url") == dsn
-
-
-def test_the_schema_starts_with_the_one_party_settings_row() -> None:
-    engine = sa.create_engine("sqlite://")
-    with engine.begin() as connection:
-        upgrade_head(connection)
-        ids = connection.execute(sa.text("SELECT id FROM party_settings")).scalars().all()
-    engine.dispose()
-    assert ids == [1]

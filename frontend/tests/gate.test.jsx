@@ -14,8 +14,8 @@ import {
   stubApi,
 } from "./helpers";
 
-const SIGN_IN_LINE = "Use the email and password of your party account.";
-const PARTY_SITE = { "GET /site/": { organisation_type: "party", name: "Umoja Party" } };
+const SIGN_IN_LINE = "Use the email and password of your campaign account.";
+const SITE = { "GET /site/": { name: "Jane for Kasarani" } };
 
 function Where() {
   return <div data-testid="where">{useLocation().pathname}</div>;
@@ -27,7 +27,7 @@ afterEach(() => {
 
 describe("the gate", () => {
   it("asks a signed-out visitor to sign in", async () => {
-    stubApi(PARTY_SITE);
+    stubApi(SITE);
     renderApp(<Root />);
 
     expect(await screen.findByText(SIGN_IN_LINE)).toBeInTheDocument();
@@ -35,18 +35,17 @@ describe("the gate", () => {
 
   it.each([false, true])("shows the public home at /, signed in: %s", async (signedIn) => {
     if (signedIn) signIn("manager");
-    stubApi({ "GET /site/": { name: "Umoja Party", description: "For every ward." } });
+    stubApi(SITE);
     renderApp(<AppRoutes />);
 
-    expect(await screen.findByRole("heading", { name: "Umoja Party" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Coming soon" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: signedIn ? /My account$/ : "Sign in" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: signedIn ? "Sign in" : /My account$/ })).toBeNull();
   });
 
   it.each([
-    [{ role: "manager", is_superuser: false, party_roles: [] }, "/campaign"],
-    [{ role: null, is_superuser: false, party_roles: ["membership_officer"] }, "/party"],
-    [{ role: "manager", is_superuser: true, party_roles: [] }, "/console"],
+    [{ role: "manager", is_superuser: false }, "/campaign"],
+    [{ role: "manager", is_superuser: true }, "/console"],
   ])("sends a signed-in %o from /signin to %s", async (user, home) => {
     signIn(user.role);
     useAuth.setState({ user: { ...useAuth.getState().user, ...user } });
@@ -57,7 +56,7 @@ describe("the gate", () => {
   });
 
   it("sends a signed-out visit to /console to /signin", async () => {
-    stubApi(PARTY_SITE);
+    stubApi(SITE);
     renderApp(<><AppRoutes /><Where /></>, { path: "/console" });
 
     expect(await screen.findByText(SIGN_IN_LINE)).toBeInTheDocument();
@@ -116,7 +115,7 @@ describe("the gate", () => {
   it("keeps the public site settings and drops the staff's site drafts when someone else signs in", () => {
     signIn("manager");
     const { queryClient } = renderApp(<span />);
-    queryClient.setQueryData(["site"], { name: "Umoja Party" });
+    queryClient.setQueryData(["site"], { name: "Jane for Kasarani" });
     queryClient.setQueryData(["site", "posts"], [{ id: "draft" }]);
     const stop = forgetOnSwitch(queryClient);
 
@@ -126,7 +125,7 @@ describe("the gate", () => {
     });
     stop();
 
-    expect(queryClient.getQueryData(["site"])).toEqual({ name: "Umoja Party" });
+    expect(queryClient.getQueryData(["site"])).toEqual({ name: "Jane for Kasarani" });
     expect(queryClient.getQueryData(["site", "posts"])).toBeUndefined();
   });
 

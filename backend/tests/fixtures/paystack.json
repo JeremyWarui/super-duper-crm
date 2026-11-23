@@ -33,7 +33,7 @@
       "amount": 150000,
       "currency": "KES",
       "source": "balance",
-      "reason": "Party payment",
+      "reason": "Campaign payment",
       "recipient": 20317609,
       "status": "success",
       "transfer_code": "TRF_1ptvuv321ahaa7q",
@@ -49,7 +49,7 @@
       "amount": 150000,
       "currency": "KES",
       "source": "balance",
-      "reason": "Party payment",
+      "reason": "Campaign payment",
       "recipient": 20317609,
       "status": "pending",
       "transfer_code": "TRF_v0hd9hxmgsq4qwp",
@@ -76,9 +76,9 @@
       "integration": {
         "id": 463433,
         "is_live": false,
-        "business_name": "Pamoja Party"
+        "business_name": "Jane for Parklands"
       },
-      "reason": "Party payment",
+      "reason": "Campaign payment",
       "reference": "REPLACED_BY_THE_TEST",
       "source": "balance",
       "source_details": null,
@@ -133,9 +133,9 @@
       "integration": {
         "id": 463433,
         "is_live": false,
-        "business_name": "Pamoja Party"
+        "business_name": "Jane for Parklands"
       },
-      "reason": "Party payment",
+      "reason": "Campaign payment",
       "reference": "REPLACED_BY_THE_TEST",
       "source": "balance",
       "source_details": null,

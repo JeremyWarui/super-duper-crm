@@ -28,7 +28,7 @@ export const useAppShell = () => React.useContext(Ctx) as AppContext
 
 /**
  * Shell for signed-in apps. `.app-shell` switches the ground to #F7F7F5 and cards to bordered style.
- * tone="dark" is the party CRM, tone="light" a campaign workspace. The sidebar is 240px on
+ * tone="dark" is the console, tone="light" the campaign workspace. The sidebar is 240px on
  * desktop and a slide-in drawer on phones.
  */
 export function AppLayout({ tone, nav = [], groups, brand, card, footer, topBar, rootLabel, rootPath, eyebrow, title, subtitle, user, onSignOut, tools, slotHeaders, children }: {

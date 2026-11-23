@@ -30,7 +30,7 @@ function Items({ items, dark }: { items: NavItem[]; dark: boolean }) {
 
 /**
  * 240px sidebar; a slide-in drawer on phones.
- * tone="dark": the party console, a flat list on ink.
+ * tone="dark": the console, a flat list on ink.
  * tone="light": a campaign workspace, with a brand, a card, grouped items with icons and a footer.
  */
 export function AppSidebar({ items = [], groups, tone = 'dark', label, title, subtitle, eyebrow, home, open, brand, card, footer }: {

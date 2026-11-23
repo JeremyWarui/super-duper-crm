@@ -1,4 +1,4 @@
-"""The aspirant demo install: one run sets up an empty database with every sign-in working."""
+"""The demo install: one run sets up an empty database with every sign-in working."""
 
 from datetime import date
 
@@ -6,15 +6,10 @@ import httpx
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import OrganisationType
 from backend.seed.demo_aspirant import build_aspirant
 from backend.seed.reference import import_geography
 from backend.services.errors import Refused
 from tests.factories import auth, fresh_password
-
-pytestmark = pytest.mark.parametrize(
-    "organisation_type", [OrganisationType.ASPIRANT], indirect=True
-)
 
 
 async def test_the_aspirant_demo_signs_everyone_in_with_a_published_page(
@@ -36,8 +31,8 @@ async def test_the_aspirant_demo_signs_everyone_in_with_a_published_page(
     assert set(tokens) == {"admin", "candidate", "manager", "mobilizer"}
 
     page = (await client.get("/api/site/candidate/")).json()
-    agenda = (await client.get("/api/party/issues/")).json()
-    slides = (await client.get("/api/party/slides/")).json()
+    agenda = (await client.get("/api/website/issues/")).json()
+    slides = (await client.get("/api/website/slides/")).json()
     assert page["name"] == "David Otieno"
     shared = [(i["title"], i["image_url"]) for i in agenda[:3]]
     assert [(p["title"], p["image_url"]) for p in page["priorities"]] == shared
@@ -49,7 +44,7 @@ async def test_the_aspirant_demo_signs_everyone_in_with_a_published_page(
 
 
 async def test_the_aspirant_demo_refuses_a_database_already_set_up(
-    session: AsyncSession, organisation_type: OrganisationType
+    session: AsyncSession,
 ) -> None:
     await import_geography(session)
     await build_aspirant(session, password=fresh_password(), today=date(2026, 11, 1))

@@ -1,5 +1,5 @@
 """List, add, change and remove routes for website content, shared by the console and the
-aspirant workspace."""
+workspace."""
 
 import uuid
 from typing import Annotated

@@ -6,7 +6,6 @@ from fastapi import APIRouter, Request, status
 from backend.api.deps import SessionDep
 from backend.api.limits import check
 from backend.api.reads import payment_in_read
-from backend.models import PayInPurpose
 from backend.schemas.payments_in import PayContribution, PaymentInRead, PayOptions
 from backend.services import payments_in, site
 from backend.services.ratelimit import RateLimit
@@ -25,20 +24,19 @@ async def options(session: SessionDep) -> PayOptions:
 async def contribute(
     payload: PayContribution, request: Request, session: SessionDep
 ) -> PaymentInRead:
-    """A contribution from the website: to the aspirant's workspace, or to the party."""
+    """A contribution to the campaign from the website."""
     check(STARTS, request, "Too many payments from this device; try later.")
     settings = await site.read_settings(session)
     row = await payments_in.start(
         session,
         site=settings,
-        purpose=PayInPurpose.CONTRIBUTION,
         method=payload.method,
         amount_kes=payload.amount_kes,
         name=payload.name,
         phone=payload.phone,
         email=payload.email,
         mpesa_code=payload.mpesa_code,
-        campaign_id=await payments_in.contribution_campaign(session, settings),
+        campaign_id=await payments_in.contribution_campaign(session),
     )
     return payment_in_read(row)
 

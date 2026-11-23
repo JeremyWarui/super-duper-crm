@@ -1,7 +1,7 @@
 // Paying by M-Pesa: a prompt sent to the payer's phone, or a Paybill or Till payment the payer
-// makes and reports by its code. Used for website contributions and a member's nomination fee.
+// makes and reports by its code. Used for website contributions.
 import { useState } from "react";
-import { useContribute, usePayFee, usePayment, usePayOptions } from "@/api/hooks";
+import { useContribute, usePayment, usePayOptions } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
@@ -71,57 +71,50 @@ function Status({ reference, onRetry, onDone }) {
   );
 }
 
-/**
- * `fee` is the fixed nomination fee in KES; without it the dialog takes a contribution of
- * `amount` or any amount the payer picks.
- */
-export default function PayDialog({ title, fee, amount: preset, phone: knownPhone = "", onClose }) {
+/** A contribution of `amount`, or any amount the payer picks. */
+export default function PayDialog({ title, amount: preset, phone: knownPhone = "", onClose }) {
   const options = usePayOptions().data;
-  const contribute = useContribute();
-  const payFee = usePayFee();
-  const send = fee ? payFee : contribute;
+  const send = useContribute();
   const byHand = !!(options?.paybill || options?.till);
   const [method, setMethod] = useState("stk");
-  const [amount, setAmount] = useState(fee || preset || 1000);
+  const [amount, setAmount] = useState(preset || 1000);
   const [f, , set] = useForm({ name: "", phone: knownPhone, email: "", code: "" });
   const [reference, setReference] = useState(null);
 
   const code = f.code.trim().toUpperCase();
   const ready =
-    amount >= 10 && f.phone.trim().length >= 9 && (fee || f.name.trim().length >= 2) && (method === "stk" || CODE.test(code));
+    amount >= 10 && f.phone.trim().length >= 9 && f.name.trim().length >= 2 && (method === "stk" || CODE.test(code));
   const submit = (e) => {
     e.preventDefault();
     if (!ready) return;
     const body = { method, phone: f.phone.trim(), ...(method === "manual" ? { mpesa_code: code } : {}) };
-    send.mutate(fee ? body : { ...body, amount_kes: Number(amount), name: f.name.trim(), email: f.email.trim() }, {
+    send.mutate({ ...body, amount_kes: Number(amount), name: f.name.trim(), email: f.email.trim() }, {
       onSuccess: (made) => setReference(made.reference),
     });
   };
   const retry = () => { send.reset(); setReference(null); };
 
   return (
-    <Dialog title={title} description={fee ? `Nomination fee: ${formatKES(fee)}` : "Pay by M-Pesa. Every shilling is recorded for the declaration the law requires."} onClose={onClose} className="w-[min(640px,calc(100vw-32px))]">
+    <Dialog title={title} description="Pay by M-Pesa. Every shilling is recorded for the declaration the law requires." onClose={onClose} className="w-[min(640px,calc(100vw-32px))]">
       {!options ? (
         <LoadingText />
       ) : reference ? (
         <Status reference={reference} onRetry={retry} onDone={onClose} />
       ) : (
         <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-          {!fee ? (
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-small font-semibold">Amount</legend>
-              <FilterPills look="tint" label="Amount" options={AMOUNTS.map((a) => [String(a), formatKES(a)])} value={String(amount)} onChange={(a) => setAmount(Number(a))} />
-              <Field label="Or another amount (KES)"><Input type="number" min={10} inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
-            </fieldset>
-          ) : null}
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-2 text-small font-semibold">Amount</legend>
+            <FilterPills look="tint" label="Amount" options={AMOUNTS.map((a) => [String(a), formatKES(a)])} value={String(amount)} onChange={(a) => setAmount(Number(a))} />
+            <Field label="Or another amount (KES)"><Input type="number" min={10} inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
+          </fieldset>
           {byHand ? (
             <FilterPills look="tint" label="How to pay" value={method} onChange={setMethod}
               options={[["stk", "Send a prompt to my phone"], ["manual", `I paid by ${options.paybill ? "Paybill" : "Till"}`]]} />
           ) : null}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {!fee ? <Field label="Your name"><Input value={f.name} onChange={set("name")} autoComplete="name" /></Field> : null}
+            <Field label="Your name"><Input value={f.name} onChange={set("name")} autoComplete="name" /></Field>
             <Field label="M-Pesa phone number"><Input value={f.phone} onChange={set("phone")} inputMode="tel" autoComplete="tel" placeholder="07XX XXX XXX" /></Field>
-            {!fee ? <Field label="Email (optional, for a receipt)"><Input type="email" value={f.email} onChange={set("email")} autoComplete="email" /></Field> : null}
+            <Field label="Email (optional, for a receipt)"><Input type="email" value={f.email} onChange={set("email")} autoComplete="email" /></Field>
           </div>
           {method === "manual" ? (
             <>

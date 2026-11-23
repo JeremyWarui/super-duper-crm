@@ -1,6 +1,5 @@
 // The console's Audit tab: who did what and when, read-only.
 import { rowsOf, useAuditPages } from "@/api/hooks";
-import { useInstall } from "@/app/site";
 import { Card } from "@/components/ui/card";
 import { LoadMore } from "@/components/ui/load-more";
 import { Field, Input } from "@/components/ui/input";
@@ -14,7 +13,6 @@ const BLANK = { action: "", actor: "", since: "", until: "" };
 const detail = (d) => Object.entries(d || {}).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(", ");
 
 export default function AuditTrail() {
-  const { aspirant } = useInstall();
   const [filters, , set] = useForm(BLANK);
   const pages = useAuditPages(filters);
   const { isFetching, isFetchingNextPage, error } = pages;
@@ -39,7 +37,7 @@ export default function AuditTrail() {
               <TR key={e.id}>
                 <TD className="whitespace-nowrap">{formatDateTime(e.created_at)}</TD>
                 <TD>{e.actor_name || "System"}</TD>
-                <TD className="font-semibold">{aspirant ? e.action.replace(/^party\./, "site.") : e.action}</TD>
+                <TD className="font-semibold">{e.action}</TD>
                 <TD className="break-words text-muted-foreground">{detail(e.detail)}</TD>
               </TR>
             ))}

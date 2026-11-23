@@ -8,20 +8,15 @@ from sqlalchemy.orm import selectinload
 
 from backend.db.session import get_or_refuse
 from backend.models import (
-    Aspirant,
     Campaign,
     CampaignMember,
     Event,
     LinkPurpose,
     Mobilizer,
-    PartyMember,
-    PartyRole,
-    PartyRoleName,
     RegistrationCentre,
     Supporter,
     Target,
     User,
-    UserKind,
     UserRole,
 )
 from backend.schemas.admin import (
@@ -63,18 +58,6 @@ async def totals(session: AsyncSession) -> Totals:
             name: await session.scalar(select(func.count()).select_from(model))
             for name, model in tables.items()
         }
-    )
-
-
-async def _login_with_roles(session: AsyncSession, user_id: uuid.UUID) -> User:
-    """The login with its party offices freshly loaded; NotFound when missing."""
-    return await get_or_refuse(
-        session,
-        User,
-        user_id,
-        "user",
-        options=[selectinload(User.party_roles)],
-        populate_existing=True,
     )
 
 
@@ -184,7 +167,6 @@ async def users(
         select(User, Campaign.title)
         .outerjoin(CampaignMember, CampaignMember.user_id == User.id)
         .outerjoin(Campaign, Campaign.id == CampaignMember.campaign_id)
-        .options(selectinload(User.party_roles), selectinload(User.party_member))
         .order_by(User.username, User.id)
         .offset(offset)
         .limit(limit)
@@ -203,13 +185,10 @@ async def users(
             email=login.email,
             phone=login.phone,
             role=login.role,
-            kind=login.kind,
             is_active=login.is_active,
             is_superuser=login.is_superuser,
             last_login_at=login.last_login_at.isoformat() if login.last_login_at else None,
             campaign=title,
-            party_roles=[held.role for held in login.party_roles],
-            party_member=login.party_member,
         )
         for login, title in await session.execute(statement)
     ]
@@ -395,11 +374,7 @@ async def delete_campaign(
 ) -> list[str]:
     """Delete a campaign, everything on it and its people's logins; returns their usernames."""
     await get_or_refuse(session, Campaign, campaign_id, "campaign")
-    aspirant = await session.scalar(select(Aspirant.id).where(Aspirant.campaign_id == campaign_id))
     gone = await remove_campaign(session, campaign_id)
-    detail: dict = {"logins": len(gone)}
-    if aspirant is not None:
-        detail["aspirant"] = str(aspirant)
     record(
         session,
         actor=actor,
@@ -407,7 +382,7 @@ async def delete_campaign(
         subject_type="campaign",
         subject_id=campaign_id,
         campaign_id=campaign_id,
-        detail=detail,
+        detail={"logins": len(gone)},
     )
     await session.commit()
     return gone
@@ -418,19 +393,17 @@ async def build_workspace(
     *,
     aspirant: dict,
     manager: dict | None = None,
-    party_member_id: uuid.UUID | None = None,
     **campaign_fields,
 ) -> tuple[Campaign, SetupSummary, list[tuple[User, str]]]:
     """Build a campaign, its targets and its aspirant's and manager's logins, without committing.
 
-    `party_member_id` links the aspirant's login to their party member. A username clash rolls
-    the session back, so the caller treats any `Refused` as the end of its transaction.
+    A username clash rolls the session back, so the caller treats any `Refused` as the end of its
+    transaction.
     """
     if manager is not None and manager["username"] == aspirant["username"]:
         raise Refused("The aspirant and the manager need different usernames.")
     created, summary = await build_campaign(session, **campaign_fields)
     logins = [await new_invited_login(session, role=UserRole.CANDIDATE, **aspirant)]
-    logins[0][0].party_member_id = party_member_id
     if manager is not None:
         logins.append(await new_invited_login(session, role=UserRole.MANAGER, **manager))
     for login, _ in logins:
@@ -443,7 +416,7 @@ async def create_user(
     *,
     actor: User | None,
     username: str,
-    role: UserRole | None,
+    role: UserRole,
     first_name: str = "",
     last_name: str = "",
     email: str = "",
@@ -452,12 +425,7 @@ async def create_user(
     ward_id: uuid.UUID | None = None,
     centre_id: uuid.UUID | None = None,
 ) -> tuple[User, str]:
-    """Create a login, on a campaign when one is named; returns it and how its invite went out.
-
-    A `role` of None makes a staff login, which stays off every campaign.
-    """
-    if role is None and (campaign_id or ward_id or centre_id):
-        raise Refused("A staff login has no campaign role, so it cannot be put on a campaign.")
+    """Create a login, on a campaign when one is named; returns it and how its invite went out."""
     target = await session.get(Campaign, campaign_id) if campaign_id is not None else None
     if campaign_id is not None and target is None:
         raise Refused("No such campaign.")
@@ -470,9 +438,7 @@ async def create_user(
         await require_ward(session, target, ward_id)
         mobilizer_ward = ward_id
     if role is UserRole.CANDIDATE:
-        raise Refused(
-            "An aspirant gets their login with their workspace, from Aspirants or at setup."
-        )
+        raise Refused("The candidate's login is made at setup.")
 
     try:
         created, invite = await new_invited_login(
@@ -498,90 +464,7 @@ async def create_user(
         subject_type="user",
         subject_id=created.id,
         campaign_id=target.id if target is not None else None,
-        detail={"role": role.value if role else None},
+        detail={"role": role.value},
     )
     await session.commit()
     return created, invite
-
-
-async def grant_party_role(
-    session: AsyncSession, user_id: uuid.UUID, role: PartyRoleName, *, actor: User | None
-) -> None:
-    """Give a staff login a party office."""
-    login = await _login_with_roles(session, user_id)
-    if login.is_superuser:
-        raise Refused("A superuser reaches the party through the console and needs no office.")
-    if login.role is not None:
-        raise Refused(
-            f"{login.username} works on a campaign, and a login is campaign or party, not both. "
-            "Create a staff login for the party office."
-        )
-    if login.kind is UserKind.MEMBER:
-        raise Refused(
-            f"{login.username} is a member's own login. Create a staff login, link it to "
-            "their membership, and give the office to that."
-        )
-    if any(held.role is role for held in login.party_roles):
-        raise Refused(f"{login.username} is already a {role.label}.")
-    member = (
-        await session.get(PartyMember, login.party_member_id) if login.party_member_id else None
-    )
-    if member is None or not member.is_approved:
-        raise Refused(f"Link {login.username} to their approved party member first.")
-    login.party_roles.append(PartyRole(role=role))
-    record(
-        session,
-        actor=actor,
-        action="party_role.grant",
-        subject_type="user",
-        subject_id=login.id,
-        detail={"role": role.value},
-    )
-    await session.commit()
-
-
-async def revoke_party_role(
-    session: AsyncSession, user_id: uuid.UUID, role: PartyRoleName, *, actor: User | None
-) -> None:
-    """Take a party office from a login."""
-    login = await _login_with_roles(session, user_id)
-    held = next((item for item in login.party_roles if item.role is role), None)
-    if held is None:
-        raise NotFound(f"{login.username} is not a {role.label}.")
-    login.party_roles.remove(held)
-    record(
-        session,
-        actor=actor,
-        action="party_role.revoke",
-        subject_type="user",
-        subject_id=login.id,
-        detail={"role": role.value},
-    )
-    await session.commit()
-
-
-async def link_party_member(
-    session: AsyncSession, user_id: uuid.UUID, member_id: uuid.UUID | None, *, actor: User | None
-) -> None:
-    """Link a login to the party member it belongs to, or unlink it.
-
-    An office holder stays linked to an approved member.
-    """
-    login = await _login_with_roles(session, user_id)
-    member = await session.get(PartyMember, member_id) if member_id else None
-    if member_id is not None and member is None:
-        raise NotFound("No such member.")
-    if login.party_roles and (member is None or not member.is_approved):
-        raise Refused(
-            f"{login.username} holds a party office, so it stays linked to an approved member."
-        )
-    login.party_member_id = member_id
-    record(
-        session,
-        actor=actor,
-        action="user.party_member",
-        subject_type="user",
-        subject_id=login.id,
-        detail={"member": str(member_id) if member_id else None},
-    )
-    await session.commit()

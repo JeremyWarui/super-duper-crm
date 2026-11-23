@@ -70,16 +70,7 @@ export function signIn(role = "manager") {
       full_name: "Test User",
       role,
       is_superuser: false,
-      party_roles: [],
     },
-  });
-}
-
-/** A login with no campaign and the given party roles. */
-export function signInAsParty(partyRoles = ["membership_officer"]) {
-  signIn(null);
-  useAuth.setState({
-    user: { ...useAuth.getState().user, username: "officer", full_name: "Mary Officer", party_roles: partyRoles },
   });
 }
 
@@ -326,7 +317,6 @@ export const ADMIN_ORPHAN = {
 export const ADMIN_USERS = [
   {
     id: "u-amina",
-    kind: "campaign",
     username: "amina",
     full_name: "Amina K",
     email: "amina@example.com",
@@ -336,12 +326,9 @@ export const ADMIN_USERS = [
     is_superuser: false,
     last_login_at: "2026-09-10T08:00:00+00:00",
     campaign: "Jane for Roysambu",
-    party_roles: [],
-    party_member: null,
   },
   {
     id: "u-jane",
-    kind: "campaign",
     username: "jane",
     full_name: "Jane W",
     email: "",
@@ -351,12 +338,9 @@ export const ADMIN_USERS = [
     is_superuser: false,
     last_login_at: null,
     campaign: "Jane for Roysambu",
-    party_roles: [],
-    party_member: null,
   },
   {
     id: "root",
-    kind: "staff",
     username: "root",
     full_name: "The Operator",
     email: "",
@@ -366,122 +350,7 @@ export const ADMIN_USERS = [
     is_superuser: true,
     last_login_at: "2026-09-12T09:00:00+00:00",
     campaign: null,
-    party_roles: [],
-    party_member: null,
-  },
-  {
-    id: "u-wafula",
-    kind: "staff",
-    username: "wafula",
-    full_name: "Wafula O",
-    email: "",
-    phone: "",
-    role: null,
-    is_active: true,
-    is_superuser: false,
-    last_login_at: null,
-    campaign: null,
-    party_roles: [],
-    party_member: null,
   },
 ];
 
-// ---- party member register -----------------------------------------------
-export const PARTY = { name: "Pamoja Party", short_name: "PP" };
-
-const PLACE = {
-  ward: { id: "w1", name: "Zimmerman" },
-  constituency: { id: "k1", name: "Roysambu" },
-  county: { id: "n1", name: "Nairobi" },
-};
-
-export const MEMBER = {
-  id: "pm1",
-  full_name: "Achieng Otieno",
-  phone: "+254712345678",
-  email: null,
-  status: "pending",
-  ...PLACE,
-  created_at: "2026-10-01T08:00:00Z",
-};
-
-export const MEMBER_DETAIL = {
-  ...MEMBER,
-  status_reason: null,
-  decided_at: null,
-  consent_channel: "web_form",
-  consent_wording: "I agree that the party may keep my details.",
-  consent_at: "2026-10-01T08:00:00Z",
-};
-
-/** What the members page reads, with the officer's approval answered. */
-export function memberRoutes(overrides = {}) {
-  return {
-    "GET /site/": PARTY,
-    "GET /party/places/": [PLACE.county],
-    "GET /party/members/": { total: 1, items: [MEMBER] },
-    "GET /party/members/pm1/": MEMBER_DETAIL,
-    "POST /party/members/pm1/status/": { ...MEMBER_DETAIL, status: "approved" },
-    ...overrides,
-  };
-}
-
-export const VOLUNTEER = {
-  id: "vp1",
-  member_id: "pm1",
-  full_name: "Achieng Otieno",
-  phone: "+254712345678",
-  ...PLACE,
-  registration_centre: { id: "rc1", name: "Githurai Primary" },
-  profession: "teacher",
-  profession_other: "",
-  status: "interested",
-  interests: ["door_to_door", "fundraising"],
-  interest_other: "",
-  preferred_contact: "sms",
-  availability_notes: null,
-  member_status: "approved",
-  created_at: "2026-10-01T08:00:00Z",
-};
-
-/** What the volunteers page reads, with the officer's activation answered. */
-export function volunteerRoutes(overrides = {}) {
-  return {
-    "GET /site/": PARTY,
-    "GET /party/places/": [PLACE.county],
-    "GET /party/volunteers/": { total: 1, items: [VOLUNTEER] },
-    "PATCH /party/volunteers/vp1/": { ...VOLUNTEER, status: "active" },
-    ...overrides,
-  };
-}
-
-// ---- nominations -----------------------------------------------------------
-
-export const ASPIRANT = {
-  id: "as1",
-  member: { id: "pm1", full_name: "Achieng Otieno", email: "achieng@example.com", ward: { id: "w1", name: "Githurai" } },
-  seat: "mca",
-  area: { level: "ward", id: "w1", name: "Githurai" },
-  status: "approved",
-  status_reason: null,
-  decided_at: "2026-10-20T08:00:00Z",
-  campaign_id: null,
-  created_at: "2026-10-10T08:00:00Z",
-};
-
-/** What the aspirants page reads, with a workspace answered. */
-export function aspirantRoutes(overrides = {}) {
-  return {
-    "GET /site/": PARTY,
-    "GET /party/places/": [PLACE.county],
-    "GET /party/aspirants/": { total: 1, items: [ASPIRANT] },
-    "GET /party/aspirants/as1/": ASPIRANT,
-    "POST /party/aspirants/as1/workspace/": {
-      aspirant: { ...ASPIRANT, campaign_id: "c9" },
-      setup: {},
-      logins: [{ id: "u9", username: "achieng", full_name: "", role: "candidate", invite: "email" }],
-    },
-    ...overrides,
-  };
-}
-
+export const SITE = { name: "Pamoja for Kasarani", short_name: "PK" };

@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 /**
  * status — 12px bold pills used in tables (Verified, Pending, Flagged…)
  * label  — square-ish category box on news ("STATEMENT")
- * kicker — tinted pill above homepage section titles ("FROM THE PARTY")
+ * kicker — tinted pill above homepage section titles ("FROM THE CAMPAIGN")
  */
 const badgeVariants = cva('inline-flex items-center gap-1 whitespace-nowrap font-bold', {
   variants: {

@@ -1,4 +1,4 @@
-"""The party's public content: leaders, news and events, county branches, and news sign-ups."""
+"""The website's content: posts, homepage items, the candidate page, and news sign-ups."""
 
 import uuid
 from datetime import date, datetime
@@ -7,13 +7,11 @@ from sqlalchemy import (
     JSON,
     Boolean,
     CheckConstraint,
-    Column,
     Date,
     ForeignKey,
     Index,
     Integer,
     String,
-    Table,
     Text,
     Uuid,
 )
@@ -25,12 +23,10 @@ from backend.db.base import (
     UUIDPrimaryKeyMixin,
     choice_type,
     file_ref,
-    partial_unique,
     starts_false,
     updated_at_column,
-    user_ref,
 )
-from backend.models.enums import BranchOffice, PostKind, PostLabel, Seat, TermEnd, TermStart
+from backend.models.enums import PostKind, PostLabel
 from backend.models.geography import County
 
 
@@ -43,29 +39,14 @@ class Listed:
     updated_at: Mapped[datetime] = updated_at_column()
 
 
-class PartyLeader(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A leader shown on the public Leadership page once published."""
+class Post(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A news item or an event, shown on the public site once published."""
 
-    __tablename__ = "party_leaders"
-
-    name: Mapped[str] = mapped_column(String(150))
-    position: Mapped[str] = mapped_column(String(150))
-    bio: Mapped[str] = mapped_column(Text, default="")
-    photo_url: Mapped[str] = mapped_column(String(500), default="")
-    photo_file_id: Mapped[uuid.UUID | None] = file_ref()
-    sort_order: Mapped[int] = mapped_column(Integer, default=0)
-    published: Mapped[bool] = mapped_column(Boolean, default=False)
-    updated_at: Mapped[datetime] = updated_at_column()
-
-
-class PartyPost(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A news item or a party event, shown on the public site once published."""
-
-    __tablename__ = "party_posts"
+    __tablename__ = "posts"
     __table_args__ = (
         CheckConstraint("(kind = 'event') = (event_date IS NOT NULL)", name="event_has_date"),
-        Index("ix_party_posts_kind_published_event_date", "kind", "published", "event_date"),
-        Index("ix_party_posts_kind_published_published_on", "kind", "published", "published_on"),
+        Index("ix_posts_kind_published_event_date", "kind", "published", "event_date"),
+        Index("ix_posts_kind_published_published_on", "kind", "published", "published_on"),
     )
 
     kind: Mapped[PostKind] = mapped_column(choice_type(PostKind, "post_kind"))
@@ -93,7 +74,7 @@ class PartyPost(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 class Subscriber(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A phone or email that asked for party news, with the consent it gave."""
+    """A phone or email that asked for news, with the consent it gave."""
 
     __tablename__ = "subscribers"
     __table_args__ = (CheckConstraint("channel IN ('sms', 'email')", name="channel"),)
@@ -103,66 +84,6 @@ class Subscriber(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     consent_wording: Mapped[str] = mapped_column(Text)
     notice_version: Mapped[str] = mapped_column(String(20))
     unsubscribe_code: Mapped[str] = mapped_column(String(32), unique=True)
-
-
-class Branch(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A county's party branch: its office and next meeting, public once published; its officials
-    are `BranchOfficial` rows."""
-
-    __tablename__ = "branches"
-
-    county_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("counties.id", ondelete="CASCADE"), unique=True
-    )
-    office_address: Mapped[str] = mapped_column(String(300), default="", server_default="")
-    phone: Mapped[str] = mapped_column(String(20), default="", server_default="")
-    email: Mapped[str] = mapped_column(String(254), default="", server_default="")
-    next_meeting_on: Mapped[date | None] = mapped_column(Date, default=None)
-    next_meeting_venue: Mapped[str] = mapped_column(String(150), default="", server_default="")
-    published: Mapped[bool] = starts_false()
-    updated_at: Mapped[datetime] = updated_at_column()
-
-    county: Mapped["County"] = relationship(lazy="raise")
-
-
-class BranchOfficial(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A term in a branch office. Current while it has begun and has not ended.
-
-    `holder_name` is kept as it was at appointment, so history reads the same after a member
-    leaves; a row with no member was carried over from the old free-text fields.
-    """
-
-    __tablename__ = "branch_officials"
-    __table_args__ = (
-        CheckConstraint("term_end IS NULL OR term_end >= term_start", name="term_in_order"),
-        # One open-ended term per office; terms with an end date are checked in the service.
-        partial_unique(
-            "uq_branch_officials_open_term",
-            "branch_id",
-            "office",
-            where="term_end IS NULL AND office <> 'other'",
-        ),
-    )
-
-    branch_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("branches.id", ondelete="CASCADE"), index=True
-    )
-    member_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("party_members.id", ondelete="SET NULL"), default=None, index=True
-    )
-    office: Mapped[BranchOffice] = mapped_column(choice_type(BranchOffice, "branch_office", 30))
-    # The office's name when it is "other".
-    title: Mapped[str] = mapped_column(String(80), default="", server_default="")
-    holder_name: Mapped[str] = mapped_column(String(150))
-    term_start: Mapped[date] = mapped_column(Date)
-    term_end: Mapped[date | None] = mapped_column(Date, default=None)
-    start_reason: Mapped[TermStart] = mapped_column(choice_type(TermStart, "term_start_reason"))
-    end_reason: Mapped[TermEnd | None] = mapped_column(
-        choice_type(TermEnd, "term_end_reason"), default=None
-    )
-    minutes_file_id: Mapped[uuid.UUID | None] = file_ref()
-    note: Mapped[str] = mapped_column(Text, default="", server_default="")
-    appointed_by_id: Mapped[uuid.UUID | None] = user_ref()
 
 
 class HeroSlide(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -180,7 +101,7 @@ class HeroSlide(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 class AgendaIssue(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """One issue of the party's agenda, on the homepage and its own page once published."""
+    """One issue of the agenda, on the homepage and its own page once published."""
 
     __tablename__ = "agenda_issues"
 
@@ -191,56 +112,20 @@ class AgendaIssue(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     image_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
 
 
-class PartyDocument(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A party document linked from the About page once published, such as the constitution."""
+class Document(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A document linked from the website once published, such as the manifesto."""
 
-    __tablename__ = "party_documents"
+    __tablename__ = "documents"
 
     title: Mapped[str] = mapped_column(String(150))
     url: Mapped[str] = mapped_column(String(500))
     file_id: Mapped[uuid.UUID | None] = file_ref()
 
 
-class AboutItem(Listed):
-    """A titled line of text on the About page."""
+class Video(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A video in the homepage's Watch row once published; it links out to where it plays."""
 
-    title: Mapped[str] = mapped_column(String(150))
-    text: Mapped[str] = mapped_column(String(300), default="", server_default="")
-
-
-class PartyValue(AboutItem, UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """One of the party's values, under What we believe on the About page once published."""
-
-    __tablename__ = "party_values"
-
-
-class PartyOrgan(AboutItem, UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A party organ, under How the party is run on the About page once published."""
-
-    __tablename__ = "party_organs"
-
-
-class PrimaryResult(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """One candidate's votes in a party primary, on the Results page once published."""
-
-    __tablename__ = "primary_results"
-    __table_args__ = (CheckConstraint("votes >= 0", name="votes_not_negative"),)
-
-    seat: Mapped[Seat] = mapped_column(choice_type(Seat, "seat"))
-    area: Mapped[str] = mapped_column(String(150))
-    candidate: Mapped[str] = mapped_column(String(150))
-    votes: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    declared_on: Mapped[date | None] = mapped_column(Date, nullable=True)
-    # Set by the demo seed; the page then says the results are demo results.
-    demo: Mapped[bool] = starts_false()
-    published: Mapped[bool] = starts_false()
-    updated_at: Mapped[datetime] = updated_at_column()
-
-
-class PartyVideo(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A video in the homepage's Watch row once published; it links out to where it is hosted."""
-
-    __tablename__ = "party_videos"
+    __tablename__ = "videos"
 
     title: Mapped[str] = mapped_column(String(150))
     url: Mapped[str] = mapped_column(String(500))
@@ -249,25 +134,13 @@ class PartyVideo(Listed, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     duration: Mapped[str] = mapped_column(String(8), default="", server_default="")
 
 
-# The aspirants a party event names; it shows on each one's candidate profile.
-party_post_aspirants = Table(
-    "party_post_aspirants",
-    Base.metadata,
-    Column("post_id", Uuid, ForeignKey("party_posts.id", ondelete="CASCADE"), primary_key=True),
-    Column("aspirant_id", Uuid, ForeignKey("aspirants.id", ondelete="CASCADE"), primary_key=True),
-)
-
-
 class CandidateProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A campaign's candidate page on the website; a hosted campaign's names its aspirant."""
+    """The campaign's candidate page, the website's homepage once published."""
 
     __tablename__ = "candidate_profiles"
 
     campaign_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("campaigns.id", ondelete="CASCADE"), unique=True
-    )
-    aspirant_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("aspirants.id", ondelete="CASCADE"), unique=True, default=None
     )
     photo_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
     photo_file_id: Mapped[uuid.UUID | None] = file_ref()

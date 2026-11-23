@@ -1,4 +1,4 @@
-"""Personal data work: requests and erasure for a workspace and the party, and closing a campaign.
+"""Personal data work: requests and erasure for the campaign, and closing it.
 
 Every workspace route here stays open after the campaign closes (`api/deps.py`).
 """
@@ -9,8 +9,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import func, select
 
-from backend.api.deps import MembershipOfficer, SessionDep, require
-from backend.api.install import PartyOnlyRoute
+from backend.api.deps import SessionDep, require
 from backend.api.scope import VisibleCampaign
 from backend.db.session import get_or_refuse
 from backend.models import (
@@ -35,9 +34,6 @@ from backend.services import privacy
 from backend.services.errors import Refused, refuse_erased
 
 router = APIRouter(prefix="/campaigns/{campaign_id}/data", tags=["data protection"])
-office_router = APIRouter(
-    prefix="/party/data-requests", tags=["data protection"], route_class=PartyOnlyRoute
-)
 Manager = Annotated[User, Depends(require("data.manage"))]
 Closer = Annotated[User, Depends(require("campaign.close"))]
 
@@ -197,30 +193,3 @@ async def erase_supporters(session: SessionDep, user: Closer, campaign: VisibleC
     erased = await privacy.erase_supporters(session, campaign, actor=user)
     await session.commit()
     return Erased(erased=erased)
-
-
-# The party's requests, kept by the Membership Officer.
-
-
-@office_router.get("/", response_model=list[DataRequestRead])
-async def party_requests(session: SessionDep, user: MembershipOfficer) -> list:
-    return list(await session.scalars(privacy.requests(None)))
-
-
-@office_router.post("/", response_model=DataRequestRead, status_code=status.HTTP_201_CREATED)
-async def log_party_request(
-    payload: DataRequestCreate, session: SessionDep, user: MembershipOfficer
-) -> DataRequest:
-    row = privacy.log_request(session, None, payload, actor=user)
-    await session.commit()
-    return row
-
-
-@office_router.patch("/{request_id}/", response_model=DataRequestRead)
-async def update_party_request(
-    request_id: uuid.UUID, payload: DataRequestUpdate, session: SessionDep, user: MembershipOfficer
-) -> DataRequest:
-    row = await privacy.find_request(session, None, request_id)
-    privacy.update_request(row, payload, actor=user)
-    await session.commit()
-    return row

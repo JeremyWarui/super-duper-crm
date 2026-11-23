@@ -1,16 +1,12 @@
-// The console's Campaigns tab: each campaign's card, and opening the party's own workspace.
+// The console's Campaigns tab: each campaign's card.
 import { useState } from "react";
-import { isEmail } from "@/lib/email";
-import { isUsername } from "@/lib/username";
-import { useAddMember, useDeleteCampaign, useOpenPartyWorkspace, usePartyWorkspace, useRenameCampaign, useRemoveMember } from "@/api/hooks";
-import { useInstall } from "@/app/site";
+import { useAddMember, useDeleteCampaign, useRenameCampaign, useRemoveMember } from "@/api/hooks";
 import { formatNumber as fmt } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Input, NativeSelect } from "@/components/ui/input";
-import LoginFields from "@/components/LoginFields";
-import { Pill, INLINE, Help, Danger } from "./kit";
+import { Pill, INLINE, Danger } from "./kit";
 
 export function CampaignCard({ campaign, users }) {
   const remove = useRemoveMember();
@@ -22,8 +18,7 @@ export function CampaignCard({ campaign, users }) {
   const [adding, setAdding] = useState(false);
   const [pick, setPick] = useState("");
 
-  // A login belongs to one campaign, so only a login on none is offered, and
-  // staff with no campaign role cannot take a place. A
+  // A login belongs to one campaign, so only a login on none is offered. A
   // superuser reads every campaign through this console, and a disabled login
   // cannot sign in, so neither is offered either.
   const available = users.filter(
@@ -177,66 +172,6 @@ export function CampaignCard({ campaign, users }) {
         ) : (
           <Button size="sm" variant="quiet" onClick={() => setAdding(true)}>Add somebody</Button>
         )}
-      </div>
-    </Card>
-  );
-}
-
-const NO_MANAGER = { username: "", first_name: "", last_name: "", email: "", phone: "" };
-// A party copy's own workspace when setup did not open it; gone once it exists.
-export function OpenPartyWorkspace({ onInvite }) {
-  const { party } = useInstall();
-  const workspace = usePartyWorkspace(party);
-  const replace = Boolean(workspace.data?.id);
-  const [asking, setAsking] = useState(false);
-  const [form, setForm] = useState(NO_MANAGER);
-  const open = useOpenPartyWorkspace({
-    replace,
-    onInvite: (r) => {
-      setAsking(false);
-      setForm(NO_MANAGER);
-      onInvite(r);
-    },
-  });
-  if (!workspace.data) return null;
-  const title = replace ? "Replace Workspace Manager" : "Open the party workspace";
-  const sitting = workspace.data.managers?.join(", ");
-  if (!asking)
-    return (
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Button size="sm" variant="quiet" onClick={() => setAsking(true)}>{title}</Button>
-        {replace && sitting && <span className="text-ui text-muted-foreground">Workspace Manager: {sitting}</span>}
-      </div>
-    );
-  const name = form.username.trim();
-  const ready = isUsername(name) && isEmail(form.email);
-  const submit = () =>
-    open.mutate({
-      manager: {
-        username: name.toLowerCase(),
-        first_name: form.first_name.trim(),
-        last_name: form.last_name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-      },
-    });
-  return (
-    <Card variant="outline" className="gap-3">
-      <CardTitle>{title}</CardTitle>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <LoginFields fields={["username", "first_name", "last_name", "email", "phone"]} form={form} set={(key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
-      </div>
-      <Help>
-        {replace
-          ? `${sitting || "The sitting Workspace Manager"} is turned off and signed out. This person takes over and is emailed a link to choose their password.`
-          : "The party's own national workspace, with every ward as a target. This person is its first Workspace Manager and is emailed a link to choose their password. There is only one party workspace."}
-      </Help>
-      <ErrorText error={open.error} className="text-ui" />
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="primary" loading={open.isPending} disabled={!ready} onClick={submit}>
-          {open.isPending ? (replace ? "Replacing…" : "Opening…") : replace ? "Replace" : "Open it"}
-        </Button>
-        <Button size="sm" variant="quiet" onClick={() => setAsking(false)}>Cancel</Button>
       </div>
     </Card>
   );

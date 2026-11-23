@@ -13,16 +13,14 @@ from backend.models import (
     CandidateProfile,
     Constituency,
     County,
-    OrganisationType,
     SetupToken,
     SiteSettings,
     User,
     Ward,
-    WorkspaceKind,
 )
 from backend.schemas.setup import Area, ServiceState, SetupRequest, SetupResult
 from backend.security import sha256_hex
-from backend.services import geography, oidc, party_workspace, texting, tokens
+from backend.services import geography, oidc, texting, tokens
 from backend.services.accounts import new_login
 from backend.services.admin import build_workspace
 from backend.services.audit import record
@@ -90,15 +88,11 @@ async def areas(
 
 
 async def run(session: AsyncSession, payload: SetupRequest) -> SetupResult:
-    """Spend the token and make the installation: its settings, first superuser and, for an
-    aspirant, the standalone workspace with its candidate page and login; all or nothing."""
+    """Spend the token and make the installation: its settings, first superuser, and the campaign
+    with its candidate page and login; all or nothing."""
     try:
         await _spend(session, payload.token)
-        session.add(
-            SiteSettings(
-                id=1, organisation_type=payload.organisation_type, **payload.site.model_dump()
-            )
-        )
+        session.add(SiteSettings(id=1, **payload.site.model_dump()))
         await session.flush()
         admin, _ = await new_login(
             session,
@@ -110,36 +104,25 @@ async def run(session: AsyncSession, payload: SetupRequest) -> SetupResult:
             last_name=payload.superuser.last_name,
             is_superuser=True,
         )
-        workspace_id, invites = None, []
-        if payload.organisation_type is OrganisationType.ASPIRANT:
-            seat = payload.aspirant
-            campaign, _, logins = await build_workspace(
-                session,
-                aspirant=seat.candidate.model_dump(),
-                title=seat.title,
-                seat=seat.seat,
-                election_date=seat.election_date,
-                county=seat.county,
-                constituency=seat.constituency,
-                ward=seat.ward,
-            )
-            campaign.kind = WorkspaceKind.STANDALONE
-            session.add(CandidateProfile(campaign_id=campaign.id))
-            workspace_id, invites = campaign.id, [invite for _, invite in logins]
-        elif payload.party_workspace is not None:
-            campaign, _, _, invite = await party_workspace.build(
-                session, name=payload.site.name, manager=payload.party_workspace.model_dump()
-            )
-            workspace_id, invites = campaign.id, [invite]
+        seat = payload.campaign
+        campaign, _, logins = await build_workspace(
+            session,
+            aspirant=seat.candidate.model_dump(),
+            title=seat.title,
+            seat=seat.seat,
+            election_date=seat.election_date,
+            county=seat.county,
+            constituency=seat.constituency,
+            ward=seat.ward,
+        )
+        session.add(CandidateProfile(campaign_id=campaign.id))
+        invites = [invite for _, invite in logins]
         record(
             session,
             actor=admin,
             action="setup.completed",
             subject_type="site_settings",
-            detail={
-                "organisation_type": payload.organisation_type.value,
-                "workspace": bool(workspace_id),
-            },
+            detail={"workspace": True},
         )
         await session.commit()
     except IntegrityError:
@@ -149,9 +132,8 @@ async def run(session: AsyncSession, payload: SetupRequest) -> SetupResult:
         await session.rollback()
         raise
     return SetupResult(
-        organisation_type=payload.organisation_type,
         superuser=admin.username,
-        workspace=workspace_id,
+        workspace=campaign.id,
         invites=invites,
         services=services(),
     )

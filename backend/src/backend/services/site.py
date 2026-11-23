@@ -1,4 +1,4 @@
-"""Read and replace the site settings row; the organisation type is read-only here."""
+"""Read and replace the site settings row."""
 
 from datetime import UTC, datetime
 
@@ -7,12 +7,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.session import replace_fields
-from backend.models import OrganisationType, SiteSettings, User
+from backend.models import SiteSettings, User
 from backend.schemas.site import SiteSettingsUpdate
 from backend.services.audit import record
 from backend.services.errors import NotFound
 
-_organisation_type: OrganisationType | None = None
+_set_up = False
 
 
 async def read_settings(session: AsyncSession) -> SiteSettings:
@@ -23,17 +23,14 @@ async def read_settings(session: AsyncSession) -> SiteSettings:
     return row
 
 
-async def organisation_type(session: AsyncSession) -> OrganisationType:
-    """Party or aspirant; read once per process, since setup fixes it for good."""
-    global _organisation_type
-    if _organisation_type is None:
-        value = await session.scalar(
-            select(SiteSettings.organisation_type).where(SiteSettings.id == 1)
+async def is_set_up(session: AsyncSession) -> bool:
+    """Whether setup has written the site settings row; once true, never read again."""
+    global _set_up
+    if not _set_up:
+        _set_up = (
+            await session.scalar(select(SiteSettings.id).where(SiteSettings.id == 1)) is not None
         )
-        if value is None:
-            raise NotFound("The site settings row is missing.")
-        _organisation_type = value
-    return _organisation_type
+    return _set_up
 
 
 async def update_settings(

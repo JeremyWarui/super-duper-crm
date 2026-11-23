@@ -49,7 +49,7 @@ class DeliveryCounts(ORMModel):
 
 
 class SmsDraftRead(BaseModel):
-    """What a campaign or party text shows in its list: who wrote it, who decided, how it went."""
+    """What a text shows in its list: who wrote it, who decided, how it went."""
 
     id: uuid.UUID
     body: str

@@ -1,11 +1,11 @@
-"""M-Pesa payments in: what the payment dialog offers, what it sends, and what it reads back."""
+"""M-Pesa contributions: what the payment dialog offers, what it sends, and what it reads back."""
 
 import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from backend.models.enums import PayInMethod, PayInPurpose, PayInStatus
+from backend.models.enums import PayInMethod, PayInStatus
 from backend.schemas.common import WriteModel
 from backend.schemas.site import Email
 
@@ -22,15 +22,12 @@ class PayOptions(BaseModel):
     instructions: str
 
 
-class PayFee(WriteModel):
+class PayContribution(WriteModel):
     """`mpesa_code` is needed for the manual method only."""
 
     method: PayInMethod
     phone: str = Field(min_length=9, max_length=20)
     mpesa_code: str = Field(default="", max_length=20)
-
-
-class PayContribution(PayFee):
     amount_kes: int
     name: str = Field(min_length=2, max_length=150)
     email: Email = ""
@@ -40,7 +37,6 @@ class PaymentInRead(BaseModel):
     """`reference` reads the payment's status back while the dialog waits."""
 
     reference: str
-    purpose: PayInPurpose
     method: PayInMethod
     status: PayInStatus
     amount_kes: int
@@ -49,7 +45,7 @@ class PaymentInRead(BaseModel):
 
 
 class PaymentInRow(PaymentInRead):
-    """One payment on the office's list."""
+    """One contribution on the campaign's list."""
 
     id: uuid.UUID
     payer_name: str

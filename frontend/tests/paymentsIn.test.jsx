@@ -10,7 +10,7 @@ afterEach(() => {
 });
 
 const ROW = {
-  id: "p1", reference: "pin-1", purpose: "contribution", method: "manual", status: "to_confirm", amount_kes: 500,
+  id: "p1", reference: "pin-1", method: "manual", status: "to_confirm", amount_kes: 500,
   reason: "", practice: false, payer_name: "Wanjiru Kamau", payer_phone: "+254712345678", mpesa_code: "SKL7Q2M9XA",
   created_at: "2026-11-08T08:00:00Z", paid_at: null,
 };

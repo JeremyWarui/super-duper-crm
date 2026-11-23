@@ -398,7 +398,7 @@ export const useCreateUser = () =>
 // ---- the campaign's own team ----------------------------------------------
 export const useTeam = (campaignId) => useFor("team", campaignId, () => api(`/campaigns/${campaignId}/team/`));
 
-// The aspirant adds the manager, or replaces the one there with `replace: true`.
+// The candidate adds the manager, or replaces the one there with `replace: true`.
 export const useSetManager = () =>
   useWrite(
     ({ campaign, ...body }) =>
@@ -466,7 +466,6 @@ export const useSignInOptions = () =>
 
 export const finishGoogle = (handoff, bind) =>
   api("/auth/google/finish/", { method: "POST", body: { handoff, bind }, anonymous: true });
-
 
 // ---- admin console --------------------------------------------------------
 // Only a superuser may call these; every route checks the flag again itself.
@@ -537,7 +536,7 @@ export const useAddMember = () =>
 export const useRemoveMember = () =>
   useWrite(({ campaign, user }) => api(`/admin/campaigns/${campaign}/members/${user}/`, { method: "DELETE" }), "admin");
 
-// ---- site and party settings, party offices --------------------------------
+// ---- site settings ---------------------------------------------------------
 export const useSite = () =>
   useQuery({
     queryKey: ["site"],
@@ -546,272 +545,81 @@ export const useSite = () =>
     retry: (count, error) => error?.code !== "not_set_up" && count < 3,
   });
 
-// The party-only settings, read only in a party installation; the rest are site settings.
-export const useParty = (enabled = true) =>
-  useQuery({ queryKey: ["party"], queryFn: () => api("/party/", { anonymous: true }), enabled });
-
-export const PARTY_FIELDS = ["registration_number", "founded_year", "aspirant_steps"];
-
 // ---- public website content ------------------------------------------------
-export const usePublicLeaders = () =>
-  useQuery({
-    queryKey: ["public-leaders"],
-    queryFn: () => api("/party/leaders/", { anonymous: true }),
-  });
-
 // Published news, newest first, 20 per page from `offset`, optionally one `label`;
 // or events from today on, optionally in one `county`.
 export const usePublicPosts = (kind, offset = 0, { label = "", county = "" } = {}) =>
   useQuery({
     queryKey: ["public-posts", kind, offset, label, county],
-    queryFn: () => api(`/party/posts/?${queryOf({ kind, offset, label, county })}`, { anonymous: true }),
+    queryFn: () => api(`/website/posts/?${queryOf({ kind, offset, label, county })}`, { anonymous: true }),
   });
 
 export const usePublicPost = (id) =>
   useQuery({
     queryKey: ["public-post", id],
-    queryFn: () => api(`/party/posts/${id}/`, { anonymous: true }),
+    queryFn: () => api(`/website/posts/${id}/`, { anonymous: true }),
   });
-
-// The superuser's editing of the site's leaders and posts, drafts included.
-export const useSiteLeaders = () =>
-  useQuery({ queryKey: ["site", "leaders"], queryFn: () => api("/admin/party/leaders/") });
-
-export const useSitePosts = () =>
-  useQuery({ queryKey: ["site", "posts"], queryFn: () => api("/admin/party/posts/") });
-
-// The editor's lists and every public page read.
-const siteOrPublic = ({ queryKey: [key] }) => key === "site" || String(key).startsWith("public-");
-
-function useSiteWrite(mutationFn) {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn, onSettled: () => qc.invalidateQueries({ predicate: siteOrPublic }) });
-}
-
-export const useSaveLeader = () =>
-  useSiteWrite(saveBy(
-    (body) => api("/admin/party/leaders/", { method: "POST", body }),
-    (id, body) => api(`/admin/party/leaders/${id}/`, { method: "PATCH", body }),
-  ));
-
-export const useDeleteLeader = () =>
-  useSiteWrite((id) => api(`/admin/party/leaders/${id}/`, { method: "DELETE" }));
-
-export const useSavePost = () =>
-  useSiteWrite(saveBy(
-    (body) => api("/admin/party/posts/", { method: "POST", body }),
-    (id, body) => api(`/admin/party/posts/${id}/`, { method: "PATCH", body }),
-  ));
-
-export const useDeletePost = () =>
-  useSiteWrite((id) => api(`/admin/party/posts/${id}/`, { method: "DELETE" }));
 
 // The homepage's carousel slides and agenda issues: published ones, or all of them for the editor.
 export const usePublicSlides = () =>
-  useQuery({ queryKey: ["public-slides"], queryFn: () => api("/party/slides/", { anonymous: true }) });
+  useQuery({ queryKey: ["public-slides"], queryFn: () => api("/website/slides/", { anonymous: true }) });
 
 export const usePublicIssues = () =>
-  useQuery({ queryKey: ["public-issues"], queryFn: () => api("/party/issues/", { anonymous: true }) });
+  useQuery({ queryKey: ["public-issues"], queryFn: () => api("/website/issues/", { anonymous: true }) });
 
 export const usePublicIssue = (id) =>
-  useQuery({ queryKey: ["public-issues", id], queryFn: () => api(`/party/issues/${id}/`, { anonymous: true }) });
+  useQuery({ queryKey: ["public-issues", id], queryFn: () => api(`/website/issues/${id}/`, { anonymous: true }) });
 
-export const useSiteSlides = () =>
-  useQuery({ queryKey: ["site", "slides"], queryFn: () => api("/admin/party/slides/") });
-
-export const useSiteIssues = () =>
-  useQuery({ queryKey: ["site", "issues"], queryFn: () => api("/admin/party/issues/") });
-
-export const useSaveSlide = () =>
-  useSiteWrite(saveBy(
-    (body) => api("/admin/party/slides/", { method: "POST", body }),
-    (id, body) => api(`/admin/party/slides/${id}/`, { method: "PATCH", body }),
-  ));
-export const useSaveIssue = () =>
-  useSiteWrite(saveBy(
-    (body) => api("/admin/party/issues/", { method: "POST", body }),
-    (id, body) => api(`/admin/party/issues/${id}/`, { method: "PATCH", body }),
-  ));
-export const useDeleteSlide = () => useSiteWrite((id) => api(`/admin/party/slides/${id}/`, { method: "DELETE" }));
-export const useDeleteIssue = () => useSiteWrite((id) => api(`/admin/party/issues/${id}/`, { method: "DELETE" }));
-
-// Party documents linked from the About page: published ones, or all of them for the editor.
+// Documents on the Media page.
 export const usePublicDocuments = () =>
-  useQuery({ queryKey: ["public-documents"], queryFn: () => api("/party/documents/", { anonymous: true }) });
-
-export const useSiteDocuments = () =>
-  useQuery({ queryKey: ["site", "documents"], queryFn: () => api("/admin/party/documents/") });
-
-export const useSaveDocument = () =>
-  useSiteWrite(saveBy(
-    (body) => api("/admin/party/documents/", { method: "POST", body }),
-    (id, body) => api(`/admin/party/documents/${id}/`, { method: "PATCH", body }),
-  ));
-export const useDeleteDocument = () => useSiteWrite((id) => api(`/admin/party/documents/${id}/`, { method: "DELETE" }));
-
-// The About page's values and party organs, and its member and branch counts.
-export const usePublicValues = () =>
-  useQuery({ queryKey: ["public-values"], queryFn: () => api("/party/values/", { anonymous: true }) });
-
-export const usePublicOrgans = () =>
-  useQuery({ queryKey: ["public-organs"], queryFn: () => api("/party/organs/", { anonymous: true }) });
-
-export const usePartyStats = () =>
-  useQuery({ queryKey: ["party-stats"], queryFn: () => api("/party/stats/", { anonymous: true }) });
-
-export const useSiteValues = () =>
-  useQuery({ queryKey: ["site", "values"], queryFn: () => api("/admin/party/values/") });
-
-export const useSiteOrgans = () =>
-  useQuery({ queryKey: ["site", "organs"], queryFn: () => api("/admin/party/organs/") });
-
-export const useSaveValue = () =>
-  useSiteWrite(saveBy(
-    (body) => api("/admin/party/values/", { method: "POST", body }),
-    (id, body) => api(`/admin/party/values/${id}/`, { method: "PATCH", body }),
-  ));
-export const useSaveOrgan = () =>
-  useSiteWrite(saveBy(
-    (body) => api("/admin/party/organs/", { method: "POST", body }),
-    (id, body) => api(`/admin/party/organs/${id}/`, { method: "PATCH", body }),
-  ));
-export const useDeleteValue = () => useSiteWrite((id) => api(`/admin/party/values/${id}/`, { method: "DELETE" }));
-export const useDeleteOrgan = () => useSiteWrite((id) => api(`/admin/party/organs/${id}/`, { method: "DELETE" }));
+  useQuery({ queryKey: ["public-documents"], queryFn: () => api("/website/documents/", { anonymous: true }) });
 
 // The homepage's Watch row.
 export const usePublicVideos = () =>
-  useQuery({ queryKey: ["public-videos"], queryFn: () => api("/party/videos/", { anonymous: true }) });
-
-export const useSiteVideos = () =>
-  useQuery({ queryKey: ["site", "videos"], queryFn: () => api("/admin/party/videos/") });
-
-export const useSaveVideo = () =>
-  useSiteWrite(saveBy(
-    (body) => api("/admin/party/videos/", { method: "POST", body }),
-    (id, body) => api(`/admin/party/videos/${id}/`, { method: "PATCH", body }),
-  ));
-export const useDeleteVideo = () => useSiteWrite((id) => api(`/admin/party/videos/${id}/`, { method: "DELETE" }));
-
-// Primary results: each row is one candidate's votes in one seat and area.
-export const usePublicResults = () =>
-  useQuery({ queryKey: ["public-results"], queryFn: () => api("/party/results/", { anonymous: true }) });
-
-export const useSiteResults = () =>
-  useQuery({ queryKey: ["site", "results"], queryFn: () => api("/admin/party/results/") });
-
-export const useSaveResult = () =>
-  useSiteWrite(saveBy(
-    (body) => api("/admin/party/results/", { method: "POST", body }),
-    (id, body) => api(`/admin/party/results/${id}/`, { method: "PATCH", body }),
-  ));
-export const useDeleteResult = () => useSiteWrite((id) => api(`/admin/party/results/${id}/`, { method: "DELETE" }));
+  useQuery({ queryKey: ["public-videos"], queryFn: () => api("/website/videos/", { anonymous: true }) });
 
 // Counties, or one county's constituencies, or one constituency's wards.
-export const usePartyPlaces = ({ county, constituency, ward, enabled = true } = {}) =>
+export const usePlaces = ({ county, constituency, ward, enabled = true } = {}) =>
   useQuery({
     // A lookup waiting for its place keys apart, so it never shows the counties.
-    queryKey: ["party-places", county || null, constituency || null, ward || null, enabled],
+    queryKey: ["places", county || null, constituency || null, ward || null, enabled],
     enabled,
     // The server answers for the narrowest place given, so only that one is sent.
-    queryFn: () => api(`/party/places/?${queryOf(ward ? { ward } : constituency ? { constituency } : { county })}`, { anonymous: true }),
+    queryFn: () => api(`/website/places/?${queryOf(ward ? { ward } : constituency ? { constituency } : { county })}`, { anonymous: true }),
     staleTime: Infinity,
   });
 
-/** The party's places down to `level` (county, constituency, ward or centre) for the chosen place, each [] until loaded. */
-export function usePartyPlaceLists({ county, constituency, ward } = {}, level = "ward") {
+/** The places down to `level` (county, constituency, ward or centre) for the chosen place, each [] until loaded. */
+export function usePlaceLists({ county, constituency, ward } = {}, level = "ward") {
   const depth = ["county", "constituency", "ward", "centre"].indexOf(level);
-  const counties = usePartyPlaces().data || [];
-  const constituencies = usePartyPlaces({ county, enabled: depth >= 1 && !!county }).data || [];
-  const wards = usePartyPlaces({ constituency, enabled: depth >= 2 && !!constituency }).data || [];
-  const centres = usePartyPlaces({ ward, enabled: depth >= 3 && !!ward }).data || [];
+  const counties = usePlaces().data || [];
+  const constituencies = usePlaces({ county, enabled: depth >= 1 && !!county }).data || [];
+  const wards = usePlaces({ constituency, enabled: depth >= 2 && !!constituency }).data || [];
+  const centres = usePlaces({ ward, enabled: depth >= 3 && !!ward }).data || [];
   return { counties, constituencies, wards, centres };
 }
-
-// County branches: published ones for the site, every county's for the superuser.
-export const usePublicBranches = () =>
-  useQuery({ queryKey: ["public-branches"], queryFn: () => api("/party/branches/", { anonymous: true }) });
-
-export const usePublicBranch = (countyId) =>
-  useQuery({
-    queryKey: ["public-branches", countyId],
-    queryFn: () => api(`/party/branches/${countyId}/`, { anonymous: true }),
-  });
-
-export const useSaveBranch = () =>
-  useWrite(
-    ({ county, ...payload }) => api(`/admin/party/branches/${county}/`, { method: "PUT", body: payload }),
-    "office-branches", "public-branches",
-  );
-
-// The signed-in member's own account.
-export const useAccount = () => useQuery({ queryKey: ["account"], queryFn: () => api("/account/") });
-
-export const useChangeVolunteering = () =>
-  useReplace((payload) => api("/account/volunteer/", { method: "PUT", body: payload }), ["account"]);
-
-export const useStopVolunteering = () =>
-  useReplace(() => api("/account/volunteer/stop/", { method: "POST" }), ["account"]);
-export const useLeaveParty = () =>
-  useMutation({ mutationFn: () => api("/account/leave/", { method: "POST" }) });
 
 // The footer's news sign-up, its unsubscribe link, and the demo Contribute form.
 export const useSubscribe = () =>
   useMutation({
     mutationFn: (payload) =>
-      api("/party/subscribe/", { method: "POST", body: payload, anonymous: true }),
+      api("/website/subscribe/", { method: "POST", body: payload, anonymous: true }),
   });
 
 export const useUnsubscribe = (code) =>
   useMutation({
     mutationFn: () =>
-      api(`/party/unsubscribe/${encodeURIComponent(code)}/`, { method: "POST", anonymous: true }),
+      api(`/website/unsubscribe/${encodeURIComponent(code)}/`, { method: "POST", anonymous: true }),
   });
 
-export const useJoinParty = () =>
-  useMutation({
-    mutationFn: (payload) =>
-      api("/party/join/", { method: "POST", body: payload, anonymous: true }),
-  });
-
-export function useWithdrawParty(code) {
-  return useMutation({
-    mutationFn: () =>
-      api(`/party/withdraw/${encodeURIComponent(code)}/`, { method: "POST", anonymous: true }),
-  });
-}
-
-export function useWithdrawVolunteer(code) {
-  return useMutation({
-    mutationFn: () =>
-      api(`/party/volunteer/withdraw/${encodeURIComponent(code)}/`, { method: "POST", anonymous: true }),
-  });
-}
-
-// Saves one settings form: the site fields, then, in a party installation, the party-only ones.
-export function useSaveSettings({ party: withParty = true } = {}) {
+// Saves the console's site settings form.
+export function useSaveSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload) => {
-      const party = Object.fromEntries(PARTY_FIELDS.map((key) => [key, payload[key]]));
-      const site = Object.fromEntries(Object.entries(payload).filter(([key]) => !PARTY_FIELDS.includes(key)));
-      const saved = await api("/admin/site/", { method: "PUT", body: site });
-      if (!withParty) return { site: saved };
-      return { site: saved, party: await api("/admin/party/", { method: "PUT", body: party }) };
-    },
-    onSuccess: (data) => {
-      qc.setQueryData(["site"], data.site);
-      if (data.party) qc.setQueryData(["party"], data.party);
-    },
-    // The site half may have saved before the party half failed.
-    onError: () => qc.invalidateQueries({ queryKey: ["site"] }),
+    mutationFn: (payload) => api("/admin/site/", { method: "PUT", body: payload }),
+    onSuccess: (saved) => qc.setQueryData(["site"], saved),
   });
 }
-
-export const useGrantPartyRole = () =>
-  useWrite(({ user, role }) => api(`/admin/users/${user}/party-roles/`, { method: "POST", body: { role } }), "admin");
-
-export const useRevokePartyRole = () =>
-  useWrite(({ user, role }) => api(`/admin/users/${user}/party-roles/${role}/`, { method: "DELETE" }), "admin");
 
 // ---- signed-in login ------------------------------------------------------
 // Refreshes the stored user, so roles changed since sign-in take effect.
@@ -825,71 +633,6 @@ export function useMe() {
   }, [fresh]);
   return query;
 }
-
-// ---- party member register ------------------------------------------------
-// The superuser's party-wide counts; `from` and `to` bound events.
-export const usePartyDashboard = (filters) =>
-  useQuery({
-    queryKey: ["party-dashboard", filters],
-    queryFn: () => api(`/party/dashboard/?${queryOf(filters)}`),
-    placeholderData: keepPreviousData,
-  });
-
-export const usePartyMembers = (filters, enabled = true) =>
-  useQuery({
-    queryKey: ["party-members", filters],
-    queryFn: () => api(`/party/members/?${queryOf(filters)}`),
-    placeholderData: keepPreviousData,
-    enabled,
-  });
-
-/** Members matching `q` and `filters`, asked for only once `q` has two letters: [query, searching]. */
-export function useMemberSearch(q, filters) {
-  const term = q.trim();
-  const searching = term.length >= 2;
-  return [usePartyMembers({ q: term, ...filters }, searching), searching];
-}
-
-export const usePartyMember = (id) => useFor("party-member", id, () => api(`/party/members/${id}/`));
-
-export const useMoveMember = () =>
-  useWrite(
-    ({ id, status, reason }) =>
-      api(`/party/members/${id}/status/`, {
-        method: "POST",
-        body: reason ? { status, reason } : { status },
-      }),
-    "party-members", "party-member",
-  );
-
-export const exportPartyMembers = (filters) =>
-  download(`/party/members/export.csv?${queryOf(filters)}`, "party-members.csv");
-
-// ---- party volunteer register ---------------------------------------------
-export const useUpdateVolunteer = () =>
-  useWrite(
-    ({ id, ...body }) =>
-      api(`/party/volunteers/${id}/`, { method: "PATCH", body }),
-    "party-volunteers",
-  );
-
-export const exportPartyVolunteers = (filters) =>
-  download(`/party/volunteers/export.csv?${queryOf(filters)}`, "party-volunteers.csv");
-
-// ---- nominations ----------------------------------------------------------
-export const useAspirants = (filters) =>
-  useQuery({
-    queryKey: ["aspirants", filters],
-    queryFn: () => api(`/party/aspirants/?${queryOf(filters)}`),
-    placeholderData: keepPreviousData,
-  });
-
-export const usePartyVolunteers = (filters) =>
-  useQuery({
-    queryKey: ["party-volunteers", filters],
-    queryFn: () => api(`/party/volunteers/?${queryOf(filters)}`),
-    placeholderData: keepPreviousData,
-  });
 
 // ---- console lists, loaded 50 rows at a time ---------------------------------
 // Each key starts like its single-page list's, so the same invalidations refresh it.
@@ -919,100 +662,12 @@ export const useAuditPages = ({ action, actor, since, until }) =>
 /** Every row of a paged list loaded so far, in order. */
 export const rowsOf = (pages, read = (page) => page) => (pages?.pages || []).flatMap(read);
 
-export const useAspirant = (id) => useFor("aspirant", id, () => api(`/party/aspirants/${id}/`));
-
-export const useCandidates = (q) =>
-  useQuery({
-    queryKey: ["aspirant-candidates", q],
-    queryFn: () => api(`/party/aspirants/candidates/?q=${encodeURIComponent(q)}`),
-    enabled: q.trim().length >= 2,
-  });
-
-export const useNominate = () =>
-  useWrite(
-    (body) => api("/party/aspirants/", { method: "POST", body }),
-    "aspirants", "aspirant-candidates",
-  );
-
-export const useMoveAspirant = () =>
-  useWrite(
-    ({ id, status, reason }) =>
-      api(`/party/aspirants/${id}/status/`, {
-        method: "POST",
-        body: reason ? { status, reason } : { status },
-      }),
-    "aspirants", "aspirant",
-  );
-
-export const useCreateWorkspace = () =>
-  useWrite(
-    ({ id, ...body }) =>
-      api(`/party/aspirants/${id}/workspace/`, { method: "POST", body }),
-    "aspirants", "aspirant",
-  );
-
-// ---- party console top bar -------------------------------------------------
-export const usePartySearch = (q) =>
-  useQuery({
-    queryKey: ["party-search", q.trim()],
-    enabled: q.trim().length >= 2,
-    queryFn: () => api(`/party/search/?q=${encodeURIComponent(q.trim())}`),
-  });
-
-export const usePartyNotifications = () =>
-  useQuery({
-    queryKey: ["party-notifications"],
-    queryFn: () => api("/party/notifications/"),
-    refetchInterval: 60_000,
-  });
-
-export const useLinkPartyMember = () =>
-  useWrite(({ user, member }) => api(`/admin/users/${user}/party-member/`, { method: "PUT", body: { member } }), "admin");
-
-// Candidates on the website: the directory, one profile, and its "Support" form.
-export const usePublicCandidates = ({ seat = "", county = "", q = "" } = {}) =>
-  useQuery({
-    queryKey: ["public-candidates", seat, county, q],
-    queryFn: () => api(`/candidates/?${queryOf({ seat, county, q })}`, { anonymous: true }),
-  });
-
-export const usePublicCandidate = (slug) =>
-  useQuery({
-    queryKey: ["public-candidates", "one", slug],
-    queryFn: () => api(`/candidates/${slug}/`, { anonymous: true }),
-    enabled: !!slug,
-  });
-
-export const useCandidateVolunteer = (slug) =>
+// ---- the campaign's volunteers ----------------------------------------------
+// The private link that takes a volunteer off the campaign's list.
+export const useVolunteerWithdraw = () =>
   useMutation({
-    mutationFn: (payload) => api(`/candidates/${slug}/volunteer/`, { method: "POST", body: payload, anonymous: true }),
+    mutationFn: (code) => api(`/website/volunteer/withdraw/${code}/`, { method: "POST", anonymous: true }),
   });
-
-export const useCandidateWithdraw = () =>
-  useMutation({
-    mutationFn: (code) => api(`/candidates/volunteer/withdraw/${code}/`, { method: "POST", anonymous: true }),
-  });
-
-// The website editor's candidates: approved aspirants and their profiles, and an event's aspirants.
-export const useSiteCandidates = () =>
-  useQuery({ queryKey: ["site", "candidates"], queryFn: () => api("/admin/party/candidates/") });
-
-export const useSaveProfile = () =>
-  useSiteWrite(({ aspirant_id, ...body }) =>
-    api(`/admin/party/candidates/${aspirant_id}/profile/`, { method: "PUT", body }),
-  );
-
-export const usePostAspirants = (postId) =>
-  useQuery({
-    queryKey: ["site", "post-aspirants", postId],
-    queryFn: () => api(`/admin/party/posts/${postId}/aspirants/`),
-    enabled: !!postId,
-  });
-
-export const useSavePostAspirants = () =>
-  useSiteWrite(({ id, aspirant_ids }) =>
-    api(`/admin/party/posts/${id}/aspirants/`, { method: "PUT", body: { aspirant_ids } }),
-  );
 
 // A campaign's volunteers from its candidate's website page; the manager's list.
 export const useCampaignVolunteers = (campaignId) =>
@@ -1024,8 +679,7 @@ export const useUpdateCampaignVolunteer = (campaignId) =>
     "campaign-volunteers",
   );
 
-
-// ---- an aspirant installation's website ------------------------------------
+// ---- the campaign website ----------------------------------------------------
 export const useSiteCandidate = () =>
   useQuery({
     queryKey: ["site-candidate"],
@@ -1098,39 +752,6 @@ export const useWorkspaceCandidatePage = () =>
 
 export const useSaveWorkspaceCandidatePage = () =>
   useWorkspaceWrite((body) => api("/workspace/site/candidate/", { method: "PUT", body }));
-
-// ---- the party workspace: opening it, and its coordinators' members and link
-// `id` is null until the workspace is opened.
-export const usePartyWorkspace = (enabled) =>
-  useQuery({ queryKey: ["admin", "party-workspace"], queryFn: () => api("/party/workspace/"), enabled });
-
-/** Opens the party workspace, or with `replace` gives it a new Workspace Manager. */
-export function useOpenPartyWorkspace({ onInvite, replace = false } = {}) {
-  const invalidate = useInvalidator();
-  return useMutation({
-    mutationFn: ({ manager }) =>
-      replace
-        ? api("/party/workspace/manager/", { method: "POST", body: { manager } })
-        : api("/party/workspace/", { method: "POST", body: { manager } }),
-    onSuccess: (data) => {
-      onInvite?.(data);
-      return invalidate("admin");
-    },
-  });
-}
-
-export const useAreaMembers = (page) =>
-  useQuery({
-    queryKey: ["area-members", page],
-    queryFn: () => api(`/party/workspace/members/?page=${page}`),
-    placeholderData: keepPreviousData,
-  });
-
-export const useRecruitment = () =>
-  useQuery({ queryKey: ["recruitment"], queryFn: () => api("/party/workspace/recruitment/") });
-
-export const useReplaceRecruitment = () =>
-  useReplace(() => api("/party/workspace/recruitment/", { method: "POST" }), ["recruitment"]);
 
 // ---- team sign-up and agents ------------------------------------------------
 // The public page behind a workspace's team link.
@@ -1243,129 +864,22 @@ export function useTestSend() {
   });
 }
 
-// The party office's branches, for the Membership Officer and the superuser.
-export const useOfficeBranches = () =>
-  useQuery({ queryKey: ["office-branches"], queryFn: () => api("/party/office/branches/") });
-
-// Branch officials: terms in each county branch office.
-export const useBranchOfficials = (countyId) =>
-  useFor("branch-officials", countyId, () => api(`/party/office/branches/${countyId}/officials/`));
-
-export const useAppointOfficial = () =>
-  useWrite(
-    ({ county, ...body }) => api(`/party/office/branches/${county}/officials/`, { method: "POST", body }),
-    "branch-officials", "office-branches", "public-branches",
-  );
-
-export const useEndTerm = () =>
-  useWrite(
-    ({ id, ...body }) => api(`/party/office/officials/${id}/end/`, { method: "POST", body }),
-    "branch-officials", "office-branches", "public-branches",
-  );
-
-export const useUploadMinutes = () => useMutation({ mutationFn: (file) => upload("/party/office/minutes/", file) });
-// A public site image, sent to the party's file store or to an aspirant workspace's.
+// A public site image, sent to the workspace's file store.
 export const useUploadImage = (path) => useMutation({ mutationFn: ({ file, area }) => upload(path, file, { area }) });
 
-// Applying to vie: the published timetable, a member's own application, and the officer's side.
-export const useNominationNotice = () =>
-  useQuery({ queryKey: ["nominations", "current"], queryFn: () => api("/party/nominations/current/") });
-
-export const useMyNomination = () =>
-  useQuery({ queryKey: ["nominations", "mine"], queryFn: () => api("/party/nominations/mine/") });
-
-const useMine = (mutationFn) => useReplace(mutationFn, ["nominations", "mine"]);
-
-export const useApplyToVie = () => useMine((seat) => api("/party/nominations/mine/", { method: "POST", body: { seat } }));
-export const useAttachNominationDocument = () =>
-  useMine(({ file, label }) => upload("/party/nominations/mine/documents/", file, { label }));
-export const useDetachNominationDocument = () =>
-  useWrite(
-    (id) => api(`/party/nominations/mine/documents/${id}/`, { method: "DELETE" }),
-    "nominations",
-  );
-export const useSubmitNomination = () =>
-  useMine(() => api("/party/nominations/mine/submit/", { method: "POST", body: { declaration: true } }));
-export const useWithdrawNomination = () => useMine(() => api("/party/nominations/mine/withdraw/", { method: "POST" }));
-
-export const useNominationWindows = () =>
-  useQuery({ queryKey: ["nominations", "windows"], queryFn: () => api("/party/nominations/windows/") });
-
-export const useDraftNominationWindow = () =>
-  useWrite(
-    (body) => api("/party/nominations/windows/", { method: "POST", body }),
-    "nominations",
-  );
-
-export const useReviseNominationWindow = () =>
-  useWrite(
-    ({ id, body }) => api(`/party/nominations/windows/${id}/`, { method: "PUT", body }),
-    "nominations",
-  );
-
-export const usePublishNominationWindow = () =>
-  useWrite(
-    (id) => api(`/party/nominations/windows/${id}/publish/`, { method: "POST" }),
-    "nominations",
-  );
-
-export const useMarkNominationFeePaid = () =>
-  useWrite(
-    ({ id, reference }) => api(`/party/nominations/applications/${id}/fee/`, { method: "POST", body: { reference } }),
-    "aspirants", "aspirant",
-  );
-
-// A hosted workspace's party feed and what it shares; the party's view of those counts.
-export const usePartyFeed = (campaignId) => useFor("party-feed", campaignId, () => api(`/party-feed/?campaign=${campaignId}`));
-
-export const useChangeSharing = (campaignId) =>
-  useWrite(
-    (body) => api(`/party-feed/sharing/?campaign=${campaignId}`, { method: "PUT", body }),
-    "party-feed",
-  );
-
-export const usePartyShared = () => useQuery({ queryKey: ["party-shared"], queryFn: () => api("/party/shared/") });
-
-// The party office's texts to members and volunteers.
-export const usePartyMessages = () => useQuery({ queryKey: ["party-messages"], queryFn: () => api("/party/messages/") });
-
-export const usePartyMessageReach = ({ audience, county, constituency, ward }) =>
-  useQuery({
-    queryKey: ["party-messages", "reach", audience, county, constituency, ward],
-    queryFn: () => api("/party/messages/preview/", { method: "POST", body: { audience, county, constituency, ward } }),
-    placeholderData: (previous) => previous,
-  });
-
-export const useDraftPartyMessage = () =>
-  useWrite(({ audience, county, constituency, ward, body }) => api("/party/messages/", { method: "POST", body: { audience, county, constituency, ward, body } }), "party-messages");
-export const useSendPartyMessage = () => useWrite((id) => api(`/party/messages/${id}/send/`, { method: "POST" }), "party-messages");
-export const useDeclinePartyMessage = () =>
-  useWrite(({ id, note }) => api(`/party/messages/${id}/decline/`, { method: "POST", body: { note } }), "party-messages");
-
 // ---- personal data: requests, erasure, withdrawal links, closing ------------
-// `campaignId` undefined is the party's own requests (Membership Officer).
 export const useDataRequests = (campaignId) =>
-  useQuery({
-    queryKey: ["data-requests", campaignId ?? "party"],
-    queryFn: () => (campaignId ? api(`/campaigns/${campaignId}/data/requests/`) : api("/party/data-requests/")),
-  });
-
+  useFor("data-requests", campaignId, () => api(`/campaigns/${campaignId}/data/requests/`));
 
 export const useLogDataRequest = (campaignId) =>
   useWrite(
-    (body) =>
-      campaignId
-        ? api(`/campaigns/${campaignId}/data/requests/`, { method: "POST", body })
-        : api("/party/data-requests/", { method: "POST", body }),
+    (body) => api(`/campaigns/${campaignId}/data/requests/`, { method: "POST", body }),
     "data-requests",
   );
 
 export const useUpdateDataRequest = (campaignId) =>
   useWrite(
-    ({ id, ...body }) =>
-      campaignId
-        ? api(`/campaigns/${campaignId}/data/requests/${id}/`, { method: "PATCH", body })
-        : api(`/party/data-requests/${id}/`, { method: "PATCH", body }),
+    ({ id, ...body }) => api(`/campaigns/${campaignId}/data/requests/${id}/`, { method: "PATCH", body }),
     "data-requests",
   );
 
@@ -1402,25 +916,13 @@ export const useCloseCampaign = (campaignId) =>
 export const useEraseSupporters = (campaignId) =>
   useWrite(() => api(`/campaigns/${campaignId}/data/erase-supporters/`, { method: "POST" }), "data-close", "supporters");
 
-export const useEraseMember = () =>
-  useWrite((id) => api(`/party/members/${id}/erase/`, { method: "POST" }), "party-members", "party-member", "party-volunteers");
-
-export const useErasePartyVolunteer = () =>
-  useWrite((id) => api(`/party/volunteers/${id}/erase/`, { method: "POST" }), "party-volunteers");
-
-// ---- paying in by M-Pesa: the dialog's options, a contribution, a member's fee, and a
+// ---- paying in by M-Pesa: the dialog's options, a contribution, and a
 // payment's status while the dialog waits.
 export const usePayOptions = () =>
   useQuery({ queryKey: ["pay-options"], queryFn: () => api("/pay/options/", { anonymous: true }) });
 
 export const useContribute = () =>
   useMutation({ mutationFn: (body) => api("/pay/contribution/", { method: "POST", body, anonymous: true }) });
-
-export const usePayFee = () =>
-  useWrite(
-    (body) => api("/party/nominations/mine/pay/", { method: "POST", body }),
-    "nominations",
-  );
 
 /** Polls every 3 seconds while the payment waits for the phone. */
 export const usePayment = (reference) =>
@@ -1431,27 +933,18 @@ export const usePayment = (reference) =>
     refetchInterval: (query) => (query.state.data?.status === "pending" ? 3000 : false),
   });
 
-// The office's list of money paid in: a workspace's (`campaignId`) or, without one, the party's.
+// The campaign's list of money paid in.
 export const usePaymentsIn = (campaignId, status) =>
   useQuery({
-    queryKey: ["payments-in", campaignId || "party", status],
-    queryFn: () =>
-      campaignId
-        ? api(`/campaigns/${campaignId}/payments-in/?status=${status}`)
-        : api(`/party/payments-in/?status=${status}`),
+    queryKey: ["payments-in", campaignId, status],
+    queryFn: () => api(`/campaigns/${campaignId}/payments-in/?status=${status}`),
   });
 
 export const useDecidePaymentIn = (campaignId) =>
   useWrite(
-    ({ id, reason }) => {
-      if (campaignId) {
-        return reason === undefined
-          ? api(`/campaigns/${campaignId}/payments-in/${id}/confirm/`, { method: "POST" })
-          : api(`/campaigns/${campaignId}/payments-in/${id}/reject/`, { method: "POST", body: { reason } });
-      }
-      return reason === undefined
-        ? api(`/party/payments-in/${id}/confirm/`, { method: "POST" })
-        : api(`/party/payments-in/${id}/reject/`, { method: "POST", body: { reason } });
-    },
-    "payments-in", "nominations", "aspirants", "aspirant",
+    ({ id, reason }) =>
+      reason === undefined
+        ? api(`/campaigns/${campaignId}/payments-in/${id}/confirm/`, { method: "POST" })
+        : api(`/campaigns/${campaignId}/payments-in/${id}/reject/`, { method: "POST", body: { reason } }),
+    "payments-in",
   );

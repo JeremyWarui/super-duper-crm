@@ -9,32 +9,29 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_organisation_type
+from backend.api.deps import get_set_up
 from backend.main import app
-from backend.models import AuditEvent, Campaign, CandidateProfile, SiteSettings, User, WorkspaceKind
+from backend.models import AuditEvent, Campaign, CandidateProfile, SiteSettings, User
 from backend.services import setup, site
 from tests.conftest import app_client
 from tests.factories import fresh_password, make_geography
-
-pytestmark = pytest.mark.party_only
 
 
 @pytest.fixture
 async def bare(session: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
     """The app reading its real state: no site settings until setup makes them."""
-    site._organisation_type = None
+    site._set_up = False
     try:
         async with app_client(session) as client:
-            del app.dependency_overrides[get_organisation_type]
+            del app.dependency_overrides[get_set_up]
             yield client
     finally:
-        site._organisation_type = None
+        site._set_up = False
 
 
 def _request(token: str, ward_id, **changes) -> dict:
     body = {
         "token": token,
-        "organisation_type": "aspirant",
         "site": {
             "name": "Jane for Parklands",
             "primary_colour": "#0B5D3B",
@@ -45,7 +42,7 @@ def _request(token: str, ward_id, **changes) -> dict:
             "email": "owner@example.com",
             "password": fresh_password(),
         },
-        "aspirant": {
+        "campaign": {
             "title": "Jane for Parklands",
             "seat": "mca",
             "ward": str(ward_id),
@@ -86,7 +83,7 @@ async def test_a_wrong_or_replaced_token_is_refused(
     assert (await bare.post("/api/setup/check/", json={"token": second})).status_code == 204
 
 
-async def test_the_aspirant_path_makes_one_standalone_workspace_and_the_candidate_login(
+async def test_setup_makes_one_campaign_and_the_candidate_login(
     bare: httpx.AsyncClient, session: AsyncSession
 ) -> None:
     *_, ward, _ = await make_geography(session)
@@ -96,13 +93,12 @@ async def test_the_aspirant_path_makes_one_standalone_workspace_and_the_candidat
 
     assert answer.status_code == 201, answer.text
     assert answer.json()["invites"] == ["email"]
-    workspaces = (await session.scalars(select(Campaign))).all()
-    assert [w.kind for w in workspaces] == [WorkspaceKind.STANDALONE]
+    workspaces = (await session.scalars(select(Campaign.title))).all()
+    assert workspaces == ["Jane for Parklands"]
     assert await session.scalar(select(func.count(CandidateProfile.id))) == 1
     jane = await session.scalar(select(User).where(User.username == "jane"))
     owner = await session.scalar(select(User).where(User.username == "owner"))
     assert (jane.role.value, owner.is_superuser) == ("candidate", True)
-    assert (await session.get(SiteSettings, 1)).organisation_type.value == "aspirant"
     assert await session.scalar(select(AuditEvent.id).where(AuditEvent.action == "setup.completed"))
     assert (await bare.get("/api/site/")).status_code == 200
 
@@ -128,7 +124,7 @@ async def test_a_refused_setup_writes_nothing_and_keeps_the_token(
     *_, ward, _ = await make_geography(session)
     token = await setup.new_token(session)
     clash = _request(token, ward.id)
-    clash["aspirant"]["candidate"]["username"] = "owner"
+    clash["campaign"]["candidate"]["username"] = "owner"
 
     answer = await bare.post("/api/setup/", json=clash)
 

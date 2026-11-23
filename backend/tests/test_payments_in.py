@@ -1,5 +1,5 @@
-"""Paying in by M-Pesa: a prompt (practice, or Paystack with its webhook) or a Paybill code the
-office confirms; nomination fees and website contributions."""
+"""Contributing by M-Pesa: a prompt (practice, or Paystack with its webhook) or a Paybill code
+the campaign confirms."""
 
 import hashlib
 import hmac
@@ -12,30 +12,23 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import (
-    Aspirant,
-    PartyRoleName,
     PayInMethod,
-    PayInPurpose,
     PayInStatus,
     PaymentIn,
-    WorkspaceKind,
 )
 from backend.services import payments_in
 from backend.services.payments_in import PaystackPayIns
 from tests.conftest import World
-from tests.factories import auth, make_officer, sign_in, site_settings
+from tests.factories import site_settings
 
 CONTRIBUTE = "/api/pay/contribution/"
-WINDOWS = "/api/party/nominations/windows/"
-MINE = "/api/party/nominations/mine/"
 GIFT = {"amount_kes": 500, "name": "Wanjiru Kamau", "phone": "0712 345678"}
 
 
 @pytest.fixture
-async def site(session: AsyncSession, organisation_type) -> None:
+async def site(session: AsyncSession) -> None:
     session.add(
         site_settings(
-            organisation_type=organisation_type,
             contact_email="office@example.com",
             mpesa_paybill="123456",
             mpesa_account="DONATE",
@@ -78,9 +71,8 @@ async def _webhook(client: httpx.AsyncClient, key: str, data: dict) -> httpx.Res
     )
 
 
-@pytest.mark.party_only
-async def test_a_practice_prompt_pays_a_party_contribution_at_once(
-    client: httpx.AsyncClient, session: AsyncSession, site: None
+async def test_a_practice_prompt_pays_a_contribution_to_the_campaign_at_once(
+    client: httpx.AsyncClient, session: AsyncSession, world: World, site: None
 ) -> None:
     made = await client.post(CONTRIBUTE, json={**GIFT, "method": "stk"})
     seen = await client.get(f"/api/pay/{made.json()['reference']}/")
@@ -88,23 +80,13 @@ async def test_a_practice_prompt_pays_a_party_contribution_at_once(
     assert made.status_code == 201, made.text
     assert (seen.json()["status"], seen.json()["practice"]) == ("paid", True)
     row = await session.scalar(select(PaymentIn))
-    assert (row.campaign_id, row.payer_phone, row.amount_kes) == (None, "+254712345678", 500)
+    assert (row.campaign_id, row.payer_phone, row.amount_kes) == (
+        world.campaign.id,
+        "+254712345678",
+        500,
+    )
 
 
-async def test_an_aspirant_site_contribution_belongs_to_its_workspace(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, site: None, organisation_type
-) -> None:
-    world.campaign.kind = WorkspaceKind.STANDALONE
-    await session.commit()
-
-    await client.post(CONTRIBUTE, json={**GIFT, "method": "stk"})
-
-    row = await session.scalar(select(PaymentIn))
-    expected = world.campaign.id if organisation_type.value == "aspirant" else None
-    assert row.campaign_id == expected
-
-
-@pytest.mark.party_only
 async def test_a_paybill_code_waits_for_the_office_and_is_taken_once(
     client: httpx.AsyncClient, site: None
 ) -> None:
@@ -121,7 +103,6 @@ async def test_a_paybill_code_waits_for_the_office_and_is_taken_once(
     assert "10 letters and numbers" in bad.json()["detail"]
 
 
-@pytest.mark.party_only
 async def test_only_a_signed_matching_paystack_charge_marks_a_prompt_paid(
     client: httpx.AsyncClient, session: AsyncSession, site: None, paystack
 ) -> None:
@@ -151,7 +132,6 @@ async def test_only_a_signed_matching_paystack_charge_marks_a_prompt_paid(
     assert (row.status, row.mpesa_code) == (PayInStatus.PAID, "SKL7Q2M9XA")
 
 
-@pytest.mark.party_only
 async def test_a_paystack_charge_for_the_wrong_amount_fails_the_payment(
     client: httpx.AsyncClient, session: AsyncSession, site: None, paystack
 ) -> None:
@@ -171,51 +151,11 @@ async def test_a_paystack_charge_for_the_wrong_amount_fails_the_payment(
     )
 
 
-@pytest.mark.party_only
-async def test_a_member_pays_their_own_fee_by_code_and_the_office_confirming_it_marks_it_paid(
-    client: httpx.AsyncClient,
-    session: AsyncSession,
-    world: World,
-    site: None,
-    admin_headers: dict,
-) -> None:
-    await make_officer(session, world.ward, PartyRoleName.NOMINATIONS_OFFICER, username="teuzi")
-    officer = auth(await sign_in(client, "teuzi"))
-    await make_officer(session, world.ward, username="mwanachama")
-    member = auth(await sign_in(client, "mwanachama"))
-    timetable = {
-        "title": "Nominations 2027",
-        "opens_on": "2026-10-25",
-        "closes_on": "2026-11-10",
-        "requirements": "",
-        "seats": [{"seat": "mca", "fee_kes": 5000}],
-    }
-    drafted = (await client.post(WINDOWS, json=timetable, headers=officer)).json()
-    await client.post(f"{WINDOWS}{drafted['id']}/publish/", headers=admin_headers)
-    await client.post(MINE, json={"seat": "mca"}, headers=member)
-
-    paid = await client.post(
-        f"{MINE}pay/",
-        json={"method": "manual", "phone": "0712345678", "mpesa_code": "SKL7Q2M9XA"},
-        headers=member,
-    )
-    waiting = (await client.get(MINE, headers=member)).json()["application"]
-    row = await session.scalar(select(PaymentIn))
-    await payments_in.confirm(session, row, actor=world.manager)
-    aspirant = await session.scalar(select(Aspirant).execution_options(populate_existing=True))
-
-    assert paid.status_code == 201, paid.text
-    fee = (paid.json()["amount_kes"], waiting["fee_waiting"], waiting["fee_paid"])
-    assert fee == (5000, True, False)
-    assert (aspirant.fee_reference, aspirant.fee_paid_at is not None) == ("SKL7Q2M9XA", True)
-
-
 async def test_a_workspace_confirms_or_rejects_the_codes_of_its_contributions(
     client: httpx.AsyncClient, session: AsyncSession, world: World, site: None
 ) -> None:
     def gift(code: str) -> PaymentIn:
         return PaymentIn(
-            purpose=PayInPurpose.CONTRIBUTION,
             method=PayInMethod.MANUAL,
             status=PayInStatus.TO_CONFIRM,
             campaign_id=world.campaign.id,
@@ -244,18 +184,3 @@ async def test_a_workspace_confirms_or_rejects_the_codes_of_its_contributions(
     assert hidden.status_code == 403
     assert {p["mpesa_code"] for p in waiting.json()} == {"SKL7Q2M9XA", "SKL7Q2M9XB"}
     assert (confirmed.json()["status"], rejected.json()["status"]) == ("paid", "rejected")
-
-
-@pytest.mark.party_only
-async def test_a_nominations_officer_sees_the_party_s_fees_but_not_its_contributions(
-    client: httpx.AsyncClient, session: AsyncSession, world: World, site: None, admin_headers: dict
-) -> None:
-    await make_officer(session, world.ward, PartyRoleName.NOMINATIONS_OFFICER, username="teuzi")
-    officer = auth(await sign_in(client, "teuzi"))
-    await client.post(CONTRIBUTE, json={**GIFT, "method": "manual", "mpesa_code": "SKL7Q2M9XC"})
-
-    seen_by_officer = await client.get("/api/party/payments-in/", headers=officer)
-    seen_by_admin = await client.get("/api/party/payments-in/", headers=admin_headers)
-
-    assert seen_by_officer.json() == []
-    assert [p["purpose"] for p in seen_by_admin.json()] == ["contribution"]

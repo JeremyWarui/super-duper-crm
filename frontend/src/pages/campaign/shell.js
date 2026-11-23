@@ -2,7 +2,7 @@
 // and what needs the role now.
 import { createContext, useContext, useMemo } from "react";
 import {
-  Banknote, CalendarDays, Flag, ClipboardCheck, ClipboardList, Contact, Crosshair, Globe, HandHeart, Heart, LayoutDashboard, LockKeyhole, Map, MapPin, MessageCircle, QrCode,
+  Banknote, CalendarDays, ClipboardCheck, ClipboardList, Crosshair, Globe, HandHeart, Heart, LayoutDashboard, LockKeyhole, Map, MapPin, MessageCircle,
   Settings, ShieldCheck, Target, UserPlus, UserRoundCog, Users,
 } from "lucide-react";
 import { useEvents, useMobilizers, useStrategy } from "@/api/hooks";
@@ -27,14 +27,11 @@ export const ICONS = {
   mypayments: Banknote,
   website: Globe,
   settings: Settings,
-  recruitment: QrCode,
-  members: Contact,
   signups: ClipboardCheck,
   agents: ShieldCheck,
   mycentre: MapPin,
   assignments: ClipboardList,
   messages: MessageCircle,
-  party: Flag,
   privacy: LockKeyhole,
 };
 

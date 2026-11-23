@@ -35,19 +35,17 @@ describe("first-run setup", () => {
     expect(screen.queryByRole("list", { name: "Steps" })).toBeNull();
   });
 
-  it("sets up an aspirant installation with its seat and candidate in one request", async () => {
+  it("sets up the campaign with its seat and candidate in one request", async () => {
     const user = userEvent.setup();
     const password = fakeSecret();
     const calls = await openWizard(user, {
       "GET /setup/areas/?level=county": [{ id: "k1", name: "Nairobi" }],
       "GET /setup/areas/?level=constituency&parent=k1": [{ id: "c1", name: "Westlands" }],
       "GET /setup/areas/?level=ward&parent=c1": [{ id: "w1", name: "Parklands" }],
-      "POST /setup/": { organisation_type: "aspirant", superuser: "owner", workspace: "x", invites: ["email"], services: [] },
+      "POST /setup/": { superuser: "owner", workspace: "x", invites: ["email"], services: [] },
     });
     const next = () => user.click(screen.getByRole("button", { name: "Next" }));
 
-    await user.click(screen.getByRole("button", { name: /An aspirant/ }));
-    await next();
     await user.type(screen.getByRole("textbox", { name: "Name" }), "Jane for Parklands");
     await next();
     await next();
@@ -63,7 +61,7 @@ describe("first-run setup", () => {
     await user.type(screen.getByRole("textbox", { name: "Candidate username" }), "jane");
     await user.type(screen.getByRole("textbox", { name: /^Candidate email/ }), "jane@example.com");
     await next();
-    calls.routes["GET /site/"] = { organisation_type: "aspirant", name: "Jane for Parklands" };
+    calls.routes["GET /site/"] = { name: "Jane for Parklands" };
     await user.click(screen.getByRole("button", { name: "Finish setup" }));
 
     expect(await screen.findByText("Set up.")).toBeInTheDocument();
@@ -73,18 +71,17 @@ describe("first-run setup", () => {
     const sent = calls.find((c) => c.method === "POST" && c.path === "/setup/").body;
     expect(sent).toMatchObject({
       token: TOKEN,
-      organisation_type: "aspirant",
       site: { name: "Jane for Parklands", primary_colour: "#0B5D3B" },
       superuser: { username: "owner", email: "owner@example.com", password },
-      aspirant: { title: "Jane for Parklands", seat: "mca", ward: "w1", candidate: { username: "jane", email: "jane@example.com" } },
+      campaign: { title: "Jane for Parklands", seat: "mca", ward: "w1", candidate: { username: "jane", email: "jane@example.com" } },
     });
-    expect(sent.party_workspace).toBeUndefined();
+    expect(sent).not.toHaveProperty("organisation_type");
   });
 });
 
 describe("a set-up installation", () => {
   it("sends /setup home", async () => {
-    stubApi({ "GET /site/": { organisation_type: "party", name: "Party" } });
+    stubApi({ "GET /site/": { name: "Jane for Parklands" } });
     renderApp(<AppRoutes />, { path: "/setup" });
 
     await waitFor(() => expect(screen.queryByRole("textbox", { name: "Setup token" })).toBeNull());

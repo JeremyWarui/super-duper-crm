@@ -33,7 +33,7 @@ export function WorkspaceBrand({ name }: { name?: string }) {
 // Whole days from today in Nairobi to a "2026-11-03" date; both parse as UTC midnight.
 const daysTo = (iso: string) => Math.round((Date.parse(iso) - Date.parse(nairobiDate())) / 86400000);
 
-/** Who the campaign is for and what it contests; the party workspace reads "National". */
+/** Who the campaign is for and what it contests. */
 export function SeatCard({ campaign, winNumber }: { campaign: Campaign; winNumber?: number }) {
   const name = campaign.candidate_name || campaign.title;
   const where = [campaign.seat.replace(/ seat$/, ""), campaign.area_name].filter(Boolean).join(" · ");

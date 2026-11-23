@@ -104,7 +104,7 @@ async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Sc
     )
     if work.status is not AssignmentStatus.DONE:
         raise Refused("Only an assignment marked done can be paid.")
-    approver = payment_routing.approver_for(user, campaign)
+    approver = payment_routing.approver_for(user)
     taken = await session.scalar(
         select(Payment.id).where(
             Payment.assignment_id == work.id, Payment.status != PaymentStatus.CANCELLED

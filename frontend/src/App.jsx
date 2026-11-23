@@ -12,7 +12,6 @@ import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
 import { navFor, pagesOf, unitOf } from "./pages/campaign/helpers";
 import { ROLE_LABEL } from "@/lib/labels";
-import { useInstall } from "./app/site";
 import {
   AccessFooter, AreaPicker, SeatCard, WorkspaceAlerts, WorkspaceBrand, WorkspaceHelp, WorkspaceSearch,
 } from "./pages/campaign/WorkspaceShell";
@@ -32,14 +31,11 @@ import Contributions from "./pages/campaign/Contributions";
 import Volunteers from "./pages/campaign/Volunteers";
 import Website from "./pages/campaign/Website";
 import Settings from "./pages/campaign/Settings";
-import Recruitment from "./pages/campaign/Recruitment";
-import Members from "./pages/campaign/Members";
 import Signups from "./pages/campaign/Signups";
 import Agents from "./pages/campaign/Agents";
 import MyCentre from "./pages/campaign/MyCentre";
 import Assignments from "./pages/campaign/Assignments";
 import Messages from "./pages/campaign/Messages";
-import PartyFeed from "./pages/campaign/PartyFeed";
 import Privacy from "./pages/campaign/Privacy";
 import ClosedNote from "./pages/campaign/ClosedNote";
 import FieldTabs from "./pages/campaign/FieldTabs";
@@ -64,14 +60,11 @@ export const PAGES = {
   volunteers: Volunteers,
   website: Website,
   settings: Settings,
-  recruitment: Recruitment,
-  members: Members,
   signups: Signups,
   agents: Agents,
   mycentre: MyCentre,
   assignments: Assignments,
   messages: Messages,
-  party: PartyFeed,
   privacy: Privacy,
   register: Register,
   myevents: (props) => <Events {...props} mine />,
@@ -82,7 +75,7 @@ export const PAGES = {
 function Shell({ campaign, role, where }) {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
-  const { partyName } = useBranding();
+  const { siteName } = useBranding();
   const [modal, setModal] = useState(null);
   const [area, setArea] = useState(null);
   const { page } = useParams();
@@ -103,7 +96,7 @@ function Shell({ campaign, role, where }) {
       <AppLayout
         tone="light"
         groups={groups}
-        brand={<WorkspaceBrand name={partyName} />}
+        brand={<WorkspaceBrand name={siteName} />}
         card={<SeatCard campaign={campaign} winNumber={data.strategy?.win_number} />}
         footer={<AccessFooter role={role} wards={data.wards} />}
         topBar={(bar) => (
@@ -132,7 +125,6 @@ function Shell({ campaign, role, where }) {
 
 export default function App() {
   const role = useAuth((s) => s.user?.role);
-  const install = useInstall();
   const campaigns = useCampaigns();
   const campaign = (campaigns.data || [])[0];
 
@@ -140,7 +132,7 @@ export default function App() {
   if (campaigns.isLoading) return <div className="p-10"><LoadingText /></div>;
   if (campaigns.error) return <div className="p-10"><ErrorText error={campaigns.error} /></div>;
   if (!campaign) return <p className="p-10 text-muted-foreground">You are not on a campaign yet.</p>;
-  const where = { aspirant: install.aspirant, partyWorkspace: campaign.kind === "party", hosted: campaign.kind === "hosted", byCentre: unitOf(campaign).byCentre };
+  const where = { byCentre: unitOf(campaign).byCentre };
   const pages = pagesOf(role, where);
 
   return (

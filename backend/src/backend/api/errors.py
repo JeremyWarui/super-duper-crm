@@ -6,10 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
 from backend.services.errors import (
-    HAS_WORKSPACE,
-    LIVE_NOMINATION,
     PHONE_ON_REGISTER,
-    CampaignClosed,
     Forbidden,
     NotFound,
     Refused,
@@ -25,22 +22,10 @@ UNIQUE_RULES: tuple[tuple[tuple[str, ...], str], ...] = (
         "That login is already on a campaign; a login belongs to one campaign.",
     ),
     (("uq_campaign_members_one_manager",), "That campaign already has a manager."),
-    (("campaign_members.campaign_id",), "That campaign already has its aspirant or its manager."),
+    (("campaign_members.campaign_id",), "That campaign already has its candidate or its manager."),
     (
         ("uq_supporters_campaign_phone", "supporters.campaign_id, supporters.phone"),
         PHONE_ON_REGISTER,
-    ),
-    (
-        ("uq_aspirants_one_live_per_member", "aspirants.member_id"),
-        LIVE_NOMINATION,
-    ),
-    (
-        ("uq_aspirants_campaign_id", "aspirants.campaign_id"),
-        HAS_WORKSPACE,
-    ),
-    (
-        ("uq_party_members_phone", "party_members.phone"),
-        "That phone number is already on the party register.",
     ),
     (
         ("uq_payments_event_mobilizer", "payments.event_id, payments.mobilizer_id"),
@@ -54,10 +39,6 @@ UNIQUE_RULES: tuple[tuple[tuple[str, ...], str], ...] = (
             "mobilizers.campaign_id, mobilizers.registration_centre_id",
         ),
         "That ward already has a mobilizer.",
-    ),
-    (
-        ("pk_party_roles", "party_roles.user_id, party_roles.role"),
-        "That login already holds that party office.",
     ),
 )
 
@@ -89,13 +70,6 @@ def register_error_handlers(app: FastAPI) -> None:
         elif isinstance(exc, TooLarge):
             code = status.HTTP_413_CONTENT_TOO_LARGE
         return _detail(str(exc), code)
-
-    @app.exception_handler(CampaignClosed)
-    async def _campaign_closed(_: Request, exc: CampaignClosed) -> JSONResponse:
-        return JSONResponse(
-            {"detail": str(exc), "code": exc.code},
-            status_code=status.HTTP_403_FORBIDDEN,
-        )
 
     @app.exception_handler(IntegrityError)
     async def _integrity_error(_: Request, exc: IntegrityError) -> JSONResponse:

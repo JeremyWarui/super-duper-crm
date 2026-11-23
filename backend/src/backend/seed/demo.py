@@ -11,35 +11,25 @@ from backend.models import (
     Campaign,
     CampaignMember,
     Constituency,
-    ContactMethod,
     County,
     Event,
     EventStatus,
     OfficeLevel,
-    PartyConsentChannel,
-    PartyMember,
-    PartyMemberStatus,
-    Profession,
-    RegistrationCentre,
     Seat,
     Supporter,
     SupportLevel,
     Target,
     User,
-    UserKind,
     UserRole,
-    VolunteerProfile,
     Ward,
 )
 from backend.security import hash_password, new_password
 from backend.services.accounts import add_member, add_mobilizer
 from backend.services.admin import remove_campaign
-from backend.services.consent import PARTY_WORDING, VOLUNTEER_WORDING
 from backend.services.targets import generate_targets
 
-DEMO_USERNAMES = ("aspirant", "manager", "mobilizer", "volunteer")
+DEMO_USERNAMES = ("aspirant", "manager", "mobilizer")
 DEMO_EMAIL_DOMAIN = "demo.pamoja.test"
-DEMO_MEMBER_PHONE = "+254700000009"
 
 DEMO_COUNTY = "Nairobi City"
 DEMO_CONSTITUENCY = "Roysambu"
@@ -99,7 +89,6 @@ async def _clear(session: AsyncSession) -> None:
     for campaign_id in list(standing):
         await remove_campaign(session, campaign_id)
     await session.execute(delete(User).where(User.username.in_(DEMO_USERNAMES)))
-    await session.execute(delete(PartyMember).where(PartyMember.phone == DEMO_MEMBER_PHONE))
 
 
 async def seed_demo(session: AsyncSession, *, password: str | None = None) -> DemoSummary:
@@ -150,7 +139,6 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     wards = sorted(constituency.wards, key=lambda w: w.name)
 
     await seed_ground_game(session, campaign, wards, mobilizer_user)
-    await _volunteer(session, wards[0], passwords)
     await session.commit()
 
     return DemoSummary(
@@ -164,63 +152,9 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
                 ("aspirant", "Candidate: the cockpit, adds mobilizers"),
                 ("manager", "Campaign manager: the full war room"),
                 ("mobilizer", f"Mobilizer: {wards[0].name} only"),
-                ("volunteer", "Party member who volunteers: their member account"),
             )
         ],
     )
-
-
-async def _volunteer(session: AsyncSession, ward: Ward, passwords: dict[str, str]) -> None:
-    """An approved party member who volunteers, with their own member login."""
-    centre = await session.scalar(
-        select(RegistrationCentre)
-        .where(RegistrationCentre.ward_id == ward.id)
-        .order_by(RegistrationCentre.name)
-    )
-    now = datetime.now(UTC)
-    member = PartyMember(
-        full_name="Wanjiku Muthoni",
-        first_name="Wanjiku",
-        phone=DEMO_MEMBER_PHONE,
-        email=demo_email("volunteer"),
-        ward_id=ward.id,
-        registration_centre_id=centre.id if centre else None,
-        status=PartyMemberStatus.APPROVED,
-        consent_wording=PARTY_WORDING[PartyConsentChannel.WEB_FORM],
-        consent_channel=PartyConsentChannel.WEB_FORM,
-        consent_at=now,
-    )
-    session.add(member)
-    await session.flush()
-    session.add_all(
-        [
-            VolunteerProfile(
-                member_id=member.id,
-                first_name="Wanjiku",
-                last_name="Muthoni",
-                phone=member.phone,
-                email=member.email,
-                ward_id=ward.id,
-                registration_centre_id=member.registration_centre_id,
-                profession=Profession.TEACHER,
-                interests=["door_to_door", "barazas"],
-                preferred_contact=ContactMethod.SMS,
-                consent_wording=VOLUNTEER_WORDING,
-                consent_at=now,
-            ),
-            User(
-                username="volunteer",
-                kind=UserKind.MEMBER,
-                party_member_id=member.id,
-                first_name="Wanjiku",
-                last_name="Muthoni",
-                email=member.email,
-                phone=member.phone,
-                password_hash=hash_password(passwords["volunteer"]),
-            ),
-        ]
-    )
-    await session.flush()
 
 
 async def seed_ground_game(

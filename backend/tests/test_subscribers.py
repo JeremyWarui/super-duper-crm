@@ -20,8 +20,8 @@ async def test_a_sign_up_stores_its_consent_and_answers_the_same_twice(
     client: httpx.AsyncClient, session: AsyncSession
 ) -> None:
     body = {"contact": "0712 345678", "consent_given": True}
-    first = await client.post("/api/party/subscribe/", json=body)
-    again = await client.post("/api/party/subscribe/", json=body)
+    first = await client.post("/api/website/subscribe/", json=body)
+    again = await client.post("/api/website/subscribe/", json=body)
 
     assert first.status_code == again.status_code == 201
     assert first.json()["message"] == again.json()["message"]
@@ -36,12 +36,12 @@ async def test_its_link_unsubscribes_and_any_code_gets_the_same_answer(
     client: httpx.AsyncClient, session: AsyncSession
 ) -> None:
     done = await client.post(
-        "/api/party/subscribe/", json={"contact": "Ama@Example.com", "consent_given": True}
+        "/api/website/subscribe/", json={"contact": "Ama@Example.com", "consent_given": True}
     )
     code = done.json()["unsubscribe_url"].rsplit("/", 1)[-1]
 
-    unknown = await client.post("/api/party/unsubscribe/not-a-real-code/")
-    known = await client.post(f"/api/party/unsubscribe/{code}/")
+    unknown = await client.post("/api/website/unsubscribe/not-a-real-code/")
+    known = await client.post(f"/api/website/unsubscribe/{code}/")
 
     assert unknown.json() == known.json()
     assert await session.scalar(select(func.count()).select_from(Subscriber)) == 0

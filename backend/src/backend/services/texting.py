@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
-from backend.models import CampaignMessage, PartyMessage, SmsInbound, SmsLog, SmsOptOut, User
+from backend.models import CampaignMessage, SmsInbound, SmsLog, SmsOptOut, User
 from backend.services.errors import Refused
 from backend.services.sms import Recipient, SendResult, get_sms_provider, normalise_phone
 
@@ -35,8 +35,8 @@ def text_of(body: str) -> str:
 
 async def decide(
     session: AsyncSession,
-    model: type[CampaignMessage | PartyMessage],
-    message: CampaignMessage | PartyMessage,
+    model: type[CampaignMessage],
+    message: CampaignMessage,
     status: str,
     actor: User,
     note: str = "",
@@ -78,7 +78,7 @@ async def delivery_counts(
 
 
 def draft_row(message, names: dict, counts: dict, me: uuid.UUID) -> dict:
-    """The fields a campaign or party message shows in its listing."""
+    """The fields a message shows in its listing."""
     return {
         "id": message.id,
         "body": message.body,
@@ -140,7 +140,6 @@ async def send(
     campaign_id: uuid.UUID | None = None,
     message_id: uuid.UUID | None = None,
     event_id: uuid.UUID | None = None,
-    party_message_id: uuid.UUID | None = None,
 ) -> tuple[SendResult, int]:
     """Text these E.164 numbers, leaving out any that opted out; returns the gateway's answer and
     how many were left out. The caller commits."""
@@ -176,7 +175,6 @@ async def send(
             campaign_id=campaign_id,
             message_id=message_id,
             event_id=event_id,
-            party_message_id=party_message_id,
             sender_id=sender.id if sender else None,
             purpose=purpose,
             phone=recipient.phone,

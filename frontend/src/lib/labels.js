@@ -1,29 +1,5 @@
 // Labels and option lists shared across the app: [value, label] lists and the maps built from them.
 
-export const PARTY_ROLES = [
-  ["membership_officer", "Membership Officer"],
-  ["nominations_officer", "Nominations Officer"],
-  ["comms_officer", "Comms Officer"],
-];
-
-export const PARTY_ROLE_LABEL = Object.fromEntries(PARTY_ROLES);
-
-export const STATUS_LABEL = {
-  pending: "Pending",
-  approved: "Approved",
-  suspended: "Suspended",
-  rejected: "Rejected",
-  withdrawn: "Withdrawn",
-};
-
-export const STATUS_TONE = {
-  pending: "warn",
-  approved: "ok",
-  suspended: "warn",
-  rejected: "bad",
-  withdrawn: "stone",
-};
-
 export const AREAS = [
   ["fundraising", "Fundraising Support"],
   ["door_to_door", "Door-to-door Campaign"],
@@ -72,28 +48,6 @@ export const VOLUNTEER_STATUS_TONE = {
   withdrawn: "stone",
 };
 
-export const ASPIRANT_STATUS_LABEL = {
-  draft: "Draft",
-  submitted: "Submitted",
-  approved: "Approved",
-  suspended: "Suspended",
-  rejected: "Rejected",
-  withdrawn: "Withdrawn",
-};
-
-export const ASPIRANT_STATUS_TONE = {
-  draft: "stone",
-  submitted: "warn",
-  approved: "ok",
-  suspended: "warn",
-  rejected: "bad",
-  withdrawn: "stone",
-};
-
-// A member's own view of their membership and nomination: [label, badge tone] per status.
-export const MY_MEMBER_STATUS = { approved: ["Active member", "ok"], pending: ["Application pending", "warn"], suspended: ["Suspended", "bad"] };
-export const MY_ASPIRANT_STATUS = { draft: ["Not submitted", "warn"], submitted: ["With the vetting team", "info"], approved: ["Approved aspirant", "ok"], suspended: ["Suspended", "bad"] };
-
 // Each seat and the one area it is fought over.
 export const SEATS = [
   ["mca", "MCA", "ward"],
@@ -131,6 +85,3 @@ export const AGENT_STEPS = [["applied", "Applied"], ["vetted", "Vetted"], ["trai
 // An assignment's status as [label, badge tone].
 export const ASSIGNMENT_STATUS = { assigned: ["Assigned", "warn"], done: ["Done", "ok"], cancelled: ["Cancelled", "stone"] };
 
-/** A login's party offices as words: `superAdmin` for a superuser. */
-export const officeOf = (user, superAdmin) =>
-  user?.is_superuser ? superAdmin : (user?.party_roles || []).map((r) => PARTY_ROLE_LABEL[r] || r).join(", ");

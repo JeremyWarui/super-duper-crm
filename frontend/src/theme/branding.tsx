@@ -1,16 +1,15 @@
 import * as React from 'react'
-import { useParty, useSite } from '@/api/hooks'
+import { useSite } from '@/api/hooks'
 
 /**
- * Site branding, from the site settings (GET /api/site/); the registration number is party-only.
- * Only colours, names and images change per party. Spacing, type, radii and
- * neutrals are fixed by the platform so every party copy stays on-design.
+ * Site branding, from the site settings (GET /api/site/).
+ * Only colours, names and images change per site. Spacing, type, radii and
+ * neutrals are fixed by the platform so every copy stays on-design.
  */
 export type Branding = {
-  partyName: string
+  siteName: string
   shortName: string            // logo tile letter(s), e.g. "P"
   slogan: string
-  registrationNo: string
   hotline: string
   logoUrl?: string | null
   colors: {
@@ -22,10 +21,9 @@ export type Branding = {
 }
 
 export const defaultBranding: Branding = {
-  partyName: '',
+  siteName: '',
   shortName: '',
   slogan: '',
-  registrationNo: '',
   hotline: '',
   logoUrl: null,
   colors: { primary: '#0B5D3B', primaryHover: '#08442B', primaryTint: '#E7F0EA', accent: '#F2B705' },
@@ -41,14 +39,13 @@ const tileMark = (short?: string, name?: string) => {
   return (name || s).split(/\s+/).filter(Boolean).slice(0, 2).map((w) => Array.from(Array.from(w)[0].toLocaleUpperCase())[0]).join('')
 }
 
-/** Maps GET /api/site/ (plus the party's registration number) onto the kit's branding; hover is the primary darkened, tint the primary over white. */
+/** Maps GET /api/site/ onto the kit's branding; hover is the primary darkened, tint the primary over white. */
 export function fromSettings(p: Record<string, any>): Branding {
   const primary = (p.primary_colour || defaultBranding.colors.primary).toUpperCase()
   return {
-    partyName: p.name || defaultBranding.partyName,
+    siteName: p.name || defaultBranding.siteName,
     shortName: tileMark(p.short_name, p.name),
     slogan: p.slogan ?? '',
-    registrationNo: p.registration_number ?? '',
     hotline: p.contact_phone ?? '',
     logoUrl: p.logo_url || null,
     colors: {
@@ -62,10 +59,10 @@ export function fromSettings(p: Record<string, any>): Branding {
 
 export function applyBranding(b: Branding) {
   const r = document.documentElement.style
-  r.setProperty('--party-primary', b.colors.primary)
-  r.setProperty('--party-primary-hover', b.colors.primaryHover)
-  r.setProperty('--party-primary-tint', b.colors.primaryTint)
-  r.setProperty('--party-accent', b.colors.accent)
+  r.setProperty('--brand-primary', b.colors.primary)
+  r.setProperty('--brand-primary-hover', b.colors.primaryHover)
+  r.setProperty('--brand-primary-tint', b.colors.primaryTint)
+  r.setProperty('--brand-accent', b.colors.accent)
   let icon = document.querySelector<HTMLLinkElement>('link[rel=icon]')
   if (!icon) {
     icon = document.createElement('link')
@@ -88,11 +85,7 @@ export const useBranding = () => React.useContext(Ctx)
 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const site = useSite().data
-  const party = useParty(site?.organisation_type === 'party').data
-  const b = React.useMemo(
-    () => (site ? fromSettings({ ...site, registration_number: party?.registration_number }) : defaultBranding),
-    [site, party?.registration_number],
-  )
+  const b = React.useMemo(() => (site ? fromSettings(site) : defaultBranding), [site])
   React.useEffect(() => applyBranding(b), [b])
   React.useEffect(() => { if (site?.name) document.title = site.name }, [site?.name])
   return <Ctx.Provider value={b}>{children}</Ctx.Provider>

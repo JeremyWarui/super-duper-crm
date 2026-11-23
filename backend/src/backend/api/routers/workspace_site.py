@@ -1,7 +1,6 @@
-"""The website of an aspirant installation, edited from its workspace under `site.write`.
+"""The website, edited from the workspace under `site.write`.
 
-Every route calls the services the console uses, so there is one set of content rules. Mounted
-only in an aspirant installation.
+Every route calls the services the console uses, so there is one set of content rules.
 """
 
 from typing import Annotated
@@ -10,16 +9,15 @@ from fastapi import APIRouter, Depends, Form, UploadFile, status
 
 from backend.api.content_routes import items, posts
 from backend.api.deps import SessionDep, require
-from backend.api.install import AspirantOnlyRoute
 from backend.api.reads import file_read
 from backend.api.uploads import store_upload
 from backend.models import (
     AgendaIssue,
+    Document,
     FileArea,
     HeroSlide,
-    PartyDocument,
-    PartyVideo,
     User,
+    Video,
 )
 from backend.schemas.candidates import ProfileRead, ProfileWrite
 from backend.schemas.content import (
@@ -40,7 +38,7 @@ from backend.schemas.files import FileRead
 from backend.schemas.site import SiteSettingsRead, SiteSettingsUpdate
 from backend.services import campaign_page, site
 
-router = APIRouter(prefix="/workspace/site", tags=["workspace site"], route_class=AspirantOnlyRoute)
+router = APIRouter(prefix="/workspace/site", tags=["workspace site"])
 Editor = Annotated[User, Depends(require("site.write"))]
 
 
@@ -87,7 +85,5 @@ async def write_candidate_page(payload: ProfileWrite, session: SessionDep, user:
 posts(router, Editor, "/posts/")
 items(router, Editor, "/slides/", HeroSlide, SlideCreate, SlideUpdate, SlideAdminRead)
 items(router, Editor, "/issues/", AgendaIssue, IssueCreate, IssueUpdate, IssueAdminRead)
-items(
-    router, Editor, "/documents/", PartyDocument, DocumentCreate, DocumentUpdate, DocumentAdminRead
-)
-items(router, Editor, "/videos/", PartyVideo, VideoCreate, VideoUpdate, VideoAdminRead)
+items(router, Editor, "/documents/", Document, DocumentCreate, DocumentUpdate, DocumentAdminRead)
+items(router, Editor, "/videos/", Video, VideoCreate, VideoUpdate, VideoAdminRead)

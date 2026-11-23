@@ -1,5 +1,5 @@
-"""Money paid in by M-Pesa: a prompt on the payer's phone through Paystack, or the payer's own
-Paybill or Till payment, confirmed by the office from its M-Pesa code."""
+"""Contributions paid in by M-Pesa: a prompt on the payer's phone through Paystack, or the payer's
+own Paybill or Till payment, confirmed by the campaign from its M-Pesa code."""
 
 import re
 import secrets
@@ -14,18 +14,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import get_settings
 from backend.models import (
-    Aspirant,
     Campaign,
-    OrganisationType,
     PayInMethod,
-    PayInPurpose,
     PayInStatus,
     PaymentIn,
     SiteSettings,
     User,
-    WorkspaceKind,
 )
-from backend.services import nominations
 from backend.services.audit import record
 from backend.services.clock import as_utc
 from backend.services.errors import NotFound, Refused
@@ -51,7 +46,7 @@ class PayInProvider(Protocol):
     name: str
 
     async def charge(
-        self, *, reference: str, amount_kes: int, phone: str, email: str, purpose: str
+        self, *, reference: str, amount_kes: int, phone: str, email: str
     ) -> Charge: ...
 
     async def check(self, reference: str) -> dict | None: ...
@@ -74,9 +69,7 @@ class PaystackPayIns(PaystackApi):
 
     name = "paystack"
 
-    async def charge(
-        self, *, reference: str, amount_kes: int, phone: str, email: str, purpose: str
-    ) -> Charge:
+    async def charge(self, *, reference: str, amount_kes: int, phone: str, email: str) -> Charge:
         try:
             async with self._client() as client:
                 answer = await client.post(
@@ -87,7 +80,7 @@ class PaystackPayIns(PaystackApi):
                         "currency": "KES",
                         "reference": reference,
                         "mobile_money": {"phone": phone, "provider": "mpesa"},
-                        "metadata": {"purpose": purpose},
+                        "metadata": {"purpose": "contribution"},
                     },
                 )
         except httpx.HTTPError:
@@ -130,13 +123,9 @@ def options(site: SiteSettings) -> dict:
     }
 
 
-async def contribution_campaign(session: AsyncSession, site: SiteSettings) -> uuid.UUID | None:
-    """Where a website contribution belongs: an aspirant's one workspace, or the party (None)."""
-    if site.organisation_type is not OrganisationType.ASPIRANT:
-        return None
-    return await session.scalar(
-        select(Campaign.id).where(Campaign.kind == WorkspaceKind.STANDALONE).limit(1)
-    )
+async def contribution_campaign(session: AsyncSession) -> uuid.UUID | None:
+    """The campaign a website contribution belongs to; None before setup makes it."""
+    return await session.scalar(select(Campaign.id).order_by(Campaign.created_at).limit(1))
 
 
 def _phone(raw: str) -> str:
@@ -154,26 +143,10 @@ def _code(raw: str) -> str:
     return code
 
 
-async def _fee_open(session: AsyncSession, aspirant: Aspirant) -> None:
-    nominations.require_fee_open(
-        aspirant,
-        paid="The fee is already paid.",
-        not_draft="Only a draft application's fee is paid here.",
-    )
-    waiting = await session.scalar(
-        select(PaymentIn.id).where(
-            PaymentIn.aspirant_id == aspirant.id, PaymentIn.status == PayInStatus.TO_CONFIRM
-        )
-    )
-    if waiting is not None:
-        raise Refused("An M-Pesa code for this fee is waiting for the office to confirm it.")
-
-
 async def start(
     session: AsyncSession,
     *,
     site: SiteSettings,
-    purpose: PayInPurpose,
     method: PayInMethod,
     amount_kes: int,
     name: str,
@@ -181,23 +154,15 @@ async def start(
     email: str = "",
     mpesa_code: str = "",
     campaign_id: uuid.UUID | None = None,
-    aspirant: Aspirant | None = None,
     actor: User | None = None,
 ) -> PaymentIn:
-    """Record a payment and, for a prompt, send it to the payer's phone."""
-    if purpose is PayInPurpose.NOMINATION_FEE:
-        if aspirant is None:
-            raise Refused("A nomination fee belongs to an application.")
-        await _fee_open(session, aspirant)
-        amount_kes = aspirant.fee_kes
-    elif not MIN_KES <= amount_kes <= MAX_KES:
+    """Record a contribution and, for a prompt, send it to the payer's phone."""
+    if not MIN_KES <= amount_kes <= MAX_KES:
         raise Refused(f"Give between KES {MIN_KES} and KES {MAX_KES:,}.")
     phone = _phone(phone)
     row = PaymentIn(
-        purpose=purpose,
         method=method,
         campaign_id=campaign_id,
-        aspirant_id=aspirant.id if aspirant else None,
         amount_kes=amount_kes,
         payer_name=name.strip()[:150],
         payer_phone=phone,
@@ -231,7 +196,6 @@ async def start(
             amount_kes=amount_kes,
             phone=phone,
             email=contact,
-            purpose=purpose.value,
         )
         row.status, row.reason = result.status, result.reason
         if result.status is PayInStatus.PAID:
@@ -244,7 +208,7 @@ async def start(
         subject_type="payment_in",
         subject_id=row.id,
         campaign_id=campaign_id,
-        detail={"purpose": purpose.value, "method": method.value, "amount": amount_kes},
+        detail={"method": method.value, "amount": amount_kes},
     )
     await session.commit()
     return row
@@ -254,12 +218,6 @@ async def _settle(session: AsyncSession, row: PaymentIn, code: str) -> None:
     row.status = PayInStatus.PAID
     row.paid_at = datetime.now(UTC)
     row.mpesa_code = code or row.mpesa_code
-    if row.aspirant_id is not None:
-        aspirant = await session.get(Aspirant, row.aspirant_id)
-        if aspirant is not None and aspirant.fee_paid_at is None:
-            nominations.stamp_fee(
-                aspirant, (row.mpesa_code or row.reference)[:50], row.decided_by_id, row.paid_at
-            )
 
 
 async def by_reference(session: AsyncSession, reference: str) -> PaymentIn:
@@ -324,7 +282,7 @@ async def apply_charge_event(session: AsyncSession, event: str, data: dict) -> b
 
 
 async def confirm(session: AsyncSession, row: PaymentIn, *, actor: User) -> PaymentIn:
-    """The office found the code on its M-Pesa statement."""
+    """The campaign found the code on its M-Pesa statement."""
     if row.status is not PayInStatus.TO_CONFIRM:
         raise Refused("Only a code waiting for confirmation is confirmed.")
     row.decided_by_id, row.decided_at = actor.id, datetime.now(UTC)

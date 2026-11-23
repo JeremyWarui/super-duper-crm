@@ -46,7 +46,6 @@ class Health(ORMModel):
     version: str
     migration: MigrationState
     database: DatabaseState
-    organisation_type: str | None
     services: list[ServiceHealth]
     last_backup: LastBackup | None
     disks: list[Disk]
