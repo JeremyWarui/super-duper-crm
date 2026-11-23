@@ -5,12 +5,14 @@ import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
+import WardField from "./WardField";
 
 // In an MCA race an event is held at one registration centre, which its sign-ups count toward.
-export default function ScheduleEventForm({ campaignId, wardOptions, byCentre, onClose }) {
+export default function ScheduleEventForm({ campaignId, wardOptions, perCounty, byCentre, onClose }) {
   const schedule = useScheduleEvent();
   const [title, setTitle] = useState(""); const [venue, setVenue] = useState(""); const [date, setDate] = useState("");
-  const [ward, setWard] = useState(wardOptions[0]?.id || "");
+  const [picked, setWard] = useState(null);
+  const ward = picked ?? (perCounty ? "" : wardOptions[0]?.id || "");
   const [centre, setCentre] = useState("");
   const centresQuery = useCentres(byCentre ? ward : null);
   const centres = centresQuery.data || [];
@@ -18,9 +20,7 @@ export default function ScheduleEventForm({ campaignId, wardOptions, byCentre, o
   return (
     <Dialog title="Schedule event" description="Attendance is recorded after it happens." onClose={onClose}>
       <Field label="Event title"><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
-      <Field label="Ward">
-        <NativeSelect value={ward} onChange={(e) => { setWard(e.target.value); setCentre(""); }}>{wardOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</NativeSelect>
-      </Field>
+      <WardField campaignId={campaignId} perCounty={perCounty} wardOptions={wardOptions} value={ward} onChange={(id) => { setWard(id); setCentre(""); }} />
       {byCentre && centres.length > 0 && (
         <Field label="Registration centre">
           <NativeSelect aria-label="Registration centre" value={centre} onChange={(e) => setCentre(e.target.value)}>

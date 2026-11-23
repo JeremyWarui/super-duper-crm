@@ -46,15 +46,20 @@ def _seat_for_level(level: OfficeLevel) -> Seat:
         OfficeLevel.WARD: Seat.MCA,
         OfficeLevel.CONSTITUENCY: Seat.MP,
         OfficeLevel.COUNTY: Seat.GOVERNOR,
+        OfficeLevel.NATIONAL: Seat.PRESIDENT,
     }[level]
 
 
 SEAT_MATCHES_SCOPE = (
     "(seat = 'mca' AND office_level = 'ward') "
     "OR (seat = 'mp' AND office_level = 'constituency') "
-    "OR (seat IN ('governor', 'senator', 'women_rep') AND office_level = 'county')"
+    "OR (seat IN ('governor', 'senator', 'women_rep') AND office_level = 'county') "
+    "OR (seat = 'president' AND office_level = 'national')"
 )
 
+
+# What a national seat's area reads as.
+COUNTRY = "Kenya"
 
 # The attribute naming the area a seat at each office level contests.
 AREA_FIELD = {
@@ -73,7 +78,7 @@ class Campaign(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # The office itself; office_level is the area it is fought over.
     seat: Mapped[Seat] = mapped_column(choice_type(Seat, "seat"))
 
-    # office_level decides which one of these three applies.
+    # office_level decides which one of these three applies; a national seat has none.
     county_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("counties.id", ondelete="SET NULL"), default=None, index=True
     )
@@ -149,6 +154,10 @@ class Campaign(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
         return f"{self.seat.label} seat"
 
     @property
+    def national(self) -> bool:
+        return self.office_level is OfficeLevel.NATIONAL
+
+    @property
     def area(self) -> "County | Constituency | Ward | None":
         """The county, constituency or ward contested; needs it loaded."""
         attribute = AREA_FIELD.get(self.office_level)
@@ -156,6 +165,14 @@ class Campaign(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
             return None
         require_loaded(self, attribute)
         return getattr(self, attribute)
+
+    @property
+    def area_label(self) -> str:
+        """The contested area's name, the country for a national seat; needs the area loaded."""
+        if self.national:
+            return COUNTRY
+        area = self.area
+        return area.name if area is not None else ""
 
     @property
     def candidate_label(self) -> str:

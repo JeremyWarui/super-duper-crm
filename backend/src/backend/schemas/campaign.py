@@ -58,6 +58,8 @@ class TargetRead(ORMModel):
     campaign: uuid.UUID = Field(validation_alias="campaign_id")
     ward: uuid.UUID = Field(validation_alias="ward_id")
     ward_name: str = Field(validation_alias=AliasPath("ward", "name"))
+    constituency: uuid.UUID = Field(validation_alias=AliasPath("ward", "constituency_id"))
+    constituency_name: str = Field(validation_alias=AliasPath("ward", "constituency", "name"))
     registration_centre: uuid.UUID | None = Field(
         default=None, validation_alias="registration_centre_id"
     )

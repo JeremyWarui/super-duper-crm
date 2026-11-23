@@ -78,6 +78,8 @@ class CandidateDetail(CandidateCard):
     events: list[CandidateEvent]
     # True while the page takes volunteers.
     volunteering_open: bool
+    # Empty for a national seat, whose form picks the ward from the public places.
+    national: bool = False
     wards: list[Named]
     # The form's consent label; the server records this same text.
     consent_wording: str

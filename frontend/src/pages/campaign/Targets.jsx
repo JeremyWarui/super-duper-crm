@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRefreshTargets, useTargets, useUpdateTarget } from "@/api/hooks";
+import { useRefreshTargets, useStrategy, useTargets, useUpdateTarget } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
@@ -8,7 +8,8 @@ import { winNumber } from "@/winNumber";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
-import { isLead, unitOf } from "./helpers";
+import { isLead, isNational, unitOf } from "./helpers";
+import CountyFilter from "./CountyFilter";
 import { FigureBand } from "@/components/ui/stat-tiles";
 import { StatusText } from "@/components/ui/notice";
 
@@ -72,16 +73,20 @@ function TargetRow({ target, draft, onDraft, onSettle }) {
   );
 }
 
-function Totals({ rows, turnoutOf, neededOf }) {
+function Totals({ rows, turnoutOf, neededOf, label = "Win number" }) {
   const registered = rows.reduce((s, t) => s + (t.registered_voters || 0), 0);
   const cast = rows.reduce((s, t) => s + Math.round(((t.registered_voters || 0) * turnoutOf(t)) / 100), 0);
   const win = rows.reduce((s, t) => s + (neededOf(t) || 0), 0);
   const figures = [["Registered voters", fmt(registered)], ["Projected votes cast", fmt(cast)], ["Win number (50% + 1)", fmt(win), null, "text-accent"]];
-  return <FigureBand label="Win number" figures={figures} />;
+  return <FigureBand label={label} figures={figures} />;
 }
 
+// A national seat sets turnout a county at a time, under the national win number.
 export default function Targets({ campaign, role }) {
-  const { data, isLoading, error } = useTargets(campaign.id);
+  const national = isNational(campaign);
+  const [place, setPlace] = useState({ county: "", constituency: "" });
+  const { data, isLoading, error } = useTargets(!national || place.county ? campaign.id : undefined, place);
+  const whole = useStrategy(national ? campaign.id : undefined).data;
   const refresh = useRefreshTargets();
   // Win numbers follow a new voter register only when someone who runs the campaign asks.
   const refreshes = isLead(role);
@@ -108,11 +113,16 @@ export default function Targets({ campaign, role }) {
       <SlottedHeader context="Plan" title="Targets" sub={`Set the expected turnout in each ${noun}. The win number is half the projected votes cast, plus one.`} actions={action} />
       {refresh.isSuccess && <StatusText>Refreshed from the latest register: {fmt(refresh.data.units)} {noun}s, win number {fmt(refresh.data.win_number)}.</StatusText>}
       <ErrorText error={refresh.error} />
+      {national && whole && (
+        <FigureBand label="National win number" figures={[["Registered voters", fmt(whole.total_registered)], ["Projected votes cast", fmt(whole.total_cast)], ["National win number", fmt(whole.win_number), null, "text-accent"]]} />
+      )}
+      {national && <CountyFilter place={place} onChange={setPlace} />}
+      {national && !place.county && <p className="text-ui text-muted-foreground">Pick a county to set the turnout in its wards.</p>}
       {isLoading && <LoadingText />}
       <ErrorText error={error} />
       {data && (
         <>
-          <Totals rows={rows} turnoutOf={turnoutOf} neededOf={neededOf} />
+          <Totals rows={rows} turnoutOf={turnoutOf} neededOf={neededOf} label={national ? "Win number in this area" : undefined} />
           <Card variant="outline" className="min-w-0 gap-3" role="region" aria-labelledby="turnout-h">
             <CardTitle id="turnout-h">Turnout per {noun}</CardTitle>
             <Table minWidth={600}>

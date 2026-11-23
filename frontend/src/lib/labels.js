@@ -48,13 +48,14 @@ export const VOLUNTEER_STATUS_TONE = {
   withdrawn: "stone",
 };
 
-// Each seat and the one area it is fought over.
+// Each seat and the one area it is fought over; the President's is the whole country, so none.
 export const SEATS = [
   ["mca", "MCA", "ward"],
   ["mp", "MP", "constituency"],
   ["governor", "Governor", "county"],
   ["senator", "Senator", "county"],
   ["women_rep", "Women Rep", "county"],
+  ["president", "President", null],
 ];
 
 export const SEAT_LABEL = Object.fromEntries(SEATS.map(([value, label]) => [value, label]));

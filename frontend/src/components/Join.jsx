@@ -8,6 +8,7 @@ import { Check, Field, FilterSelect, Input } from "@/components/ui/input";
 import { LoadingText } from "@/components/ui/loading-text";
 import { linkTo } from "@/lib/format";
 import { StatusText } from "@/components/ui/notice";
+import { WardCascade } from "@/components/PlaceCascade";
 
 // The person's own way back off the register; shown once, after signing up.
 function WithdrawNote({ code }) {
@@ -64,6 +65,9 @@ export default function Join({ code }) {
       <Field label="Phone">
         <Input aria-label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" placeholder="0712 345678" />
       </Field>
+      {p.national && p.place === "ward" && (
+        <div className="flex flex-col gap-3"><WardCascade labelled className="w-full flex-none" onChange={setPlace} /></div>
+      )}
       {p.places.length > 0 && (
         <Field label={p.place === "centre" ? "Your registration centre" : "Your ward"}>
           <FilterSelect label="Where you vote" blank={p.place === "centre" ? "Not sure" : "Pick your ward"} value={place} onChange={setPlace} options={p.places} className="w-full flex-none" />

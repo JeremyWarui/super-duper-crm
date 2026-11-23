@@ -120,10 +120,17 @@ export const STRATEGY = {
   progress_pct: 46.1,
   total_registered: 66600,
   total_cast: 39960,
+  unit_count: 2,
+  short_count: 1,
+  staffed_count: 1,
+  quiet_count: 1,
+  group_level: null,
+  groups: [],
   units: [
     {
       unit: "Zimmerman",
       ward: "w1",
+      constituency_name: "Roysambu",
       registration_centre: null,
       needed: 9211,
       committed: 9211,
@@ -136,6 +143,7 @@ export const STRATEGY = {
     {
       unit: "Githurai",
       ward: "w2",
+      constituency_name: "Roysambu",
       registration_centre: null,
       needed: 10770,
       committed: 0,

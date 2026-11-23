@@ -47,25 +47,27 @@ async def build_campaign(
     constituency: uuid.UUID | None = None,
     ward: uuid.UUID | None = None,
 ) -> tuple[Campaign, SetupSummary]:
-    """Create a campaign and its targets, without members and without committing."""
+    """Create a campaign and its targets, without members and without committing.
+
+    A national seat takes no area; any area given for it is ignored.
+    """
     office_level = seat.office_level
-    area_field = AREA_FIELD[office_level]
-    area_id = {"county": county, "constituency": constituency, "ward": ward}[area_field]
-    if area_id is None:
-        raise Refused(f"A {seat.label} campaign needs its {area_field} set.")
-    if await session.get(AREA_MODEL[office_level], area_id) is None:
-        raise Refused(f"No such {area_field}.")
-    if office_level is OfficeLevel.WARD and not await session.scalar(
-        select(RegistrationCentre.id).where(RegistrationCentre.ward_id == area_id).limit(1)
-    ):
-        raise Refused("That ward has no registration centres loaded; load the geography first.")
+    area: dict[str, uuid.UUID] = {}
+    if office_level is not OfficeLevel.NATIONAL:
+        area_field = AREA_FIELD[office_level]
+        area_id = {"county": county, "constituency": constituency, "ward": ward}[area_field]
+        if area_id is None:
+            raise Refused(f"A {seat.label} campaign needs its {area_field} set.")
+        if await session.get(AREA_MODEL[office_level], area_id) is None:
+            raise Refused(f"No such {area_field}.")
+        if office_level is OfficeLevel.WARD and not await session.scalar(
+            select(RegistrationCentre.id).where(RegistrationCentre.ward_id == area_id).limit(1)
+        ):
+            raise Refused("That ward has no registration centres loaded; load the geography first.")
+        area = {f"{area_field}_id": area_id}
 
     campaign = Campaign(
-        title=title,
-        office_level=office_level,
-        seat=seat,
-        election_date=election_date,
-        **{f"{area_field}_id": area_id},
+        title=title, office_level=office_level, seat=seat, election_date=election_date, **area
     )
     session.add(campaign)
     await session.flush()

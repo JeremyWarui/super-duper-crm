@@ -29,6 +29,10 @@ if TYPE_CHECKING:
     from backend.models.user import User
 
 
+AREA_COLUMNS = ("county_id", "constituency_id", "ward_id", "registration_centre_id")
+ONE_PLACE = " + ".join(f"(CASE WHEN {c} IS NULL THEN 0 ELSE 1 END)" for c in AREA_COLUMNS) + " = 1"
+
+
 class CampaignMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """A login's place on its one campaign; the member whose role is candidate owns it."""
 
@@ -64,20 +68,29 @@ class CampaignMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 class CampaignMemberArea(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A ward or a registration centre in a coordinator's area; exactly one of the two.
+    """A county, constituency, ward or registration centre in a coordinator's area; exactly one.
 
-    Only a coordinator may hold rows; the database does not enforce that.
+    A county or constituency reaches every ward under it. Only a coordinator may hold rows; the
+    database does not enforce that.
     """
 
     __tablename__ = "campaign_member_areas"
     __table_args__ = (
-        CheckConstraint("(ward_id IS NULL) <> (registration_centre_id IS NULL)", name="one_place"),
+        CheckConstraint(ONE_PLACE, name="one_place"),
+        UniqueConstraint("campaign_member_id", "county_id"),
+        UniqueConstraint("campaign_member_id", "constituency_id"),
         UniqueConstraint("campaign_member_id", "ward_id"),
         UniqueConstraint("campaign_member_id", "registration_centre_id"),
     )
 
     campaign_member_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("campaign_members.id", ondelete="CASCADE"), index=True
+    )
+    county_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("counties.id", ondelete="RESTRICT"), default=None
+    )
+    constituency_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("constituencies.id", ondelete="RESTRICT"), default=None
     )
     ward_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("wards.id", ondelete="RESTRICT"), default=None

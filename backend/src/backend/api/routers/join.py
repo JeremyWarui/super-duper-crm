@@ -31,7 +31,7 @@ from backend.services.consent import WORDING, ConsentChannel
 from backend.services.errors import NotFound, Refused
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import require_phone
-from backend.services.targets import wards_in_area
+from backend.services.targets import ward_choices, ward_in_area
 
 router = APIRouter(prefix="/join", tags=["join"])
 
@@ -98,7 +98,7 @@ async def _places(session: SessionDep, campaign: Campaign) -> list[JoinPlace]:
             .order_by(RegistrationCentre.name)
         )
         return [JoinPlace(id=c.id, name=c.name) for c in centres]
-    return [JoinPlace(id=w.id, name=w.name) for w in await wards_in_area(session, campaign)]
+    return [JoinPlace(id=w.id, name=w.name) for w in await ward_choices(session, campaign)]
 
 
 @router.get("/{code}/", response_model=JoinRead)
@@ -107,15 +107,15 @@ async def read_signup(code: str, session: SessionDep) -> JoinRead:
     campaign = link.campaign
     on_campaign_link = link.event is None
     by_centre = campaign.operational_grain is OperationalGrain.CENTRE
-    area = campaign.area
     return JoinRead(
         campaign_title=campaign.title,
         candidate_name=campaign.candidate_label,
         event_title=link.event.title if link.event else "",
-        ward_name=link.event.ward.name if link.event else (area.name if area else ""),
+        ward_name=link.event.ward.name if link.event else campaign.area_label,
         open=link.open,
         consent_wording=WORDING[link.channel],
         place=("centre" if by_centre else "ward") if on_campaign_link else None,
+        national=campaign.national,
         places=await _places(session, campaign) if on_campaign_link else [],
     )
 
@@ -128,13 +128,14 @@ async def _filed_at(
     by_centre = campaign.operational_grain is OperationalGrain.CENTRE
     if link.event is not None:
         return link.event.ward_id, link.event.registration_centre_id if by_centre else None
-    offered = {p.id for p in await _places(session, campaign)}
-    if place is not None and place not in offered:
-        raise Refused("Pick a place from the list.")
     if by_centre:
+        if place is not None and place not in {p.id for p in await _places(session, campaign)}:
+            raise Refused("Pick a place from the list.")
         return campaign.ward_id, place
     if place is None:
         raise Refused("Pick the ward where you vote.")
+    if not await ward_in_area(session, campaign, place):
+        raise Refused("Pick a place from the list.")
     return place, None
 
 

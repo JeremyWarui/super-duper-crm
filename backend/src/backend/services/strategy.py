@@ -1,22 +1,25 @@
 """The strategy read, rolled up from targets, events and mobilizers on every request."""
 
 import uuid
+from typing import Literal
 
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.models import (
     Campaign,
+    Constituency,
     Event,
     Mobilizer,
     OfficeLevel,
     Supporter,
     SupportLevel,
     Target,
+    Ward,
     unit_key,
 )
-from backend.schemas.strategy import NoteRead, StrategyRead, UnitRead
+from backend.schemas.strategy import GroupRead, NoteRead, StrategyRead, UnitRead
 from backend.services.permissions import Area
 
 WELL_WORKED = 4
@@ -28,12 +31,23 @@ async def read_strategy(
     campaign_ids: frozenset[uuid.UUID],
     campaign_id: uuid.UUID | None = None,
     area: Area | None = None,
+    county: uuid.UUID | None = None,
+    constituency: uuid.UUID | None = None,
 ) -> StrategyRead:
-    """Roll the visible targets up, then say what stands out."""
+    """Roll the visible targets up, then say what stands out.
+
+    The totals, counts and notes cover every visible unit; `units` and `groups` only those in
+    `county` or `constituency`.
+    """
     statement = (
         select(Target)
         .where(Target.campaign_id.in_(campaign_ids))
-        .options(selectinload(Target.ward), selectinload(Target.registration_centre))
+        .options(
+            selectinload(Target.ward)
+            .selectinload(Ward.constituency)
+            .selectinload(Constituency.county),
+            selectinload(Target.registration_centre),
+        )
     )
     if campaign_id is not None:
         statement = statement.where(Target.campaign_id == campaign_id)
@@ -112,6 +126,7 @@ async def read_strategy(
             UnitRead(
                 unit=centre.name if centre is not None else target.ward.name,
                 ward=target.ward_id,
+                constituency_name=target.ward.constituency.name,
                 registration_centre=target.registration_centre_id,
                 needed=needed,
                 committed=has,
@@ -126,15 +141,73 @@ async def read_strategy(
     for unit in units:
         unit.share = round(unit.needed / win_number, 3) if win_number else 0.0
 
+    wards = {t.ward_id: t.ward for t in targets}
+    asked = [
+        u
+        for u in units
+        if (county is None or wards[u.ward].constituency.county_id == county)
+        and (constituency is None or wards[u.ward].constituency_id == constituency)
+    ]
+    national = bool(seen) and bool(
+        await session.scalar(
+            select(
+                exists().where(Campaign.id.in_(seen), Campaign.office_level == OfficeLevel.NATIONAL)
+            )
+        )
+    )
+    whole = national and county is None and constituency is None
+    level: Literal["county", "constituency"] | None = None
+    if whole:
+        level = "county"
+    elif constituency is None and len({wards[u.ward].constituency_id for u in asked}) > 1:
+        level = "constituency"
+    groups = _groups(asked, wards, level) if level else []
+
     return StrategyRead(
         win_number=win_number,
         committed=committed,
         progress_pct=round(committed / win_number * 100, 1) if win_number else 0.0,
         total_registered=total_registered,
         total_cast=total_cast,
-        units=units,
+        unit_count=len(units),
+        short_count=sum(1 for u in units if u.gap > 0),
+        staffed_count=sum(1 for u in units if u.has_mobilizer),
+        quiet_count=sum(1 for u in units if u.events == 0),
+        units=[] if whole else asked,
+        group_level=level,
+        groups=groups,
         notes=_notes(units, unplaced),
     )
+
+
+def _groups(units: list[UnitRead], wards: dict[uuid.UUID, Ward], level: str) -> list[GroupRead]:
+    """The units rolled up by county or by constituency, by name."""
+    rolled: dict[uuid.UUID, GroupRead] = {}
+    for unit in units:
+        constituency = wards[unit.ward].constituency
+        place = constituency.county if level == "county" else constituency
+        group = rolled.get(place.id)
+        if group is None:
+            group = rolled[place.id] = GroupRead(
+                id=place.id,
+                name=place.name,
+                units=0,
+                needed=0,
+                committed=0,
+                gap=0,
+                progress=0.0,
+                unstaffed=0,
+                quiet=0,
+            )
+        group.units += 1
+        group.needed += unit.needed
+        group.committed += unit.committed
+        group.gap += unit.gap
+        group.unstaffed += not unit.has_mobilizer
+        group.quiet += unit.events == 0
+    for group in rolled.values():
+        group.progress = round(group.committed / group.needed, 3) if group.needed else 0.0
+    return sorted(rolled.values(), key=lambda g: g.name)
 
 
 def name_list(names: list[str], limit: int = 6) -> str:

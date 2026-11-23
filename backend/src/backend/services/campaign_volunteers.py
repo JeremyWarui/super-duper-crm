@@ -17,7 +17,7 @@ from backend.services.consent import CAMPAIGN_VOLUNTEER_WORDING
 from backend.services.errors import NotFound, Refused, refuse_erased, refuse_unlisted_move
 from backend.services.permissions import Area
 from backend.services.sms import require_phone
-from backend.services.targets import wards_in_area
+from backend.services.targets import ward_in_area
 
 V = VolunteerStatus
 
@@ -166,7 +166,7 @@ async def sign_up(
     if campaign.closed_at is not None:
         raise Refused("This campaign has closed.")
     phone = require_phone(payload.phone)
-    if payload.ward not in {w.id for w in await wards_in_area(session, campaign)}:
+    if not await ward_in_area(session, campaign, payload.ward):
         raise Refused("Pick a ward inside the seat this candidate is vying for.")
     centre_ward = await session.scalar(
         select(RegistrationCentre.ward_id).where(

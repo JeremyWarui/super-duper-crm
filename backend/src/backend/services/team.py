@@ -13,12 +13,25 @@ from backend.models import (
     User,
     UserRole,
 )
+from backend.schemas.team import AreaRead, AreaWrite
 from backend.services.accounts import add_member, leave, logins_on, member_of, sign_out
 from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
 from backend.services.login_links import new_invited_login
-from backend.services.targets import require_centre, require_ward
+from backend.services.targets import (
+    require_centre,
+    require_constituency,
+    require_county,
+    require_ward,
+)
 
+# Each key of an area as the API sends it, and the column holding it.
+AREA_KEYS = {
+    "counties": "county_id",
+    "constituencies": "constituency_id",
+    "wards": "ward_id",
+    "registration_centres": "registration_centre_id",
+}
 ORDER = {role: rank for rank, role in enumerate(UserRole)}
 # Roles the candidate and manager add from the Team page.
 STAFF = frozenset({UserRole.COORDINATOR, UserRole.COMMS})
@@ -123,51 +136,46 @@ async def _member(
     return member
 
 
-async def areas(
-    session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID
-) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
-    """A team member's area: its wards and its registration centres."""
+async def areas(session: AsyncSession, campaign_id: uuid.UUID, user_id: uuid.UUID) -> AreaRead:
+    """A team member's area: its counties, constituencies, wards and registration centres."""
     member = await _member(session, campaign_id, user_id)
     rows = (
-        await session.execute(
-            select(CampaignMemberArea.ward_id, CampaignMemberArea.registration_centre_id).where(
-                CampaignMemberArea.campaign_member_id == member.id
-            )
+        await session.scalars(
+            select(CampaignMemberArea).where(CampaignMemberArea.campaign_member_id == member.id)
         )
     ).all()
-    return (
-        sorted(w for w, _ in rows if w is not None),
-        sorted(c for _, c in rows if c is not None),
+    return AreaRead(
+        **{
+            key: sorted(getattr(r, column) for r in rows if getattr(r, column) is not None)
+            for key, column in AREA_KEYS.items()
+        }
     )
 
 
 async def set_areas(
-    session: AsyncSession,
-    campaign: Campaign,
-    user_id: uuid.UUID,
-    wards: list[uuid.UUID],
-    centres: list[uuid.UUID],
-    *,
-    actor: User,
-) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
-    """Replace a coordinator's wards and centres; each must lie inside the campaign's seat."""
+    session: AsyncSession, campaign: Campaign, user_id: uuid.UUID, area: AreaWrite, *, actor: User
+) -> AreaRead:
+    """Replace a coordinator's area; each place must lie inside the campaign's seat."""
     member = await _member(session, campaign.id, user_id)
     if member.role is not UserRole.COORDINATOR:
         raise Refused("Only a coordinator has an area.")
-    wards, centres = sorted(set(wards)), sorted(set(centres))
-    for ward_id in wards:
-        await require_ward(session, campaign, ward_id)
-    for centre_id in centres:
-        await require_centre(session, campaign, centre_id)
+    chosen = {key: sorted(set(getattr(area, key))) for key in AREA_KEYS}
+    checks = {
+        "counties": require_county,
+        "constituencies": require_constituency,
+        "wards": require_ward,
+        "registration_centres": require_centre,
+    }
+    for key, check in checks.items():
+        for place in chosen[key]:
+            await check(session, campaign, place)
     await session.execute(
         delete(CampaignMemberArea).where(CampaignMemberArea.campaign_member_id == member.id)
     )
     session.add_all(
-        [CampaignMemberArea(campaign_member_id=member.id, ward_id=w) for w in wards]
-        + [
-            CampaignMemberArea(campaign_member_id=member.id, registration_centre_id=c)
-            for c in centres
-        ]
+        CampaignMemberArea(campaign_member_id=member.id, **{AREA_KEYS[key]: place})
+        for key, places in chosen.items()
+        for place in places
     )
     record(
         session,
@@ -176,7 +184,7 @@ async def set_areas(
         subject_type="user",
         subject_id=user_id,
         campaign_id=campaign.id,
-        detail={"wards": len(wards), "centres": len(centres)},
+        detail={key: len(places) for key, places in chosen.items()},
     )
     await session.commit()
-    return wards, centres
+    return AreaRead(**chosen)

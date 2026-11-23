@@ -6,7 +6,7 @@ import {
   Settings, ShieldCheck, Target, UserPlus, UserRoundCog, Users,
 } from "lucide-react";
 import { useEvents, useMobilizers, useStrategy } from "@/api/hooks";
-import { pagesOf, reads, useWardOptions } from "./helpers";
+import { pagesOf, perCounty, reads, useWardOptions } from "./helpers";
 import { nairobiDate } from "@/lib/format";
 
 export const ICONS = {
@@ -39,7 +39,8 @@ export const ICONS = {
  *  Contacts are searched on the server, so `contactsFor` is only the campaign to search. */
 export function useShellData(campaign, role) {
   const id = (what) => (reads(role, what) ? campaign.id : undefined);
-  const wardOptions = useWardOptions(id("targets"));
+  // A national seat seen whole has too many wards to list; its pages pick a county instead.
+  const wardOptions = useWardOptions(perCounty(campaign, role) ? undefined : id("targets"));
   const strategy = useStrategy(id("strategy"));
   const events = useEvents(id("events"));
   const mobilizers = useMobilizers(id("mobilizers"));
@@ -55,9 +56,11 @@ export const useWorkspaceArea = () => useContext(AreaContext);
 export function workspaceAlerts(data, role) {
   const pages = new Set(pagesOf(role).map(([key]) => key));
   const out = [];
-  const empty = (data.strategy?.units || []).filter((u) => !u.has_mobilizer);
-  if (empty.length && pages.has("mobilizers")) {
-    out.push({ key: "unstaffed", text: empty.length === 1 ? `${empty[0].unit} has no mobilizer` : `${empty.length} wards have no mobilizer`, to: "/campaign/mobilizers" });
+  const s = data.strategy;
+  const empty = s ? s.unit_count - s.staffed_count : 0;
+  if (empty && pages.has("mobilizers")) {
+    const only = empty === 1 && s.units.find((u) => !u.has_mobilizer);
+    out.push({ key: "unstaffed", text: only ? `${only.unit} has no mobilizer` : `${empty} ${empty === 1 ? "ward has" : "wards have"} no mobilizer`, to: "/campaign/mobilizers" });
   }
   const eventsPage = pages.has("events") ? "events" : pages.has("myevents") && role === "mobilizer" ? "myevents" : null;
   const unrecorded = data.events.filter((e) => e.status === "planned" && e.scheduled_date && e.scheduled_date.slice(0, 10) < nairobiDate());

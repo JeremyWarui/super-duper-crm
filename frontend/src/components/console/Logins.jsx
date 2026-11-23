@@ -8,6 +8,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import LoginFields from "@/components/LoginFields";
+import { WardCascade } from "@/components/PlaceCascade";
 import { Pill, INLINE, Help, Danger } from "./kit";
 
 const BLANK = {
@@ -130,7 +131,10 @@ export function NewLogin({ campaigns, create }) {
             </NativeSelect>
           </Field>
         )}
-        {isMobilizer && !byCentre && (
+        {isMobilizer && !byCentre && chosen?.national && (
+          <WardCascade labelled key={chosen.id} onChange={(ward) => set({ ward })} />
+        )}
+        {isMobilizer && !byCentre && !chosen?.national && (
           <Field label="Ward">
             <NativeSelect
               value={form.ward}

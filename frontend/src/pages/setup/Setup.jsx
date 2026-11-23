@@ -53,7 +53,7 @@ function blocker(step, f) {
     const a = f.campaign;
     const level = SEAT_AREA[a.seat];
     if (!a.title.trim()) return "Name the campaign.";
-    if (!a[level]) return `Pick the ${level}.`;
+    if (level && !a[level]) return `Pick the ${level}.`;
     return loginOk(a.candidate) ? null : "The candidate needs a username and an email.";
   }
   return null;
@@ -62,7 +62,7 @@ function blocker(step, f) {
 function body(token, f) {
   const a = f.campaign;
   const level = SEAT_AREA[a.seat];
-  const campaign = { title: a.title, seat: a.seat, election_date: a.election_date || null, [level]: a[level], candidate: a.candidate };
+  const campaign = { title: a.title, seat: a.seat, election_date: a.election_date || null, ...(level && { [level]: a[level] }), candidate: a.candidate };
   return { token, site: f.site, superuser: f.superuser, campaign };
 }
 
@@ -107,7 +107,9 @@ function SeatStep({ token, form, change }) {
         </Field>
         <Field label="Election date"><Input type="date" value={a.election_date} onChange={(e) => set({ election_date: e.target.value })} /></Field>
       </div>
-      <AreaPicker token={token} level={level} place={a} onChange={({ county, constituency, ward }) => set({ county, constituency, ward })} />
+      {level
+        ? <AreaPicker token={token} level={level} place={a} onChange={({ county, constituency, ward }) => set({ county, constituency, ward })} />
+        : <p className="text-ui text-muted-foreground">The whole country: targets are set for every ward in all 47 counties.</p>}
       <CardTitle as="h3">The candidate's login</CardTitle>
       <Login who="Candidate" value={a.candidate} onChange={(candidate) => set({ candidate })} />
     </div>

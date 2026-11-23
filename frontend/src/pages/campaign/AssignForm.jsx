@@ -6,6 +6,7 @@ import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
 import { useWardOptions } from "./helpers";
+import WardField from "./WardField";
 
 const KINDS = [["activity", "Activity (training or other)"], ["ward_work", "Ward work"]];
 
@@ -13,11 +14,11 @@ const KINDS = [["activity", "Activity (training or other)"], ["ward_work", "Ward
  * Gives a mobilizer or agent paid work. From an event card the event is fixed; from a mobilizer
  * or agent row the person is fixed.
  */
-export default function AssignForm({ campaignId, event, member, onClose }) {
+export default function AssignForm({ campaignId, perCounty, event, member, onClose }) {
   const create = useCreateAssignment();
   const mobilizers = useMobilizers(campaignId).data || [];
   const agents = useAgents(campaignId).data || [];
-  const wards = useWardOptions(campaignId);
+  const wards = useWardOptions(perCounty ? undefined : campaignId);
   const [kind, setKind] = useState(event ? "event" : "activity");
   const [who, setWho] = useState(member ? `${member.role}:${member.id}` : "");
   const [ward, setWard] = useState("");
@@ -54,12 +55,7 @@ export default function AssignForm({ campaignId, event, member, onClose }) {
         </Field>
       )}
       {kind === "ward_work" && (
-        <Field label="Ward">
-          <NativeSelect aria-label="Ward" value={ward} onChange={(e) => setWard(e.target.value)}>
-            <option value="">Pick a ward</option>
-            {wards.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </NativeSelect>
-        </Field>
+        <WardField campaignId={campaignId} perCounty={perCounty} wardOptions={wards} value={ward} onChange={setWard} blank="Pick a ward" />
       )}
       {kind === "activity" && (
         <Field label="What">

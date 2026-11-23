@@ -24,7 +24,7 @@ from backend.services import campaign_volunteers
 from backend.services.audit import record
 from backend.services.consent import CAMPAIGN_VOLUNTEER_WORDING
 from backend.services.errors import NotFound
-from backend.services.targets import wards_in_area
+from backend.services.targets import ward_choices
 
 PLACES = (
     selectinload(Campaign.candidate),
@@ -74,12 +74,11 @@ async def public_page(session: AsyncSession) -> CandidateDetail:
     profile = await _profile(session, found)
     if profile is None or not profile.published:
         raise NotFound("The candidate page is not published yet.")
-    area = found.area
     return CandidateDetail(
         slug="",
         name=found.candidate_label or found.title,
         seat=found.seat,
-        area=area.name if area is not None else "",
+        area=found.area_label,
         county=found.county_name,
         photo_url=profile.photo_url,
         slogan=profile.slogan,
@@ -87,7 +86,8 @@ async def public_page(session: AsyncSession) -> CandidateDetail:
         events=[],
         volunteering_open=True,
         consent_wording=CAMPAIGN_VOLUNTEER_WORDING,
-        wards=[Named(id=w.id, name=w.name) for w in await wards_in_area(session, found)],
+        national=found.national,
+        wards=[Named(id=w.id, name=w.name) for w in await ward_choices(session, found)],
     )
 
 

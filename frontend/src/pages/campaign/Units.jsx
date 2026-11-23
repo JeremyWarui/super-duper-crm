@@ -7,7 +7,9 @@ import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { FilterPills } from "@/components/ui/tabs";
 import { formatNumber as fmt } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { assignerFor, holderOf, statusOf, unitOf } from "./helpers";
+import { assignerFor, holderOf, isNational, statusOf, unitOf } from "./helpers";
+import CountyFilter from "./CountyFilter";
+import GroupTable from "./GroupTable";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
@@ -34,21 +36,29 @@ function MobilizerCell({ holder, onAssign }) {
     : <span className="font-semibold text-bad-foreground">None</span>;
 }
 
-// Every targeted unit: its win number, how far it has come, its events and its mobilizer.
+// Every targeted unit: its win number, how far it has come, its events and its mobilizer. A
+// national seat opens on its counties and lists the wards of the county or constituency picked.
 export default function Units({ campaign, role, onModal }) {
-  const strategy = useStrategy(campaign.id);
+  const national = isNational(campaign);
+  const [place, setPlace] = useState({ county: "", constituency: "" });
+  const strategy = useStrategy(campaign.id, place);
   const mobilizers = useMobilizers(campaign.id);
   const assign = assignerFor(role, onModal);
   const [sortKey, setSortKey] = useState("Biggest gap");
   const { Noun: noun } = unitOf(campaign);
   const units = strategy.data?.units;
+  const groups = strategy.data?.groups || [];
+  const level = strategy.data?.group_level;
+  const pick = (id) => setPlace(level === "county" ? { county: id, constituency: "" } : { ...place, constituency: id });
   const sorted = useMemo(() => [...(units || [])].sort(SORTS[sortKey]), [units, sortKey]);
   return (
     <>
       <SlottedHeader context="Plan" title={role === "candidate" ? `${noun} performance` : `${noun}s`} sub="Win number, progress and coverage in each one." />
+      {national && <CountyFilter place={place} onChange={setPlace} />}
       {strategy.isLoading && <LoadingText />}
       <ErrorText error={strategy.error} />
-      {units && (
+      {groups.length > 0 && <GroupTable level={level} groups={groups} onPick={pick} />}
+      {units?.length > 0 && (
         <Card variant="outline" className="min-w-0 gap-3" role="region" aria-labelledby="units-h">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle id="units-h">{noun} targets</CardTitle>
@@ -62,7 +72,7 @@ export default function Units({ campaign, role, onModal }) {
               const st = statusOf(u.progress);
               return (
                 <TR key={u.unit}>
-                  <TD><div className="font-semibold">{u.unit}</div><Badge tone={TONE[st.tone]} className="mt-1">{st.label}</Badge></TD>
+                  <TD><div className="font-semibold">{u.unit}</div>{groups.length > 0 && <div className="text-small text-muted-foreground">{u.constituency_name}</div>}<Badge tone={TONE[st.tone]} className="mt-1">{st.label}</Badge></TD>
                   <TD numeric className="font-bold">{fmt(u.needed)}</TD>
                   <TD className="min-w-[180px]">
                     <div className="flex items-center gap-2">

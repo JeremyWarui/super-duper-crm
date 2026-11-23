@@ -13,7 +13,8 @@ JoinPlace = Named
 class JoinRead(BaseModel):
     """What the page shows: whose campaign, which event, and whether it still takes sign-ups.
 
-    On a campaign's link `place` says whether to ask for a ward or a centre, from `places`.
+    On a campaign's link `place` says whether to ask for a ward or a centre, from `places`; a
+    `national` seat sends no `places` and the page picks the ward from the public places.
     """
 
     campaign_title: str
@@ -23,6 +24,7 @@ class JoinRead(BaseModel):
     open: bool
     consent_wording: str
     place: Literal["ward", "centre"] | None = None
+    national: bool = False
     places: list[JoinPlace] = []
 
 

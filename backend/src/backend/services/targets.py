@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 from backend.models import (
     Campaign,
     Constituency,
+    County,
     OfficeLevel,
     OperationalGrain,
     RegistrationCentre,
@@ -29,7 +30,7 @@ WITH_COUNTY = selectinload(Ward.constituency).selectinload(Constituency.county)
 def _in_area(statement: Select, campaign: Campaign) -> Select | None:
     """Narrow a ward query to a county or constituency seat, leave it whole for the national
     scope, or None when no area is set."""
-    if campaign.office_level is OfficeLevel.NATIONAL:
+    if campaign.national:
         return statement
     if campaign.office_level is OfficeLevel.COUNTY and campaign.county_id is not None:
         return statement.join(Constituency).where(Constituency.county_id == campaign.county_id)
@@ -46,7 +47,30 @@ async def ward_in_area(session: AsyncSession, campaign: Campaign, ward_id: uuid.
     return statement is not None and await session.scalar(statement) is not None
 
 
+async def county_in_area(session: AsyncSession, campaign: Campaign, county_id: uuid.UUID) -> bool:
+    """Whether a whole county lies inside the seat a campaign contests."""
+    if campaign.national:
+        return await session.get(County, county_id) is not None
+    return campaign.office_level is OfficeLevel.COUNTY and campaign.county_id == county_id
+
+
+async def constituency_in_area(
+    session: AsyncSession, campaign: Campaign, constituency_id: uuid.UUID
+) -> bool:
+    """Whether a whole constituency lies inside the seat a campaign contests."""
+    found = await session.get(Constituency, constituency_id)
+    if found is None:
+        return False
+    if campaign.national:
+        return True
+    if campaign.office_level is OfficeLevel.COUNTY:
+        return found.county_id == campaign.county_id
+    return campaign.constituency_id == constituency_id
+
+
 WARD_OUTSIDE = "That ward is not one this campaign works."
+COUNTY_OUTSIDE = "That county is not one this campaign works as a whole."
+CONSTITUENCY_OUTSIDE = "That constituency is not one this campaign works as a whole."
 CENTRE_OUTSIDE = "That registration centre is not one this campaign works."
 NO_TARGET = "That centre has no target, so work there would count toward nothing."
 
@@ -57,6 +81,18 @@ async def require_ward(
     """Refused unless the ward lies inside the campaign's seat."""
     if ward_id is None or not await ward_in_area(session, campaign, ward_id):
         raise Refused(WARD_OUTSIDE)
+
+
+async def require_county(session: AsyncSession, campaign: Campaign, county_id: uuid.UUID) -> None:
+    if not await county_in_area(session, campaign, county_id):
+        raise Refused(COUNTY_OUTSIDE)
+
+
+async def require_constituency(
+    session: AsyncSession, campaign: Campaign, constituency_id: uuid.UUID
+) -> None:
+    if not await constituency_in_area(session, campaign, constituency_id):
+        raise Refused(CONSTITUENCY_OUTSIDE)
 
 
 async def require_centre(
@@ -95,6 +131,12 @@ async def wards_in_area(session: AsyncSession, campaign: Campaign) -> list[Ward]
     if statement is None:
         return []
     return list((await session.scalars(statement.order_by(Ward.name))).all())
+
+
+async def ward_choices(session: AsyncSession, campaign: Campaign) -> list[Ward]:
+    """The wards a public form lists in one go; none for a national seat, whose forms pick a
+    county, then a constituency, then a ward."""
+    return [] if campaign.national else await wards_in_area(session, campaign)
 
 
 async def generate_targets(

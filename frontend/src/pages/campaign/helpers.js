@@ -90,17 +90,17 @@ export const READS = {
 };
 export const reads = (role, what) => READS[what].includes(role);
 
-// The targeted units (wards, or centres in a ward race) a campaign works.
-export function useUnits(campaignId) {
-  const targets = useTargets(campaignId);
+// The targeted units (wards, or centres in a ward race) a campaign works, in `place` when given.
+export function useUnits(campaignId, place) {
+  const targets = useTargets(campaignId, place);
   return useMemo(() => (targets.data || []).map((t) => ({
     key: t.id, ward: t.ward, registration_centre: t.registration_centre ?? null, name: t.centre_name || t.ward_name,
   })), [targets.data]);
 }
 
-// Ward options for forms: distinct wards from targets.
-export function useWardOptions(campaignId) {
-  const targets = useTargets(campaignId);
+// Ward options for forms: distinct wards from targets, in `place` when given.
+export function useWardOptions(campaignId, place) {
+  const targets = useTargets(campaignId, place);
   return useMemo(() => {
     const seen = {}; const out = [];
     (targets.data || []).forEach((t) => { if (t.ward && !seen[t.ward]) { seen[t.ward] = 1; out.push({ id: t.ward, name: t.ward_name }); } });
@@ -113,7 +113,7 @@ export function useWardOptions(campaignId) {
  * centre ids, whether the targets are in (`ready`) and whether the centres have come back (`fetched`).
  */
 export function useTargetedCentres(campaignId, ward) {
-  const targets = useTargets(campaignId);
+  const targets = useTargets(ward ? campaignId : undefined);
   const query = useCentres(ward);
   const all = query.data || [];
   const targeted = new Set((targets.data || []).map((t) => t.registration_centre));
@@ -131,6 +131,12 @@ export const TOO_MANY_ATTENDED = "Attendance can't be more than those reached.";
 
 /** Whether the role leads the campaign: the candidate or the manager. */
 export const isLead = (role) => role === "candidate" || role === "manager";
+
+/** Whether the seat is the whole country (President). */
+export const isNational = (campaign) => campaign?.office_level === "national";
+
+/** Whether this role's ward lists load a county at a time: a national seat seen whole. */
+export const perCounty = (campaign, role) => isNational(campaign) && isLead(role);
 
 /** The campaign's unit of work: whether it is a polling centre, and its word in lower and title case. */
 export function unitOf(campaign) {

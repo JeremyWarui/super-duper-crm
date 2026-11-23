@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy import Select, select
+from sqlalchemy import Select, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.interfaces import ORMOption
 
@@ -16,11 +16,13 @@ from backend.models import (
     Campaign,
     CampaignMember,
     CampaignMemberArea,
+    Constituency,
     Mobilizer,
     OperationalGrain,
     RegistrationCentre,
     User,
     UserRole,
+    Ward,
 )
 from backend.services.accounts import campaign_mobilizer
 from backend.services.errors import Forbidden, NotFound, Refused
@@ -70,18 +72,37 @@ def mobilizer_ward_id(user: User) -> uuid.UUID | None:
 
 
 async def area_ids(session: AsyncSession, user: User) -> Area:
-    """The wards and centres in the caller's `campaign_member_areas`."""
+    """The wards and centres in the caller's `campaign_member_areas`, a county or constituency
+    there counting as every ward under it."""
     rows = (
         await session.execute(
-            select(CampaignMemberArea.ward_id, CampaignMemberArea.registration_centre_id)
+            select(
+                CampaignMemberArea.county_id,
+                CampaignMemberArea.constituency_id,
+                CampaignMemberArea.ward_id,
+                CampaignMemberArea.registration_centre_id,
+            )
             .join(CampaignMember, CampaignMember.id == CampaignMemberArea.campaign_member_id)
             .where(CampaignMember.user_id == user.id)
         )
     ).all()
-    return Area(
-        frozenset(ward for ward, _ in rows if ward is not None),
-        frozenset(centre for _, centre in rows if centre is not None),
-    )
+    counties = {county for county, _, _, _ in rows if county is not None}
+    constituencies = {constituency for _, constituency, _, _ in rows if constituency is not None}
+    wards = {ward for _, _, ward, _ in rows if ward is not None}
+    if counties or constituencies:
+        wards |= set(
+            await session.scalars(
+                select(Ward.id)
+                .join(Constituency, Constituency.id == Ward.constituency_id)
+                .where(
+                    or_(
+                        Constituency.county_id.in_(counties),
+                        Ward.constituency_id.in_(constituencies),
+                    )
+                )
+            )
+        )
+    return Area(frozenset(wards), frozenset(c for _, _, _, c in rows if c is not None))
 
 
 async def area_of(session: AsyncSession, user: User, action: str) -> Area | None:

@@ -65,9 +65,8 @@ export function SeatCard({ campaign, winNumber }: { campaign: Campaign; winNumbe
 
 /** "Your access": the role, and what it covers; a coordinator's names their wards. */
 export function AccessFooter({ role, wards }: { role: string; wards: Ward[] }) {
-  const note = role === "coordinator" && wards.length
-    ? `Limited to ${wards.map((w) => w.name).join(", ")}.`
-    : ROLE_NOTE[role];
+  const named = wards.length <= 6 ? wards.map((w) => w.name).join(", ") : `${wards.length} wards`;
+  const note = role === "coordinator" && wards.length ? `Limited to ${named}.` : ROLE_NOTE[role];
   return (
     <>
       <span className="text-meta text-muted-foreground">Your access</span>

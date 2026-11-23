@@ -39,12 +39,17 @@ class StaffCreated(NewLogin):
 
 
 class AreaWrite(WriteModel):
-    """A coordinator's whole area; it replaces the one they have."""
+    """A coordinator's whole area; it replaces the one they have. A county or constituency
+    reaches every ward under it."""
 
+    counties: list[uuid.UUID] = Field(default_factory=list, max_length=47)
+    constituencies: list[uuid.UUID] = Field(default_factory=list, max_length=300)
     wards: list[uuid.UUID] = Field(default_factory=list, max_length=500)
     registration_centres: list[uuid.UUID] = Field(default_factory=list, max_length=2000)
 
 
 class AreaRead(ORMModel):
+    counties: list[uuid.UUID] = []
+    constituencies: list[uuid.UUID] = []
     wards: list[uuid.UUID]
     registration_centres: list[uuid.UUID]

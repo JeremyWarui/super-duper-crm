@@ -25,7 +25,7 @@ from backend.services.access import workspace_access
 from backend.services.errors import Refused
 from backend.services.permissions import Reach, reach
 from backend.services.ratelimit import RateLimit
-from backend.services.targets import wards_in_area
+from backend.services.targets import ward_choices
 
 router = APIRouter(tags=["team sign-up"])
 
@@ -58,7 +58,7 @@ def _sees_ids(user: User) -> bool:
 async def read_signup(code: str, session: SessionDep) -> SignupRead:
     """What the team sign-up page shows; 404 for a code that is not a workspace's."""
     campaign = await team_signup.by_code(session, code)
-    wards = await wards_in_area(session, campaign)
+    wards = await ward_choices(session, campaign)
     return SignupRead(
         campaign_title=campaign.title,
         seat_label=campaign.seat_label,
@@ -67,6 +67,7 @@ async def read_signup(code: str, session: SessionDep) -> SignupRead:
         mobilizer_place=(
             "centre" if campaign.operational_grain is OperationalGrain.CENTRE else "ward"
         ),
+        national=campaign.national,
         wards=[
             SignupPlace(id=w.id, name=w.name, county_name=w.constituency.county.name) for w in wards
         ],

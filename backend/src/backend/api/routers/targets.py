@@ -26,11 +26,15 @@ from backend.schemas.campaign import (
     TargetUpdate,
 )
 from backend.services.errors import Refused
+from backend.services.geography import within
 from backend.services.targets import refresh_targets
 
 router = APIRouter(prefix="/targets", tags=["targets"])
 
-LOADED = (selectinload(Target.ward), selectinload(Target.registration_centre))
+LOADED = (
+    selectinload(Target.ward).selectinload(Ward.constituency),
+    selectinload(Target.registration_centre),
+)
 Reader = Annotated[User, Depends(require("targets.read"))]
 Writer = Annotated[User, Depends(require("targets.write"))]
 TARGET_TAKEN = "That unit already has a target."
@@ -38,11 +42,17 @@ TARGET_TAKEN = "That unit already has a target."
 
 @router.get("/", response_model=list[TargetRead])
 async def list_targets(
-    session: SessionDep, user: Reader, campaign: uuid.UUID | None = None
+    session: SessionDep,
+    user: Reader,
+    campaign: uuid.UUID | None = None,
+    county: uuid.UUID | None = None,
+    constituency: uuid.UUID | None = None,
 ) -> list[Target]:
+    """The caller's targets by ward name, only those in `county` or `constituency` when given."""
     statement = await scoped(
         session, user, select(Target).options(*LOADED), Target, campaign, "targets.read"
     )
+    statement = within(statement, Target.ward_id, county=county, constituency=constituency)
     return await all_rows(
         session, statement.join(Ward, Target.ward_id == Ward.id).order_by(Ward.name)
     )

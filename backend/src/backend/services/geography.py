@@ -2,7 +2,7 @@
 
 import uuid
 
-from sqlalchemy import Select, select
+from sqlalchemy import ColumnElement, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Constituency, County, RegistrationCentre, Ward
@@ -30,3 +30,26 @@ async def places(
     session: AsyncSession, model: type[Place], parent: uuid.UUID | None = None
 ) -> list[Place]:
     return list(await session.scalars(in_level(model, parent)))
+
+
+def within(
+    statement: Select,
+    ward: ColumnElement,
+    *,
+    county: uuid.UUID | None = None,
+    constituency: uuid.UUID | None = None,
+) -> Select:
+    """Keep the rows whose `ward` lies in `constituency`, and in `county`, when given."""
+    if constituency is not None:
+        statement = statement.where(
+            ward.in_(select(Ward.id).where(Ward.constituency_id == constituency))
+        )
+    if county is not None:
+        statement = statement.where(
+            ward.in_(
+                select(Ward.id)
+                .join(Constituency, Constituency.id == Ward.constituency_id)
+                .where(Constituency.county_id == county)
+            )
+        )
+    return statement

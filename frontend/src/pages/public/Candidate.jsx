@@ -8,6 +8,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Check, Field, FilterSelect, Input } from "@/components/ui/input";
 import { Crumbs, RuleHead } from "@/components/ui/typography";
 import { SEAT_LABEL } from "@/lib/labels";
+import { WardCascade } from "@/components/PlaceCascade";
 import VolunteerFields, { NO_VOLUNTEER, volunteerBody, volunteerReady } from "@/components/VolunteerFields";
 import { firstName, linkTo, whereOf } from "@/lib/format";
 import { Photo, PHOTO_GRID, PhotoCard } from "./story";
@@ -57,7 +58,9 @@ export function SupportForm({ c, send, withdrawPath }) {
           <Field label="Phone"><Input value={f.phone} onChange={set("phone")} inputMode="tel" autoComplete="tel" placeholder="07XX XXX XXX" /></Field>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <FilterSelect labelled label="Ward" blank="Pick your ward" value={f.ward} options={c.wards} onChange={(ward) => setF({ ...f, ward, registration_centre: "" })} />
+          {c.national
+            ? <WardCascade labelled onChange={(ward) => setF((v) => ({ ...v, ward, registration_centre: "" }))} />
+            : <FilterSelect labelled label="Ward" blank="Pick your ward" value={f.ward} options={c.wards} onChange={(ward) => setF({ ...f, ward, registration_centre: "" })} />}
           <FilterSelect labelled label="Polling station" blank="Pick your polling station" value={f.registration_centre} options={centres} disabled={!f.ward} onChange={(registration_centre) => setF({ ...f, registration_centre })} />
         </div>
         <VolunteerFields pills value={f} onChange={(patch) => setF((v) => ({ ...v, ...patch }))} />

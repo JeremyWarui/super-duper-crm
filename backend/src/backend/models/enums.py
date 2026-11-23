@@ -39,6 +39,7 @@ class Seat(LabelledStrEnum):
     GOVERNOR = ("governor", "Governor")
     SENATOR = ("senator", "Senator")
     WOMEN_REP = ("women_rep", "Women Rep")
+    PRESIDENT = ("president", "President")
 
     @property
     def office_level(self) -> OfficeLevel:
@@ -47,6 +48,8 @@ class Seat(LabelledStrEnum):
             return OfficeLevel.WARD
         if self is Seat.MP:
             return OfficeLevel.CONSTITUENCY
+        if self is Seat.PRESIDENT:
+            return OfficeLevel.NATIONAL
         return OfficeLevel.COUNTY
 
 

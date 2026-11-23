@@ -91,7 +91,7 @@ describe("the team page", () => {
     await user.click(screen.getByRole("checkbox", { name: "Githurai" }));
     await user.click(screen.getByRole("button", { name: "Save 2 wards" }));
 
-    await waitFor(() => expect(calls.find((c) => c.method === "PUT").body).toEqual({ wards: ["w1", "w2"], registration_centres: [] }));
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT").body).toEqual({ counties: [], constituencies: [], wards: ["w1", "w2"], registration_centres: [] }));
   });
 
   it("takes a comms officer off the team after a second click", async () => {

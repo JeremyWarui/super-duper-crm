@@ -57,7 +57,13 @@ function useReplace(mutationFn, key) {
 const saveBy = (add, change) => ({ id, ...body }) => (id ? change(id, body) : add(body));
 
 // ---- Queries --------------------------------------------------------------
-export const useTargets = (campaignId) => useFor("targets", campaignId, () => api(`/targets/?campaign=${campaignId}`));
+/** A campaign's targets, only those in `place.county` or `place.constituency` when given. */
+export const useTargets = (campaignId, place = {}) =>
+  useQuery({
+    queryKey: ["targets", campaignId, place.county || null, place.constituency || null],
+    queryFn: () => api(`/targets/?${queryOf({ campaign: campaignId, county: place.county, constituency: place.constituency })}`),
+    enabled: !!campaignId,
+  });
 
 export const useEvents = (campaignId) => useFor("events", campaignId, () => api(`/events/?campaign=${campaignId}`));
 
@@ -98,7 +104,13 @@ export const useConsentWording = () =>
     staleTime: Infinity,
   });
 
-export const useStrategy = (campaignId) => useFor("strategy", campaignId, () => api(`/strategy/?campaign=${campaignId}`));
+/** The strategy read; its units only in `place.county` or `place.constituency` when given. */
+export const useStrategy = (campaignId, place = {}) =>
+  useQuery({
+    queryKey: ["strategy", campaignId, place.county || null, place.constituency || null],
+    queryFn: () => api(`/strategy/?${queryOf({ campaign: campaignId, county: place.county, constituency: place.constituency })}`),
+    enabled: !!campaignId,
+  });
 
 // ---- Mutations ------------------------------------------------------------
 export const useSetTarget = () =>
@@ -316,8 +328,8 @@ export const useSettleAssignment = () =>
   );
 
 // ---- geography pickers ----------------------------------------------------
-export const useCounties = () =>
-  useQuery({ queryKey: ["counties"], queryFn: () => api("/counties/") });
+export const useCounties = (enabled = true) =>
+  useQuery({ queryKey: ["counties"], queryFn: () => api("/counties/"), enabled, staleTime: Infinity });
 
 export const useConstituencies = (countyId) =>
   useFor("constituencies", countyId, () => api(`/constituencies/?county=${countyId}`));

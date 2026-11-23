@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useAddMobilizer, useCreateUser, useUpdateMobilizer } from "@/api/hooks";
+import { useAddMobilizer, useCounties, useCreateUser, useUpdateMobilizer } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorText } from "@/components/ui/error-text";
 import { FormActions } from "@/components/ui/form-actions";
-import { Check, Field, Input, NativeSelect } from "@/components/ui/input";
+import { Check, Field, FilterSelect, Input, NativeSelect } from "@/components/ui/input";
 import { InviteDialog } from "@/components/ui/invite-dialog";
-import { holderOf } from "./helpers";
+import { holderOf, useUnits } from "./helpers";
 import { loginBody, loginReady } from "@/components/LoginFields";
 import LoginFields from "@/components/LoginFields";
 import { useForm } from "@/lib/form";
@@ -15,8 +15,13 @@ import { useForm } from "@/lib/form";
 const freeUnits = (units, mobilizers, keep) =>
   units.filter((u) => { const h = holderOf(mobilizers, u); return !h || h.id === keep?.id; });
 
-// Adds a mobilizer, or edits one when `mobilizer` is given; the unit is optional.
-export default function MobilizerForm({ campaignId, units, byCentre, mobilizers, mobilizer, onClose }) {
+// Adds a mobilizer, or edits one when `mobilizer` is given; the unit is optional. With `perCounty`
+// the wards come a county at a time.
+export default function MobilizerForm({ campaignId, perCounty, units: allUnits, byCentre, mobilizers, mobilizer, onClose }) {
+  const [county, setCounty] = useState("");
+  const counties = useCounties(perCounty).data || [];
+  const inCounty = useUnits(perCounty && county ? campaignId : undefined, { county });
+  const units = perCounty ? inCounty : allUnits;
   const add = useAddMobilizer();
   const update = useUpdateMobilizer();
   const createUser = useCreateUser();
@@ -60,7 +65,10 @@ export default function MobilizerForm({ campaignId, units, byCentre, mobilizers,
     <Dialog title={mobilizer ? "Edit mobilizer" : "Add mobilizer"} description={`One mobilizer per ${unitWord}. The ${unitWord} can be left for later.`} onClose={onClose}>
       <Field label="Full name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
       <Field label="Phone"><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
-      <Field label={byCentre ? "Registration centre" : "Ward"}>
+      {perCounty && (
+        <FilterSelect labelled label="County" blank="Pick the county" value={county} options={counties} onChange={(id) => { setCounty(id); setPicked(null); }} />
+      )}
+      <Field label={byCentre ? "Registration centre" : "Ward"} hint={perCounty && mobilizer?.ward_name && picked === null ? `Now in ${mobilizer.ward_name}. Pick a ward to move them.` : undefined}>
         <NativeSelect aria-label={byCentre ? "Registration centre" : "Ward"} value={unitKey} onChange={(e) => setPicked(e.target.value)}>
           <option value="">No {unitWord} yet</option>
           {choices.map((u) => <option key={u.key} value={u.key}>{u.name}</option>)}

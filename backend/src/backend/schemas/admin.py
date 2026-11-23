@@ -50,6 +50,8 @@ class AdminCampaignRead(ORMModel):
     candidate: str
     election_date: str | None
     members: list[MemberRead]
+    # Empty for a national seat, whose forms pick the ward from the public places.
+    national: bool = False
     wards: list[AdminWardRead]
     # The centres with a target; empty unless the race is run by centre (MCA).
     centres: list[AdminCentreRead] = []

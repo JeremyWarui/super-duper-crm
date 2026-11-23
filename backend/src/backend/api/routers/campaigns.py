@@ -32,7 +32,6 @@ VolunteerWriter = Annotated[User, Depends(require("volunteers.write"))]
 
 async def _named(session: SessionDep, campaign: Campaign) -> CampaignRead:
     """A campaign with its candidate and seat spelt out; needs CAMPAIGN_NAMES loaded."""
-    area = campaign.area
     candidate = campaign.candidate
     name = campaign.candidate_label
     return CampaignRead.model_validate(campaign).model_copy(
@@ -40,7 +39,7 @@ async def _named(session: SessionDep, campaign: Campaign) -> CampaignRead:
             "candidate_name": name,
             "candidate_username": candidate.username if candidate else "",
             "seat": campaign.seat_label,
-            "area_name": area.name if area is not None else "",
+            "area_name": campaign.area_label,
         }
     )
 

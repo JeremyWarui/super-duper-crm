@@ -45,7 +45,7 @@ from backend.services.campaigns import build_campaign
 from backend.services.errors import NotFound, Refused
 from backend.services.login_links import new_invited_login, send_link
 from backend.services.strategy import read_strategy
-from backend.services.targets import require_ward, wards_in_area
+from backend.services.targets import require_ward, ward_choices
 
 SIZED = {"targets": Target, "mobilizers": Mobilizer, "events": Event, "supporters": Supporter}
 
@@ -131,9 +131,10 @@ async def campaigns(
                     )
                     for m in members
                 ],
+                national=campaign.national,
                 wards=[
                     AdminWardRead(id=w.id, name=w.name)
-                    for w in await wards_in_area(session, campaign)
+                    for w in await ward_choices(session, campaign)
                 ],
                 centres=centres.get(campaign.id, []),
                 **{name: counted.get(campaign.id, 0) for name, counted in counts.items()},

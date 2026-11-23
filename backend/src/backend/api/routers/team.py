@@ -69,8 +69,7 @@ async def remove_staff(
 async def read_area(
     user_id: uuid.UUID, session: SessionDep, user: TeamWriter, campaign: VisibleCampaign
 ) -> AreaRead:
-    wards, centres = await team.areas(session, campaign.id, user_id)
-    return AreaRead(wards=wards, registration_centres=centres)
+    return await team.areas(session, campaign.id, user_id)
 
 
 @router.put("/{user_id}/area/", response_model=AreaRead)
@@ -81,8 +80,5 @@ async def set_area(
     user: TeamWriter,
     campaign: VisibleCampaign,
 ) -> AreaRead:
-    """Replace a coordinator's wards and registration centres."""
-    wards, centres = await team.set_areas(
-        session, campaign, user_id, payload.wards, payload.registration_centres, actor=user
-    )
-    return AreaRead(wards=wards, registration_centres=centres)
+    """Replace a coordinator's counties, constituencies, wards and registration centres."""
+    return await team.set_areas(session, campaign, user_id, payload, actor=user)

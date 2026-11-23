@@ -1,4 +1,5 @@
 // County, then constituency, ward and polling station: choosing one clears those below it.
+import { useState } from "react";
 import { usePlaceLists } from "@/api/hooks";
 import { FilterSelect } from "@/components/ui/input";
 
@@ -34,4 +35,10 @@ export function PlaceSelects({ place, onChange, lists, level = "ward", blank = (
 /** The places down to `level`; takes every prop PlaceSelects does but `lists`. */
 export default function PlaceCascade(props) {
   return <PlaceSelects lists={usePlaceLists(props.place, props.level)} {...props} />;
+}
+
+/** County, constituency, then ward, for a national seat's forms; `onChange` gets the ward id. */
+export function WardCascade({ onChange, ...rest }) {
+  const [place, setPlace] = useState(NO_PLACE);
+  return <PlaceCascade place={place} level="ward" blank={(lv) => `Pick your ${lv}`} onChange={(p) => { setPlace(p); onChange(p.ward); }} {...rest} />;
 }

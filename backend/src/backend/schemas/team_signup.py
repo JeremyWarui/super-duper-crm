@@ -20,13 +20,15 @@ class SignupPlace(BaseModel):
 
 class SignupRead(BaseModel):
     """What the team sign-up page shows. A mobilizer picks a ward, or a centre in an MCA race
-    (`mobilizer_place`); an agent always picks a centre, ward first."""
+    (`mobilizer_place`); an agent always picks a centre, ward first. A `national` seat sends
+    no `wards`: the page picks county, constituency and ward from the public places."""
 
     campaign_title: str
     seat_label: str
     open: bool
     consent_wording: str
     mobilizer_place: Literal["ward", "centre"]
+    national: bool = False
     wards: list[SignupPlace]
 
 

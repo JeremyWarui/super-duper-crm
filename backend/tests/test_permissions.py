@@ -269,7 +269,7 @@ async def test_the_candidate_adds_a_coordinator_and_gives_them_an_area(
     )
 
     assert (added.status_code, added.json()["role"]) == (201, "coordinator")
-    assert set_area.json() == read.json() == area
+    assert set_area.json() == read.json() == {"counties": [], "constituencies": [], **area}
     assert (on_comms.status_code, on_comms.json()["detail"]) == (
         400,
         "Only a coordinator has an area.",

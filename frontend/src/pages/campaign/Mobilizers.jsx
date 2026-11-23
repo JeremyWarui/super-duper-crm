@@ -1,17 +1,20 @@
-import { useMobilizers } from "@/api/hooks";
+import { useMobilizers, useStrategy } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { EmptyRow, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import { holderOf, unitOf, useUnits } from "./helpers";
-import { initials } from "@/lib/format";
+import { holderOf, perCounty, unitOf, useUnits } from "./helpers";
+import { formatNumber as fmt, initials } from "@/lib/format";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
 import CoverageCard from "./CoverageCard";
 
 // The campaign's ground organisers: who they are, where they work, and how to reach them.
-export default function Mobilizers({ campaign, onModal }) {
-  const units = useUnits(campaign.id);
+export default function Mobilizers({ campaign, role, onModal }) {
+  const whole = perCounty(campaign, role);
+  const units = useUnits(whole ? undefined : campaign.id);
+  // A national seat seen whole counts its wards on the server, county by county.
+  const strategy = useStrategy(whole ? campaign.id : undefined).data;
   const { byCentre, noun, Noun } = unitOf(campaign);
   const { data, isLoading, error } = useMobilizers(campaign.id);
   const people = data || [];
@@ -32,6 +35,11 @@ export default function Mobilizers({ campaign, onModal }) {
           {units.length > 0 && (
             <CoverageCard title="Coverage" count={`${units.length - vacant.length} of ${units.length} ${noun}s have a mobilizer`}
               gaps={vacant.map((u) => ({ key: u.key, label: u.name }))} done={`Every ${noun} is covered.`} />
+          )}
+          {whole && strategy?.unit_count > 0 && (
+            <CoverageCard title="Coverage" count={`${fmt(strategy.staffed_count)} of ${fmt(strategy.unit_count)} wards have a mobilizer`}
+              gaps={strategy.groups.filter((g) => g.unstaffed).map((g) => ({ key: g.id, label: g.name, detail: `${fmt(g.unstaffed)} of ${fmt(g.units)} wards open` }))}
+              done="Every ward is covered." />
           )}
           <Card variant="outline" className="min-w-0 gap-3">
             <CardTitle>Everyone</CardTitle>

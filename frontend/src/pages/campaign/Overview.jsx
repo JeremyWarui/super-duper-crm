@@ -6,6 +6,7 @@ import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatNumber as fmt, plural } from "@/lib/format";
 import { holderOf, statusOf, unitOf } from "./helpers";
 import StrategyNotes from "./StrategyNotes";
+import GroupTable from "./GroupTable";
 import { ErrorText } from "@/components/ui/error-text";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { LoadingText } from "@/components/ui/loading-text";
@@ -15,10 +16,7 @@ const TONE = { good: "ok", warn: "warn", bad: "bad" };
 const ADDS_MOBILIZERS = ["candidate", "manager", "coordinator"];
 
 function Hero({ s, noun }) {
-  const units = s.units.length;
-  const short = s.units.filter((u) => u.gap > 0).length;
-  const staffed = s.units.filter((u) => u.has_mobilizer).length;
-  const quiet = s.units.filter((u) => u.events === 0).length;
+  const { unit_count: units, short_count: short, staffed_count: staffed, quiet_count: quiet } = s;
   const tiles = [
     ["Win number", fmt(s.win_number), `Half the projected votes, plus one, in each ${noun}`, "text-accent"],
     ["Votes committed", fmt(s.committed), `${s.progress_pct}% of the win number`],
@@ -82,7 +80,9 @@ export default function Overview({ campaign, role, onModal }) {
         <>
           <Hero s={strategy.data} noun={noun} />
           <div className="flex flex-wrap items-start gap-6">
-            <Targets units={strategy.data.units} mobilizers={mobilizers.data || []} noun={noun} />
+            {strategy.data.group_level === "county"
+              ? <div className="min-w-0 flex-[3_1_460px]"><GroupTable level="county" groups={strategy.data.groups} /></div>
+              : <Targets units={strategy.data.units} mobilizers={mobilizers.data || []} noun={noun} />}
             <div className="flex min-w-0 flex-[2_1_320px] flex-col gap-6"><StrategyNotes notes={strategy.data.notes} /></div>
           </div>
         </>

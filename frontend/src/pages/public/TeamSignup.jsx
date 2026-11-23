@@ -8,6 +8,7 @@ import { ErrorText } from "@/components/ui/error-text";
 import { LoadingText } from "@/components/ui/loading-text";
 import { StatusText } from "@/components/ui/notice";
 import { useForm } from "@/lib/form";
+import { WardCascade } from "@/components/PlaceCascade";
 
 const ROLES = [
   ["mobilizer", "Mobilizer", "Recruit supporters and run events in your area."],
@@ -85,7 +86,9 @@ export default function TeamSignup() {
               <Field label="Email" hint="You sign in with it."><Input size="lg" type="email" autoComplete="email" value={form.email} onChange={set("email")} /></Field>
               <Field label="ID number" hint="National ID or passport. Only the candidate and campaign manager see it."><Input size="lg" value={form.id_number} onChange={set("id_number")} /></Field>
               <Field label={wantsCentre ? "Ward of your registration centre" : "Ward you will work"}>
-                <WardSelect wards={data.wards} value={form.ward} onChange={(ward) => setForm({ ...form, ward, registration_centre: "" })} />
+                {data.national
+                  ? <div className="grid gap-3 sm:grid-cols-3"><WardCascade size="lg" onChange={(ward) => setForm((f) => ({ ...f, ward, registration_centre: "" }))} /></div>
+                  : <WardSelect wards={data.wards} value={form.ward} onChange={(ward) => setForm({ ...form, ward, registration_centre: "" })} />}
               </Field>
               {wantsCentre && form.ward && (
                 <Field label="Registration centre">
