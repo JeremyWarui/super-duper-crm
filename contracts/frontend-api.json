@@ -54,6 +54,8 @@
       "centre_name",
       "registered_voters",
       "projected_turnout_pct",
+      "ward_weight",
+      "reliability",
       "votes_needed"
     ],
     "GET /api/mobilizers/": [
@@ -176,12 +178,6 @@
       "votes_needed",
       "votes_committed",
       "wards"
-    ],
-    "POST /api/targets/": [
-      "id",
-      "ward",
-      "ward_name",
-      "votes_needed"
     ],
     "POST /api/admin/users/": [
       "id",
@@ -1058,9 +1054,6 @@
     "PATCH /api/supporters/{supporter_id}/": [
       "registration_centre"
     ],
-    "PATCH /api/targets/{target_id}/": [
-      "projected_turnout_pct"
-    ],
     "POST /api/events/{event_id}/invite/": [
       "message",
       "support_levels",
@@ -1086,13 +1079,6 @@
     ],
     "POST /api/admin/campaigns/{campaign_id}/members/": [
       "user"
-    ],
-    "POST /api/targets/": [
-      "campaign",
-      "ward",
-      "registration_centre",
-      "projected_turnout_pct",
-      "votes_committed"
     ],
     "POST /api/admin/users/": [
       "username",

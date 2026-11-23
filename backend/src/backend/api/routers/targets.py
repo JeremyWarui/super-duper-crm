@@ -1,4 +1,4 @@
-"""Vote targets; `votes_needed` is recomputed on every write, never taken from the client."""
+"""Vote targets; `votes_needed` is calculated from past results, never taken from the client."""
 
 import uuid
 from typing import Annotated
@@ -17,7 +17,7 @@ from backend.api.scope import (
     require_visible_campaign,
     scoped,
 )
-from backend.models import OperationalGrain, RegistrationCentre, Target, User, Ward
+from backend.models import OperationalGrain, Target, User, Ward
 from backend.schemas.campaign import (
     SetupSummary,
     TargetCreate,
@@ -27,7 +27,7 @@ from backend.schemas.campaign import (
 )
 from backend.services.errors import Refused
 from backend.services.geography import within
-from backend.services.targets import refresh_targets
+from backend.services.targets import generate_targets, refresh_targets
 
 router = APIRouter(prefix="/targets", tags=["targets"])
 
@@ -92,7 +92,6 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
         campaign_id=payload.campaign,
         ward_id=payload.ward,
         registration_centre_id=payload.registration_centre,
-        projected_turnout_pct=payload.projected_turnout_pct,
         votes_committed=payload.votes_committed,
     )
     session.add(target)
@@ -101,20 +100,24 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
     except IntegrityError:
         await session.rollback()
         raise Refused(TARGET_TAKEN) from None
-    return await _saved(session, target, new=True)
+    await session.flush()
+    await generate_targets(session, campaign)
+    await session.commit()
+    return await load(session, Target, target.id, LOADED)
 
 
 @router.patch("/{target_id}/", response_model=TargetRead)
 async def update_target(
     target_id: uuid.UUID, payload: TargetUpdate, session: SessionDep, user: Writer
 ) -> Target:
-    """Change the turnout or the votes committed; the goal follows."""
+    """Change the votes committed; the target stays as calculated."""
     target = await require_visible(
         session, user, Target, target_id, "target", "targets.write", LOADED
     )
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(target, field, value)
-    return await _saved(session, target)
+    await session.commit()
+    return await load(session, Target, target.id, LOADED)
 
 
 @router.delete("/{target_id}/", status_code=status.HTTP_204_NO_CONTENT)
@@ -122,19 +125,3 @@ async def delete_target(target_id: uuid.UUID, session: SessionDep, user: Writer)
     target = await require_visible(session, user, Target, target_id, "target", "targets.write")
     await session.delete(target)
     await session.commit()
-
-
-async def _saved(session: SessionDep, target: Target, *, new: bool = False) -> Target:
-    """Recompute the win number, commit, and read the target back; a new target takes the
-    current register, an existing one keeps the one it was refreshed on."""
-    await session.flush()
-    target.ward = await session.get(Ward, target.ward_id)
-    if target.registration_centre_id is not None:
-        target.registration_centre = await session.get(
-            RegistrationCentre, target.registration_centre_id
-        )
-    if new:
-        target.take_register()
-    target.recompute_win_number()
-    await session.commit()
-    return await load(session, Target, target.id, LOADED)

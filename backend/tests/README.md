@@ -21,7 +21,7 @@ Postgres.
 | File | What it covers |
 |---|---|
 | `test_models.py` | Keys, deletes, constraints, computed values, enums |
-| `test_win_number.py` | The vote goal across its edge cases |
+| `test_win_model.py` | The seat target and ward targets reproduce the Laikipia and Marsabit worked examples (TD-R7 section 4) |
 | `test_migrations.py` | The migration builds the models' schema, renders as Postgres, downgrades |
 | `test_console_setup_flow.py` | The superuser sets a campaign up, end to end, on the migrated schema |
 | `test_schemas.py` | Read schemas expose their listed fields and nothing else |
@@ -36,7 +36,7 @@ Postgres.
 | `test_clock.py` | Every request's today is the date in Nairobi |
 | `test_ground_api.py` | Mobilizers, events and the supporter register |
 | `test_ward_in_campaign.py` | A ward or centre in a request must lie inside the seat |
-| `test_targets_api.py` | Reading and editing the win number |
+| `test_targets_api.py` | Reading targets; only votes committed can be written |
 | `test_targets_service.py` | Turning a seat into targets |
 | `test_strategy_api.py` | The computed dashboard and its notes |
 | `test_invite_api.py` | Texting an event's supporters |
@@ -48,6 +48,7 @@ Postgres.
 | `test_workspace_site.py` | The website, edited from the workspace: Comms edits posts and slides, contrast enforced, edits audited, other roles refused |
 | `test_cli.py` | campaign-crm |
 | `test_seed.py` | The bundled CSVs and the demo |
+| `test_history_seed.py` | Past results load, link to today's places, skip an unchanged file, and keep figures that do not add up out of every target |
 | `../evals/test_frontend_contract.py` | The API offers what the SPA reads and accepts what it sends |
 
 SQLite cannot prove Postgres-only SQL, so `test_migrations.py` renders the

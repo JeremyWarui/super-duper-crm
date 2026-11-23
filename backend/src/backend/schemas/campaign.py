@@ -12,6 +12,8 @@ from backend.models.enums import (
     OfficeLevel,
     OperationalGrain,
     SupportLevel,
+    TargetReliability,
+    TurnoutScenario,
 )
 from backend.schemas.common import Erasable, ORMModel, WriteModel, consent
 from backend.schemas.messages import BODY_MAX
@@ -68,6 +70,10 @@ class TargetRead(ORMModel):
     )
     registered_voters: int | None
     projected_turnout_pct: Decimal | None
+    turnout_scenario: TurnoutScenario
+    turnout_overridden: bool
+    ward_weight: Decimal | None
+    reliability: TargetReliability
     votes_needed: int | None
     votes_committed: int
     votes_remaining: int | None
@@ -78,14 +84,12 @@ class TargetCreate(WriteModel):
     campaign: uuid.UUID
     ward: uuid.UUID
     registration_centre: uuid.UUID | None = None
-    projected_turnout_pct: Decimal | None = Field(default=None, ge=0, le=100)
     votes_committed: int = Field(default=0, ge=0)
 
 
 class TargetUpdate(WriteModel):
-    """The win number is recomputed from whatever changed."""
+    """Only the votes committed; the target itself is calculated."""
 
-    projected_turnout_pct: Decimal | None = Field(default=None, ge=0, le=100)
     votes_committed: int | None = Field(default=None, ge=0)
 
 

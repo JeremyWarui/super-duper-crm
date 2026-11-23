@@ -13,24 +13,22 @@ async def _targets(client: httpx.AsyncClient, world: World, role: str = "manager
     return response.json()
 
 
-async def test_a_candidate_may_read_and_change_targets(
+async def test_a_candidate_may_read_targets_and_record_votes_committed(
     client: httpx.AsyncClient, world: World
 ) -> None:
     rows = await _targets(client, world, role="candidate")
-    target_id = rows[0]["id"]
 
     response = await client.patch(
-        f"/api/targets/{target_id}/",
+        f"/api/targets/{rows[0]['id']}/",
         headers=world.headers("candidate"),
-        json={"projected_turnout_pct": 70},
+        json={"votes_committed": 70},
     )
 
     assert response.status_code == 200
+    assert response.json()["votes_needed"] == rows[0]["votes_needed"]
 
 
-async def test_moving_the_turnout_slider_recomputes_the_win_number(
-    client: httpx.AsyncClient, world: World
-) -> None:
+async def test_a_ward_s_turnout_cannot_be_typed_in(client: httpx.AsyncClient, world: World) -> None:
     zimmerman = next(r for r in await _targets(client, world) if r["ward_name"] == "Zimmerman")
 
     response = await client.patch(
@@ -39,8 +37,7 @@ async def test_moving_the_turnout_slider_recomputes_the_win_number(
         json={"projected_turnout_pct": 70},
     )
 
-    assert response.status_code == 200
-    assert response.json()["votes_needed"] == 10_746
+    assert response.status_code == 400
 
 
 async def test_the_client_cannot_set_the_win_number_itself(

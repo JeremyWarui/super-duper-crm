@@ -1,4 +1,4 @@
-"""The win number: how many votes a campaign needs in one ward or centre."""
+"""A vote target: the share of the seat target one ward or centre is asked for."""
 
 import uuid
 from decimal import Decimal
@@ -7,7 +7,16 @@ from typing import TYPE_CHECKING
 from sqlalchemy import CheckConstraint, ForeignKey, Integer, Numeric, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.db.base import Base, UUIDPrimaryKeyMixin, campaign_ref, partial_unique, require_loaded
+from backend.db.base import (
+    Base,
+    UUIDPrimaryKeyMixin,
+    campaign_ref,
+    choice_type,
+    partial_unique,
+    require_loaded,
+    starts_false,
+)
+from backend.models.enums import TargetReliability, TurnoutScenario
 
 if TYPE_CHECKING:
     from backend.models.campaign import Campaign
@@ -17,20 +26,6 @@ if TYPE_CHECKING:
 def unit_key(ward_id: uuid.UUID, centre_id: uuid.UUID | None) -> tuple[uuid.UUID, uuid.UUID | None]:
     """The ward or centre a target, event or mobilizer covers."""
     return (ward_id, centre_id)
-
-
-def compute_win_number(
-    registered_voters: int | None,
-    projected_turnout_pct: Decimal | None,
-) -> int | None:
-    """Half the projected votes cast, plus one; None when nothing is projected to be cast.
-
-    Computed in Decimal: float rounding at the halfway point shifts the answer by a vote.
-    """
-    if not registered_voters or not projected_turnout_pct:
-        return None
-    projected_cast = Decimal(registered_voters) * Decimal(projected_turnout_pct) / Decimal(100)
-    return int(projected_cast // 2) + 1
 
 
 class Target(UUIDPrimaryKeyMixin, Base):
@@ -72,9 +67,24 @@ class Target(UUIDPrimaryKeyMixin, Base):
         index=True,
     )
 
+    # The seat's turnout the target was worked out on, in percent.
     projected_turnout_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), default=None)
-    # The register the win number was worked out on; a register import leaves it until refresh.
+    turnout_scenario: Mapped[TurnoutScenario] = mapped_column(
+        choice_type(TurnoutScenario, "turnout_scenario"),
+        default=TurnoutScenario.EXPECTED,
+        server_default=TurnoutScenario.EXPECTED.value,
+    )
+    turnout_overridden: Mapped[bool] = starts_false()
+    # This unit's share of the seat target: its share of the seat's 2022 valid votes.
+    ward_weight: Mapped[Decimal | None] = mapped_column(Numeric(11, 10), default=None)
+    reliability: Mapped[TargetReliability] = mapped_column(
+        choice_type(TargetReliability, "target_reliability"),
+        default=TargetReliability.PROXY,
+        server_default=TargetReliability.PROXY.value,
+    )
+    # The unit's register when the target was last worked out; a register import leaves it.
     registered_voters: Mapped[int | None] = mapped_column(Integer, default=None)
+    # Calculated, never typed in; the units' targets add up to the seat target.
     votes_needed: Mapped[int | None] = mapped_column(Integer, default=None)
     votes_committed: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -97,11 +107,6 @@ class Target(UUIDPrimaryKeyMixin, Base):
             unit = self.ward
         self.registered_voters = unit.registered_voters if unit is not None else None
         return self.registered_voters
-
-    def recompute_win_number(self) -> int | None:
-        """Recalculate `votes_needed`. Saved when the session is committed."""
-        self.votes_needed = compute_win_number(self.registered_voters, self.projected_turnout_pct)
-        return self.votes_needed
 
     @property
     def votes_remaining(self) -> int | None:

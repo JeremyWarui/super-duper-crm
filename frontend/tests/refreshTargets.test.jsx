@@ -9,7 +9,7 @@ afterEach(() => {
 });
 
 describe("refreshing targets", () => {
-  it("lets the manager recompute win numbers from the latest register", async () => {
+  it("lets the manager work the targets out again", async () => {
     signIn("manager");
     const calls = stubApi(dashboardRoutes({ "POST /targets/refresh/": { units: 2, win_number: 12001, total_registered: 40000, grain: "ward", note: null } }));
     renderApp(<App />, { path: "/campaign/targets" });
@@ -17,7 +17,7 @@ describe("refreshing targets", () => {
 
     await user.click(await screen.findByRole("button", { name: "Refresh targets" }));
 
-    expect(await screen.findByText(/win number 12,001/)).toBeInTheDocument();
+    expect(await screen.findByText(/seat target 12,001/)).toBeInTheDocument();
     await waitFor(() => expect(calls.find((c) => c.path === "/targets/refresh/").body).toEqual({ campaign: "c1" }));
   });
 

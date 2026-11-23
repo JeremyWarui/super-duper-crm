@@ -44,14 +44,15 @@ async def test_a_presidential_campaign_targets_every_ward_in_every_county(
     body = strategy.json()
     assert campaign.office_level is OfficeLevel.NATIONAL
     assert (campaign.county_id, campaign.constituency_id, campaign.ward_id) == (None, None, None)
-    # 30,000 and 20,000 at 60% need 9,001 and 6,001; 10,000 at 50% needs 2,501.
-    assert (summary.units, summary.total_registered, summary.win_number) == (3, 60_000, 17_503)
-    assert body["win_number"] == 17_503
+    # With no results loaded: 35,000 expected votes (30,000 and 20,000 at 60%, 10,000 at 50%),
+    # a majority of 17,501, shared out by each ward's expected votes.
+    assert (summary.units, summary.total_registered, summary.win_number) == (3, 60_000, 17_501)
+    assert body["win_number"] == 17_501
     assert body["units"] == []
     assert body["group_level"] == "county"
     assert [(g["name"], g["units"], g["needed"]) for g in body["groups"]] == [
-        ("Mombasa", 1, 2_501),
-        ("Nairobi City", 2, 15_002),
+        ("Mombasa", 1, 2_500),
+        ("Nairobi City", 2, 15_001),
     ]
 
 

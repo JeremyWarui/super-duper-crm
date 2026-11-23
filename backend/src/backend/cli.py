@@ -15,6 +15,7 @@ from backend.db.session import get_engine, get_sessionmaker
 from backend.models import County, UserRole
 from backend.seed import demo_aspirant
 from backend.seed.demo import seed_demo
+from backend.seed.history import RESULTS_CSV, import_results
 from backend.seed.reference import (
     CAW_CSV,
     CENTRES_CSV,
@@ -29,6 +30,7 @@ from backend.services.accounts import logins_on, new_login
 from backend.services.audit import record
 from backend.services.clock import today
 from backend.services.errors import Refused
+from backend.services.targets import recalculate_all
 
 
 async def _seed(args: argparse.Namespace, session: AsyncSession) -> int:
@@ -62,6 +64,36 @@ async def _seed(args: argparse.Namespace, session: AsyncSession) -> int:
         )
     if centres.unmatched:
         print(f"  {len(centres.unmatched)} rows matched no ward, e.g. {centres.unmatched[:3]}")
+    return 0
+
+
+async def _seed_results(args: argparse.Namespace, session: AsyncSession) -> int:
+    if await session.scalar(select(County).limit(1)) is None:
+        print("No geography is loaded. Run campaign-crm seed first.")
+        return 1
+    path = Path(args.file)
+    if not path.exists():
+        print(f"No {path} found.")
+        return 1
+    print(f"Loading past results from {path.name}...")
+    summary = await import_results(session, path, force=args.force)
+    if summary.skipped:
+        print("  Unchanged since the last load. Pass --force to reload it.")
+    else:
+        await session.commit()
+        print(
+            f"  {summary.elections} elections, {summary.contests:,} contests, "
+            f"{summary.candidates:,} candidate results."
+        )
+        print(
+            f"  {summary.unopposed} unopposed, {summary.excluded} excluded from targets, "
+            f"{summary.unlinked} not matched to today's places."
+        )
+        for flag in summary.flags:
+            print(f"  excluded: {flag}")
+    reworked = await recalculate_all(session)
+    await session.commit()
+    print(f"  Targets reworked for {reworked} campaign{'s' if reworked != 1 else ''}.")
     return 0
 
 
@@ -338,6 +370,10 @@ def build_parser() -> argparse.ArgumentParser:
     seed.add_argument("--county-results", default=str(COUNTY_RESULTS_CSV))
     seed.add_argument("--centres", default=str(CENTRES_CSV))
     seed.add_argument("--force", action="store_true", help="reload even if data is present")
+
+    results = command("seed-results", _seed_results, "load past election results (2013 to 2022)")
+    results.add_argument("--file", default=str(RESULTS_CSV), help="Kura254 historical results CSV")
+    results.add_argument("--force", action="store_true", help="reload an unchanged file")
 
     demo = command("demo", _demo, "build the demo campaign and its sign-ins")
     demo.add_argument("-p", "--password", help="one password for every demo account")

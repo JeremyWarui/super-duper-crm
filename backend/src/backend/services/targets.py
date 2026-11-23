@@ -2,6 +2,7 @@
 
 import uuid
 from decimal import Decimal
+from fractions import Fraction
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +24,15 @@ from backend.schemas.campaign import SetupSummary
 from backend.services.audit import record
 from backend.services.errors import Refused
 from backend.services.geography import places
+from backend.services.win_model import (
+    as_decimal,
+    expected_votes,
+    fill_weights,
+    load_history,
+    seat_model,
+    share_out,
+    ward_valid_votes,
+)
 
 WITH_COUNTY = selectinload(Ward.constituency).selectinload(Constituency.county)
 
@@ -139,12 +149,12 @@ async def ward_choices(session: AsyncSession, campaign: Campaign) -> list[Ward]:
     return [] if campaign.national else await wards_in_area(session, campaign)
 
 
-async def generate_targets(
-    session: AsyncSession, campaign: Campaign, *, keep_turnout: bool = False
-) -> SetupSummary:
-    """Create or refresh a target per ward, or per centre for a ward race; committed votes stay.
+async def generate_targets(session: AsyncSession, campaign: Campaign) -> SetupSummary:
+    """Work out the seat target from past results and share it out to a target per ward, or per
+    centre for a ward race; committed votes stay (TD-R7 sections 4 and 5).
 
-    With `keep_turnout`, a target keeps the turnout set on it; new ones take the county's.
+    Wards are weighted by their 2022 valid votes, centres by their register, and the shares add up
+    to the seat target exactly. A target on a unit no longer in the seat is asked for nothing.
 
     Flushes; the caller commits.
     """
@@ -158,47 +168,73 @@ async def generate_targets(
     if grain is OperationalGrain.WARD:
         units = [(ward, None) for ward in wards]
         note = None if wards else "No area is set for this campaign's office level."
+        valid = await ward_valid_votes(session, [ward.id for ward in wards])
+        weights = fill_weights(
+            {unit_key(w.id, None): valid[w.id] for w in wards},
+            {unit_key(w.id, None): expected_votes(w) for w in wards},
+        )
     else:
         ward = wards[0] if wards else None
         centres = await places(session, RegistrationCentre, ward.id) if ward is not None else []
         units = [(ward, centre) for centre in centres]
         note = None if units else "No registration centres are loaded for this campaign's ward."
+        weights = {unit_key(c.ward_id, c.id): Fraction(c.registered_voters or 0) for c in centres}
 
-    total_registered = win_number = 0
+    override = campaign.turnout_override_pct
+    model = seat_model(
+        await load_history(session, campaign, wards),
+        turnout_override=Fraction(override) / 100 if override is not None else None,
+    )
+    projection = model.projection(campaign.turnout_scenario)
+    seat_target = projection.target if units else 0
+    shares = share_out(seat_target, weights)
+    weight_sum = sum(weights.values(), Fraction(0)) or Fraction(1)
+
+    total_registered = 0
     for ward, centre in units:
-        centre_id = centre.id if centre is not None else None
-        target = existing.get(unit_key(ward.id, centre_id))
+        key = unit_key(ward.id, centre.id if centre is not None else None)
+        target = existing.pop(key, None)
         if target is None:
-            target = Target(
-                campaign_id=campaign.id, ward_id=ward.id, registration_centre_id=centre_id
-            )
+            target = Target(campaign_id=campaign.id, ward_id=key[0], registration_centre_id=key[1])
             session.add(target)
         target.ward = ward
         target.registration_centre = centre
         target.take_register()
-        turnout: Decimal | None = ward.constituency.county.turnout_2022_pct
-        if not keep_turnout or target.projected_turnout_pct is None:
-            target.projected_turnout_pct = turnout
-        target.recompute_win_number()
+        target.projected_turnout_pct = as_decimal(projection.turnout * 100, 2)
+        target.turnout_scenario = projection.scenario
+        target.turnout_overridden = model.overridden
+        target.reliability = model.reliability
+        target.ward_weight = as_decimal(weights[key] / weight_sum, 10)
+        target.votes_needed = shares[key]
         total_registered += target.registered_voters or 0
-        win_number += target.votes_needed or 0
+    for stale in existing.values():
+        stale.votes_needed = 0
+        stale.ward_weight = Decimal(0)
 
     await session.flush()
     return SetupSummary(
         grain=grain,
         units=len(units),
         total_registered=total_registered,
-        win_number=win_number,
+        win_number=seat_target,
         note=note,
     )
+
+
+async def recalculate_all(session: AsyncSession) -> int:
+    """Rework every open campaign's targets, as after new results load; flushes."""
+    campaigns = (await session.scalars(select(Campaign).where(Campaign.closed_at.is_(None)))).all()
+    for campaign in campaigns:
+        await generate_targets(session, campaign)
+    return len(campaigns)
 
 
 async def refresh_targets(
     session: AsyncSession, campaign: Campaign, *, actor: User
 ) -> SetupSummary:
-    """Recompute every win number from the current register, adding units new since the last
-    refresh; turnouts and votes committed stay. Imports never do this on their own."""
-    summary = await generate_targets(session, campaign, keep_turnout=True)
+    """Rework the targets from the current register and results, adding units new since the last
+    refresh; votes committed stay. Imports never do this on their own."""
+    summary = await generate_targets(session, campaign)
     # Every target the campaign has, so one left on a retired unit still counts.
     units, registered, needed = (
         await session.execute(

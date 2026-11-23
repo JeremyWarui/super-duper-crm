@@ -106,5 +106,6 @@ async def test_targets_keep_their_numbers_until_a_manager_refreshes_them(
     assert imported.json()["counts"] == {"voters": 1, "turnout": 1}
     assert after_import == before
     assert refreshed.status_code == 200, refreshed.text
-    # 40,000 voters at the target's own 60% turnout cast 24,000; a win is one more than half.
-    assert after_refresh == (40_000, 12_001)
+    # 75,899 voters at the county's new 70% cast 53,129, a majority of 26,565; with no past
+    # results the wards share it by register, and Zimmerman holds 40,000 of them.
+    assert after_refresh == (40_000, 14_000)

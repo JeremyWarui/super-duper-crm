@@ -13,6 +13,7 @@ createdb campaign_crm
 cp .env.example .env                      # fill in SECRET_KEY and your Postgres password
 uv run alembic upgrade head               # create the tables
 uv run campaign-crm seed                  # load the 2022 geography
+uv run campaign-crm seed-results          # past results, 2013 to 2022, for the targets
 uv run campaign-crm demo                  # the demo campaign and its logins
 uv run watchfiles "uvicorn backend.main:app" src .env   # http://127.0.0.1:8000/docs
 ```
@@ -32,6 +33,7 @@ uv run ruff format .
 
 ```bash
 uv run campaign-crm seed                          # geography and centres; --force to reload
+uv run campaign-crm seed-results                  # past results from data/history; --force to reload
 uv run campaign-crm demo [--password <shared>]    # the demo campaign; re-run to reset it
 uv run campaign-crm createuser -u root -r manager --superuser
 uv run campaign-crm campaign [-c <campaign id>]   # every campaign, or one in full

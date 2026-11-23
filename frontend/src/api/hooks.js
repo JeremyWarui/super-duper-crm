@@ -113,13 +113,6 @@ export const useStrategy = (campaignId, place = {}) =>
   });
 
 // ---- Mutations ------------------------------------------------------------
-export const useSetTarget = () =>
-  useWrite(
-    (payload) =>
-      api("/targets/", { method: "POST", body: payload }),
-    "targets", "strategy",
-  );
-
 export const useAddMobilizer = () =>
   useWrite(
     (payload) =>
@@ -340,24 +333,6 @@ export const useWardsIn = (constituencyId) =>
 // The user's campaign(s). For a single-campaign MVP, take the first.
 export const useCampaigns = () =>
   useQuery({ queryKey: ["campaigns"], queryFn: () => api("/campaigns/") });
-
-// Edit a target's turnout assumption; the server recomputes votes_needed.
-// Saves run one at a time, in order, and the saved row replaces the cached one.
-export function useUpdateTarget() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, ...body }) =>
-      api(`/targets/${id}/`, { method: "PATCH", body }),
-    scope: { id: "targets" },
-    onSuccess: async (saved) => {
-      await qc.cancelQueries({ queryKey: ["targets"] });  // a list fetch in flight would overwrite it
-      qc.setQueriesData({ queryKey: ["targets"] }, (rows) =>
-        rows?.map((t) => (t.id === saved.id ? saved : t)),
-      );
-      qc.invalidateQueries({ queryKey: ["strategy"] });
-    },
-  });
-}
 
 // Ward drill-down for MCA races: the ward's registration centres + their voters.
 export const useCentres = (wardId) => useFor("centres", wardId, () => api(`/centres/?ward=${wardId}`));

@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -11,6 +12,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     Uuid,
     and_,
@@ -26,7 +28,7 @@ from backend.db.base import (
     require_loaded,
     user_ref,
 )
-from backend.models.enums import OfficeLevel, OperationalGrain, Seat, UserRole
+from backend.models.enums import OfficeLevel, OperationalGrain, Seat, TurnoutScenario, UserRole
 from backend.models.geography import SeatPlaces
 from backend.models.membership import CampaignMember
 from backend.models.user import User
@@ -90,6 +92,19 @@ class Campaign(SeatPlaces, UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
     election_date: Mapped[date | None] = mapped_column(Date, default=None)
+
+    # The turnout scenario the team's targets are set on, and who set it.
+    turnout_scenario: Mapped[TurnoutScenario] = mapped_column(
+        choice_type(TurnoutScenario, "turnout_scenario"),
+        default=TurnoutScenario.EXPECTED,
+        server_default=TurnoutScenario.EXPECTED.value,
+    )
+    turnout_scenario_set_by_id: Mapped[uuid.UUID | None] = user_ref()
+    turnout_scenario_set_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    # A turnout typed in for the seat, in percent; replaces its 2022 turnout when set.
+    turnout_override_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), default=None)
 
     # The campaign-wide sign-up link, for posters and shared messages; closed until opened.
     signup_code: Mapped[str] = mapped_column(String(24), unique=True, default=new_short_code)

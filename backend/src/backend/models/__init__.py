@@ -36,8 +36,12 @@ from backend.models.enums import (
     PostLabel,
     Profession,
     RegistrationStatus,
+    ResultLevel,
+    ResultOffice,
     Seat,
     SupportLevel,
+    TargetReliability,
+    TurnoutScenario,
     UserRole,
     VolunteerArea,
     VolunteerStatus,
@@ -50,6 +54,7 @@ from backend.models.geography import (
     RegistrationCentre,
     Ward,
 )
+from backend.models.history import Contest, ContestCandidate, Election
 from backend.models.imports import BackupRun, ImportChange, ImportRun
 from backend.models.login import EmailLog, LoginInvite
 from backend.models.membership import CampaignMember, CampaignMemberArea
@@ -60,7 +65,7 @@ from backend.models.privacy import DataRequest
 from backend.models.site import SetupToken, SiteSettings
 from backend.models.sms import CampaignMessage, SmsInbound, SmsLog, SmsOptOut
 from backend.models.supporter import Supporter
-from backend.models.target import Target, compute_win_number, unit_key
+from backend.models.target import Target, unit_key
 from backend.models.team import Agent, TeamRegistration
 from backend.models.user import User
 from backend.models.volunteer import VolunteerProfile
@@ -118,6 +123,11 @@ __all__ = [
     "CandidateProfile",
     "Video",
     "Seat",
+    "ResultLevel",
+    "ResultOffice",
+    "Contest",
+    "ContestCandidate",
+    "Election",
     "BackupRun",
     "ImportChange",
     "ImportRun",
@@ -135,6 +145,7 @@ __all__ = [
     "VolunteerStatus",
     "UserRole",
     "Ward",
-    "compute_win_number",
+    "TargetReliability",
+    "TurnoutScenario",
     "unit_key",
 ]

@@ -210,3 +210,38 @@ class DataRequestKind(LabelledStrEnum):
 class DataRequestStatus(LabelledStrEnum):
     OPEN = ("open", "Open")
     DONE = ("done", "Answered")
+
+
+class ResultOffice(LabelledStrEnum):
+    """An office in the historical results: the five seats a campaign contests, and president."""
+
+    PRESIDENT = ("president", "President")
+    GOVERNOR = ("governor", "Governor")
+    SENATOR = ("senator", "Senator")
+    WOMEN_REP = ("women_rep", "Women Rep")
+    MP = ("mp", "MP")
+    MCA = ("mca", "MCA")
+
+
+class ResultLevel(StrEnum):
+    """The area one historical contest was decided over."""
+
+    COUNTY = "county"
+    CONSTITUENCY = "constituency"
+    WARD = "ward"
+
+
+class TurnoutScenario(LabelledStrEnum):
+    """How many of the seat's voters are expected to turn out, against its 2022 turnout."""
+
+    LOW = ("low", "Low")
+    EXPECTED = ("expected", "Expected")
+    HIGH = ("high", "High")
+
+
+class TargetReliability(LabelledStrEnum):
+    """What a seat's target share rests on."""
+
+    SEAT = ("seat", "Seat data")
+    TYPICAL = ("typical", "Typical winner")
+    PROXY = ("proxy", "Proxy")
