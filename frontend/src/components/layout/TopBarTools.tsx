@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Bell, CircleHelp } from 'lucide-react'
 import { useSite } from '@/api/hooks'
 import { usePanel } from '@/lib/usePanel'
+import { cn } from '@/lib/utils'
 
 export const PANEL = 'absolute right-0 z-50 mt-2 flex w-[min(92vw,380px)] flex-col gap-1 rounded-photo border border-line bg-white p-2 shadow-pop'
 const ICON_BUTTON = 'relative flex size-11 cursor-pointer items-center justify-center rounded-full hover:bg-stone'
@@ -40,15 +41,25 @@ export function HitList({ hits, onPick }: { hits: Hit[]; onPick: () => void }) {
   )
 }
 
-/** The bell: `count` on its badge, read out as "`count` `word`", and a panel of `notes` linking to their pages. */
-export function BellPanel({ id, notes, count, word }: { id: string; notes: Note[]; count: number; word: string }) {
+/**
+ * The bell: `count` on its badge, read out as "`count` `word`". It opens a panel of `notes` linking
+ * to their pages; with `page`, a phone goes to that page instead and the panel links to it.
+ */
+export function BellPanel({ id, notes, count, word, page }: { id: string; notes: Note[]; count: number; word: string; page?: string }) {
   const { open, setOpen, ref } = usePanel()
+  const label = count ? `Notifications, ${count} ${word}` : `Notifications, nothing ${word}`
+  const badge = count ? <span aria-hidden className="absolute top-1 right-1 flex min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-bold text-white">{count > 99 ? '99+' : count}</span> : null
   return (
     <div ref={ref} className="relative">
-      <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)} className={ICON_BUTTON}
-        aria-label={count ? `Notifications, ${count} ${word}` : `Notifications, nothing ${word}`}>
+      {page ? (
+        <Link to={page} aria-label={label} className={cn(ICON_BUTTON, 'text-ink sm:hidden')}>
+          <Bell className="size-5" aria-hidden />
+          {badge}
+        </Link>
+      ) : null}
+      <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)} className={cn(ICON_BUTTON, page && 'max-sm:hidden')} aria-label={label}>
         <Bell className="size-5" aria-hidden />
-        {count ? <span aria-hidden className="absolute top-1 right-1 flex min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-bold text-white">{count > 99 ? '99+' : count}</span> : null}
+        {badge}
       </button>
       {open ? (
         <div id={id} role="region" aria-label="Notifications" className={PANEL}>
@@ -58,6 +69,7 @@ export function BellPanel({ id, notes, count, word }: { id: string; notes: Note[
               <span className="text-ui font-semibold">{n.text}</span>
             </Link>
           ))}
+          {page ? <Link to={page} onClick={() => setOpen(false)} className="mt-1 border-t border-line-soft px-3 pt-2.5 pb-1.5 text-ui font-bold">See all notifications</Link> : null}
         </div>
       ) : null}
     </div>

@@ -33,10 +33,13 @@ const groups = () =>
   Object.fromEntries(
     within(screen.getByRole("navigation", { name: "Workspace" }))
       .getAllByRole("group")
-      .map((g) => [g.getAttribute("aria-label"), within(g).getAllByRole("link").map((a) => a.textContent)]),
+      .map((g) => [g.getAttribute("aria-label"), within(g).getAllByRole("link").map((a) => a.textContent.replace(/, [\d+]+ new$/, ""))]),
   );
 
+const INBOX = { Inbox: ["Notifications"] };
+
 const LEAD = {
+  ...INBOX,
   Plan: ["Overview", "Strategy", "Targets", "Wards"],
   Field: ["Events", "Mobilizers", "Agents", "Assignments", "Contacts", "Volunteers"],
   "Reach out": ["Announcements", "Messages", "Calls"],
@@ -52,11 +55,11 @@ describe("what each role is shown", () => {
     [
       "coordinator",
       "Coordinator",
-      { Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, "Reach out": ["Announcements", "Messages", "Calls"], People: ["Sign-ups"], Money: ["Payments"] },
+      { ...INBOX, Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, "Reach out": ["Announcements", "Messages", "Calls"], People: ["Sign-ups"], Money: ["Payments"] },
     ],
-    ["comms", "Comms officer", { Plan: ["Targets"], Field: ["Events"], "Reach out": ["Announcements", "Messages", "Calls"], Website: ["Website", "Settings"] }],
-    ["mobilizer", "Mobilizer", { "My work": ["My events", "Add contact", "My contacts", "My payments", "Announcements"] }],
-    ["agent", "Agent", { "My work": ["My centre", "My events", "My payments", "Announcements"] }],
+    ["comms", "Comms officer", { ...INBOX, Plan: ["Targets"], Field: ["Events"], "Reach out": ["Announcements", "Messages", "Calls"], Website: ["Website", "Settings"] }],
+    ["mobilizer", "Mobilizer", { ...INBOX, "My work": ["My events", "Add contact", "My contacts", "My payments", "Announcements"] }],
+    ["agent", "Agent", { ...INBOX, "My work": ["My centre", "My events", "My payments", "Announcements"] }],
   ])("gives a %s exactly their groups", async (role, label, expected) => {
     await open(role);
 
@@ -247,6 +250,21 @@ describe("an MCA race's supporters", () => {
         { registration_centre: "rc1" },
       ]);
     });
+  });
+});
+
+describe("notifications", () => {
+  it("lists what the bell holds on its own page, linked from the sidebar", async () => {
+    const user = userEvent.setup();
+    await open("manager", {
+      "GET /notices/": [{ id: "n1", text: "Announcement: Briefing at 6pm", url: "/campaign/announcements" }],
+    });
+
+    const sidebar = screen.getByRole("navigation", { name: "Workspace" });
+    await user.click(within(sidebar).getByRole("link", { name: /^Notifications/ }));
+
+    expect(await screen.findByRole("heading", { name: "Notifications" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Announcement: Briefing at 6pm" })).toHaveAttribute("href", "/campaign/announcements");
   });
 });
 

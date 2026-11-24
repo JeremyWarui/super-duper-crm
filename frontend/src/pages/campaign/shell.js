@@ -2,7 +2,7 @@
 // and what needs the role now.
 import { createContext, useContext, useEffect, useMemo } from "react";
 import {
-  Banknote, CalendarDays, ClipboardCheck, ClipboardList, Crosshair, Globe, HandHeart, Heart, LayoutDashboard, LockKeyhole, Map, MapPin, Megaphone, MessageCircle,
+  Banknote, CalendarDays, ClipboardCheck, ClipboardList, Crosshair, Globe, HandHeart, Heart, Bell, LayoutDashboard, LockKeyhole, Map, MapPin, Megaphone, MessageCircle,
   Phone, Settings, ShieldCheck, Target, UserPlus, UserRoundCog, Users,
 } from "lucide-react";
 import { useEvents, useMobilizers, useNotices, useReadNotice, useStrategy } from "@/api/hooks";
@@ -10,6 +10,7 @@ import { pagesOf, perCounty, reads, useWardOptions } from "./helpers";
 import { nairobiDate } from "@/lib/format";
 
 export const ICONS = {
+  notifications: Bell,
   announcements: Megaphone,
   calls: Phone,
   overview: LayoutDashboard,

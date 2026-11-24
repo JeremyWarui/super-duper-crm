@@ -37,6 +37,8 @@ const LEAD = [
   { label: "Money", items: [["payments", "Payments"], ["contributions", "Contributions"]] },
 ];
 const OWN_WORK = (items) => [{ label: "My work", items }];
+// Every role's first group: what the bell holds, as a page.
+const INBOX = { label: "Inbox", items: [["notifications", "Notifications"]] };
 
 // Each role's menu: groups of [page key, label], as the permissions map allows (docs/SYSTEM.md, section 2).
 export const NAV = {
@@ -61,7 +63,8 @@ const SITE_WRITERS = ["candidate", "manager", "comms"];
  * (`byCentre`) names its units Centres.
  */
 export function navFor(role, { byCentre = false } = {}) {
-  const groups = (NAV[role] || [])
+  if (!NAV[role]) return [];
+  const groups = [INBOX, ...NAV[role]]
     .map((g) => (byCentre ? { ...g, items: g.items.map(([key, label]) => [key, key === "units" ? "Centres" : label]) } : g));
   if (SITE_WRITERS.includes(role)) groups.push({ label: "Website", items: [["website", "Website"], ["settings", "Settings"]] });
   return groups;
@@ -69,6 +72,9 @@ export function navFor(role, { byCentre = false } = {}) {
 
 /** A role's pages in menu order, as [key, label]. */
 export const pagesOf = (role, where) => navFor(role, where).flatMap((group) => group.items);
+
+/** Where a role lands: its first page after the inbox. */
+export const landingOf = (role, where) => pagesOf(role, where).find(([key]) => key !== "notifications")?.[0];
 
 // What a role's access covers, under its label in the sidebar; a coordinator's names their area.
 export const ROLE_NOTE = {

@@ -154,7 +154,7 @@ export function AreaPicker() {
 
 export function WorkspaceAlerts({ data, role }: { data: ShellData; role: string }) {
   const notes = workspaceAlerts(data, role);
-  return <BellPanel id="workspace-notifications" notes={notes} count={notes.length} word="new" />;
+  return <BellPanel id="workspace-notifications" notes={notes} count={notes.length} word="new" page="/campaign/notifications" />;
 }
 
 /** Who to ask: the site's contacts. */

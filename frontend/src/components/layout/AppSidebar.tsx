@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Logo } from './Logo'
 
-export type NavItem = { label: string; to: string; icon?: LucideIcon }
+export type NavItem = { label: string; to: string; icon?: LucideIcon; badge?: number }
 export type NavGroup = { label: string; items: NavItem[] }
 
 const itemClass = (dark: boolean) => ({ isActive }: { isActive: boolean }) =>
@@ -18,10 +18,11 @@ const itemClass = (dark: boolean) => ({ isActive }: { isActive: boolean }) =>
 function Items({ items, dark }: { items: NavItem[]; dark: boolean }) {
   return (
     <>
-      {items.map(({ to, label, icon: Icon }) => (
+      {items.map(({ to, label, icon: Icon, badge }) => (
         <NavLink key={to} to={to} className={itemClass(dark)}>
           {Icon ? <Icon className="size-[18px] shrink-0" strokeWidth={2} aria-hidden /> : null}
           {label}
+          {badge ? <span className="ml-auto min-w-[22px] rounded-full bg-destructive px-1.5 text-center text-[12px] font-bold leading-[20px] text-white"><span className="sr-only">, </span>{badge > 99 ? '99+' : badge}<span className="sr-only"> new</span></span> : null}
         </NavLink>
       ))}
     </>
