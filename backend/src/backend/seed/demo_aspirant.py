@@ -32,43 +32,66 @@ SLIDE_PICTURES = ["HBADKDBJYU", "X60YH1SWTF", "5TRB09XUBX"]
 COUNTY = "Nairobi City"
 CONSTITUENCY = "Kasarani"
 TITLE = "David Otieno for Kasarani"
-# The agenda and the candidate's priorities: title, summary, what he will do, why it matters.
+# The agenda and the candidate's priorities: title, summary, what he will do (one step a line),
+# why it matters (one paragraph a line).
 AGENDA = [
     (
         "Clean water",
         "Piped water to every estate in Njiru and Ruai.",
-        "Extend the Ruai and Njiru mains and fix the leaking Mwiki line within two years.",
-        "Families in the new estates still buy water from carts at three times the city price.",
+        "Extend the Ruai and Njiru water mains into the new estates within two years.\n"
+        "Fix the leaking Mwiki line, which loses a third of the water it carries.\n"
+        "Put a public water point in every estate the mains do not yet reach.",
+        "Families in the new estates still buy water from carts at three times the city price, "
+        "and pay it every single day.\n"
+        "Clean, piped water is the first thing residents ask for at every ward forum, and the "
+        "first thing we will deliver.",
     ),
     (
         "Jobs for young people",
         "A youth skills centre in each of the five wards.",
-        "Open skills centres with the county polytechnic and link graduates to local employers.",
-        "Most young people in Kasarani are looking for steady work.",
+        "Open a skills centre in every ward with the county polytechnic.\n"
+        "Teach welding, electrical, plumbing and digital skills that local employers ask for.\n"
+        "Place the first two hundred graduates on attachments in Ruaraka and Baba Dogo.",
+        "Most young people in Kasarani are looking for steady work, and many have skills no "
+        "certificate shows.\n"
+        "Twelve employers have already offered attachments; the centres connect the two.",
     ),
     (
         "Roads and drainage",
         "Feeder roads that stay open in the rainy season.",
-        "Tarmac the worst feeder roads and clear the drains before every long rains.",
-        "Flooded roads cut traders and pupils off for weeks every year.",
+        "Tarmac the worst feeder roads in Njiru, Ruai and Clay City first.\n"
+        "Join the Clay City drains to the main outfall in year one.\n"
+        "Clear every drain in the constituency before each long rains.",
+        "Flooded roads cut traders and pupils off for weeks every year.\n"
+        "Joining the drains costs less than one season of lost trade.",
     ),
     (
         "Safe neighbourhoods",
         "Street lights and community policing in every ward.",
-        "Light the main walkways and fund ward security committees from the NG-CDF.",
-        "Dark paths after 7pm are where most evening attacks happen.",
+        "Light the main walkways, starting with the ten darkest paths residents mapped.\n"
+        "Fund ward security committees from the NG-CDF.\n"
+        "Hold a monthly safety forum with the police in each ward.",
+        "Dark paths after 7pm are where most evening attacks happen.\n"
+        "The Ruai walkway lights show what a lit path does: people walk home again.",
     ),
     (
         "Education",
         "A school place for every child in Kasarani.",
-        "Finish the stalled classrooms in Mwiki and Ruai and widen NG-CDF bursaries.",
-        "Too many families cannot keep a child in secondary school.",
+        "Finish the stalled classrooms in Mwiki and Ruai.\n"
+        "Widen NG-CDF bursaries and run a bursary clinic in every ward each term.\n"
+        "Publish every bursary award, by school and ward.",
+        "Too many families cannot keep a child in secondary school.\n"
+        "Bursary money exists; families need help to reach it, and the awards need to be fair "
+        "and public.",
     ),
     (
         "Health care",
         "A working dispensary in every ward.",
-        "Stock the ward dispensaries and open a maternity wing at Ruai health centre.",
-        "Mothers in Ruai still travel to the city centre to give birth.",
+        "Stock every ward dispensary with essential medicines.\n"
+        "Open a maternity wing at Ruai health centre.\n"
+        "Run a free health day in each ward every quarter.",
+        "Mothers in Ruai still travel to the city centre to give birth.\n"
+        "A stocked dispensary close to home saves a day's wages and, sometimes, a life.",
     ),
 ]
 # The candidate's priorities are the first three agenda issues, as many as a profile holds.

@@ -1,8 +1,8 @@
 // The campaign website's homepage, and its About, Agenda and Media pages.
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText } from "lucide-react";
-import { usePublicDocuments, usePublicPosts, usePublicVideos, useSiteCandidate, useSiteVolunteer } from "@/api/hooks";
+import { ArrowRight, Check, FileText } from "lucide-react";
+import { usePublicDocuments, usePublicIssues, usePublicPosts, usePublicVideos, useSiteCandidate, useSiteVolunteer } from "@/api/hooks";
 import { paragraphs } from "@/components/RichTextView";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import { Agenda, Carousel, Events, News, TakePart, Ticker } from "./sections";
 import PageHead from "@/components/PageHead";
 import { Photo, QuickLinks, VideoCard } from "./story";
 import { pageState } from "@/components/PageState";
-import { firstName } from "@/lib/format";
+import { firstName, linesOf } from "@/lib/format";
 
 const WITHDRAW = "/volunteer/withdraw/";
 
@@ -111,13 +111,47 @@ export function About() {
   return <CandidateView c={page.data} send={send} withdrawPath={WITHDRAW} crumbs={[{ label: "Home", to: "/" }, { label: "About" }]} />;
 }
 
-/** /agenda: every published agenda issue. */
-export function AgendaPage() {
+/** One agenda issue as a row: its photo on one side, what the campaign will do on the other. */
+function IssueRow({ issue, n }) {
+  const steps = linesOf(issue.what_we_will_do).slice(0, 3);
+  const flip = n % 2 === 1;
   return (
-    <>
-      <div className="site-container pt-12"><PageHead title="Agenda" lead="Where the campaign stands, issue by issue." /></div>
-      <Agenda titled={false} />
-    </>
+    <article aria-labelledby={`issue-${issue.id}`} className="grid items-center gap-8 md:grid-cols-2 md:gap-14">
+      <Link to={`/issues/${issue.id}`} aria-hidden tabIndex={-1} className={`group relative block overflow-hidden rounded-card ${flip ? "md:order-2" : ""}`}>
+        <Photo url={issue.image_url} className="aspect-[4/3] w-full transition-transform duration-700 group-hover:scale-[1.04]" />
+        <span className="absolute top-4 left-4 flex size-12 items-center justify-center rounded-full bg-accent font-display text-[20px] font-extrabold text-ink">{n + 1}</span>
+      </Link>
+      <div className="reveal-stagger flex min-w-0 flex-col gap-4">
+        <p className="kicker">Issue {n + 1}</p>
+        <h2 id={`issue-${issue.id}`} className="font-display text-[clamp(28px,3.2vw,40px)] leading-[1.1] font-extrabold tracking-[-0.02em]">{issue.title}</h2>
+        {issue.summary ? <p className="text-lead text-text-2">{issue.summary}</p> : null}
+        {steps.length ? (
+          <ul className="flex flex-col gap-2.5">
+            {steps.map((step, k) => (
+              <li key={k} className="flex gap-3 text-body">
+                <Check className="mt-0.5 size-5 flex-none text-primary" strokeWidth={3} aria-hidden />
+                <span>{step}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <div>
+          <Button asChild variant="outline"><Link to={`/issues/${issue.id}`}>Our full position on {issue.title.toLowerCase()} <ArrowRight className="size-4" aria-hidden /></Link></Button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/** /agenda: every published agenda issue, one row each with photos on alternate sides. */
+export function AgendaPage() {
+  const issues = usePublicIssues();
+  return (
+    <div className="site-container flex flex-col gap-16 pt-12 pb-24 md:gap-24">
+      <PageHead title="Agenda" lead="Where the campaign stands, issue by issue." />
+      {issues.isSuccess && !issues.data.length ? <p className="text-muted-foreground">The agenda is not published yet.</p> : null}
+      {(issues.data || []).map((issue, n) => <Reveal key={issue.id}><IssueRow issue={issue} n={n} /></Reveal>)}
+    </div>
   );
 }
 

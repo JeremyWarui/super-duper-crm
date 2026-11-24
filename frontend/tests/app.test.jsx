@@ -105,6 +105,15 @@ describe("the seat card and the area picker", () => {
 });
 
 describe("moving around", () => {
+  it("opens the website in a new tab without signing out", async () => {
+    await open("manager");
+
+    const link = screen.getByRole("link", { name: "View website (opens in a new tab)" });
+    expect(link).toHaveAttribute("href", "/");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(useAuth.getState().token).not.toBeNull();
+  });
+
   it("signs the user out", async () => {
     const user = userEvent.setup();
     await open("manager");

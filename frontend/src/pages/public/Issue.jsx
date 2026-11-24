@@ -8,6 +8,7 @@ import { useCopy } from "@/copy";
 import { pageState } from "@/components/PageState";
 import { linesOf } from "@/lib/format";
 import { PageHero } from "@/components/PageHead";
+import { Photo } from "./story";
 
 
 export default function Issue() {
@@ -39,13 +40,14 @@ export default function Issue() {
       ) : null}
       <PageHero crumbs={[{ label: "Agenda & issues", to: copy.agendaHome }, { label: i.title }]} kicker={<>Our position{num ? ` · issue ${num}` : ""}</>} title={i.title} lead={i.summary} />
       <div className="site-container flex flex-col gap-12 pt-14 pb-[72px]">
-        {steps.length ? (
-          <section aria-labelledby="w-h" className="flex flex-col gap-5">
-            <h2 id="w-h" className="rule-top font-display text-[36px] font-extrabold">What we will do</h2>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+        {steps.length || i.image_url ? (
+          <section aria-labelledby="w-h" className="grid items-start gap-8 md:grid-cols-2 md:gap-14">
+            {i.image_url ? <Photo url={i.image_url} className="aspect-[4/3] w-full rounded-card md:sticky md:top-28" /> : null}
+            <div className="reveal-stagger flex min-w-0 flex-col gap-4">
+              <h2 id="w-h" className="rule-top font-display text-[36px] font-extrabold">What we will do</h2>
               {steps.map((step, n) => (
-                <Card key={n} className="p-[22px]">
-                  <span className="font-display text-[28px] font-extrabold text-primary">{n + 1}</span>
+                <Card key={n} className="flex-row items-start gap-4 p-[22px]">
+                  <span className="flex size-10 flex-none items-center justify-center rounded-full bg-primary-tint font-display text-[20px] font-extrabold text-primary">{n + 1}</span>
                   <span className="text-base">{step}</span>
                 </Card>
               ))}

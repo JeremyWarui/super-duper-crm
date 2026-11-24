@@ -1,9 +1,19 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
-import { Menu } from 'lucide-react'
+import { Globe, Menu } from 'lucide-react'
 import { usePanel } from '@/lib/usePanel'
 
-/** The signed-in person's chip; it opens a small panel with Sign out. Escape or a click outside closes it. */
+/** Opens the public website in a new tab, so the team stays signed in. */
+export function WebsiteLink() {
+  return (
+    <a href="/" target="_blank" rel="noopener" aria-label="View website (opens in a new tab)" className="flex min-h-11 items-center gap-2 rounded-full border border-line px-3.5 text-ui font-bold text-ink no-underline hover:bg-stone hover:text-ink">
+      <Globe className="size-[18px]" aria-hidden />
+      <span className="hidden lg:inline">View website</span>
+    </a>
+  )
+}
+
+/** The signed-in person's chip; it opens a small panel with View website and Sign out. Escape or a click outside closes it. */
 export function UserMenu({ user, onSignOut }: { user: { initials: string; name: string; role: string }; onSignOut: () => void }) {
   const { open, setOpen, ref } = usePanel()
   return (
@@ -15,6 +25,7 @@ export function UserMenu({ user, onSignOut }: { user: { initials: string; name: 
       {open ? (
         <div id="user-menu" className="absolute right-0 z-50 mt-2 flex w-60 flex-col gap-1 rounded-photo border border-line bg-white p-2 shadow-pop">
           <span className="px-3 py-2 text-meta font-bold text-muted-foreground">Signed in as {user.role}</span>
+          <a href="/" target="_blank" rel="noopener" className="flex min-h-11 items-center rounded-lg px-3 text-ui font-bold text-ink no-underline hover:bg-stone hover:text-ink">View website</a>
           <button type="button" onClick={onSignOut} className="min-h-11 cursor-pointer rounded-lg px-3 text-left text-ui font-bold hover:bg-stone">Sign out</button>
         </div>
       ) : null}
@@ -47,6 +58,7 @@ export function CrmTopBar({ crumbs, user, onSignOut, onMenu, search, tools }: {
         </nav>
         {search ? <div className="order-last min-w-0 basis-full md:order-none md:max-w-[520px] md:flex-[1_1_280px] md:basis-auto">{search}</div> : null}
         <div className="ml-auto flex items-center gap-1.5">
+          <WebsiteLink />
           {tools}
           <UserMenu user={user} onSignOut={onSignOut} />
         </div>
