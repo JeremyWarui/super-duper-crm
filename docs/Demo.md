@@ -27,7 +27,7 @@ Their connection strings are in `backend/.env` as `NEON_ASPIRANT` and `NEON_BLAN
 ## Logins
 
 Every login on the aspirant demo shares one easy password, kept out of the repository and
-handed over with the demo. Emails are `<name>@demo.pamoja.test`.
+handed over with the demo. Emails are `<name>@demo.campaign.test`.
 
 | Login | Who |
 | --- | --- |

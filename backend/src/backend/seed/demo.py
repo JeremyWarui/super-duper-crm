@@ -31,7 +31,7 @@ from backend.services.consent import WORDING
 from backend.services.targets import generate_targets
 
 DEMO_USERNAMES = ("aspirant", "manager", "mobilizer")
-DEMO_EMAIL_DOMAIN = "demo.pamoja.test"
+DEMO_EMAIL_DOMAIN = "demo.campaign.test"
 
 DEMO_COUNTY = "Nairobi City"
 DEMO_CONSTITUENCY = "Roysambu"

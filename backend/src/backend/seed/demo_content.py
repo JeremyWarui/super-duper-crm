@@ -1,0 +1,214 @@
+"""The aspirant demo's website content: news, events, documents, videos and the site settings."""
+
+from datetime import date, timedelta
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.models import Document, Post, PostKind, PostLabel, SiteSettings, Video
+from backend.services.rich_text import from_plain
+
+# Free (CC0) StockSnap scenes, named by their StockSnap id.
+PICTURE = "https://cdn.stocksnap.io/img-thumbs/960w/{}.jpg"
+# Free Unsplash photos, named by their Unsplash id.
+UNSPLASH = "https://images.unsplash.com/photo-{}?w=900&q=75&auto=format&fit=crop"
+PORTRAIT = (
+    "https://images.unsplash.com/photo-1588178454780-441fa5b99fa5?w=600&h=750&fit=crop&crop=faces"
+)
+CANDIDATE = "David Otieno"
+TEAM = "Campaign team"
+
+SITE = {
+    "slogan": "Kasarani deserves better, and we will build it together",
+    "about_headline": "An engineer from Mwiki who builds what he promises",
+    "description": (
+        "David Otieno grew up in Mwiki and went to Kasarani primary and Ruaraka high school. He "
+        "trained as a civil engineer at the University of Nairobi and has spent ten years "
+        "building roads and water lines across Nairobi, including the Njiru water main.\n\n"
+        "He is running for Member of Parliament for Kasarani because the estates that grew "
+        "fastest, Njiru, Ruai and Clay City, still wait longest for water, roads and school "
+        "places. He has walked every ward and holds an open forum in each one every month."
+    ),
+    "manifesto_text": (
+        "Our plan for Kasarani has six parts: clean water, jobs for young people, roads and "
+        "drainage, safe neighbourhoods, education and health care. Each one names what we will "
+        "do in the first two years and how the NG-CDF will pay for it, ward by ward. Every "
+        "shilling spent will be published on this website."
+    ),
+    "payment_instructions": (
+        "Give by M-Pesa: Lipa na M-Pesa, Paybill 174379, account OTIENO. You get an M-Pesa "
+        "message straight away and a campaign receipt by SMS the same day. Contributions pay "
+        "for the ground game only: volunteers' transport, printing and ward forums."
+    ),
+    "mpesa_paybill": "174379",
+    "mpesa_account": "OTIENO",
+}
+
+NEWS = [
+    {
+        "title": "David Otieno opens his Kasarani campaign office",
+        "days_ago": 12,
+        "label": PostLabel.NEWS,
+        "place": "Mwiki",
+        "author": TEAM,
+        "image": PICTURE.format("GZLDAMHFU4"),
+        "body": (
+            "More than three hundred supporters filled Mwiki Road on Saturday as David Otieno "
+            "opened the campaign office.\n\n"
+            "The office is open from 8am to 6pm, Monday to Saturday. Anyone can walk in to "
+            "volunteer, check their registration or raise an issue for the agenda."
+        ),
+    },
+    {
+        "title": "Clean water plan for Njiru and Ruai",
+        "days_ago": 5,
+        "label": PostLabel.STATEMENT,
+        "place": "Njiru",
+        "author": CANDIDATE,
+        "author_photo": PORTRAIT,
+        "reference": "DO/2026/014",
+        "image": UNSPLASH.format("1740741705746-74e6f9b93b4f"),
+        "body": (
+            "Families in the new estates of Njiru and Ruai still buy water from carts at three "
+            "times the city price. That ends with us.\n\n"
+            "In the first two years we will extend the Ruai and Njiru mains, fix the leaking "
+            "Mwiki line and put a public water point in every estate the mains do not reach."
+        ),
+    },
+    {
+        "title": "Youth skills centre plan meets Kasarani employers",
+        "days_ago": 8,
+        "label": PostLabel.NEWS,
+        "place": "Kasarani",
+        "author": TEAM,
+        "image": UNSPLASH.format("1576830886922-02b61aee42ad"),
+        "body": (
+            "Twelve employers from the Ruaraka and Baba Dogo industrial areas met the campaign "
+            "on Tuesday to shape the youth skills centres.\n\n"
+            "They asked for welding, electrical, plumbing and digital skills, and offered "
+            "attachments for the first two hundred graduates."
+        ),
+    },
+    {
+        "title": "Why Clay City floods every long rains",
+        "days_ago": 15,
+        "label": PostLabel.OPINION,
+        "place": "Clay City",
+        "author": CANDIDATE,
+        "author_photo": PORTRAIT,
+        "image": UNSPLASH.format("1735837836870-17bf7e6d2bd6"),
+        "body": (
+            "I have built drains for a living, so I know why Clay City floods: the drains were "
+            "never joined to the main outfall, and nobody clears them before the rains.\n\n"
+            "Joining them costs less than one season of lost trade. We will do it in year one."
+        ),
+    },
+    {
+        "title": "Street lights switched on along the Ruai walkway",
+        "days_ago": 20,
+        "label": PostLabel.NEWS,
+        "place": "Ruai",
+        "author": TEAM,
+        "image": UNSPLASH.format("1636814281352-cdfa309425b7"),
+        "body": (
+            "Residents and the Ruai ward security committee walked the new lit path on Friday "
+            "night with the campaign.\n\n"
+            "The committee will map the next ten dark paths for the agenda's safe "
+            "neighbourhoods plan."
+        ),
+    },
+    {
+        "title": "Bursary clinic helps 140 families apply",
+        "days_ago": 26,
+        "label": PostLabel.NEWS,
+        "place": "Mwiki",
+        "author": TEAM,
+        "image": UNSPLASH.format("1632215861513-130b66fe97f4"),
+        "body": (
+            "Volunteers helped 140 families fill in NG-CDF bursary forms at Mwiki primary on "
+            "Saturday.\n\nThe next clinic is in Njiru; see the events page for the date."
+        ),
+    },
+]
+
+EVENTS = [
+    ("Town hall at Mwiki grounds", 9, "Mwiki grounds", PICTURE.format("6KRBT8MYES")),
+    ("Njiru bursary clinic", 4, "Njiru social hall", UNSPLASH.format("1632215861513-130b66fe97f4")),
+    ("Ruai health day", 16, "Ruai health centre", UNSPLASH.format("1783408355447-b01a88767e6a")),
+    ("Clay City youth forum", 23, "Clay City community centre", PICTURE.format("HBADKDBJYU")),
+]
+EVENT_BODY = (
+    "Come and meet David Otieno, ask your questions and hear the plan for your ward. Entry is "
+    "free and everyone is welcome. Volunteers will be at the gate to register new supporters."
+)
+
+# Public documents, checked to serve a PDF.
+DOCUMENTS = [
+    (
+        "The Constitution of Kenya, 2010",
+        "https://www.constituteproject.org/constitution/Kenya_2010.pdf",
+    ),
+    (
+        "National Government Constituencies Development Fund Act (as amended 2023)",
+        "https://ngcdf.go.ke/wp-content/uploads/2023/10/new-NGCDF-Act-As-Amended-in-2022-2023.pdf",
+    ),
+    ("IEBC voter education curriculum", "https://www.iebc.or.ke/uploads/resources/oqwLzhwU42.pdf"),
+    (
+        "IEBC voter education training manual",
+        "https://www.iebc.or.ke/uploads/resources/pdQMe3WKeV.pdf",
+    ),
+]
+
+# Public YouTube clips, checked through YouTube's oEmbed; titles as published.
+VIDEOS = [
+    ("Nairobi new boom areas: Njiru, Mwiki and Clay City, Kasarani", "8W_OERfyb20"),
+    ("How biometric voter registration works (IEBC)", "2icgT2MMDLE"),
+    ("IEBC steps up voter education ahead of 2027", "0NubwTArc24"),
+]
+
+
+async def fill_site(session: AsyncSession, today: date) -> None:
+    """Fill the site settings and publish the news, events, documents and videos."""
+    site = await session.scalar(select(SiteSettings))
+    for field, value in SITE.items():
+        setattr(site, field, value)
+    for item in NEWS:
+        session.add(
+            Post(
+                kind=PostKind.NEWS,
+                title=item["title"],
+                body=from_plain(item["body"]),
+                image_url=item["image"],
+                label=item["label"],
+                place=item["place"],
+                author=item["author"],
+                author_photo_url=item.get("author_photo", ""),
+                reference=item.get("reference", ""),
+                published_on=today - timedelta(days=item["days_ago"]),
+                published=True,
+            )
+        )
+    for title, days_ahead, venue, picture in EVENTS:
+        session.add(
+            Post(
+                kind=PostKind.EVENT,
+                title=title,
+                body=from_plain(EVENT_BODY),
+                image_url=picture,
+                event_date=today + timedelta(days=days_ahead),
+                venue=venue,
+                published_on=today,
+                published=True,
+            )
+        )
+    for n, (title, url) in enumerate(DOCUMENTS):
+        session.add(Document(title=title, url=url, sort_order=n, published=True))
+    for n, (title, video_id) in enumerate(VIDEOS):
+        session.add(
+            Video(
+                title=title,
+                url=f"https://www.youtube.com/watch?v={video_id}",
+                sort_order=n,
+                published=True,
+            )
+        )

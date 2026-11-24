@@ -1,6 +1,6 @@
 """The demo install: a set-up installation with its candidate page, team and work."""
 
-from datetime import date, timedelta
+from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,8 +12,6 @@ from backend.models import (
     Constituency,
     County,
     HeroSlide,
-    Post,
-    PostKind,
     Seat,
     User,
     UserRole,
@@ -22,33 +20,18 @@ from backend.models import (
 from backend.schemas.setup import InvitedLogin, SetupRequest, SetupSeat, SetupSite, SetupSuperuser
 from backend.security import hash_password
 from backend.seed.demo import demo_email, seed_ground_game
+from backend.seed.demo_content import PICTURE, PORTRAIT, SITE, UNSPLASH, fill_site
 from backend.seed.sign_ins import SignIn
 from backend.services import setup
 from backend.services.accounts import add_member, new_login
 from backend.services.errors import Refused
 from backend.services.rich_text import from_plain
 
-# Free (CC0) StockSnap scenes, named by their StockSnap id.
-PICTURE = "https://cdn.stocksnap.io/img-thumbs/960w/{}.jpg"
 SLIDE_PICTURES = ["HBADKDBJYU", "X60YH1SWTF", "5TRB09XUBX"]
-# Free Unsplash photos, named by their Unsplash id.
-UNSPLASH = "https://images.unsplash.com/photo-{}?w=900&q=75&auto=format&fit=crop"
-PORTRAIT = (
-    "https://images.unsplash.com/photo-1588178454780-441fa5b99fa5?w=600&h=750&fit=crop&crop=faces"
-)
-BODY = from_plain(
-    "This is sample text for the demo website. A real post would carry the full story: "
-    "who spoke, what was agreed, and what supporters can do next."
-)
 
 COUNTY = "Nairobi City"
 CONSTITUENCY = "Kasarani"
 TITLE = "David Otieno for Kasarani"
-NEWS = [
-    ("David Otieno opens his Kasarani campaign office", 12, "GZLDAMHFU4"),
-    ("Clean water plan for Njiru and Ruai", 5, "6B6QMRB4XI"),
-]
-EVENT = ("Town hall at Mwiki grounds", 9, "Mwiki grounds", "6KRBT8MYES")
 # The agenda and the candidate's priorities: title, summary, what he will do, why it matters.
 AGENDA = [
     (
@@ -205,16 +188,13 @@ async def _team(session: AsyncSession, campaign: Campaign, password: str) -> Use
 
 
 async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
-    """Publish the candidate page, the agenda, the carousel, two news posts and an event."""
+    """Publish the candidate page, the agenda, the carousel and the rest of the website."""
     profile = await session.scalar(
         select(CandidateProfile).where(CandidateProfile.campaign_id == campaign.id)
     )
     profile.photo_url = PORTRAIT
-    profile.slogan = "Kasarani deserves better, and we will build it together"
-    profile.bio = from_plain(
-        "David Otieno grew up in Mwiki, trained as a civil engineer and has spent ten years "
-        "building roads and water lines across Nairobi."
-    )
+    profile.slogan = SITE["slogan"]
+    profile.bio = from_plain(SITE["description"])
     profile.priorities = [
         {"title": title, "text": summary, "image_url": picture}
         for (title, summary, _, _), picture in zip(AGENDA, AGENDA_PICTURES, strict=True)
@@ -223,17 +203,6 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
     profile.office_phone = "0700 111222"
     profile.office_email = "office@example.com"
     profile.published = True
-    for title, days_ago, picture in NEWS:
-        session.add(
-            Post(
-                kind=PostKind.NEWS,
-                title=title,
-                body=BODY,
-                image_url=PICTURE.format(picture),
-                published_on=today - timedelta(days=days_ago),
-                published=True,
-            )
-        )
     for n, (title, summary, what, why) in enumerate(AGENDA):
         session.add(
             AgendaIssue(
@@ -259,19 +228,7 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
                 published=True,
             )
         )
-    title, days_ahead, venue, picture = EVENT
-    session.add(
-        Post(
-            kind=PostKind.EVENT,
-            title=title,
-            body=BODY,
-            image_url=PICTURE.format(picture),
-            event_date=today + timedelta(days=days_ahead),
-            venue=venue,
-            published_on=today,
-            published=True,
-        )
-    )
+    await fill_site(session, today)
 
 
 async def build_aspirant(session: AsyncSession, *, password: str, today: date) -> list[SignIn]:

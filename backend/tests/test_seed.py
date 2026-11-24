@@ -98,9 +98,9 @@ async def test_the_demo_builds_its_campaign_and_team(
     summary = await _demo(session)
 
     assert [email for email, _, _ in summary.sign_ins] == [
-        "aspirant@demo.pamoja.test",
-        "manager@demo.pamoja.test",
-        "mobilizer@demo.pamoja.test",
+        "aspirant@demo.campaign.test",
+        "manager@demo.campaign.test",
+        "mobilizer@demo.campaign.test",
     ]
     # The demo clears only its own logins; a real login with another name is never touched.
     assert DEMO_USERNAMES == ("aspirant", "manager", "mobilizer")
