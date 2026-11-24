@@ -1,4 +1,4 @@
-"""What each campaign role may do, and how far it reaches (docs/Product_Design.md, section 0.2).
+"""What each campaign role may do, and how far it reaches (docs/SYSTEM.md, section 2).
 
 `all` is the whole campaign, `area` the coordinator's wards and centres, `own` the caller's own
 rows (a mobilizer's ward). A role missing from an action may not do it.

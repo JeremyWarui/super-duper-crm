@@ -1,4 +1,4 @@
-"""The seat's target before the campaign exists (AO-R8 setup step 5): its past results, share,
+"""The seat's target before the campaign exists (setup's Target step): its past results, share,
 turnout scenarios and the split to wards, worked out exactly as `generate_targets` saves them."""
 
 import uuid

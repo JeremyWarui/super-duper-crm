@@ -1,4 +1,4 @@
-"""The permissions map (docs/Product_Design.md, section 0.2) against the real routes, and the
+"""The permissions map (docs/SYSTEM.md, section 2) against the real routes, and the
 coordinator's area."""
 
 import uuid

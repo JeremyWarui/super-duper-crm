@@ -11,8 +11,8 @@ afterEach(() => {
 });
 
 const SENT = "If that email has a login, a link to choose a new password is on its way.";
-const SITE = { "GET /site/": { name: "Umoja Party", organisation_type: "party" } };
-const ME = { id: "u1", username: "jane", full_name: "Jane", role: "manager", kind: "campaign", is_superuser: false, party_roles: [], member_account: false };
+const SITE = { "GET /site/": { name: "Jane for Roysambu" } };
+const ME = { id: "u1", username: "jane", full_name: "Jane", role: "manager", is_superuser: false };
 
 describe("forgot password", () => {
   it("asks for a link and shows the server's answer", async () => {

@@ -8,8 +8,9 @@ repeat them.
 
 1. [`docs/SYSTEM.md`](../SYSTEM.md): what the code does today, its rules, roles and
    architecture.
-2. [`docs/Product_Design.md`](../Product_Design.md): the product plan. Its section 0.2 is the
-   permissions map the code follows.
+2. The design documents: [`docs/Targets_Design.md`](../Targets_Design.md) (vote targets),
+   [`docs/Communications_Design.md`](../Communications_Design.md) and
+   [`docs/Comms_Demo_Plan.md`](../Comms_Demo_Plan.md) (texts, calls and alerts).
 3. [`backend/README.md`](../../backend/README.md): the API, the rules route by route, every
    outside service and its settings, and the known gaps.
 
@@ -34,7 +35,7 @@ repeat them.
 ├── contracts/    frontend-api.json: every field the SPA reads and sends
 ├── deploy/       the self-host package: docker-compose.yml, Caddy, nightly backup
 ├── tools/        secret-scan/, the scanner the pre-commit hook and CI run
-├── ui-kit/       the design kit the screens are built from
+├── docs/UI_Style.md  how screens are built: tokens, parts and the size spec
 └── docs/         the system brief, the demo installs, and handover/
 ```
 
@@ -199,7 +200,7 @@ there, and a removed one fails it as a stale entry.
 Inside a campaign, routers guard with `require("<action>")` from `api/deps.py`. The actions
 and the roles that may do each, with their reach (`all`, `area`, `own`), are the `MAP` in
 `services/permissions.py`; `api/scope.py` applies the reach to every read and write.
-`tests/test_permissions.py` holds the map to section 0.2 of `docs/Product_Design.md`. A new
+`tests/test_permissions.py` holds the same table and checks every route against it. A new
 action goes into `MAP` and that test together.
 
 ## The frontend contract

@@ -5,13 +5,12 @@ what is not part of the product. Go through it together at handover. Tick each l
 sides sign at the end.
 
 Each copy is sold outright and run by the buyer's own IT person. There is no licence server,
-no vendor console and no central system: once handed over, the copy is the buyer's to run
-(`docs/Product_Design.md`, decision 1).
+no vendor console and no central system: once handed over, the copy is the buyer's to run.
 
 ## 1. The source repository and its licence
 
 - [ ] The full source repository, with its git history: `backend/`, `frontend/`,
-      `contracts/`, `deploy/`, `tools/`, `ui-kit/` and `docs/`.
+      `contracts/`, `deploy/`, `tools/` and `docs/`.
 - [ ] The licence, in `LICENSE` at the root: the **MIT License**, copyright 2026 Jeremy
       Mwangi. It lets the buyer use, copy, change, merge, publish, distribute, sublicense and
       sell the software, provided the copyright and permission notice stay in every copy. The
@@ -47,8 +46,8 @@ In `docs/handover/`:
       test lanes, migrations, the outside-service adapters.
 - [ ] `samples/`: `boundaries.csv` and `register.csv`, sample reference-data imports covering
       Lamu County, for trying the imports safely.
-- [ ] `docs/SYSTEM.md`, `docs/Product_Design.md` and the design documents in `docs/`, which
-      say what the system does and why.
+- [ ] `docs/SYSTEM.md` and the design documents in `docs/`, which say what the system does
+      and why.
 
 ## 4. The first superuser and the setup token
 
@@ -125,8 +124,7 @@ A backup only counts once it has been restored. Do this at handover, on the buye
 
 ## 7. Warranty
 
-- [ ] **3 months of defect fixes** from the handover date (`docs/Product_Design.md`, decision
-      9). A defect is the software not doing what `docs/SYSTEM.md` and the guides say it does.
+- [ ] **3 months of defect fixes** from the handover date. A defect is the software not doing what `docs/SYSTEM.md` and the guides say it does.
       New features, changes of scope, and problems caused by the server, its hosting, or
       changes the buyer makes to the code are not defects.
 - [ ] After the 3 months, maintenance is the buyer's: their IT person or any developer, using
@@ -136,8 +134,7 @@ A backup only counts once it has been restored. Do this at handover, on the buye
 
 ## 8. Out of scope
 
-These were drawn in the mockups or discussed and are **not** in the product
-(`docs/Product_Design.md`, section 6, and decisions 22 to 31 of section 0):
+These were discussed and are **not** in the product:
 
 - [ ] **Election-day features**: polling-day check-in, polling-station imports and result
       forms. Agents are recruited, vetted, trained and assigned to a registration centre

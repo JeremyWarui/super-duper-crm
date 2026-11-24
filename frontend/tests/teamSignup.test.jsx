@@ -29,7 +29,7 @@ const posted = (calls, method = "POST") => calls.find((c) => c.method === method
 describe("the public team sign-up", () => {
   it("signs an agent up at the centre they pick in their ward", async () => {
     const calls = stubApi({
-      "GET /site/": { name: "Umoja Party", organisation_type: "party" },
+      "GET /site/": { name: "Jane for Roysambu" },
       "GET /team-signup/t1/": PAGE,
       "GET /team-signup/t1/centres/?ward=w1": [{ id: "rc1", name: "Zimmerman Primary" }],
       "POST /team-signup/t1/": { message: "Thank you. The campaign will review your sign-up." },

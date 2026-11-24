@@ -13,7 +13,7 @@ Source paths are under `backend/src/backend/` unless they start with `frontend/`
 ## 1. What it is
 
 An installation is **one candidate contesting one seat**: MCA, MP, Women Rep, Senator, Governor
-or President. It holds exactly one campaign. The candidate's political party is not stored.
+or President. It holds exactly one campaign.
 
 The campaign gets one number to chase, the **seat target**: the votes it needs, worked out from
 past results (section 4). The target is shared out to the places the team works:

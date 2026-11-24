@@ -47,5 +47,5 @@ jobs:
         run: |
           uv run ruff check src tests evals
           uv run ruff format --check src tests evals
-      - name: Tests and evals, as a party and as an aspirant installation
+      - name: Tests and evals
         run: uv run pytest -q -p no:cacheprovider tests evals

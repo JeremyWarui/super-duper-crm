@@ -1,51 +1,15 @@
-# SETUP: styling that matches the mockups
+# UI style: building screens
 
-This kit is the styling foundation for the campaign platform: the candidate's public website, the console and the campaign workspace. The aim is that every screen looks exactly like the Design canvas mockups. The app's copy of these files is in `frontend/src/`; build screens only from these parts.
+Every screen (the candidate's public website, the console and the campaign workspace) shares one
+look. The tokens are in `frontend/src/styles/globals.css`, `cn()` in `frontend/src/lib/utils.ts`,
+the site colours in `frontend/src/theme/branding.tsx`, and the parts in
+`frontend/src/components/ui/` and `frontend/src/components/layout/`. Build screens only from
+these parts.
 
-Stack: React 19 + TypeScript + Vite, Tailwind CSS v4, shadcn-style components (Radix primitives), React Router, FastAPI backend.
-
----
-
-## 1. What's in the kit
-
-```
-src/styles/globals.css          ← ALL design tokens + base styles (light only, no dark mode)
-src/lib/utils.ts                ← cn() with tailwind-merge taught our custom sizes
-src/theme/branding.tsx          ← loads the site's colours from FastAPI and applies them
-src/components/ui/
-  button.tsx    card.tsx    input.tsx (Input, Textarea, NativeSelect, Field)
-  badge.tsx     tabs.tsx (Tabs, FilterPills)    table.tsx
-  popover.tsx (Popover, DropdownMenu)    typography.tsx (SectionHead, RailHead, Crumbs, StoryMeta)
-src/components/layout/
-  Logo.tsx  SiteHeader.tsx (SiteUtilityBar, SiteHeader)  SiteFooter.tsx  PublicLayout.tsx
-  AppSidebar.tsx (crmNav, workspaceNav)  CrmTopBar.tsx  AppPage.tsx  AppLayout.tsx
-src/routes/                     ← demos: HomePage, MembersPage, KitPage (/kit)
-backend/branding.py             ← a sample FastAPI router; the app reads GET /api/site/
-components.json                 ← shadcn CLI config pointing at our paths
-```
-
-## 2. Install into an existing React + Vite app
-
-```bash
-npm install tailwindcss @tailwindcss/vite class-variance-authority clsx tailwind-merge \
-  lucide-react @radix-ui/react-slot @radix-ui/react-tabs @radix-ui/react-popover \
-  @radix-ui/react-dropdown-menu react-router-dom \
-  @fontsource-variable/public-sans @fontsource-variable/bricolage-grotesque
-npm install -D @types/node
-```
-
-1. Copy `src/styles`, `src/lib`, `src/theme`, `src/components` and `components.json` into the app.
-2. `vite.config.ts`: add the `tailwindcss()` plugin, the `@` → `./src` alias, and the `/api` proxy to FastAPI (see this kit's `vite.config.ts`).
-3. `tsconfig.app.json`: add `"paths": { "@/*": ["./src/*"] }`.
-4. `src/main.tsx`: import the two `@fontsource-variable/*` packages, then `@/styles/globals.css`. Wrap the app in `<BrandingProvider>`.
-5. Delete Vite's starter `index.css` and `App.css`. Nothing else may set global styles.
-6. `index.html`: keep `<meta name="color-scheme" content="light">`.
-7. Backend: the app serves the branding from its site settings (`GET /api/site/`); the kit's `backend/branding.py` is only a sample.
-
-## 3. Rules for whoever builds screens (human or agent)
+## 1. Rules for whoever builds screens (human or agent)
 
 1. **Light theme only.** Never add a `.dark` block, `dark:` classes, or a theme toggle. If a shadcn component you add later contains `dark:` classes, delete them.
-2. **No raw colours in pages.** Use token classes (`bg-primary`, `text-muted-foreground`, `bg-stone`, `border-line`…). Hex values live only in `globals.css`. The one exception is a mockup colour used in a single place, which may go inline with a comment.
+2. **No raw colours in pages.** Use token classes (`bg-primary`, `text-muted-foreground`, `bg-stone`, `border-line`…). Hex values live only in `globals.css`. The one exception is a colour used in a single place, which may go inline with a comment.
 3. **Brand colours come only from `--brand-*`.** Never write `#0B5D3B` in a component, because each installation re-brands it.
 4. **Use the layouts.**
    - Website pages render inside `PublicLayout`.
@@ -55,7 +19,7 @@ npm install -D @types/node
    - remove any `dark:` classes
    - make controls at least `h-11`
    - use `rounded-lg` for fields and `rounded-[18px]` + `shadow-pop` for floating panels
-   - check the result against the mockups
+   - check the result in the running app
    - **Never** let the CLI overwrite `button`, `card`, `input`, `badge`, `tabs` or `table`. Answer "no" if it asks.
 6. **Touch targets are at least 44px** (`h-11`) for buttons, inputs and nav items. Inputs use 16px text so phones don't zoom in.
 7. **Placeholders stay in `[brackets]`** until real data is wired up. Never invent numbers.
@@ -65,9 +29,9 @@ npm install -D @types/node
    - Focus rings are never removed.
    - Reduced motion is respected (`globals.css` handles this).
 
-## 4. Shadcn and the mockups: what the kit changes
+## 2. Shadcn and the design: what changes
 
-| shadcn default | Mockups | Where it's fixed |
+| shadcn default | This design | Where it's fixed |
 |---|---|---|
 | Neutral grey palette, `.dark` theme | Brand green / gold / ink, warm neutrals, light only | `globals.css` `:root`, dark removed |
 | One `--radius` (≈10px) for everything | 6 / 10 / 12 / 16 / 18 / 20 / 24 / 28 px by element | `@theme` radius scale + component variants |
@@ -78,7 +42,7 @@ npm install -D @types/node
 | No header / sidebar look | Frosted header with pill nav; dark-ink CRM sidebar; white workspace sidebar | `layout/*` |
 | Inter / system fonts | Bricolage Grotesque 800 + Public Sans | fontsource + `--font-display/sans` |
 
-## 5. Size spec: heights, widths and gaps (from the mockups)
+## 3. Size spec: heights, widths and gaps
 
 Use these exactly. Tailwind classes are given where a token exists.
 
@@ -140,7 +104,7 @@ Use these exactly. Tailwind classes are given where a token exists.
 | Footer columns | `minmax(180px,1fr)`, `gap-7` |
 | Main + side column | flex: main `flex-[3_1_520px]` (or `999 1 560px`), side `flex-[2_1_320px]` (or `1 1 300px`), `gap-6`–`gap-10` |
 
-## 6. Making cards and components the same height and width
+## 4. Making cards and components the same height and width
 
 Yes, all of this is ordinary CSS and works with these components:
 
@@ -149,12 +113,12 @@ Yes, all of this is ordinary CSS and works with these components:
   <Card className="h-full"><CardTitle>…</CardTitle><p>…</p><Button className="mt-auto self-start">Register</Button></Card>
   ```
 - **Equal widths:** `grid-cols-[repeat(auto-fit,minmax(Npx,1fr))]` gives equal columns that wrap on phones. For an exact count, use `grid-cols-3` (`md:grid-cols-3` etc.).
-- **Fixed sizes from the mockup:** use arbitrary values, e.g. `w-[360px]`, `h-[76px]`, `min-h-[560px]`, or tokens such as `w-sidebar`.
+- **Fixed sizes:** use arbitrary values, e.g. `w-[360px]`, `h-[76px]`, `min-h-[560px]`, or tokens such as `w-sidebar`.
 - **Same image shape everywhere:** `aspect-video`, `aspect-[16/10]` or `aspect-square` on the placeholder or `<img>`, plus `object-cover` on real photos.
 - **Long text doesn't break rows:** `min-w-0` on flex children and `line-clamp-2` on card titles keep cards the same height when one headline is long.
 - **Phones:** every grid above collapses to one column by itself. Side columns drop under the main column. No horizontal scrolling, except data tables, which scroll inside their card (`Table minWidth`).
 
-## 7. Per-site branding
+## 5. Per-site branding
 
 The app reads its branding from the site settings (`GET /api/site/`): the name, short name,
 slogan, contact phone, logo and colours. `BrandingProvider` (`frontend/src/theme/branding.tsx`)
@@ -163,9 +127,9 @@ sets `--brand-primary`, `--brand-primary-hover`, `--brand-primary-tint` and `--b
 Settings page) refuse colours that fail 4.5:1 contrast, so an installation can't make its own
 buttons unreadable.
 
-## 8. Done check before shipping a screen
+## 6. Done check before shipping a screen
 
-- [ ] Compared side-by-side with its mockup at 1440px and at 390px.
+- [ ] Checked in the running app at 1440px and at 390px.
 - [ ] No `dark:` classes, no raw brand hex, no new global CSS.
 - [ ] All controls at least 44px; every input labelled.
 - [ ] No horizontal scroll at 390px.

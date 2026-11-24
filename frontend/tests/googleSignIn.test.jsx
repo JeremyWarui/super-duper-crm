@@ -4,7 +4,7 @@ import Login from "../src/components/Login";
 import { useAuth } from "../src/store/auth";
 import { fakeSecret, renderApp, stubApi } from "./helpers";
 
-const SIGNED = { token: fakeSecret(), user: { id: "u1", username: "root", full_name: "Root", role: null, is_superuser: true, party_roles: [] } };
+const SIGNED = { token: fakeSecret(), user: { id: "u1", username: "root", full_name: "Root", role: null, is_superuser: true } };
 
 afterEach(() => {
   vi.unstubAllGlobals();

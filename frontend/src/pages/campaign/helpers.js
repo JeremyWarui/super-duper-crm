@@ -38,7 +38,7 @@ const LEAD = [
 ];
 const OWN_WORK = (items) => [{ label: "My work", items }];
 
-// Each role's menu: groups of [page key, label], as the permissions map allows (docs/Product_Design.md, 0.2).
+// Each role's menu: groups of [page key, label], as the permissions map allows (docs/SYSTEM.md, section 2).
 export const NAV = {
   candidate: LEAD,
   manager: LEAD,

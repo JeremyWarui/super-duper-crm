@@ -1,7 +1,5 @@
 """Walk a mobilizer and an agent from the public team link to their own paid payment, for a
 ward-level and a constituency seat, through the HTTP API.
-
-docs/Product_Design.md, section 0.5, the PD-16 acceptance line.
 """
 
 import uuid
