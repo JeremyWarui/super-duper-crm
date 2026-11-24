@@ -19,7 +19,7 @@ from backend.api.scope import (
     require_visible,
     scoped,
 )
-from backend.models import Event, EventStatus, Supporter, User
+from backend.models import CampaignMessage, Event, EventStatus, SmsOutbox, SmsRun, Supporter, User
 from backend.schemas.campaign import (
     EventCreate,
     EventInvite,
@@ -29,10 +29,10 @@ from backend.schemas.campaign import (
     EventSignups,
     InviteRecipient,
 )
-from backend.services import messages, texting
+from backend.services import messages, sms_queue, texting
 from backend.services.errors import Forbidden
 from backend.services.permissions import reach, refusal
-from backend.services.sms import Recipient, SendResult, get_sms_provider
+from backend.services.sms import get_sms_provider, parts_of
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -128,72 +128,94 @@ async def delete_event(event_id: uuid.UUID, session: SessionDep, user: Writer) -
     await session.commit()
 
 
-def _not_sent(message: str, accepted: list[Recipient], detail: str) -> SendResult:
-    return SendResult(
-        provider=get_sms_provider().name,
-        delivered=False,
-        message=message,
-        requested=len(accepted),
-        accepted=accepted,
-        detail=detail,
-    )
-
-
 @router.post("/{event_id}/invite/", response_model=EventInviteResult)
 async def invite_to_event(
     event_id: uuid.UUID, payload: EventInvite, session: SessionDep, user: Writer
 ) -> EventInviteResult:
-    """Text the event's consenting supporters and set `number_reached`; a dry run sends nothing
-    and is open to anyone who may change the event."""
+    """Invite the event's consenting supporters through the compliance queue: the same checks,
+    sending window and batches as an approved message. A dry run sends nothing and is open to
+    anyone who may change the event."""
     if not payload.dry_run and reach(user, "sms.send") is None:
         raise Forbidden(refusal(user, "sms.send"))
     event = await require_visible(session, user, Event, event_id, "event", "events.write", LOADED)
-
-    matched, text, numbers, unusable = await messages.invite(
-        session,
+    audience = messages.invite_audience(
         event,
         await area_of(session, user, "events.write"),
-        payload.message,
         whole_campaign=payload.whole_campaign,
         support_levels=payload.support_levels,
     )
+    await sms_queue.check_text(session, event.campaign_id, payload.message, payload.language)
+    plan = await sms_queue.plan_audience(session, event.campaign_id, audience)
+    text = texting.text_of(payload.message)
+    unusable = [
+        InviteRecipient(phone=p, status="invalid", detail="Not a usable number.")
+        for p in plan.unusable
+    ]
+    matched = len(plan.queued) + plan.no_consent + plan.opted_out + len(plan.unusable)
 
     if payload.dry_run:
-        blocked = await texting.opted_out(session, event.campaign_id, numbers)
-        would = [Recipient(phone=n, status="would send") for n in numbers if n not in blocked]
-        result = _not_sent(text, would, "Nothing was sent: this was a dry run.")
-        left_out = len(blocked)
-    elif not numbers:
-        result = _not_sent(text, [], "Nobody on this register has a usable phone number.")
-        left_out = 0
-    else:
-        result, left_out = await texting.send(
-            session,
-            numbers,
-            text,
-            purpose="invite",
-            sender=user,
-            campaign_id=event.campaign_id,
-            event_id=event.id,
+        return EventInviteResult(
+            provider=get_sms_provider().name,
+            delivered=False,
+            dry_run=True,
+            message=text,
+            parts=parts_of(text),
+            supporters_matched=matched,
+            requested=len(plan.queued),
+            opted_out=plan.opted_out,
+            accepted=[InviteRecipient(phone=n, status="would send") for n in plan.queued],
+            rejected=unusable,
+            detail="Nothing was sent: this was a preview.",
+            number_reached=event.number_reached,
+            queued=len(plan.queued),
         )
-        if result.delivered:
-            event.number_reached = len(result.accepted)
-        await session.commit()
 
-    def shown(r: Recipient) -> InviteRecipient:
-        return InviteRecipient(phone=r.phone, status=r.status, detail=r.detail)
-
-    return EventInviteResult(
-        provider=result.provider,
-        delivered=result.delivered,
-        dry_run=payload.dry_run,
-        message=result.message,
-        parts=result.parts,
-        supporters_matched=matched,
-        requested=result.requested,
-        opted_out=left_out,
-        accepted=[shown(r) for r in result.accepted],
-        rejected=[shown(r) for r in [*result.rejected, *unusable]],
-        detail=result.detail,
-        number_reached=event.number_reached,
+    message = CampaignMessage(
+        campaign_id=event.campaign_id,
+        body=payload.message.strip(),
+        wards=[] if payload.whole_campaign else [str(event.ward_id)],
+        drafted_by_id=user.id,
+        language=payload.language,
     )
+    session.add(message)
+    await session.flush()
+    run = await sms_queue.approve(
+        session, message, audience, language=payload.language, actor=user, event_id=event.id
+    )
+    rows = (
+        await session.execute(
+            select(SmsOutbox.phone, SmsOutbox.status, SmsOutbox.skip_reason)
+            .where(SmsOutbox.run_id == run.id, SmsOutbox.status.in_(("sent", "failed")))
+            .order_by(SmsOutbox.phone)
+        )
+    ).all()
+    await session.refresh(event)
+    return EventInviteResult(
+        provider=get_sms_provider().name,
+        delivered=run.sent > 0,
+        dry_run=False,
+        message=run.text,
+        parts=run.segments,
+        supporters_matched=matched,
+        requested=run.targeted,
+        opted_out=run.excluded_opted_out,
+        accepted=[InviteRecipient(phone=p, status=s) for p, s, _ in rows if s == "sent"],
+        rejected=[
+            *[InviteRecipient(phone=p, status=s, detail=d) for p, s, d in rows if s == "failed"],
+            *unusable,
+        ],
+        detail=_stage_note(run),
+        number_reached=event.number_reached,
+        queued=run.targeted,
+        run_status=run.status,
+    )
+
+
+def _stage_note(run: SmsRun) -> str:
+    if run.status == "completed":
+        return f"Sent to {run.sent} of {run.targeted}."
+    if run.status == "sending":
+        return f"Sending in batches: {run.sent} of {run.targeted} so far."
+    if run.status == "awaiting_vetting":
+        return "Waiting for the provider's vetting reference before sending."
+    return "Waiting for the sending window (08:00 to 18:00) to send."

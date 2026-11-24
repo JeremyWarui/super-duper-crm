@@ -14,7 +14,7 @@ import { composed } from "@/lib/sms";
 import { MessageField } from "@/components/SmsParts";
 import { SUPPORT_LEVELS } from "@/lib/labels";
 import { isLead } from "./helpers";
-import { Check } from "@/components/ui/input";
+import { Check, Field, NativeSelect } from "@/components/ui/input";
 
 
 // Who an invite goes to, named as groups.
@@ -26,13 +26,14 @@ export default function InviteForm({ event, onClose }) {
   const [message, setMessage] = useState(`${event.title}${event.venue ? ` at ${event.venue}` : ""}. Come through.`);
   const [levels, setLevels] = useState(["supporter", "undecided"]);
   const [wholeCampaign, setWholeCampaign] = useState(false);
+  const [language, setLanguage] = useState("en");
   const [result, setResult] = useState(null);
 
   const ok = composed(message).fits && !invite.isPending;
   const toggle = (key) => setLevels((L) => (L.includes(key) ? L.filter((k) => k !== key) : [...L, key]));
   const send = (dry) =>
     invite.mutate(
-      { id: event.id, message: message.trim(), support_levels: levels, whole_campaign: wholeCampaign, dry_run: dry },
+      { id: event.id, message: message.trim(), support_levels: levels, whole_campaign: wholeCampaign, dry_run: dry, language },
       { onSuccess: setResult },
     );
 
@@ -48,6 +49,14 @@ export default function InviteForm({ event, onClose }) {
         Everyone on the campaign, not just {event.ward_name}
       </Check>
 
+      <Field label="Language">
+        <NativeSelect value={language} onChange={(e) => { setLanguage(e.target.value); setResult(null); }}>
+          <option value="en">English</option>
+          <option value="sw">Kiswahili</option>
+        </NativeSelect>
+      </Field>
+      <p className="text-small text-muted-foreground">The text must carry the candidate's name. It goes to contacts who agreed to be texted, in batches between 08:00 and 18:00.</p>
+
       {!canSend && <p className="text-small text-muted-foreground">Only the candidate or the campaign manager sends texts.</p>}
       {result && <InviteResult result={result} />}
       <ErrorText error={invite.isError && invite.error} />
@@ -62,11 +71,12 @@ export default function InviteForm({ event, onClose }) {
 }
 
 function InviteResult({ result }) {
-  const tone = result.delivered ? "ok" : "warn";
+  const queued = !result.dry_run && result.run_status;
+  const tone = result.delivered || queued ? "ok" : "warn";
   return (
     <Card variant="tinted" className={cn("border-l-[3px]", result.delivered ? "border-l-primary" : "border-l-warn-foreground")}>
       <div className="flex items-center gap-2 font-semibold">
-        {result.dry_run ? "Preview" : result.delivered ? "Sent" : "Not sent"}
+        {result.dry_run ? "Preview" : result.run_status === "completed" ? "Sent" : queued ? "Queued" : "Not sent"}
         <Badge tone={tone}>{result.provider}</Badge>
       </div>
       <p className="text-small text-muted-foreground">

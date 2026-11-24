@@ -82,26 +82,17 @@ async def recipients(
     return [n for n in numbers if n not in blocked], len(blocked), len(unusable)
 
 
-async def invite(
-    session: AsyncSession,
-    event: Event,
-    area: Area | None,
-    message: str,
-    *,
-    whole_campaign: bool,
-    support_levels: list,
-) -> tuple[int, str, list[str], list]:
-    """Who an event invite reaches: how many supporters matched, the text, their usable
-    numbers, and the ones with no usable number. Supporters with an empty phone count as
-    matched and come back unusable."""
-    conditions = _audience(event.campaign_id, area, [], with_phone=False)
+def invite_audience(
+    event: Event, area: Area | None, *, whole_campaign: bool, support_levels: list
+) -> list:
+    """The conditions on `supporters` for everyone an event invite is addressed to, consenting or
+    not: the event's ward, or the whole campaign, inside the caller's area."""
+    conditions = _audience(event.campaign_id, area, [], with_phone=False, consenting=False)
     if not whole_campaign:
         conditions.append(Supporter.ward_id == event.ward_id)
     if support_levels:
         conditions.append(Supporter.support_level.in_(support_levels))
-    phones = list(await session.scalars(select(Supporter.phone).where(*conditions)))
-    numbers, unusable = normalise_all(phones)
-    return len(phones), texting.text_of(message), numbers, unusable
+    return conditions
 
 
 async def reach(

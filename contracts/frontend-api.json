@@ -124,7 +124,8 @@
       "accepted",
       "rejected",
       "detail",
-      "number_reached"
+      "number_reached",
+      "run_status"
     ],
     "POST /api/users/": [
       "id",
@@ -1135,7 +1136,8 @@
       "message",
       "support_levels",
       "whole_campaign",
-      "dry_run"
+      "dry_run",
+      "language"
     ],
     "POST /api/users/": [
       "username",

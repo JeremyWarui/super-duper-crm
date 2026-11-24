@@ -9,6 +9,7 @@ import csv
 import io
 import logging
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -20,6 +21,7 @@ from backend.config import Settings, get_settings
 from backend.models import (
     Campaign,
     CampaignMessage,
+    Event,
     SmsLog,
     SmsOutbox,
     SmsRun,
@@ -111,6 +113,48 @@ async def _candidate_name(session: AsyncSession, campaign_id: uuid.UUID) -> str:
     return campaign.candidate_label if campaign is not None else ""
 
 
+@dataclass
+class Audience:
+    """Who a bulk text goes to: each consenting number with its supporter, and who is left out."""
+
+    queued: dict[str, uuid.UUID]
+    no_consent: int
+    opted_out: int
+    unusable: list[str]
+
+
+async def plan_audience(session: AsyncSession, campaign_id: uuid.UUID, audience: list) -> Audience:
+    """Sort everyone the conditions match into the numbers to text and the ones left out; only
+    supporters whose consent wording covers texts are texted, and opted-out numbers never."""
+    people = (
+        await session.execute(
+            select(
+                Supporter.id, Supporter.phone, Supporter.consent_given, Supporter.consent_wording
+            ).where(*audience)
+        )
+    ).all()
+    consenting: dict[str, uuid.UUID] = {}
+    no_consent = 0
+    unusable: list[str] = []
+    for supporter_id, phone, given, wording in people:
+        number = normalise_phone(phone)
+        if number is None:
+            unusable.append(phone or "")
+            continue
+        if not (given and covers_sms(wording)):
+            no_consent += 1
+            continue
+        consenting.setdefault(number, supporter_id)
+    blocked = await texting.opted_out(session, campaign_id, list(consenting))
+    queued = {n: s for n, s in consenting.items() if n not in blocked}
+    return Audience(queued, no_consent, len(blocked), unusable)
+
+
+async def check_text(session: AsyncSession, campaign_id: uuid.UUID, body: str, language: str):
+    """Refused unless the text names the candidate and is in English or Kiswahili."""
+    _check_text(body, await _candidate_name(session, campaign_id), language)
+
+
 async def approve(
     session: AsyncSession,
     message: CampaignMessage,
@@ -120,6 +164,7 @@ async def approve(
     actor: User,
     now: datetime | None = None,
     provider: SMSProvider | None = None,
+    event_id: uuid.UUID | None = None,
 ) -> SmsRun:
     """Check the draft, build its run and, inside the window, send the first batch; commits.
 
@@ -132,25 +177,8 @@ async def approve(
     _check_text(message.body, name, language)
     _check_period(now, settings)
 
-    people = (
-        await session.execute(
-            select(
-                Supporter.id, Supporter.phone, Supporter.consent_given, Supporter.consent_wording
-            ).where(*audience)
-        )
-    ).all()
-    consenting: dict[str, uuid.UUID] = {}
-    no_consent = 0
-    for supporter_id, phone, given, wording in people:
-        number = normalise_phone(phone)
-        if number is None:
-            continue
-        if not (given and covers_sms(wording)):
-            no_consent += 1
-            continue
-        consenting.setdefault(number, supporter_id)
-    blocked = await texting.opted_out(session, message.campaign_id, list(consenting))
-    queued = {n: s for n, s in consenting.items() if n not in blocked}
+    plan = await plan_audience(session, message.campaign_id, audience)
+    queued = plan.queued
     if not queued:
         raise Refused(NOBODY)
 
@@ -170,8 +198,9 @@ async def approve(
         sender_name=name,
         text=text,
         targeted=len(queued),
-        excluded_no_consent=no_consent,
-        excluded_opted_out=len(blocked),
+        excluded_no_consent=plan.no_consent,
+        excluded_opted_out=plan.opted_out,
+        event_id=event_id,
         segments=segments,
         estimated_cost_cents=len(queued) * segments * settings.sms_part_price_cents,
         approved_by_id=actor.id,
@@ -362,10 +391,11 @@ async def process_next_batch(
                 session,
                 [row.phone for row in batch],
                 run.text,
-                purpose="message",
+                purpose="invite" if run.event_id else "message",
                 sender=None,
                 campaign_id=run.campaign_id,
                 message_id=run.message_id,
+                event_id=run.event_id,
                 provider=provider,
                 idempotency_key=key,
             )
@@ -415,7 +445,17 @@ async def _settle(session: AsyncSession, run_id: uuid.UUID, now: datetime) -> No
         ).all()
     )
     sent = counts.get("sent", 0)
-    segments = await session.scalar(select(SmsRun.segments).where(SmsRun.id == run_id))
+    segments, event_id = (
+        await session.execute(select(SmsRun.segments, SmsRun.event_id).where(SmsRun.id == run_id))
+    ).one()
+    if event_id is not None:
+        # An invitation reaches as many people as its texts went to.
+        await session.execute(
+            update(Event)
+            .where(Event.id == event_id)
+            .values(number_reached=sent)
+            .execution_options(synchronize_session=False)
+        )
     await session.execute(
         update(SmsRun)
         .where(SmsRun.id == run_id)

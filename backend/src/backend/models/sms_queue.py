@@ -22,6 +22,10 @@ class SmsRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     message_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("campaign_messages.id", ondelete="CASCADE"), unique=True
     )
+    # Set for an event invitation; the event's number reached follows what the run sent.
+    event_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("events.id", ondelete="SET NULL"), default=None
+    )
     status: Mapped[str] = mapped_column(String(20), default="sending")
     language: Mapped[str] = mapped_column(String(2))
     # The candidate's name as registered, which the text had to carry.

@@ -3,7 +3,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import AliasPath, Field, ValidationInfo, field_validator
 
@@ -238,6 +238,8 @@ class EventInvite(WriteModel):
     support_levels: list[SupportLevel] = Field(default_factory=list)
     whole_campaign: bool = False
     dry_run: bool = False
+    # Bulk political texts go out in English or Kiswahili only; the sender confirms which.
+    language: Literal["en", "sw"] = "en"
 
 
 class InviteRecipient(ORMModel):
@@ -262,6 +264,9 @@ class EventInviteResult(ORMModel):
     rejected: list[InviteRecipient]
     detail: str
     number_reached: int
+    # How many numbers the run holds, and where it stands; None for a preview.
+    queued: int = 0
+    run_status: str | None = None
 
 
 class TargetRefresh(WriteModel):

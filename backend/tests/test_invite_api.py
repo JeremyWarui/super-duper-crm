@@ -6,9 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Event, SmsLog, SmsOptOut, Supporter, SupportLevel
+from backend.services.consent import WORDING, ConsentChannel
 from backend.services.sms import Recipient, SendResult
 from backend.services.texting import FOOTER
 from tests.conftest import World
+
+NAME = "Amina Kariuki"
 
 
 async def _event(session: AsyncSession, world: World, *, ward=None) -> Event:
@@ -34,6 +37,7 @@ async def _supporters(
                 phone=phone,
                 support_level=level,
                 consent_given=consent,
+                consent_wording=WORDING[ConsentChannel.CAMPAIGN_LINK] if consent else None,
             )
         )
     await session.commit()
@@ -47,7 +51,9 @@ class DeliveringProvider:
     def __init__(self) -> None:
         self.calls: list[tuple[list[str], str]] = []
 
-    async def send(self, recipients: list[str], message: str) -> SendResult:
+    async def send(
+        self, recipients: list[str], message: str, idempotency_key: str | None = None
+    ) -> SendResult:
         self.calls.append((recipients, message))
         return SendResult(
             provider=self.name,
@@ -75,7 +81,7 @@ async def test_a_candidate_may_send_invitations(
     response = await client.post(
         f"/api/events/{event.id}/invite/",
         headers=world.headers("candidate"),
-        json={"message": "Hi", "dry_run": True},
+        json={"message": f"Hi. {NAME}", "dry_run": True},
     )
     assert response.status_code == 200
 
@@ -109,12 +115,12 @@ async def test_it_goes_to_the_supporters_in_the_event_s_ward(
         await client.post(
             f"/api/events/{event.id}/invite/",
             headers=world.headers("manager"),
-            json={"message": "Rally Saturday"},
+            json={"message": f"Rally Saturday. {NAME}"},
         )
     ).json()
 
     assert body["supporters_matched"] == 1
-    assert gateway.calls == [(["+254712345678"], "Rally Saturday" + FOOTER)]
+    assert gateway.calls == [(["+254712345678"], f"Rally Saturday. {NAME}" + FOOTER)]
 
 
 async def test_a_delivered_invitation_sets_the_number_reached(
@@ -134,7 +140,7 @@ async def test_a_delivered_invitation_sets_the_number_reached(
         await client.post(
             f"/api/events/{event.id}/invite/",
             headers=world.headers("manager"),
-            json={"message": "Hi"},
+            json={"message": f"Hi. {NAME}"},
         )
     ).json()
 
@@ -156,7 +162,7 @@ async def test_a_dry_run_works_out_the_recipients_and_sends_nothing(
         await client.post(
             f"/api/events/{event.id}/invite/",
             headers=world.headers("manager"),
-            json={"message": "Hi", "dry_run": True},
+            json={"message": f"Hi. {NAME}", "dry_run": True},
         )
     ).json()
 
@@ -191,7 +197,7 @@ async def test_it_skips_opted_out_and_unconsented_numbers_and_logs_who_was_texte
         await client.post(
             f"/api/events/{event.id}/invite/",
             headers=world.headers("manager"),
-            json={"message": "Rally Saturday"},
+            json={"message": f"Rally Saturday. {NAME}"},
         )
     ).json()
     logged = (await session.scalars(select(SmsLog).where(SmsLog.event_id == event.id))).all()
@@ -199,3 +205,19 @@ async def test_it_skips_opted_out_and_unconsented_numbers_and_logs_who_was_texte
     assert body["opted_out"] == 1
     assert [numbers for numbers, _ in gateway.calls] == [["+254712345678"]]
     assert [(r.phone, r.status, r.purpose) for r in logged] == [("+254712345678", "sent", "invite")]
+
+
+async def test_an_invitation_goes_through_the_queue_s_checks(
+    client: httpx.AsyncClient, session, world: World, gateway: DeliveringProvider
+) -> None:
+    event = await _event(session, world)
+    await _supporters(session, world, [("One", "0712345678", SupportLevel.SUPPORTER, world.ward)])
+    url = f"/api/events/{event.id}/invite/"
+
+    unnamed = await client.post(url, headers=world.headers("manager"), json={"message": "Hi"})
+    named = await client.post(
+        url, headers=world.headers("manager"), json={"message": f"Hi. {NAME}"}
+    )
+
+    assert unnamed.status_code == 400 and NAME in unnamed.json()["detail"]
+    assert (named.json()["run_status"], named.json()["queued"]) == ("completed", 1)

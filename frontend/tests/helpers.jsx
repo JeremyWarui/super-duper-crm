@@ -232,9 +232,9 @@ export const INVITE_RESULT = {
   rejected: [
     { phone: "not a phone", status: "invalid", detail: "Not a usable number." },
   ],
-  detail:
-    "No SMS gateway is configured, so nothing was sent. Set SMS_PROVIDER=africastalking with AT_USERNAME and AT_API_KEY to send.",
+  detail: "Waiting for the sending window (08:00 to 18:00) to send.",
   number_reached: 0,
+  run_status: "scheduled",
 };
 
 export const CREATED_USER = {
