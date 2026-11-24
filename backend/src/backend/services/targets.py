@@ -175,7 +175,9 @@ class TargetPlan:
         return self.weights[key] / total
 
 
-async def plan_targets(session: AsyncSession, campaign: Campaign) -> TargetPlan:
+async def plan_targets(
+    session: AsyncSession, campaign: Campaign, scenario: TurnoutScenario | None = None
+) -> TargetPlan:
     """The seat target and each ward's (or, for a ward race, each centre's) share of it, from
     past results (TD-R7 sections 4 and 5). Reads only; the campaign need not be saved.
 
@@ -204,7 +206,7 @@ async def plan_targets(session: AsyncSession, campaign: Campaign) -> TargetPlan:
     model = seat_model(
         history, turnout_override=Fraction(override) / 100 if override is not None else None
     )
-    projection = model.projection(campaign.turnout_scenario or TurnoutScenario.EXPECTED)
+    projection = model.projection(scenario or campaign.turnout_scenario or TurnoutScenario.EXPECTED)
     shares = share_out(projection.target if units else 0, weights)
     return TargetPlan(history, model, projection, units, weights, shares, note)
 

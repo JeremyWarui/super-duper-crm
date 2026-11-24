@@ -54,7 +54,7 @@ describe("what each role is shown", () => {
       "Coordinator",
       { Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, "Reach out": ["Messages", "Calls"], People: ["Sign-ups"], Money: ["Payments"] },
     ],
-    ["comms", "Comms officer", { Field: ["Events"], "Reach out": ["Messages", "Calls"], Website: ["Website", "Settings"] }],
+    ["comms", "Comms officer", { Plan: ["Targets"], Field: ["Events"], "Reach out": ["Messages", "Calls"], Website: ["Website", "Settings"] }],
     ["mobilizer", "Mobilizer", { "My work": ["My events", "Add contact", "My contacts", "My payments"] }],
     ["agent", "Agent", { "My work": ["My centre", "My events", "My payments"] }],
   ])("gives a %s exactly their groups", async (role, label, expected) => {

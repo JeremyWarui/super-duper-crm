@@ -1,11 +1,11 @@
 // What the campaign workspace's frame reads: icons per page, the role's data, the picked area,
 // and what needs the role now.
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import {
   Banknote, CalendarDays, ClipboardCheck, ClipboardList, Crosshair, Globe, HandHeart, Heart, LayoutDashboard, LockKeyhole, Map, MapPin, MessageCircle,
   Phone, Settings, ShieldCheck, Target, UserPlus, UserRoundCog, Users,
 } from "lucide-react";
-import { useEvents, useMobilizers, useStrategy } from "@/api/hooks";
+import { useEvents, useMobilizers, useNotices, useReadNotice, useStrategy } from "@/api/hooks";
 import { pagesOf, perCounty, reads, useWardOptions } from "./helpers";
 import { nairobiDate } from "@/lib/format";
 
@@ -45,8 +45,9 @@ export function useShellData(campaign, role) {
   const strategy = useStrategy(id("strategy"));
   const events = useEvents(id("events"));
   const mobilizers = useMobilizers(id("mobilizers"));
+  const notices = useNotices();
   const wards = useMemo(() => [...wardOptions].sort((a, b) => a.name.localeCompare(b.name)), [wardOptions]);
-  return { wards, strategy: strategy.data, events: events.data || [], contactsFor: id("supporters"), mobilizers: mobilizers.data || [] };
+  return { wards, strategy: strategy.data, events: events.data || [], contactsFor: id("supporters"), mobilizers: mobilizers.data || [], notices: notices.data || [] };
 }
 
 /** The area a person has picked in the top bar, for pages to narrow to; null is every area. */
@@ -56,7 +57,7 @@ export const useWorkspaceArea = () => useContext(AreaContext);
 /** What needs the role now: wards with no mobilizer, and past events not yet recorded. */
 export function workspaceAlerts(data, role) {
   const pages = new Set(pagesOf(role).map(([key]) => key));
-  const out = [];
+  const out = (data.notices || []).map((n) => ({ key: `notice-${n.id}`, text: n.text, to: n.url }));
   const s = data.strategy;
   const empty = s ? s.unit_count - s.staffed_count : 0;
   if (empty && pages.has("mobilizers")) {
@@ -71,3 +72,12 @@ export function workspaceAlerts(data, role) {
   return out;
 }
 
+/** Opening the page a notice points to marks it read. */
+export function useReadNoticesOn(path, notices) {
+  const read = useReadNotice();
+  const due = notices.filter((n) => n.url === path).map((n) => n.id).join(",");
+  useEffect(() => {
+    if (due) due.split(",").forEach((id) => read.mutate(id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [due]);
+}

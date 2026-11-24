@@ -112,7 +112,9 @@ Everything is under `/api`, with a trailing slash, and needs
 | `GET POST /api/campaigns/{id}/signups/` | The campaign-wide sign-up link: its code, and opening or closing it; manager only. |
 | `GET POST /api/join/{code}/` | No token. The public sign-up page behind an event's QR code or a campaign's link. |
 | `POST /api/join/withdraw/{code}/` | No token. A supporter takes their details off the register; the same answer for any code. |
-| `GET POST /api/targets/`, `PATCH DELETE …/{id}/` | The win number per unit. |
+| `GET POST /api/targets/`, `PATCH DELETE …/{id}/` | Each unit's target; only votes committed are written. |
+| `GET /api/campaigns/{id}/targets/preview/`, `POST …/targets/scenario/` | Try a turnout scenario (saves nothing); set one for the team (candidate or manager, audited, notifies). |
+| `GET /api/notices/`, `POST …/{id}/read/` | The signed-in login's unread notices. |
 | `GET POST /api/mobilizers/`, `DELETE …/{id}/` | Who works which ward. |
 | `GET POST /api/events/`, `DELETE …/{id}/`, `POST …/{id}/record/`, `…/{id}/invite/` | Events, attendance, SMS invitations. |
 | `GET POST /api/supporters/`, `PATCH …/{id}/` | The supporter register, and placing someone at a centre. Nobody on the team deletes a supporter; they withdraw themselves. |
@@ -449,12 +451,12 @@ uv run campaign-crm import-register docs/handover/samples/register.csv
 - Every row is checked first; one bad row and nothing is written. `--dry-run` (or "Check file")
   reports every change and writes nothing. A real run is audited (`import.boundaries`,
   `import.register`) and keeps one `import_changes` row per change under its `import_runs` row.
-- Each target stores the registered voters its win number was worked out on, so an import
-  changes no figure on the Targets, Strategy or Overview pages. A candidate or manager presses
-  **Refresh targets** (`POST /api/targets/refresh/`) to take the current register: every win
-  number is recomputed, new units get targets, and each target keeps its turnout and committed
-  votes. Turnouts are the campaign's own estimates; an imported county turnout is the starting
-  turnout for targets created after it.
+- Each target stores the registered voters it was worked out on, so an import changes no
+  figure on the Targets, Strategy or Overview pages. A candidate or manager presses
+  **Refresh targets** (`POST /api/targets/refresh/`) to take the current register: every
+  target is worked out again, new units get targets, and each target keeps its committed
+  votes. Turnout comes from the seat's 2022 race and the scenario the team works to; an
+  imported county turnout is used only where the seat has no 2022 result.
 
 ### Known gaps
 
@@ -655,7 +657,8 @@ User (candidate | campaign manager | mobilizer)
 
 `office_level` picks which of `county`, `constituency` or `ward` a campaign
 contests, and whether it organizes by ward or by registration centre. `Target`
-holds the win number: half the projected votes cast, plus one, in `Decimal`.
+holds the unit's share of the seat target: the 2022 winner's share applied to the votes
+expected, split by 2022 valid votes in exact fractions (`services/win_model.py`).
 
 UUID primary keys are set in Python. Enums are text with a CHECK constraint.
 Deletes cascade in the database. An unloaded relationship raises an error naming

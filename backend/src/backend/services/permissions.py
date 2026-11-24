@@ -24,7 +24,17 @@ ALL, AREA, OWN = Reach.ALL, Reach.AREA, Reach.OWN
 
 MAP: dict[str, dict[UserRole, Reach]] = {
     "strategy.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA},
-    "targets.read": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COORDINATOR: AREA, R.MOBILIZER: OWN},
+    "targets.read": {
+        R.CANDIDATE: ALL,
+        R.MANAGER: ALL,
+        R.COMMS: ALL,
+        R.COORDINATOR: AREA,
+        R.MOBILIZER: OWN,
+    },
+    # Trying a turnout scenario on screen; nothing is saved.
+    "targets.preview": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COMMS: ALL},
+    # Setting the scenario the whole team works to.
+    "targets.set_scenario": {R.CANDIDATE: ALL, R.MANAGER: ALL},
     "targets.write": {R.CANDIDATE: ALL, R.MANAGER: ALL},
     "team.manager": {R.CANDIDATE: ALL},
     "team.write": {R.CANDIDATE: ALL, R.MANAGER: ALL},
@@ -95,6 +105,8 @@ REFUSALS = {
     "data.manage": "Only the candidate or the campaign manager handles personal data requests.",
     "campaign.close": "Only the candidate closes the campaign.",
     "contributions.read": "Only the candidate or the campaign manager sees contributions.",
+    "targets.preview": "Only the candidate, the manager or comms tries turnout scenarios.",
+    "targets.set_scenario": "Only the candidate or the manager sets the team's turnout scenario.",
     "meetings.start": "Only the candidate, the manager, comms or a coordinator starts a call.",
     "meetings.join": "Only the campaign's own logins join its calls.",
 }

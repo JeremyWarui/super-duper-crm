@@ -64,7 +64,8 @@
       "ward",
       "ward_name",
       "registration_centre",
-      "phone"
+      "phone",
+      "user"
     ],
     "GET /api/events/": [
       "id",
@@ -901,6 +902,34 @@
       "seat_target",
       "units",
       "note"
+    ],
+    "GET /api/campaigns/{campaign_id}/targets/preview/": [
+      "scenario",
+      "set_scenario",
+      "winner_votes",
+      "valid_votes",
+      "share_pct",
+      "typical_pct",
+      "reliability",
+      "two_candidate",
+      "uses_2017",
+      "scenarios",
+      "seat_target",
+      "set_seat_target",
+      "majority",
+      "supporters",
+      "units",
+      "units_changed"
+    ],
+    "POST /api/campaigns/{campaign_id}/targets/scenario/": [
+      "scenario",
+      "units_changed",
+      "notified"
+    ],
+    "GET /api/notices/": [
+      "id",
+      "text",
+      "url"
     ]
   },
   "nested_reads": {
@@ -1529,7 +1558,11 @@
       "county",
       "constituency",
       "ward"
-    ]
+    ],
+    "POST /api/campaigns/{campaign_id}/targets/scenario/": [
+      "scenario"
+    ],
+    "POST /api/notices/{notice_id}/read/": []
   },
   "enums": {
     "user.role": [

@@ -25,7 +25,9 @@ C, M, CO, CM, MO, AG = (
 # Section 0.2 for every action a route serves today; the Mobilizer reads targets in their ward.
 TABLE = {
     "strategy.read": {C, M, CO},
-    "targets.read": {C, M, CO, MO},
+    "targets.read": {C, M, CM, CO, MO},
+    "targets.preview": {C, M, CM},
+    "targets.set_scenario": {C, M},
     "targets.write": {C, M},
     "team.manager": {C},
     "team.write": {C, M},
@@ -92,6 +94,8 @@ def _route(action: str, campaign: uuid.UUID, event: uuid.UUID) -> tuple[str, str
         "campaign.close": ("PUT", f"/api/campaigns/{campaign}/data/retention/", {}),
         "contributions.read": ("GET", f"/api/campaigns/{campaign}/payments-in/", None),
         "meetings.start": ("GET", f"/api/campaigns/{campaign}/meetings/", None),
+        "targets.preview": ("GET", f"/api/campaigns/{campaign}/targets/preview/", None),
+        "targets.set_scenario": ("POST", f"/api/campaigns/{campaign}/targets/scenario/", {}),
         "meetings.join": ("GET", f"/api/meetings/{NOBODY}/token/", None),
     }[action]
 

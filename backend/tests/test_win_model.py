@@ -14,10 +14,11 @@ from backend.models import (
     Target,
     TargetReliability,
     TurnoutScenario,
+    Ward,
 )
 from backend.models.campaign import Campaign
 from backend.seed.history import RESULTS_CSV, import_results
-from backend.seed.reference import import_geography
+from backend.seed.reference import import_centres, import_geography
 from backend.services.targets import generate_targets, recalculate_all, wards_in_area
 from backend.services.win_model import as_decimal, load_history, seat_model
 
@@ -139,3 +140,23 @@ async def test_ward_targets_reproduce_the_laikipia_table_and_add_up_to_the_seat_
         select(Target.votes_needed).where(Target.campaign_id == campaign.id)
     )
     assert summary.win_number == sum(needed) == 128_640
+
+
+async def test_an_mca_seat_s_centre_targets_add_up_to_its_seat_target(
+    session: AsyncSession,
+) -> None:
+    await import_geography(session)
+    await import_centres(session)
+    await import_results(session)
+    ward = await session.scalar(select(Ward).where(Ward.name == "Ol-Moran"))
+    campaign = Campaign(title="MCA", office_level=OfficeLevel.WARD, seat=Seat.MCA, ward_id=ward.id)
+    session.add(campaign)
+    await session.flush()
+
+    summary = await generate_targets(session, campaign)
+    centres = (
+        await session.scalars(select(Target.votes_needed).where(Target.campaign_id == campaign.id))
+    ).all()
+
+    assert summary.units == len(centres) > 1
+    assert sum(centres) == summary.win_number > 0

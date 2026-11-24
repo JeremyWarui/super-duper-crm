@@ -60,6 +60,7 @@ from backend.models.login import EmailLog, LoginInvite
 from backend.models.meeting import Meeting, MeetingAttendance
 from backend.models.membership import CampaignMember, CampaignMemberArea
 from backend.models.mobilizer import Mobilizer
+from backend.models.notice import Notice
 from backend.models.payin import PaymentIn
 from backend.models.payment import Payment, ReconcileDifference, ReconcileRun
 from backend.models.privacy import DataRequest
@@ -81,6 +82,7 @@ __all__ = [
     "SmsInbound",
     "SmsLog",
     "Meeting",
+    "Notice",
     "PushSubscription",
     "MeetingAttendance",
     "SmsOutbox",

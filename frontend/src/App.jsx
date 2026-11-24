@@ -15,7 +15,8 @@ import { ROLE_LABEL } from "@/lib/labels";
 import {
   AccessFooter, AreaPicker, SeatCard, WorkspaceAlerts, WorkspaceBrand, WorkspaceHelp, WorkspaceSearch,
 } from "./pages/campaign/WorkspaceShell";
-import { AreaContext, ICONS, useShellData } from "./pages/campaign/shell";
+import { AreaContext, ICONS, useReadNoticesOn, useShellData } from "./pages/campaign/shell";
+import YourWard from "./pages/campaign/YourWard";
 import CampaignModal from "./pages/campaign/CampaignModal";
 import Overview from "./pages/campaign/Overview";
 import Calls from "./pages/campaign/Calls";
@@ -86,6 +87,7 @@ function Shell({ campaign, role, where }) {
   const [area, setArea] = useState(null);
   const { page } = useParams();
   const data = useShellData(campaign, role);
+  useReadNoticesOn(`/campaign/${page}`, data.notices);
   const phone = useMedia("(max-width: 767px)");
   const areaValue = useMemo(() => ({ area, setArea, wards: data.wards }), [area, data.wards]);
   const pages = pagesOf(role, where);
@@ -121,6 +123,7 @@ function Shell({ campaign, role, where }) {
         <AppPage crumb={current[1]}>
           {campaign.closed_at && <ClosedNote />}
           <CallAlerts />
+          {(role === "mobilizer" || (role === "coordinator" && page === "overview")) && <YourWard campaign={campaign} role={role} />}
           <Page campaign={campaign} role={role} onModal={setModal} />
           {modal && <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />}
         </AppPage>

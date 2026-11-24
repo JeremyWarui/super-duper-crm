@@ -902,6 +902,28 @@ export function useRunImport() {
   });
 }
 
+// A turnout scenario tried on the server; nothing is saved. Without a scenario, the set one.
+export const useTargetsPreview = (campaignId, scenario, county) =>
+  useQuery({
+    queryKey: ["targets-preview", campaignId, scenario || "set", county || ""],
+    queryFn: () => api(`/campaigns/${campaignId}/targets/preview/?${queryOf({ scenario, county })}`),
+    enabled: !!campaignId,
+    placeholderData: (previous) => previous,
+  });
+
+export const useSetScenario = (campaignId) =>
+  useWrite(
+    (scenario) => api(`/campaigns/${campaignId}/targets/scenario/`, { method: "POST", body: { scenario } }),
+    "targets-preview", "targets", "strategy",
+  );
+
+// Notes to the signed-in login, such as a target that changed.
+export const useNotices = (enabled = true) =>
+  useQuery({ queryKey: ["notices"], queryFn: () => api("/notices/"), enabled, refetchInterval: 60_000 });
+
+export const useReadNotice = () =>
+  useWrite((id) => api(`/notices/${id}/read/`, { method: "POST" }), "notices");
+
 export const useRefreshTargets = () =>
   useWrite(
     (campaignId) => api("/targets/refresh/", { method: "POST", body: { campaign: campaignId } }),

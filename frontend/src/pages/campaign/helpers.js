@@ -49,7 +49,7 @@ export const NAV = {
     { label: "People", items: [["signups", "Sign-ups"]] },
     { label: "Money", items: [["payments", "Payments"]] },
   ],
-  comms: [{ label: "Field", items: [["events", "Events"]] }, REACH_OUT],
+  comms: [{ label: "Plan", items: [["targets", "Targets"]] }, { label: "Field", items: [["events", "Events"]] }, REACH_OUT],
   mobilizer: OWN_WORK([["myevents", "My events"], ["register", "Add contact"], ["mysupporters", "My contacts"], ["mypayments", "My payments"]]),
   agent: OWN_WORK([["mycentre", "My centre"], ["myevents", "My events"], ["mypayments", "My payments"]]),
 };
