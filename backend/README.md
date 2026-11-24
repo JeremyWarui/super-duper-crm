@@ -563,24 +563,6 @@ PUBLIC_URL=https://your-app.example.com
 `campaign-crm reset-password` still sets a password directly, for the operator
 locked out of the superuser login.
 
-## Google sign-in
-
-Sign-in is email and password. Google sign-in (`services/oidc.py`, OpenID Connect
-with PKCE) is off, and its button hidden, until both keys are set:
-
-```bash
-GOOGLE_CLIENT_ID=<id>.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=<secret>
-PUBLIC_URL=https://your-app.example.com
-```
-
-In Google Cloud, make a "Web application" OAuth client whose authorised redirect
-URI is exactly `PUBLIC_URL` + `/api/auth/google/callback/`, trailing slash
-included. It signs in only an existing login whose email matches a Google email
-Google has verified, and never creates one. Every sign-in and every refusal is
-in the audit trail (`login.google`, `login.google_refused`).
-The console's Check Google sign-in button confirms Google answers.
-
 ## Team sign-up and agents
 
 Each workspace has a team link, `/team/<code>` (`campaigns.team_code`), with a
@@ -686,10 +668,6 @@ required and at least 32 characters.
 
 ## Known gaps
 
-- Google sign-in matches a login by its verified email, as the design asks;
-  Google advises keying on the account's `sub`. Someone who takes over an
-  email address and gets Google to verify it for a new account signs in as
-  that login. Storing `sub` at the first Google sign-in would close it.
 - Coordinator, Comms and Agent have permissions but no screens yet (PD-10);
   `createuser` offers only candidate, manager and mobilizer. An agent's "own"
   rows (events, payments) are empty until assignments exist (PD-37). The

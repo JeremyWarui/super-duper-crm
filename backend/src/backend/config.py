@@ -145,11 +145,6 @@ class Settings(BaseSettings):
     # prompt to the payer's phone. Paying by Paybill or Till code works in both.
     payin_provider: Literal["practice", "paystack"] = "practice"
 
-    # Google sign-in; blank hides the button. The OAuth client's redirect URI is
-    # PUBLIC_URL followed by /api/auth/google/callback/.
-    google_client_id: str = ""
-    google_client_secret: str = ""
-
     @field_validator("payout_provider", "payin_provider", mode="after")
     @classmethod
     def _paystack_needs_a_key(cls, value: str, info: ValidationInfo) -> str:

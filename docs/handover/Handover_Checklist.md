@@ -88,7 +88,6 @@ on the console's Health tab.
 | LiveKit (optional) | Team audio and video calls | A LiveKit Cloud project | `LIVEKIT_URL`, `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` |
 | Call alerts (optional) | Phone alerts when a call starts | None: a key pair made on the server with `campaign-crm make-vapid-keys` | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` |
 | Paystack (Kenya) | M-Pesa payouts to mobilizers and agents for done assignments | A Paystack Kenya account with transfers enabled, and money added to its balance | `PAYOUT_PROVIDER=paystack`, `PAYSTACK_SECRET_KEY` and `PAYSTACK_WEBHOOK_SECRET`; the webhook pointed at `/api/payments/paystack/webhook/` |
-| Google Cloud (optional) | "Sign in with Google" for existing logins | A Google Cloud project with an OAuth "Web application" client; redirect URI exactly `PUBLIC_URL` + `/api/auth/google/callback/` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 
 - [ ] Email account opened, keys added, test email received.
 - [ ] SMS account opened, keys added, callbacks set, test text received.
@@ -97,7 +96,6 @@ on the console's Health tab.
 - [ ] Paystack account opened, keys added, webhook set, balance funded. (The KES 1 practice
       payout on the Health tab runs only in practice mode; the first real payment is the
       live test.)
-- [ ] Google sign-in set up, or left off on purpose: ____________________
 
 Until a service is set up, the copy works without it: email links are written to the app's
 log, texts are recorded but not sent, and payments are marked paid under a `PRACTICE-`

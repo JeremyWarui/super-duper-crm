@@ -143,7 +143,7 @@ printf '%s' "<value>" | npx vercel@latest env add <NAME> production --force
 npx vercel@latest deploy --prod --yes
 ```
 
-Every other setting (email, payments, Google sign-in, texts, calls) is listed with its meaning in
+Every other setting (email, payments, texts, calls) is listed with its meaning in
 `backend/.env.example`.
 
 ## 5. Check it

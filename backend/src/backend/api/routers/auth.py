@@ -1,32 +1,26 @@
-"""Signing in and out, Google sign-in, and the one-time links that set a password."""
+"""Signing in and out, and the one-time links that set a password."""
 
-import secrets
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Annotated
-from urllib.parse import urlencode
 
 from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
     HTTPException,
-    Query,
     Request,
     status,
 )
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import SessionDep, SignedInUser
 from backend.api.limits import TOO_MANY, check, client_key
-from backend.config import get_settings
 from backend.db.session import get_session_factory
 from backend.models import AuthToken, User
 from backend.schemas.auth import (
-    AuthOptions,
-    GoogleFinish,
     LinkClaim,
     LinkRead,
     LoginRequest,
@@ -39,13 +33,10 @@ from backend.security import (
     hash_password,
     needs_rehash,
     new_token_key,
-    sha256_hex,
     verify_password,
 )
-from backend.services import login_links, oidc, tokens
+from backend.services import login_links
 from backend.services.accounts import clean_email, sign_out, user_named, user_with_email
-from backend.services.audit import record
-from backend.services.errors import NotFound, Refused
 from backend.services.ratelimit import RateLimit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -56,22 +47,14 @@ RESETS_PER_CLIENT = RateLimit(limit=5, window=3600)
 RESETS_PER_ADDRESS = RateLimit(limit=3, window=3600)
 CLAIMS = RateLimit(limit=20, window=3600)
 RESET_SENT = "If that email has a login, a link to choose a new password is on its way."
-GOOGLE_COOKIE = "google_sign_in"
-GOOGLE_PATH = "/api/auth/google/"
-HANDOFF_LIFE = timedelta(minutes=2)
-HANDOFF_SPENT = "That Google sign-in has expired. Sign in again."
 
 
-async def _signed_in(session: AsyncSession, user: User, *, handoff: str | None = None) -> dict:
-    """The login's token, created if it has none, and the login itself. A `handoff` lets the
-    browser fetch the token once."""
+async def _signed_in(session: AsyncSession, user: User) -> dict:
+    """The login's token, created if it has none, and the login itself."""
     token = await session.scalar(select(AuthToken).where(AuthToken.user_id == user.id))
     if token is None:
         token = AuthToken(user_id=user.id, key=new_token_key())
         session.add(token)
-    if handoff is not None:
-        token.handoff_hash = sha256_hex(handoff)
-        token.handoff_expires_at = datetime.now(UTC) + HANDOFF_LIFE
     user.last_login_at = datetime.now(UTC)
     await session.commit()
     return {"token": token.key, "user": user}
@@ -159,123 +142,3 @@ async def claim_link(
     user = await login_links.claim(session, token, payload.password)
     signed = await user_named(session, user.username)
     return await _signed_in(session, signed)
-
-
-@router.get("/options/", response_model=AuthOptions)
-async def options() -> AuthOptions:
-    return AuthOptions(google=oidc.configured())
-
-
-# Google sign-in: start sends the browser to Google, Google sends it back to the callback, and
-# the callback sends it to /signin with a one-time handoff the page trades for the token.
-
-
-def _to_signin(**query: str) -> RedirectResponse:
-    target = get_settings().url(f"/signin?{urlencode(query)}")
-    response = RedirectResponse(target, status_code=status.HTTP_302_FOUND)
-    response.delete_cookie(GOOGLE_COOKIE, path=GOOGLE_PATH)
-    return response
-
-
-def _need_google() -> None:
-    if not oidc.configured():
-        raise NotFound("Google sign-in is not set up here.")
-
-
-@router.get("/google/start/", status_code=status.HTTP_302_FOUND)
-async def google_start(
-    bind: Annotated[str, Query(min_length=16, max_length=100, pattern=r"^[\w-]+$")],
-) -> RedirectResponse:
-    """Send the browser to Google, with the state, nonce and PKCE verifier kept in a 10-minute
-    cookie. `bind` is a random value the page keeps; only it can finish this sign-in."""
-    _need_google()
-    state, nonce, verifier = (secrets.token_urlsafe(32) for _ in range(3))
-    try:
-        url = await oidc.authorize_url(state, nonce, verifier)
-    except (oidc.OidcError, OSError):
-        return _to_signin(google_error="failed")
-    response = RedirectResponse(url, status_code=status.HTTP_302_FOUND)
-    response.set_cookie(
-        GOOGLE_COOKIE,
-        f"{state}.{nonce}.{verifier}.{bind}",
-        max_age=600,
-        path=GOOGLE_PATH,
-        httponly=True,
-        samesite="lax",
-        secure=get_settings().public_url.startswith("https://"),
-    )
-    return response
-
-
-async def _google_refused(session: AsyncSession, reason: str, email: str = "") -> RedirectResponse:
-    record(
-        session,
-        actor=None,
-        actor_name="google",
-        action="login.google_refused",
-        subject_type="user",
-        detail={"reason": reason, "email": email},
-    )
-    await session.commit()
-    return _to_signin(google_error=reason)
-
-
-@router.get("/google/callback/", status_code=status.HTTP_302_FOUND)
-async def google_callback(
-    request: Request, session: SessionDep, code: str = "", state: str = "", error: str = ""
-) -> RedirectResponse:
-    """Check Google's answer and sign in the existing login with that verified email.
-
-    Never creates a login. Every outcome is audited; a refusal names its reason in
-    `google_error`: cancelled, expired, failed, unverified or unknown.
-    """
-    _need_google()
-    if not CLAIMS.allow(client_key(request)):
-        return await _google_refused(session, "busy")
-    saved = request.cookies.get(GOOGLE_COOKIE, "").split(".")
-    expected, nonce, verifier, bind = saved if len(saved) == 4 and all(saved) else ("",) * 4
-    if error:
-        return await _google_refused(session, "cancelled")
-    if not (expected and code and secrets.compare_digest(state.encode(), expected.encode())):
-        return await _google_refused(session, "expired")
-    try:
-        found = await oidc.identity(code, nonce, verifier)
-    except (oidc.OidcError, OSError):
-        return await _google_refused(session, "failed")
-    email = clean_email(found.email)
-    if not email or not found.email_verified:
-        return await _google_refused(session, "unverified", email)
-    user = await user_with_email(session, email)
-    if user is None or not login_links.may_sign_in(user):
-        return await _google_refused(session, "unknown", email)
-    handoff = secrets.token_urlsafe(32)
-    record(session, actor=user, action="login.google", subject_type="user", subject_id=user.id)
-    await _signed_in(session, user, handoff=f"{handoff}:{bind}")
-    return _to_signin(google=handoff)
-
-
-@router.post(
-    "/google/finish/",
-    response_model=LoginResponse,
-    responses={400: {"description": "Spent"}, 429: {"description": "Too many tries"}},
-)
-async def google_finish(payload: GoogleFinish, request: Request, session: SessionDep) -> object:
-    """Trade the callback's handoff for the session, once, within two minutes, from the page
-    holding the `bind` value the sign-in started with."""
-    check(CLAIMS, request)
-    hashed = sha256_hex(f"{payload.handoff}:{payload.bind}")
-    token = await session.scalar(select(AuthToken).where(AuthToken.handoff_hash == hashed))
-    if token is None or not tokens.is_live(token.handoff_expires_at):
-        raise Refused(HANDOFF_SPENT)
-    if not await tokens.spend(
-        session,
-        AuthToken,
-        AuthToken.id == token.id,
-        AuthToken.handoff_hash == hashed,
-        handoff_hash=None,
-        handoff_expires_at=None,
-    ):
-        raise Refused(HANDOFF_SPENT)
-    user = await session.scalar(select(User).where(User.id == token.user_id))
-    await session.commit()
-    return {"token": token.key, "user": user}

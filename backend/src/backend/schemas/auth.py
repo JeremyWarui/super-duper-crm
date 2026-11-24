@@ -46,14 +46,3 @@ class LinkRead(ORMModel):
 
 class LinkClaim(WriteModel):
     password: Password
-
-
-class AuthOptions(ORMModel):
-    """Which ways of signing in this installation offers besides email and password."""
-
-    google: bool
-
-
-class GoogleFinish(WriteModel):
-    handoff: str = Field(min_length=1, max_length=100)
-    bind: str = Field(min_length=16, max_length=100)

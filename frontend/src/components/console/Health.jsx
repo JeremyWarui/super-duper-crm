@@ -57,24 +57,6 @@ function TestEmail() {
   );
 }
 
-/** A check that Google answers, once its keys are set. */
-function SignIn({ google }) {
-  const check = useTestService();
-  return (
-    <Card variant="outline" className="gap-3" role="region" aria-label="Sign-in">
-      <CardTitle>Sign-in</CardTitle>
-      <p className="text-ui text-muted-foreground">Everyone signs in with email and password; Google sign-in shows beside it once its keys are set.</p>
-      <div className="flex flex-col gap-2">
-        <Button loading={check.isPending} type="button" variant="quiet" className="self-start" disabled={!google || check.isPending} onClick={() => check.mutate("google")}>
-          {check.isPending ? "Checking…" : "Check Google sign-in"}
-        </Button>
-        {!google && <p className="text-small text-muted-foreground">Google sign-in is off. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to <code>.env</code> and restart.</p>}
-        <Outcome of={check} />
-      </div>
-    </Card>
-  );
-}
-
 export default function Health() {
   const { data: h, isLoading, error } = useHealth();
   const backups = useBackups().data || [];
@@ -107,7 +89,6 @@ export default function Health() {
           <TestSend kind="payout" label="Make a practice payout" note="KES 1 in practice mode; refused where payouts are live." />
         </div>
       </Card>
-      <SignIn google={h.services.some((s) => s.key === "google" && s.configured)} />
       <Card variant="outline" className="min-w-0 gap-3" role="region" aria-label="Backups">
         <CardTitle>Backups</CardTitle>
         <p className="text-ui">

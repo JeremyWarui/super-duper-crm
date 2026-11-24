@@ -19,8 +19,7 @@ and lands in the campaign workspace.
 
 ## Things every guide assumes
 
-- Everyone signs in with **email and password**. **Sign in with Google** shows on the sign-in
-  page only when the installation has set it up.
+- Everyone signs in with **email and password**.
 - **Forgot your password?** on the sign-in page emails you a link. The link works for an
   hour. A new login's first link (an invite) works for 72 hours.
 - Only the superuser (whoever runs the installation) can send a reset link to someone else.

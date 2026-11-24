@@ -38,7 +38,7 @@ ease off a unit that has met its target after 4 or more events.
 
 ## 2. Who uses it
 
-Every login signs in with email and password, or with Google when it is configured. A campaign
+Every login signs in with email and password. A campaign
 login holds one role (`models/enums.py` `UserRole`). What each role may do, and how far it
 reaches, is one table: `services/permissions.py` `MAP`. Reach is `all` (the whole campaign),
 `area` (a coordinator's assigned wards and centres) or `own` (a mobilizer's ward, an agent's
@@ -83,8 +83,8 @@ saved targets equal the preview at the Expected scenario.
 Finish (`POST /api/setup/`) spends the token and, in one transaction, writes the site settings,
 the superuser, the campaign with its targets, the candidate's login (sent an invite link by email)
 and an empty candidate page. Any failure leaves nothing behind. The finish screen lists the
-outside services in their current mode and, once the superuser signs in, tests email, SMS and
-Google sign-in from there.
+outside services in their current mode and, once the superuser signs in, tests email and SMS
+from there.
 
 The manager, comms, coordinators and mobilizers are added afterwards, from the console or the
 Team page.
@@ -532,7 +532,7 @@ side fails both until the other follows.
 
 **Outside services** each sit behind a small interface with a safe default, so an installation
 runs in full with no keys: email (`practice` logs each email), SMS (`console`), payouts and
-contributions (`practice`), calls (off), call alerts (off) and Google sign-in (off). The services
+contributions (`practice`), calls (off) and call alerts (off). The services
 panel in setup and the console's Health section show each one's mode.
 
 **Checks.** `cd backend && uv run pytest` runs the tests and evals with no database server

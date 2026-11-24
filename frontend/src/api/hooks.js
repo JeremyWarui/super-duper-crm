@@ -529,13 +529,6 @@ export const useClaimLink = (token) =>
     mutationFn: (password) => api(`/auth/links/${token}/`, { method: "POST", body: { password }, anonymous: true }),
   });
 
-// ---- sign-in options -------------------------------------------------------
-export const useSignInOptions = () =>
-  useQuery({ queryKey: ["sign-in-options"], queryFn: () => api("/auth/options/", { anonymous: true }), staleTime: Infinity });
-
-export const finishGoogle = (handoff, bind) =>
-  api("/auth/google/finish/", { method: "POST", body: { handoff, bind }, anonymous: true });
-
 // ---- admin console --------------------------------------------------------
 // Only a superuser may call these; every route checks the flag again itself.
 export const useAdminOverview = () =>

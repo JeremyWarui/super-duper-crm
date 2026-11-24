@@ -265,7 +265,6 @@ is in and offers a test.
 | `services/push.py` | the three `VAPID_` settings | off: no alert is sent and the app offers none | web push call alerts; `campaign-crm make-vapid-keys` prints a pair |
 | `services/payments_in.py` | `PAYIN_PROVIDER` | `practice`: marks a phone prompt paid at once and takes no money | `paystack`, M-Pesa prompts; Paybill and Till codes work either way |
 | `services/payouts.py` | `PAYOUT_PROVIDER` | `practice`: moves no money, marks each release paid under a `PRACTICE-` reference | `paystack`, M-Pesa transfers (`PAYSTACK_SECRET_KEY` and `PAYSTACK_WEBHOOK_SECRET`) |
-| `services/oidc.py` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | off: the Google button is hidden and its routes answer 404 | Google sign-in (OpenID Connect with PKCE) |
 
 `tests/fixtures/` holds the recorded provider replies the adapters are tested against.
 

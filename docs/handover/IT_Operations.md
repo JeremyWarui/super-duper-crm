@@ -182,10 +182,9 @@ A new installation sends every page to `/setup` until the setup is done.
    6. **Check and finish.** Read the summary and press **Finish setup**.
 
 5. The page shows **Set up.** Press **Sign in and test** to sign in as the superuser. The
-   **Outside services** list shows Email, SMS, Meetings (LiveKit), Payouts (M-Pesa), Payments
-   in (M-Pesa) and Google sign-in; each one
-   says **Practice** until you switch it on (section 9). Press **Open the site** to see the
-   public site.
+   **Outside services** list shows Email, SMS, Meetings (LiveKit), Payouts (M-Pesa) and
+   Payments in (M-Pesa); each one says **Practice** until you switch it on (section 9). Press
+   **Open the site** to see the public site.
 
 6. The candidate gets a sign-in link by email. While email is still in
    practice mode nothing is sent: the whole email, link included, goes to the app's log, so pass them the link.
@@ -198,8 +197,7 @@ A new installation sends every page to `/setup` until the setup is done.
 
 From now on:
 
-- Everyone signs in at `https://<your domain>/signin` with their **email and password**, or
-  with **Sign in with Google** once Google sign-in is switched on (section 9).
+- Everyone signs in at `https://<your domain>/signin` with their **email and password**.
 - The superuser's console is at `https://<your domain>/console`. Its tabs are **Campaigns**,
   **Logins**, **Site settings**, **Areas and register**, **Health**, **Audit** and **Export**. This
   guide uses **Health** and **Areas and register**.
@@ -410,8 +408,8 @@ Restore a backup taken with the same version of the platform, not a newer one.
 7. Stop the old server (`docker compose down` in its `deploy` folder, which keeps its data)
    only after the new one is working. Keep it for a week before deleting it.
 
-If the domain changes as well, set the new `DOMAIN` in `.env`. Google sign-in, Africa's Talking
-callbacks and the Paystack webhook all contain the address and must then be changed on the
+If the domain changes as well, set the new `DOMAIN` in `.env`. Africa's Talking callbacks and the
+Paystack webhook both contain the address and must then be changed on the
 provider's side (section 9).
 
 ## 7. Updates
@@ -579,7 +577,7 @@ the lines. One bad row and nothing at all is written. Every real import is recor
 ## 9. Switching on outside services
 
 The platform talks to these outside services: email, SMS, calls (LiveKit), call alerts (web
-push), M-Pesa payments in and payouts, and Google sign-in.
+push), and M-Pesa payments in and payouts.
 Each one runs in **practice mode** until its keys are in `.env`. In practice mode the platform
 works fully but nothing leaves it: emails go to the app's log (`docker compose logs app`), texts are recorded in the SMS
 log without being sent, payouts are marked
@@ -607,7 +605,7 @@ If a required line is missing (for example `SMS_PROVIDER=africastalking` with no
 setting. Fix `.env` and run `docker compose up -d` again.
 
 To go back to practice mode, set the provider line back (`EMAIL_PROVIDER=practice`,
-`SMS_PROVIDER=console`, `PAYOUT_PROVIDER=practice`, or blank the two Google lines) and run
+`SMS_PROVIDER=console` or `PAYOUT_PROVIDER=practice`) and run
 `docker compose up -d`.
 
 ### Email (SMTP, any provider)
@@ -873,43 +871,6 @@ Checked against Paystack's documentation:
 
 Paystack sends webhooks only from fixed addresses listed on its webhooks page. If your server
 has a firewall that filters incoming traffic by address, allow them.
-
-### Google sign-in
-
-Lets people with a login sign in with their Google account. It never creates a login: the
-Google account's email must match an existing login's email, and Google must have verified it.
-
-Checked against Google's documentation:
-<https://support.google.com/cloud/answer/15549257> and
-<https://developers.google.com/identity/protocols/oauth2/openid-connect>.
-
-1. In Google Cloud, create a project (or pick one). Open the **Branding** page of the Google
-   Auth Platform (<https://console.developers.google.com/auth/branding>) and fill in the app
-   name and support email that people see when they sign in.
-2. Open the **Clients** page (<https://console.developers.google.com/auth/clients>), press
-   **Create client**, and choose **Web application**.
-3. Under **Authorized redirect URIs**, add exactly:
-
-   ```
-   https://<your domain>/api/auth/google/callback/
-   ```
-
-   That is your `PUBLIC_URL` followed by `/api/auth/google/callback/`, **with the trailing
-   slash**. Google compares it character for character; any difference gives a
-   `redirect_uri_mismatch` error.
-4. Press **Create**. Copy the **client ID** and the **client secret** straight away: Google
-   shows the full secret only once.
-5. In `.env`:
-
-   ```
-   GOOGLE_CLIENT_ID=<id>.apps.googleusercontent.com
-   GOOGLE_CLIENT_SECRET=<secret>
-   ```
-
-6. `docker compose up -d`. **Sign in with Google** now shows on the sign-in page.
-7. In **Health**, under **Sign-in**, press **Check Google sign-in**. It answers `Google
-   answered. Its OAuth client must allow the redirect URI ...` with the exact address; compare
-   it with the one in step 3. Then sign in with Google once yourself.
 
 ## 10. Locked out
 

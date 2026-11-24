@@ -8,7 +8,6 @@ the contact register.
 
 1. Open the sign-in page (`/signin`).
 2. Type your **Email** and **Password**, then press **Sign in**.
-3. If the installation has Google set up, you can press **Sign in with Google** instead.
 
 Your first sign-in comes from an email link. Fill **New password** and **The same password
 again** (at least 8 characters) and press **Save and sign in**. That link works for 72 hours.

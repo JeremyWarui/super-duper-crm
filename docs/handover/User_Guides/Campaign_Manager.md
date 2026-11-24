@@ -8,8 +8,6 @@ schedule. The candidate adds you; only the candidate can replace you.
 
 1. Open the sign-in page (`/signin`).
 2. Type your **Email** and **Password**, then press **Sign in**.
-3. If the installation has Google set up, you can press **Sign in with Google** instead. It
-   works only when your Google account uses the same email as your login.
 
 Your first sign-in comes from an email link. Open it, fill **New password** and **The same
 password again** (at least 8 characters), then press **Save and sign in**. That link works for

@@ -59,10 +59,6 @@ The eye button beside the password shows or hides what you typed.
 A wrong email, a wrong password and an account that is not allowed in all get the same
 answer, on purpose. One device gets 10 tries an hour.
 
-**Sign in with Google** appears under the form only when the IT person has set Google
-sign-in up. It works only for a Google account whose email already belongs to a login
-here. It does not create a login.
-
 ### Forgotten password (anyone)
 
 1. On the sign-in page, press **Forgot your password?**
@@ -176,7 +172,6 @@ past imports.
   Anything not configured runs in practice mode and sends nothing.
 - **Send a test email** (to your own login's email), **Send a test SMS** and **Make a
   practice payout** (KES 1, practice mode only).
-- **Sign-in**: whether Google sign-in is on, and **Check Google sign-in**.
 - **Backups**: the last backup and a list of recent ones.
 
 If **Migration** or **Backups** shows a warning, tell the IT person.
@@ -644,12 +639,11 @@ whole system without sending anything real:
 | Email (invites, reset links) | Nothing is sent. The email, link included, is written to the server's log. The IT person can read the link from there during a demonstration. |
 | SMS | Texts are logged, not sent. The **Messages** page header says "practice mode: texts are logged, not sent", and the log shows **Practice**. |
 | Payouts | No money moves. Released payments are marked paid under a PRACTICE reference. |
-| Google sign-in | The button is hidden. |
 | Calls and call alerts | Off until the IT person sets the call service and the alert keys. |
 
 The console **Health** tab, **Outside services**, shows which services are live
 (**Configured**) and which are not (**Not configured**).
 
-Switching a service on (email server, SMS gateway, calls, payout account, Google
-sign-in) is the IT person's job. It needs keys in the server's settings file and a
+Switching a service on (email server, SMS gateway, calls, payout account) is the IT person's
+job. It needs keys in the server's settings file and a
 restart. See `docs/handover/IT_Operations.md`.

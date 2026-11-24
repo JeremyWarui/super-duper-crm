@@ -798,13 +798,6 @@
       "supporters",
       "erased"
     ],
-    "GET /api/auth/options/": [
-      "google"
-    ],
-    "POST /api/auth/google/finish/": [
-      "token",
-      "user"
-    ],
     "GET /api/pay/options/": [
       "prompt",
       "practice",
@@ -1575,10 +1568,6 @@
     ],
     "POST /api/campaigns/{campaign_id}/data/close/": [],
     "POST /api/campaigns/{campaign_id}/data/erase-supporters/": [],
-    "POST /api/auth/google/finish/": [
-      "handoff",
-      "bind"
-    ],
     "POST /api/pay/contribution/": [
       "method",
       "phone",

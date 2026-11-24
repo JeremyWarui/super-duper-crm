@@ -12,7 +12,6 @@ dependencies = [
     "certifi>=2025.1",
     "fastapi>=0.118",
     "httpx>=0.28",
-    "joserfc>=1.8",
     "livekit-api>=2.0.1",
     "nh3==0.3.7",
     "pillow>=11",

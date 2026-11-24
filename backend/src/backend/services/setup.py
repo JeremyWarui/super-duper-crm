@@ -21,7 +21,7 @@ from backend.models import (
 )
 from backend.schemas.setup import Area, ServiceState, SetupRequest, SetupResult
 from backend.security import sha256_hex
-from backend.services import geography, oidc, texting, tokens
+from backend.services import geography, texting, tokens
 from backend.services.accounts import new_login
 from backend.services.admin import build_workspace
 from backend.services.audit import record
@@ -179,13 +179,6 @@ def services() -> list[ServiceState]:
             live=settings.payin_provider == "paystack",
             testable=False,
         ),
-        ServiceState(
-            key="google",
-            label="Google sign-in",
-            mode="google" if oidc.configured() else "off",
-            live=oidc.configured(),
-            testable=True,
-        ),
     ]
 
 
@@ -226,16 +219,4 @@ async def test_service(session: AsyncSession, key: str, user: User) -> str:
         result = await texting.send_test(session, phone, actor=user)
         await _audit_test(session, user, key)
         return texting.test_outcome(result, phone, "Recorded in practice mode; nothing was sent.")
-    if key == "google":
-        if not oidc.configured():
-            raise Refused(
-                "Google sign-in is off: add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env."
-            )
-        try:
-            await oidc.metadata()
-        except (oidc.OidcError, OSError) as failed:
-            raise Refused(f"Google could not be reached: {failed}") from failed
-        return (
-            f"Google answered. Its OAuth client must allow the redirect URI {oidc.redirect_uri()}"
-        )
     raise Refused("That service has no test.")
