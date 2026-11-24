@@ -10,9 +10,10 @@ import { AppRoutes, forgetOnSwitch } from "./Gate";
 import { BrandingProvider } from "@/theme/branding";
 
 const queryClient = new QueryClient({
-  // A refusal does not change on a retry, so a 403 is shown at once.
+  // Data stays fresh for five minutes; a write refreshes what it changed at once. A refusal does
+  // not change on a retry, so a 403 is shown at once.
   defaultOptions: {
-    queries: { staleTime: 30_000, retry: (count, error) => error?.status !== 403 && count < 1 },
+    queries: { staleTime: 5 * 60_000, retry: (count, error) => error?.status !== 403 && count < 1 },
   },
 });
 forgetOnSwitch(queryClient);

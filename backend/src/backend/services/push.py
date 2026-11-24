@@ -9,7 +9,6 @@ import logging
 import uuid
 from datetime import UTC, datetime
 
-from pywebpush import WebPushException, webpush
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,6 +23,8 @@ TTL_SECONDS = 60
 
 
 def _send(subscription: PushSubscription, payload: str) -> None:
+    from pywebpush import webpush  # heavy; loaded on the first push
+
     s = get_settings()
     webpush(
         subscription_info={
@@ -76,6 +77,8 @@ async def notify(
         )
     )
     payload = json.dumps({"title": title, "body": body, "url": url})
+    from pywebpush import WebPushException
+
     sent = 0
     for device in devices:
         try:

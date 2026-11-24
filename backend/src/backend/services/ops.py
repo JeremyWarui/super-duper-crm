@@ -17,7 +17,6 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 
-from alembic.script import ScriptDirectory
 from sqlalchemy import select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,6 +46,8 @@ CONFIRM = "--yes-erase-current-data"
 
 def migration_head() -> str | None:
     try:
+        from alembic.script import ScriptDirectory  # heavy; only the console's Health asks
+
         return ScriptDirectory(str(ALEMBIC_DIR)).get_current_head()
     except Exception:
         return None

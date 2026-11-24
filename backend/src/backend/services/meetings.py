@@ -1,10 +1,12 @@
 """Online meetings on LiveKit (DM-4): starting a room, a short-lived token to join it, ending it,
 and attendance from LiveKit's signed webhooks."""
 
+from __future__ import annotations
+
+import importlib
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from livekit import api
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +15,16 @@ from backend.models import Meeting, MeetingAttendance, User, UserRole
 from backend.services import units
 from backend.services.audit import record
 from backend.services.errors import Forbidden, Refused
+
+
+class _LiveKit:
+    """`livekit.api`, imported on first use: it is heavy and only calls need it."""
+
+    def __getattr__(self, name: str):
+        return getattr(importlib.import_module("livekit.api"), name)
+
+
+api = _LiveKit()
 
 NOT_CONFIGURED = (
     "Meetings are not configured: add LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET."
