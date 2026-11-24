@@ -19,7 +19,7 @@ export default function Contribute() {
   return (
     <div className="site-container py-12">
       <PageHead title="Contribute" lead={copy.contributeLead} />
-      <div className="flex flex-wrap items-start gap-6">
+      <div className="reveal-stagger flex flex-wrap items-start gap-6">
         <Card variant="elevated" className="max-w-[460px] flex-[1_1_320px] gap-3 p-8">
           <h2 className="text-[20px] font-bold">Give by M-Pesa</h2>
           <p className="text-text-2">Get a prompt on your phone, or pay by Paybill or Till and send us the code.</p>

@@ -28,7 +28,7 @@ function ComingSoon() {
 /** Beside the carousel: who is standing, and quick links. */
 function CandidateCard({ c }) {
   return (
-    <aside aria-labelledby="who-h" className="flex flex-[0_1_360px] flex-col gap-3.5 rounded-[13px] bg-white p-6 text-ink shadow-hero-card">
+    <aside aria-labelledby="who-h" className="hero-card flex flex-[0_1_360px] flex-col gap-3.5 rounded-[13px] bg-white p-6 text-ink shadow-hero-card">
       <div className="flex items-center gap-3.5">
         <Photo url={c.photo_url} className="size-[72px] flex-none rounded-full bg-primary-tint" />
         <span className="flex flex-col gap-0.5">
@@ -129,24 +129,24 @@ export function Media() {
     <div className="site-container flex flex-col gap-12 pt-12 pb-20">
       <PageHead title="Videos & documents" lead="Speeches, interviews and the campaign's own papers." />
       {videos.length ? (
-        <section aria-labelledby="videos-h" className="flex flex-col gap-4">
+        <Reveal><section aria-labelledby="videos-h" className="flex flex-col gap-4">
           <h2 id="videos-h" className="rule-top font-display text-[28px] font-extrabold">Videos</h2>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-5">
+          <div className="reveal-stagger grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-5">
             {videos.map((v) => <VideoCard key={v.id} video={v} />)}
           </div>
-        </section>
+        </section></Reveal>
       ) : null}
       {documents.length ? (
-        <section aria-labelledby="docs-h" className="flex flex-col gap-4">
+        <Reveal><section aria-labelledby="docs-h" className="flex flex-col gap-4">
           <h2 id="docs-h" className="rule-top font-display text-[28px] font-extrabold">Documents</h2>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
+          <div className="reveal-stagger grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
             {documents.map((d) => (
               <Card key={d.id} asChild interactive className="flex-row items-center gap-3 p-4">
                 <a href={d.url} target="_blank" rel="noreferrer" className="text-ink no-underline"><FileText aria-hidden className="size-5 flex-none text-primary" /><span className="font-bold">{d.title}</span></a>
               </Card>
             ))}
           </div>
-        </section>
+        </section></Reveal>
       ) : null}
       {!videos.length && !documents.length ? <p className="text-muted-foreground">Nothing published here yet.</p> : null}
     </div>

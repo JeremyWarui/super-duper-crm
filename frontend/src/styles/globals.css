@@ -191,7 +191,7 @@
   --container-form: 1100px;  /* single-task flows */
   --spacing-gutter: 24px;    /* website side padding */
   --spacing-app: 32px;       /* CRM content padding */
-  --spacing-sidebar: 240px;  /* CRM / workspace sidebar width */
+  --spacing-sidebar: 248px;  /* CRM / workspace sidebar width */
   --spacing-touch: 44px;     /* minimum control height */
 }
 
@@ -269,6 +269,55 @@
   .rich-text img.ProseMirror-selectednode { outline: 3px solid var(--accent); }
 }
 
+/* Each website page rises in when it opens; its card grids follow one after another. */
+@keyframes page-up {
+  from { opacity: 0; transform: translateY(18px); }
+}
+.page-in > :not([aria-roledescription="carousel"]) { animation: page-up 600ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.page-in .reveal-stagger > * { animation: page-up 600ms cubic-bezier(0.16, 1, 0.3, 1) backwards; animation-delay: 120ms; }
+.page-in .reveal-stagger > :nth-child(2) { animation-delay: 190ms; }
+.page-in .reveal-stagger > :nth-child(3) { animation-delay: 260ms; }
+.page-in .reveal-stagger > :nth-child(4) { animation-delay: 330ms; }
+.page-in .reveal-stagger > :nth-child(n + 5) { animation-delay: 400ms; }
+
+/* Hero: slides cross-fade while the photo drifts in; each slide's words rise in turn. */
+.hero-photo { opacity: 0; transition: opacity 1100ms ease; }
+.hero-photo[data-active="true"] { opacity: 1; animation: hero-drift 7000ms ease-out both; }
+@keyframes hero-drift {
+  from { transform: scale(1.1); }
+  to { transform: scale(1); }
+}
+.hero-words > * { animation: page-up 800ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.hero-words > :nth-child(2) { animation-delay: 110ms; }
+.hero-words > :nth-child(3) { animation-delay: 220ms; }
+.hero-words > :nth-child(4) { animation-delay: 330ms; }
+.hero-card { animation: hero-card-in 900ms cubic-bezier(0.16, 1, 0.3, 1) 250ms backwards; }
+@keyframes hero-card-in {
+  from { opacity: 0; transform: translateX(32px); }
+}
+/* The current slide's dot fills while the carousel plays. */
+.hero-dot { position: relative; overflow: hidden; }
+.hero-dot::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--accent);
+  transform-origin: left; transform: scaleX(1);
+}
+[data-playing="true"] .hero-dot::after { animation: hero-dot-fill var(--rotate, 6000ms) linear both; }
+@keyframes hero-dot-fill {
+  from { transform: scaleX(0); }
+}
+
+/* The Latest strip scrolls on its own and stops under the pointer or keyboard focus. */
+.marquee { mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.marquee-track { display: flex; width: max-content; animation: marquee 40s linear infinite; }
+.marquee:hover .marquee-track, .marquee:focus-within .marquee-track { animation-play-state: paused; }
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+
+/* The site header gains a shadow once the page scrolls. */
+.site-sticky { transition: box-shadow 200ms ease; }
+.site-sticky[data-scrolled="true"] { box-shadow: 0 8px 28px rgb(19 32 26 / 0.10); }
+
 /* Website sections slide up as they scroll into view (see Reveal). Nothing stays transformed once in,
    so a card's hover lift still works. */
 @keyframes reveal-up {
@@ -296,6 +345,9 @@
     scroll-behavior: auto !important;
   }
   .lift:hover { transform: none; }
+  .marquee-track { animation: none; flex-wrap: wrap; width: auto; }
+  .marquee-track > [aria-hidden] { display: none; }
+  .marquee { mask-image: none; }
 }
 
 /* Printing a sign-up QR code prints only the code, its title and its link. */

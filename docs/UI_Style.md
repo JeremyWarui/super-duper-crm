@@ -51,7 +51,7 @@ Use these exactly. Tailwind classes are given where a token exists.
 |---|---|---|
 | Website content width | 1240px max, 24px side padding | `site-container` |
 | Single-task flows | 1100–1200px max | `max-w-form` / `max-w-[1200px]` |
-| CRM sidebar | 240px (desktop); 280px drawer on phones | `md:w-sidebar` |
+| CRM sidebar | 248px (desktop); 280px drawer on phones | `md:w-sidebar` |
 | CRM content padding | 32px sides, 28px top, 40px bottom | `px-app pt-7 pb-10` |
 | CRM top bar | 64px min height | in `CrmTopBar` |
 | CRM page header | 18px vertical padding, 28px title | in `AppPage` |

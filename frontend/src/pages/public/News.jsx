@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { usePublicPosts } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Reveal } from "@/components/ui/reveal";
 import { RailHead } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";
 import { Initials, Photo, StoryKicker } from "./story";
@@ -45,7 +46,7 @@ function More({ stories, offset, setOffset, full }) {
         <span className="text-small text-muted-foreground">{stories.length} stories</span>
       </div>
       {stories.length ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-x-6 gap-y-8">
+        <div className="reveal-stagger grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-x-6 gap-y-8">
           {stories.map((n) => (
             <StoryCard key={n.id} post={n} />
           ))}
@@ -69,7 +70,7 @@ function Opinion() {
   return (
     <section aria-labelledby="op-h" className="flex flex-col gap-5">
       <h2 id="op-h" className="rule-top font-display text-[26px] font-extrabold">Opinion</h2>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+      <div className="reveal-stagger grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         {pieces.map((o) => (
           <Card key={o.id} asChild interactive className="p-5">
             <Link to={`/news/${o.id}`}>
@@ -143,8 +144,8 @@ export default function News() {
       {posts.length || offset > 0 ? (
         <div className="flex flex-wrap items-start gap-10">
           <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-12">
-            <More stories={rest} offset={offset} setOffset={setOffset} full={posts.length === PAGE} />
-            <Opinion />
+            <Reveal><More stories={rest} offset={offset} setOffset={setOffset} full={posts.length === PAGE} /></Reveal>
+            <Reveal><Opinion /></Reveal>
           </div>
           <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-6">
             <Latest news={offset === 0 ? posts : []} />

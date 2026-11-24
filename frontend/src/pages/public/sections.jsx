@@ -47,11 +47,13 @@ export function Carousel({ fallback, actions, aside }) {
   const go = (i) => setIndex(((i % count) + count) % count);
   const round = "flex size-11 cursor-pointer items-center justify-center rounded-full border-[1.5px] border-white/70 bg-black/20 text-lg text-white";
   return (
-    <section aria-roledescription="carousel" aria-label="Highlights" className="relative flex min-h-[640px] items-center overflow-hidden bg-ink text-white">
-      {current.image_url ? <img src={current.image_url} alt="" className="absolute inset-0 size-full object-cover" /> : null}
+    <section aria-roledescription="carousel" aria-label="Highlights" data-playing={playing && count > 1} style={{ "--rotate": `${ROTATE_MS}ms` }} className="relative flex min-h-[640px] items-center overflow-hidden bg-ink text-white">
+      {slides.map((s, i) => (s.image_url ? (
+        <img key={s.id} src={s.image_url} alt="" data-active={i === index % count} className="hero-photo absolute inset-0 size-full object-cover" />
+      ) : null))}
       <div aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,18,13,0.82)_0%,rgba(8,18,13,0.55)_50%,rgba(8,18,13,0.2)_100%)]" />
       <div className="site-container relative flex flex-wrap items-center justify-between gap-10 pt-16 pb-28">
-        <div aria-live={playing ? "off" : "polite"} aria-roledescription="slide" aria-label={`${(index % count) + 1} of ${count}`} className="flex min-w-0 flex-[0_1_680px] flex-col gap-[22px]">
+        <div aria-live={playing ? "off" : "polite"} aria-roledescription="slide" aria-label={`${(index % count) + 1} of ${count}`} key={index} className="hero-words flex min-w-0 flex-[0_1_680px] flex-col gap-[22px]">
           {current.kicker ? <p className="text-ui font-bold uppercase tracking-[0.12em] text-accent">{current.kicker}</p> : null}
           <h1 className="font-display text-hero font-extrabold tracking-[-0.03em]">{current.headline}</h1>
           {current.line ? <p className="max-w-[40ch] text-[19px] leading-[1.6] text-[#ECECE7]">{current.line}</p> : null}
@@ -76,7 +78,7 @@ export function Carousel({ fallback, actions, aside }) {
                   onClick={() => go(i)}
                   className="flex h-11 min-w-11 cursor-pointer items-center justify-center bg-transparent"
                 >
-                  <span className={i === index % count ? "h-2.5 w-7 rounded-full bg-accent" : "size-2.5 rounded-full bg-white/60"} />
+                  <span key={i === index % count ? `on-${index}` : "off"} className={i === index % count ? "hero-dot h-2.5 w-7 rounded-full bg-white/35" : "size-2.5 rounded-full bg-white/60"} />
                 </button>
               ))}
             </div>
@@ -95,9 +97,21 @@ export function Ticker({ news }) {
   if (!news.length) return null;
   return (
     <div className="border-b border-line-2 bg-white">
-      <div className="site-container flex flex-wrap items-center gap-x-7 gap-y-3 py-3.5">
-        <span className="rounded-sm bg-ink px-2.5 py-1.5 text-meta font-extrabold uppercase tracking-[0.12em] text-accent">Latest</span>
-        {news.slice(0, 3).map((n) => <Link key={n.id} to={`/news/${n.id}`} className="text-body font-semibold text-ink no-underline hover:text-primary">{n.title}</Link>)}
+      <div className="site-container flex items-center gap-5 py-3.5">
+        <span className="flex-none rounded-sm bg-ink px-2.5 py-1.5 text-meta font-extrabold uppercase tracking-[0.12em] text-accent">Latest</span>
+        <div className="marquee min-w-0 flex-1 overflow-hidden">
+          <div className="marquee-track">
+            {[false, true].map((copy) => (
+              <div key={String(copy)} aria-hidden={copy || undefined} className="flex flex-none items-center gap-x-10 pr-10">
+                {news.slice(0, 6).map((n) => (
+                  <Link key={n.id} to={`/news/${n.id}`} tabIndex={copy ? -1 : undefined} className="flex-none text-body font-semibold whitespace-nowrap text-ink no-underline hover:text-primary">
+                    <span aria-hidden className="mr-3 text-accent">●</span>{n.title}
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

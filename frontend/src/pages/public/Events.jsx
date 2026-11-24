@@ -56,7 +56,7 @@ export default function Events() {
           {events.error ? <ErrorText error={events.error} /> : null}
           {events.isSuccess && !months.length ? <p className="text-muted-foreground">No events are planned{county ? " in this county" : ""} yet.</p> : null}
           {months.map((m) => (
-            <section key={m.name} aria-label={m.name} className="flex flex-col gap-3.5">
+            <section key={m.name} aria-label={m.name} className="reveal-stagger flex flex-col gap-3.5">
               <h2 className="mt-2 text-ui font-extrabold uppercase tracking-[0.12em] text-muted-foreground first:mt-0">{m.name}</h2>
               {m.events.map((e) => <EventCard key={e.id} e={e} />)}
             </section>
