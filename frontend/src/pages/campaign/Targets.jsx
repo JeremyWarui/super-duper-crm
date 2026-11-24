@@ -68,10 +68,12 @@ export default function Targets({ campaign, role }) {
                 <span className="font-semibold">Team is working to: {SCENARIO[p.set_scenario]}</span>
               </span>
             </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Turnout scenario">
+            <div className="grid max-w-[420px] grid-cols-3 gap-2" role="group" aria-label="Turnout scenario">
               {p.scenarios.map((s) => (
-                <Button key={s.scenario} size="sm" variant={s.scenario === p.scenario ? "primary" : "outline"} aria-pressed={s.scenario === p.scenario} onClick={() => pick(s.scenario)}>
-                  {SCENARIO[s.scenario]} {s.turnout_pct}%
+                <Button key={s.scenario} size="sm" variant={s.scenario === p.scenario ? "primary" : "outline"} aria-pressed={s.scenario === p.scenario} onClick={() => pick(s.scenario)}
+                  className="h-auto min-h-11 flex-col gap-0 px-2 py-1.5 leading-tight">
+                  <span>{SCENARIO[s.scenario]}</span>
+                  <span className="text-small font-semibold tabular-nums opacity-85">{s.turnout_pct}%</span>
                 </Button>
               ))}
             </div>

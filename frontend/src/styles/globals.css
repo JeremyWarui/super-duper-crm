@@ -358,3 +358,9 @@
   .qr-print { position: fixed; inset: 0; padding-top: 10vh; }
   dialog::backdrop { background: transparent; }
 }
+
+/* A row that scrolls sideways on a phone without showing a scrollbar. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}

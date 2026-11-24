@@ -25,7 +25,7 @@ export function TabsList({ className, ...props }: React.ComponentProps<typeof Ta
       data-slot="tabs-list"
       className={cn(
         look === 'segmented'
-          ? 'inline-flex w-fit items-center rounded-full border border-line-control bg-white p-[3px]'
+          ? 'no-scrollbar inline-flex w-fit max-w-full items-center overflow-x-auto rounded-full border border-line-control bg-white p-[3px]'
           : 'flex flex-wrap gap-x-[22px]',
         className,
       )}
@@ -42,7 +42,7 @@ export function TabsTrigger({ className, ...props }: React.ComponentProps<typeof
       className={cn(
         'cursor-pointer font-bold text-ink transition-colors',
         look === 'segmented'
-          ? 'min-h-10 rounded-full px-4 text-ui data-[state=active]:bg-primary data-[state=active]:text-primary-foreground'
+          ? 'min-h-10 flex-none whitespace-nowrap rounded-full px-4 text-ui max-sm:px-3.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground'
           : 'pt-4 pb-[13px] text-body data-[state=active]:text-primary data-[state=active]:shadow-[inset_0_-3px_0_var(--brand-primary)]',
         className,
       )}
@@ -56,7 +56,7 @@ export function TabsContent({ className, ...props }: React.ComponentProps<typeof
 }
 
 const PILL_LOOK = {
-  capsule: { group: 'inline-flex w-fit flex-wrap items-center rounded-full border border-line-control bg-white p-[3px]', button: 'min-h-10 rounded-full px-4 text-ui font-bold max-sm:min-h-11', on: 'bg-primary text-primary-foreground', off: 'text-ink' },
+  capsule: { group: 'no-scrollbar inline-flex w-fit max-w-full items-center overflow-x-auto rounded-full border border-line-control bg-white p-[3px]', button: 'min-h-10 flex-none whitespace-nowrap rounded-full px-4 text-ui font-bold max-sm:min-h-11 max-sm:px-3.5', on: 'bg-primary text-primary-foreground', off: 'text-ink' },
   ink: { group: 'flex flex-wrap gap-2', button: 'min-h-11 rounded-full border-[1.5px] px-[18px] text-[15px] font-semibold', on: 'border-ink bg-ink text-white', off: 'border-line-control bg-white text-ink' },
   tint: { group: 'flex flex-wrap gap-2', button: 'min-h-11 rounded-full border-[1.5px] px-4 text-ui font-bold', on: 'border-primary bg-primary-tint text-primary', off: 'border-line-control bg-white text-ink' },
   rounded: { group: 'flex flex-wrap gap-2', button: 'min-h-10 rounded-lg border px-4 text-ui font-bold max-sm:min-h-11', on: 'border-primary bg-primary text-primary-foreground', off: 'border-line-control bg-white text-ink' },
