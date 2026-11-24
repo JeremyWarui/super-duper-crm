@@ -1,4 +1,4 @@
-// After sign-in, offers to ring this phone when the team starts a call; once dismissed it stays away.
+// After sign-in, offers alerts on this phone for calls and notices; once dismissed it stays away.
 import { useEffect, useState } from "react";
 import { usePushKey } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
@@ -21,12 +21,12 @@ export default function CallAlerts() {
   return (
     <div role="region" aria-label="Call alerts" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3">
       <div className="grid gap-1">
-        <span className="font-semibold">Get an alert on this phone when the team starts a call.</span>
+        <span className="font-semibold">Get an alert on this phone for calls, announcements and anything waiting for you.</span>
         {needsHomeScreen() && <span className="text-small text-muted-foreground">On iPhone, first tap Share, then Add to Home Screen, and open the app from there (iOS 16.4 or later).</span>}
         {error && <span className="text-small text-bad-foreground">{error}</span>}
       </div>
       <div className="flex gap-2">
-        <Button size="sm" loading={state === "busy"} disabled={state === "busy"} onClick={turnOn}>Enable call alerts</Button>
+        <Button size="sm" loading={state === "busy"} disabled={state === "busy"} onClick={turnOn}>Enable alerts</Button>
         <Button size="sm" variant="quiet" onClick={() => { dismiss(); setState("hidden"); }}>Not now</Button>
       </div>
     </div>

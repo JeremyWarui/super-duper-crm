@@ -981,7 +981,7 @@ Every one of these is recorded in the console's **Audit** tab.
 | Emails or texts do not arrive | Health should say **Configured**. Then see `docker compose logs app` for the provider's error, and section 9. |
 | A bulk send stays on **Waiting for the window** or sends only its first batch | Outside 08:00-18:00 Nairobi time it waits by design. Inside those hours, the queue is not being drained: check the cron line in section 9, "Bulk texts", or run `docker compose exec app campaign-crm sms-worker --once` by hand. |
 | **Start call** says meetings are not configured | The three `LIVEKIT_` lines are blank. See section 9, "Calls". |
-| Nobody sees **Enable call alerts** | The three `VAPID_` lines are blank, or on an iPhone the app was opened in the browser, not from the Home Screen. See section 9, "Call alerts". |
+| Nobody sees **Enable alerts** | The three `VAPID_` lines are blank, or on an iPhone the app was opened in the browser, not from the Home Screen. See section 9, "Call alerts". |
 
 
 ### Restarting

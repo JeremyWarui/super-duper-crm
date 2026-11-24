@@ -408,7 +408,7 @@ page under Reach out).
 
 **Call alerts** are web push (`services/push.py`). The frontend is a PWA (`vite-plugin-pwa`,
 service worker `frontend/src/sw.js`) whose service worker caches nothing and only shows
-notifications. After sign-in the app offers "Enable call alerts"; on an iPhone they work once the
+notifications. After sign-in the app offers "Enable alerts"; on an iPhone they work once the
 app is added to the Home Screen (iOS 16.4 or later). Starting a call notifies the people it
 rings ("Joining: title"); tapping the alert opens the call. Only https endpoints of the browsers'
 push services (Google, Mozilla, Apple, Microsoft) are accepted, a subscription the push service

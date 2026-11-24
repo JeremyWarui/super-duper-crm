@@ -104,10 +104,11 @@ it and are signed in.
 If the person has no email, nothing is sent. Ask the IT person to add one with
 `campaign-crm set-email` (IT guide section 10), then send a reset link from the console.
 
-### Call alerts
+### Alerts
 
-After signing in on a phone, everyone on the campaign sees **Enable call alerts**. Once
-it is on, the phone rings when the team starts a call. On an iPhone it works only from
+After signing in on a phone, everyone on the campaign sees **Enable alerts**. Once it is
+on, the phone gets an alert when the team starts a call and for each new notice:
+announcements, target changes, team sign-ups and payments waiting for them. On an iPhone it works only from
 the Home Screen app: tap Share, then **Add to Home Screen**, open the app from there,
 and then enable alerts (iOS 16.4 or later). **Not now** hides the offer on that phone.
 
@@ -574,7 +575,7 @@ under **Bulk sends**.
 4. **Recent calls** lists each call: **Live** or **Ended**, the host, the minutes and who
    came. A live call has a **Join** link.
 
-Alerts reach only phones where the person pressed **Enable call alerts** (section 2).
+Alerts reach only phones where the person pressed **Enable alerts** (section 2).
 
 ---
 
