@@ -27,7 +27,7 @@ from backend.schemas.join import JoinCreate, JoinDone, JoinPlace, JoinRead, With
 from backend.security import new_withdraw_code
 from backend.services.access import FULL, Access, workspace_access
 from backend.services.campaigns import CAMPAIGN_NAMES
-from backend.services.consent import WORDING, ConsentChannel
+from backend.services.consent import SMS_WORDING, WORDING, ConsentChannel
 from backend.services.errors import NotFound, Refused
 from backend.services.ratelimit import RateLimit
 from backend.services.sms import require_phone
@@ -114,6 +114,7 @@ async def read_signup(code: str, session: SessionDep) -> JoinRead:
         ward_name=link.event.ward.name if link.event else campaign.area_label,
         open=link.open,
         consent_wording=WORDING[link.channel],
+        sms_consent_wording=SMS_WORDING[link.channel],
         place=("centre" if by_centre else "ward") if on_campaign_link else None,
         national=campaign.national,
         places=await _places(session, campaign) if on_campaign_link else [],
@@ -174,6 +175,8 @@ async def sign_up(
                 consent_given=True,
                 consent_channel=link.channel,
                 consent_wording=WORDING[link.channel],
+                sms_consent=payload.sms_consent,
+                sms_consent_wording=SMS_WORDING[link.channel] if payload.sms_consent else None,
                 withdraw_code=withdraw_code,
             )
         )

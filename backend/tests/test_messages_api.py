@@ -10,7 +10,14 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import CampaignMemberArea, SmsLog, SmsOptOut, Supporter, UserRole
+from backend.models import (
+    CampaignMemberArea,
+    SmsLog,
+    SmsOptOut,
+    Supporter,
+    SupportLevel,
+    UserRole,
+)
 from backend.services.accounts import add_member
 from backend.services.consent import WORDING, ConsentChannel
 from backend.services.sms import AfricasTalkingSMSProvider
@@ -21,7 +28,9 @@ from tests.factories import auth, make_user, sign_in
 RECORDED = json.loads((Path(__file__).parent / "fixtures" / "africastalking.json").read_text())
 
 
-async def _supporter(session, world: World, phone: str, ward, consent: bool = True) -> None:
+async def _supporter(
+    session, world: World, phone: str, ward, consent: bool = True, level=SupportLevel.SUPPORTER
+) -> None:
     session.add(
         Supporter(
             campaign_id=world.campaign.id,
@@ -30,6 +39,8 @@ async def _supporter(session, world: World, phone: str, ward, consent: bool = Tr
             phone=phone,
             consent_given=consent,
             consent_wording=WORDING[ConsentChannel.CAMPAIGN_LINK] if consent else None,
+            sms_consent=consent,
+            support_level=level,
         )
     )
     await session.commit()
@@ -92,6 +103,53 @@ async def test_a_coordinator_s_draft_reaches_only_consenting_supporters_in_their
         await session.scalar(select(SmsLog.body))
     ) == "Town hall on Saturday. Amina Kariuki" + FOOTER
     assert again.status_code == 400
+
+
+async def test_a_contact_is_texted_only_when_the_sms_box_was_ticked_too(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    for phone, texts in [("+254711000001", True), ("+254711000002", False)]:
+        added = await client.post(
+            "/api/supporters/",
+            headers=world.headers("mobilizer"),
+            json={
+                "campaign": str(world.campaign.id),
+                "full_name": phone,
+                "phone": phone,
+                "consent_given": True,
+                "sms_consent": texts,
+            },
+        )
+        assert added.status_code == 201, added.text
+    draft = {"campaign": str(world.campaign.id), "body": "Town hall on Saturday. Amina Kariuki"}
+    head = world.headers("manager")
+
+    preview = (await client.post("/api/messages/preview/", json=draft, headers=head)).json()
+    sent = await client.post("/api/messages/", json={**draft, "send": True}, headers=head)
+
+    assert preview["recipients"] == 1
+    assert sent.status_code == 201, sent.text
+    texted = await session.scalars(select(SmsLog.phone).where(SmsLog.message_id.is_not(None)))
+    assert list(texted) == ["+254711000001"]
+
+
+async def test_opposed_contacts_are_left_out_unless_picked_and_the_preview_prices_the_send(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    await _supporter(session, world, "+254712000001", world.ward)
+    await _supporter(session, world, "+254712000002", world.ward, level=SupportLevel.UNDECIDED)
+    await _supporter(session, world, "+254712000003", world.ward, level=SupportLevel.OPPOSED)
+    draft = {"campaign": str(world.campaign.id), "body": "Town hall on Saturday. Amina Kariuki"}
+    head = world.headers("manager")
+    everyone = {**draft, "support_levels": ["supporter", "undecided", "opposed"]}
+
+    default = (await client.post("/api/messages/preview/", json=draft, headers=head)).json()
+    picked = (await client.post("/api/messages/preview/", json=everyone, headers=head)).json()
+    await client.post("/api/messages/", json={**draft, "send": True}, headers=head)
+
+    assert (default["recipients"], picked["recipients"]) == (2, 3)
+    assert default["estimated_cost_cents"] == 2 * default["parts"] * 80
+    assert "+254712000003" not in [phone for phone, *_ in await _log(session)]
 
 
 async def test_the_gateway_s_reply_and_its_delivery_reports_land_in_the_log(

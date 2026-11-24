@@ -19,6 +19,7 @@ from backend.api.scope import (
     require_visible,
     scoped,
 )
+from backend.config import get_settings
 from backend.models import CampaignMessage, Event, EventStatus, SmsOutbox, SmsRun, Supporter, User
 from backend.schemas.campaign import (
     EventCreate,
@@ -156,8 +157,8 @@ async def invite_to_event(
     event_id: uuid.UUID, payload: EventInvite, session: SessionDep, user: Writer
 ) -> EventInviteResult:
     """Invite the event's consenting supporters through the compliance queue: the same checks,
-    sending window and batches as an approved message. A dry run sends nothing and is open to
-    anyone who may change the event."""
+    sending window and batches as an approved message. A dry run sends nothing, is open to
+    anyone who may change the event, and gives counts without any phone number."""
     if not payload.dry_run and reach(user, "sms.send") is None:
         raise Forbidden(refusal(user, "sms.send"))
     event = await require_visible(session, user, Event, event_id, "event", "events.write", LOADED)
@@ -175,6 +176,7 @@ async def invite_to_event(
         for p in plan.unusable
     ]
     matched = len(plan.queued) + plan.no_consent + plan.opted_out + len(plan.unusable)
+    cost = len(plan.queued) * parts_of(text) * get_settings().sms_part_price_cents
 
     if payload.dry_run:
         return EventInviteResult(
@@ -186,11 +188,12 @@ async def invite_to_event(
             supporters_matched=matched,
             requested=len(plan.queued),
             opted_out=plan.opted_out,
-            accepted=[InviteRecipient(phone=n, status="would send") for n in plan.queued],
-            rejected=unusable,
+            accepted=[],
+            rejected=[r.model_copy(update={"phone": ""}) for r in unusable],
             detail="Nothing was sent: this was a preview.",
             number_reached=event.number_reached,
             queued=len(plan.queued),
+            estimated_cost_cents=cost,
         )
 
     message = CampaignMessage(
@@ -199,6 +202,7 @@ async def invite_to_event(
         wards=[] if payload.whole_campaign else [str(event.ward_id)],
         drafted_by_id=user.id,
         language=payload.language,
+        support_levels=[str(level) for level in payload.support_levels],
     )
     session.add(message)
     await session.flush()
@@ -231,6 +235,7 @@ async def invite_to_event(
         number_reached=event.number_reached,
         queued=run.targeted,
         run_status=run.status,
+        estimated_cost_cents=run.estimated_cost_cents,
     )
 
 

@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, status
 from backend.api.deps import SessionDep, require
 from backend.api.scope import area_of, require_visible_campaign
 from backend.config import get_settings
-from backend.models import CampaignMessage, User
+from backend.models import CampaignMessage, SupportLevel, User
 from backend.schemas.messages import (
     LogRow,
     MessageApprove,
@@ -72,6 +72,7 @@ async def list_messages(campaign: uuid.UUID, session: SessionDep, user: Drafter)
         ),
         "provider": get_sms_provider().name,
         "can_send": reach(user, "sms.send") is not None,
+        "part_price_cents": settings.sms_part_price_cents,
         "wards": await messages.addressable_wards(session, campaign, area),
         "messages": await messages.listing(session, campaign, _own_only(user), user.id),
     }
@@ -82,7 +83,9 @@ async def preview(payload: MessageDraft, session: SessionDep, user: Drafter) -> 
     """How many supporters the message would reach now, and the text they get."""
     await require_visible_campaign(session, user, payload.campaign)
     area = await area_of(session, user, "sms.draft")
-    return await messages.reach(session, payload.campaign, area, payload.wards, payload.body)
+    return await messages.reach(
+        session, payload.campaign, area, payload.wards, payload.body, payload.support_levels
+    )
 
 
 @router.post("/", response_model=MessageRead, status_code=status.HTTP_201_CREATED)
@@ -100,6 +103,7 @@ async def create(payload: MessageDraft, session: SessionDep, user: Drafter) -> d
         area,
         actor=user,
         language=payload.language,
+        levels=payload.support_levels,
     )
     if payload.send:
         message = await messages.send(session, message, area, actor=user)
@@ -127,6 +131,17 @@ async def decline(
     message = await _visible(session, user, message_id)
     message = await messages.decline(session, message, payload.note, actor=user)
     return await _read(session, user, message)
+
+
+@router.get("/{message_id}/preview/", response_model=Reach)
+async def draft_preview(message_id: uuid.UUID, session: SessionDep, user: Sender) -> dict:
+    """Who a draft would reach if approved now, inside its drafter's area, and what it costs."""
+    message = await _visible(session, user, message_id)
+    area = await _drafter_area(session, message)
+    levels = [SupportLevel(level) for level in message.support_levels or []]
+    return await messages.reach(
+        session, message.campaign_id, area, message.wards, message.body, levels
+    )
 
 
 @router.delete("/{message_id}/", status_code=status.HTTP_204_NO_CONTENT)

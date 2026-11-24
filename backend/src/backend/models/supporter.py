@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, Uuid
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, Uuid, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import (
@@ -66,6 +66,9 @@ class Supporter(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         choice_type(ConsentChannel, "consent_channel"), default=None
     )
     consent_wording: Mapped[str | None] = mapped_column(Text, default=None)
+    # A separate opt-in to campaign texts, and the wording it was given on.
+    sms_consent: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    sms_consent_wording: Mapped[str | None] = mapped_column(Text, default=None)
 
     # The private code a self-signed supporter withdraws with; None for anyone else.
     withdraw_code: Mapped[str | None] = mapped_column(String(32), unique=True, default=None)

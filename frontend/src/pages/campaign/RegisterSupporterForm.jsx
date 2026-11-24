@@ -9,7 +9,7 @@ import { useDraft } from "@/lib/draft";
 import { FilterPills } from "@/components/ui/tabs";
 import SendError from "./SendError";
 
-const BLANK = { full_name: "", phone: "", ward: "", centre: null, support_level: "supporter", consent_given: false };
+const BLANK = { full_name: "", phone: "", ward: "", centre: null, support_level: "supporter", consent_given: false, sms_consent: false };
 import { SUPPORT_LEVELS as LEVELS } from "@/lib/labels";
 
 /**
@@ -18,7 +18,7 @@ import { SUPPORT_LEVELS as LEVELS } from "@/lib/labels";
  */
 export default function RegisterSupporterForm({ campaignId, wardOptions, byCentre }) {
   const reg = useRegisterSupporter();
-  const wording = useConsentWording().data?.consent_wording;
+  const { consent_wording: wording, sms_consent_wording: smsWording } = useConsentWording().data || {};
   const user = useAuth((s) => s.user);
   const own = (useMobilizers(campaignId).data || []).find((m) => m.user === user?.id);
   const [form, setForm, clear] = useDraft(`register:${campaignId}`, BLANK);
@@ -32,7 +32,7 @@ export default function RegisterSupporterForm({ campaignId, wardOptions, byCentr
   const ok = form.full_name.trim() && form.consent_given && ward && (!byCentre || (loaded && centre));
   // The promise settles even if the form has closed meanwhile, so a sent entry never stays kept.
   const send = () => reg.mutateAsync(
-    { campaign: campaignId, full_name: form.full_name, phone: form.phone, ward, support_level: form.support_level, consent_given: form.consent_given, registration_centre: centre || null },
+    { campaign: campaignId, full_name: form.full_name, phone: form.phone, ward, support_level: form.support_level, consent_given: form.consent_given, sms_consent: !!form.sms_consent, registration_centre: centre || null },
   ).then(() => { clear(); setSent(true); }, () => {});
 
   if (sent) {
@@ -66,6 +66,9 @@ export default function RegisterSupporterForm({ campaignId, wardOptions, byCentr
       </div>
       <Check className="text-ui" checked={form.consent_given} onChange={(e) => change({ consent_given: e.target.checked })}>
         <span>{wording}</span>
+      </Check>
+      <Check className="text-ui" checked={!!form.sms_consent} onChange={(e) => change({ sms_consent: e.target.checked })}>
+        <span>{smsWording} (optional)</span>
       </Check>
       <SendError error={reg.error} pending={reg.isPending} onRetry={send} />
       <Button loading={reg.isPending} size="lg" className="w-full sm:w-auto sm:self-start" disabled={!ok || !wording || reg.isPending} onClick={send}>

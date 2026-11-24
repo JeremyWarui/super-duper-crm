@@ -26,6 +26,8 @@ class CampaignMessage(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     campaign_id: Mapped[uuid.UUID] = campaign_ref()
     body: Mapped[str] = mapped_column(Text)
     wards: Mapped[list] = mapped_column(JSON, default=list)
+    # The support levels it goes to; empty means every level.
+    support_levels: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     # draft, sent or declined.
     status: Mapped[str] = mapped_column(String(20), default="draft")
     drafted_by_id: Mapped[uuid.UUID | None] = user_ref()

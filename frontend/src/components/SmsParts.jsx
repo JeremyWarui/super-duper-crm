@@ -31,9 +31,13 @@ export function DeliveryBadges({ delivery }) {
 /**
  * Drafts waiting for approval. `about(m)` is the line under each text; `decide(m)` is true for the
  * Approve and Decline buttons, false for none, or a note to show instead; `canDelete(m)` adds Delete.
+ * `cost(m, ready)`, when given, shows what sending a draft would cost before it is approved and
+ * calls `ready(true)` once the price is shown.
  */
-export function DraftList({ drafts, about, decide, approve, decline, remove, canDelete = () => false }) {
+export function DraftList({ drafts, about, decide, approve, decline, remove, canDelete = () => false, cost }) {
   const [declining, setDeclining] = useState(null);
+  const [approving, setApproving] = useState(null);
+  const [priced, setPriced] = useState(false);
   const [note, setNote] = useState("");
   if (drafts.length === 0) return null;
   const busy = approve.isPending || decline.isPending || !!remove?.isPending;
@@ -52,9 +56,15 @@ export function DraftList({ drafts, about, decide, approve, decline, remove, can
             ) : declining === m.id ? (
               <ReasonForm visibleLabel label="Why (optional)" min={0} value={note} onChange={setNote} yes="Decline" no="Keep it" busy={busy} onNo={() => setDeclining(null)}
                 onYes={() => decline.mutate({ id: m.id, note }, { onSuccess: () => { setDeclining(null); setNote(""); } })} />
+            ) : cost && approving === m.id ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {cost(m, setPriced)}
+                <Button size="sm" loading={approve.isPending} disabled={busy || !priced} onClick={() => approve.mutate({ id: m.id, language: m.language }, { onSuccess: () => setApproving(null) })}>Send now</Button>
+                <Button size="sm" variant="quiet" disabled={busy} onClick={() => setApproving(null)}>Not yet</Button>
+              </div>
             ) : may || canDelete(m) ? (
               <div className="flex flex-wrap gap-2">
-                {may && <Button size="sm" disabled={busy} onClick={() => approve.mutate({ id: m.id, language: m.language })}>Approve and send</Button>}
+                {may && <Button size="sm" disabled={busy} onClick={() => (cost ? (setPriced(false), setApproving(m.id)) : approve.mutate({ id: m.id, language: m.language }))}>{cost ? "Approve and send…" : "Approve and send"}</Button>}
                 {may && <Button size="sm" variant="outline" disabled={busy} onClick={() => setDeclining(m.id)}>Decline…</Button>}
                 {canDelete(m) && <Button size="sm" variant="quiet" disabled={busy} onClick={() => remove.mutate(m.id)}>Delete</Button>}
               </div>

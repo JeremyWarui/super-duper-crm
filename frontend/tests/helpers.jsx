@@ -239,6 +239,7 @@ export const INVITE_RESULT = {
   detail: "Waiting for the sending window (08:00 to 18:00) to send.",
   number_reached: 0,
   run_status: "scheduled",
+  estimated_cost_cents: 160,
 };
 
 export const CREATED_USER = {
@@ -262,7 +263,7 @@ export function dashboardRoutes(overrides = {}) {
     "GET /mobilizers/": [],
     "GET /supporters/": [],
     "GET /supporters/summary/": { total: 0, supporters: 0, undecided: 0, consent_missing: 0 },
-    "GET /supporters/consent-wording/": { consent_wording: "Consent wording." },
+    "GET /supporters/consent-wording/": { consent_wording: "Consent wording.", sms_consent_wording: "Texts wording." },
     "POST /events/e1/invite/": INVITE_RESULT,
     "POST /users/": CREATED_USER,
     ...overrides,

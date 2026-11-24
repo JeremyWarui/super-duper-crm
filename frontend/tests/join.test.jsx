@@ -10,28 +10,29 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const PAGE = { campaign_title: "Jane for Roysambu", candidate_name: "Jane", event_title: "Zimmerman town hall", ward_name: "Zimmerman", open: true, consent_wording: "I agree to the server wording.", place: null, places: [] };
+const PAGE = { campaign_title: "Jane for Roysambu", candidate_name: "Jane", event_title: "Zimmerman town hall", ward_name: "Zimmerman", open: true, consent_wording: "I agree to the server wording.", sms_consent_wording: "I agree to texts.", place: null, places: [] };
 const CAMPAIGN_PAGE = { ...PAGE, event_title: "", ward_name: "Roysambu", place: "ward", places: [{ id: "w2", name: "Githurai" }, { id: "w1", name: "Zimmerman" }] };
 const DONE = { message: "Thank you, you're signed up.", withdraw_code: "private-code" };
 
 async function fillIn(user) {
   await user.type(await screen.findByRole("textbox", { name: "Full name" }), "Wanjiku Njeri");
   await user.type(screen.getByRole("textbox", { name: "Phone" }), "0712 345678");
-  await user.click(screen.getByRole("checkbox"));
+  await user.click(screen.getByRole("checkbox", { name: "I agree to the server wording." }));
 }
 
 describe("signing up from an event's QR code", () => {
-  it("sends the name, phone and consent, and hands back a private withdrawal link", async () => {
+  it("sends the name, phone, consent and the separate SMS opt-in, and hands back a private withdrawal link", async () => {
     const calls = stubApi({ "GET /join/abc123/": PAGE, "POST /join/abc123/": DONE });
     renderApp(<Join code="abc123" />);
     const user = userEvent.setup();
 
     await fillIn(user);
+    await user.click(screen.getByRole("checkbox", { name: "I agree to texts. (optional)" }));
     await user.click(screen.getByRole("button", { name: "Sign up" }));
 
     expect(await screen.findByText("Thank you, you're signed up.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /\/withdraw\/private-code$/ })).toBeInTheDocument();
-    expect(calls.find((c) => c.method === "POST").body).toEqual({ full_name: "Wanjiku Njeri", phone: "0712 345678", consent_given: true, place: null });
+    expect(calls.find((c) => c.method === "POST").body).toEqual({ full_name: "Wanjiku Njeri", phone: "0712 345678", consent_given: true, sms_consent: true, place: null });
   });
 
   it("labels the consent box with the wording the server sends", async () => {

@@ -59,7 +59,11 @@ def gateway(monkeypatch: pytest.MonkeyPatch) -> Gateway:
 
 async def supporters(session: AsyncSession, world: World, count: int, **fields) -> list[str]:
     phones = [f"+2547{n:08d}" for n in range(1, count + 1)]
-    values = {"consent_given": True, "consent_wording": WORDING[ConsentChannel.CAMPAIGN_LINK]}
+    values = {
+        "consent_given": True,
+        "consent_wording": WORDING[ConsentChannel.CAMPAIGN_LINK],
+        "sms_consent": True,
+    }
     session.add_all(
         Supporter(
             campaign_id=world.campaign.id,
@@ -106,7 +110,7 @@ async def test_each_gate_check_refuses_with_its_reason(
     assert await session.scalar(select(SmsRun.id)) is None
 
 
-async def test_only_consent_that_covers_texts_counts_and_vetting_holds_the_run(
+async def test_only_contacts_who_opted_in_to_texts_count_and_vetting_holds_the_run(
     session: AsyncSession, world: World, gateway: Gateway, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     await supporters(session, world, 2)
@@ -247,7 +251,9 @@ async def test_the_demo_drafts_show_the_gate_refusing_and_then_sending_to_the_de
 ) -> None:
     from backend.seed.demo_comms import seed_demo_texting
 
-    await supporters(session, world, 3, consent_wording=WORDING[ConsentChannel.MOBILIZER])
+    await supporters(
+        session, world, 3, consent_wording=WORDING[ConsentChannel.MOBILIZER], sms_consent=False
+    )
     demo = await seed_demo_texting(session, ["0799123456", "0711222333"])
     drafts = {
         m.body: m.id

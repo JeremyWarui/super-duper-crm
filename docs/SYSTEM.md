@@ -50,7 +50,7 @@ centre). A role the table leaves out of an action is refused with a plain reason
 | **Manager** | Runs the day to day with full access. Schedules payments (the candidate approves them) and approves coordinators' payments. |
 | **Coordinator** | Works an assigned area of wards and centres: events, mobilizers, agents, assignments, contacts and team sign-ups there; drafts texts and starts calls for that area; schedules payments. |
 | **Comms** | Reads events and targets, tries turnout scenarios, drafts texts, starts calls and edits the website. Sees no contact register. |
-| **Mobilizer** | Works one unit: a ward, or a centre in an MCA race. Records events, adds contacts in their ward, sees their own payments. |
+| **Mobilizer** | Works one unit: a ward, or a centre in an MCA race. Records events, adds contacts in their ward and sees only the contacts they added, sees their own payments. |
 | **Agent** | A polling agent at one centre: their centre, assignments, events and payments. |
 | **Superuser** | Runs the installation from the console at `/console`. Has no campaign role and never sits on the campaign; a signed-in superuser always lands on the console. |
 
@@ -243,6 +243,17 @@ People get on the register three ways:
 Each contact stores the channel and the exact wording the server served (`services/consent.py`),
 never text from the client. The server refuses a record without consent.
 
+**Texts need their own opt-in.** Consent to hold details is not consent to text. Both sign-up
+forms show a second, optional box: "I agree to receive campaign text messages (SMS). I can stop
+them at any time." on the public pages, and "They agree to receive campaign text messages (SMS)
+and know they can stop them at any time." on the team's form. A ticked box sets `sms_consent`
+and stores that wording in `sms_consent_wording`.
+
+**Who sees which contacts.** The candidate and manager see the whole register, a coordinator
+their area, and a mobilizer only the contacts they signed up themselves (`mobilizer_id`). The
+list returns at most 200 rows a call, 50 when no limit is given, so no single call hands over
+the register.
+
 The public pages give the same answer whether or not the number was already on the register, so
 they never show who is registered. A device may try 20 sign-ups an hour (`api/routers/join.py`);
 the count is kept in memory, per server process.
@@ -251,9 +262,9 @@ the count is kept in memory, per server process.
 The page answers the same for any code, and a repeat sign-up's link removes nothing. The
 candidate or manager can text any contact their withdrawal link.
 
-**What consent allows.** Bulk texts go only to contacts whose consent wording covers texts: one
-that mentions SMS, text or contact. The team-entered wording does not, so those contacts are
-counted as "no consent" and get no bulk texts (section 7).
+**What consent allows.** Bulk texts, previews and the reachable counts on **Messages** cover only
+contacts with both consent and the SMS opt-in. The rest are counted as "no consent" and get no
+bulk texts (section 7).
 
 ---
 
@@ -298,7 +309,7 @@ sent by `services/sms_queue.py`.
    |---|---|
    | Candidate's name | The text does not contain the candidate's name as registered |
    | Language | Not English (`en`) or Kiswahili (`sw`) |
-   | Consent | Nobody in the audience consented in a wording that covers texts |
+   | Consent | Nobody in the audience has the SMS opt-in |
    | Opt-outs | Opted-out numbers are left out and counted |
    | Campaign period | Today is past `CAMPAIGN_PERIOD_END` |
    | Vetting | With `SMS_VETTING_REQUIRED=true`, the run waits as `awaiting_vetting` until a vetting reference is entered |

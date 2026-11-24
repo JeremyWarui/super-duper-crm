@@ -190,7 +190,7 @@ describe("the forms", () => {
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Wanjiku Njeri");
     await user.type(boxes[1], "+254700333444");
-    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("checkbox", { name: "Consent wording." }));
     await user.click(
       screen.getAllByRole("button", { name: "Add contact" }).at(-1),
     );
@@ -206,6 +206,7 @@ describe("the forms", () => {
         ward: "w1",
         support_level: "supporter",
         consent_given: true,
+        sms_consent: false,
         registration_centre: null,
       });
     });
@@ -355,7 +356,7 @@ describe("registering a supporter in an MCA race", () => {
     );
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Wanjiku Njeri");
-    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("checkbox", { name: "Consent wording." }));
     await screen.findByRole("option", { name: "Githurai Primary" });
   }
 
@@ -388,7 +389,7 @@ describe("registering a supporter in an MCA race", () => {
     await queryClient.invalidateQueries({ queryKey: ["targets"] });
     const boxes = await screen.findAllByRole("textbox");
     await user.type(boxes[0], "Wanjiku Njeri");
-    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("checkbox", { name: "Consent wording." }));
     await screen.findByRole("option", { name: "Githurai Primary" });
     await user.click(
       screen.getAllByRole("button", { name: "Add contact" }).at(-1),
@@ -471,7 +472,7 @@ describe("the routes", () => {
 
   it("opens the sign-up page at /join/:code without a login", async () => {
     stubApi({
-      "GET /join/x/": { campaign_title: "Jane for Roysambu", candidate_name: "Jane", event_title: "Town hall", ward_name: "Zimmerman", open: true, consent_wording: "Consent wording.", place: null, places: [] },
+      "GET /join/x/": { campaign_title: "Jane for Roysambu", candidate_name: "Jane", event_title: "Town hall", ward_name: "Zimmerman", open: true, consent_wording: "Consent wording.", sms_consent_wording: "Texts wording.", place: null, places: [] },
     });
     renderApp(<AppRoutes />, { path: "/join/x" });
 

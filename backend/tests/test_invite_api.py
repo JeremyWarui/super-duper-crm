@@ -38,6 +38,7 @@ async def _supporters(
                 support_level=level,
                 consent_given=consent,
                 consent_wording=WORDING[ConsentChannel.CAMPAIGN_LINK] if consent else None,
+                sms_consent=consent,
             )
         )
     await session.commit()
@@ -150,8 +151,9 @@ async def test_a_delivered_invitation_sets_the_number_reached(
     assert event.number_reached == 2
 
 
-async def test_a_dry_run_works_out_the_recipients_and_sends_nothing(
-    client: httpx.AsyncClient, session, world: World, gateway: DeliveringProvider
+@pytest.mark.parametrize("role", ["manager", "mobilizer"])
+async def test_a_dry_run_counts_the_recipients_sends_nothing_and_shows_no_number(
+    client: httpx.AsyncClient, session, world: World, gateway: DeliveringProvider, role: str
 ) -> None:
     event = await _event(session, world)
     await _supporters(
@@ -161,14 +163,16 @@ async def test_a_dry_run_works_out_the_recipients_and_sends_nothing(
     body = (
         await client.post(
             f"/api/events/{event.id}/invite/",
-            headers=world.headers("manager"),
+            headers=world.headers(role),
             json={"message": f"Hi. {NAME}", "dry_run": True},
         )
     ).json()
 
     assert body["dry_run"] is True
     assert body["requested"] == 1
-    assert body["accepted"][0]["status"] == "would send"
+    assert body["accepted"] == []
+    assert "712345678" not in str(body)
+    assert body["estimated_cost_cents"] == body["parts"] * 80
     assert body["delivered"] is False
     assert gateway.calls == []
     await session.refresh(event)

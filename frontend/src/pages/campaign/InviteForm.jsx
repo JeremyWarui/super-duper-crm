@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatNumber as fmt, plural } from "@/lib/format";
 import { useInviteToEvent } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
@@ -29,13 +29,16 @@ export default function InviteForm({ event, onClose }) {
   const [language, setLanguage] = useState("en");
   const [result, setResult] = useState(null);
 
-  const ok = composed(message).fits && !invite.isPending;
+  const ok = composed(message).fits && !invite.isPending && levels.length > 0;
+  const settings = { id: event.id, message: message.trim(), support_levels: levels, whole_campaign: wholeCampaign, language };
+  const current = JSON.stringify(settings);
+  const latest = useRef(current);
+  useEffect(() => { latest.current = current; }, [current]);
+  // Send shows only while the preview on screen was made for exactly these settings.
+  const previewed = result?.dry_run && result.settings === current ? result : null;
   const toggle = (key) => setLevels((L) => (L.includes(key) ? L.filter((k) => k !== key) : [...L, key]));
   const send = (dry) =>
-    invite.mutate(
-      { id: event.id, message: message.trim(), support_levels: levels, whole_campaign: wholeCampaign, dry_run: dry, language },
-      { onSuccess: setResult },
-    );
+    invite.mutate({ ...settings, dry_run: dry }, { onSuccess: (r) => { if (latest.current === current) setResult({ ...r, settings: current }); } });
 
   return (
     <Dialog title="Invite contacts" description={`${event.title} · ${wholeCampaign ? "whole campaign" : event.ward_name}`} onClose={onClose}>
@@ -55,6 +58,7 @@ export default function InviteForm({ event, onClose }) {
           <option value="sw">Kiswahili</option>
         </NativeSelect>
       </Field>
+      {canSend && !previewed && <p className="text-small text-muted-foreground">Preview first to see who it reaches and what it costs; Send appears after.</p>}
       <p className="text-small text-muted-foreground">The text must carry the candidate's name. It goes to contacts who agreed to be texted, in batches between 08:00 and 18:00.</p>
 
       {!canSend && <p className="text-small text-muted-foreground">Only the candidate or the campaign manager sends texts.</p>}
@@ -64,11 +68,15 @@ export default function InviteForm({ event, onClose }) {
       <FormActions>
         <Button variant="quiet" onClick={onClose}>Close</Button>
         <Button loading={invite.isPending} variant="quiet" onClick={() => send(true)} disabled={!ok}>{invite.isPending ? "Working…" : "Preview"}</Button>
-        {canSend && <Button loading={invite.isPending} disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : "Send"}</Button>}
+        {canSend && previewed && previewed.requested > 0 && (
+          <Button loading={invite.isPending} disabled={!ok} onClick={() => send(false)}>{invite.isPending ? "Sending…" : `Send to ${plural(previewed.requested, "person", "people")}`}</Button>
+        )}
       </FormActions>
     </Dialog>
   );
 }
+
+const kes = (cents) => `KES ${(cents / 100).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 function InviteResult({ result }) {
   const queued = !result.dry_run && result.run_status;
@@ -85,9 +93,12 @@ function InviteResult({ result }) {
         {" "}{plural(result.parts, "part")} each
         {result.opted_out > 0 && <> · {fmt(result.opted_out)} opted out, left out</>}
       </p>
+      <p className="text-small font-semibold" role="status">
+        {result.dry_run ? "Would cost" : "Estimated cost"} about {kes(result.estimated_cost_cents)}
+      </p>
       {result.rejected.length > 0 && (
         <p className="text-small text-bad-foreground">
-          {plural(result.rejected.length, "number")} unusable: {result.rejected.slice(0, 4).map((r) => r.phone || "(blank)").join(", ")}
+          {plural(result.rejected.length, "number")} unusable{result.dry_run ? "" : `: ${result.rejected.slice(0, 4).map((r) => r.phone || "(blank)").join(", ")}`}
         </p>
       )}
       {result.detail && <p className="text-small text-muted-foreground">{result.detail}</p>}

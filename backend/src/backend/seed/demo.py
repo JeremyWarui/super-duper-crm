@@ -27,7 +27,7 @@ from backend.models import (
 from backend.security import hash_password, new_password
 from backend.services.accounts import add_member, add_mobilizer
 from backend.services.admin import remove_campaign
-from backend.services.consent import WORDING
+from backend.services.consent import SMS_WORDING, WORDING
 from backend.services.targets import generate_targets
 
 DEMO_USERNAMES = ("aspirant", "manager", "mobilizer")
@@ -238,6 +238,9 @@ async def seed_ground_game(
                     consent_given=True,
                     consent_channel=ConsentChannel.MOBILIZER,
                     consent_wording=WORDING[ConsentChannel.MOBILIZER],
+                    # Most also agree to texts; the last of each four does not.
+                    sms_consent=n < 3,
+                    sms_consent_wording=SMS_WORDING[ConsentChannel.MOBILIZER] if n < 3 else None,
                 )
             )
 

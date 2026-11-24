@@ -18,7 +18,7 @@ const page = (canSend, messages = []) => ({
   sender_id: "PAMOJA", provider: "console", can_send: canSend, messages,
   wards: [{ id: "w1", name: "Zimmerman", supporters: 2 }, { id: "w2", name: "Kahawa West", supporters: 1 }],
 });
-const REACH = { recipients: 2, opted_out: 1, no_number: 0, text: "", parts: 1 };
+const REACH = { recipients: 2, opted_out: 1, no_number: 0, text: "", parts: 1, estimated_cost_cents: 160 };
 
 async function openMessages(role, routes) {
   signIn(role);
@@ -33,7 +33,7 @@ async function openMessages(role, routes) {
 const posted = (calls, path) => calls.find((c) => c.method === "POST" && c.path === path)?.body;
 
 describe("messages", () => {
-  it("sends a comms officer's text for approval, never straight out", async () => {
+  it("sends a comms officer's text for approval, never straight out, to the support levels picked", async () => {
     const { calls, user } = await openMessages("comms", {
       "GET /messages/?campaign=c1": page(false),
       "POST /messages/": { status: 201, body: { ...DRAFT, mine: true } },
@@ -41,30 +41,35 @@ describe("messages", () => {
 
     expect(screen.queryByRole("button", { name: "Send SMS" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Kahawa West" }));
+    await user.click(screen.getByRole("button", { name: "Opposed" }));
     await user.type(screen.getByRole("textbox", { name: /Message/ }), "Town hall on Saturday.");
     await user.click(screen.getByRole("button", { name: "Send for approval" }));
 
-    await waitFor(() => expect(posted(calls, "/messages/")).toEqual({ campaign: "c1", body: "Town hall on Saturday.", wards: ["w2"], send: false, language: "en" }));
+    await waitFor(() => expect(posted(calls, "/messages/")).toEqual({ campaign: "c1", body: "Town hall on Saturday.", wards: ["w2"], support_levels: ["supporter", "undecided", "opposed"], send: false, language: "en" }));
     expect(await screen.findByText("Saved. The candidate or manager sends it.")).toBeInTheDocument();
   });
 
-  it("lets the manager approve a draft, and send a new text only after confirming who it reaches", async () => {
+  it("lets the manager approve a draft or send a new text only after confirming who it reaches and the cost", async () => {
     const { calls, user } = await openMessages("manager", {
       "GET /messages/?campaign=c1": page(true, [DRAFT]),
+      "GET /messages/m1/preview/": REACH,
       "POST /messages/m1/send/": { status: 200, body: { ...DRAFT, status: "sent", recipients: 2 } },
       "POST /messages/": { status: 201, body: { ...DRAFT, status: "sent", recipients: 2 } },
     });
 
     const drafts = screen.getByRole("region", { name: "Waiting for approval" });
-    await user.click(within(drafts).getByRole("button", { name: "Approve and send" }));
+    await user.click(within(drafts).getByRole("button", { name: "Approve and send…" }));
+    expect(await within(drafts).findByText("2 people × 1 SMS part · about KES 1.60")).toBeInTheDocument();
+    await user.click(within(drafts).getByRole("button", { name: "Send now" }));
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/messages/m1/send/")).toBe(true));
 
     await user.type(screen.getByRole("textbox", { name: /Message/ }), "Polls open at 6.");
     await user.click(await screen.findByRole("button", { name: "Send SMS" }));
     expect(posted(calls, "/messages/")).toBeUndefined();
+    expect(await screen.findByText("2 people × 1 SMS part · about KES 1.60")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Send to 2 people" }));
 
-    await waitFor(() => expect(posted(calls, "/messages/")).toEqual({ campaign: "c1", body: "Polls open at 6.", wards: [], send: true, language: "en" }));
+    await waitFor(() => expect(posted(calls, "/messages/")).toEqual({ campaign: "c1", body: "Polls open at 6.", wards: [], support_levels: ["supporter", "undecided"], send: true, language: "en" }));
     expect(await screen.findByText("Approved for 2 contacts. It goes out in batches between 08:00 and 18:00.")).toBeInTheDocument();
   });
 });

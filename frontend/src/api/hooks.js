@@ -275,14 +275,20 @@ export const useCreateAssignment = () =>
 // Texts to supporters: drafts, approval and the delivery log.
 export const useMessages = (campaignId) => useFor("messages", campaignId, () => api(`/messages/?campaign=${campaignId}`));
 
-// Who a message to these wards would reach now; the wording does not change it.
-export const useMessageReach = (campaignId, wards) =>
+// Who a message to these wards and support levels would reach now, and what `body` would cost to send.
+export const useMessageReach = (campaignId, wards, support_levels, body = "-") =>
   useQuery({
-    queryKey: ["messages", "reach", campaignId, wards],
-    queryFn: () => api("/messages/preview/", { method: "POST", body: { campaign: campaignId, wards, body: "-" } }),
-    enabled: !!campaignId,
+    queryKey: ["messages", "reach", campaignId, wards, support_levels, body],
+    queryFn: () => api("/messages/preview/", { method: "POST", body: { campaign: campaignId, wards, support_levels, body } }),
+    enabled: !!campaignId && support_levels.length > 0,
+    // A price shown before sending is always fetched fresh.
+    staleTime: body === "-" ? undefined : 0,
     placeholderData: (previous) => previous,
   });
+
+// What approving a draft would reach and cost, inside its drafter's area.
+export const useDraftReach = (id) =>
+  useQuery({ queryKey: ["messages", "reach", "draft", id], queryFn: () => api(`/messages/${id}/preview/`), staleTime: 0, gcTime: 0 });
 
 export const useDraftMessage = () =>
   useWrite(

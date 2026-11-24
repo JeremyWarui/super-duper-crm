@@ -739,7 +739,8 @@ Approved texts and event invitations go out as runs through one queue. These rul
 every provider:
 
 - The text must carry the candidate's name as registered, and be marked English or Kiswahili.
-- Only contacts whose consent covers being contacted are texted; opted-out numbers are skipped.
+- Only contacts with the SMS opt-in (`supporters.sms_consent`) are texted; opted-out numbers are
+  skipped.
 - Texts go out in batches (`SMS_BATCH_SIZE`, at most 500) inside `SMS_WINDOW`, Nairobi time,
   never wider than 08:00-18:00. With `CAMPAIGN_PERIOD_START` and `CAMPAIGN_PERIOD_END` set
   (`YYYY-MM-DD`), nothing goes outside that period.

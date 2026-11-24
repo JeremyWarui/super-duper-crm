@@ -170,6 +170,7 @@ async def campaign_test(
                 Supporter.campaign_id == campaign_id,
                 Supporter.phone == number,
                 Supporter.consent_given.is_(True),
+                Supporter.sms_consent.is_(True),
             )
         )
         if member is None and supporter is None:

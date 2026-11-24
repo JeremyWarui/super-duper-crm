@@ -161,26 +161,46 @@ async def test_a_rival_campaign_cannot_write_into_this_register(
     assert await session.scalar(select(Supporter).where(Supporter.full_name == "Planted")) is None
 
 
-async def test_the_register_is_whole_for_the_candidate_and_manager_one_ward_for_a_mobilizer(
+async def test_the_register_is_whole_for_the_candidate_and_manager_own_sign_ups_for_a_mobilizer(
     client: httpx.AsyncClient, world: World
 ) -> None:
     head = world.headers("manager")
     await client.post("/api/supporters/", headers=head, json=_supporter(world))
-    await client.post(
+    signed = await client.post(
         "/api/supporters/",
-        headers=head,
-        json=_supporter(
-            world, ward=str(world.other_ward.id), full_name="Otieno K.", phone="+254700555666"
-        ),
+        headers=world.headers("mobilizer"),
+        json=_supporter(world, full_name="Otieno K.", phone="+254700555666"),
     )
 
     whole = (await client.get("/api/supporters/", headers=head)).json()
     own = (await client.get("/api/supporters/", headers=world.headers("mobilizer"))).json()
+    counted = (
+        await client.get("/api/supporters/summary/", headers=world.headers("mobilizer"))
+    ).json()
     candidate = (await client.get("/api/supporters/", headers=world.headers("candidate"))).json()
 
+    assert signed.status_code == 201, signed.text
     assert len(whole) == 2
-    assert [s["full_name"] for s in own] == ["Wanjiku Njeri"]
+    assert [s["full_name"] for s in own] == ["Otieno K."]
+    assert counted["total"] == 1
     assert len(candidate) == 2
+
+
+async def test_one_call_returns_at_most_a_page_of_contacts(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    session.add_all(
+        Supporter(campaign_id=world.campaign.id, ward_id=world.ward.id, full_name=f"C{n}")
+        for n in range(51)
+    )
+    await session.commit()
+    head = world.headers("manager")
+
+    default = await client.get("/api/supporters/", headers=head)
+    too_many = await client.get("/api/supporters/?limit=201", headers=head)
+
+    assert len(default.json()) == 50
+    assert too_many.status_code == 400
 
 
 async def _three_contacts(client: httpx.AsyncClient, world: World) -> None:
@@ -221,10 +241,11 @@ async def test_the_register_counts_only_what_the_caller_may_read(
     await _three_contacts(client, world)
 
     whole = (await client.get("/api/supporters/summary/", headers=world.headers("manager"))).json()
-    own = (await client.get("/api/supporters/summary/", headers=world.headers("mobilizer"))).json()
+    candidate = (
+        await client.get("/api/supporters/summary/", headers=world.headers("candidate"))
+    ).json()
 
-    assert whole == {"total": 3, "supporters": 2, "undecided": 1, "consent_missing": 0}
-    assert own == {"total": 1, "supporters": 1, "undecided": 0, "consent_missing": 0}
+    assert whole == candidate == {"total": 3, "supporters": 2, "undecided": 1, "consent_missing": 0}
 
 
 @pytest.mark.parametrize(

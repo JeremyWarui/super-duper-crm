@@ -1,12 +1,13 @@
 """Texts from a campaign to its supporters. Comms, Coordinators and the leads draft; only the
-Candidate or Manager sends. A message goes to supporters who consented, have a number and have
-not opted out, in the wards picked and inside the drafter's area."""
+Candidate or Manager sends. A message goes to supporters who opted in to texts, have a number and
+have not opted out, at the support levels and in the wards picked, inside the drafter's area."""
 
 import uuid
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.config import get_settings
 from backend.db.session import get_or_refuse
 from backend.models import (
     CampaignMessage,
@@ -14,6 +15,7 @@ from backend.models import (
     RegistrationCentre,
     SmsLog,
     Supporter,
+    SupportLevel,
     User,
     Ward,
 )
@@ -51,12 +53,16 @@ def _audience(
     *,
     with_phone: bool = True,
     consenting: bool = True,
+    levels: list | None = None,
 ) -> list:
     """The conditions on `supporters` for who a text may reach; `with_phone` drops the ones
-    with no number at all, and `consenting=False` keeps those who did not agree."""
+    with no number at all, `consenting=False` keeps those who did not opt in to texts, and
+    `levels` keeps those support levels (none given keeps every level)."""
     conditions = [Supporter.campaign_id == campaign_id]
     if consenting:
-        conditions.append(Supporter.consent_given.is_(True))
+        conditions += [Supporter.consent_given.is_(True), Supporter.sms_consent.is_(True)]
+    if levels:
+        conditions.append(Supporter.support_level.in_(levels))
     if with_phone:
         conditions.append(Supporter.phone != "")
     if wards:
@@ -67,14 +73,18 @@ def _audience(
 
 
 async def recipients(
-    session: AsyncSession, campaign_id: uuid.UUID, area: Area | None, wards: list[str | uuid.UUID]
+    session: AsyncSession,
+    campaign_id: uuid.UUID,
+    area: Area | None,
+    wards: list[str | uuid.UUID],
+    levels: list | None = None,
 ) -> tuple[list[str], int, int]:
     """The numbers a message goes to now, how many opted out, and how many have no usable
     number."""
     ward_ids = [uuid.UUID(str(w)) for w in wards]
     phones = list(
         await session.scalars(
-            select(Supporter.phone).where(*_audience(campaign_id, area, ward_ids))
+            select(Supporter.phone).where(*_audience(campaign_id, area, ward_ids, levels=levels))
         )
     )
     numbers, unusable = normalise_all(phones)
@@ -96,24 +106,32 @@ def invite_audience(
 
 
 async def reach(
-    session: AsyncSession, campaign_id: uuid.UUID, area: Area | None, wards: list, body: str
+    session: AsyncSession,
+    campaign_id: uuid.UUID,
+    area: Area | None,
+    wards: list,
+    body: str,
+    levels: list | None = None,
 ) -> dict:
+    """Who the text would reach now, the text they get and what sending it would cost."""
     await check_wards(session, area, wards)
-    numbers, blocked, unusable = await recipients(session, campaign_id, area, wards)
+    numbers, blocked, unusable = await recipients(session, campaign_id, area, wards, levels)
     text = texting.text_of(body)
+    parts = parts_of(text)
     return {
         "recipients": len(numbers),
         "opted_out": blocked,
         "no_number": unusable,
         "text": text,
-        "parts": parts_of(text),
+        "parts": parts,
+        "estimated_cost_cents": len(numbers) * parts * get_settings().sms_part_price_cents,
     }
 
 
 async def addressable_wards(
     session: AsyncSession, campaign_id: uuid.UUID, area: Area | None
 ) -> list[dict]:
-    """The wards the caller can text, with how many consenting supporters each has."""
+    """The wards the caller can text, with how many contacts in each opted in to texts."""
     rows = await session.execute(
         select(Ward.id, Ward.name, func.count(Supporter.id))
         .select_from(Supporter)
@@ -134,6 +152,7 @@ async def draft(
     *,
     actor: User,
     language: str = "en",
+    levels: list | None = None,
 ) -> CampaignMessage:
     await check_wards(session, area, wards)
     message = CampaignMessage(
@@ -141,6 +160,7 @@ async def draft(
         body=body.strip(),
         language=language,
         wards=[str(w) for w in dict.fromkeys(wards)],
+        support_levels=[str(level) for level in dict.fromkeys(levels or [])],
         drafted_by_id=actor.id,
     )
     session.add(message)
@@ -152,7 +172,7 @@ async def draft(
         subject_type="campaign_message",
         subject_id=message.id,
         campaign_id=campaign_id,
-        detail={"wards": message.wards},
+        detail={"wards": message.wards, "support_levels": message.support_levels},
     )
     await session.commit()
     return message
@@ -169,7 +189,13 @@ async def send(
     """Approve a draft: it passes the compliance gate and goes out as a run, inside the
     drafter's area (`services/sms_queue.py`)."""
     wards = [uuid.UUID(str(w)) for w in message.wards]
-    audience = _audience(message.campaign_id, drafter_area, wards, consenting=False)
+    audience = _audience(
+        message.campaign_id,
+        drafter_area,
+        wards,
+        consenting=False,
+        levels=[SupportLevel(level) for level in message.support_levels or []],
+    )
     await sms_queue.approve(
         session, message, audience, language=language or message.language, actor=actor
     )
@@ -241,6 +267,7 @@ async def listing(
         | {
             "wards": m.wards,
             "ward_names": [ward_names.get(uuid.UUID(w), "") for w in m.wards],
+            "support_levels": list(m.support_levels or []),
             "language": m.language,
         }
         for m in messages

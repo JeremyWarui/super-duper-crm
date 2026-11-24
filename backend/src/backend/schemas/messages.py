@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from backend.models.enums import SupportLevel
 from backend.schemas.common import ORMModel, WriteModel
 
 # Six parts with the opt-out line added.
@@ -21,6 +22,12 @@ class MessageDraft(WriteModel):
     send: bool = False
     # Bulk political texts go out in English or Kiswahili only.
     language: Literal["en", "sw"] = "en"
+    # Who it goes to by support level; opposed contacts only when picked.
+    support_levels: list[SupportLevel] = Field(
+        default_factory=lambda: [SupportLevel.SUPPORTER, SupportLevel.UNDECIDED],
+        min_length=1,
+        max_length=3,
+    )
 
 
 class MessageApprove(WriteModel):
@@ -41,6 +48,8 @@ class Reach(ORMModel):
     no_number: int
     text: str
     parts: int
+    # Recipients x parts x the price of one part.
+    estimated_cost_cents: int
 
 
 class AddressableWard(ORMModel):
@@ -76,6 +85,7 @@ class MessageRead(SmsDraftRead):
 
     wards: list[str]
     ward_names: list[str]
+    support_levels: list[str] = []
     status: Literal["draft", "sent", "declined"]
     language: str = "en"
 
@@ -84,6 +94,7 @@ class MessagesPage(ORMModel):
     sender_id: str
     provider: str
     can_send: bool
+    part_price_cents: int
     wards: list[AddressableWard]
     messages: list[MessageRead]
 

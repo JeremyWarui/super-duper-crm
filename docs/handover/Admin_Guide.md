@@ -267,7 +267,7 @@ slide before adding another. **Order** decides the order: lower numbers come fir
 | **Campaign Manager** | Runs the day to day across the whole campaign: targets, team, field work, payments, texts, calls, personal data. |
 | **Coordinator** | Works only the wards (or centres) they are given. Sees and works mobilizers, agents, contacts, events, assignments and payments in that area, approves sign-ups there, drafts texts, starts ward calls, schedules payments. Never sees ID numbers. |
 | **Comms officer** | Events (read only), drafts texts, starts calls, edits the website and settings. |
-| **Mobilizer** | Works one ward (or one centre in an MCA race): their events, adding contacts, their contacts, their payments. |
+| **Mobilizer** | Works one ward (or one centre in an MCA race): their events, adding contacts, the contacts they added (no one else's), their payments. |
 | **Agent** | A polling agent being readied for one registration centre: their centre, their events, their payments. |
 
 What each role may do, in detail ("area" means only inside the coordinator's area,
@@ -513,8 +513,14 @@ Every bulk text, including event invitations, goes through one queue with these 
   candidate's name as registered: *name*."
 - **Language.** Each text is marked **English** or **Kiswahili** under **Language**.
   Other languages are refused.
-- **Consent.** Only contacts whose consent covers being contacted are texted. Contacts
-  with no consent, or who opted out, are counted and left out.
+- **Consent.** Only contacts who ticked the separate SMS box are texted. Agreeing to have
+  their details kept is not enough. Contacts without the SMS opt-in, or who opted out, are
+  counted and left out.
+- **Support level.** **Support levels** on **New SMS** picks who gets it. **Supporter** and
+  **Undecided** are on to start; **Opposed** is off until you tap it.
+- **Cost before sending.** **Send SMS** (or **Approve and send…** on a draft) shows how many
+  people get it, how many SMS parts each, and the estimated cost. Nothing goes until you
+  press **Send to *n* people** (or **Send now**).
 - **Sending hours.** Texts go out between 08:00 and 18:00 Nairobi time, in batches. A run
   approved outside those hours shows **Waiting for the window** and the time it starts.
   When the IT person sets a campaign period, nothing is sent after it ends.
@@ -553,7 +559,7 @@ under **Bulk sends**.
   is opted out and never texted again by the campaign.
 - Contacts also get a private withdrawal link. The candidate or manager can open it
   from the **Contacts** page with **Withdrawal link**.
-- Contacts without consent are never texted.
+- Contacts without the SMS opt-in are never texted.
 
 ### Calls
 

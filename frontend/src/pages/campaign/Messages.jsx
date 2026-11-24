@@ -1,7 +1,7 @@
 // Texts to the campaign's contacts: Comms and Coordinators draft, the Candidate or Manager
 // approves and sends, and the delivery log shows what the gateway reported.
-import { useState } from "react";
-import { useDeclineMessage, useDeleteMessage, useDraftMessage, useMessageLog, useMessageReach, useMessages, useRunAction, useSendMessage, useSendTestText, useSmsRuns, useTestTexts } from "@/api/hooks";
+import { useEffect, useState } from "react";
+import { useDeclineMessage, useDeleteMessage, useDraftMessage, useDraftReach, useMessageLog, useMessageReach, useMessages, useRunAction, useSendMessage, useSendTestText, useSmsRuns, useTestTexts } from "@/api/hooks";
 import { download } from "@/api/client";
 import { ReasonForm } from "@/components/ui/confirm";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { FilterPills } from "@/components/ui/tabs";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { useDraft } from "@/lib/draft";
 import { formatDate, plural } from "@/lib/format";
+import { SUPPORT_LEVELS } from "@/lib/labels";
 import { composed, deliveryOf } from "@/lib/sms";
 import SendError from "./SendError";
 import { ErrorText } from "@/components/ui/error-text";
@@ -49,10 +50,12 @@ function senderLine(data) {
 }
 
 function Compose({ campaign, data }) {
-  const [form, setForm, clear] = useDraft(`message:${campaign.id}`, { body: "", wards: [], language: "en" });
+  const [form, setForm, clear] = useDraft(`message:${campaign.id}`, { body: "", wards: [], language: "en", support_levels: DEFAULT_LEVELS });
   const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState(null);
-  const reach = useMessageReach(campaign.id, form.wards);
+  const levels = form.support_levels || DEFAULT_LEVELS;
+  const reach = useMessageReach(campaign.id, form.wards, levels);
+  const priced = useMessageReach(campaign.id, form.wards, levels, confirming ? form.body.trim() : "-");
   const save = useDraftMessage();
   const count = reach.data?.recipients ?? null;
   const opted = reach.data?.opted_out ?? 0;
@@ -61,9 +64,10 @@ function Compose({ campaign, data }) {
 
   const change = (patch) => { setForm((f) => ({ ...f, ...patch })); setConfirming(false); setDone(null); };
   const toggle = (id) => change({ wards: form.wards.includes(id) ? form.wards.filter((w) => w !== id) : [...form.wards, id] });
+  const toggleLevel = (level) => change({ support_levels: levels.includes(level) ? levels.filter((l) => l !== level) : [...levels, level] });
   const submit = (send) =>
     save.mutate(
-      { campaign: campaign.id, body: form.body.trim(), wards: form.wards, send, language: form.language || "en" },
+      { campaign: campaign.id, body: form.body.trim(), wards: form.wards, support_levels: levels, send, language: form.language || "en" },
       { onSuccess: (m) => { clear(); setConfirming(false); setDone(send ? `Approved for ${plural(m.recipients, "contact")}. It goes out in batches between 08:00 and 18:00.` : "Saved. The candidate or manager sends it."); } },
     );
 
@@ -77,6 +81,9 @@ function Compose({ campaign, data }) {
           onChange={(id) => (id ? toggle(id) : change({ wards: [] }))}
         />
         {data.wards.length === 0 && <p className="text-small text-muted-foreground">No contact has agreed to texts yet.</p>}
+        <span className="mt-2 text-small font-semibold">Support level</span>
+        <FilterPills label="Support levels" options={SUPPORT_LEVELS} value={levels} onChange={toggleLevel} />
+        {levels.length === 0 && <p className="text-small text-muted-foreground">Pick at least one support level.</p>}
         <Field label="Language">
           <NativeSelect value={form.language || "en"} onChange={(e) => change({ language: e.target.value })}>
             {Object.entries(LANGUAGES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -89,17 +96,18 @@ function Compose({ campaign, data }) {
         {data.can_send ? (
           confirming ? (
             <>
-              <Button loading={save.isPending} disabled={!ready} onClick={() => submit(true)}>{save.isPending ? "Sending…" : `Send to ${plural(count ?? 0, "person", "people")}`}</Button>
+              <CostLine reach={priced} />
+              <Button loading={save.isPending} disabled={!ready || priced.isPlaceholderData || !priced.data || priced.isError || priced.isFetching} onClick={() => submit(true)}>{save.isPending ? "Sending…" : `Send to ${plural(priced.data?.recipients ?? 0, "person", "people")}`}</Button>
               <Button variant="quiet" onClick={() => setConfirming(false)}>Not yet</Button>
             </>
           ) : (
             <>
-              <Button disabled={!ready || !count} onClick={() => setConfirming(true)}>Send SMS</Button>
-              <Button variant="outline" disabled={!ready} onClick={() => submit(false)}>Save draft</Button>
+              <Button disabled={!ready || !count || levels.length === 0} onClick={() => setConfirming(true)}>Send SMS</Button>
+              <Button variant="outline" disabled={!ready || levels.length === 0} onClick={() => submit(false)}>Save draft</Button>
             </>
           )
         ) : (
-          <Button loading={save.isPending} disabled={!ready} onClick={() => submit(false)}>{save.isPending ? "Saving…" : "Send for approval"}</Button>
+          <Button loading={save.isPending} disabled={!ready || levels.length === 0} onClick={() => submit(false)}>{save.isPending ? "Saving…" : "Send for approval"}</Button>
         )}
       </div>
   );
@@ -107,7 +115,7 @@ function Compose({ campaign, data }) {
     <ComposePanel
       title="New SMS"
       picker={picker}
-      reach={<ReachLine count={count} who="contacts who agreed to hear from this campaign" left={[
+      reach={<ReachLine count={count} who="contacts who agreed to receive texts" left={[
         opted > 0 && `${plural(opted, "person", "people")} who opted out ${opted === 1 ? "is" : "are"} left out`,
         unusable > 0 && `${plural(unusable, "number")} unusable`,
       ]} />}
@@ -116,17 +124,42 @@ function Compose({ campaign, data }) {
       error={save.error && <SendError error={save.error} onRetry={() => submit(confirming)} />}
       done={done}
       actions={actions}
-      note="SMS only: WhatsApp's business platform doesn't allow political messaging. Messages go only to people who agreed to hear from this campaign."
+      note="SMS only: WhatsApp's business platform doesn't allow political messaging. Messages go only to people who agreed to receive texts from this campaign."
     />
   );
 }
 
 const LANGUAGES = { en: "English", sw: "Kiswahili" };
-const wardsOf = (m) => `${m.ward_names.length ? m.ward_names.join(", ") : "all wards"} · ${LANGUAGES[m.language] || "English"}`;
+const DEFAULT_LEVELS = ["supporter", "undecided"];
+const LEVEL_NAMES = Object.fromEntries(SUPPORT_LEVELS);
+const levelsOf = (m) => (m.support_levels?.length ? m.support_levels.map((l) => LEVEL_NAMES[l] || l).join(", ") : "every support level");
+const wardsOf = (m) => `${m.ward_names.length ? m.ward_names.join(", ") : "all wards"} · ${levelsOf(m)} · ${LANGUAGES[m.language] || "English"}`;
+
+// What sending would cost: recipients × SMS parts × the price of one part.
+function CostLine({ reach }) {
+  if (reach.error) return <ErrorText error={reach.error} />;
+  if (!reach.data || reach.isPlaceholderData) return <span className="w-full text-small text-muted-foreground">Working out the cost…</span>;
+  const r = reach.data;
+  return (
+    <p className="w-full text-small font-semibold" role="status">
+      {plural(r.recipients, "person", "people")} × {plural(r.parts, "SMS part")} · about {kes(r.estimated_cost_cents)}
+    </p>
+  );
+}
+
+// The confirm line for approving a draft, priced on the draft's own text and audience; `onReady`
+// hears whether the price is on screen.
+function DraftCost({ message, onReady }) {
+  const reach = useDraftReach(message.id);
+  const shown = !!reach.data && !reach.isPlaceholderData && !reach.error;
+  useEffect(() => onReady(shown), [shown, onReady]);
+  return <CostLine reach={reach} />;
+}
 
 function Drafts({ data }) {
   return (
     <DraftList
+      cost={(m, ready) => <DraftCost message={m} onReady={ready} />}
       drafts={data.messages.filter((m) => m.status === "draft")}
       about={wardsOf}
       decide={() => data.can_send}

@@ -106,7 +106,7 @@ export default function Supporters({ campaign, role, mine, onModal }) {
                         </select>
                       )}</TD>
                     )}
-                    <TD>{s.erased_at ? <Badge tone="stone">Erased</Badge> : s.consent_given ? <Badge tone="ok">Given</Badge> : <Badge tone="bad">Missing</Badge>}</TD>
+                    <TD>{s.erased_at ? <Badge tone="stone">Erased</Badge> : s.consent_given ? <span className="inline-flex flex-wrap gap-1"><Badge tone="ok">Given</Badge>{s.sms_consent && <Badge tone="info">SMS</Badge>}</span> : <Badge tone="bad">Missing</Badge>}</TD>
                     {keeper && (
                       <TD align="right">
                         {!s.erased_at && (

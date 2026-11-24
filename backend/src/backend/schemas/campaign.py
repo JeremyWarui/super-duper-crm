@@ -221,6 +221,7 @@ class SupporterRead(Erasable, ORMModel):
     phone: str
     support_level: SupportLevel
     consent_given: bool
+    sms_consent: bool
     created_at: datetime
 
 
@@ -237,6 +238,7 @@ class ConsentWording(ORMModel):
     """The wording a sign-up form shows beside its consent box."""
 
     consent_wording: str
+    sms_consent_wording: str
 
 
 class SupporterPlace(WriteModel):
@@ -252,6 +254,8 @@ class SupporterCreate(WriteModel):
     phone: str = Field(default="", max_length=20)
     support_level: SupportLevel = SupportLevel.UNDECIDED
     consent_given: consent()
+    # Ticked only when they also agree to campaign texts.
+    sms_consent: bool = False
 
 
 class EventInvite(WriteModel):
@@ -259,8 +263,12 @@ class EventInvite(WriteModel):
 
     # Six SMS parts with the opt-out line added.
     message: str = Field(min_length=1, max_length=BODY_MAX)
-    # Blank invites everyone in the event's ward.
-    support_levels: list[SupportLevel] = Field(default_factory=list)
+    # Who gets it by support level; opposed contacts only when picked.
+    support_levels: list[SupportLevel] = Field(
+        default_factory=lambda: [SupportLevel.SUPPORTER, SupportLevel.UNDECIDED],
+        min_length=1,
+        max_length=3,
+    )
     whole_campaign: bool = False
     dry_run: bool = False
     # Bulk political texts go out in English or Kiswahili only; the sender confirms which.
@@ -292,6 +300,8 @@ class EventInviteResult(ORMModel):
     # How many numbers the run holds, and where it stands; None for a preview.
     queued: int = 0
     run_status: str | None = None
+    # Numbers to text x parts x the price of one part.
+    estimated_cost_cents: int = 0
 
 
 class TargetRefresh(WriteModel):

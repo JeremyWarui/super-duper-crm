@@ -27,6 +27,7 @@ export default function Join({ code }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
+  const [texts, setTexts] = useState(false);
   const [place, setPlace] = useState("");
   // A campaign's link asks where the person votes: a ward is required, a centre is optional.
   const ok = name.trim() && phone.trim() && consent && (page.data?.place !== "ward" || place);
@@ -76,11 +77,14 @@ export default function Join({ code }) {
       <Check className="text-ui leading-[1.5] text-muted-foreground" checked={consent} onChange={(e) => setConsent(e.target.checked)}>
         {p.consent_wording}
       </Check>
+      <Check className="text-ui leading-[1.5] text-muted-foreground" checked={texts} onChange={(e) => setTexts(e.target.checked)}>
+        {p.sms_consent_wording} (optional)
+      </Check>
       <ErrorText error={join.error} className="text-small" />
       <Button loading={join.isPending}
         className="w-full"
         disabled={!ok || join.isPending}
-        onClick={() => join.mutate({ full_name: name.trim(), phone: phone.trim(), consent_given: true, place: place || null })}
+        onClick={() => join.mutate({ full_name: name.trim(), phone: phone.trim(), consent_given: true, sms_consent: texts, place: place || null })}
       >
         {join.isPending ? "Signing up…" : "Sign up"}
       </Button>

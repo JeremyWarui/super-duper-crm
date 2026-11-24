@@ -45,7 +45,7 @@ describe("registering a supporter in the field", () => {
     const user = userEvent.setup();
     renderApp(<App />, { path: "/campaign/register" });
     await user.type(await screen.findByRole("textbox", { name: "Full name" }), "Wanjiku Njeri");
-    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("checkbox", { name: "Consent wording." }));
     offline.on = true;
 
     await user.click(screen.getByRole("button", { name: "Add contact" }));
@@ -66,7 +66,7 @@ describe("registering a supporter in the field", () => {
     const user = userEvent.setup();
     renderApp(<App />, { path: "/campaign/register" });
     await user.type(await screen.findByRole("textbox", { name: "Full name" }), "Wanjiku Njeri");
-    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("checkbox", { name: "Consent wording." }));
 
     await user.click(screen.getByRole("button", { name: "Add contact" }));
 

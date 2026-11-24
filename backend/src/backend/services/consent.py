@@ -10,6 +10,18 @@ WORDING: dict[ConsentChannel, str] = {
     ConsentChannel.MOBILIZER: "Consent to hold these details under the Data Protection Act, 2019.",
 }
 
+# The separate opt-in to campaign texts: on a public sign-up page, and on a mobilizer's form.
+_PUBLIC_SMS = "I agree to receive campaign text messages (SMS). I can stop them at any time."
+
+SMS_WORDING: dict[ConsentChannel, str] = {
+    ConsentChannel.EVENT_QR: _PUBLIC_SMS,
+    ConsentChannel.CAMPAIGN_LINK: _PUBLIC_SMS,
+    ConsentChannel.MOBILIZER: (
+        "They agree to receive campaign text messages (SMS) and know they can stop them at any "
+        "time."
+    ),
+}
+
 # The website's volunteer form.
 CAMPAIGN_VOLUNTEER_WORDING = (
     "I agree that this campaign may contact me about volunteering, by the method I chose. "

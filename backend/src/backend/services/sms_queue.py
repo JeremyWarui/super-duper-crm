@@ -38,8 +38,6 @@ logger = logging.getLogger(__name__)
 
 NAIROBI = ZoneInfo("Africa/Nairobi")
 LANGUAGES = {"en": "English", "sw": "Kiswahili"}
-# Words in a consent wording that show it covers being texted.
-COVERS_SMS = ("sms", "text", "contact")
 FINAL = {"halted", "completed"}
 
 NO_NAME = "The text must carry the candidate's name as registered: {name}."
@@ -52,12 +50,6 @@ NOBODY = "Nobody in this audience has agreed to be texted."
 def clock() -> datetime:
     """The time now; the one place the queue reads the clock."""
     return datetime.now(UTC)
-
-
-def covers_sms(wording: str | None) -> bool:
-    """Whether a consent wording covers being texted."""
-    text = (wording or "").lower()
-    return any(word in text for word in COVERS_SMS)
 
 
 def window(settings: Settings | None = None) -> tuple[time, time]:
@@ -125,23 +117,23 @@ class Audience:
 
 async def plan_audience(session: AsyncSession, campaign_id: uuid.UUID, audience: list) -> Audience:
     """Sort everyone the conditions match into the numbers to text and the ones left out; only
-    supporters whose consent wording covers texts are texted, and opted-out numbers never."""
+    supporters who opted in to texts are texted, and opted-out numbers never."""
     people = (
         await session.execute(
             select(
-                Supporter.id, Supporter.phone, Supporter.consent_given, Supporter.consent_wording
+                Supporter.id, Supporter.phone, Supporter.consent_given, Supporter.sms_consent
             ).where(*audience)
         )
     ).all()
     consenting: dict[str, uuid.UUID] = {}
     no_consent = 0
     unusable: list[str] = []
-    for supporter_id, phone, given, wording in people:
+    for supporter_id, phone, given, texts in people:
         number = normalise_phone(phone)
         if number is None:
             unusable.append(phone or "")
             continue
-        if not (given and covers_sms(wording)):
+        if not (given and texts):
             no_consent += 1
             continue
         consenting.setdefault(number, supporter_id)
@@ -290,17 +282,17 @@ async def _reclaim_stale(session: AsyncSession, run_id: uuid.UUID, now: datetime
 async def _still_consenting(session: AsyncSession, rows: list[SmsOutbox]) -> set[uuid.UUID]:
     """The rows whose supporter still exists, keeps that number and still consents to texts."""
     people = {
-        supporter_id: (phone, given, wording)
-        for supporter_id, phone, given, wording in await session.execute(
+        supporter_id: (phone, given, texts)
+        for supporter_id, phone, given, texts in await session.execute(
             select(
-                Supporter.id, Supporter.phone, Supporter.consent_given, Supporter.consent_wording
+                Supporter.id, Supporter.phone, Supporter.consent_given, Supporter.sms_consent
             ).where(Supporter.id.in_([r.supporter_id for r in rows if r.supporter_id]))
         )
     }
     ok = set()
     for row in rows:
-        phone, given, wording = people.get(row.supporter_id, ("", False, None))
-        if given and covers_sms(wording) and normalise_phone(phone) == row.phone:
+        phone, given, texts = people.get(row.supporter_id, ("", False, False))
+        if given and texts and normalise_phone(phone) == row.phone:
             ok.add(row.id)
     return ok
 
@@ -588,7 +580,7 @@ async def runs(session: AsyncSession, campaign_id: uuid.UUID) -> list[dict]:
 
 
 async def consent_csv(session: AsyncSession, run: SmsRun) -> str:
-    """Each number in the run with the consent it was texted on."""
+    """Each number in the run with the SMS opt-in it was texted on."""
     rows = (
         await session.execute(
             select(
@@ -597,7 +589,7 @@ async def consent_csv(session: AsyncSession, run: SmsRun) -> str:
                 Supporter.full_name,
                 Supporter.created_at,
                 Supporter.consent_channel,
-                Supporter.consent_wording,
+                Supporter.sms_consent_wording,
             )
             .outerjoin(Supporter, Supporter.id == SmsOutbox.supporter_id)
             .where(SmsOutbox.run_id == run.id)

@@ -126,6 +126,7 @@ async def test_a_signed_delivery_report_lands_once_and_anything_else_changes_not
                 phone=phone,
                 consent_given=True,
                 consent_wording=WORDING[ConsentChannel.CAMPAIGN_LINK],
+                sms_consent=True,
             )
         )
     await session.commit()

@@ -85,7 +85,8 @@
       "image_url"
     ],
     "GET /api/supporters/consent-wording/": [
-      "consent_wording"
+      "consent_wording",
+      "sms_consent_wording"
     ],
     "GET /api/supporters/summary/": [
       "total",
@@ -99,7 +100,8 @@
       "phone",
       "support_level",
       "consent_given",
-      "erased_at"
+      "erased_at",
+      "sms_consent"
     ],
     "GET /api/strategy/": [
       "win_number",
@@ -130,7 +132,8 @@
       "rejected",
       "detail",
       "number_reached",
-      "run_status"
+      "run_status",
+      "estimated_cost_cents"
     ],
     "POST /api/users/": [
       "id",
@@ -238,7 +241,8 @@
       "consent_wording",
       "place",
       "places",
-      "national"
+      "national",
+      "sms_consent_wording"
     ],
     "GET /api/campaigns/{campaign_id}/team/": [
       "id",
@@ -734,7 +738,9 @@
     "POST /api/messages/preview/": [
       "recipients",
       "opted_out",
-      "no_number"
+      "no_number",
+      "parts",
+      "estimated_cost_cents"
     ],
     "POST /api/messages/": [
       "recipients"
@@ -972,6 +978,11 @@
       "ward",
       "ward_name",
       "signup_code"
+    ],
+    "GET /api/messages/{message_id}/preview/": [
+      "recipients",
+      "parts",
+      "estimated_cost_cents"
     ]
   },
   "nested_reads": {
@@ -1129,7 +1140,8 @@
       "note",
       "recipients",
       "delivery",
-      "mine"
+      "mine",
+      "support_levels"
     ],
     "GET /api/payments/reconciliation/.last_run": [
       "created_at",
@@ -1202,7 +1214,8 @@
       "phone",
       "support_level",
       "consent_given",
-      "registration_centre"
+      "registration_centre",
+      "sms_consent"
     ],
     "PATCH /api/supporters/{supporter_id}/": [
       "registration_centre"
@@ -1260,7 +1273,8 @@
       "full_name",
       "phone",
       "consent_given",
-      "place"
+      "place",
+      "sms_consent"
     ],
     "POST /api/events/{event_id}/signups/": [
       "open"
@@ -1521,12 +1535,14 @@
       "body",
       "language",
       "send",
-      "wards"
+      "wards",
+      "support_levels"
     ],
     "POST /api/messages/preview/": [
       "campaign",
       "wards",
-      "body"
+      "body",
+      "support_levels"
     ],
     "POST /api/messages/{message_id}/decline/": [
       "note"

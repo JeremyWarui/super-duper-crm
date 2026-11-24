@@ -8,6 +8,7 @@ from sqlalchemy import Select, func, or_, select
 
 from backend.api.deps import SessionDep, require
 from backend.api.scope import (
+    NOBODY,
     all_rows,
     own_ground_row,
     require_campaign_mobilizer,
@@ -20,7 +21,7 @@ from backend.api.scope import (
     require_ward_in_campaign,
     scoped,
 )
-from backend.models import Mobilizer, OperationalGrain, Supporter, SupportLevel, User
+from backend.models import Mobilizer, OperationalGrain, Supporter, SupportLevel, User, UserRole
 from backend.schemas.campaign import (
     ConsentWording,
     SupporterCounts,
@@ -30,13 +31,33 @@ from backend.schemas.campaign import (
 )
 from backend.security import new_withdraw_code
 from backend.services import privacy
-from backend.services.consent import WORDING, ConsentChannel
-from backend.services.errors import PHONE_ON_REGISTER, Refused, refuse_erased
+from backend.services.consent import SMS_WORDING, WORDING, ConsentChannel
+from backend.services.errors import PHONE_ON_REGISTER, NotFound, Refused, refuse_erased
 from backend.services.sms import normalise_phone
 
 router = APIRouter(prefix="/supporters", tags=["supporters"])
 Reader = Annotated[User, Depends(require("supporters.read"))]
 Writer = Annotated[User, Depends(require("supporters.write"))]
+
+# The most rows one call returns.
+PAGE_MAX = 200
+
+
+def _own_only(statement: Select, user: User) -> Select:
+    """A mobilizer's view: only the contacts they signed up."""
+    if user.role is not UserRole.MOBILIZER:
+        return statement
+    profile = user.mobilizer_profile
+    return statement.where(Supporter.mobilizer_id == (profile.id if profile else NOBODY))
+
+
+async def _visible_rows(
+    session: SessionDep, user: User, statement: Select, campaign: uuid.UUID | None
+) -> Select:
+    scoped_statement = await scoped(
+        session, user, statement, Supporter, campaign, "supporters.read"
+    )
+    return _own_only(scoped_statement, user)
 
 
 def _matching(statement: Select, q: str | None) -> Select:
@@ -58,20 +79,15 @@ async def list_supporters(
     campaign: uuid.UUID | None = None,
     q: Annotated[str | None, Query(max_length=100)] = None,
     support_level: SupportLevel | None = None,
-    limit: Annotated[int | None, Query(ge=1, le=200)] = None,
+    limit: Annotated[int, Query(ge=1, le=PAGE_MAX)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[Supporter]:
-    """Newest first; every row unless `limit` is given."""
-    statement = await scoped(
-        session, user, select(Supporter), Supporter, campaign, "supporters.read"
-    )
-    statement = _matching(statement, q)
+    """Newest first, `limit` rows at a time."""
+    statement = _matching(await _visible_rows(session, user, select(Supporter), campaign), q)
     if support_level is not None:
         statement = statement.where(Supporter.support_level == support_level)
-    statement = statement.order_by(Supporter.created_at.desc(), Supporter.id).offset(offset)
-    if limit is not None:
-        statement = statement.limit(limit)
-    return await all_rows(session, statement)
+    statement = statement.order_by(Supporter.created_at.desc(), Supporter.id)
+    return await all_rows(session, statement.offset(offset).limit(limit))
 
 
 @router.get("/summary/", response_model=SupporterCounts)
@@ -88,9 +104,7 @@ async def count_supporters(
         func.count().filter(level == SupportLevel.UNDECIDED),
         func.count().filter(Supporter.consent_given.is_(False)),
     ).select_from(Supporter)
-    statement = _matching(
-        await scoped(session, user, counts, Supporter, campaign, "supporters.read"), q
-    )
+    statement = _matching(await _visible_rows(session, user, counts, campaign), q)
     total, supporters, undecided, missing = (await session.execute(statement)).one()
     return SupporterCounts(
         total=total, supporters=supporters, undecided=undecided, consent_missing=missing
@@ -100,7 +114,10 @@ async def count_supporters(
 @router.get("/consent-wording/", response_model=ConsentWording)
 async def consent_wording(user: Writer) -> ConsentWording:
     """The wording a mobilizer's sign-up form shows and the server records."""
-    return ConsentWording(consent_wording=WORDING[ConsentChannel.MOBILIZER])
+    return ConsentWording(
+        consent_wording=WORDING[ConsentChannel.MOBILIZER],
+        sms_consent_wording=SMS_WORDING[ConsentChannel.MOBILIZER],
+    )
 
 
 @router.post("/", response_model=SupporterRead, status_code=status.HTTP_201_CREATED)
@@ -146,6 +163,8 @@ async def register_supporter(
         consent_given=payload.consent_given,
         consent_channel=ConsentChannel.MOBILIZER,
         consent_wording=WORDING[ConsentChannel.MOBILIZER],
+        sms_consent=payload.sms_consent,
+        sms_consent_wording=SMS_WORDING[ConsentChannel.MOBILIZER] if payload.sms_consent else None,
         withdraw_code=new_withdraw_code(),
     )
     session.add(supporter)
@@ -165,6 +184,10 @@ async def place_supporter(
         session, user, Supporter, supporter_id, "supporter", "supporters.write"
     )
     refuse_erased(supporter)
+    if user.role is UserRole.MOBILIZER and supporter.mobilizer_id != (
+        user.mobilizer_profile.id if user.mobilizer_profile else NOBODY
+    ):
+        raise NotFound("No such supporter.")
     campaign = await require_visible_campaign(session, user, supporter.campaign_id)
     if campaign.operational_grain is not OperationalGrain.CENTRE:
         raise Refused("Only an MCA race files contacts per centre.")

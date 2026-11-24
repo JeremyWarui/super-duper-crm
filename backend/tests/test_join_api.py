@@ -67,6 +67,26 @@ async def test_a_qr_sign_up_stores_the_wording_the_page_served_and_its_channel(
     assert served
 
 
+async def test_the_sms_opt_in_is_its_own_box_and_stores_its_own_wording(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    event = await _event(session, world)
+
+    page = (await client.get(f"/api/join/{event.signup_code}/")).json()
+    await client.post(f"/api/join/{event.signup_code}/", json=_person(sms_consent=True))
+    await client.post(f"/api/join/{event.signup_code}/", json=_person(phone="0722 000111"))
+    rows = {s.phone: s for s in await session.scalars(select(Supporter))}
+
+    assert page["sms_consent_wording"] != page["consent_wording"]
+    texts, holds = rows["+254712345678"], rows["+254722000111"]
+    assert (texts.sms_consent, texts.sms_consent_wording) == (True, page["sms_consent_wording"])
+    assert (holds.consent_given, holds.sms_consent, holds.sms_consent_wording) == (
+        True,
+        False,
+        None,
+    )
+
+
 async def test_a_closed_or_unconsented_sign_up_is_refused(
     client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:

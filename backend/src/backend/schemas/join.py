@@ -23,6 +23,7 @@ class JoinRead(BaseModel):
     ward_name: str
     open: bool
     consent_wording: str
+    sms_consent_wording: str
     place: Literal["ward", "centre"] | None = None
     national: bool = False
     places: list[JoinPlace] = []
@@ -34,6 +35,7 @@ class JoinCreate(WriteModel):
     ]
     phone: Phone
     consent_given: consent()
+    sms_consent: bool = False
     # The ward or centre picked on a campaign's link; ignored on an event's.
     place: uuid.UUID | None = None
 

@@ -16,7 +16,7 @@ from backend.models import (
     SupportLevel,
     UserRole,
 )
-from backend.services.consent import WORDING
+from backend.services.consent import SMS_WORDING, WORDING
 from backend.services.errors import Refused
 from backend.services.sms import require_phone
 from backend.services.targets import wards_in_area
@@ -87,6 +87,8 @@ async def seed_demo_texting(session: AsyncSession, phones: list[str]) -> DemoTex
             consent_given=True,
             consent_channel=ConsentChannel.CAMPAIGN_LINK,
             consent_wording=WORDING[ConsentChannel.CAMPAIGN_LINK],
+            sms_consent=True,
+            sms_consent_wording=SMS_WORDING[ConsentChannel.CAMPAIGN_LINK],
         )
         for n, number in enumerate(numbers, start=1)
     )
@@ -97,7 +99,11 @@ async def seed_demo_texting(session: AsyncSession, phones: list[str]) -> DemoTex
     )
     session.add_all(
         CampaignMessage(
-            campaign_id=campaign.id, body=body, wards=[str(ward.id)], drafted_by_id=drafter
+            campaign_id=campaign.id,
+            body=body,
+            wards=[str(ward.id)],
+            support_levels=["supporter", "undecided"],
+            drafted_by_id=drafter,
         )
         for body in (UNNAMED, NAMED.format(name=name))
     )
