@@ -53,7 +53,7 @@ Use these exactly. Tailwind classes are given where a token exists.
 ### Page frame
 | Thing | Value | Class |
 |---|---|---|
-| Website content width | 1440px max including side padding (16px on a phone, up to 40px on a laptop); wider screens centre it | `site-container` |
+| Website content width | 1600px max including side padding (16px on a phone, up to 40px on a laptop); wider screens centre it | `site-container` |
 | Single-task flows | 1100–1200px max | `max-w-form` / `max-w-[1200px]` |
 | CRM sidebar | 248px (desktop); 280px drawer on phones | `md:w-sidebar` |
 | CRM content padding | 32px sides (16px on a phone), 28px top, 40px bottom | `px-app pt-7 pb-10` |
