@@ -42,6 +42,7 @@ from backend.services.audit import record
 from backend.services.errors import NotFound, Refused
 from backend.services.geography import places
 from backend.services.login_links import send_link
+from backend.services.notices import signup_waiting
 from backend.services.permissions import Area, narrow
 from backend.services.sms import require_phone
 from backend.services.targets import require_centre, require_targeted, require_ward
@@ -163,6 +164,10 @@ async def register(session: AsyncSession, campaign: Campaign, details: dict) -> 
         raise Refused(
             "That phone number or ID number is already signed up to this team."
         ) from clash
+    name = f"{details['first_name']} {details['last_name']}".strip()
+    await signup_waiting(
+        session, campaign.id, ward_id, centre_id, name, FieldRole(details["role"].value).label
+    )
 
 
 async def registrations(

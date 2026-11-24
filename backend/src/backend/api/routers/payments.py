@@ -40,7 +40,14 @@ from backend.schemas.payment import (
     ReleaseCheck,
     ReleaseCheckRequest,
 )
-from backend.services import assignments, payment_routing, payments_in, payout_flow, reconcile
+from backend.services import (
+    assignments,
+    notices,
+    payment_routing,
+    payments_in,
+    payout_flow,
+    reconcile,
+)
 from backend.services.audit import record
 from backend.services.errors import Forbidden, NotFound, Refused
 from backend.services.payout_flow import OPEN
@@ -146,6 +153,9 @@ async def schedule_payment(payload: PaymentCreate, session: SessionDep, user: Sc
         detail={"amount_kes": payment.amount_kes, "approver": approver.value},
     )
     await session.commit()
+    await notices.payment_waiting(
+        session, campaign.id, approver, user.id, name, payment.amount_kes, work.label
+    )
     return payment
 
 

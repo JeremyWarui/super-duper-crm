@@ -12,6 +12,7 @@ from backend.models import User
 from backend.schemas.announcements import AnnouncementRead, AnnouncementSend, AnnouncementSent
 from backend.services import announcements, push, units
 from backend.services.errors import Refused
+from backend.services.notices import preview
 from backend.services.permissions import reach
 
 router = APIRouter(tags=["announcements"])
@@ -42,7 +43,7 @@ async def send(
         session,
         recipients,
         f"Announcement: {announcement.title}",
-        announcement.body[:120],
+        preview(announcement.body),
         announcements.PAGE,
     )
     listed = await announcements.listing(session, campaign_id, user, area, sender=True)

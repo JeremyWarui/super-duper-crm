@@ -56,28 +56,38 @@ export function useShellData(campaign, role) {
 export const AreaContext = createContext({ area: null, setArea: () => {}, wards: [] });
 export const useWorkspaceArea = () => useContext(AreaContext);
 
-/** What needs the role now: wards with no mobilizer, and past events not yet recorded. */
-export function workspaceAlerts(data, role) {
+/** A stored notice as the bell and its page show it. */
+const noteOf = (n) => ({ key: `notice-${n.id}`, id: n.id, text: n.text, to: n.url, detail: n.detail || "", sender: n.sender || "", at: n.created_at, read: !!n.read_at });
+
+/**
+ * What the bell holds: `fresh` unread notices, `earlier` read ones, and `todo`, the work the
+ * role has open (wards with no mobilizer, past events not recorded) in the picked `area`.
+ * Only `fresh` counts on a badge.
+ */
+export function workspaceInbox(data, role, area = null) {
   const pages = new Set(pagesOf(role).map(([key]) => key));
-  const out = (data.notices || []).map((n) => ({ key: `notice-${n.id}`, text: n.text, to: n.url }));
+  const notes = (data.notices || []).map(noteOf);
+  const todo = [];
   const s = data.strategy;
-  const empty = s ? s.unit_count - s.staffed_count : 0;
-  if (empty && pages.has("mobilizers")) {
-    const only = empty === 1 && s.units.find((u) => !u.has_mobilizer);
-    out.push({ key: "unstaffed", text: only ? `${only.unit} has no mobilizer` : `${empty} ${empty === 1 ? "ward has" : "wards have"} no mobilizer`, to: "/campaign/mobilizers" });
+  const units = s ? s.units.filter((u) => !area || u.ward === area) : [];
+  const unstaffed = units.filter((u) => !u.has_mobilizer);
+  if (unstaffed.length && pages.has("mobilizers")) {
+    const n = unstaffed.length;
+    const places = unstaffed[0].registration_centre ? "centres" : "wards";
+    todo.push({ key: "unstaffed", text: n === 1 ? `${unstaffed[0].unit} has no mobilizer` : `${n} ${places} have no mobilizer`, to: "/campaign/mobilizers" });
   }
   const eventsPage = pages.has("events") ? "events" : pages.has("myevents") && role === "mobilizer" ? "myevents" : null;
-  const unrecorded = data.events.filter((e) => e.status === "planned" && e.scheduled_date && e.scheduled_date.slice(0, 10) < nairobiDate());
+  const unrecorded = data.events.filter((e) => e.status === "planned" && e.scheduled_date && e.scheduled_date.slice(0, 10) < nairobiDate() && (!area || e.ward === area));
   if (unrecorded.length && eventsPage && role !== "comms") {
-    out.push({ key: "unrecorded", text: unrecorded.length === 1 ? `Record attendance: ${unrecorded[0].title}` : `${unrecorded.length} past events need their attendance recorded`, to: `/campaign/${eventsPage}` });
+    todo.push({ key: "unrecorded", text: unrecorded.length === 1 ? `Record attendance: ${unrecorded[0].title}` : `${unrecorded.length} past events need their attendance recorded`, to: `/campaign/${eventsPage}` });
   }
-  return out;
+  return { fresh: notes.filter((n) => !n.read), earlier: notes.filter((n) => n.read), todo };
 }
 
 /** Opening the page a notice points to marks it read. */
 export function useReadNoticesOn(path, notices) {
   const read = useReadNotice();
-  const due = notices.filter((n) => n.url === path).map((n) => n.id).join(",");
+  const due = notices.filter((n) => n.url === path && !n.read_at).map((n) => n.id).join(",");
   useEffect(() => {
     if (due) due.split(",").forEach((id) => read.mutate(id));
     // eslint-disable-next-line react-hooks/exhaustive-deps

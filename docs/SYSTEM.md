@@ -219,9 +219,24 @@ result behind it, the reliability badge, Low, Expected and High buttons, the maj
 typical winner and "Team is working to". Trying a scenario shows the banner "Previewing High
 turnout. Your team is working to Expected. Nothing is saved." with each unit's change; **Use this
 scenario** (candidate, manager) opens a confirmation listing the seat target change and the units
-affected, with a warning when the election is less than 30 days away. Notices appear under the
-bell and clear when their page is opened. A mobilizer sees a **Your ward** card with the set
-target and their progress.
+affected, with a warning when the election is less than 30 days away. A mobilizer sees a
+**Your ward** card with the set target and their progress.
+
+**Notices** (`services/notices.py`, `GET /api/notices/`) go to the people something waits for,
+each with its sender, time and a preview line, and a push to their devices:
+
+| Notice | Who gets it |
+|---|---|
+| Announcement | The unit's team, but its author |
+| Targets changed | Coordinators and mobilizers whose units changed |
+| Team sign-up waiting | The candidate, the manager and coordinators over that place |
+| Payment to approve | Everyone in the payment's approving role, but its scheduler |
+
+The bell counts unread notices only. Its panel and the Notifications page also list **To do**,
+open work worked out on the page (wards with no mobilizer, past events not recorded) for the ward
+picked under Area, with no badge. Read notices stay, dimmed, under **Earlier** (the newest 30).
+Opening a notice's page marks it read; **Mark all as read** clears them all. A mobilizer's
+**Announcements** tab shows how many announcements are unread.
 
 ---
 

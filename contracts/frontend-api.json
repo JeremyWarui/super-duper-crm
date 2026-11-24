@@ -940,7 +940,11 @@
     "GET /api/notices/": [
       "id",
       "text",
-      "url"
+      "url",
+      "created_at",
+      "read_at",
+      "detail",
+      "sender"
     ],
     "GET /api/campaigns/{campaign_id}/announcements/": [
       "id",
@@ -1630,7 +1634,8 @@
       "published",
       "description",
       "image_url"
-    ]
+    ],
+    "POST /api/notices/read-all/": []
   },
   "enums": {
     "user.role": [
@@ -1705,7 +1710,8 @@
       "POST /api/campaigns/{campaign_id}/data/supporters/{supporter_id}/erase/",
       "POST /api/campaigns/{campaign_id}/data/volunteers/{volunteer_id}/erase/",
       "POST /api/campaigns/{campaign_id}/data/registrations/{registration_id}/erase/",
-      "POST /api/campaigns/{campaign_id}/data/supporters/{supporter_id}/withdrawal/"
+      "POST /api/campaigns/{campaign_id}/data/supporters/{supporter_id}/withdrawal/",
+      "POST /api/notices/read-all/"
     ]
   }
 }

@@ -4,7 +4,7 @@ import { download } from "../src/api/client";
 import ExportPanel from "../src/components/console/ExportPanel";
 import { formatDay, initials } from "../src/lib/format";
 import { eventDay } from "../src/pages/campaign/helpers";
-import { workspaceAlerts } from "../src/pages/campaign/shell";
+import { workspaceInbox } from "../src/pages/campaign/shell";
 
 vi.mock("../src/api/client", () => ({ download: vi.fn(() => Promise.resolve()) }));
 
@@ -18,7 +18,22 @@ describe("shared helpers", () => {
     vi.setSystemTime(new Date("2026-11-07T22:30:00Z"));
     const data = { events: [{ id: "e1", title: "Rally", status: "planned", scheduled_date: "2026-11-07" }] };
 
-    expect(workspaceAlerts(data, "manager")).toContainEqual(expect.objectContaining({ key: "unrecorded", text: "Record attendance: Rally" }));
+    expect(workspaceInbox(data, "manager").todo).toContainEqual(expect.objectContaining({ key: "unrecorded", text: "Record attendance: Rally" }));
+  });
+
+  it("badges only unread notices and narrows the to-do list to the picked ward", () => {
+    const data = {
+      notices: [{ id: "n1", text: "New", url: "/a", created_at: "2026-11-24T08:00:00Z", read_at: null }, { id: "n2", text: "Old", url: "/b", created_at: "2026-11-22T08:00:00Z", read_at: "2026-11-23T08:00:00Z" }],
+      strategy: { units: [{ unit: "Ruai", ward: "w1", has_mobilizer: false }, { unit: "Njiru", ward: "w2", has_mobilizer: false }] },
+      events: [],
+    };
+
+    const everywhere = workspaceInbox(data, "manager");
+    const ruai = workspaceInbox(data, "manager", "w1");
+
+    expect([everywhere.fresh.map((n) => n.text), everywhere.earlier.map((n) => n.text)]).toEqual([["New"], ["Old"]]);
+    expect(everywhere.todo.map((n) => n.text)).toEqual(["2 wards have no mobilizer"]);
+    expect(ruai.todo.map((n) => n.text)).toEqual(["Ruai has no mobilizer"]);
   });
 
   it("names the export after the Nairobi calendar day", () => {

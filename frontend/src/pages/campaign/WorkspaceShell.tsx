@@ -9,7 +9,7 @@ import { useDebounced } from "@/lib/useDebounced";
 import { useSupporterSearch } from "@/api/hooks";
 import { ROLE_NOTE, pagesOf } from "./helpers";
 import { ROLE_LABEL } from "@/lib/labels";
-import { useWorkspaceArea, workspaceAlerts } from "./shell";
+import { useWorkspaceArea, workspaceInbox } from "./shell";
 
 type Ward = { id: string; name: string };
 type Row = { id: string; [field: string]: any };
@@ -153,8 +153,9 @@ export function AreaPicker() {
 }
 
 export function WorkspaceAlerts({ data, role }: { data: ShellData; role: string }) {
-  const notes = workspaceAlerts(data, role);
-  return <BellPanel id="workspace-notifications" notes={notes} count={notes.length} word="new" page="/campaign/notifications" />;
+  const { area } = useWorkspaceArea();
+  const { fresh, todo } = workspaceInbox(data, role, area);
+  return <BellPanel id="workspace-notifications" notes={fresh} todo={todo} count={fresh.length} word="new" page="/campaign/notifications" />;
 }
 
 /** Who to ask: the site's contacts. */

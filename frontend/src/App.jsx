@@ -15,7 +15,7 @@ import { ROLE_LABEL } from "@/lib/labels";
 import {
   AccessFooter, AreaPicker, SeatCard, WorkspaceAlerts, WorkspaceBrand, WorkspaceHelp, WorkspaceSearch,
 } from "./pages/campaign/WorkspaceShell";
-import { AreaContext, ICONS, useReadNoticesOn, useShellData, workspaceAlerts } from "./pages/campaign/shell";
+import { AreaContext, ICONS, useReadNoticesOn, useShellData, workspaceInbox } from "./pages/campaign/shell";
 import YourWard from "./pages/campaign/YourWard";
 import CampaignModal from "./pages/campaign/CampaignModal";
 import Overview from "./pages/campaign/Overview";
@@ -91,7 +91,8 @@ function Shell({ campaign, role, where }) {
   const [area, setArea] = useState(null);
   const { page } = useParams();
   const data = useShellData(campaign, role);
-  const alerts = workspaceAlerts(data, role);
+  const { fresh } = workspaceInbox(data, role);
+  const unread = { notifications: fresh.length, announcements: fresh.filter((n) => n.to === "/campaign/announcements").length };
   useReadNoticesOn(`/campaign/${page}`, data.notices);
   const phone = useMedia("(max-width: 767px)");
   const areaValue = useMemo(() => ({ area, setArea, wards: data.wards }), [area, data.wards]);
@@ -101,7 +102,7 @@ function Shell({ campaign, role, where }) {
   const Page = PAGES[page];
   const groups = navFor(role, where).map((g) => ({
     label: g.label,
-    items: g.items.map(([key, label]) => ({ label, to: `/campaign/${key}`, icon: ICONS[key], badge: key === "notifications" ? alerts.length : undefined })),
+    items: g.items.map(([key, label]) => ({ label, to: `/campaign/${key}`, icon: ICONS[key], badge: unread[key] || undefined })),
   }));
 
   return (

@@ -1,5 +1,5 @@
 """Trying a turnout scenario, setting one for the team (`services/target_scenarios.py`), and the
-notices that tell people their target changed."""
+notices under the bell."""
 
 import uuid
 from datetime import UTC, datetime
@@ -50,17 +50,36 @@ async def set_scenario(
     return await target_scenarios.set_scenario(session, campaign, payload.scenario, actor=user)
 
 
+# How many notices the bell and its page keep, read or not.
+HISTORY = 30
+
+
 @router.get("/notices/", response_model=list[NoticeRead])
 async def notices(session: SessionDep, user: CurrentUser) -> list:
-    """The caller's unread notices, newest first."""
-    return list(
-        await session.scalars(
-            select(Notice)
-            .where(Notice.user_id == user.id, Notice.read_at.is_(None))
-            .order_by(Notice.created_at.desc())
-            .limit(20)
-        )
+    """The caller's latest notices, read and unread, newest first, with who sent each."""
+    rows = await session.execute(
+        select(Notice, User)
+        .outerjoin(User, User.id == Notice.sender_id)
+        .where(Notice.user_id == user.id)
+        .order_by(Notice.created_at.desc())
+        .limit(HISTORY)
     )
+    return [
+        NoticeRead.model_validate(notice).model_copy(
+            update={"sender": sender.display_name if sender else ""}
+        )
+        for notice, sender in rows
+    ]
+
+
+@router.post("/notices/read-all/", status_code=status.HTTP_204_NO_CONTENT)
+async def read_all(session: SessionDep, user: CurrentUser) -> None:
+    await session.execute(
+        update(Notice)
+        .where(Notice.user_id == user.id, Notice.read_at.is_(None))
+        .values(read_at=datetime.now(UTC))
+    )
+    await session.commit()
 
 
 @router.post("/notices/{notice_id}/read/", status_code=status.HTTP_204_NO_CONTENT)

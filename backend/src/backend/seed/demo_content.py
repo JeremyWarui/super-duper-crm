@@ -285,6 +285,11 @@ async def announce(session: AsyncSession, campaign: Campaign, manager: User, war
             session, campaign.id, title, body, ward.id if to_ward else None, None, actor=manager
         )
         sent.created_at = now - timedelta(days=days_ago, hours=3)
+        await session.execute(
+            update(Notice)
+            .where(Notice.announcement_id == sent.id)
+            .values(created_at=sent.created_at)
+        )
         if days_ago:
             await session.execute(
                 update(Notice)

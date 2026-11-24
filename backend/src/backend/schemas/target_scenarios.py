@@ -67,3 +67,7 @@ class NoticeRead(ORMModel):
     text: str
     url: str
     created_at: datetime
+    read_at: datetime | None = None
+    detail: str = ""
+    # Who caused it; blank when nobody did.
+    sender: str = ""

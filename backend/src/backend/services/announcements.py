@@ -11,6 +11,7 @@ from backend.models import Announcement, Notice, User
 from backend.services import units
 from backend.services.audit import record
 from backend.services.errors import Refused
+from backend.services.notices import preview
 from backend.services.permissions import Area
 
 PAGE = "/campaign/announcements"
@@ -50,6 +51,8 @@ async def send(
             text=f"Announcement: {announcement.title}",
             url=PAGE,
             announcement_id=announcement.id,
+            sender_id=actor.id,
+            detail=preview(announcement.body),
         )
         for user_id in recipients
     )

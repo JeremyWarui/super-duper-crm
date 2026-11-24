@@ -950,6 +950,9 @@ export const useNotices = (enabled = true) =>
 export const useReadNotice = () =>
   useWrite((id) => api(`/notices/${id}/read/`, { method: "POST" }), "notices");
 
+export const useReadAllNotices = () =>
+  useWrite(() => api("/notices/read-all/", { method: "POST" }), "notices");
+
 export const useRefreshTargets = () =>
   useWrite(
     (campaignId) => api("/targets/refresh/", { method: "POST", body: { campaign: campaignId } }),

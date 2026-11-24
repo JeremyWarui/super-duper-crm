@@ -215,7 +215,7 @@ async def set_scenario(
     pages = [(user_id, COORDINATOR_PAGE) for user_id in coordinators]
     pages += [(user_id, MOBILIZER_PAGE) for user_id in mobilizers if user_id not in coordinators]
     session.add_all(
-        Notice(campaign_id=campaign.id, user_id=user_id, text=text, url=url)
+        Notice(campaign_id=campaign.id, user_id=user_id, text=text, url=url, sender_id=actor.id)
         for user_id, url in pages
     )
     await session.commit()

@@ -87,6 +87,9 @@ async def notify(
             else:
                 logger.warning("push to a device failed: %s", failed.message)
             continue
+        except Exception as failed:  # noqa: BLE001 - an unreachable push service skips the device
+            logger.warning("push to a device failed: %s", failed)
+            continue
         device.last_used_at = datetime.now(UTC)
         sent += 1
     await session.commit()
