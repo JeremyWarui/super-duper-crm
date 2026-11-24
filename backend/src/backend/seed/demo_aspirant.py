@@ -144,7 +144,7 @@ async def _set_up(session: AsyncSession, kasarani: Constituency, password: str) 
             site=SetupSite(
                 name=TITLE,
                 short_name="Otieno",
-                primary_colour="#1d3f8f",
+                primary_colour="#0b5d3b",
                 secondary_colour="#f2b705",
                 contact_email="office@example.com",
                 contact_phone="0700 111222",

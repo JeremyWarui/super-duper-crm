@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document ID | `CD-R6` |
-| Version | 0.4, 23 November 2026 |
+| Version | 0.5, 24 November 2026 |
 | Status | **Draft, awaiting approval** |
 | Mockups | [`design/R6_Mockups.html`](design/R6_Mockups.html): `M1` Console meeting, `M2` Field app |
 | Demo slice | [`Comms_Demo_Plan.md`](Comms_Demo_Plan.md) (`DM-R6`): SMS queue, online meetings, PWA and push |
@@ -120,7 +120,7 @@ Vercel (fra1)
   web: SPA, service worker, offline storage (Dexie)
   api: FastAPI
        ├─ existing modules (unchanged rules)
-       ├─ rooms, meetings, calls, feedback, recognition (new)
+       ├─ rooms, meetings, calls, feedback (new)
        ├─ LiveKit webhooks (signature checked)
        ├─ Vercel Queue handlers (call retries)
        └─ cron routes (reminders, reconciliation, SMS queue)
@@ -198,7 +198,6 @@ Nothing that holds data is deleted.
 | "Call my phone instead" | An app user with no data is rung into the meeting | `M2` Home, Meeting |
 | Post-meeting keypad feedback | Press 1, 2 or 3 | |
 | Feedback tracking ("You said, we did") | Submitted, acknowledged, under review, action taken, outcome | `M1` sidebar, `M2` Home |
-| Recognition | Kudos, team challenges, ward boards (opt-out), weekly spotlight | `M2` Room |
 | Field journal | Offline notes and reports, synced when connected | `M2` Record tab |
 | Contact preferences | Quiet hours, call limits, language, opt-out | `M2` Me tab |
 | Call costs | Per-leg seconds and cost, budgets | `M1` |
@@ -318,8 +317,6 @@ Every table carries `campaign_id`.
 | `room_members` | room_id, user_id | Custom rooms only |
 | `room_topics` | room_id, title, pinned | |
 | `room_posts` | topic_id, author_id, body, kind (post, announcement), media, status | |
-| `kudos` | campaign_id, from_user_id, to_user_id, badge, note | |
-| `challenges` | campaign_id, ward_id, title, goal, starts, ends | Team-level only |
 | `meetings` | space, title, host_id, room_id, event_id, mode (audio, video), scheduled_at, status, livekit_room, auto_retry (default on), retry_attempts (default 2), retry_delay_seconds (default 120) | |
 | `meeting_invites` | meeting_id, user_id or phone contact ref, channel (app, phone), status (pending, ringing, joined, retrying, no_answer, left), attempts_used, host_redials, next_retry_at | |
 | `call_sessions` | space, kind (meeting, direct, feedback, consent_check), started_by_id, approved_by_id, started_at, ended_at | |
@@ -352,7 +349,6 @@ Every table carries `campaign_id`.
 | `calls.supporters.approve` | all | all | no | no | no | no |
 | `feedback.submit` | all | all | area | all | own | own |
 | `feedback.respond` | all | all | no | no | no | no |
-| `kudos.give` | all | all | area | all | own | own |
 | `calls.budget` | all | all | no | no | no | no |
 
 ---
@@ -376,10 +372,10 @@ Every table carries `campaign_id`.
 | Tab | Contents |
 |---|---|
 | Home | Next meeting (Join, Call my phone), room activity, my tasks, feedback status |
-| Room | Ward or team room: announcements, topics, posts, photos, voice notes, kudos |
+| Room | Ward or team room: announcements, topics, posts, photos, voice notes |
 | Meetings | Join in the app, raise hand, Call my phone, leave |
 | Record | Event, supporter, journal entry (offline) |
-| Me | Assignments, payments, recognition, contact preferences |
+| Me | Assignments, payments, contact preferences |
 
 ---
 
@@ -395,7 +391,7 @@ Every table carries `campaign_id`.
 6. **Audit.** Scheduling, approval, every dial-out and every opt-out is written to the audit trail.
 7. Withdrawn (A2).
 8. **Recordings off by default.** Only with host choice and an announcement to every participant.
-9. **Fair recognition.** Boards per ward or team, opt-out available, never volume alone.
+9. Withdrawn (A5).
 10. **Retries respect every rule.** Each retry and re-dial is checked again against consent,
     opt-out, quiet hours and budget. Retries do not count toward the weekly call limit; host
     re-dials do. At most 3 re-dials per person per meeting.
@@ -459,7 +455,6 @@ screen asks every 30 seconds for retries that are due.
 | One-to-one calls | No | App or phone |
 | Post-meeting keypad feedback | No | Yes |
 | Feedback tracked to an outcome | No | You said, we did |
-| Recognition and challenges | No | Yes |
 | In-app inbox and web push | Top-bar counts only | Every login |
 | Call consent, opt-out, quiet hours | No | Yes |
 | Call costs and budgets | No | Yes |
@@ -478,7 +473,7 @@ screen asks every 30 seconds for retries that are due.
 | R6-3 App meetings and calls | LiveKit tokens from FastAPI, meetings (audio first, video optional), host controls, one-to-one app calls, Start meeting on event cards | D6; 5.4; `M1`, `M2` Meeting | Two browsers hold a meeting; the host can mute, remove and bring someone on stage |
 | R6-4 Phone bridge | `TelephonyProvider` (console, LiveKit SIP); dial-out, keypad hand-raise, Call my phone, LiveKit webhooks, call legs and costs, automatic retry, Ring again | D4, D8; 5.4, 6, 10; `M1` | In practice mode each dial is logged. On the pilot trunk a basic phone joins and raises a hand. An unanswered phone is rung twice more, 2 minutes apart, then shows No answer. Ring again places one immediate call and is refused after 3 re-dials. Every attempt is its own call leg with its cost |
 | R6-5 Consent, preferences, budgets | Consent wording version, consent-check call, opt-out (press 9), quiet hours, limits, budgets, supporter-call approval | D7; 9 | A call outside the window or over budget is refused with a clear reason; an opt-out stops all further calls |
-| R6-6 Feedback and recognition | Feedback items and history, keypad feedback calls, kudos, challenges, ward boards | 4.4, 9; `M2` Room, Home | Each feedback item shows its status changes; boards respect opt-out |
+| R6-6 Feedback | Feedback items and history, keypad feedback calls | 4.4, 9; `M2` Room, Home | Each feedback item shows its status changes |
 | R6-7 Field journal | Dexie storage, offline queue, idempotent sync | 4.4; `M2` Record | An entry made offline appears once on the server after reconnecting |
 | R6-9 Bulk SMS compliance queue | `sms_runs`, `sms_outbox`; compliance gate; vetting step; queue worker with batches, rate, window and retries; delivery receipts; halt and apology; consent evidence export; Console run screen | D9, D10; 5.5, 6, 9, 10 | In practice mode a 5,000-recipient run goes out in batches with no request timeout. A message without the candidate's name, or with no language declared, is refused. A run approved at 17:55 sends what fits and resumes at 08:00. A STOP received mid-run skips that number. Halt stops the next batch. The consent evidence file downloads for any run |
 
@@ -540,3 +535,4 @@ Status values: Not started, In progress, In review, Done.
 | A2 | 23 November 2026 | One installation type, one candidate and one seat: D1 replaced, D3 narrowed to the campaign space, rule 7 and R6-8 withdrawn | Header, 1, 4, 5.1, 8, 9, 11, 12, 15 |
 | A3 | 23 November 2026 | Bulk SMS through an outsourced licensed provider and the platform's compliance queue; D5 replaced by D9; D10 one queue service for calls and SMS; adds 5.5, two tables, rule 11, settings, R6-9, Q8 to Q10 | 1, 4, 5.5, 6, 9, 10, 11, 12, 13, 14, 15 |
 | A4 | 23 November 2026 | Providers chosen: Sozuri (SMS), LiveKit (meetings; Cloud for pilot, Angani for production), SautiKit (basic phones, SIP or stream bridge); WhatsApp out; adds D11, Q11, resolves Q8; demo slice `DM-R6` defined | Header, 1, 13 |
+| A5 | 24 November 2026 | No gamification: kudos, team challenges, ward boards, the weekly spotlight and the recognition rule removed; R6-6 is feedback only | 4.4, 6, 7, 8, 9, 11, 12 |

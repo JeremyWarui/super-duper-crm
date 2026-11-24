@@ -53,7 +53,7 @@ version of `CD-R6` 5.5 and ticket R6-9); LiveKit meetings for logins (start, joi
 or video, attendance); PWA install; web push to ring invitees; demo data and script.
 
 **Out:** basic phones in meetings; recorded-message calls; the full host panel (`M1` right
-panel beyond a participant list); rooms and announcements (R6-1); feedback, recognition, journal;
+panel beyond a participant list); rooms and announcements (R6-1); feedback, journal;
 call budgets; recordings.
 
 ---

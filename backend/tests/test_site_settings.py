@@ -28,7 +28,7 @@ async def test_anyone_reads_the_site_settings_without_a_login(client: httpx.Asyn
 
     assert site.status_code == 200
     assert site.json()["name"] == "Site name"
-    assert site.json()["primary_colour"] == "#1f2937"
+    assert site.json()["primary_colour"] == "#0b5d3b"
 
 
 async def test_only_a_superuser_changes_them_and_the_change_is_audited(

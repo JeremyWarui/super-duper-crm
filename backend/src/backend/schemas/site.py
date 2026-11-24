@@ -16,7 +16,7 @@ EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 def _colour(value: str) -> str:
     if not COLOUR.match(value):
-        raise ValueError("Use a colour like #1f2937.")
+        raise ValueError("Use a colour like #0b5d3b.")
     return value.lower()
 
 

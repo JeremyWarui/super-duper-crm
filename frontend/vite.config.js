@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
           start_url: "/signin",
           scope: "/",
           display: "standalone",
-          theme_color: "#1f2937",
+          theme_color: "#0b5d3b",
           background_color: "#ffffff",
           icons: [
             { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
