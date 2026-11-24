@@ -236,7 +236,7 @@ def _notes(units: list[UnitRead], unplaced: int = 0) -> list[NoteRead]:
     behind = sorted((u for u in units if u.progress < 1), key=lambda u: -u.gap)
     if behind:
         worst = behind[0]
-        reasons = [f"{round(worst.share * 100)}% of the win number is here"]
+        reasons = [f"{round(worst.share * 100)}% of the seat target is here"]
         if worst.events == 0:
             reasons.append("no events yet")
         elif worst.events < 2:

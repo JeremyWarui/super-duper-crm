@@ -158,7 +158,7 @@ export const STRATEGY = {
     {
       tone: "go",
       title: "Go next: Githurai",
-      text: "Biggest winnable gap - 10,770 votes short, 54% of the win number is here.",
+      text: "Biggest winnable gap - 10,770 votes short, 54% of the seat target is here.",
     },
   ],
 };

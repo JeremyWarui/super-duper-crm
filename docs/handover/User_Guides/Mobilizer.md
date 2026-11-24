@@ -1,6 +1,6 @@
 # Mobilizer guide
 
-You lead one ward (or one registration centre in an MCA race). You register supporters,
+You lead one ward (or one registration centre in an MCA race). You add contacts,
 schedule and count your events, and see your own payments. You see only your own ward.
 
 Most of this is done on a phone.
@@ -44,8 +44,8 @@ phone that was not sent yet, so send your entries first.
 On a phone, a tab bar sits at the bottom of the screen with your four pages, one tap away:
 
 - **My events**
-- **Register supporter**
-- **My supporters**
+- **Add contact**
+- **My contacts**
 - **My payments**
 
 On a computer the same pages are in the menu on the left, under **My work**. **Your access**
@@ -53,14 +53,14 @@ shows **Mobilizer** and "Your own ward."
 
 ## How to
 
-### Register a supporter
+### Add a contact
 
-1. Tap **Register supporter**. The page is **Register a supporter**.
+1. Tap **Add contact**. The page is **Add a contact**.
 2. Fill **Full name** and **Phone**, and pick the **Ward** (and **Registration centre** in an
    MCA race; your own centre is picked to start).
 3. Under **Support**, tap **Supporter**, **Undecided** or **Opposed**.
 4. Read the consent wording to the person. Tick the box only if they agree.
-5. Tap **Register supporter**. You see **Registered.** Tap **Register another** for the next.
+5. Tap **Add contact**. You see **Registered.** Tap **Register another** for the next.
 
 What you type is kept on the phone until it is sent. If you lose signal you see **Not sent: no
 network.** Your entry is kept. Tap **Try again** when you have signal.
@@ -90,9 +90,9 @@ network you see **Not sent: no network.** and a **Try again** button.
    sign-ups for that event have been closed.
 3. **Copy link** or **Share on WhatsApp** sends the link instead. **Print** prints the code.
 
-### See your supporters
+### See your contacts
 
-Tap **My supporters**. The tiles count **On the register**, **Supporters**, **Undecided** and
+Tap **My contacts**. The tiles count **On the register**, **Supporters**, **Undecided** and
 **Consent missing**. Use the **Support** filter to narrow the list. In an MCA race, a
 supporter marked **Needs a centre** can be given one from the list on that row.
 
@@ -101,6 +101,13 @@ supporter marked **Needs a centre** can be given one from the list on that row.
 Tap **My payments**. Each row shows the date, what it was for, the amount, its status
 (**Scheduled**, **Sending**, **Paid**, **To retry**, **Cancelled**) and the reference. You are
 paid only for work the campaign assigned to you and marked done.
+
+### Join a team call
+
+After you sign in on your phone, press **Enable call alerts** so the phone rings when the
+team starts a call. On an iPhone, first tap Share, then **Add to Home Screen**, and open the
+app from there (iOS 16.4 or later). When the alert comes, tap it to join. You can also open
+the call link the team shares (`/meet/<id>`).
 
 ## Who to ask for help
 

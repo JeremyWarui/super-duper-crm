@@ -1,6 +1,6 @@
-# SETUP — styling that matches the mockups
+# SETUP: styling that matches the mockups
 
-This kit is the styling foundation for the party platform: the public website, the party CRM and the candidate workspace. The aim is that every screen looks exactly like the Design canvas mockups. Copy the files into the React app as described below, then build screens only from these parts.
+This kit is the styling foundation for the campaign platform: the candidate's public website, the console and the campaign workspace. The aim is that every screen looks exactly like the Design canvas mockups. The app's copy of these files is in `frontend/src/`; build screens only from these parts.
 
 Stack: React 19 + TypeScript + Vite, Tailwind CSS v4, shadcn-style components (Radix primitives), React Router, FastAPI backend.
 
@@ -11,7 +11,7 @@ Stack: React 19 + TypeScript + Vite, Tailwind CSS v4, shadcn-style components (R
 ```
 src/styles/globals.css          ← ALL design tokens + base styles (light only, no dark mode)
 src/lib/utils.ts                ← cn() with tailwind-merge taught our custom sizes
-src/theme/branding.tsx          ← loads party colours from FastAPI and applies them
+src/theme/branding.tsx          ← loads the site's colours from FastAPI and applies them
 src/components/ui/
   button.tsx    card.tsx    input.tsx (Input, Textarea, NativeSelect, Field)
   badge.tsx     tabs.tsx (Tabs, FilterPills)    table.tsx
@@ -20,7 +20,7 @@ src/components/layout/
   Logo.tsx  SiteHeader.tsx (SiteUtilityBar, SiteHeader)  SiteFooter.tsx  PublicLayout.tsx
   AppSidebar.tsx (crmNav, workspaceNav)  CrmTopBar.tsx  AppPage.tsx  AppLayout.tsx
 src/routes/                     ← demos: HomePage, MembersPage, KitPage (/kit)
-backend/branding.py             ← FastAPI: GET /api/branding
+backend/branding.py             ← a sample FastAPI router; the app reads GET /api/site/
 components.json                 ← shadcn CLI config pointing at our paths
 ```
 
@@ -40,16 +40,16 @@ npm install -D @types/node
 4. `src/main.tsx`: import the two `@fontsource-variable/*` packages, then `@/styles/globals.css`. Wrap the app in `<BrandingProvider>`.
 5. Delete Vite's starter `index.css` and `App.css`. Nothing else may set global styles.
 6. `index.html`: keep `<meta name="color-scheme" content="light">`.
-7. Backend: include `backend/branding.py`'s router in the FastAPI app, and replace `get_party_settings` with a read of `PartySettings`.
+7. Backend: the app serves the branding from its site settings (`GET /api/site/`); the kit's `backend/branding.py` is only a sample.
 
 ## 3. Rules for whoever builds screens (human or agent)
 
 1. **Light theme only.** Never add a `.dark` block, `dark:` classes, or a theme toggle. If a shadcn component you add later contains `dark:` classes, delete them.
 2. **No raw colours in pages.** Use token classes (`bg-primary`, `text-muted-foreground`, `bg-stone`, `border-line`…). Hex values live only in `globals.css`. The one exception is a mockup colour used in a single place, which may go inline with a comment.
-3. **Party colours come only from `--party-*`.** Never write `#0B5D3B` in a component, because each party re-brands it.
+3. **Brand colours come only from `--brand-*`.** Never write `#0B5D3B` in a component, because each installation re-brands it.
 4. **Use the layouts.**
    - Website pages render inside `PublicLayout`.
-   - CRM screens render inside `AppLayout kind="crm"`, and workspace screens inside `AppLayout kind="workspace"`.
+   - Workspace screens render inside `AppLayout`; the console renders inside `ConsoleShell`.
    - Every app screen starts with `<AppPage crumb title context actions>`.
 5. **Adding more shadcn components** (`npx shadcn@latest add dialog`, etc.) is fine. Afterwards, restyle them to the tokens:
    - remove any `dark:` classes
@@ -65,11 +65,11 @@ npm install -D @types/node
    - Focus rings are never removed.
    - Reduced motion is respected (`globals.css` handles this).
 
-## 4. Shadcn vs. the mockups — what was changed and why
+## 4. Shadcn and the mockups: what the kit changes
 
 | shadcn default | Mockups | Where it's fixed |
 |---|---|---|
-| Neutral grey palette, `.dark` theme | Party green / gold / ink, warm neutrals, light only | `globals.css` `:root`, dark removed |
+| Neutral grey palette, `.dark` theme | Brand green / gold / ink, warm neutrals, light only | `globals.css` `:root`, dark removed |
 | One `--radius` (≈10px) for everything | 6 / 10 / 12 / 16 / 18 / 20 / 24 / 28 px by element | `@theme` radius scale + component variants |
 | Buttons 36px, 6–8px corners | 44px (52px hero); pills on website, 12px corners in apps | `button.tsx` `size`, `shape` |
 | Card: border + small shadow, 12px | Website: hairline + soft 2-layer shadow, 20px. CRM: 1px #E9E9E5 border, 16px | `card.tsx` `elevated` / `outline` / `tile` / `tinted` / `ink` / `panel` |
@@ -78,7 +78,7 @@ npm install -D @types/node
 | No header / sidebar look | Frosted header with pill nav; dark-ink CRM sidebar; white workspace sidebar | `layout/*` |
 | Inter / system fonts | Bricolage Grotesque 800 + Public Sans | fontsource + `--font-display/sans` |
 
-## 5. Size spec — heights, widths and gaps (from the mockups)
+## 5. Size spec: heights, widths and gaps (from the mockups)
 
 Use these exactly. Tailwind classes are given where a token exists.
 
@@ -125,9 +125,9 @@ Use these exactly. Tailwind classes are given where a token exists.
 | KPI tile (`tile`) | 16px | 20px | label 14px, number 28px Bricolage |
 | Inner panel (`tinted`) | 12px | 16px | #F7F7F5 |
 | Hero branch card | 22px | 24px | 360px wide, `shadow-hero-card` |
-| Feature photo | 18–20px | — | `aspect-video` (16:9) |
-| Story thumbnail | 12px | — | 104×76 (list), 112×112 (news stack), 16:10 (grid) |
-| Candidate portrait | top of card | — | 1:1 |
+| Feature photo | 18–20px | none | `aspect-video` (16:9) |
+| Story thumbnail | 12px | none | 104×76 (list), 112×112 (news stack), 16:10 (grid) |
+| Candidate portrait | top of card | none | 1:1 |
 
 ### Grids (how cards line up)
 | Grid | Rule |
@@ -154,14 +154,19 @@ Yes, all of this is ordinary CSS and works with these components:
 - **Long text doesn't break rows:** `min-w-0` on flex children and `line-clamp-2` on card titles keep cards the same height when one headline is long.
 - **Phones:** every grid above collapses to one column by itself. Side columns drop under the main column. No horizontal scrolling, except data tables, which scroll inside their card (`Table minWidth`).
 
-## 7. Per-party branding
+## 7. Per-site branding
 
-`GET /api/branding` (see `backend/branding.py`) reads the singleton `PartySettings` record and returns the name, slogan, registration number, hotline, logo and four colours. `BrandingProvider` sets `--party-primary`, `--party-primary-hover`, `--party-primary-tint` and `--party-accent` on `<html>`, and everything follows. The CRM "Branding" screen must reject colours that fail 4.5:1 contrast, so a party can't make its own buttons unreadable.
+The app reads its branding from the site settings (`GET /api/site/`): the name, short name,
+slogan, contact phone, logo and colours. `BrandingProvider` (`frontend/src/theme/branding.tsx`)
+sets `--brand-primary`, `--brand-primary-hover`, `--brand-primary-tint` and `--brand-accent` on
+`<html>`, and everything follows. The settings forms (setup, the console and the workspace
+Settings page) refuse colours that fail 4.5:1 contrast, so an installation can't make its own
+buttons unreadable.
 
 ## 8. Done check before shipping a screen
 
 - [ ] Compared side-by-side with its mockup at 1440px and at 390px.
-- [ ] No `dark:` classes, no raw party hex, no new global CSS.
+- [ ] No `dark:` classes, no raw brand hex, no new global CSS.
 - [ ] All controls at least 44px; every input labelled.
 - [ ] No horizontal scroll at 390px.
 - [ ] Placeholders still in `[brackets]` where data isn't wired.

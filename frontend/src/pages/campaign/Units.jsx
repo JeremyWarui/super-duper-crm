@@ -18,7 +18,7 @@ const TONE = { good: "ok", warn: "warn", bad: "bad" };
 const BAR = { good: "bg-primary", warn: "bg-accent", bad: "bg-bad-foreground" };
 const SORTS = {
   "Biggest gap": (a, b) => b.gap - a.gap,
-  "Win number": (a, b) => b.needed - a.needed,
+  "Target": (a, b) => b.needed - a.needed,
   "Least progress": (a, b) => a.progress - b.progress,
 };
 
@@ -36,7 +36,7 @@ function MobilizerCell({ holder, onAssign }) {
     : <span className="font-semibold text-bad-foreground">None</span>;
 }
 
-// Every targeted unit: its win number, how far it has come, its events and its mobilizer. A
+// Every targeted unit: its target, how far it has come, its events and its mobilizer. A
 // national seat opens on its counties and lists the wards of the county or constituency picked.
 export default function Units({ campaign, role, onModal }) {
   const national = isNational(campaign);
@@ -53,7 +53,7 @@ export default function Units({ campaign, role, onModal }) {
   const sorted = useMemo(() => [...(units || [])].sort(SORTS[sortKey]), [units, sortKey]);
   return (
     <>
-      <SlottedHeader context="Plan" title={role === "candidate" ? `${noun} performance` : `${noun}s`} sub="Win number, progress and coverage in each one." />
+      <SlottedHeader context="Plan" title={role === "candidate" ? `${noun} performance` : `${noun}s`} sub="Target, progress and coverage in each one." />
       {national && <CountyFilter place={place} onChange={setPlace} />}
       {strategy.isLoading && <LoadingText />}
       <ErrorText error={strategy.error} />
@@ -66,7 +66,7 @@ export default function Units({ campaign, role, onModal }) {
           </div>
           <Table stack minWidth={680}>
             <THead><TR>
-              <TH>{noun}</TH><TH align="right">Win number</TH><TH>Progress</TH><TH align="right">Events</TH><TH>Mobilizer</TH>
+              <TH>{noun}</TH><TH align="right">Target</TH><TH>Progress</TH><TH align="right">Events</TH><TH>Mobilizer</TH>
             </TR></THead>
             <TBody>{sorted.map((u) => {
               const st = statusOf(u.progress);

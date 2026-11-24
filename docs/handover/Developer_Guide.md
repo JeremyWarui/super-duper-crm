@@ -8,20 +8,9 @@ repeat them.
 
 1. [`docs/SYSTEM.md`](../SYSTEM.md): what the code does today, its rules, roles and
    architecture.
-2. [`docs/Product_Design.md`](../Product_Design.md): the product plan. **Section 0, "Revision
-   R1", overrides every other section**, and the whole document overrides the older design
-   documents where they disagree. Its section 0.2 is the permissions map the code follows.
-3. The design documents, as reference for how the built parts work:
-   - [`docs/Identity_Access_Design.md`](../Identity_Access_Design.md): logins, party offices,
-     the member register
-   - [`docs/Aspirants_Design.md`](../Aspirants_Design.md): nominations and nominee workspaces
-   - [`docs/Subscriptions_Design.md`](../Subscriptions_Design.md): hosting and subscriptions,
-     which Revision R1 took out of the product; read it only for history
-   - [`docs/Website_Design.md`](../Website_Design.md): the public website
-   - [`docs/Volunteers_Design.md`](../Volunteers_Design.md): volunteers and member accounts
-   - [`docs/Design_Coverage.md`](../Design_Coverage.md): which mockup goes with which code and
-     ticket; the mockups are in `docs/party-platform-design/party-platform-design/screens/`
-4. [`backend/README.md`](../../backend/README.md): the API, the rules route by route, every
+2. [`docs/Product_Design.md`](../Product_Design.md): the product plan. Its section 0.2 is the
+   permissions map the code follows.
+3. [`backend/README.md`](../../backend/README.md): the API, the rules route by route, every
    outside service and its settings, and the known gaps.
 
 ## Layout
@@ -38,15 +27,15 @@ repeat them.
 │   │   ├── services/      the business rules and the outside-service adapters
 │   │   └── seed/          the CSV loaders and the demo
 │   ├── alembic/versions/  the migrations
-│   ├── data/              the 2022 reference CSVs
+│   ├── data/              the 2022 reference CSVs; history/ holds past results, 2013 to 2022
 │   ├── tests/             gate tests
-│   └── evals/             the frontend contract and the walks across statuses
+│   └── evals/             the frontend contract, the field walk, backup and restore
 ├── frontend/     React 19 + Vite, React Query, Zustand, Tailwind CSS v4 and the UI kit
 ├── contracts/    frontend-api.json: every field the SPA reads and sends
 ├── deploy/       the self-host package: docker-compose.yml, Caddy, nightly backup
 ├── tools/        secret-scan/, the scanner the pre-commit hook and CI run
 ├── ui-kit/       the design kit the screens are built from
-└── docs/         the system brief, the design documents, and handover/
+└── docs/         the system brief, the demo installs, and handover/
 ```
 
 `Dockerfile` at the root builds the one app image (the built SPA plus the API) that
@@ -66,6 +55,7 @@ createdb campaign_crm
 cp .env.example .env              # set SECRET_KEY (32+ characters) and DB_PASSWORD
 uv run alembic upgrade head
 uv run campaign-crm seed          # counties, constituencies, wards, registration centres
+uv run campaign-crm seed-results  # past results, 2013 to 2022, for the targets
 uv run uvicorn backend.main:app --port 8000
 ```
 
@@ -95,27 +85,31 @@ npm install
 npm run dev                       # http://localhost:5173, proxies /api to port 8000
 ```
 
-`uv run campaign-crm --help` lists every command (seed, demo, createuser, setup-token,
-backup, restore, export, the imports and the admin operations).
+`uv run campaign-crm --help` lists every command (seed, seed-results, demo, demo-install,
+demo-comms, createuser, setup-token, sms-worker, make-vapid-keys, backup, restore, export, the
+imports and the admin operations).
 
-## The two organisation types
+## One installation, one campaign
 
-Every copy is one of two types, chosen once at setup and never changed
-(`site_settings.organisation_type`, `OrganisationType` in `models/enums.py`):
+Every copy runs one candidate contesting one seat: MCA, MP, Women Rep, Senator, Governor or
+President. The first-run setup (`services/setup.py`, six steps in `pages/setup/Setup.jsx`)
+makes the site settings, the superuser, the one campaign workspace with its candidate login,
+and the targets it previews in its **Target** step (`services/target_preview.py`).
 
-- **party**: the public website, the party office (members, volunteers, branches,
-  nominations, party texts) and the party's national coordination workspace, plus a hosted
-  workspace for each approved aspirant;
-- **aspirant**: the aspirant's own website and one standalone campaign workspace.
+Targets come from past results (`services/win_model.py`, `services/targets.py`): the share
+the last winner took, applied to the votes expected, split across the wards (or centres in an
+MCA race) by each one's share of where the votes were cast.
 
-Routes that exist in one type only are declared with a route class from `api/install.py`:
-`PartyOnlyRoute` or `AspirantOnlyRoute`. In the other type they answer 404, exactly as an
-unknown path does. A router that mixes both kinds of route puts the party ones on a
-`party_router`.
+### Demo data
 
-Campaign code never imports party code. `tests/test_boundaries.py` reads the imports of every
-module in its `CAMPAIGN` list and fails on one that reaches the `PARTY` modules; a new
-campaign module must be added to that list by hand.
+```bash
+uv run campaign-crm demo [--password <shared>]                 # the Roysambu MP demo
+uv run campaign-crm demo-install --password <12+ characters>   # an empty database as the hosted demo
+uv run campaign-crm demo-comms --phone <a> --phone <b>         # two consenting contacts and two drafts
+```
+
+`demo-comms` adds two contacts on the given phones in a ward with nobody else, a draft without
+the candidate's name (approval is refused) and one signed with it (approval sends it).
 
 ## Tests, evals and lint
 
@@ -130,12 +124,6 @@ uv run pytest evals               # evals only
 
 No database server and no network. `tests/conftest.py` sets `DATABASE_URL` to in-memory
 SQLite for the run, so no test can reach a real database whatever `.env` says.
-
-**Both organisation types.** Every test that uses the `client` fixture runs twice, once as a
-party and once as an aspirant installation: `[party]` and `[aspirant]` in its id. A test or
-module marked `party_only` (`pytestmark = pytest.mark.party_only`, registered in
-`pyproject.toml`) runs once, as a party. A test that parametrizes `organisation_type` itself
-keeps its own values.
 
 ### Backend, Postgres lane
 
@@ -163,10 +151,9 @@ on SQLite with "needs TEST_POSTGRES=1".
 
 - `test_frontend_contract.py`: the API still offers every field the SPA reads and accepts
   every field it sends (below);
-- `test_aspirant_access_walk.py`, `test_member_status_walk.py`: every aspirant and member
-  status, walked across the routes it opens and closes;
-- `test_inbox_constant_work.py`: the party's public join and withdraw queue does the same
-  work whatever the register holds;
+- `test_field_walk.py`: a mobilizer and an agent walked from the public team link to their
+  own paid payment, for a ward-level and a constituency seat;
+- `test_backup_restore.py`: a real backup and restore on Postgres;
 - `test_live_database.py`: skipped unless asked for. It checks TLS, the latest migration and
   the seeded geography on a real database:
 
@@ -205,13 +192,9 @@ excluded. Oxlint reads `frontend/.oxlintrc.json`.
 
 ## Route guards
 
-`tests/test_route_guards.py` walks every route the app mounts:
-
-- every API route needs a login unless it is listed in `PUBLIC_ROUTES`; a new public route
-  fails the suite until it is added there, and a removed one fails it as a stale entry;
-- exactly the routes matching `PARTY_ONLY_PATHS` are party-only, and each answers 404 in an
-  aspirant installation;
-- the aspirant website routes are aspirant-only and missing in a party installation.
+`tests/test_route_guards.py` walks every route the app mounts: every API route needs a login
+unless it is listed in `PUBLIC_ROUTES`. A new public route fails the suite until it is added
+there, and a removed one fails it as a stale entry.
 
 Inside a campaign, routers guard with `require("<action>")` from `api/deps.py`. The actions
 and the roles that may do each, with their reach (`all`, `area`, `own`), are the `MAP` in
@@ -274,8 +257,12 @@ is in and offers a test.
 | Adapter | Setting | Practice mode | Real provider |
 |---|---|---|---|
 | `services/email.py` | `EMAIL_PROVIDER` | `practice`: sends nothing, writes the email (link included) to the app's log; `email_log` keeps it with the link removed | `smtp`, any SMTP server (`SMTP_*`) |
-| `services/sms.py` | `SMS_PROVIDER` | `console`: records the text, sends nothing | `africastalking` (`AT_USERNAME`, `AT_API_KEY` and `AT_SENDER_ID`) |
-| `services/texting.py` | (uses `sms.py`) | every text goes through it: opt-outs dropped, one `sms_log` row per number (`practice` in practice mode) | delivery reports and STOP replies come back through it |
+| `services/sms.py` | `SMS_PROVIDER` | `console`: records the text, sends nothing | `sozuri` (`SOZURI_*`) or `africastalking` (`AT_USERNAME`, `AT_API_KEY` and `AT_SENDER_ID`) |
+| `services/texting.py` | (uses `sms.py`) | single texts and test texts: opt-outs dropped, one `sms_log` row per number (`practice` in practice mode) | delivery reports and STOP replies come back through it |
+| `services/sms_queue.py` | `SMS_WINDOW`, `SMS_BATCH_SIZE`, `CAMPAIGN_PERIOD_*`, `SMS_VETTING_REQUIRED` | the same queue, with the console provider | bulk texts and event invitations: the candidate's name, English or Kiswahili, consent, batches inside 08:00-18:00 Nairobi time; drained by `campaign-crm sms-worker` or `POST /api/internal/sms/drain/` with `CRON_SECRET` |
+| `services/meetings.py` | the three `LIVEKIT_` settings | off: starting a call is refused with what is missing | LiveKit rooms, join tokens, and attendance from its signed webhook |
+| `services/push.py` | the three `VAPID_` settings | off: no alert is sent and the app offers none | web push call alerts; `campaign-crm make-vapid-keys` prints a pair |
+| `services/payments_in.py` | `PAYIN_PROVIDER` | `practice`: marks a phone prompt paid at once and takes no money | `paystack`, M-Pesa prompts; Paybill and Till codes work either way |
 | `services/payouts.py` | `PAYOUT_PROVIDER` | `practice`: moves no money, marks each release paid under a `PRACTICE-` reference | `paystack`, M-Pesa transfers (`PAYSTACK_SECRET_KEY` and `PAYSTACK_WEBHOOK_SECRET`) |
 | `services/oidc.py` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | off: the Google button is hidden and its routes answer 404 | Google sign-in (OpenID Connect with PKCE) |
 

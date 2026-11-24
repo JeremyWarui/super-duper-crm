@@ -1,827 +1,531 @@
-# MZIGO CRM: system brief
+# Campaign CRM: system overview
 
-What this system is, who it is for, what it does today, and how it is built.
-Use it to plan features, refine the architecture, or bring someone new up to
-speed. How to run the code lives in the READMEs; this document says what the
-code is for.
+What one installation is, who uses it, what it does, and how it is built. How to run the code
+lives in the READMEs and `DEPLOY.md`; this document says what the code is for.
 
-Last checked against the code: 3 November 2026, after Release 4 (public website and party dashboard).
+Last checked against the code: 24 November 2026.
+
+Source paths are under `backend/src/backend/` unless they start with `frontend/`, `backend/`,
+`contracts/`, `deploy/` or `tools/`.
 
 ---
 
-## 1. The concept
+## 1. What it is
 
-A Kenyan election campaign wins or loses unit by unit. MZIGO CRM gives a
-campaign one number to chase, the **win number**, and breaks it down to the
-places the team actually works:
+An installation is **one candidate contesting one seat**: MCA, MP, Women Rep, Senator, Governor
+or President. It holds exactly one campaign. The candidate's political party is not stored.
 
-- an **MP, Governor, Senator or Women Rep** race is worked **ward by ward**;
-- an **MCA** race is worked **registration centre by registration centre**,
-  inside its one ward.
+The campaign gets one number to chase, the **seat target**: the votes it needs, worked out from
+past results (section 4). The target is shared out to the places the team works:
 
-For each unit the app knows the registered voters (from the real 2022
-register), assumes the county's 2022 turnout, and sets the target at half the
-projected votes plus one. The team then records the work that moves those
-numbers: mobilizers on the ground, events held, and supporters signed up. The
-app reads all of it back as one picture: how far along the campaign is, which
-units carry the most of the win number, which are behind, and which have nobody
-working them.
+- an MCA race is worked **registration centre by registration centre**, inside its one ward;
+- every other seat is worked **ward by ward** (a President race over all 1,450 wards, grouped
+  by county).
 
-### The goal
+The team records the work that moves those numbers: mobilizers and agents in the field, events,
+contacts signed up, texts, calls and payments. The **strategy read** (`services/strategy.py`)
+reads it all back on every request: progress per unit, the biggest gaps, units with nobody
+working them, and what to do next. Nothing in it is stored, so the screen never disagrees with
+the rows underneath it.
 
-Give a campaign team a single, honest answer to "are we winning, and where do
-we go next?", computed from its own records, never from guesses typed into a
-spreadsheet.
+**Progress is supporters, not activity.** A unit's progress is the number of contacts at support
+level **Supporter** filed under it, divided by its target. Undecided and Opposed contacts, event
+attendance and texts sent do not count. Events shape the advice, not the score: the notes name
+the unit with the biggest gap, say whether it has had events or a mobilizer, and tell the team to
+ease off a unit that has met its target after 4 or more events.
 
-### How progress is measured
+---
 
-**Progress is supporters, not activity.** A unit's progress is the number of
-people on the supporter register with support level **Supporter** filed under
-that unit, divided by its target.
+## 2. Who uses it
 
-| Counts toward progress | Does not count |
+Every login signs in with email and password, or with Google when it is configured. A campaign
+login holds one role (`models/enums.py` `UserRole`). What each role may do, and how far it
+reaches, is one table: `services/permissions.py` `MAP`. Reach is `all` (the whole campaign),
+`area` (a coordinator's assigned wards and centres) or `own` (a mobilizer's ward, an agent's
+centre). A role the table leaves out of an action is refused with a plain reason.
+
+| Role | What they do |
 |---|---|
-| A new supporter registered by the team at level Supporter | Undecided or Opposed people on the register |
-| A new person who signs up through an event's QR code (saved as Supporter) | An event's invited (`number_reached`) or attended numbers |
-| In an MCA race: a supporter filed at a centre that has a target | In an MCA race: a supporter with no centre, or at a centre with no target |
+| **Candidate** | Owns the campaign. Full access: targets, team, contacts, texts, calls, payments, the website, personal data. Adds or replaces the one manager, approves the manager's payments, and alone closes the campaign. |
+| **Manager** | Runs the day to day with full access. Schedules payments (the candidate approves them) and approves coordinators' payments. |
+| **Coordinator** | Works an assigned area of wards and centres: events, mobilizers, agents, assignments, contacts and team sign-ups there; drafts texts and starts calls for that area; schedules payments. |
+| **Comms** | Reads events and targets, tries turnout scenarios, drafts texts, starts calls and edits the website. Sees no contact register. |
+| **Mobilizer** | Works one unit: a ward, or a centre in an MCA race. Records events, adds contacts in their ward, sees their own payments. |
+| **Agent** | A polling agent at one centre: their centre, assignments, events and payments. |
+| **Superuser** | Runs the installation from the console at `/console`. Has no campaign role and never sits on the campaign; a signed-in superuser always lands on the console. |
 
-Events shape the **advice**, not the score: the strategy notes name the unit
-with the biggest gap and say whether it has had events or a mobilizer, and tell
-the team to ease off a unit that has met its target after 4 or more events.
-
-The read is computed fresh on every request (`backend/src/backend/services/strategy.py`)
-and nothing about it is stored, so the screen can never disagree with the rows
-underneath it.
-
-### The party platform
-
-The same deployment also serves **one political party** (there is no party id;
-one deployment, one party). Party access and campaign access never mix: a
-campaign login has a campaign role (`users.role`) and is on one campaign; a
-party staff login has `role = NULL`, holds party offices (`party_roles`), and is
-never on a campaign. The database enforces both directions: a role-less login
-cannot be put on a campaign, and a login with a campaign role cannot hold an
-office (`users.kind`). The superuser is the party's super admin.
-
-- **Party settings:** one row (`party_settings`) holding the party's name,
-  branding, contacts and manifesto. Anyone reads it at `GET /api/party/`; the
-  superuser edits it in the console.
-- **Party offices:** membership, nominations and finance officer. The superuser
-  grants and revokes them on staff logins in the console. Every
-  office holder's login is linked to its own party member
-  (`users.party_member_id`, set in the console), and an officer works only
-  while that member is approved, checked on every request. An officer is
-  refused on their own membership, volunteer profile and nomination; the
-  superuser is exempt.
-- **Aspirants:** a nominations officer nominates an approved member for a seat
-  and exactly the area that seat is fought over (`aspirants`, one live
-  nomination per member). Nominations move draft → submitted → approved or
-  rejected; approved ↔ suspended; anything live → withdrawn. Rejecting and
-  suspending need a reason; approving needs the member approved. The
-  nomination follows the member: suspending the member suspends an approved
-  nomination, and withdrawing or rejecting the member, including through their
-  public withdrawal link, withdraws it.
-- **Campaign workspaces:** a nominations officer (or the superuser) creates an
-  approved aspirant's campaign at `/party/aspirants`. It is built on the
-  aspirant's seat and area with a candidate login linked to the member and an
-  optional manager; one per aspirant, even with two officers at once. While the
-  aspirant is not approved, every login on that campaign gets 403
-  `campaign_suspended` and a "suspended" or "closed" screen, and its public
-  sign-up links close; the data is kept. Deleting the campaign keeps the
-  aspirant and member.
-- **Subscriptions:** every campaign, console ones included, has one
-  subscription (`campaign_subscriptions`) with a plan once the finance officer
-  picks one, a last paid day and an optional hold, and a ledger of payments
-  and free extensions (`subscription_entries`). The finance officer records
-  money by hand at `/party/finance`; nothing is paid online. The access state is computed on
-  every request from the paid day, the hold and today's date in Nairobi: active
-  while paid; then grace (full access, a banner) for the party's grace days;
-  then read-only (every write refused with 403 `campaign_read_only`) for its
-  read-only days; then locked (403 `campaign_locked` on every campaign route,
-  and a payment screen with the party's payment instructions). A new campaign
-  is locked until its first payment or free extension; a suspended or
-  cancelled hold locks it whatever the dates say. Public sign-up links are
-  open only while active or in grace; a supporter's withdrawal always works. Deleting a campaign keeps its
-  subscription and ledger under the campaign's title. The demo seed
-  (`campaign-crm demo`) puts its campaign on a "Demo yearly" plan with one
-  payment, so it is open for a year; a re-run keeps the old demo's ledger,
-  like any deleted campaign's.
-- **Member register:** `party_members`, one row per phone, tied to a ward
-  (county and constituency come from the ward). People apply at `/join-party`
-  with first name, surname, phone, email, password, a county, constituency
-  and ward picker, a polling station inside that ward, and the consent box,
-  whose wording the server serves and records. The queued join holds the
-  password only as an argon2 hash; applying it writes the member and a member
-  login with that password. A membership officer reviews them at
-  `/party/members`: search, filter by status and place, approve, reject,
-  suspend, reinstate, withdraw, and export CSV.
-- **Volunteers:** an optional volunteer profile per member
-  (`volunteer_profiles`), made from the join form's "Volunteer for events"
-  tick or later from the member's account: profession (Other with text), one
-  or more of ten areas (Other with text), preferred contact and its own
-  consent box. The database holds that a party volunteer row has a member and
-  a campaign volunteer row has none. Officers see them at
-  `/party/volunteers`, filter by place, interest and status, edit availability
-  notes, and make an approved member's profile active or inactive. The profile
-  follows the member: withdrawn or rejected withdraws it, suspended makes it
-  inactive. Its own link (`/party/volunteer/withdraw/<code>`) stops volunteer
-  contact and leaves the membership as it is.
-- **Sign-in and member accounts:** every login signs in with email and
-  password (`users.email`, lower-cased and unique); a username no longer
-  signs in, and `campaign-crm set-email` gives an old login its email. A wrong
-  email, a wrong password and a member who is not approved get the same
-  answer. A device gets 10 sign-in tries an hour. A member login (`users.kind = member`) opens only `/api/account/`
-  routes, and only while its member is approved, checked on every request.
-  Its page at `/account` shows the member card, the volunteer part (details
-  with a change form, or the volunteer form for a non-volunteer), an empty
-  tasks state, upcoming party events, and data and privacy: "Stop
-  volunteering" keeps the membership, "Leave the party" queues the withdrawal
-  and ends the session. A staff or campaign login linked to a member gets a
-  chooser at `/signin/where` after signing in. The SMS code step is designed
-  (section 5 of `docs/Volunteers_Design.md`) and waits for an SMS provider.
-- **Candidates:** the website editor writes a profile for an approved aspirant
-  (`candidate_profiles`: photo, slogan, bio, priorities, office) and
-  publishes it; no field comes from a campaign's CRM. `/candidates` lists
-  approved aspirants with a published profile and `/candidates/<slug>` shows
-  one, with the party events that name the aspirant (never a campaign event).
-  Its "I'll volunteer" form is open only while the aspirant's campaign is
-  active or in grace, and accepts only a ward and polling station inside the
-  seat's area. Those volunteers belong to the campaign: only its manager sees
-  and changes them, they never reach the party register, its CSV or the
-  dashboard, and their withdrawal link deletes the row and answers the same
-  for any code.
-- **Party payments:** the finance officer schedules payments to agents and
-  others at Finance > Payouts; the superuser approves each one (never one they
-  scheduled) before it is released or marked paid. It runs in practice mode;
-  a Paystack provider is ready behind `PAYOUT_PROVIDER`.
-- **Console top bar:** every party console page has search
-  (`GET /api/party/search/`) and notifications
-  (`GET /api/party/notifications/`), each showing only what the caller's
-  offices may see.
-- **Status moves** are one table in `services/membership.py`; any other move is
-  refused, and a move only lands if the row still has the status it was checked
-  against. Every officer move and every export is in the audit trail, with ids,
-  statuses, filters and counts only.
-- **Withdrawing:** the applicant's link (`/party/withdraw/<code>`) withdraws
-  them once and answers the same for any code. A withdrawn member's row is
-  kept with status `withdrawn`; erasing it on request is planned as a separate
-  superuser action.
-- **Privacy of the form:** the public join and withdraw routes only queue a
-  request (`party_requests`), one insert each whatever the register holds, so
-  neither the answer nor its timing shows who is registered. The app applies
-  the queue oldest first, every minute and before every officer request, and
-  each request runs the same statements whatever the register holds, so the
-  server's latency does not show it either; a withdrawal lands within minutes. Public re-applications and withdrawals are audited as
-  `public`. Nobody proves they hold the number yet, so anyone can re-apply for
-  a rejected or withdrawn number until SMS verification exists.
-- **Public website:** the party's site is at `/`, open to anyone, built on
-  the UI kit with one `SiteHeader` and `SiteFooter`: Home (a carousel of
-  slides turning every 6 seconds with Pause, agenda issues at `/issues/<id>`,
-  our candidates, news, events and a Watch row), About, Leadership,
-  Manifesto, News (news, statements and opinions), one post at `/news/<id>`,
-  Events, Candidates, Results (demo primary results, marked demo), Counties
-  (one branch per county at `/counties/<id>`), Vie with us, Contribute (it
-  charges and stores nothing, and says so), Privacy and Join, all in the
-  party's name, logo and colours from its settings (the demo party is Pamoja
-  Party). The footer's newsletter sign-up stores its consent wording, notice
-  version and date (`subscribers`) and is undone at `/unsubscribe/<code>`. The
-  menu's last link is Sign in (`/signin`), or Portal for a signed-in login.
-  Leaders and posts live in `party_leaders` and `party_posts`; a public route
-  returns only published ones, news newest first 20 a page, events from today
-  soonest first. The Events page lists the party's own events, never a
-  campaign's. Text is shown as text and image fields take `https://` addresses
-  only; there is no upload.
-- **Website editor:** the superuser adds, edits, publishes, unpublishes and
-  deletes leaders, posts, homepage slides and issues, About content, results,
-  videos and candidate profiles at `/party/website`, and county branches at
-  `/party/branches`. A new row is a draft; a post
-  gets its `published_on` day the first time it is published and keeps it.
-  An event needs a date, held by the database
-  (`CHECK ((kind = 'event') = (event_date IS NOT NULL))`). Every change is
-  audited as `party.leader.*` or `party.post.*` with ids, kind and the
-  published flag, never the text.
-- **Party dashboard:** the superuser lands on `/party/dashboard`: approved
-  members, pending applications, active volunteers (per county and per
-  interest), approved aspirants, active campaigns, active CRM subscriptions,
-  campaigns per county and seat, upcoming planned campaign events per county
-  and per seat, and recorded CRM revenue. It filters by county, constituency,
-  ward, seat, aspirant and dates; by default events run over the next 30 days
-  and revenue over the calendar year. It answers counts only: no event title or
-  venue, and no supporter, member or phone detail leaves a campaign.
-- **Addresses:** a signed-out visit to any signed-in page goes to `/signin`.
-  After signing in the superuser lands on the console at `/console`, party
-  staff on `/party`, a campaign login on `/campaign`, a member login on
-  `/account`, and a login linked to a member on the chooser first.
-
-The designs and their decisions are in `docs/Identity_Access_Design.md`
-(Releases 0 and 1), `docs/Aspirants_Design.md` (Release 2),
-`docs/Subscriptions_Design.md` (Release 3), `docs/Website_Design.md`
-(Release 4) and `docs/Volunteers_Design.md` (Release 5).
+The candidate's login is made at setup; the console refuses to make another.
 
 ---
 
-## 2. Who it is for, and how it is sold
+## 3. First-run setup
 
-**Sold on subscription to several campaigns at once.** Each campaign has its own
-aspirant, manager, mobilizers and supporters, and never sees another campaign's
-data. A campaign login is on at most one campaign; the operator is on none.
+Until setup has run, every API route but `/api/setup/` answers 503 `not_set_up`
+(`api/install.py` `SetupGate`) and the browser is sent to `/setup`. The wizard is
+`frontend/src/pages/setup/Setup.jsx`; the server side is `services/setup.py`.
 
-**The operator (superuser) or the party's nominations officer onboards every
-campaign.** There is no public sign-up. The operator creates a campaign from
-the admin console; a nominations officer creates one only as the workspace of
-an approved aspirant. Either way the aspirant's login and, optionally, the
-manager's are created with it. From then on the
-campaign runs its own team. The command line can also make a candidate login
-with no campaign (`campaign-crm createuser --role candidate`); the console
-refuses that.
+It opens with a **setup token**, printed on the server by `campaign-crm setup-token`. A token
+works once and for 24 hours; printing a new one retires any unspent one. Then six steps:
 
-| Person | What they do in the app |
+| Step | Asks for |
 |---|---|
-| **Operator** (superuser) | Runs the deployment from the admin console at `/console`: creates campaigns and their first logins, repairs logins, links logins to party members, grants party offices, deletes campaigns. Opens every party page, and alone reads the party dashboard and edits the public website. Never sits on a campaign. |
-| **Membership officer** (party staff) | Reviews the member and volunteer registers at `/party/members` and `/party/volunteers`. Sees no campaign. |
-| **Nominations officer** (party staff) | Nominates approved members, moves nominations, and creates an approved aspirant's campaign workspace at `/party/aspirants`. Sees no campaign. |
-| **Finance officer** (party staff) | Sets CRM plans, gives each campaign a plan, records payments and extensions, voids the latest entry, holds a campaign, reads the revenue and expiring reports, and sets the grace and read-only days and the payment instructions at `/party/finance`. Never acts on their own aspirant's campaign. Sees no campaign's data. |
-| **Aspirant** (role `candidate` in the code, labelled Candidate on screen) | Owns the campaign. Watches progress and strategy, adds or replaces the one manager, adds and places mobilizers, resets the team's passwords. |
-| **Campaign manager** | Runs the day to day: targets, events, the supporter register, sign-up links to share, payments to mobilizers, adding mobilizers and resetting their passwords. |
-| **Mobilizer** | Works one unit: a ward, or in an MCA race a registration centre. Records events and registers supporters in their ward, and sees their own payments. |
-| **Supporter** (no login) | Signs up on their own phone, from an event's QR code or the campaign's sign-up link, and withdraws with their private link; or is registered by a mobilizer. |
+| 1. Name and colours | Site name, short name, logo link (`https://` only), primary and secondary colour. Colours that fail the contrast check are refused. |
+| 2. Contacts | Contact email, phone, address, and the privacy notice shown on `/privacy` and at every sign-up form. |
+| 3. First superuser | Username, email and password of the first console login. |
+| 4. Campaign | Campaign name, seat, election date, the area (county, constituency or ward as the seat needs; none for President), and the candidate's login. |
+| 5. Target | Nothing to enter. Shows the seat's past results, the winner's share, the typical winner, the reliability label, two-candidate or crowded, each turnout scenario with its majority line and target, and the split to wards (or centres). |
+| 6. Check and finish | A summary; **Finish setup** runs it. |
+
+Step 5 calls `POST /api/setup/target-preview/` (`services/target_preview.py`). It saves nothing
+and uses the same calculation (`services/targets.py` `plan_targets`) that Finish saves, so the
+saved targets equal the preview at the Expected scenario.
+
+Finish (`POST /api/setup/`) spends the token and, in one transaction, writes the site settings,
+the superuser, the campaign with its targets, the candidate's login (sent an invite link by email)
+and an empty candidate page. Any failure leaves nothing behind. The finish screen lists the
+outside services in their current mode and, once the superuser signs in, tests email, SMS and
+Google sign-in from there.
+
+The manager, comms, coordinators and mobilizers are added afterwards, from the console or the
+Team page.
 
 ---
 
-## 3. How supporters join, and consent
+## 4. The seat, its areas and its targets
 
-A supporter is a person on a campaign's register: a name, a phone number, a
-support level (Supporter, Undecided or Opposed), the unit they are filed under,
-and whether they consented. **Consent is the person's own**, as the Data
-Protection Act 2019 asks, so people sign themselves up: from an event's QR code,
-or from the campaign's own sign-up link. A mobilizer can also enter someone met
-in person who has no smartphone. The manager does not register people; the
-manager shares the links.
+### 4.1 Geography
 
-### Signing up from an event's QR code
+The reference data comes from the IEBC 2022 register (`backend/data/`), loaded once with
+`campaign-crm seed`: 47 counties, 290 constituencies, 1,450 wards and 27,273 registration
+centres, with each ward's and centre's registered voters and each county's 2022 turnout.
 
-Nobody needs a login. Every event has its own sign-up code.
-
-```mermaid
-sequenceDiagram
-  actor Team as Manager or mobilizer
-  actor Person as Person at the event
-  participant App as MZIGO CRM
-  Team->>App: Events, then "Sign-up QR" on an event
-  App-->>Team: QR code for /join/{code}, Copy link, Share on WhatsApp
-  Person->>App: Scans the code, or opens the shared link
-  App-->>Person: Campaign, event and candidate's name
-  Person->>App: Full name, phone, ticks consent, "Sign up"
-  App->>App: Checks the rate, that sign-ups are open, consent and the number
-  App-->>Person: Thank-you, and their private withdrawal link
-```
-
-1. The manager, or a mobilizer working the event's ward, opens **Sign-up QR**
-   on the event. It shows the code and its link (`/join/<code>`), with
-   **Copy link** and **Share on WhatsApp** while sign-ups are open.
-2. The person scans it or opens the link, and sees the campaign, the event and
-   the candidate's name.
-3. They enter their **full name** and **phone number**, and tick:
-   *"I agree that this campaign may keep my name and phone number to contact
-   me."* The **Sign up** button stays off until the box is ticked, and the
-   server refuses a sign-up without consent whatever the page sends
-   (`backend/src/backend/schemas/join.py`).
-4. The number must be a Kenyan mobile number; it is stored as `+254...` so the
-   same person typed two ways is one person.
-5. A new person is saved at level **Supporter**, filed under the event's ward
-   (and, in an MCA race, the event's centre), and linked to the event and its
-   mobilizer. The events list shows how many people each event brought in;
-   the link to each person is stored but not shown yet. They count toward
-   progress straight away, except in an MCA race when the event's centre has
-   no target; such a sign-up waits to be placed at a targeted centre, and the
-   strategy read says how many are waiting.
-
-### Signing up from the campaign's own link
-
-For posters, WhatsApp groups and social media, each campaign has one sign-up
-link that is not tied to an event. The manager finds it under **Supporters**,
-**Sign-up link**: a QR code, the link, **Copy link**, **Share on WhatsApp**, and
-**Open sign-ups** or **Close sign-ups**. It starts **closed**, and only the
-manager reads, opens or closes it.
-
-The page works like an event's, and also asks where the person votes:
-
-- **Ward seats** (MP, Governor, Senator, Women Rep): the person picks their
-  ward from the campaign's wards; sign-up waits until they do.
-- **MCA**: the person picks their registration centre from the centres with a
-  target, or leaves it at **Not sure**. Someone not sure is filed at the
-  campaign's ward with no centre, and waits for the team to place them.
-
-A place outside the campaign is refused.
-
-### Guards on both public pages
-
-(`backend/src/backend/api/routers/join.py`)
-
-- **One entry per phone per campaign.** A number already on the register is
-  left as it is (including its support level), and the person sees the same
-  thank-you, so the page never reveals who is already registered.
-- **The manager closes and reopens sign-ups**, per event and for the campaign
-  link; a cancelled event takes none.
-- **At most 20 sign-up attempts an hour from one network address.** Every
-  attempt the page sends counts, including a mistyped number, a closed link or
-  a repeat scan. The count is kept in the server's memory and starts again when
-  the server restarts. Phones on the same venue wifi, or behind the same mobile
-  network address, share one allowance, so a large rally can reach it.
-
-### Registered by a mobilizer
-
-For people met in person who have no smartphone or data, a mobilizer uses
-**Register supporter** in their own ward: full name, phone, the ward (in an MCA
-race, a centre with a target, starting at the mobilizer's own), support level,
-and a consent box: *"Consent to hold these details under the Data Protection
-Act, 2019."* The form shows the wording the server sends. The mobilizer ticks
-it after asking the person. Saving stays off until the wording has loaded and
-the box is ticked, and the server refuses the record without it. The
-phone may be left blank. A Kenyan mobile number is stored as `+254...`; anything
-else is kept as typed, so it cannot be texted and is not matched against the
-same number written another way. A number already on the campaign's register
-is refused.
-
-The server would accept the same record from the manager, but the manager's
-screens have no Register supporter page, on purpose. The manager reviews
-everyone on **Supporters**, and in an MCA race places people at a centre there.
-
-### Withdrawing
-
-People take themselves off the register. The team cannot remove them: there
-is no screen for it, and the server has no route for it either.
-
-- After signing up, the thank-you screen shows the person a **private
-  withdrawal link** (`/withdraw/<code>`) to keep. Opening it and pressing
-  **Remove my details** deletes their record for good.
-- The withdrawal page gives **the same answer for every link**: a real one, one
-  already used, or one made up. So nobody can use it to test whether a code, or
-  a phone number, is on a register. It is rate limited like sign-up.
-- A person whose phone was **already on the register** when they signed up
-  again is shown a link too, but it removes nothing; a working link would let
-  anyone who knows a phone number remove that person.
-
-**Not covered yet:** people a mobilizer registered by hand have no withdrawal
-link, nor does a person who signed up again and lost their first link. Both
-need a channel that proves the phone is theirs, such as an SMS they reply to
-(planning question 9). Until then, if such a person asks for their details to be
-erased, nothing in the app can remove that one record; only deleting the whole
-campaign does.
-
-### What consent is used for
-
-- The register is the campaign's own; no other campaign can read it.
-- **SMS invitations** for an event go to the supporters in that event's ward,
-  or in the whole campaign, filtered by support level (once an SMS provider is
-  configured). A mobilizer's invitations reach only their own ward.
-- Supporters at level Supporter count toward progress (section 1).
-
-### What is recorded, and what is not yet
-
-- **Recorded:** consent as yes or no on each supporter
-  (`models/supporter.py`), the time the record was created (consent is
-  required to create it), the channel (`event_qr`, `campaign_link` or
-  `mobilizer`) and the exact wording that screen showed, for a QR sign-up the
-  event it came from (lost if the event is later deleted), and for a self
-  sign-up its withdrawal code. The wording lives once in
-  `services/consent.py`; both screens show what the server sends, and the
-  server stores the wording it served, never text from the client. Supporters
-  added before 30 October 2026 have no channel or wording.
-- **Not recorded yet:** a confirmation from the person themselves, which is
-  planning question 9 (section 11).
-
----
-
-## 4. Scope
-
-### In scope today
-
-- Campaign setup for all five seats, on the real 2022 geography: 47 counties,
-  290 constituencies, 1,450 wards and 27,273 registration centres.
-- Win number and targets per unit, with editable turnout per unit.
-- The ground team: mobilizers placed one per unit.
-- Events: schedule, record reached and attended, invite supporters by SMS,
-  open a QR sign-up and share it.
-- A campaign-wide sign-up link, and private withdrawal links for the people
-  who sign up.
-- The supporter register, with consent and one entry per phone per campaign.
-- The strategy read: progress, the biggest gaps, and what to do next.
-- Payments to mobilizers for events, in practice mode (see section 7, Outside services).
-- Party payments by the finance officer to polling and party agents, volunteers,
-  members and staff, each optionally for a campaign, with the spend per campaign.
-- The admin console for the operator, and a command line (`campaign-crm`) for
-  the same operations.
-- The party platform: settings, offices, the member and volunteer registers,
-  nominations and campaign workspaces for approved aspirants.
-- Campaign subscriptions: plans, a ledger the finance officer keeps by hand,
-  and access that steps from active to grace, read-only and locked.
-- The party's public website, its editor, and the superuser's party dashboard.
-
-### Deliberately out of scope
-
-- **Campaigns signing themselves up.** Every campaign is onboarded by the operator,
-  or by the nominations officer for an approved aspirant.
-- **Several campaigns per login.** A login belongs to one campaign.
-- **Polling-station level work.** Targets stop at the registration centre;
-  election-day work would need polling stations, which are not loaded.
-
-### Planned, not built
-
-| Item | Notes |
-|---|---|
-| **Self-serve subscription payment** | Campaigns pay the party by M-Pesa, bank or cash and the finance officer records it. Paying online (Paystack) with automatic recording comes later. |
-| **Real SMS** | The Africa's Talking adapter is written and tested against recorded replies; the deployment sends nothing (`SMS_PROVIDER=console`). |
-| **Real payouts** | Payments run in practice mode. The Paystack provider (M-Pesa transfers and their webhook) is written and tested against recorded responses; it is switched on with `PAYOUT_PROVIDER=paystack` once the party has a Paystack Kenya account with transfers. |
-| **Email password reset** | Designed, waiting on a sending domain. Resets are done by the operator or, inside a campaign, by the aspirant and manager. |
-| **Ward managers** | A manager per ward for large seats. Today a campaign has one manager. |
-| **Invitation links** | New logins get a password to pass on, not a link to claim. |
-
----
-
-## 5. Business rules
-
-Each rule is enforced on the server; the screens only reflect it.
-
-| Rule | Where it is enforced |
-|---|---|
-| Only the operator creates campaigns; nobody signs themselves up | `services/admin.py` `create_campaign`; no public route exists |
-| A login is on at most one campaign | unique index `uq_campaign_members_one_campaign_per_user` |
-| A campaign member's role always equals its login's role: role guards read `users.role`, the one-aspirant and one-manager indexes read `campaign_members.role`, and a login on a campaign cannot change role. A login made with no campaign defaults to `manager`, the superuser included | composite foreign key `campaign_members(user_id, role)` → `users(id, role)` |
-| Every API route needs a login except sign-in, the public sign-up and withdrawal routes, the public party routes, and `/health` | `tests/test_route_guards.py` `PUBLIC_ROUTES` |
-| A public route never returns a draft leader or post | `services/content.py`, one `published` filter on every public read |
-| A leader's photo and a post's image are empty or an `https://` address | `schemas/content.py` |
-| Only the superuser edits the website and reads the dashboard | `api/deps.py` `AdminUser`, on `api/routers/admin.py` and `/api/party/dashboard/` |
-| The dashboard returns counts, county names and totals only | `schemas/dashboard.py`: no event title or venue, no person's name or phone |
-| A campaign has exactly one aspirant | at most one: unique index `uq_campaign_members_one_candidate`; at least one: `services/admin.py` `create_campaign` makes them with the campaign, and `remove_member` refuses to take them off |
-| A campaign has at most one manager; only its aspirant adds or replaces them | unique index `uq_campaign_members_one_manager`, `services/team.py`, `api/routers/team.py` |
-| A replaced manager comes off the campaign, is turned off and signed out | `services/team.py` `set_manager` |
-| The aspirant and the manager add mobilizers; a mobilizer adds nobody | `api/deps.py` `TeamWriter` |
-| The aspirant resets the manager's and mobilizers' passwords; the manager resets mobilizers'; only the operator resets the aspirant's | `services/team.py` `resettable` |
-| One mobilizer per unit | unique indexes on `mobilizers` |
-| In an MCA race a mobilizer works one centre with a target, or none yet | `services/accounts.py` `require_unit` |
-| A mobilizer reads and writes only their own ward, in every race | `api/scope.py` `mobilizer_ward_id` |
-| Every unit inside the seat gets a target; MCA targets are per centre | `services/targets.py` `generate_targets` |
-| Win number = half the projected votes plus one, per unit | `models/target.py` `compute_win_number` |
-| One supporter per phone per campaign | unique index `uq_supporters_campaign_phone` |
-| A sign-up needs consent, and one network address may try 20 an hour | `api/routers/join.py`, `schemas/join.py` |
-| The campaign's sign-up link starts closed; only the manager reads or opens it | `models/campaign.py`, `api/routers/campaigns.py` |
-| A withdrawal link answers the same whether it is real or not; a repeat sign-up's link removes nothing | `api/routers/join.py` |
-| One live payment per mobilizer per event | unique index `uq_payments_event_mobilizer` |
-| Asking for a campaign you are not on answers 404, as if it did not exist | `api/scope.py` `require_visible_campaign` |
-| A campaign works only as far as its subscription allows today: read-only refuses every write, and locked, pending or cancelled refuses every campaign route; `/me`, sign-out and `/api/subscription/` still answer; a campaign with no subscription row is locked | `api/deps.py` `get_current_user`, `services/billing.py` `access` |
-| Every `GET` on a campaign route writes nothing, so read-only cannot be bypassed | reviewed route by route; `backend/tests/test_route_guards.py` `CAMPAIGN_READS` fails on a new one |
-| `paid_until` always equals the latest live ledger entry's `paid_until_after`; only the latest entry can be voided | `services/billing.py`, a row lock on the subscription |
-| A payment adds the plan's days from the later of the day after the paid period and the day received; it is never dated after today or over a year back | `services/billing.py` `extended`, `record_payment` |
-| One payment reference while it is live | partial unique index `uq_subscription_entries_reference` |
-| A finance officer never changes the subscription of their own aspirant's campaign | `services/billing.py` `_locked`, `services/errors.py` `refuse_own_record` |
-| A mobilizer sees the subscription's state and dates, never a plan or price | `services/billing.py` `own` |
-| Finance audit entries never hold a payment reference or a note | `services/billing.py` `_audit` |
-
-Source paths are under `backend/src/backend/`; test paths are given in full.
-
-### Who may do what
-
-| | Aspirant | Manager | Mobilizer |
-|---|---|---|---|
-| Read the campaign itself | yes | yes | yes |
-| Read the strategy, targets, events and mobilizers | yes | yes | their ward |
-| Read payments | all | all | their own |
-| Read the supporter register | no | yes | their ward |
-| Add or replace the manager | yes | no | no |
-| Add, place or remove mobilizers | yes | yes | no |
-| Reset a teammate's password | manager, mobilizers | mobilizers | no |
-| Change targets | no | yes | no |
-| Schedule and record events | no | yes | their ward |
-| Register supporters by hand | no | no screen, on purpose | their ward |
-| Share and open the campaign's sign-up link | no | yes | no |
-| Schedule and release payments | no | yes | no |
-
-Party offices sit outside this table: a membership officer reads and changes
-the party register only, a nominations officer the nominations only, a
-finance officer the plans, subscriptions and ledger only, and none of them sees
-a campaign's data; a campaign login gets 403 on every party route. Inside a
-campaign, the aspirant and manager see their own plan and price on the payment
-screen; a mobilizer sees only the state and dates.
-
-A mobilizer's reach is their **ward**, in every race. In an MCA race the whole
-campaign is one ward, so a mobilizer placed on one centre still reads and writes
-everything in the campaign's ward; the centre decides which target their work
-counts toward, not what they can see.
-
----
-
-## 6. Features and their status
-
-| Feature | Status | Notes |
+| Seat | Area | Units the team works |
 |---|---|---|
-| Sign-in, sign-out, token sessions | Built | Argon2 password hashes |
-| Operator console: campaigns, logins, members | Built | `frontend/src/components/Admin.jsx` |
-| New campaign wizard (seat, area, unit preview, logins) | Built | `frontend/src/components/Onboarding.jsx` |
-| Targets and win number, turnout slider | Built | |
-| Mobilizers, placed by ward or centre | Built | Also from the console, with a centre picker for MCA campaigns |
-| Team page: manager, password resets | Built | |
-| Events, recording, QR sign-up with Copy and WhatsApp sharing | Built | |
-| Campaign-wide sign-up link, with ward or centre picker | Built | |
-| Supporters withdrawing themselves | Built | Only for people who signed up themselves (section 3) |
-| SMS invitations | Built, not live | Sends nothing until a provider is configured |
-| Supporter register, placing supporters at centres | Built | |
-| Strategy read and notes | Built | |
-| Payments to mobilizers | Built, practice mode | References read `PRACTICE`; no money moves |
-| Party payments (Finance > Payouts) | Built, practice mode | Finance officer schedules and releases; the party super admin approves each first; spend per campaign |
-| Party settings, edited in the console | Built | `GET /api/party/`, `PUT /api/admin/party/` |
-| Party offices granted to staff logins | Built | Membership, nominations and finance officer; holders linked to an approved member |
-| Nominations: nominate, move, follow the member | Built | `frontend/src/pages/party/Aspirants.jsx` |
-| Campaign workspace from an approved aspirant | Built | One per aspirant; passwords shown once |
-| Campaign closed while its aspirant is not approved | Built | 403 `campaign_suspended`, its own screen, sign-up links closed |
-| Console: link a login to its party member | Built | `PUT /api/admin/users/{id}/party-member/` |
-| Public Join the Party page and withdrawal link | Built | `frontend/src/pages/public/` |
-| Party member register for membership officers | Built | `frontend/src/pages/party/Members.jsx`, CSV export |
-| Volunteer register: form section, own withdraw link, officer page | Built | `frontend/src/pages/party/Volunteers.jsx`, CSV export |
-| Email sign-in for every login | Built | A username no longer signs in; `campaign-crm set-email` |
-| Member logins and the member account | Built | `frontend/src/pages/member/Account.jsx`, `/api/account/` |
-| SMS code at sign-in | Designed, not built | Waits for an SMS provider (R5-9) |
-| Candidates directory, profiles and campaign volunteers | Built | `frontend/src/pages/public/Candidates.jsx`, `Candidate.jsx`; manager-only list |
-| County branches | Built | `frontend/src/pages/party/Branches.jsx`, `/counties` |
-| Newsletter sign-up and unsubscribe | Built | `subscribers`; footer form |
-| Console top bar: search and notifications | Built | `frontend/src/components/layout/ConsoleTools.tsx` |
-| Audit trail of sensitive actions | Built | Read at `GET /api/admin/audit/`; no console screen yet |
-| Erasing a withdrawn member on request | Planned | Decision 3 in the design |
-| Subscription, grace, read-only and locked states | Built | Computed on every request; 403 `campaign_read_only`, `campaign_locked` |
-| Finance page: campaigns and ledger, plans, reports, settings | Built | `frontend/src/pages/party/Finance.jsx` |
-| Payment screen for a locked campaign, banner while lapsing | Built | `frontend/src/components/CampaignLocked.jsx`, `AccessBanner.jsx` |
-| Public website: home, about, leadership, manifesto, news, events | Built | `frontend/src/pages/public/`, `components/PublicLayout.jsx` |
-| Website editor for leaders and posts | Built | `frontend/src/pages/party/Website.jsx` |
-| Party dashboard with filters | Built | `frontend/src/pages/party/Dashboard.jsx`, `GET /api/party/dashboard/` |
-| Self-serve subscription payment | Planned | Paystack |
-| Email password reset | Planned | |
-| Ward managers | Planned | |
+| MCA | One ward | The ward's registration centres |
+| MP | One constituency | Its wards |
+| Women Rep, Senator, Governor | One county | Its wards |
+| President | The whole country | Every ward, grouped by county |
+
+The database holds that the seat and its area match (`models/campaign.py` `seat_matches_scope`).
+Every target, mobilizer, event and contact names its unit the same way: a ward and, in an MCA
+race, a registration centre.
+
+### 4.2 Past results
+
+`campaign-crm seed-results` loads the Kura254 historical results file
+(`backend/data/history/kura254_historical_results.csv`, documented in `SOURCE.md` beside it) into
+`elections`, `contests` and `contest_candidates` (`models/history.py`). It covers 2013, 2017 and
+2022 for every office: President and the county seats by county, MP by constituency, MCA by ward.
+A contest whose candidate votes miss its total by more than 1%, or which has no total, is
+excluded; unopposed contests give no share. The load is logged with the file's checksum, so an
+unchanged file is not reloaded (`--force` reloads it).
+
+After loading, `seed-results` **reworks the targets of every open campaign**
+(`services/targets.py` `recalculate_all`). A closed campaign is left as it is.
+
+### 4.3 The seat target
+
+The calculation is `services/win_model.py`. Every figure is an exact fraction, so a result
+matches a hand calculation to the vote.
+
+1. **Share `S`**: the 2022 winner's votes ÷ valid votes in that race.
+2. **Turnout `T`**: valid votes in that same race ÷ the seat's 2022 register `R` (the sum of its
+   wards).
+3. **Projected valid votes `P`** = `R × (T + adjustment)`, rounded to the nearest vote, for three
+   scenarios:
+
+   | Scenario | Adjustment |
+   |---|---|
+   | Low | minus 3 points |
+   | **Expected** (default) | none |
+   | High | plus half the fall in the county's presidential turnout from August 2017 to 2022 (the whole country's for President); none if turnout rose |
+
+4. **Seat target**: `C = ⌈P × S⌉`. The **majority line** is `F = ⌊P / 2⌋ + 1`.
+   - **Two-candidate seat** (the top two took 90% or more of valid votes in 2022): the target is
+     the larger of `C` and `F`, so it never falls below the majority line.
+   - **Crowded seat**: the target is `C`; the majority line is shown for reference only.
+
+**Fallbacks and reliability.** Every target carries a reliability label:
+
+| Label | When | Share used |
+|---|---|---|
+| Seat data | The seat's 2022 race gives a share | The 2022 winner's share |
+| Typical winner | No 2022 share (excluded, tied or unopposed) but earlier years give one | `50% + Σ w(S − 50%)` over 2013, 2017 and 2022 with weights 0.2, 0.3 and 0.5, scaled over the years present |
+| Proxy | No share in any year | The national median 2022 winning share for that office |
+
+The typical winner is also shown beside every target for reference. A seat with no usable 2022
+race to judge by keeps the majority line as its floor. With no results loaded at all, the share
+is one half, turnout comes from the county turnouts, and the label is Proxy; running
+`seed-results` replaces these.
+
+2017 figures come from an IEBC report that IEBC later withdrew. They feed only the typical winner
+and the High scenario, and the setup preview marks the 2017 row "withdrawn data".
+
+### 4.4 The split to wards and centres
+
+- **Ward seats**: each ward's weight is its share of the seat's 2022 **MCA valid votes** (the only
+  race with ward results). A ward with no usable MCA result takes its register at its county's
+  turnout, scaled to how the other wards compare.
+- **MCA seats**: each centre's weight is its share of the ward's registered voters.
+
+`unit target = seat target × weight`, then **largest-remainder rounding**
+(`win_model.share_out`): every unit takes the whole part, and the votes left over go one each to
+the units with the largest fractions, so the units add up to the seat target exactly. Every unit
+is asked for the same share of where the votes are, not weighted by the winner's strength there.
+
+Targets are calculated, never typed in. `Target.votes_needed` holds the result, with the turnout
+used, the scenario, the reliability and the weight. A unit's **votes committed** may be edited;
+its target may not. **Refresh targets** (candidate and manager, `POST /api/targets/refresh/`)
+reworks the campaign from the current register and results, adds units new since the last run,
+keeps votes committed, and is audited. A register import (section 12) changes no target until
+someone refreshes.
+
+### 4.5 Worked example: Laikipia governor
+
+`R` = 263,012. The 2022 winner took 113,783 of 167,662 valid votes: `S` = **67.86%**,
+`T` = 63.75%. The top two took 96.8%, so it is a two-candidate seat. Typical winner: 59.83%.
+
+| Scenario | Turnout | `P` | `C` | Majority line `F` | Seat target |
+|---|---|---|---|---|---|
+| Low | 60.75% | 159,772 | 108,429 | 79,887 | 108,429 |
+| **Expected** | **63.75%** | **167,662** | **113,783** | 83,832 | **113,783** |
+| High | 72.07% | 189,553 | 128,640 | 94,777 | 128,640 |
+
+At Expected the 15 wards share 113,783 by their 2022 MCA valid votes (171,321 in all), from
+Igwamiti (26,907 votes, 15.71%, target 17,870) down to Mugogodo West (4,378 votes, 2.56%,
+target 2,908). `backend/tests/test_win_model.py` checks every figure here.
+
+### 4.6 Trying and setting a scenario
+
+The campaign holds the scenario the team works to (`Campaign.turnout_scenario`, Expected by
+default, with who set it and when), and every saved target uses it. Trying a scenario and setting
+one are separate steps (`services/target_scenarios.py`, `api/routers/target_scenarios.py`;
+`docs/Targets_Design.md` section 6.1):
+
+| | Trying (preview) | Setting |
+|---|---|---|
+| Route | `GET /api/campaigns/{id}/targets/preview/?scenario=` | `POST /api/campaigns/{id}/targets/scenario/` |
+| Who | Candidate, manager and comms (`targets.preview`) | Candidate and manager only (`targets.set_scenario`) |
+| What happens | The seat and every unit are worked out on the server for Low, Expected or High, beside the set targets; a President seat lists one county's wards at a time | The campaign's scenario changes and every unit's target is worked out again and saved; setting the scenario already in use is refused |
+| What is saved | Nothing | The scenario, who set it and when, and every `votes_needed` |
+| Record | None | An audit entry (`targets.set_scenario`) with the old and new scenario, both seat targets and the number of units changed |
+| Team | Unaffected | Each coordinator whose area holds a changed unit, and each mobilizer on one, gets a notice (`GET /api/notices/`) and a call-alert push |
+
+Mobilizers, coordinators and agents never preview. Contacts recorded never change with the
+scenario; only targets and progress percentages do.
+
+On screen, the **Targets** page (candidate, manager, comms) shows the seat target, the 2022
+result behind it, the reliability badge, Low, Expected and High buttons, the majority line, the
+typical winner and "Team is working to". Trying a scenario shows the banner "Previewing High
+turnout. Your team is working to Expected. Nothing is saved." with each unit's change; **Use this
+scenario** (candidate, manager) opens a confirmation listing the seat target change and the units
+affected, with a warning when the election is less than 30 days away. Notices appear under the
+bell and clear when their page is opened. A mobilizer sees a **Your ward** card with the set
+target and their progress.
 
 ---
 
-## 7. Architecture
+## 5. Contacts, supporters and consent
 
-### The pieces
+The **contact register** (`supporters` table) holds a name, a phone, a support level (Supporter,
+Undecided or Opposed), the unit they are filed under, and their consent. A **supporter** is a
+contact at level Supporter. One contact per phone per campaign
+(`uq_supporters_campaign_phone`); Kenyan mobile numbers are stored as `+254...`.
 
-```mermaid
-flowchart LR
-  subgraph Browser
-    SPA["React SPA<br/>(Vite, React Query, Zustand)"]
-    QR["Public pages<br/>/, /news, /events, /join-party,<br/>/join/{code}, /withdraw/{code}"]
-  end
-  subgraph Fly["Fly.io app (one container)"]
-    API["FastAPI<br/>/api/*"]
-    STATIC["Built SPA<br/>served by FastAPI"]
-  end
-  DB[("Postgres<br/>(Neon)")]
-  SMS["SMS provider<br/>(console now, Africa's Talking later)"]
-  PAY["Payout provider<br/>(practice now)"]
-  SPA -- "JSON + token" --> API
-  QR -- "public, rate limited" --> API
-  API --> DB
-  API --> SMS
-  API --> PAY
-  STATIC -. "same origin" .- SPA
-```
+People get on the register three ways:
+
+| Channel | How | Consent wording recorded |
+|---|---|---|
+| Event QR code (`/join/<code>`) | Scans the event's code or opens its shared link; filed under the event's ward (and centre) at level Supporter | "I agree that this campaign may keep my name and phone number to contact me." |
+| The campaign's sign-up link | One link per campaign for posters and groups, closed until opened; asks for the ward, or in an MCA race the centre (or Not sure) | The same |
+| Added by the team | A mobilizer, coordinator, manager or the candidate enters someone met in person, after asking | "Consent to hold these details under the Data Protection Act, 2019." |
+
+Each contact stores the channel and the exact wording the server served (`services/consent.py`),
+never text from the client. The server refuses a record without consent.
+
+The public pages give the same answer whether or not the number was already on the register, so
+they never show who is registered. A device may try 20 sign-ups an hour (`api/routers/join.py`);
+the count is kept in memory, per server process.
+
+**Withdrawing.** A self sign-up gets a private link (`/withdraw/<code>`) that deletes the record.
+The page answers the same for any code, and a repeat sign-up's link removes nothing. The
+candidate or manager can text any contact their withdrawal link.
+
+**What consent allows.** Bulk texts go only to contacts whose consent wording covers texts: one
+that mentions SMS, text or contact. The team-entered wording does not, so those contacts are
+counted as "no consent" and get no bulk texts (section 7).
+
+---
+
+## 6. Events, field work and the team
+
+- **Events** (`api/routers/events.py`): schedule in a ward (and centre), record the numbers
+  reached and attended, delete, open or close QR sign-ups, and invite contacts by text
+  (section 7.2). A mobilizer works their own ward's events; comms reads every event.
+- **Mobilizers**: one per unit (unique indexes on `mobilizers`). In an MCA race a mobilizer works
+  a centre that has a target.
+- **Agents**: polling agents placed at centres, moving applied, vetted, trained and ready; with
+  coverage by centre and an export.
+- **Assignments**: event, ward work or activity tasks for mobilizers and agents, marked done or
+  cancelled; a done assignment can be paid.
+- **Team sign-up link** (`/team/<code>`): mobilizers and agents register themselves, with an ID
+  number; the candidate, manager or a coordinator approves or rejects. Replacing the link retires
+  the old one.
+- **Volunteers**: people who offer help on the website's volunteer form, each with their own
+  withdrawal link; candidate, manager and coordinators manage them.
+- **Team page**: the candidate adds or replaces the manager; candidate and manager add comms,
+  coordinators and mobilizers, set coordinators' areas, and take people off.
+
+---
+
+## 7. Texts
+
+All texting goes through `services/texting.py`: one `sms_log` row per number, and delivery
+reports and STOP replies come back to it. Every text ends with "Reply STOP to opt out." Numbers
+that replied STOP, or that the gateway reported as opted out, are never texted again.
+
+### 7.1 Bulk texts through the compliance queue
+
+A text to many contacts is a **run** (`sms_runs`, one row per number in `sms_outbox`), built and
+sent by `services/sms_queue.py`.
+
+1. The candidate, manager, comms or a coordinator (for their area) **drafts** a message for some
+   or all wards (`POST /api/messages/`).
+2. The candidate or manager **approves** it and confirms its language
+   (`POST /api/messages/{id}/send/`). Approval runs the gate:
+
+   | Check | Refused or held when |
+   |---|---|
+   | Candidate's name | The text does not contain the candidate's name as registered |
+   | Language | Not English (`en`) or Kiswahili (`sw`) |
+   | Consent | Nobody in the audience consented in a wording that covers texts |
+   | Opt-outs | Opted-out numbers are left out and counted |
+   | Campaign period | Today is past `CAMPAIGN_PERIOD_END` |
+   | Vetting | With `SMS_VETTING_REQUIRED=true`, the run waits as `awaiting_vetting` until a vetting reference is entered |
+
+   The run records how many were targeted, left out for no consent and left out as opted out,
+   the parts per text, and an estimated cost (`SMS_PART_PRICE_CENTS` a part, default KES 0.80).
+3. **Window.** Texts go only inside `SMS_WINDOW` (default and widest 08:00 to 18:00, Nairobi
+   time) and inside the campaign period when one is set. Outside it the run waits as
+   `scheduled` and shows when it can next go.
+4. **Batches.** A batch is up to `SMS_BATCH_SIZE` numbers (at most 500, one gateway request).
+   The first batch goes at approval when the window is open. Later batches go when the queue is
+   drained: `POST` (or `GET`, for a scheduler) `/api/internal/sms/drain/` with
+   `Authorization: Bearer $CRON_SECRET`, or `campaign-crm sms-worker`, which drains every 30
+   seconds. No scheduler is wired in `vercel.json`.
+5. **Before every batch** the gate runs again, and each number is checked again for consent,
+   withdrawal, erasure and opt-out; a number that fails is skipped with the reason.
+6. **Idempotency.** A batch is claimed with a conditional update, so two workers never take the
+   same number. Each batch keeps one idempotency key across retries, so a gateway that took it
+   and lost its answer sees a repeat, not a second text. Rows left `sending` by a worker that
+   died are sent again after 15 minutes under the same key. A gateway refusal (4xx) fails the
+   batch for good; other failures retry with a growing delay, up to `SMS_MAX_ATTEMPTS`.
+7. **Pause, Resume, Halt** (candidate and manager). Pause holds the run and Resume picks it up.
+   Halt needs a reason, skips everything still queued and cannot be undone. A batch already with
+   the gateway still lands.
+8. **Consent evidence.** `GET /api/campaigns/{id}/sms-runs/{run_id}/consent.csv` lists each
+   number with its name, status, when consent was recorded, the channel and the wording.
+
+The Bulk sends screen shows each run's stage, counts, delivered count, estimated and actual cost,
+and these actions. Every approval, pause, resume, halt and vetting is audited.
+
+### 7.2 Event invitations
+
+`POST /api/events/{id}/invite/` goes through the same queue: the same name and language check,
+consent filter, window, batches and run screen. A preview (`dry_run`) sends nothing, is open to
+anyone who may change the event, and shows who would be texted. Sending needs the candidate or
+the manager. Invitations go to the event's ward or the whole campaign, filtered by support level,
+inside the caller's reach. The event's number reached follows how many texts the run sent.
+
+### 7.3 The test SMS
+
+Messages has **Send test SMS** (`POST /api/console/sms/test/`, candidate and manager): one text,
+sent at once past the queue, logged and audited, with a status column (Sent, Delivered, Failed)
+that refreshes while any row is not final. With a live gateway it only texts a login of the
+campaign or a consenting contact. The SMS test in setup and in the console is separate: with
+Sozuri it calls Sozuri's auth test and sends nothing.
+
+### 7.4 Gateways and practice mode
+
+`SMS_PROVIDER` picks the gateway (`services/sms.py`):
+
+| Provider | What it does |
+|---|---|
+| `console` (default) | Practice mode: logs each text, sends nothing, costs nothing |
+| `sozuri` | Sozuri's API. Needs `SOZURI_PROJECT`, `SOZURI_SENDER_ID` and `SOZURI_API_KEY`, or the app refuses to start. Sozuri has no sandbox, so testing uses a separate Sozuri test project with its own key; any real key sends real texts |
+| `africastalking` | Africa's Talking. Needs `AT_USERNAME` and `AT_API_KEY`; the username `sandbox` uses their test gateway |
+
+Delivery reports and inbound texts come back to URLs carrying `SMS_CALLBACK_SECRET`
+(`api/routers/sms_callbacks.py`); a wrong secret gets 404. A Sozuri callback must also carry a
+valid `X-Sozuri-Signature` (HMAC-SHA256 over the timestamp and the raw body, keyed with
+`SOZURI_SIGNING_SECRET`, at most 300 seconds old) or it gets 401; when `SOZURI_AUTH_KEY` is set,
+the body's auth key must match too. A report is applied once and repeats are ignored. Telkom
+numbers (`+25477...`) get no Sozuri delivery report, so they stay Sent.
+
+---
+
+## 8. Online calls and call alerts
+
+**Calls** run on LiveKit (`services/meetings.py`, `frontend/src/pages/Meet.jsx`, and the Calls
+page under Reach out).
+
+- The candidate, manager, comms, or a coordinator (for a ward of theirs) starts an audio or video
+  call for the whole campaign or one ward. A ward call rings the candidate, manager and comms,
+  the coordinators whose area holds the ward, and its mobilizers.
+- Any login of the campaign joins at `/meet/<id>` with a 15-minute token for that room only. An
+  audio call allows the microphone alone.
+- The host, the candidate or the manager ends a call for everyone.
+- LiveKit's signed webhook (`POST /api/livekit/webhook/`) records joins, leaves and room end; the
+  Calls list shows past calls with who came and for how long.
+- With no `LIVEKIT_URL`, `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET`, starting a call is refused
+  with "Meetings are not configured".
+
+**Call alerts** are web push (`services/push.py`). The frontend is a PWA (`vite-plugin-pwa`,
+service worker `frontend/src/sw.js`) whose service worker caches nothing and only shows
+notifications. After sign-in the app offers "Enable call alerts"; on an iPhone they work once the
+app is added to the Home Screen (iOS 16.4 or later). Starting a call notifies the people it
+rings ("Joining: title"); tapping the alert opens the call. Only https endpoints of the browsers'
+push services (Google, Mozilla, Apple, Microsoft) are accepted, a subscription the push service
+reports gone is deleted, and signing out unsubscribes the device. With no VAPID keys set nothing
+is sent; `campaign-crm make-vapid-keys` prints a key pair.
+
+---
+
+## 9. Payments and payouts
+
+**Payouts** pay mobilizers (for an event or a done assignment) and agents
+(`api/routers/payments.py`, `services/payout_flow.py`).
+
+- A coordinator (for their area) or the manager schedules a payment. Whoever schedules never
+  approves it: a coordinator's goes to the manager, a manager's to the candidate
+  (`services/payment_routing.py`). The candidate never schedules.
+- The approver releases it, declines it, or marks it paid by hand with a reference.
+- A payment moves scheduled, sending, paid, failed or cancelled. Each move is one conditional
+  update, so two requests cannot move the same payment. One live payment per mobilizer per event,
+  and one per assignment.
+- `PAYOUT_PROVIDER=practice` (default) moves no money and marks each release paid under a
+  `PRACTICE` reference. `paystack` sends M-Pesa transfers from the Paystack balance, checks the
+  balance first, and settles from Paystack's signed webhook at `/api/payments/paystack/webhook/`.
+- The Payments page compares the ledger with Paystack on request. A long-running server also does
+  it every `RECONCILE_HOURS` (0 turns it off).
+
+**Contributions** come in from the website's Contribute page (`services/payments_in.py`): an
+M-Pesa prompt on the payer's phone through Paystack (`PAYIN_PROVIDER=paystack`; practice mode
+marks it paid at once and takes nothing), or the payer's own Paybill or Till payment, which the
+candidate or manager confirms or rejects from its M-Pesa code.
+
+---
+
+## 10. The public website
+
+The candidate's site is at `/`, in the installation's name, logo and colours: Home, About,
+Agenda (each issue at `/issues/<id>`), Media (videos and documents), News (each post at
+`/news/<id>`), Events, Volunteer, Contribute, Privacy (the privacy notice from setup), and Sign in
+at `/signin`. Other public pages: `/join/<code>`, `/withdraw/<code>`, `/team/<code>`,
+`/volunteer/withdraw/<code>`, `/unsubscribe/<code>`, `/invite/<token>`, `/reset/<token>` and
+`/forgot-password`.
+
+The candidate, manager and comms edit it from the workspace's Website and Settings pages
+(`api/routers/workspace_site.py`): the candidate profile, posts, slides, issues, documents,
+videos and site settings, with uploaded images. Public routes return published rows only. The
+footer's news sign-up stores its consent wording and is undone at `/unsubscribe/<code>`.
+
+---
+
+## 11. Privacy
+
+Built for the Data Protection Act 2019 (`services/privacy.py`, and the Personal data page for
+the candidate and manager):
+
+- **Data requests**: access, correction or erasure, logged with a due date of 7, 14 and 14 days
+  (Data Protection (General) Regulations 2021), and marked answered with who and when.
+- **Erasure**: blank one contact, a withdrawn volunteer, or the sign-up (ID number included) of a
+  mobilizer or agent who has left. Counts stay; the person's details go, including their number
+  on past texts and in runs not yet sent.
+- **Withdrawal links**: self sign-ups keep their own, and the team can text one to any contact.
+- **Closing**: after the election the candidate closes the campaign. It is read-only for good,
+  except sign-out and the data protection work. After the retention period (6 months by
+  default, adjustable) every contact can be erased in one step.
+- **Audit**: sensitive actions are recorded with who, what and when; the superuser reads the
+  trail in the console.
+
+---
+
+## 12. The console and imports
+
+The superuser's console at `/console` (`frontend/src/components/Admin.jsx`,
+`api/routers/admin.py`):
+
+| Section | What it does |
+|---|---|
+| Campaigns | The campaign with its people; rename, add or remove members, delete |
+| Logins | Create logins (each gets an invite link by email), reset passwords, turn logins off and on, change emails |
+| Settings | The site's name, logo, colours, contacts and privacy notice |
+| Areas and register | Boundary and voter register imports from CSV, with a dry run and the import history |
+| Health | Version, migration, database, outside services, last backup and disk space |
+| Audit | The audit trail |
+| Export | Every table as JSON and CSV in one zip, password hashes left out |
+
+The console also sends a test SMS and a test payout.
+
+**Imports** (`services/imports.py`) check every row before writing anything; one bad row and the
+file changes nothing. Areas match by code. An area left out of a boundary file is retired: hidden
+from pickers, kept for everything that refers to it. A register import sets registered voters per
+county, ward and centre, and turnout per county.
+
+The command line `campaign-crm` (`cli.py`) runs the same services: `seed`, `seed-results`,
+`setup-token`, `createuser`, `users`, `campaign`, `reset-password`, `set-email`, `activate`,
+`deactivate`, `add-member`, `remove-member`, `rename-campaign`, `delete-campaign`,
+`import-boundaries`, `import-register`, `export`, `backup`, `restore`, `reset-database`,
+`sms-worker`, `make-vapid-keys`, and the demo commands `demo`, `demo-install` and `demo-comms`.
+
+---
+
+## 13. Architecture
 
 | Part | Stack | Where |
 |---|---|---|
 | Backend | Python 3.13, FastAPI, SQLAlchemy 2.0 async, Pydantic v2, Alembic, uv | `backend/` |
-| Frontend | React 19, Vite, TanStack Query, Zustand, `qrcode.react` | `frontend/` |
-| Contract | The fields the frontend reads and sends, checked from both sides | `contracts/frontend-api.json` |
-| Database | Postgres: Neon in production, a local Postgres in development | |
-| Hosting | One Fly.io app (`mzigo-crm`); the Docker build bakes the SPA into the API image, and any page address outside `/api` with no file behind it serves the SPA's `index.html`, so direct links and refreshes work (`main.py` `_SPAFiles`) | `Dockerfile`, `fly.toml` |
-| Migrations | Alembic, run by Fly's release step before a new version starts | `backend/alembic/versions/` |
+| Frontend | React 19 SPA: Vite, React Router, TanStack Query, Zustand, Tailwind CSS v4 UI kit, LiveKit components, a PWA service worker | `frontend/` |
+| Contract | The fields the frontend reads and sends | `contracts/frontend-api.json` |
+| Database | Postgres: a local one in development, Neon for the demo installs | |
 
-### How a request is scoped
+**The API** is about 200 operations, all under `/api`, plus `/health`
+(`api/routers/__init__.py`). The interactive list is at `/docs` only with `DEBUG=true`.
 
-Every campaign's data sits in the same tables, tagged with `campaign_id`.
-Isolation comes from membership, checked on every request:
+**How a request is scoped.** The `Authorization: Token <key>` header names the caller
+(`api/deps.py`). `require("<action>")` checks the role against `MAP`, and `api/scope.py` limits
+reads and writes to the caller's campaign and reach. A campaign the caller is not on answers 404.
+Unique indexes hold the rules (one candidate, one manager, one mobilizer per unit, one contact per
+phone) even when two requests race.
 
-1. The `Authorization: Token <key>` header names the caller (`api/deps.py`).
-   A login has one token, shared by every device it signs in on, so signing out
-   ends the session everywhere.
-2. A role guard decides whether that role may do this at all (403 if not).
-3. `api/scope.py` limits every read and write to the caller's own campaign, and
-   a mobilizer to their own ward. A campaign the caller is not on answers 404,
-   so its existence is not revealed.
-4. The service applies the business rule; the database's unique indexes hold the
-   rule even if two requests race.
+**The contract.** `contracts/frontend-api.json` lists every field the SPA reads and sends.
+`backend/evals/test_frontend_contract.py` checks the API still offers them, and
+`frontend/tests/contract.test.js` checks the frontend still matches, so renaming a field on one
+side fails both until the other follows.
 
-The superuser is never a campaign member; the console's `/api/admin/` routes
-check the flag themselves.
+**Outside services** each sit behind a small interface with a safe default, so an installation
+runs in full with no keys: email (`practice` logs each email), SMS (`console`), payouts and
+contributions (`practice`), calls (off), call alerts (off) and Google sign-in (off). The services
+panel in setup and the console's Health section show each one's mode.
 
-### The data
-
-```mermaid
-erDiagram
-  COUNTY ||--o{ CONSTITUENCY : has
-  CONSTITUENCY ||--o{ WARD : has
-  WARD ||--o{ REGISTRATION_CENTRE : has
-  CAMPAIGN }o--o| COUNTY : "Governor, Senator, Women Rep"
-  CAMPAIGN }o--o| CONSTITUENCY : "MP"
-  CAMPAIGN }o--o| WARD : "MCA"
-  CAMPAIGN ||--o{ CAMPAIGN_MEMBER : has
-  USER ||--o| CAMPAIGN_MEMBER : "is on one"
-  USER ||--o| AUTH_TOKEN : has
-  CAMPAIGN ||--o{ TARGET : "one per unit"
-  CAMPAIGN ||--o{ MOBILIZER : "one per unit"
-  CAMPAIGN ||--o{ EVENT : holds
-  CAMPAIGN ||--o{ SUPPORTER : registers
-  CAMPAIGN ||--o{ PAYMENT : pays
-  USER |o--o| MOBILIZER : "login of"
-  MOBILIZER |o--o{ EVENT : runs
-  MOBILIZER |o--o{ SUPPORTER : registered
-  EVENT |o--o{ SUPPORTER : "signed up at"
-  EVENT |o--o{ PAYMENT : "paid for"
-  MOBILIZER |o--o{ PAYMENT : receives
-  USER ||--o{ PARTY_ROLE : "holds (staff logins)"
-  USER }o--o| PARTY_MEMBER : "belongs to"
-  PARTY_MEMBER ||--o{ ASPIRANT : "nominated as"
-  ASPIRANT |o--o| CAMPAIGN : "workspace"
-  WARD ||--o{ PARTY_MEMBER : "lives in"
-  PARTY_MEMBER ||--o| VOLUNTEER_PROFILE : "may have"
-  CAMPAIGN |o--o| CAMPAIGN_SUBSCRIPTION : "billed as"
-  CRM_PLAN ||--o{ CAMPAIGN_SUBSCRIPTION : "on"
-  CAMPAIGN_SUBSCRIPTION ||--o{ SUBSCRIPTION_ENTRY : "ledger"
-  PARTY_REQUEST
-  AUDIT_EVENT }o--o| USER : actor
-  PARTY_SETTINGS
-  PARTY_LEADER
-  PARTY_POST
-```
-
-- **Reference data** (counties, constituencies, wards, registration centres) is
-  shared by every campaign and loaded once with `campaign-crm seed`, before any
-  campaign exists. It comes from the GE2022 register; a ward's centres add up to
-  the ward's register, which is how the two sources check each other.
-- **Campaign data** (members, targets, mobilizers, events, supporters, payments)
-  always carries `campaign_id`, and deleting a campaign deletes all of it with
-  its people's logins. Its subscription and ledger stay, under the campaign's
-  title, so the revenue report stays true.
-- A **unit** is a ward, or a ward plus a registration centre in an MCA race.
-  Targets, mobilizers, events and supporters all name their unit the same way:
-  a ward and, optionally, a registration centre. Targets and events always have
-  a ward; a mobilizer or supporter can be unplaced until someone files them.
-  Those links are left out of the diagram to keep it readable.
-
-### The API
-
-110 operations across 90 paths, grouped by purpose. The live list is at `/docs`
-on a server started with `DEBUG=true`; it is off otherwise.
-
-| Group | Routes | Who |
-|---|---|---|
-| Auth | `/api/auth/login/`, `/logout/`, `/me/` | anyone signs in; the rest need a login |
-| Reference data | `/api/counties/`, `/constituencies/`, `/wards/`, `/centres/` | any signed-in login |
-| Campaign | `/api/campaigns/`, `/targets/`, `/strategy/` | the campaign |
-| Campaign sign-up link | `/api/campaigns/{id}/signups/` | manager |
-| Ground | `/api/mobilizers/`, `/events/`, `/supporters/`, `/users/` | the campaign, by role |
-| Team | `/api/campaigns/{id}/team/` | aspirant and manager |
-| Payments | `/api/payments/` | the manager writes; the aspirant reads all; a mobilizer reads their own |
-| Public sign-up and withdrawal | `/api/join/{code}/`, `/api/join/withdraw/{code}/` | anyone with an event's, a campaign's or a withdrawal code |
-| Party, public | `/api/party/`, `/api/party/places/`, `/api/party/join/`, `/api/party/withdraw/{code}/`, `/api/party/volunteer/withdraw/{code}/` | anyone; join and withdraws are rate limited |
-| Public website content | `/api/party/leaders/`, `/api/party/posts/?kind=news\|event&offset=`, `/api/party/posts/{id}/` | anyone; published rows only |
-| Party dashboard | `/api/party/dashboard/?county=&constituency=&ward=&seat=&aspirant=&from=&to=` | superuser only |
-| Party register | `/api/party/members/` (list, detail, status, `export.csv`), `/api/party/volunteers/` (list, update, `export.csv`) | membership officer and superuser |
-| Nominations | `/api/party/aspirants/` (candidates, list, detail, create, status, workspace) | nominations officer and superuser |
-| Finance | `/api/party/finance/` (plans, subscriptions, plan, payments, extensions, void, hold, settings, revenue and expiring reports) | finance officer and superuser |
-| A campaign's own subscription | `/api/subscription/` | any campaign login, answered while locked; plan and price for aspirant and manager only |
-| Console, including party settings, party offices, member links, the audit trail and the website's leaders and posts (`/api/admin/party/leaders/`, `/api/admin/party/posts/`) | `/api/admin/` | superuser only |
-| Health | `/health` | Fly's checks |
-
-### Outside services
-
-Both sit behind a small interface with a safe default, so the deployment can run
-in full without either:
-
-- **SMS** (`services/sms.py`): `console` records and sends nothing;
-  `africastalking` is ready but has never sent to the live gateway.
-- **Payouts** (`services/payouts.py`): practice mode marks every payment paid
-  under a `PRACTICE` reference; `paystack` sends M-Pesa transfers and settles
-  them from the signed webhook at `/api/payments/paystack/webhook/`, which has
-  never run against the live gateway. The payment flow (scheduled, sending,
-  paid, failed, cancelled; `services/payout_flow.py`) is the same for party and
-  campaign payments.
+**Checks.** `cd backend && uv run pytest` runs the tests and evals with no database server
+(`TEST_POSTGRES=1` runs them on a throwaway local Postgres); `cd frontend && npm test` runs the
+frontend tests; `tools/secret-scan/scan.py` runs as a pre-commit hook and on every push.
 
 ---
 
-## 8. How quality is kept
+## 14. Deployment
 
-| Check | What it proves | Runs |
-|---|---|---|
-| Backend tests (460: 457 run, 3 Postgres-only skipped) | Every route, rule and permission, on an in-memory database | `cd backend && uv run pytest tests` |
-| Backend evals (411: 387 run, 7 live checks and 17 impossible register states skipped) | The API still offers what the frontend's contract lists; every subscription state, HTTP answer and candidate volunteer form, day by day across the end of the paid period; a member login across every member status | `cd backend && uv run pytest evals` |
-| Frontend tests (158) | Each screen per role, the public site, the forms, the contract from the frontend side | `cd frontend && npm test` |
-| Migration tests | The migrations build the models' schema and render correctly for Postgres | part of the backend tests |
-| Postgres lane | The same suite on a throwaway local Postgres built by the migrations: row locks, races, every migration down and up | `cd backend && TEST_POSTGRES=1 uv run pytest` |
-| Live database check | TLS, the latest migration and the seeded geography on a real database | `LIVE_DATABASE=1`, by hand; 7 checks skipped otherwise |
-| Secret scan | No password, key or token reaches the repository | a pre-commit hook (`git config core.hooksPath .githooks`), and again on every push in GitHub Actions (`.github/workflows/secret-scan.yml`) |
+Two ways to run an installation; `DEPLOY.md` has the steps.
 
-`cd backend && uv run pytest` runs the tests and the evals together (871: 844 run, 27 skipped). With `TEST_POSTGRES=1`, 846 run: the three Postgres-only tests run and the SQLite-only CLI check skips.
-
----
-
-## 9. Work in progress: moving the screens onto the UI kit
-
-The frontend is moving onto the UI kit in `ui-kit/` (Tailwind CSS v4 and
-shadcn-style components in `frontend/src/components/ui/*.tsx` and
-`components/layout/`, tokens in `src/styles/globals.css`, party colours from
-`GET /api/branding` through `src/theme/branding.tsx`). The tickets are in
-`docs/UI_Kit_Integration.md`; screens move one ticket at a time, and the old
-`index.css` shrinks until it is deleted.
-
-**Browsers:** Tailwind CSS v4 needs Safari 16.4 or later, so iOS 15 (an
-iPhone 7) is not supported. `build.cssTarget` in `vite.config.js` names
-Safari 16.4, Chrome 111, Firefox 128 and Edge 111.
-
-### Before the kit: moving styles out of the components
-
-The frontend is being reorganised. Its screens were built with styling written
-inline on each element (`style={{ ... }}`), which makes the components long and
-hard to restructure. The styling is moving into the stylesheet, so the
-components hold structure and behaviour only, and later work on organising the
-application (splitting large files, sharing layout pieces) can proceed without
-dragging styles along.
-
-Where it stands on 25 October 2026 (paths under `frontend/src/`):
-
-- **`index.css`** holds the styles, with the design tokens (colours, fonts,
-  sizes) defined once as CSS variables at its top.
-- **`components/ui/`** holds shared building blocks, such as `Button`, so each
-  screen stops redefining them.
-- **`lib/`** holds small shared helpers, such as number formatting.
-
-| File | Inline styles left |
-|---|---|
-| `components/Admin.jsx`, `Onboarding.jsx`, `Login.jsx`, `Gate.jsx` | 0 |
-| `components/Join.jsx` | 4, the place picker and withdrawal note added after the move |
-| `components/Withdraw.jsx` | 7, a page added after the move |
-| `App.jsx`, `pages/campaign/`, `components/PortalLayout.jsx` | 5: values computed at run time, such as progress bar widths |
-
-`frontend/tests/styles.test.js` reads every component and fails on a class name
-no stylesheet defines, so a missing style is caught by the tests, not by a user.
-
-**What it opens up next:**
-
-- **Finish the move** for the screens added since (the sign-up place picker,
-  the withdrawal page, the sharing buttons).
-- **`App.jsx` is split.** It holds the `/campaign/:page` routes and the
-  shell; each page and form is a file under `pages/campaign/`, the topbar and
-  side menu are `components/PortalLayout.jsx`, and shared pieces are in
-  `components/ui/`.
-- **Rework the phone layout.** `index.css` already stacks the side menu above
-  the page below 860px and drops grids to one column below 720px; the tables
-  and forms mobilizers use in the field have not been designed for a phone.
-
----
-
-## 10. Key decisions
-
-| Decision | Why |
-|---|---|
-| Only the operator, or a nominations officer from an approved aspirant, creates campaigns | A subscription product onboards paying customers; open sign-up let anyone create a campaign and see the product unpaid. The party decides who stands, so its nominations officer may open an approved aspirant's workspace. |
-| One login, one campaign | Keeps isolation simple and provable: scoping is a single membership lookup. |
-| One manager per campaign | Matches how the campaigns being sold are run; ward managers can come later as a separate role. |
-| MCA races counted by centre, other seats by ward | That is the unit each team actually works; a ward-level MCA target would hide where the votes are. |
-| Progress counts supporters, not event turnout | Attendance is effort; a signed-up supporter is a result. |
-| The strategy read is computed, never stored | Nothing can drift out of step with the records. |
-| Shared reference geography loaded first | Every campaign is built from the same register; a ward with no centres loaded is refused at setup rather than giving a win number of zero. |
-| Rules held by database indexes as well as code | Two requests at once cannot break a rule the code checked. |
-| Practice-mode payouts and console SMS by default | The full flow can be shown and tested without moving money or sending messages. |
-| Tests on SQLite, and the same tests on local Postgres | Fast tests with no server by default; `TEST_POSTGRES=1` runs the whole suite on a throwaway local Postgres database built by the real migrations, for row locks, races and every migration's downgrade. |
-| Access state computed from the paid day, never stored | Expiry needs no scheduled job, and the same dates always give the same state. |
-| Subscription payments recorded by hand | Campaigns pay by M-Pesa, bank or cash; a ledger with one live reference per payment and a void for mistakes is enough until online payment is wanted. |
-| A contract file between frontend and backend | Renaming a field on one side fails both test suites until the other side follows. |
-| The public site at `/`, sign-in at `/signin`, the console at `/console` | The party's address shows the party, not a sign-in box. |
-| Leaders and posts are two small tables with `https://` image addresses | Enough for a party site; a full CMS and file upload are not needed yet. |
-| The dashboard counts campaign events, never lists them | Party leaders see where activity is without reading any campaign's records. |
-
----
-
-## 11. Questions for planning
-
-Open choices that will shape the next stage:
-
-1. **Subscription prices and online payment:** the rules are built (Release 3)
-   and the finance officer sets plans and lapse days; still open are which
-   plans and prices to offer, and whether to take payment online (Paystack).
-2. **Bigger campaigns:** do Governor and Senator campaigns need ward managers,
-   and should a manager's view be limited to their wards?
-3. **Field use:** mobilizers work from phones; the screens they use need a
-   phone-first design, and possibly offline capture of supporters.
-4. **A mobilizer's reach in MCA races:** today a mobilizer sees their whole ward,
-   which in an MCA race is the whole campaign. Decide whether a centre
-   mobilizer should see only their centre.
-5. **Going live with outside services:** which SMS and mobile-money providers,
-   who pays for messages, and how campaigns top up.
-6. **Invitations:** replace passwords handed over in person with links the new
-   user claims, once email or SMS sending is live.
-7. **Frontend structure:** settled. Pages have their own addresses through
-   `react-router-dom` (`/campaign/:page`, `/join/:code`, `/withdraw/:code`).
-8. **Election day:** whether to load polling stations and support agents' work
-   on the day, which is a different product surface from campaigning.
-9. **Consent the person confirms:** once SMS is live, text each new supporter
-   and count them only when they reply YES, with STOP to withdraw. That covers
-   people a mobilizer registers by hand, and anyone who lost their withdrawal
-   link. The wording each supporter agreed to is already stored with them.
+- **Vercel and Neon** (the demo installs, `docs/Demo.md`). `vercel.json` defines two services in
+  one project, region `fra1`: `web` (the Vite app in `frontend/`, deep paths fall back to
+  `index.html`) and `api` (the FastAPI app from `backend/asgi.py`). `/api/*` and `/health` go to
+  `api` and everything else to `web`, so the site and the API share one address. The database is
+  Neon Postgres in Frankfurt. `tools/deploy-demo.sh` creates, configures and deploys a project.
+  Migrations and data loads run from a developer's machine against the Neon database. Uploaded
+  files are not kept, and nothing runs in the background, so later SMS batches need a drain call.
+- **One server with Docker** (`deploy/`): `docker-compose.yml` runs Postgres 17, a one-off
+  `migrate` step, the app (the `Dockerfile` image: the built SPA and the API on one origin), a
+  nightly backup and Caddy for HTTPS.

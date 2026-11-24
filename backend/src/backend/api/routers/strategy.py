@@ -23,7 +23,7 @@ async def get_strategy(
     county: uuid.UUID | None = None,
     constituency: uuid.UUID | None = None,
 ) -> StrategyRead:
-    """The win number and notes over every unit the caller reaches; the units themselves only
+    """The seat target and notes over every unit the caller reaches; the units themselves only
     in `county` or `constituency` when given, and none unasked for a national seat."""
     return await read_strategy(
         session,

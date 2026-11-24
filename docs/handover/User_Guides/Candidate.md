@@ -1,8 +1,8 @@
 # Candidate guide
 
 You are the aspirant the campaign is for. You see the whole campaign. You add or replace the
-Campaign Manager, approve the payments your manager schedules, decide what a party-hosted
-campaign shares with the party, and close the campaign after the election.
+Campaign Manager, approve the payments your manager schedules and the texts your team drafts,
+and close the campaign after the election.
 
 ## Signing in
 
@@ -15,9 +15,6 @@ campaign shares with the party, and close the campaign after the election.
 Your first sign-in comes from an email link. Open it, fill **New password** and **The same
 password again** (at least 8 characters), then press **Save and sign in**. That link works for
 72 hours.
-
-If your login is also linked to a party membership, you first see **Where to?** with two
-cards: **My membership** and **Campaign workspace**. Pick the workspace.
 
 ### Forgot your password
 
@@ -36,36 +33,39 @@ Press your name at the top right, then **Sign out**.
 The menu on the left (on a phone, press **Open menu**):
 
 - **Plan:** Overview, Strategy, Targets, Wards
-- **Field:** Events, Mobilizers, Agents, Assignments, Supporters, Volunteers
-- **Reach out:** Messages, and **Party feed** if the party set up your workspace
+- **Field:** Events, Mobilizers, Agents, Assignments, Contacts, Volunteers
+- **Reach out:** Messages, Calls
 - **People:** Team, Sign-ups, Personal data
-- **Money:** Payments
-- **Website:** Website and Settings, only on your own campaign installation (not on the party's)
+- **Money:** Payments, Contributions
+- **Website:** Website and Settings
 
 At the bottom of the menu, **Your access** shows **Candidate** and "Full access to your
 campaign."
 
-The top bar has a search box (**Search supporters, wards, events…**, or press Ctrl K), the
+The top bar has a search box (**Search contacts, wards, events…**, or press Ctrl K), the
 **Area** picker, the bell for notifications, and the **Help** button.
 
 ## How to
 
 ### See where the campaign stands
 
-1. Open **Overview**. The dark band shows **Win number**, **Votes committed**, **Gap to
+1. Open **Overview**. The dark band shows **Seat target**, **Votes committed**, **Gap to
    close** and **Mobilizers**.
 2. The **Ward targets** table (or **Centre targets** in an MCA race) lists every ward,
    biggest gap first.
 3. **Strategy read** on the right says what your numbers suggest doing next. **Strategy**
    shows the same read on its own page.
 
-### Set expected turnout
+### Read the targets
 
-1. Open **Targets**.
-2. Move the slider in **Expected turnout** for a ward. The win number changes as you move it.
-3. Let go of the slider to save it. You see **Saved**, or **Not saved, try again**.
-4. After a new voter register is loaded, press **Refresh targets** to recompute every win
-   number. Turnouts and committed votes stay.
+1. Open **Targets**. The seat target is the share of the vote the last winner of this seat
+   took, applied to the votes expected this time.
+2. **Target per ward** (or **per centre** in an MCA race) lists each unit's registered voters,
+   its **Share** of where the votes were cast, and its **Target**. **Based on** says how solid
+   the past results behind it are.
+3. For a President race, pick a county first to see its wards.
+4. After a new voter register or new past results are loaded, press **Refresh targets** to
+   work every target out again. Committed votes stay.
 
 ### Put a mobilizer on a ward
 
@@ -87,7 +87,7 @@ The top bar has a search box (**Search supporters, wards, events…**, or press 
 
 1. Open **Team** and press **Add coordinator** or **Add comms officer**.
 2. Fill **Full name**, **Username**, **Email** and **Phone**, then press the add button.
-   They are emailed a link to choose a password. In practice mode no email is sent; see `Admin_Guide.md` section 10.
+   They are emailed a link to choose a password. In practice mode no email is sent; see `Admin_Guide.md` section 9.
 3. For a coordinator, press **Area** on their row next. Tick their wards (or centres) and
    press **Save**. Until you do, they see no wards.
 
@@ -132,12 +132,41 @@ Payments made through the phone prompt arrive already **Paid**.
    **Registration centre** in an MCA race), **Venue** and **Date**, then press **Schedule
    event**.
 2. After the event press **Record**, fill the numbers, then **Save & mark done**.
-3. **Invite** texts supporters about the event. **Sign-up QR** shows a code people scan to
-   sign up as supporters; **Close sign-ups** there stops it.
+3. **Invite** texts contacts about the event. Write the message with your name in it, pick
+   who under **Send to** and the **Language**, press **Preview** to see the count, then
+   **Send**. It goes through the same queue as other texts (see below).
+4. **Sign-up QR** shows a code people scan to sign up as supporters; **Close sign-ups** there
+   stops it.
+
+### Text your contacts
+
+1. Open **Messages**. Under **New SMS**, pick who in **Send to**, the **Language** (English or
+   Kiswahili), and write the **Message**. It must carry your name as registered, or it is
+   refused with the reason.
+2. Press **Send SMS**, then the **Send to** button that names the count. **Save draft** keeps
+   it unsent.
+3. Drafts from coordinators and comms wait under **Waiting for approval**. Press **Approve and
+   send**, **Decline…** or **Delete**.
+4. Only contacts whose consent covers being texted receive it. Texts go out in batches between
+   08:00 and 18:00 Nairobi time.
+5. **Bulk sends** shows each run: **Waiting for the window**, **Sending**, **Paused**,
+   **Halted** or **Completed**, with counts sent, delivered and left out. Press **Pause**,
+   **Resume**, or **Halt…** (give a reason). **Consent evidence (CSV)** downloads each number
+   with the consent it was texted on.
+6. **Send test SMS** texts one number at once, to check the gateway. It reaches only the
+   campaign's own logins and contacts who agreed to be texted.
+
+### Hold a team call
+
+1. Open **Calls**. Fill **Title**, pick the **Call type** (**Video** or **Audio only (uses less
+   data)**) and who to **Invite**, then press **Start call**.
+2. Everyone invited who has call alerts on gets an alert. Share the link or QR code with the
+   rest, then press **Join now**. The call opens at `/meet/<id>`.
+3. **Recent calls** lists each call, its minutes and who came.
 
 ### Supporters and personal data
 
-1. **Supporters** lists the register. Press **Sign-up link** to share a QR code and link
+1. **Contacts** lists the register. Press **Sign-up link** to share a QR code and link
    people use to sign up as supporters. **Open sign-ups** and **Close sign-ups** turn it on
    and off.
 2. To give a supporter their own way out, press **Withdrawal link** on their row, then
@@ -147,12 +176,6 @@ Payments made through the phone prompt arrive already **Paid**.
    **Received on**, **Who asked**, **Phone or email to answer** and **What they asked for**,
    then **Log request**. Later press **Answer**, write **How it was answered**, and press
    **Mark answered**.
-
-### Decide what the party sees (party-hosted campaigns)
-
-1. Open **Party feed**. The page is **Party feed & sharing**.
-2. Under **Sharing & privacy** flip **Event reach summary**, **Coverage map** or **Supporter
-   counts by ward**. Only you can change these. The supporter list never leaves your campaign.
 
 ### Close the campaign after the election
 
@@ -165,5 +188,5 @@ Payments made through the phone prompt arrive already **Paid**.
 ## Who to ask for help
 
 Press the **Help** button at the top. It lists your campaign's phone and email. For a lost
-password, use **Forgot your password?** first. Only the superuser (the party office, or
-whoever runs your installation) can send a reset link to someone else.
+password, use **Forgot your password?** first. Only the superuser (whoever runs your
+installation) can send a reset link to someone else.

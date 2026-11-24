@@ -20,7 +20,7 @@ Contents:
 9. [Switching on outside services](#9-switching-on-outside-services)
 10. [Locked out](#10-locked-out)
 11. [Troubleshooting](#11-troubleshooting)
-12. [The hosted alternative: Fly.io and Neon](#12-the-hosted-alternative-flyio-and-neon)
+12. [The hosted alternative: Vercel and Neon](#12-the-hosted-alternative-vercel-and-neon)
 
 ---
 
@@ -130,16 +130,19 @@ layout, then stops), `app` (the website and its API), `backup` (the nightly back
 
 A new installation sends every page to `/setup` until the setup is done.
 
-1. **Load the map data** (counties, constituencies, wards and registration centres). An
-   aspirant's setup needs it to pick the seat, and a party needs it for members and branches.
-   This loads about 27,000 centres and takes a few minutes:
+1. **Load the map data** (counties, constituencies, wards and registration centres) and the
+   past election results. Setup needs the map to pick the seat, and the targets come from the
+   past results. This loads about 27,000 centres and takes a few minutes:
 
    ```bash
    docker compose exec app campaign-crm seed
+   docker compose exec app campaign-crm seed-results
    ```
 
-   It prints the counts of counties, constituencies, wards and centres it loaded. Run again on
-   a loaded database, it prints "Reference data is already loaded" and changes nothing.
+   `seed` prints the counts of counties, constituencies, wards and centres it loaded. Run again
+   on a loaded database, it prints "Reference data is already loaded" and changes nothing.
+   `seed-results` loads the 2013 to 2022 results and works the targets out again; run again on
+   an unchanged file, it says so and changes nothing.
 
 
 2. **Print a setup token:**
@@ -156,37 +159,35 @@ A new installation sends every page to `/setup` until the setup is done.
 
 4. Go through the six steps, pressing **Next** after each (**Back** goes back):
 
-   1. **Type.** Choose **A party** (members, branches, aspirants and the party workspace) or
-      **An aspirant** (one candidate's website and campaign workspace).
-      **This is fixed for good once setup finishes.** There is no switch later.
-   2. **Name and colours.** The organisation's **Name**, an optional **Short name** (up to 30
+   1. **Name and colours.** The site's **Name**, an optional **Short name** (up to 30
       characters), an optional **Logo link** (an `https://` address of the logo image), and the
       **Primary colour** and **Secondary colour**. The page checks the colours can be read: the
       primary colour must be dark enough for white text, the secondary light enough for dark
       text.
-   3. **Contacts.** **Contact email**, **Contact phone**, **Address** and the **Privacy
+   2. **Contacts.** **Contact email**, **Contact phone**, **Address** and the **Privacy
       notice** (shown on `/privacy` and agreed to on every sign-up form). All optional, and all
       can be changed later.
-   4. **First superuser.** The first login for the console: **First name**, **Last name**,
+   3. **First superuser.** The first login for the console: **First name**, **Last name**,
       **Username** (3 or more characters: letters, digits, `.`, `-` or `_`), **Email**, and a
       **Password** of at least 8 characters, typed twice. The superuser signs in with this email
       and password.
-   5. **Workspace.**
-      - *Aspirant:* the **Campaign name**, the **Seat** (MCA, MP, Governor, Senator or Women
-        Rep), the **Election date**, the area (county, then constituency, then ward, as far as
-        the seat needs), and the candidate's login (first and last name, username and email).
-        If the county list says "No counties loaded", go back to step 1 of this section.
-      - *Party:* optionally tick **Open the party workspace now, with its first Workspace
-        Manager** and give that manager's name, username and email. You can also do this later
-        from the console.
+   4. **Campaign.** The **Campaign name**, the **Seat** (MCA, MP, Women Rep, Senator,
+      Governor or President), the **Election date**, the area (county, then constituency, then
+      ward, as far as the seat needs; a President race covers the whole country), and the
+      candidate's login (first and last name, username and email). If the county list says
+      "No counties loaded", go back to step 1 of this section.
+   5. **Target.** A preview of the seat target: the share the 2022 winner took, applied to the
+      votes expected, with the past results behind it, low, expected and high turnout, and each
+      ward's (or centre's) share. **Finish setup** saves exactly these targets.
    6. **Check and finish.** Read the summary and press **Finish setup**.
 
 5. The page shows **Set up.** Press **Sign in and test** to sign in as the superuser. The
-   **Outside services** list shows Email, SMS, Payouts (M-Pesa) and Google sign-in; each one
+   **Outside services** list shows Email, SMS, Meetings (LiveKit), Payouts (M-Pesa), Payments
+   in (M-Pesa) and Google sign-in; each one
    says **Practice** until you switch it on (section 9). Press **Open the site** to see the
    public site.
 
-6. The candidate or Workspace Manager gets a sign-in link by email. While email is still in
+6. The candidate gets a sign-in link by email. While email is still in
    practice mode nothing is sent: the whole email, link included, goes to the app's log, so pass them the link.
    `docker compose logs app | grep -A6 "Practice email to <their email in lower case>"` shows it; the link
    starts `https://<your domain>/invite/`. Or give them a password instead (section 10):
@@ -200,7 +201,7 @@ From now on:
 - Everyone signs in at `https://<your domain>/signin` with their **email and password**, or
   with **Sign in with Google** once Google sign-in is switched on (section 9).
 - The superuser's console is at `https://<your domain>/console`. Its tabs are **Campaigns**,
-  **Logins**, **Party**, **Areas and register**, **Health**, **Audit** and **Export**. This
+  **Logins**, **Site settings**, **Areas and register**, **Health**, **Audit** and **Export**. This
   guide uses **Health** and **Areas and register**.
 
 ## 4. Backups
@@ -577,7 +578,8 @@ the lines. One bad row and nothing at all is written. Every real import is recor
 
 ## 9. Switching on outside services
 
-The platform talks to four outside services: email, SMS, M-Pesa payouts and Google sign-in.
+The platform talks to these outside services: email, SMS, calls (LiveKit), call alerts (web
+push), M-Pesa payments in and payouts, and Google sign-in.
 Each one runs in **practice mode** until its keys are in `.env`. In practice mode the platform
 works fully but nothing leaves it: emails go to the app's log (`docker compose logs app`), texts are recorded in the SMS
 log without being sent, payouts are marked
@@ -626,7 +628,7 @@ invitations.
    SMTP_PORT=587
    SMTP_USER=<username>
    SMTP_PASSWORD='<password>'
-   SMTP_FROM=Party Name <noreply@your-domain.example>
+   SMTP_FROM=Jane for Roysambu <noreply@your-domain.example>
    ```
 
    Port `587` uses STARTTLS. Port `465` uses TLS from the start. Both work; use what your
@@ -637,9 +639,47 @@ invitations.
 
    If nothing arrives, check spam, then `docker compose logs app` for the error.
 
+### SMS (Sozuri)
+
+Texts to contacts and event invitations go out through Sozuri or Africa's Talking (next
+section). Pick one.
+
+1. In Sozuri, open your project. Under **Manage API**, note the project name and an API key.
+   Use a separate test project, with its own key, sender ID and balance, until going live.
+2. Under **Manage API > Callback URLs > Webhook security**, copy the signing secret (it starts
+   `szs_`). Sozuri's callbacks are refused without it. The auth key (`szk_`) is an optional
+   extra check.
+3. Make a long random secret for the callback addresses:
+
+   ```bash
+   python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
+
+4. In `.env`:
+
+   ```
+   SMS_PROVIDER=sozuri
+   SOZURI_PROJECT=<the project name>
+   SOZURI_API_KEY=<the API key>
+   SOZURI_SENDER_ID=<the sender ID>
+   SOZURI_MESSAGE_TYPE=promotional
+   SOZURI_SIGNING_SECRET=<the signing secret>
+   SMS_CALLBACK_SECRET=<the secret from step 3>
+   ```
+
+   `SOZURI_MESSAGE_TYPE` is `promotional` or `transactional`, as the sender ID is registered.
+5. In Sozuri, set the callback addresses:
+
+   | Callback | Address |
+   |---|---|
+   | Delivery reports | `https://<your domain>/api/sms/<SMS_CALLBACK_SECRET>/sozuri/delivery/` |
+   | Incoming messages | `https://<your domain>/api/sms/<SMS_CALLBACK_SECRET>/sozuri/inbound/` |
+
+6. `docker compose up -d`, then check **Health** shows SMS as `Configured (sozuri)` and send a
+   test text from **Health**, or from **Send test SMS** on the workspace **Messages** page.
+
 ### SMS (Africa's Talking)
 
-Texts to supporters, event invitations and party messages go out through Africa's Talking.
 Replies of STOP opt the number out.
 
 > **To confirm:** Africa's Talking's developer site
@@ -693,9 +733,77 @@ Replies of STOP opt the number out.
    **Send a test SMS**. It answers `Sent to <number>.` and the text arrives. In practice mode it
    says the text was recorded instead of sent.
 
+### Bulk texts: the sending queue
+
+Approved texts and event invitations go out as runs through one queue. These rules hold for
+every provider:
+
+- The text must carry the candidate's name as registered, and be marked English or Kiswahili.
+- Only contacts whose consent covers being contacted are texted; opted-out numbers are skipped.
+- Texts go out in batches (`SMS_BATCH_SIZE`, at most 500) inside `SMS_WINDOW`, Nairobi time,
+  never wider than 08:00-18:00. With `CAMPAIGN_PERIOD_START` and `CAMPAIGN_PERIOD_END` set
+  (`YYYY-MM-DD`), nothing goes outside that period.
+- With `SMS_VETTING_REQUIRED=true`, each run waits until the provider's vetting reference is
+  entered.
+- `SMS_PART_PRICE_CENTS` (KES cents per SMS part) sets the cost estimate on each run.
+
+The first batch goes at approval. Later batches, and runs approved outside the window, go
+when the queue is drained. Drain it every few minutes with a cron line on the server (run
+`crontab -e` and add, with the path to your `deploy` folder):
+
+```
+*/5 * * * * cd /path/to/deploy && docker compose exec -T app campaign-crm sms-worker --once
+```
+
+`campaign-crm sms-worker` without `--once` keeps draining every 30 seconds (`--every` sets
+the gap) until stopped. A scheduler outside the server can call
+`POST https://<your domain>/api/internal/sms/drain/` with the header
+`Authorization: Bearer <CRON_SECRET>` instead; with `CRON_SECRET` blank that route is off.
+
+### Calls (LiveKit)
+
+The workspace **Calls** page starts audio and video calls, joined at `/meet/<id>`. With the
+LiveKit lines blank, calls are off and **Start call** says what is missing.
+
+1. Create a LiveKit Cloud project. From its settings, note the URL (it starts `wss://`), an
+   API key and its secret.
+2. In `.env`:
+
+   ```
+   LIVEKIT_URL=wss://<your project>.livekit.cloud
+   LIVEKIT_API_KEY=<the API key>
+   LIVEKIT_API_SECRET=<the API secret>
+   ```
+
+3. In LiveKit, point the webhook at `https://<your domain>/api/livekit/webhook/`. It records
+   who joined and for how long.
+4. `docker compose up -d`, then check **Health** shows **Meetings (LiveKit)** as configured,
+   start a call from **Calls**, and join it from a second phone.
+
+### Call alerts (web push)
+
+Call alerts ring a phone when a call starts. They need a key pair made once per installation;
+no outside account is needed.
+
+1. Print a pair:
+
+   ```bash
+   docker compose exec app campaign-crm make-vapid-keys
+   ```
+
+   It prints `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` lines. Nothing is
+   stored.
+2. Copy the three lines into `.env`, with `VAPID_SUBJECT=mailto:<an address that reads mail>`.
+3. `docker compose up -d`. After signing in on a phone, each person sees **Enable call
+   alerts**. On an iPhone it shows only in the Home Screen app (Share, then **Add to Home
+   Screen**; iOS 16.4 or later).
+
+Keep the same pair for the life of the installation: a phone that turned alerts on under one
+pair gets no alerts sent with another.
+
 ### Payments in (Paystack, M-Pesa prompts)
 
-Contributions and nomination fees can be paid by an M-Pesa prompt to the payer's phone, through
+Contributions can be paid by an M-Pesa prompt to the payer's phone, through
 Paystack's Charge API (`mobile_money` with provider `mpesa`). Paying by Paybill or Till code
 works without Paystack.
 
@@ -870,6 +978,9 @@ Every one of these is recorded in the console's **Audit** tab.
 | Health shows **Last backup** as `failed` or `never` | The error is in the backups table on the Health tab and in `docker compose logs backup`. Check free disk space (`df -h`). Run `docker compose exec app campaign-crm backup` by hand to see the message. |
 | Disk is filling up | Check the Health tab's free space and `docker system df`. Old build images can be removed with `docker image prune`. Apart from an old `uploads.before-restore-<time>` copy (section 5), do not delete anything inside the volumes by hand. |
 | Emails or texts do not arrive | Health should say **Configured**. Then see `docker compose logs app` for the provider's error, and section 9. |
+| A bulk send stays on **Waiting for the window** or sends only its first batch | Outside 08:00-18:00 Nairobi time it waits by design. Inside those hours, the queue is not being drained: check the cron line in section 9, "Bulk texts", or run `docker compose exec app campaign-crm sms-worker --once` by hand. |
+| **Start call** says meetings are not configured | The three `LIVEKIT_` lines are blank. See section 9, "Calls". |
+| Nobody sees **Enable call alerts** | The three `VAPID_` lines are blank, or on an iPhone the app was opened in the browser, not from the Home Screen. See section 9, "Call alerts". |
 
 
 ### Restarting
@@ -880,35 +991,37 @@ docker compose up -d             # everything, picking up .env changes
 docker compose down              # stop everything (data is kept)
 ```
 
-## 12. The hosted alternative: Fly.io and Neon
+## 12. The hosted alternative: Vercel and Neon
 
-Instead of your own server, the platform can run on Fly.io (the app) with the database on Neon
-(hosted Postgres). The supplier keeps a separate, private step-by-step file for this. In short:
+Instead of your own server, the platform can run as one Vercel project (the website and the
+API on one address) with the database on Neon (hosted Postgres). `DEPLOY.md` at the root of the
+repository has every step. In short:
 
-1. Install `flyctl` (Fly's command-line tool) and the Neon command-line tool, and sign in to
-   both.
-2. Create a Fly app and a Neon database, in nearby regions.
-3. Store the settings as Fly secrets, not in a file: `DATABASE_URL` (the Neon connection string,
-   with `sslmode=verify-full` so the database's certificate is checked) and `SECRET_KEY` (a long
-   random value), with `flyctl secrets set --stage`. The same `.env` settings from section 9
-   switch on outside services there; `PUBLIC_URL` must be set to the app's address.
-4. Deploy with `flyctl deploy --remote-only`. It builds the same image on Fly's machines and
-   runs `alembic upgrade head` before the new version takes traffic; a failed migration leaves
-   the old version running.
-5. Run the one-off commands on a Fly machine with `flyctl ssh console -C "<command>"`, for
-   example `campaign-crm seed` and `campaign-crm setup-token`, then finish setup at `/setup`.
-   Always pass `--password` to commands that would otherwise ask for one.
-6. Check it with `flyctl status`, `flyctl logs` and the `/health` address.
+1. Install Node.js and `uv`, and sign in to Vercel (`npx vercel@latest login`) and Neon.
+2. Create a Neon database and put its connection string in `backend/.env`, for example as
+   `NEON_ASPIRANT=<connection string>`.
+3. From `backend/`, with `DATABASE_URL` set to that string, run `uv run alembic upgrade head`,
+   `uv run campaign-crm seed` and `uv run campaign-crm seed-results`. Vercel runs no migrations
+   and no data loads.
+4. From the repository root, run `tools/deploy-demo.sh <project name> NEON_ASPIRANT`. It
+   creates the Vercel project, sets `DATABASE_URL`, `RECONCILE_HOURS=0`, a new `SECRET_KEY`,
+   `CORS_ALLOW_ORIGINS=[]`, `DEBUG=false` and `PUBLIC_URL`, and deploys.
+5. Print a setup token with `uv run campaign-crm setup-token` and finish setup at
+   `https://<project>.vercel.app/setup`.
+6. Check it with `curl https://<project>.vercel.app/health` and the console's Health tab.
+
+Outside services are switched on by adding the same settings as section 9 as Vercel
+environment variables, then deploying again.
 
 What is different from your own server:
 
 - **Backups** are Neon's restore window, which on the free plan is a few hours plus one manual
   snapshot. The nightly `backup` container and its 14 daily and 8 weekly archives are part of
   the self-host package only.
-- Neon's free plan pauses an idle database (the first request afterwards is slow) and caps
-  compute and storage each month.
-- Fly machines can be set to suspend when idle, which saves money but makes the first visit
-  slower.
-
-> **To confirm with the supplier before choosing this option:** where uploaded files are kept
-> on Fly, and how they are backed up.
+- **Uploads** are not kept: Vercel keeps no files. Use image links for logos and photos.
+- **Nothing runs in the background.** Later bulk-text batches go only when the drain route is
+  called (section 9, "Bulk texts"), and payments reconciliation runs from the Payments page.
+- Neon's free plan pauses an idle database and Vercel functions sleep, so the first request
+  after a quiet spell waits a few seconds. Neon's free plan also caps compute and storage each
+  month.
+- Vercel's Hobby plan is for non-commercial use; a live campaign belongs on Pro.

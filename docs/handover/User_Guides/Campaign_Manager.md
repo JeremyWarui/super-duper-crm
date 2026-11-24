@@ -4,9 +4,6 @@ You run the campaign day to day. You see the whole campaign, build the team, pla
 schedule payments for the candidate to approve, and approve the payments coordinators
 schedule. The candidate adds you; only the candidate can replace you.
 
-If you run the party's own coordination workspace, read
-[Workspace_Manager.md](Workspace_Manager.md) as well: a few things differ there.
-
 ## Signing in
 
 1. Open the sign-in page (`/signin`).
@@ -35,11 +32,11 @@ Press your name at the top right, then **Sign out**.
 ## What you see
 
 - **Plan:** Overview, Strategy, Targets, Wards
-- **Field:** Events, Mobilizers, Agents, Assignments, Supporters, Volunteers
-- **Reach out:** Messages, and **Party feed** if the party set up your workspace
+- **Field:** Events, Mobilizers, Agents, Assignments, Contacts, Volunteers
+- **Reach out:** Messages, Calls
 - **People:** Team, Sign-ups, Personal data
-- **Money:** Payments
-- **Website:** Website and Settings, only on the candidate's own installation
+- **Money:** Payments, Contributions
+- **Website:** Website and Settings
 
 **Your access** at the bottom of the menu shows **Campaign Manager** and "Full access to this
 campaign."
@@ -50,7 +47,7 @@ campaign."
 
 1. Open **Team**. Press **Add coordinator** or **Add comms officer**.
 2. Fill **Full name**, **Username**, **Email** and **Phone**, then press the add button. The
-   person is emailed a link to choose a password. In practice mode no email is sent; see `Admin_Guide.md` section 10.
+   person is emailed a link to choose a password. In practice mode no email is sent; see `Admin_Guide.md` section 9.
 3. For each coordinator press **Area**, tick their wards (or centres), and press **Save**.
    A coordinator sees nothing outside their area.
 
@@ -66,7 +63,7 @@ campaign."
 1. Open **Mobilizers** (or **Overview**) and press **Add mobilizer**.
 2. Fill **Full name** and **Phone**, and pick the **Ward** (or **Registration centre**). You
    can leave it as **No ward yet**.
-3. Tick **Give them a login, so they can record their own events and supporters.** to add a
+3. Tick **Give them a login, so they can record their own events and contacts.** to add a
    **Username** and **Email**.
 4. Press **Save mobilizer**. Use **Edit** on a row to change it later.
 5. **Coverage** at the top names the wards nobody covers. On **Wards**, press **Assign** or
@@ -86,8 +83,9 @@ campaign."
    **Date**, then press **Schedule event**.
 3. After the event, press **Record** on its card. Fill **How many were reached / invited**
    and **How many attended**, then **Save & mark done**.
-4. **Invite** texts supporters about the event. Write the **Message**, choose who under
-   **Send to**, press **Preview** to see the count, then **Send**.
+4. **Invite** texts contacts about the event. Write the **Message** with the candidate's
+   name in it, choose who under **Send to** and the **Language**, press **Preview** to see
+   the count, then **Send**. It joins the texting queue below.
 5. **Sign-up QR** shows a code people scan to sign up as supporters. **Print** prints it.
    **Close sign-ups** stops it working.
 
@@ -116,28 +114,46 @@ campaign."
 
 You never approve a payment you scheduled yourself.
 
-### Text supporters
+### Text contacts
 
-1. Open **Messages**. Under **New SMS**, pick who in **Send to**, and write the **Message**.
-   The count of recipients shows below.
-2. Press **Send SMS**, then the **Send to** button that names the count. **Not yet** goes
+1. Open **Messages**. Under **New SMS**, pick who in **Send to**, the **Language** (English or
+   Kiswahili), and write the **Message**. The count of recipients shows below.
+2. The text must carry the candidate's name as registered. Without it, sending is refused and
+   the reason shows.
+3. Press **Send SMS**, then the **Send to** button that names the count. **Not yet** goes
    back. **Save draft** keeps it unsent.
-3. Drafts from coordinators and comms appear under **Waiting for approval**. Press **Approve
+4. Drafts from coordinators and comms appear under **Waiting for approval**. Press **Approve
    and send**, **Decline…** or **Delete**.
-4. Under **Sent**, **Delivery log** shows what happened to each number.
+5. Only contacts whose consent covers being texted receive it. Texts go out in batches between
+   08:00 and 18:00 Nairobi time; outside those hours a run shows **Waiting for the window**.
+6. **Bulk sends** shows each run with its counts (**Targeted**, **Sent**, **Delivered**,
+   **Failed**, **No consent**, **Opted out**) and cost. Press **Pause**, **Resume**, or
+   **Halt…** with a reason. **Consent evidence (CSV)** downloads each number with the consent
+   it was texted on.
+7. Under **Sent**, **Delivery log** shows what happened to each number.
+8. **Send test SMS** texts one number straight away to check the gateway. It reaches only the
+   campaign's own logins and contacts who agreed to be texted.
 
 What you type in **New SMS** stays on this device until it is sent.
+
+### Hold a team call
+
+1. Open **Calls**. Fill **Title**, pick the **Call type** (**Video** or **Audio only (uses less
+   data)**) and who to **Invite** (the whole campaign or one ward), then press **Start call**.
+2. Everyone invited who has call alerts on gets an alert on their phone. Share the link or QR
+   code with the rest, then press **Join now**. The call opens at `/meet/<id>`.
+3. **Recent calls** lists each call, its minutes and who came.
 
 ### Volunteers and personal data
 
 1. **Volunteers** lists people who offered help on the candidate's website page. Press **Make
    active** or **Make inactive**. A withdrawn volunteer can be erased with **Erase**.
-2. On **Supporters**, **Withdrawal link** and **Erase** handle a supporter's request about
+2. On **Contacts**, **Withdrawal link** and **Erase** handle a supporter's request about
    their details. **Sign-up link** shares the campaign-wide supporter sign-up.
 3. **Personal data** logs data requests (**Log a request**) and lists **People who left the
    team**, who you can **Erase**.
 
-### Website (candidate's own installation only)
+### Website
 
 1. **Website** has tabs **Candidate page**, **News**, **Homepage** and **Media**. Use **New
    post** (or slide, issue, video, document), **Edit**, **Publish** or **Unpublish**, and
@@ -148,12 +164,10 @@ What you type in **New SMS** stays on this device until it is sent.
 ## Who to ask for help
 
 Press **Help** at the top: it lists the campaign's phone and email. For logins and password
-resets for other people, ask the superuser (the party office, or whoever runs your
-installation).
+resets for other people, ask the superuser (whoever runs your installation).
 
 ## What only the candidate does
 
 - Add or replace the manager.
-- Change what a party-hosted campaign shares (**Party feed**).
 - Close the campaign. On **Personal data** you see **Only the candidate closes the
   campaign.**

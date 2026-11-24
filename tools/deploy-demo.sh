@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Create (if needed), configure and deploy one demo install as a Vercel project.
-# Usage, from the repository root: tools/deploy-demo.sh <project-name> <NEON_PARTY|NEON_ASPIRANT|NEON_BLANK>
+# Usage, from the repository root: tools/deploy-demo.sh <project-name> <NEON_ASPIRANT|NEON_BLANK>
 # Reads the connection string from backend/.env and never prints it.
 set -euo pipefail
 
@@ -17,7 +17,6 @@ vercel link --yes --project "$project" >/dev/null 2>&1
 add() { printf '%s' "$2" | vercel env add "$1" production --force >/dev/null 2>&1; }
 add DATABASE_URL "$url"
 add SECRET_KEY "$(python -c 'import secrets; print(secrets.token_urlsafe(48), end="")')"
-add PARTY_INBOX_SECONDS 0
 add RECONCILE_HOURS 0
 add CORS_ALLOW_ORIGINS '[]'
 add DEBUG false

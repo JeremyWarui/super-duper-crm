@@ -1,12 +1,16 @@
-# Party Platform — UI kit (React + Tailwind v4 + shadcn-style components)
+# UI kit (React + Tailwind v4 + shadcn-style components)
 
-Styling setup that reproduces the Design canvas mockups exactly: colours, corner radii, shadows, fonts, sizes, headers, footer, CRM shell. Light theme only.
+The styling setup the app's screens are built from: colours, corner radii, shadows, fonts,
+sizes, the website header and footer, and the app shell. Light theme only.
 
-**Read `SETUP.md` first.** It has the install steps, the rules the coding agent must follow, and the size spec (heights/widths) taken from the mockups.
+**Read `SETUP.md` first.** It has the rules for building screens and the size spec (heights and
+widths) taken from the mockups. `INTEGRATION.md` says how the kit maps onto `frontend/`.
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173  — /  (homepage demo), /kit (all parts), /crm/members (CRM demo)
+npm run dev          # http://localhost:5173: / (homepage demo), /kit (all parts), /crm/members (table demo)
 npm run build
 ```
-Backend piece: `backend/branding.py` (FastAPI router for per-party colours).
+
+`backend/branding.py` is a sample FastAPI router. The app itself reads its branding from the
+site settings (`GET /api/site/`).

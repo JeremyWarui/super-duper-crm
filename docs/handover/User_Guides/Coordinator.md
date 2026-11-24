@@ -28,11 +28,10 @@ Press your name at the top right, then **Sign out**.
 ## What you see
 
 - **Plan:** Overview, Strategy, Wards
-- **Field:** Events, Mobilizers, Agents, Assignments, Supporters, Volunteers
-- **Reach out:** Messages
+- **Field:** Events, Mobilizers, Agents, Assignments, Contacts, Volunteers
+- **Reach out:** Messages, Calls
 - **People:** Sign-ups
 - **Money:** Payments
-- **Recruit:** Recruitment and Party members, only in the party's own workspace
 
 **Your access** at the bottom of the menu shows **Coordinator** and names your wards
 ("Limited to ..."). If you see no wards at all, your area is not set yet: ask the manager.
@@ -55,7 +54,7 @@ You do not see ID numbers. Only the candidate and the manager do.
 1. Open **Mobilizers** and press **Add mobilizer**.
 2. Fill **Full name** and **Phone** and pick the **Ward** (or **Registration centre**).
 3. To let them sign in, tick **Give them a login, so they can record their own events and
-   supporters.** and fill **Username** and **Email**.
+   contacts.** and fill **Username** and **Email**.
 4. Press **Save mobilizer**. Use **Edit** on a row to change a name, phone or ward.
 
 ### Ready agents
@@ -72,8 +71,9 @@ You do not see ID numbers. Only the candidate and the manager do.
 3. After the event press **Record**. Fill **How many were reached / invited** and **How many
    attended**, then **Save & mark done**.
 4. **Sign-up QR** shows a code people scan to sign up as supporters. **Print** prints it.
-5. **Invite** lets you write an invitation and press **Preview** to see how many it reaches.
-   Only the candidate or the manager can send it.
+5. **Invite** lets you write an invitation, pick who under **Send to** and the **Language**,
+   and press **Preview** to see how many it reaches. Only the candidate or the manager can
+   send it.
 
 The bell at the top tells you when a past event still needs its attendance recorded.
 
@@ -88,33 +88,29 @@ The bell at the top tells you when a past event still needs its attendance recor
 4. Open **Payments**, press **Schedule payment**, pick the **Work done**, and press
    **Schedule**. It waits for the campaign manager to approve.
 
-### Draft a text to supporters
+### Draft a text to contacts
 
-1. Open **Messages**. Under **New SMS**, pick your wards in **Send to** and write the
-   **Message**. The number of recipients shows below.
+1. Open **Messages**. Under **New SMS**, pick your wards in **Send to**, the **Language**
+   (English or Kiswahili), and write the **Message** with the candidate's name in it. A text
+   without the name is refused at approval. The number of recipients shows below.
 2. Press **Send for approval**. The candidate or manager sends it. You can **Delete** your own
    draft while it waits.
 
-What you type stays on this device until it is sent.
+Only contacts who agreed to be texted receive it, in batches between 08:00 and 18:00 Nairobi
+time. What you type stays on this device until it is sent.
+
+### Hold a ward call
+
+1. Open **Calls**. Fill **Title**, pick the **Call type** (**Video** or **Audio only (uses less
+   data)**) and one of your wards under **Invite**, then press **Start call**.
+2. Everyone invited who has call alerts on gets an alert. Share the link or QR code with the
+   rest, then press **Join now**. The call opens at `/meet/<id>`.
+3. **Recent calls** lists each call, its minutes and who came.
 
 ### Volunteers
 
 Open **Volunteers**. Search by name, phone or ward. Press **Make active** after the first
 call, or **Make inactive**.
-
-### Recruit party members (party workspace only)
-
-1. Open **Recruitment**. **Your link** shows your link to the **Join the Party** form and its
-   QR code.
-2. Press **Copy link** to share it. **Replace link** stops the old link and QR code.
-3. **Applicants through your link** counts applicants by status. Membership Officers still
-   decide each application.
-
-### See the party members in your area (party workspace only)
-
-Open **Party members**. It lists the name, phone, ward, polling station and status of each
-party member living in your area. You can read it but not change or export it, and each time
-you open it, it is recorded.
 
 ## Who to ask for help
 

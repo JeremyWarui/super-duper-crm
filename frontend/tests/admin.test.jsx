@@ -69,7 +69,7 @@ describe("who reaches the console", () => {
     renderApp(<Root />);
 
     expect(
-      await screen.findByRole("region", { name: "Win number" }),
+      await screen.findByRole("region", { name: "Seat target" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Console" })).toBeNull();
   });

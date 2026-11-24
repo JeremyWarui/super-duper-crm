@@ -40,8 +40,8 @@ In `docs/handover/`:
 - [ ] `IT_Operations.md`: install, first-run setup, backup and restore, moving server,
       certificates, operating-system updates, imports, adding the outside-service keys,
       troubleshooting.
-- [ ] `Admin_Guide.md`: running the party office or the aspirant workspace: settings, website,
-      team, exports.
+- [ ] `Admin_Guide.md`: running the console and the campaign workspace: settings, website,
+      team, payments, texts, calls, exports.
 - [ ] `User_Guides/`: one guide per role.
 - [ ] `Developer_Guide.md`: for a developer taking over the code: layout, running it, both
       test lanes, migrations, the outside-service adapters.
@@ -65,10 +65,10 @@ person does this, not the vendor, so only the buyer ever holds the superuser log
 
       It works once and expires after 24 hours; printing a new one stops any earlier unspent
       token working.
-- [ ] They open `https://DOMAIN/setup`, paste the token and complete the six steps: the
-      organisation type (party or aspirant, **fixed for good**), the name, logo and colours,
-      contacts and privacy notice, the first superuser, and then the aspirant's seat and
-      candidate login, or optionally the party workspace and its Workspace Manager.
+- [ ] They open `https://DOMAIN/setup`, paste the token and complete the six steps: **Name and
+      colours**, **Contacts** (with the privacy notice), **First superuser**, **Campaign** (the
+      seat, its area, the election date and the candidate's login), **Target** (a preview of
+      the seat target from past results) and **Check and finish**.
 - [ ] The first superuser signs in at `https://DOMAIN/signin` with their email and password.
 - [ ] The superuser's email and password are kept by the buyer, in the buyer's own password
       store. The vendor does not keep a copy.
@@ -85,12 +85,16 @@ on the console's Health tab.
 | Service | What it is for | Account | Settings in `deploy/.env` |
 |---|---|---|---|
 | Email (any SMTP server) | Invite links, password reset links, test emails | An SMTP sending service or mail server, with a sending address on the buyer's domain | `EMAIL_PROVIDER=smtp`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` and `SMTP_FROM` |
-| Africa's Talking | Texts to supporters, members and volunteers; delivery reports and STOP replies | An Africa's Talking account with bulk SMS, and a sender ID if wanted | `SMS_PROVIDER=africastalking`, `AT_USERNAME`, `AT_API_KEY` and `AT_SENDER_ID`, `SMS_CALLBACK_SECRET`; the callback addresses set in its dashboard |
+| Sozuri or Africa's Talking | Texts to contacts; delivery reports and STOP replies | A Sozuri project, or an Africa's Talking account with bulk SMS, and a sender ID if wanted | `SMS_PROVIDER=sozuri` with `SOZURI_PROJECT`, `SOZURI_SENDER_ID`, `SOZURI_SIGNING_SECRET` and `SOZURI_API_KEY`, or `SMS_PROVIDER=africastalking` with `AT_USERNAME`, `AT_API_KEY` and `AT_SENDER_ID`; `SMS_CALLBACK_SECRET`; the callback addresses set in its dashboard |
+| LiveKit (optional) | Team audio and video calls | A LiveKit Cloud project | `LIVEKIT_URL`, `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` |
+| Call alerts (optional) | Phone alerts when a call starts | None: a key pair made on the server with `campaign-crm make-vapid-keys` | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` |
 | Paystack (Kenya) | M-Pesa payouts to mobilizers and agents for done assignments | A Paystack Kenya account with transfers enabled, and money added to its balance | `PAYOUT_PROVIDER=paystack`, `PAYSTACK_SECRET_KEY` and `PAYSTACK_WEBHOOK_SECRET`; the webhook pointed at `/api/payments/paystack/webhook/` |
 | Google Cloud (optional) | "Sign in with Google" for existing logins | A Google Cloud project with an OAuth "Web application" client; redirect URI exactly `PUBLIC_URL` + `/api/auth/google/callback/` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 
 - [ ] Email account opened, keys added, test email received.
-- [ ] Africa's Talking account opened, keys added, callbacks set, test text received.
+- [ ] SMS account opened, keys added, callbacks set, test text received.
+- [ ] The bulk-text queue is drained on a schedule (`IT_Operations.md`, "Bulk texts").
+- [ ] Calls and call alerts set up and a test call held, or left off on purpose: ____________
 - [ ] Paystack account opened, keys added, webhook set, balance funded. (The KES 1 practice
       payout on the Health tab runs only in practice mode; the first real payment is the
       live test.)
@@ -135,35 +139,26 @@ A backup only counts once it has been restored. Do this at handover, on the buye
 These were drawn in the mockups or discussed and are **not** in the product
 (`docs/Product_Design.md`, section 6, and decisions 22 to 31 of section 0):
 
-- [ ] **Party primaries voting**: online, USSD and in-person voting, the control room,
-      sealed counts, tallies, receipt codes, appeals, party lists and IEBC nomination
-      submission. Nominations end at an approved aspirant; primary results are entered as
-      website content.
 - [ ] **Election-day features**: polling-day check-in, polling-station imports and result
       forms. Agents are recruited, vetted, trained and assigned to a registration centre
       during the campaign; the product does nothing on polling day itself.
 - [ ] **Hosting and subscriptions**: renting workspaces, plans, a subscription ledger, grace,
-      read-only and locked states. A party's nominee workspaces are free.
-- [ ] **Money handling beyond payouts**: online payments in (subscriptions, contributions,
-      fees), campaign spending, contributions and declarations, a party finance page, party
-      payouts other than to mobilizers and agents, a rate card and a payment threshold, and
-      the Finance role and Finance Officer office. The Contribute page shows payment
-      instructions and records nothing.
+      read-only and locked states.
+- [ ] **Money handling beyond payouts and contributions**: campaign spending and declarations,
+      payouts other than to mobilizers and agents, a rate card and a payment threshold, and a
+      Finance role.
 - [ ] **SMS sign-in codes and SMS reset codes**, and password resets by the Candidate or
       Manager. On the website only the superuser resets someone else's password, by an emailed link;
       the IT person can set one from the server as a last resort.
-- [ ] **A vendor console or licence server**, and **multi-party hosting**: one copy serves one
-      party or one aspirant.
+- [ ] **A vendor console or licence server**, and **hosting several campaigns**: one copy
+      serves one candidate contesting one seat.
 - [ ] **An offline mobilizer app** with full sync; drafts are kept on the device only.
 - [ ] **Maps**: areas are lists and tables.
 - [ ] **WhatsApp messaging** from the system (sharing a link from one's own phone stays).
 - [ ] **USSD** for any purpose.
 - [ ] **Two languages side by side**: website content is in the one language the buyer writes
       it in.
-- [ ] **Party event management**: RSVPs, invites and door check-in. Party events are website
-      posts.
-- [ ] **Sub-branches** below county.
-- [ ] **Appeals and nominated-seat party lists.**
+- [ ] **Event RSVPs and door check-in.** Events are counted by reached and attended.
 
 ## 9. Known gaps
 

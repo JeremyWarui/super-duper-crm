@@ -79,6 +79,13 @@ the campaign marked done.
 **Your details** on **My centre** shows your name, phone and ID number. To correct them, ask
 your coordinator or the campaign manager.
 
+### Join a team call
+
+After you sign in on your phone, press **Enable call alerts** so the phone rings when the
+campaign starts a call. On an iPhone, first tap Share, then **Add to Home Screen**, and open
+the app from there (iOS 16.4 or later). When the alert comes, tap it to join. You can also
+open the call link the campaign shares (`/meet/<id>`).
+
 ## Who to ask for help
 
 Press **Help** at the top: it lists the campaign's phone and email. Your coordinator or the

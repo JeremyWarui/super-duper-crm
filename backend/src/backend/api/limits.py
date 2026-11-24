@@ -12,11 +12,13 @@ TOO_MANY_SIGNUPS = "Too many sign-ups from this device; try later."
 
 
 def client_key(request: Request) -> str:
-    """Who is sending, for a rate limit: the address Fly saw, or the connection's own.
+    """Who is sending, for a rate limit: the address Vercel saw, or the connection's own.
 
+    Vercel overwrites `x-forwarded-for` with the client's address, so it is trusted only there.
     An IPv6 client is keyed by its /64, which one device can roam within.
     """
-    raw = request.headers.get("fly-client-ip") if os.environ.get("FLY_APP_NAME") else None
+    forwarded = request.headers.get("x-forwarded-for", "") if os.environ.get("VERCEL") else ""
+    raw = forwarded.split(",")[0].strip() or None
     raw = raw or (request.client.host if request.client else "")
     try:
         address = ipaddress.ip_address(raw)

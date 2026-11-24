@@ -138,7 +138,7 @@ async def _sms_worker(args: argparse.Namespace, session: AsyncSession) -> int:
 async def _demo(args: argparse.Namespace, session: AsyncSession) -> int:
     summary = await seed_demo(session, password=args.password)
     print(f"{summary.campaign_title} - {summary.office}")
-    print(f"  {summary.units} units, win number {summary.win_number:,}")
+    print(f"  {summary.units} units, seat target {summary.win_number:,}")
     print("\nSign in at http://localhost:5173 as (shown once, re-run to reset):")
     width = max(len(email) for email, _, _ in summary.sign_ins)
     for email, password, description in summary.sign_ins:

@@ -1,11 +1,8 @@
-# Comms officer guide (campaign)
+# Comms officer guide
 
-You handle the campaign's messages. You see the events, draft texts to supporters for the
-candidate or manager to send, and, on the candidate's own installation, edit the website.
-You do not see the supporter register.
-
-This guide is for the campaign role. The party office's Comms Officer has its own guide:
-[Comms_Officer.md](Comms_Officer.md).
+You handle the campaign's messages. You see the events, draft texts to contacts for the
+candidate or manager to send, start team calls, and edit the campaign website. You do not see
+the contact register.
 
 ## Signing in
 
@@ -29,8 +26,8 @@ Press your name at the top right, then **Sign out**.
 ## What you see
 
 - **Field:** Events
-- **Reach out:** Messages, and **Party feed** if the party set up your workspace
-- **Website:** Website and Settings, only on the candidate's own installation
+- **Reach out:** Messages, Calls
+- **Website:** Website and Settings
 
 **Your access** shows **Comms officer** and "Events, messages and the website."
 
@@ -41,23 +38,30 @@ Press your name at the top right, then **Sign out**.
 Open **Events**. Pick **Upcoming** or **Past**. Each card shows the ward, title, venue and,
 once done, **Reached**, **Attended** and **Turnout**. You read events; you do not change them.
 
-### Draft a text to supporters
+### Draft a text to contacts
 
-1. Open **Messages**. Under **New SMS**, pick who in **Send to** (all wards, or chosen wards).
-2. Write the **Message**. Below it you see the characters, the SMS parts, and that "Reply STOP
-   to opt out" is added.
+1. Open **Messages**. Under **New SMS**, pick who in **Send to** (all wards, or chosen wards)
+   and the **Language** (English or Kiswahili).
+2. Write the **Message**. Put the candidate's name in it: a text without it is refused when
+   the candidate or manager approves it. Below it you see the characters, the SMS parts, and
+   that "Reply STOP to opt out" is added.
 3. Press **Send for approval**. You see "Saved. The candidate or manager sends it."
 4. Your draft shows under **Waiting for approval**. Press **Delete** to withdraw it.
 5. **Sent** lists what went out, or was declined, with the reason.
 
-What you type in **New SMS** stays on this device until it is sent.
+Only contacts who agreed to be texted receive it, in batches between 08:00 and 18:00 Nairobi
+time. What you type in **New SMS** stays on this device until it is sent.
 
-### Read the party feed (party-hosted campaigns)
+### Start a team call
 
-Open **Party feed**. **From the party** lists party events, notices and member counts for
-your area. **Sharing & privacy** shows what the campaign shares; only the candidate changes it.
+1. Open **Calls**. Under **Start call**, fill **Title**, pick the **Call type** (**Video** or
+   **Audio only (uses less data)**) and who to **Invite** (the whole campaign or one ward).
+2. Press **Start call**. Everyone invited who has call alerts on gets an alert on their
+   phone. Share the link or QR code with the rest.
+3. Press **Join now**. The call opens at `/meet/<id>`.
+4. **Recent calls** lists each call, how many minutes it ran and who came.
 
-### Edit the website (candidate's own installation)
+### Edit the website
 
 1. Open **Website**. Pick a tab: **Candidate page**, **News**, **Homepage** or **Media**.
 2. **Candidate page:** fill the fields, tick **Published on the website**, and press **Save

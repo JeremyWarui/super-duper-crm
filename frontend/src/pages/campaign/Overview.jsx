@@ -18,13 +18,13 @@ const ADDS_MOBILIZERS = ["candidate", "manager", "coordinator"];
 function Hero({ s, noun }) {
   const { unit_count: units, short_count: short, staffed_count: staffed, quiet_count: quiet } = s;
   const tiles = [
-    ["Win number", fmt(s.win_number), `Half the projected votes, plus one, in each ${noun}`, "text-accent"],
-    ["Votes committed", fmt(s.committed), `${s.progress_pct}% of the win number`],
+    ["Seat target", fmt(s.win_number), "The share the last winner took, applied to the votes expected", "text-accent"],
+    ["Votes committed", fmt(s.committed), `${s.progress_pct}% of the seat target`],
     ["Gap to close", fmt(Math.max(s.win_number - s.committed, 0)), `Across ${short} of ${units} ${noun}s`],
     ["Mobilizers", `${staffed} / ${units}`, `${plural(quiet, noun)} with no event yet`],
   ];
   return (
-    <FigureBand label="Win number" figures={tiles} />
+    <FigureBand label="Seat target" figures={tiles} />
   );
 }
 
@@ -36,7 +36,7 @@ function Targets({ units, mobilizers, noun }) {
       <CardTitle id="targets-h">{title}</CardTitle>
       <Table stack minWidth={620}>
         <THead><TR>
-          <TH>{noun === "centre" ? "Centre" : "Ward"}</TH><TH align="right">Win number</TH><TH align="right">Committed</TH>
+          <TH>{noun === "centre" ? "Centre" : "Ward"}</TH><TH align="right">Target</TH><TH align="right">Committed</TH>
           <TH align="right">Events</TH><TH>Mobilizer</TH><TH>Status</TH>
         </TR></THead>
         <TBody>{rows.map((u) => {
@@ -59,7 +59,7 @@ function Targets({ units, mobilizers, noun }) {
   );
 }
 
-// The campaign at a glance: the win number and how far there is to go, every targeted unit, and
+// The campaign at a glance: the seat target and how far there is to go, every targeted unit, and
 // the strategy read.
 export default function Overview({ campaign, role, onModal }) {
   const strategy = useStrategy(campaign.id);
