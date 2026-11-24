@@ -44,7 +44,7 @@ describe("messages", () => {
     await user.type(screen.getByRole("textbox", { name: /Message/ }), "Town hall on Saturday.");
     await user.click(screen.getByRole("button", { name: "Send for approval" }));
 
-    await waitFor(() => expect(posted(calls, "/messages/")).toEqual({ campaign: "c1", body: "Town hall on Saturday.", wards: ["w2"], send: false }));
+    await waitFor(() => expect(posted(calls, "/messages/")).toEqual({ campaign: "c1", body: "Town hall on Saturday.", wards: ["w2"], send: false, language: "en" }));
     expect(await screen.findByText("Saved. The candidate or manager sends it.")).toBeInTheDocument();
   });
 
@@ -64,7 +64,7 @@ describe("messages", () => {
     expect(posted(calls, "/messages/")).toBeUndefined();
     await user.click(screen.getByRole("button", { name: "Send to 2 people" }));
 
-    await waitFor(() => expect(posted(calls, "/messages/")).toEqual({ campaign: "c1", body: "Polls open at 6.", wards: [], send: true }));
-    expect(await screen.findByText("Sent to 2 contacts.")).toBeInTheDocument();
+    await waitFor(() => expect(posted(calls, "/messages/")).toEqual({ campaign: "c1", body: "Polls open at 6.", wards: [], send: true, language: "en" }));
+    expect(await screen.findByText("Approved for 2 contacts. It goes out in batches between 08:00 and 18:00.")).toBeInTheDocument();
   });
 });

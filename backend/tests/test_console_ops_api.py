@@ -40,7 +40,14 @@ async def test_with_no_keys_every_outside_service_is_not_configured_and_email_is
     emailed = await client.post("/api/setup/services/email/test/", headers=admin_headers)
 
     services = health.json()["services"]
-    assert {s["key"] for s in services} == {"email", "sms", "payouts", "payins", "google"}
+    assert {s["key"] for s in services} == {
+        "email",
+        "sms",
+        "meetings",
+        "payouts",
+        "payins",
+        "google",
+    }
     assert [s["key"] for s in services if s["configured"]] == []
     assert emailed.json()["message"] == "Logged in practice mode; nothing was sent."
 

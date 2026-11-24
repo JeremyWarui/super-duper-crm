@@ -17,7 +17,7 @@ from backend.models import (
     User,
     Ward,
 )
-from backend.services import texting
+from backend.services import sms_queue, texting
 from backend.services.audit import record
 from backend.services.errors import Refused
 from backend.services.permissions import Area
@@ -45,11 +45,18 @@ async def check_wards(session: AsyncSession, area: Area | None, wards: list[uuid
 
 
 def _audience(
-    campaign_id: uuid.UUID, area: Area | None, wards: list[uuid.UUID], *, with_phone: bool = True
+    campaign_id: uuid.UUID,
+    area: Area | None,
+    wards: list[uuid.UUID],
+    *,
+    with_phone: bool = True,
+    consenting: bool = True,
 ) -> list:
     """The conditions on `supporters` for who a text may reach; `with_phone` drops the ones
-    with no number at all."""
-    conditions = [Supporter.campaign_id == campaign_id, Supporter.consent_given.is_(True)]
+    with no number at all, and `consenting=False` keeps those who did not agree."""
+    conditions = [Supporter.campaign_id == campaign_id]
+    if consenting:
+        conditions.append(Supporter.consent_given.is_(True))
     if with_phone:
         conditions.append(Supporter.phone != "")
     if wards:
@@ -135,11 +142,13 @@ async def draft(
     area: Area | None,
     *,
     actor: User,
+    language: str = "en",
 ) -> CampaignMessage:
     await check_wards(session, area, wards)
     message = CampaignMessage(
         campaign_id=campaign_id,
         body=body.strip(),
+        language=language,
         wards=[str(w) for w in dict.fromkeys(wards)],
         drafted_by_id=actor.id,
     )
@@ -159,21 +168,20 @@ async def draft(
 
 
 async def send(
-    session: AsyncSession, message: CampaignMessage, drafter_area: Area | None, *, actor: User
+    session: AsyncSession,
+    message: CampaignMessage,
+    drafter_area: Area | None,
+    *,
+    actor: User,
+    language: str | None = None,
 ) -> CampaignMessage:
-    """Approve a draft and text it to its supporters, inside the drafter's area."""
-    await texting.decide(session, CampaignMessage, message, "sent", actor)
-    numbers, _, _ = await recipients(session, message.campaign_id, drafter_area, message.wards)
-    result, _ = await texting.send(
-        session,
-        numbers,
-        texting.text_of(message.body),
-        purpose="message",
-        sender=actor,
-        campaign_id=message.campaign_id,
-        message_id=message.id,
+    """Approve a draft: it passes the compliance gate and goes out as a run, inside the
+    drafter's area (`services/sms_queue.py`)."""
+    wards = [uuid.UUID(str(w)) for w in message.wards]
+    audience = _audience(message.campaign_id, drafter_area, wards, consenting=False)
+    await sms_queue.approve(
+        session, message, audience, language=language or message.language, actor=actor
     )
-    message.recipients = len(result.accepted)
     record(
         session,
         actor=actor,
@@ -181,7 +189,7 @@ async def send(
         subject_type="campaign_message",
         subject_id=message.id,
         campaign_id=message.campaign_id,
-        detail=texting.send_detail(result),
+        detail={"recipients": message.recipients},
     )
     await session.commit()
     return message
@@ -239,7 +247,11 @@ async def listing(
     }
     return [
         texting.draft_row(m, names, counts, me)
-        | {"wards": m.wards, "ward_names": [ward_names.get(uuid.UUID(w), "") for w in m.wards]}
+        | {
+            "wards": m.wards,
+            "ward_names": [ward_names.get(uuid.UUID(w), "") for w in m.wards],
+            "language": m.language,
+        }
         for m in messages
     ]
 

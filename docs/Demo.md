@@ -95,6 +95,31 @@ these environment variables (Production):
 | `PUBLIC_URL` | the project's address |
 | `DEBUG` | `false` |
 
+## Texts and calls (about 8 minutes)
+
+Before the demo: the Sozuri test project, LiveKit Cloud and the VAPID keys are set (see
+`DEPLOY.md`, "Texts, calls and call alerts"), and the demo person's two numbers are added. The
+numbers are typed at demo time and never committed:
+
+```bash
+uv run campaign-crm demo-comms --phone <demo phone> --phone <second phone>
+```
+
+That adds two consenting contacts in a ward with nobody else, and two drafts: one without the
+candidate's name and one signed with it. Run the demo between 08:00 and 18:00 Nairobi time, or
+show a run waiting for 08:00.
+
+1. The demo person opens the field app link on their phone, signs in, installs it (Add to Home
+   Screen) and taps "Enable call alerts".
+2. Console, Messages: "Send test SMS" to the demo person; their phone receives it and the log
+   shows Delivered.
+3. Approve the draft without the candidate's name: approval is refused with the reason. Approve
+   the signed draft: Bulk sends shows the run, the batch sent and the Delivered count.
+4. Calls: "Start call", video. The demo person's phone shows the alert; they tap it and join.
+   Talk, mute, switch the camera.
+5. End the call for everyone, then start an audio-only call to show the low-data mode.
+6. Calls lists both calls with who came and for how long.
+
 ## Known gaps
 
 - Vercel functions and the Neon database both sleep when idle; the first request after a quiet

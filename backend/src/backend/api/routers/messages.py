@@ -12,6 +12,7 @@ from backend.config import get_settings
 from backend.models import CampaignMessage, User
 from backend.schemas.messages import (
     LogRow,
+    MessageApprove,
     MessageDecline,
     MessageDraft,
     MessageRead,
@@ -64,7 +65,11 @@ async def list_messages(campaign: uuid.UUID, session: SessionDep, user: Drafter)
     area = await area_of(session, user, "sms.draft")
     settings = get_settings()
     return {
-        "sender_id": settings.at_sender_id,
+        "sender_id": (
+            settings.sozuri_sender_id
+            if settings.sms_provider == "sozuri"
+            else settings.at_sender_id
+        ),
         "provider": get_sms_provider().name,
         "can_send": reach(user, "sms.send") is not None,
         "wards": await messages.addressable_wards(session, campaign, area),
@@ -88,7 +93,13 @@ async def create(payload: MessageDraft, session: SessionDep, user: Drafter) -> d
     await require_visible_campaign(session, user, payload.campaign)
     area = await area_of(session, user, "sms.draft")
     message = await messages.draft(
-        session, payload.campaign, payload.body, payload.wards, area, actor=user
+        session,
+        payload.campaign,
+        payload.body,
+        payload.wards,
+        area,
+        actor=user,
+        language=payload.language,
     )
     if payload.send:
         message = await messages.send(session, message, area, actor=user)
@@ -96,11 +107,16 @@ async def create(payload: MessageDraft, session: SessionDep, user: Drafter) -> d
 
 
 @router.post("/{message_id}/send/", response_model=MessageRead)
-async def send(message_id: uuid.UUID, session: SessionDep, user: Sender) -> dict:
-    """Approve a draft and text it."""
+async def send(
+    message_id: uuid.UUID,
+    session: SessionDep,
+    payload: MessageApprove,
+    user: Sender,
+) -> dict:
+    """Approve a draft: it passes the compliance gate and goes out as a run."""
     message = await _visible(session, user, message_id)
     area = await _drafter_area(session, message)
-    message = await messages.send(session, message, area, actor=user)
+    message = await messages.send(session, message, area, actor=user, language=payload.language)
     return await _read(session, user, message)
 
 

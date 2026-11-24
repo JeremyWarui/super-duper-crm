@@ -22,6 +22,8 @@ from backend.models import (
     Mobilizer,
     RegistrationStatus,
     SmsLog,
+    SmsOutbox,
+    SmsRun,
     Supporter,
     TeamRegistration,
     User,
@@ -78,6 +80,16 @@ async def _forget_texts(session: AsyncSession, campaign_id: uuid.UUID, phone: st
     await session.execute(
         update(SmsLog).where(where).values(phone="").execution_options(synchronize_session=False)
     )
+    queued = await session.scalars(
+        select(SmsOutbox)
+        .join(SmsRun, SmsRun.id == SmsOutbox.run_id)
+        .where(SmsRun.campaign_id == campaign_id, SmsOutbox.phone == phone)
+    )
+    for row in queued:
+        # A run holds each number once, so the blanked number stays unique within it.
+        row.phone = f"erased:{row.id.hex[:12]}"
+        if row.status == "queued":
+            row.status, row.skip_reason = "skipped", "erased"
 
 
 async def _forget_login(session: AsyncSession, user_id: uuid.UUID | None) -> None:

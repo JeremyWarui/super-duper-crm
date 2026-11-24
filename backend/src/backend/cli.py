@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import base64
 import getpass
 import sys
 import uuid
@@ -15,6 +16,7 @@ from backend.db.session import get_engine, get_sessionmaker
 from backend.models import County, UserRole
 from backend.seed import demo_aspirant
 from backend.seed.demo import seed_demo
+from backend.seed.demo_comms import seed_demo_texting
 from backend.seed.history import RESULTS_CSV, import_results
 from backend.seed.reference import (
     CAW_CSV,
@@ -25,7 +27,7 @@ from backend.seed.reference import (
     import_geography,
 )
 from backend.seed.sign_ins import credentials_sheet
-from backend.services import admin, imports, ops, setup
+from backend.services import admin, imports, ops, setup, sms_queue
 from backend.services.accounts import logins_on, new_login
 from backend.services.audit import record
 from backend.services.clock import today
@@ -95,6 +97,42 @@ async def _seed_results(args: argparse.Namespace, session: AsyncSession) -> int:
     await session.commit()
     print(f"  Targets reworked for {reworked} campaign{'s' if reworked != 1 else ''}.")
     return 0
+
+
+async def _demo_comms(args: argparse.Namespace, session: AsyncSession) -> int:
+    """Two consenting contacts on the demo person's phones, and two drafts to approve."""
+    summary = await seed_demo_texting(session, args.phone)
+    print(f"{summary.campaign}: test ward {summary.ward}")
+    print(f"  Contacts: {', '.join(summary.phones)}")
+    print("  Drafts: one without the candidate's name (approval is refused),")
+    print(f"  and one signed {summary.candidate} (approval sends it).")
+    return 0
+
+
+async def _make_vapid_keys(args: argparse.Namespace, session: AsyncSession) -> int:
+    """Print a new web push key pair for .env; nothing is stored."""
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+    def b64(raw: bytes) -> str:
+        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    public = key.public_key().public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)
+    print(f"VAPID_PUBLIC_KEY={b64(public)}")
+    print(f"VAPID_PRIVATE_KEY={b64(key.private_numbers().private_value.to_bytes(32, 'big'))}")
+    print("VAPID_SUBJECT=mailto:<an address that reads mail>")
+    return 0
+
+
+async def _sms_worker(args: argparse.Namespace, session: AsyncSession) -> int:
+    """Send due bulk-text batches every few seconds; --once sends one round and stops."""
+    while True:
+        runs = await sms_queue.drain(session)
+        if args.once:
+            print(f"Looked at {runs} run{'s' if runs != 1 else ''}.")
+            return 0
+        await asyncio.sleep(args.every)
 
 
 async def _demo(args: argparse.Namespace, session: AsyncSession) -> int:
@@ -370,6 +408,15 @@ def build_parser() -> argparse.ArgumentParser:
     seed.add_argument("--county-results", default=str(COUNTY_RESULTS_CSV))
     seed.add_argument("--centres", default=str(CENTRES_CSV))
     seed.add_argument("--force", action="store_true", help="reload even if data is present")
+
+    demo_comms = command("demo-comms", _demo_comms, "add the texting demo's contacts and drafts")
+    demo_comms.add_argument("--phone", action="append", required=True, help="a demo phone; twice")
+
+    command("make-vapid-keys", _make_vapid_keys, "print a new key pair for call alerts")
+
+    worker = command("sms-worker", _sms_worker, "send bulk-text batches as they fall due")
+    worker.add_argument("--every", type=float, default=30.0, help="seconds between rounds")
+    worker.add_argument("--once", action="store_true", help="one round, then stop")
 
     results = command("seed-results", _seed_results, "load past election results (2013 to 2022)")
     results.add_argument("--file", default=str(RESULTS_CSV), help="Kura254 historical results CSV")

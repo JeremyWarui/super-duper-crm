@@ -13,6 +13,7 @@ import {
 } from "@tanstack/react-query";
 import { api, download, upload } from "./client";
 import { useAuth } from "@/store/auth";
+import { pollWhileWaiting } from "@/lib/sms";
 
 // ---- Shared shapes ----------------------------------------------------------
 /** "key=value&..." for the filters that have a value; written after a literal "?" so the contract test reads the path. */
@@ -283,13 +284,62 @@ export const useMessageReach = (campaignId, wards) =>
 export const useDraftMessage = () =>
   useWrite(
     (body) => api("/messages/", { method: "POST", body }),
-    "messages",
+    "messages", "sms-runs",
   );
+
+// Bulk text runs: polled every ten seconds while one is sending or waiting for the window.
+export const useSmsRuns = (campaignId) =>
+  useQuery({
+    queryKey: ["sms-runs", campaignId],
+    queryFn: () => api(`/campaigns/${campaignId}/sms-runs/`),
+    enabled: !!campaignId,
+    refetchInterval: (query) =>
+      query.state.data?.some((r) => ["sending", "scheduled"].includes(r.status)) ? 10_000 : false,
+  });
+
+const RUN_ACTIONS = {
+  pause: (c, id) => api(`/campaigns/${c}/sms-runs/${id}/pause/`, { method: "POST" }),
+  resume: (c, id) => api(`/campaigns/${c}/sms-runs/${id}/resume/`, { method: "POST" }),
+  halt: (c, id, body) => api(`/campaigns/${c}/sms-runs/${id}/halt/`, { method: "POST", body }),
+};
+
+export const useRunAction = (campaignId) =>
+  useWrite(({ id, action, body }) => RUN_ACTIONS[action](campaignId, id, body), "sms-runs");
+
+// Online calls and the call alerts that ring the team.
+export const useCalls = (campaignId) =>
+  useQuery({
+    queryKey: ["calls", campaignId],
+    queryFn: () => api(`/campaigns/${campaignId}/meetings/`),
+    enabled: !!campaignId,
+    refetchInterval: (query) => (query.state.data?.some((c) => c.meeting.status === "live") ? 15_000 : false),
+  });
+
+export const useStartCall = (campaignId) =>
+  useWrite((body) => api(`/campaigns/${campaignId}/meetings/`, { method: "POST", body }), "calls");
+
+// A fresh token each time the page opens; it is good for fifteen minutes.
+export const useJoinCall = (meetingId) =>
+  useQuery({
+    queryKey: ["call-token", meetingId],
+    queryFn: () => api(`/meetings/${meetingId}/token/`),
+    enabled: !!meetingId,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+export const useEndCall = () =>
+  useWrite((meetingId) => api(`/meetings/${meetingId}/end/`, { method: "POST" }), "calls");
+
+export const usePushKey = () =>
+  useQuery({ queryKey: ["push-key"], queryFn: () => api("/push/key/"), staleTime: Infinity });
 
 export const useSendMessage = () =>
   useWrite(
-    (id) => api(`/messages/${id}/send/`, { method: "POST" }),
-    "messages",
+    ({ id, language }) => api(`/messages/${id}/send/`, { method: "POST", body: { language } }),
+    "messages", "sms-runs",
   );
 
 export const useDeclineMessage = () =>
@@ -309,7 +359,20 @@ export const useMessageLog = (id) =>
     queryKey: ["messages", "log", id],
     queryFn: () => api(`/messages/${id}/log/`),
     enabled: !!id,
+    refetchInterval: pollWhileWaiting,
   });
+
+// A campaign's test texts, sent at once past the queue.
+export const useTestTexts = (campaignId) =>
+  useQuery({
+    queryKey: ["sms-tests", campaignId],
+    queryFn: () => api(`/console/sms/test/?campaign=${campaignId}`),
+    enabled: !!campaignId,
+    refetchInterval: pollWhileWaiting,
+  });
+
+export const useSendTestText = () =>
+  useWrite((body) => api("/console/sms/test/", { method: "POST", body }), "sms-tests");
 
 export const useSettleAssignment = () =>
   useWriteSettled(

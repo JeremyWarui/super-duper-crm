@@ -39,7 +39,7 @@ const groups = () =>
 const LEAD = {
   Plan: ["Overview", "Strategy", "Targets", "Wards"],
   Field: ["Events", "Mobilizers", "Agents", "Assignments", "Contacts", "Volunteers"],
-  "Reach out": ["Messages"],
+  "Reach out": ["Messages", "Calls"],
   People: ["Team", "Sign-ups", "Personal data"],
   Money: ["Payments", "Contributions"],
   Website: ["Website", "Settings"],
@@ -52,9 +52,9 @@ describe("what each role is shown", () => {
     [
       "coordinator",
       "Coordinator",
-      { Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, "Reach out": ["Messages"], People: ["Sign-ups"], Money: ["Payments"] },
+      { Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, "Reach out": ["Messages", "Calls"], People: ["Sign-ups"], Money: ["Payments"] },
     ],
-    ["comms", "Comms officer", { Field: ["Events"], "Reach out": ["Messages"], Website: ["Website", "Settings"] }],
+    ["comms", "Comms officer", { Field: ["Events"], "Reach out": ["Messages", "Calls"], Website: ["Website", "Settings"] }],
     ["mobilizer", "Mobilizer", { "My work": ["My events", "Add contact", "My contacts", "My payments"] }],
     ["agent", "Agent", { "My work": ["My centre", "My events", "My payments"] }],
   ])("gives a %s exactly their groups", async (role, label, expected) => {

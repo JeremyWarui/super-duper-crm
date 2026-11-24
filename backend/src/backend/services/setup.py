@@ -4,6 +4,7 @@ import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import httpx
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +27,7 @@ from backend.services.admin import build_workspace
 from backend.services.audit import record
 from backend.services.email import send_email
 from backend.services.errors import Forbidden, Refused
-from backend.services.sms import require_phone
+from backend.services.sms import get_sms_provider, require_phone
 
 TOKEN_LIFE = timedelta(hours=24)
 DONE = "This installation is already set up."
@@ -154,8 +155,15 @@ def services() -> list[ServiceState]:
             key="sms",
             label="SMS",
             mode=settings.sms_provider,
-            live=settings.sms_provider == "africastalking",
+            live=settings.sms_provider in ("africastalking", "sozuri"),
             testable=True,
+        ),
+        ServiceState(
+            key="meetings",
+            label="Meetings (LiveKit)",
+            mode="livekit" if settings.meetings_configured else "off",
+            live=settings.meetings_configured,
+            testable=False,
         ),
         ServiceState(
             key="payouts",
@@ -204,6 +212,15 @@ async def test_service(session: AsyncSession, key: str, user: User) -> str:
             if row.status == "practice"
             else f"Sent to {user.email}."
         )
+    if key == "sms" and hasattr(provider := get_sms_provider(), "check"):
+        try:
+            ok, note = await provider.check()
+        except (httpx.HTTPError, OSError) as failed:
+            raise Refused(f"Sozuri could not be reached: {failed}") from failed
+        await _audit_test(session, user, key)
+        if not ok:
+            raise Refused(f"Sozuri refused the key: {note}")
+        return f"Connected to Sozuri: {note} Nothing was sent."
     if key == "sms":
         phone = require_phone(user.phone, "Your login has no phone number to text.")
         result = await texting.send_test(session, phone, actor=user)

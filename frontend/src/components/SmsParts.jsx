@@ -54,7 +54,7 @@ export function DraftList({ drafts, about, decide, approve, decline, remove, can
                 onYes={() => decline.mutate({ id: m.id, note }, { onSuccess: () => { setDeclining(null); setNote(""); } })} />
             ) : may || canDelete(m) ? (
               <div className="flex flex-wrap gap-2">
-                {may && <Button size="sm" disabled={busy} onClick={() => approve.mutate(m.id)}>Approve and send</Button>}
+                {may && <Button size="sm" disabled={busy} onClick={() => approve.mutate({ id: m.id, language: m.language })}>Approve and send</Button>}
                 {may && <Button size="sm" variant="outline" disabled={busy} onClick={() => setDeclining(m.id)}>Decline…</Button>}
                 {canDelete(m) && <Button size="sm" variant="quiet" disabled={busy} onClick={() => remove.mutate(m.id)}>Delete</Button>}
               </div>

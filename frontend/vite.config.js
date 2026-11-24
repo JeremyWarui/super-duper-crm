@@ -2,9 +2,37 @@ import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // The installable field app. The service worker shows call alerts and caches nothing.
+    mode !== "test" &&
+      VitePWA({
+        strategies: "injectManifest",
+        srcDir: "src",
+        filename: "sw.js",
+        injectRegister: "auto",
+        registerType: "autoUpdate",
+        injectManifest: { injectionPoint: undefined },
+        manifest: {
+          name: "Campaign field app",
+          short_name: "Campaign",
+          start_url: "/signin",
+          scope: "/",
+          display: "standalone",
+          theme_color: "#1f2937",
+          background_color: "#ffffff",
+          icons: [
+            { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+            { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+            { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          ],
+        },
+      }),
+  ],
   resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
   server: { proxy: { "/api": "http://localhost:8000" } },
   build: {

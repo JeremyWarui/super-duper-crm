@@ -736,7 +736,8 @@
     "GET /api/messages/{message_id}/log/": [
       "phone",
       "status",
-      "detail"
+      "detail",
+      "created_at"
     ],
     "POST /api/payments/release-check/": [
       "balance_kes",
@@ -823,6 +824,69 @@
     ],
     "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/reject/": [
       "status"
+    ],
+    "GET /api/console/sms/test/": [
+      "phone",
+      "status",
+      "detail",
+      "created_at"
+    ],
+    "POST /api/console/sms/test/": [
+      "message"
+    ],
+    "GET /api/campaigns/{campaign_id}/sms-runs/": [
+      "id",
+      "status",
+      "language",
+      "text",
+      "targeted",
+      "sent",
+      "delivered",
+      "failed",
+      "excluded_no_consent",
+      "excluded_opted_out",
+      "segments",
+      "estimated_cost_cents",
+      "actual_cost_cents",
+      "halt_reason",
+      "created_at",
+      "waiting_until"
+    ],
+    "POST /api/campaigns/{campaign_id}/sms-runs/{run_id}/pause/": [
+      "id",
+      "status"
+    ],
+    "POST /api/campaigns/{campaign_id}/sms-runs/{run_id}/resume/": [
+      "id",
+      "status"
+    ],
+    "POST /api/campaigns/{campaign_id}/sms-runs/{run_id}/halt/": [
+      "id",
+      "status"
+    ],
+    "GET /api/campaigns/{campaign_id}/meetings/": [
+      "meeting",
+      "host",
+      "minutes",
+      "attendance"
+    ],
+    "POST /api/campaigns/{campaign_id}/meetings/": [
+      "meeting",
+      "join_path",
+      "alerted"
+    ],
+    "GET /api/meetings/{meeting_id}/token/": [
+      "meeting",
+      "token",
+      "url",
+      "can_end"
+    ],
+    "POST /api/meetings/{meeting_id}/end/": [
+      "id",
+      "status"
+    ],
+    "GET /api/push/key/": [
+      "key"
     ]
   },
   "nested_reads": {
@@ -1372,8 +1436,9 @@
     "POST /api/messages/": [
       "campaign",
       "body",
-      "wards",
-      "send"
+      "language",
+      "send",
+      "wards"
     ],
     "POST /api/messages/preview/": [
       "campaign",
@@ -1383,7 +1448,9 @@
     "POST /api/messages/{message_id}/decline/": [
       "note"
     ],
-    "POST /api/messages/{message_id}/send/": [],
+    "POST /api/messages/{message_id}/send/": [
+      "language"
+    ],
     "POST /api/payments/release-check/": [
       "payments"
     ],
@@ -1420,7 +1487,27 @@
     "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/reject/": [
       "reason"
     ],
-    "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/confirm/": []
+    "POST /api/campaigns/{campaign_id}/payments-in/{payment_id}/confirm/": [],
+    "POST /api/console/sms/test/": [
+      "campaign",
+      "phone",
+      "body"
+    ],
+    "POST /api/campaigns/{campaign_id}/sms-runs/{run_id}/halt/": [
+      "reason"
+    ],
+    "POST /api/campaigns/{campaign_id}/sms-runs/{run_id}/pause/": [],
+    "POST /api/campaigns/{campaign_id}/sms-runs/{run_id}/resume/": [],
+    "POST /api/campaigns/{campaign_id}/meetings/": [
+      "title",
+      "mode",
+      "ward"
+    ],
+    "POST /api/meetings/{meeting_id}/end/": [],
+    "POST /api/push/subscribe/": [
+      "endpoint",
+      "keys"
+    ]
   },
   "enums": {
     "user.role": [

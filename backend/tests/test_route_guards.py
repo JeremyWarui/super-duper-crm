@@ -52,6 +52,12 @@ PUBLIC_ROUTES = {
     ("POST", "/api/sms/{secret}/delivery/"),
     ("POST", "/api/sms/{secret}/inbound/"),
     ("POST", "/api/sms/{secret}/opt-out/"),
+    ("POST", "/api/sms/{secret}/sozuri/delivery/"),
+    ("POST", "/api/sms/{secret}/sozuri/inbound/"),
+    ("GET", "/api/internal/sms/drain/"),
+    ("POST", "/api/internal/sms/drain/"),
+    ("POST", "/api/livekit/webhook/"),
+    ("GET", "/api/push/key/"),
     ("GET", "/health"),
 }
 

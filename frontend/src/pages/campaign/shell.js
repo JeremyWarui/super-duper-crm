@@ -3,13 +3,14 @@
 import { createContext, useContext, useMemo } from "react";
 import {
   Banknote, CalendarDays, ClipboardCheck, ClipboardList, Crosshair, Globe, HandHeart, Heart, LayoutDashboard, LockKeyhole, Map, MapPin, MessageCircle,
-  Settings, ShieldCheck, Target, UserPlus, UserRoundCog, Users,
+  Phone, Settings, ShieldCheck, Target, UserPlus, UserRoundCog, Users,
 } from "lucide-react";
 import { useEvents, useMobilizers, useStrategy } from "@/api/hooks";
 import { pagesOf, perCounty, reads, useWardOptions } from "./helpers";
 import { nairobiDate } from "@/lib/format";
 
 export const ICONS = {
+  calls: Phone,
   overview: LayoutDashboard,
   strategy: Target,
   targets: Crosshair,

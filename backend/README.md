@@ -45,6 +45,8 @@ uv run campaign-crm delete-campaign -c <id>       # says what and who would go; 
 uv run campaign-crm reset-password -u jane
 uv run campaign-crm deactivate -u jane            # and activate
 uv run campaign-crm reset-database --yes <name>   # empty a Postgres database; see DEPLOY.md
+uv run campaign-crm sms-worker [--once]           # send bulk-text batches as they fall due
+uv run campaign-crm make-vapid-keys               # a key pair for call alerts, for .env
 ```
 
 The admin commands run the same service as the admin console. A refusal prints
@@ -253,11 +255,28 @@ opt out." and go only to supporters with `consent_given` and a usable number.
 
 - **Messages** (`/api/messages/`, the workspace's Messages page): the
   Candidate, Manager, Coordinators and the Comms officer draft (`sms.draft`);
-  only the Candidate or Manager sends (`sms.send`), either their own text at
-  once or a draft by approving it. A draft goes to the wards picked, or every
-  ward the drafter reaches, and always only inside the drafter's area as it is
-  when the draft is approved. A draft is sent or declined once. The sender
-  sees each message's delivery log.
+  only the Candidate or Manager approves (`sms.send`), either their own text
+  at once or a draft. A draft goes to the wards picked, or every ward the
+  drafter reaches, and always only inside the drafter's area as it is when the
+  draft is approved. A draft is approved or declined once.
+- **The compliance queue** (`services/sms_queue.py`): approving checks the
+  text and makes a run instead of sending. The text must name the candidate as
+  registered and be declared English or Kiswahili; only supporters whose
+  consent wording covers being contacted are queued (`excluded_no_consent`
+  counts the rest); opted-out numbers are left out, also when they opt out
+  mid-run. Batches of `SMS_BATCH_SIZE` go only inside `SMS_WINDOW`, Nairobi
+  time (never wider than 08:00-18:00), and inside the campaign period when
+  `CAMPAIGN_PERIOD_START` or `CAMPAIGN_PERIOD_END` is set. The first batch
+  goes at approval; later ones from `POST /api/internal/sms/drain/` (with
+  `Authorization: Bearer <CRON_SECRET>`) or `campaign-crm sms-worker`. A
+  number the gateway took is never sent again; a gateway that does not answer
+  is retried with a growing delay up to `SMS_MAX_ATTEMPTS`. With
+  `SMS_VETTING_REQUIRED=true` a run waits for the provider's vetting
+  reference. The Candidate or Manager pauses, resumes or halts a run and
+  downloads its consent evidence as CSV.
+- **Test SMS** (`POST /api/console/sms/test/`, Messages page): one text now,
+  past the queue. With a live gateway it only texts the campaign's own logins
+  and its consenting supporters.
 - **Event invitations**: `POST /api/events/{id}/invite/` texts an event's
   consenting supporters, sets `number_reached` on a real delivery, and logs
   each number against the event. `dry_run` works out the recipients and cost
@@ -266,7 +285,23 @@ opt out." and go only to supporters with `consent_given` and a usable number.
   ACHA) opts the number out of the campaign that last texted it, or the whole
   installation if none has. A number on the gateway's own opt-out list is
   handled the same way. Each incoming text is kept once per gateway id.
-- **Callbacks**: Africa's Talking does not sign its callbacks, so each URL
+- **Sozuri callbacks** carry `SMS_CALLBACK_SECRET` in the URL (wrong or
+  missing gets 404) and are signed: `X-Sozuri-Signature` is checked against
+  `SOZURI_SIGNING_SECRET` over the raw body, within 300 seconds (anything else
+  gets 401), and `SOZURI_AUTH_KEY`, when set, must match the body's `authKey`.
+  In Sozuri's dashboard (Manage API > Callback URLs), for each project:
+
+  ```
+  https://<api host>/api/sms/<secret>/sozuri/delivery/   Delivery Status Callback URL
+  https://<api host>/api/sms/<secret>/sozuri/inbound/    Inbound Messages Callback URL
+  ```
+
+  Sozuri reports `success`, or a failure (`network_failure`,
+  `delivery_impossible`, `absent_subscriber`, `unknown_error`, `failed`);
+  other statuses are logged and ignored. Telkom numbers (077x) get no
+  delivery report, so their texts show "Sent (Telkom sends no delivery
+  report)".
+- **Africa's Talking callbacks**: it does not sign its callbacks, so each URL
   carries `SMS_CALLBACK_SECRET`; a wrong or missing secret gets 404. Set these
   in its dashboard, rate limited to 6,000 a minute per client:
 
@@ -279,7 +314,24 @@ opt out." and go only to supporters with `consent_given` and a usable number.
   A repeated report changes nothing, and a report after `delivered` or
   `failed` is ignored.
 
-Sending for real needs:
+Sending for real through Sozuri needs (test with a separate test project and
+its own key, sender ID and balance; Sozuri has no sandbox):
+
+```bash
+SMS_PROVIDER=sozuri
+SOZURI_API_KEY=<project api key>
+SOZURI_PROJECT=<project name>
+SOZURI_SENDER_ID=<registered sender>
+SOZURI_SIGNING_SECRET=<signing secret, starts szs_>
+SOZURI_AUTH_KEY=<auth key, starts szk_>   # optional extra check
+SMS_CALLBACK_SECRET=<long random string>
+CRON_SECRET=<long random string>
+```
+
+The setup wizard's SMS test checks the key against Sozuri's
+`/api/v1/messaging/authtest` and sends nothing.
+
+Or through Africa's Talking:
 
 ```bash
 SMS_PROVIDER=africastalking
@@ -291,6 +343,35 @@ SMS_CALLBACK_SECRET=<long random string>
 
 The console's Health tab shows the SMS mode, and its test button (and the
 setup wizard's) sends a logged test text.
+
+## Online calls and call alerts
+
+The Calls page (Candidate, Manager, Comms, and a Coordinator for a ward of
+theirs) starts an audio or video call on LiveKit for the whole campaign or one
+ward, and shows past calls with who came and for how long. Every login of the
+campaign joins at `/meet/<id>` with a 15-minute token for that room only; an
+audio call lets nobody publish a camera. The host, the Candidate or the
+Manager ends it for everyone. LiveKit's webhook records joins, leaves and the
+room's end.
+
+Starting a call rings the invitees' devices through web push: the installed
+field app (or a browser) turns alerts on from the prompt after sign-in, and
+tapping the alert opens the call. On iPhone, alerts work only from the Home
+Screen app, on iOS 16.4 or later.
+
+```bash
+LIVEKIT_URL=wss://<project>.livekit.cloud   # or ws://localhost:7880 with livekit-server --dev
+LIVEKIT_API_KEY=<key>                       # the --dev key
+LIVEKIT_API_SECRET=<secret>                 # the --dev secret
+VAPID_PUBLIC_KEY=<from make-vapid-keys>
+VAPID_PRIVATE_KEY=<from make-vapid-keys>
+VAPID_SUBJECT=mailto:<an address that reads mail>
+```
+
+In LiveKit Cloud (Settings > Webhooks), add `https://<api host>/api/livekit/webhook/`
+signed with the same API key. Without the LiveKit settings, starting a call
+says "Meetings are not configured"; without the VAPID keys, calls start and
+nobody is rung.
 
 ## First-run setup
 

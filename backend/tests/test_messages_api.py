@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import CampaignMemberArea, SmsLog, SmsOptOut, Supporter, UserRole
 from backend.services.accounts import add_member
+from backend.services.consent import WORDING, ConsentChannel
 from backend.services.sms import AfricasTalkingSMSProvider
 from backend.services.texting import FOOTER
 from tests.conftest import World
@@ -28,6 +29,7 @@ async def _supporter(session, world: World, phone: str, ward, consent: bool = Tr
             full_name=f"Supporter {phone[-3:]}",
             phone=phone,
             consent_given=consent,
+            consent_wording=WORDING[ConsentChannel.CAMPAIGN_LINK] if consent else None,
         )
     )
     await session.commit()
@@ -64,17 +66,18 @@ async def test_a_coordinator_s_draft_reaches_only_consenting_supporters_in_their
     session.add(SmsOptOut(phone="+254722000000", campaign_id=world.campaign.id, source="stop"))
     await session.commit()
     coordinator = await _coordinator(session, client, world)
-    draft = {"campaign": str(world.campaign.id), "body": "Town hall on Saturday."}
+    draft = {"campaign": str(world.campaign.id), "body": "Town hall on Saturday. Amina Kariuki"}
 
     sent_at_once = await client.post(
         "/api/messages/", json={**draft, "send": True}, headers=coordinator
     )
     drafted = await client.post("/api/messages/", json=draft, headers=coordinator)
     path = f"/api/messages/{drafted.json()['id']}/send/"
-    self_approved = await client.post(path, headers=coordinator)
+    confirm = {"language": "en"}
+    self_approved = await client.post(path, json=confirm, headers=coordinator)
     before = await _log(session)
-    approved = await client.post(path, headers=world.headers("manager"))
-    again = await client.post(path, headers=world.headers("manager"))
+    approved = await client.post(path, json=confirm, headers=world.headers("manager"))
+    again = await client.post(path, json=confirm, headers=world.headers("manager"))
 
     assert (sent_at_once.status_code, drafted.status_code, self_approved.status_code) == (
         403,
@@ -85,7 +88,9 @@ async def test_a_coordinator_s_draft_reaches_only_consenting_supporters_in_their
     assert approved.status_code == 200, approved.text
     assert (approved.json()["status"], approved.json()["recipients"]) == ("sent", 1)
     assert await _log(session) == [("+254712345678", "practice", None, "")]
-    assert (await session.scalar(select(SmsLog.body))) == "Town hall on Saturday." + FOOTER
+    assert (
+        await session.scalar(select(SmsLog.body))
+    ) == "Town hall on Saturday. Amina Kariuki" + FOOTER
     assert again.status_code == 400
 
 
@@ -104,7 +109,11 @@ async def test_the_gateway_s_reply_and_its_delivery_reports_land_in_the_log(
     monkeypatch.setattr("backend.services.texting.get_sms_provider", lambda *a, **k: gateway)
     await _supporter(session, world, "+254712345678", world.ward)
     await _supporter(session, world, "+254722000000", world.other_ward)
-    message = {"campaign": str(world.campaign.id), "body": "Polls open at 6.", "send": True}
+    message = {
+        "campaign": str(world.campaign.id),
+        "body": "Polls open at 6. Amina Kariuki",
+        "send": True,
+    }
 
     sent = await client.post("/api/messages/", json=message, headers=world.headers("candidate"))
     report = f"/api/sms/{secret}/delivery/"
@@ -112,7 +121,7 @@ async def test_the_gateway_s_reply_and_its_delivery_reports_land_in_the_log(
     repeat = await client.post(report, data=RECORDED["delivery_success"])
     late = await client.post(report, data=RECORDED["delivery_failed"])
 
-    assert sent.json()["recipients"] == 1
+    assert sent.json()["recipients"] == 2
     assert [r.json()["applied"] for r in (first, repeat, late)] == [True, False, False]
     assert await _log(session) == [
         ("+254712345678", "delivered", "ATXid_5b2a8d1c0f3e4a6b9c7d", ""),
@@ -124,7 +133,11 @@ async def test_stop_opts_a_number_out_of_the_campaign_that_texted_it_once(
     client: httpx.AsyncClient, session: AsyncSession, world: World, secret: str
 ) -> None:
     await _supporter(session, world, "+254712345678", world.ward)
-    message = {"campaign": str(world.campaign.id), "body": "Rally at 4.", "send": True}
+    message = {
+        "campaign": str(world.campaign.id),
+        "body": "Rally at 4. Amina Kariuki",
+        "send": True,
+    }
     await client.post("/api/messages/", json=message, headers=world.headers("manager"))
 
     inbound = f"/api/sms/{secret}/inbound/"

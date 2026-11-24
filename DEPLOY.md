@@ -248,6 +248,37 @@ Without a password flag, a local `demo` gives every account
 `DEFAULT_USER_PASSWORD` when `.env` sets it. `demo` stops without changing
 anything when one of its three usernames belongs to a superuser.
 
+## Texts, calls and call alerts
+
+Set these on the API wherever it runs (Fly secrets, or the Vercel project's environment variables
+for the `api` service). With none of them set, texts stay in practice mode and calls are off.
+
+| Setting | Where it comes from |
+|---|---|
+| `SMS_PROVIDER` (sozuri), `SOZURI_PROJECT`, `SOZURI_SENDER_ID` and `SOZURI_API_KEY` | The Sozuri project (Manage API). Use the test project until going live; it has its own key and sender ID |
+| `SOZURI_SIGNING_SECRET` (starts szs_), `SOZURI_AUTH_KEY` (starts szk_) | Manage API > Callback URLs > Webhook security, per project |
+| `SMS_CALLBACK_SECRET` and `CRON_SECRET` | Generate each with `uv run --no-project python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| `LIVEKIT_URL`, `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` | LiveKit Cloud project settings (the URL starts `wss://`) |
+| `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` | `uv run campaign-crm make-vapid-keys`, once per installation |
+
+Then paste the callback URLs into each dashboard:
+
+```
+Sozuri delivery:  https://<api host>/api/sms/<SMS_CALLBACK_SECRET>/sozuri/delivery/
+Sozuri inbound:   https://<api host>/api/sms/<SMS_CALLBACK_SECRET>/sozuri/inbound/
+LiveKit webhook:  https://<api host>/api/livekit/webhook/
+```
+
+The first batch of a bulk text goes at approval. Later batches, and runs approved outside
+08:00-18:00 Nairobi time, go when the queue is drained:
+
+```bash
+curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://<api host>/api/internal/sms/drain/
+```
+
+No scheduler calls it yet; on Vercel Pro a cron entry in `vercel.json` can
+(`{ "path": "/api/internal/sms/drain/", "schedule": "*/5 * * * *" }`; Hobby allows one run a day).
+
 ## Known gaps
 
 - Neon's free plan suspends the database after 5 minutes idle. The first query

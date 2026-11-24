@@ -53,6 +53,8 @@ TABLE = {
     "data.manage": {C, M},
     "campaign.close": {C},
     "contributions.read": {C, M},
+    "meetings.start": {C, M, CO, CM},
+    "meetings.join": {C, M, CO, CM, MO, AG},
 }
 NOBODY = str(uuid.UUID(int=1))
 
@@ -89,6 +91,8 @@ def _route(action: str, campaign: uuid.UUID, event: uuid.UUID) -> tuple[str, str
         "data.manage": ("GET", f"/api/campaigns/{campaign}/data/requests/", None),
         "campaign.close": ("PUT", f"/api/campaigns/{campaign}/data/retention/", {}),
         "contributions.read": ("GET", f"/api/campaigns/{campaign}/payments-in/", None),
+        "meetings.start": ("GET", f"/api/campaigns/{campaign}/meetings/", None),
+        "meetings.join": ("GET", f"/api/meetings/{NOBODY}/token/", None),
     }[action]
 
 

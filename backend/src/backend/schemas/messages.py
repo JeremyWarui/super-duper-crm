@@ -19,6 +19,14 @@ class MessageDraft(WriteModel):
     wards: list[uuid.UUID] = Field(default_factory=list, max_length=200)
     # Send at once; only for those who may send.
     send: bool = False
+    # Bulk political texts go out in English or Kiswahili only.
+    language: Literal["en", "sw"] = "en"
+
+
+class MessageApprove(WriteModel):
+    """The approver confirms the language the text is in."""
+
+    language: Literal["en", "sw"]
 
 
 class MessageDecline(WriteModel):
@@ -69,6 +77,7 @@ class MessageRead(SmsDraftRead):
     wards: list[str]
     ward_names: list[str]
     status: Literal["draft", "sent", "declined"]
+    language: str = "en"
 
 
 class MessagesPage(ORMModel):
@@ -85,3 +94,44 @@ class LogRow(ORMModel):
     detail: str
     created_at: datetime
     updated_at: datetime | None
+
+
+class TestText(WriteModel):
+    campaign: uuid.UUID
+    phone: str = Field(min_length=3, max_length=20)
+    body: str = Field(min_length=1, max_length=BODY_MAX)
+
+
+class TestTextResult(ORMModel):
+    message: str
+
+
+class SmsRunRead(ORMModel):
+    id: uuid.UUID
+    message: uuid.UUID = Field(validation_alias="message_id")
+    status: str
+    language: str
+    text: str
+    vetting_ref: str
+    targeted: int
+    excluded_no_consent: int
+    excluded_opted_out: int
+    sent: int
+    failed: int
+    delivered: int = 0
+    segments: int
+    estimated_cost_cents: int
+    actual_cost_cents: int
+    halt_reason: str
+    created_at: datetime
+    completed_at: datetime | None
+    # When a run waiting for the sending window may start.
+    waiting_until: datetime | None = None
+
+
+class RunHalt(WriteModel):
+    reason: str = Field(min_length=1, max_length=500)
+
+
+class RunVetting(WriteModel):
+    reference: str = Field(min_length=1, max_length=100)

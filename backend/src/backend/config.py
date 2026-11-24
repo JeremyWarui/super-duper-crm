@@ -1,5 +1,6 @@
 """Settings, read from the environment and from `.env`."""
 
+from datetime import date, time
 from functools import lru_cache
 from typing import Literal
 
@@ -82,10 +83,46 @@ class Settings(BaseSettings):
     # Blank uses the shared short code.
     at_sender_id: str = ""
     at_sandbox: bool = False
-    sms_provider: Literal["console", "africastalking"] = "console"
-    # The secret part of the delivery-report and inbound-text URLs given to Africa's Talking,
-    # which does not sign its callbacks; blank turns the callbacks off.
+    sms_provider: Literal["console", "africastalking", "sozuri"] = "console"
+    # The secret part of the delivery-report and inbound-text URLs given to the gateway;
+    # blank turns the callbacks off.
     sms_callback_secret: str = ""
+
+    # Sozuri: a project name and its API key. Testing uses a separate project with its own key.
+    sozuri_api_key: str = ""
+    sozuri_project: str = ""
+    sozuri_sender_id: str = ""
+    # "promotional" or "transactional", as the sender ID is registered.
+    sozuri_message_type: Literal["promotional", "transactional"] = "promotional"
+    # The webhook signing secret (szs_...); callbacks are refused without it.
+    sozuri_signing_secret: str = ""
+    # The project's webhook auth key (szk_...); when set, a callback's authKey must match it.
+    sozuri_auth_key: str = ""
+
+    # Bulk texts go out only inside this daily window, Nairobi time, and never wider than
+    # 08:00 to 18:00; and inside the campaign period when one is set.
+    sms_window: str = "08:00-18:00"
+    # At most 500: one batch is one request to the gateway, under one idempotency key.
+    sms_batch_size: int = Field(default=500, ge=1, le=500)
+    sms_max_attempts: int = 3
+    # What one SMS part costs, in KES cents, for the run's cost estimate.
+    sms_part_price_cents: int = 80
+    campaign_period_start: date | None = None
+    campaign_period_end: date | None = None
+    # A run waits for a vetting reference before it sends.
+    sms_vetting_required: bool = False
+    # Sent as a bearer token by the scheduler that drains the SMS queue; blank turns the route off.
+    cron_secret: str = ""
+
+    # Online meetings; blank turns meetings off.
+    livekit_url: str = ""
+    livekit_api_key: str = ""
+    livekit_api_secret: str = ""
+
+    # Web push for call alerts; `campaign-crm make-vapid-keys` prints a pair.
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = ""
 
     # Where people open the app; sign-in links in emails and texts start with it.
     public_url: str = "http://localhost:5173"
@@ -135,7 +172,35 @@ class Settings(BaseSettings):
             info.data.get("at_username") and info.data.get("at_api_key")
         ):
             raise ValueError("SMS_PROVIDER=africastalking needs AT_USERNAME and AT_API_KEY.")
+        if value == "sozuri" and not (
+            info.data.get("sozuri_api_key")
+            and info.data.get("sozuri_project")
+            and info.data.get("sozuri_sender_id")
+        ):
+            raise ValueError(
+                "SMS_PROVIDER=sozuri needs SOZURI_API_KEY, SOZURI_PROJECT and SOZURI_SENDER_ID."
+            )
         return value
+
+    @field_validator("sms_window", mode="after")
+    @classmethod
+    def _window_inside_the_day(cls, value: str) -> str:
+        """HH:MM-HH:MM, inside 08:00 to 18:00."""
+        try:
+            start, end = (time.fromisoformat(part.strip()) for part in value.split("-"))
+        except ValueError:
+            raise ValueError("SMS_WINDOW must look like 08:00-18:00.") from None
+        if not (time(8) <= start < end <= time(18)):
+            raise ValueError("SMS_WINDOW must sit inside 08:00-18:00.")
+        return value
+
+    @property
+    def meetings_configured(self) -> bool:
+        return bool(self.livekit_url and self.livekit_api_key and self.livekit_api_secret)
+
+    @property
+    def push_configured(self) -> bool:
+        return bool(self.vapid_public_key and self.vapid_private_key and self.vapid_subject)
 
     @field_validator("database_url", mode="after")
     @classmethod

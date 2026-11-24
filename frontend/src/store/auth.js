@@ -6,6 +6,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { BASE } from "@/api/base";
+import { forgetAlerts } from "@/lib/forgetAlerts";
 
 export function clearDrafts() {
   try {
@@ -41,6 +42,7 @@ export const useAuth = create(
       // Drafts can hold supporters' names and phones; a shared phone must not keep them.
       logout: () => {
         clearDrafts();
+        forgetAlerts();
         set({ token: null, user: null });
       },
 

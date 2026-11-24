@@ -13,7 +13,20 @@ export const BODY_MAX = TEXT_MAX - FOOTER.length;
 export const partsOf = (text) => (!text ? 0 : text.length <= 160 ? 1 : Math.ceil(text.length / 153));
 
 /** A text's delivery state as [label, badge tone]. */
-export const DELIVERY_STATUS = { delivered: ["Delivered", "ok"], sent: ["Waiting", "info"], failed: ["Failed", "bad"], practice: ["Practice", "stone"] };
+export const DELIVERY_STATUS = { delivered: ["Delivered", "ok"], sent: ["Sent", "info"], failed: ["Failed", "bad"], practice: ["Practice", "stone"] };
+
+// Telkom numbers get no delivery report, so their texts stay "sent" for good.
+export const NO_REPORT = "no_report_expected";
+
+/** A log row's status label and badge tone. */
+export function deliveryOf(row) {
+  if (row.status === "sent" && row.detail === NO_REPORT) return ["Sent (Telkom sends no delivery report)", "info"];
+  return DELIVERY_STATUS[row.status] || [row.status, "stone"];
+}
+
+/** Ten seconds while any row still waits for its delivery report; otherwise no polling. */
+export const pollWhileWaiting = (query) =>
+  query.state.data?.some((r) => r.status === "sent" && r.detail !== NO_REPORT) ? 10_000 : false;
 
 /** The whole text as sent, footer included, and whether it can go: some words, at most six SMS parts. */
 export function composed(body) {

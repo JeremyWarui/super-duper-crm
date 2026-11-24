@@ -78,6 +78,10 @@ MAP: dict[str, dict[UserRole, Reach]] = {
     "campaign.close": {R.CANDIDATE: ALL},
     # Contributions paid in from the website, and confirming the M-Pesa codes payers report.
     "contributions.read": {R.CANDIDATE: ALL, R.MANAGER: ALL},
+    # Starting an online call; a Coordinator's reaches only their area.
+    "meetings.start": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COMMS: ALL, R.COORDINATOR: AREA},
+    # Joining one: every login of the campaign.
+    "meetings.join": {role: ALL for role in R},
 }
 
 REFUSALS = {
@@ -91,6 +95,8 @@ REFUSALS = {
     "data.manage": "Only the candidate or the campaign manager handles personal data requests.",
     "campaign.close": "Only the candidate closes the campaign.",
     "contributions.read": "Only the candidate or the campaign manager sees contributions.",
+    "meetings.start": "Only the candidate, the manager, comms or a coordinator starts a call.",
+    "meetings.join": "Only the campaign's own logins join its calls.",
 }
 
 

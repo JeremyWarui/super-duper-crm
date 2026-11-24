@@ -351,3 +351,13 @@ async def admin_headers(session: AsyncSession, client: httpx.AsyncClient) -> dic
     root.is_superuser = True
     await session.commit()
     return auth(await sign_in(client, "root"))
+
+
+@pytest.fixture(autouse=True)
+def _inside_the_sms_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Bulk texts go out only 08:00 to 18:00 Nairobi time; tests run at 10:00 there."""
+    from datetime import UTC, datetime
+
+    monkeypatch.setattr(
+        "backend.services.sms_queue.clock", lambda: datetime(2026, 11, 24, 7, 0, tzinfo=UTC)
+    )

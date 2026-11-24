@@ -28,7 +28,7 @@ export const holderOf = (mobilizers, unit) =>
 
 
 const ALL_FIELD = { label: "Field", items: [["events", "Events"], ["mobilizers", "Mobilizers"], ["agents", "Agents"], ["assignments", "Assignments"], ["supporters", "Contacts"], ["volunteers", "Volunteers"]] };
-const REACH_OUT = { label: "Reach out", items: [["messages", "Messages"]] };
+const REACH_OUT = { label: "Reach out", items: [["messages", "Messages"], ["calls", "Calls"]] };
 const LEAD = [
   { label: "Plan", items: [["overview", "Overview"], ["strategy", "Strategy"], ["targets", "Targets"], ["units", "Wards"]] },
   ALL_FIELD,

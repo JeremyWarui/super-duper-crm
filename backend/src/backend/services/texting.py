@@ -11,9 +11,26 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
-from backend.models import CampaignMessage, SmsInbound, SmsLog, SmsOptOut, User
+from backend.models import (
+    CampaignMember,
+    CampaignMessage,
+    SmsInbound,
+    SmsLog,
+    SmsOptOut,
+    Supporter,
+    User,
+)
+from backend.services.audit import record
 from backend.services.errors import Refused
-from backend.services.sms import Recipient, SendResult, get_sms_provider, normalise_phone
+from backend.services.sms import (
+    NO_REPORT,
+    Recipient,
+    SendResult,
+    get_sms_provider,
+    normalise_phone,
+    reports_delivery,
+    require_phone,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +42,16 @@ STOP_WORDS = {"STOP", "STOPALL", "UNSUBSCRIBE", "END", "QUIT", "CANCEL", "ACHA"}
 
 # The gateway's delivery report status, as this app records it.
 REPORTED = {"Success": "delivered", "Failed": "failed", "Rejected": "failed"}
+# Sozuri delivery statuses (sozuri.net/docs/text); Airtel reports only success or failed.
+SOZURI_REPORTED = {
+    "success": "delivered",
+    "failed": "failed",
+    "network_failure": "failed",
+    "delivery_impossible": "failed",
+    "absent_subscriber": "failed",
+    "unknown_error": "failed",
+}
+REPORTS = {"africastalking": REPORTED, "sozuri": SOZURI_REPORTED}
 FINAL = {"delivered", "failed"}
 
 
@@ -121,6 +148,59 @@ async def send_test(session: AsyncSession, number: str, *, actor: User) -> SendR
     return result
 
 
+NOT_OURS = (
+    "Test texts go only to the campaign's own logins and to supporters who agreed to be texted."
+)
+
+
+async def campaign_test(
+    session: AsyncSession, campaign_id: uuid.UUID, phone: str, body: str, *, actor: User
+) -> str:
+    """Text one number for the campaign, past the queue, and audit it; commits. With a live
+    gateway the number must be a login of the campaign or a consenting supporter."""
+    number = require_phone(phone)
+    if get_sms_provider().name != "console":
+        member = await session.scalar(
+            select(User.id)
+            .join(CampaignMember, CampaignMember.user_id == User.id)
+            .where(CampaignMember.campaign_id == campaign_id, User.phone == number)
+        )
+        supporter = await session.scalar(
+            select(Supporter.id).where(
+                Supporter.campaign_id == campaign_id,
+                Supporter.phone == number,
+                Supporter.consent_given.is_(True),
+            )
+        )
+        if member is None and supporter is None:
+            raise Refused(NOT_OURS)
+    result, _ = await send(
+        session, [number], body.strip(), purpose="test", sender=actor, campaign_id=campaign_id
+    )
+    record(
+        session,
+        actor=actor,
+        action="sms.test",
+        subject_type="campaign",
+        subject_id=campaign_id,
+        campaign_id=campaign_id,
+        detail={"delivered": result.delivered},
+    )
+    await session.commit()
+    return test_outcome(result, number, "Practice mode: the text was logged, not sent.")
+
+
+async def test_log(session: AsyncSession, campaign_id: uuid.UUID, limit: int = 20) -> list:
+    """The campaign's latest test texts."""
+    statement = (
+        select(SmsLog)
+        .where(SmsLog.campaign_id == campaign_id, SmsLog.purpose == "test")
+        .order_by(SmsLog.created_at.desc())
+        .limit(limit)
+    )
+    return list((await session.scalars(statement)).all())
+
+
 def test_outcome(result: SendResult, number: str, practice: str) -> str:
     """What a test text did: `practice` when no gateway is set; Refused when it was not sent."""
     if result.provider == "console":
@@ -128,6 +208,14 @@ def test_outcome(result: SendResult, number: str, practice: str) -> str:
     if not result.delivered:
         raise Refused(f"The text did not send: {result.detail or 'the gateway refused it'}")
     return f"Sent to {number}."
+
+
+def _detail(recipient: Recipient, status: str, provider: str) -> str:
+    if status == "sent":
+        return "" if reports_delivery(provider, recipient.phone) else NO_REPORT
+    if status == "practice":
+        return ""
+    return recipient.detail or recipient.status
 
 
 async def send(
@@ -156,7 +244,17 @@ async def send(
         )
         return nobody, len(blocked)
     try:
-        result = await provider.send(numbers, body)
+        result, _ = await deliver(
+            session,
+            numbers,
+            body,
+            purpose=purpose,
+            sender=sender,
+            campaign_id=campaign_id,
+            message_id=message_id,
+            event_id=event_id,
+            provider=provider,
+        )
     except Exception as exc:
         logger.warning("sms send failed: %s", exc)
         refused = [Recipient(phone=n, status="failed", detail=str(exc)[:300]) for n in numbers]
@@ -168,7 +266,44 @@ async def send(
             rejected=refused,
             detail="The gateway did not answer; nothing was sent.",
         )
+        _log(session, result, purpose, sender, campaign_id, message_id, event_id)
+    return result, len(blocked)
 
+
+async def deliver(
+    session: AsyncSession,
+    numbers: list[str],
+    body: str,
+    *,
+    purpose: str,
+    sender: User | None,
+    campaign_id: uuid.UUID | None = None,
+    message_id: uuid.UUID | None = None,
+    event_id: uuid.UUID | None = None,
+    provider=None,
+    idempotency_key: str | None = None,
+) -> tuple[SendResult, dict[str, SmsLog]]:
+    """Hand these numbers to the gateway and log each one; returns its answer and the log row
+    per number. A gateway that does not answer raises, and nothing is logged. The caller
+    commits."""
+    provider = provider or get_sms_provider()
+    if idempotency_key is None:
+        result = await provider.send(numbers, body)
+    else:
+        result = await provider.send(numbers, body, idempotency_key=idempotency_key)
+    rows = _log(session, result, purpose, sender, campaign_id, message_id, event_id)
+    return result, rows
+
+
+def _log(
+    session: AsyncSession,
+    result: SendResult,
+    purpose: str,
+    sender: User | None,
+    campaign_id: uuid.UUID | None,
+    message_id: uuid.UUID | None,
+    event_id: uuid.UUID | None,
+) -> dict[str, SmsLog]:
     def row(recipient: Recipient, status: str) -> SmsLog:
         provider_id = recipient.message_id if recipient.message_id not in ("", "None") else None
         return SmsLog(
@@ -178,24 +313,33 @@ async def send(
             sender_id=sender.id if sender else None,
             purpose=purpose,
             phone=recipient.phone,
-            body=body,
+            body=result.message,
             provider=result.provider,
             provider_id=provider_id if status == "sent" else None,
             status=status,
-            detail="" if status in ("sent", "practice") else recipient.detail or recipient.status,
+            detail=_detail(recipient, status, result.provider),
         )
 
     taken = "practice" if result.provider == "console" else "sent"
-    session.add_all([row(r, taken) for r in result.accepted])
-    session.add_all([row(r, "failed") for r in result.rejected])
-    return result, len(blocked)
+    rows = {r.phone: row(r, taken) for r in result.accepted}
+    rows.update({r.phone: row(r, "failed") for r in result.rejected})
+    session.add_all(rows.values())
+    return rows
 
 
-async def apply_report(session: AsyncSession, provider_id: str, status: str, reason: str) -> bool:
-    """Record the gateway's delivery report for one text; a repeat, or a report after the final
-    one, changes nothing."""
-    recorded = REPORTED.get(status)
+async def apply_report(
+    session: AsyncSession,
+    provider_id: str,
+    status: str,
+    reason: str,
+    provider: str = "africastalking",
+) -> bool:
+    """Record the gateway's delivery report for one text; a repeat, an unknown status, or a report
+    after the final one changes nothing."""
+    recorded = REPORTS[provider].get(status)
     if not provider_id or recorded is None:
+        if provider_id:
+            logger.warning("%s delivery report with unknown status %r ignored", provider, status)
         return False
     changed = await session.execute(
         update(SmsLog)

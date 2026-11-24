@@ -33,6 +33,8 @@ class CampaignMessage(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     note: Mapped[str] = mapped_column(Text, default="")
     recipients: Mapped[int] = mapped_column(Integer, default=0)
+    # "en" or "sw": bulk political texts go out in English or Kiswahili only.
+    language: Mapped[str] = mapped_column(String(2), default="en", server_default="en")
 
 
 class SmsLog(UUIDPrimaryKeyMixin, TimestampMixin, Base):

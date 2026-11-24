@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 from backend.models import (
     Campaign,
     CampaignMember,
+    ConsentChannel,
     Constituency,
     County,
     Event,
@@ -26,6 +27,7 @@ from backend.models import (
 from backend.security import hash_password, new_password
 from backend.services.accounts import add_member, add_mobilizer
 from backend.services.admin import remove_campaign
+from backend.services.consent import WORDING
 from backend.services.targets import generate_targets
 
 DEMO_USERNAMES = ("aspirant", "manager", "mobilizer")
@@ -224,6 +226,8 @@ async def seed_ground_game(
                     phone=f"+2547{index:04d}{n:04d}",
                     support_level=levels[n],
                     consent_given=True,
+                    consent_channel=ConsentChannel.MOBILIZER,
+                    consent_wording=WORDING[ConsentChannel.MOBILIZER],
                 )
             )
 

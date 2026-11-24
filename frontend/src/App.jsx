@@ -1,5 +1,5 @@
 // The signed-in campaign app: routes `/campaign/:page` and the shell around each page.
-import { useMemo, useState } from "react";
+import { Suspense, lazy, useMemo, useState } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppPage } from "@/components/layout/AppPage";
@@ -18,6 +18,8 @@ import {
 import { AreaContext, ICONS, useShellData } from "./pages/campaign/shell";
 import CampaignModal from "./pages/campaign/CampaignModal";
 import Overview from "./pages/campaign/Overview";
+import Calls from "./pages/campaign/Calls";
+import CallAlerts from "./components/CallAlerts";
 import Units from "./pages/campaign/Units";
 import Strategy from "./pages/campaign/Strategy";
 import Targets from "./pages/campaign/Targets";
@@ -42,6 +44,9 @@ import FieldTabs from "./pages/campaign/FieldTabs";
 import { useMedia } from "./lib/useMedia";
 import { displayName } from "@/lib/format";
 
+// The call page loads LiveKit only when someone joins a call.
+const Meet = lazy(() => import("./pages/Meet"));
+
 // Roles that work from a phone get a tab bar there.
 const FIELD_ROLES = ["mobilizer", "agent"];
 
@@ -51,6 +56,7 @@ export const PAGES = {
   units: Units,
   strategy: Strategy,
   targets: Targets,
+  calls: Calls,
   team: Team,
   mobilizers: Mobilizers,
   supporters: Supporters,
@@ -114,6 +120,7 @@ function Shell({ campaign, role, where }) {
       >
         <AppPage crumb={current[1]}>
           {campaign.closed_at && <ClosedNote />}
+          <CallAlerts />
           <Page campaign={campaign} role={role} onModal={setModal} />
           {modal && <CampaignModal modal={modal} campaign={campaign} role={role} onClose={() => setModal(null)} />}
         </AppPage>
@@ -138,6 +145,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="campaign/:page" element={<Shell campaign={campaign} role={role} where={where} />} />
+      <Route path="meet/:meetingId" element={<Suspense fallback={<div className="p-10"><LoadingText /></div>}><Meet /></Suspense>} />
       <Route path="*" element={<Navigate to={`/campaign/${pages[0][0]}`} replace />} />
     </Routes>
   );

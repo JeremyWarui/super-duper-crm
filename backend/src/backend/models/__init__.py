@@ -57,13 +57,16 @@ from backend.models.geography import (
 from backend.models.history import Contest, ContestCandidate, Election
 from backend.models.imports import BackupRun, ImportChange, ImportRun
 from backend.models.login import EmailLog, LoginInvite
+from backend.models.meeting import Meeting, MeetingAttendance
 from backend.models.membership import CampaignMember, CampaignMemberArea
 from backend.models.mobilizer import Mobilizer
 from backend.models.payin import PaymentIn
 from backend.models.payment import Payment, ReconcileDifference, ReconcileRun
 from backend.models.privacy import DataRequest
+from backend.models.push import PushSubscription
 from backend.models.site import SetupToken, SiteSettings
 from backend.models.sms import CampaignMessage, SmsInbound, SmsLog, SmsOptOut
+from backend.models.sms_queue import SmsOutbox, SmsRun
 from backend.models.supporter import Supporter
 from backend.models.target import Target, unit_key
 from backend.models.team import Agent, TeamRegistration
@@ -77,6 +80,11 @@ __all__ = [
     "CampaignMessage",
     "SmsInbound",
     "SmsLog",
+    "Meeting",
+    "PushSubscription",
+    "MeetingAttendance",
+    "SmsOutbox",
+    "SmsRun",
     "PaymentIn",
     "PayInMethod",
     "PayInStatus",
