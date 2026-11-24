@@ -864,6 +864,16 @@ export const useSetupAreas = (token, level, parent) =>
     queryFn: () => api(`/setup/areas/?${queryOf({ level, parent })}`, { anonymous: true, headers: { "X-Setup-Token": token } }),
   });
 
+// What setup will save as the seat's targets; worked out on the server, nothing saved.
+export const useTargetPreview = (token, seat) =>
+  useQuery({
+    queryKey: ["setup-target-preview", seat],
+    enabled: Boolean(token && seat.seat),
+    queryFn: () => api("/setup/target-preview/", { method: "POST", body: seat, anonymous: true, headers: { "X-Setup-Token": token } }),
+    staleTime: Infinity,
+    retry: false,
+  });
+
 export const useRunSetup = () =>
   useMutation({ mutationFn: (body) => api("/setup/", { method: "POST", body, anonymous: true }) });
 

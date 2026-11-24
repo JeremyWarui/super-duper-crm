@@ -37,7 +37,7 @@ CAMPAIGN_NAMES = (
 )
 
 
-async def build_campaign(
+async def campaign_for(
     session: AsyncSession,
     *,
     title: str,
@@ -46,10 +46,9 @@ async def build_campaign(
     county: uuid.UUID | None = None,
     constituency: uuid.UUID | None = None,
     ward: uuid.UUID | None = None,
-) -> tuple[Campaign, SetupSummary]:
-    """Create a campaign and its targets, without members and without committing.
-
-    A national seat takes no area; any area given for it is ignored.
+) -> Campaign:
+    """An unsaved campaign for this seat, its area checked; refused when the area is missing or
+    unknown. A national seat takes no area; any area given for it is ignored.
     """
     office_level = seat.office_level
     area: dict[str, uuid.UUID] = {}
@@ -66,8 +65,30 @@ async def build_campaign(
             raise Refused("That ward has no registration centres loaded; load the geography first.")
         area = {f"{area_field}_id": area_id}
 
-    campaign = Campaign(
+    return Campaign(
         title=title, office_level=office_level, seat=seat, election_date=election_date, **area
+    )
+
+
+async def build_campaign(
+    session: AsyncSession,
+    *,
+    title: str,
+    seat: Seat,
+    election_date: date | None = None,
+    county: uuid.UUID | None = None,
+    constituency: uuid.UUID | None = None,
+    ward: uuid.UUID | None = None,
+) -> tuple[Campaign, SetupSummary]:
+    """Create a campaign and its targets, without members and without committing."""
+    campaign = await campaign_for(
+        session,
+        title=title,
+        seat=seat,
+        election_date=election_date,
+        county=county,
+        constituency=constituency,
+        ward=ward,
     )
     session.add(campaign)
     await session.flush()

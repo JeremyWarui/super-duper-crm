@@ -887,6 +887,19 @@
     ],
     "GET /api/push/key/": [
       "key"
+    ],
+    "POST /api/setup/target-preview/": [
+      "seat",
+      "registered_voters",
+      "results",
+      "share_pct",
+      "typical_pct",
+      "reliability",
+      "two_candidate",
+      "scenarios",
+      "seat_target",
+      "units",
+      "note"
     ]
   },
   "nested_reads": {
@@ -1507,6 +1520,13 @@
     "POST /api/push/subscribe/": [
       "endpoint",
       "keys"
+    ],
+    "POST /api/setup/target-preview/": [
+      "seat",
+      "election_date",
+      "county",
+      "constituency",
+      "ward"
     ]
   },
   "enums": {

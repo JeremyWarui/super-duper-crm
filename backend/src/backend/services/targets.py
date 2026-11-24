@@ -1,6 +1,7 @@
 """The wards a seat covers, and the vote targets built on them; re-running updates in place."""
 
 import uuid
+from dataclasses import dataclass
 from decimal import Decimal
 from fractions import Fraction
 
@@ -16,6 +17,7 @@ from backend.models import (
     OperationalGrain,
     RegistrationCentre,
     Target,
+    TurnoutScenario,
     User,
     Ward,
     unit_key,
@@ -25,6 +27,9 @@ from backend.services.audit import record
 from backend.services.errors import Refused
 from backend.services.geography import places
 from backend.services.win_model import (
+    Projection,
+    SeatHistory,
+    SeatModel,
     as_decimal,
     expected_votes,
     fill_weights,
@@ -149,23 +154,37 @@ async def ward_choices(session: AsyncSession, campaign: Campaign) -> list[Ward]:
     return [] if campaign.national else await wards_in_area(session, campaign)
 
 
-async def generate_targets(session: AsyncSession, campaign: Campaign) -> SetupSummary:
-    """Work out the seat target from past results and share it out to a target per ward, or per
-    centre for a ward race; committed votes stay (TD-R7 sections 4 and 5).
+@dataclass
+class TargetPlan:
+    """A seat's target worked out and shared to its units, before anything is saved."""
 
-    Wards are weighted by their 2022 valid votes, centres by their register, and the shares add up
-    to the seat target exactly. A target on a unit no longer in the seat is asked for nothing.
-
-    Flushes; the caller commits.
-    """
-    existing = {
-        unit_key(t.ward_id, t.registration_centre_id): t
-        for t in await session.scalars(select(Target).where(Target.campaign_id == campaign.id))
-    }
-    wards = await wards_in_area(session, campaign)
-    grain = campaign.operational_grain
+    history: SeatHistory
+    model: SeatModel
+    projection: Projection
     units: list[tuple[Ward, RegistrationCentre | None]]
-    if grain is OperationalGrain.WARD:
+    weights: dict[tuple, Fraction]
+    shares: dict[tuple, int]
+    note: str | None
+
+    @property
+    def seat_target(self) -> int:
+        return self.projection.target if self.units else 0
+
+    def weight(self, key: tuple) -> Fraction:
+        total = sum(self.weights.values(), Fraction(0)) or Fraction(1)
+        return self.weights[key] / total
+
+
+async def plan_targets(session: AsyncSession, campaign: Campaign) -> TargetPlan:
+    """The seat target and each ward's (or, for a ward race, each centre's) share of it, from
+    past results (TD-R7 sections 4 and 5). Reads only; the campaign need not be saved.
+
+    Wards are weighted by their 2022 valid votes, centres by their register, and the shares add
+    up to the seat target exactly.
+    """
+    wards = await wards_in_area(session, campaign)
+    units: list[tuple[Ward, RegistrationCentre | None]]
+    if campaign.operational_grain is OperationalGrain.WARD:
         units = [(ward, None) for ward in wards]
         note = None if wards else "No area is set for this campaign's office level."
         valid = await ward_valid_votes(session, [ward.id for ward in wards])
@@ -181,17 +200,28 @@ async def generate_targets(session: AsyncSession, campaign: Campaign) -> SetupSu
         weights = {unit_key(c.ward_id, c.id): Fraction(c.registered_voters or 0) for c in centres}
 
     override = campaign.turnout_override_pct
+    history = await load_history(session, campaign, wards)
     model = seat_model(
-        await load_history(session, campaign, wards),
-        turnout_override=Fraction(override) / 100 if override is not None else None,
+        history, turnout_override=Fraction(override) / 100 if override is not None else None
     )
-    projection = model.projection(campaign.turnout_scenario)
-    seat_target = projection.target if units else 0
-    shares = share_out(seat_target, weights)
-    weight_sum = sum(weights.values(), Fraction(0)) or Fraction(1)
+    projection = model.projection(campaign.turnout_scenario or TurnoutScenario.EXPECTED)
+    shares = share_out(projection.target if units else 0, weights)
+    return TargetPlan(history, model, projection, units, weights, shares, note)
 
+
+async def generate_targets(session: AsyncSession, campaign: Campaign) -> SetupSummary:
+    """Save the planned target on every unit of the seat; committed votes stay, and a target on a
+    unit no longer in the seat is asked for nothing.
+
+    Flushes; the caller commits.
+    """
+    existing = {
+        unit_key(t.ward_id, t.registration_centre_id): t
+        for t in await session.scalars(select(Target).where(Target.campaign_id == campaign.id))
+    }
+    plan = await plan_targets(session, campaign)
     total_registered = 0
-    for ward, centre in units:
+    for ward, centre in plan.units:
         key = unit_key(ward.id, centre.id if centre is not None else None)
         target = existing.pop(key, None)
         if target is None:
@@ -200,12 +230,12 @@ async def generate_targets(session: AsyncSession, campaign: Campaign) -> SetupSu
         target.ward = ward
         target.registration_centre = centre
         target.take_register()
-        target.projected_turnout_pct = as_decimal(projection.turnout * 100, 2)
-        target.turnout_scenario = projection.scenario
-        target.turnout_overridden = model.overridden
-        target.reliability = model.reliability
-        target.ward_weight = as_decimal(weights[key] / weight_sum, 10)
-        target.votes_needed = shares[key]
+        target.projected_turnout_pct = as_decimal(plan.projection.turnout * 100, 2)
+        target.turnout_scenario = plan.projection.scenario
+        target.turnout_overridden = plan.model.overridden
+        target.reliability = plan.model.reliability
+        target.ward_weight = as_decimal(plan.weight(key), 10)
+        target.votes_needed = plan.shares[key]
         total_registered += target.registered_voters or 0
     for stale in existing.values():
         stale.votes_needed = 0
@@ -213,11 +243,11 @@ async def generate_targets(session: AsyncSession, campaign: Campaign) -> SetupSu
 
     await session.flush()
     return SetupSummary(
-        grain=grain,
-        units=len(units),
+        grain=campaign.operational_grain,
+        units=len(plan.units),
         total_registered=total_registered,
-        win_number=seat_target,
-        note=note,
+        win_number=plan.seat_target,
+        note=plan.note,
     )
 
 

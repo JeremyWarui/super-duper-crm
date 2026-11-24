@@ -8,13 +8,15 @@ from fastapi import APIRouter, Header, status
 from backend.api.deps import AdminUser, SessionDep
 from backend.schemas.setup import (
     Area,
+    PreviewSeat,
     ServiceState,
     ServiceTestResult,
     SetupRequest,
     SetupResult,
     SetupToken,
+    TargetPreview,
 )
-from backend.services import setup
+from backend.services import setup, target_preview
 
 router = APIRouter(prefix="/setup", tags=["setup"])
 
@@ -37,6 +39,15 @@ async def setup_areas(
     parent: uuid.UUID | Literal[""] = "",
 ) -> list[Area]:
     return await setup.areas(session, x_setup_token, level, parent or None)
+
+
+@router.post("/target-preview/", response_model=TargetPreview)
+async def preview_targets(
+    payload: PreviewSeat, session: SessionDep, x_setup_token: Annotated[str, Header()]
+) -> dict:
+    """The seat's target and ward split as setup will save them; saves nothing."""
+    await setup.check(session, x_setup_token)
+    return await target_preview.preview(session, **payload.model_dump())
 
 
 @router.post("/", response_model=SetupResult, status_code=status.HTTP_201_CREATED)

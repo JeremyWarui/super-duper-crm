@@ -2,6 +2,7 @@
 
 import re
 import secrets
+import uuid
 from collections.abc import AsyncIterator
 
 import httpx
@@ -11,7 +12,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import get_set_up
 from backend.main import app
-from backend.models import AuditEvent, Campaign, CandidateProfile, SiteSettings, User
+from backend.models import (
+    AuditEvent,
+    Campaign,
+    CandidateProfile,
+    County,
+    SiteSettings,
+    Target,
+    User,
+    Ward,
+)
+from backend.seed.history import RESULTS_CSV, import_results
+from backend.seed.reference import import_geography
 from backend.services import setup, site
 from tests.conftest import app_client
 from tests.factories import fresh_password, make_geography
@@ -132,3 +144,41 @@ async def test_a_refused_setup_writes_nothing_and_keeps_the_token(
     assert await session.get(SiteSettings, 1) is None
     assert await session.scalar(select(func.count(User.id))) == 0
     assert (await bare.post("/api/setup/check/", json={"token": token})).status_code == 204
+
+
+@pytest.mark.skipif(not RESULTS_CSV.exists(), reason="the results file is not bundled")
+async def test_the_seat_s_target_is_previewed_before_finish_and_saved_as_previewed(
+    bare: httpx.AsyncClient, session: AsyncSession
+) -> None:
+    await import_geography(session)
+    await import_results(session)
+    laikipia = await session.scalar(select(County).where(County.code == "31"))
+    token = await setup.new_token(session)
+    await session.commit()
+    seat = {"seat": "governor", "county": str(laikipia.id)}
+
+    shown = await bare.post(
+        "/api/setup/target-preview/", json=seat, headers={"X-Setup-Token": token}
+    )
+    request = _request(token, None)
+    request["campaign"] = {**request["campaign"], **seat, "ward": None}
+    made = await bare.post("/api/setup/", json=request)
+    saved = (
+        await session.execute(
+            select(Ward.name, Target.votes_needed)
+            .join(Target, Target.ward_id == Ward.id)
+            .where(Target.campaign_id == uuid.UUID(made.json()["workspace"]))
+        )
+    ).all()
+
+    preview = shown.json()
+    assert shown.status_code == 200, shown.text
+    assert (preview["share_pct"], preview["typical_pct"], preview["reliability"]) == (
+        "67.86",
+        "59.83",
+        "seat",
+    )
+    assert preview["seat_target"] == 113_783
+    assert [r["year"] for r in preview["results"]] == [2013, 2017, 2022]
+    assert made.status_code == 201, made.text
+    assert dict(saved) == {u["name"]: u["target"] for u in preview["units"]}

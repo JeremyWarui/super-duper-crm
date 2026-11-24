@@ -93,3 +93,51 @@ class SetupResult(ORMModel):
 
 class ServiceTestResult(ORMModel):
     message: str
+
+
+class PreviewSeat(WriteModel):
+    """The seat setup is about to create, for its target preview."""
+
+    seat: Seat
+    election_date: date | None = None
+    county: uuid.UUID | None = None
+    constituency: uuid.UUID | None = None
+    ward: uuid.UUID | None = None
+
+
+class PastResult(ORMModel):
+    year: int
+    valid_votes: int
+    winner_share_pct: str | None
+
+
+class PreviewScenario(ORMModel):
+    scenario: str
+    turnout_pct: str
+    projected: int
+    competitive: int
+    majority: int
+    target: int
+
+
+class PreviewUnit(ORMModel):
+    name: str
+    weight_pct: str
+    target: int
+
+
+class TargetPreview(ORMModel):
+    """What setup will save as the seat's targets, before anything is saved."""
+
+    seat: str
+    registered_voters: int
+    results: list[PastResult]
+    share_pct: str
+    typical_pct: str | None
+    reliability: str
+    two_candidate: bool
+    turnout_pct: str
+    scenarios: list[PreviewScenario]
+    seat_target: int
+    units: list[PreviewUnit]
+    note: str | None

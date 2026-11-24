@@ -43,6 +43,12 @@ describe("first-run setup", () => {
       "GET /setup/areas/?level=constituency&parent=k1": [{ id: "c1", name: "Westlands" }],
       "GET /setup/areas/?level=ward&parent=c1": [{ id: "w1", name: "Parklands" }],
       "POST /setup/": { superuser: "owner", workspace: "x", invites: ["email"], services: [] },
+      "POST /setup/target-preview/": {
+        seat: "MCA", registered_voters: 30701, results: [{ year: 2022, valid_votes: 20000, winner_share_pct: "41.20" }],
+        share_pct: "41.20", typical_pct: "41.20", reliability: "seat", two_candidate: false, turnout_pct: "65.14",
+        scenarios: [{ scenario: "expected", turnout_pct: "65.14", projected: 20000, competitive: 8240, majority: 10001, target: 8240 }],
+        seat_target: 8240, units: [{ name: "Parklands Primary", weight_pct: "100.00", target: 8240 }], note: null,
+      },
     });
     const next = () => user.click(screen.getByRole("button", { name: "Next" }));
 
@@ -60,6 +66,9 @@ describe("first-run setup", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "Ward" }), await screen.findByRole("option", { name: "Parklands" }));
     await user.type(screen.getByRole("textbox", { name: "Candidate username" }), "jane");
     await user.type(screen.getByRole("textbox", { name: /^Candidate email/ }), "jane@example.com");
+    await next();
+    expect(await screen.findByText("41.20%", { selector: "strong" })).toBeInTheDocument();
+    expect(calls.find((c) => c.path === "/setup/target-preview/").body).toEqual({ seat: "mca", election_date: null, ward: "w1" });
     await next();
     calls.routes["GET /site/"] = { name: "Jane for Parklands" };
     await user.click(screen.getByRole("button", { name: "Finish setup" }));

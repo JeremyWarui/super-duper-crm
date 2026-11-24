@@ -2,7 +2,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCheckSetupToken, useRunSetup, useSetupAreas, useSetupServices, useTestService } from "@/api/hooks";
+import { useCheckSetupToken, useRunSetup, useSetupAreas, useSetupServices, useTargetPreview, useTestService } from "@/api/hooks";
+import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { formatNumber } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -18,7 +20,7 @@ import { NO_PLACE, PlaceSelects } from "@/components/PlaceCascade";
 import { SEAT_AREA, SEATS } from "@/lib/labels";
 import LoginFields from "@/components/LoginFields";
 
-const STEPS = ["Name and colours", "Contacts", "First superuser", "Campaign", "Check and finish"];
+const STEPS = ["Name and colours", "Contacts", "First superuser", "Campaign", "Target", "Check and finish"];
 const LAST = STEPS.length - 1;
 
 const BLANK = {
@@ -112,6 +114,62 @@ function SeatStep({ token, form, change }) {
         : <p className="text-ui text-muted-foreground">The whole country: targets are set for every ward in all 47 counties.</p>}
       <CardTitle as="h3">The candidate's login</CardTitle>
       <Login who="Candidate" value={a.candidate} onChange={(candidate) => set({ candidate })} />
+    </div>
+  );
+}
+
+const RELIABILITY = { seat: "Seat data", typical: "Typical winner", proxy: "Proxy" };
+const SCENARIO = { low: "Low", expected: "Expected", high: "High" };
+// The ward split shows this many units; a national seat has 1,450 wards.
+const SHOWN = 20;
+
+/** The seat's target as setup will save it: past results, share, scenarios and the ward split. */
+function TargetStep({ token, campaign }) {
+  const level = SEAT_AREA[campaign.seat];
+  const seat = { seat: campaign.seat, election_date: campaign.election_date || null, ...(level && { [level]: campaign[level] }) };
+  const preview = useTargetPreview(token, seat);
+  if (preview.isLoading) return <p className="text-ui text-muted-foreground">Working out the target from past results…</p>;
+  if (preview.error) return <ErrorText error={preview.error} className="text-ui" />;
+  const p = preview.data;
+  const expected = p.scenarios.find((s) => s.scenario === "expected");
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-ui">
+        The {p.seat} target is the share the 2022 winner took, <strong>{p.share_pct}%</strong>, applied to the votes expected:{" "}
+        <strong>{formatNumber(p.seat_target)}</strong> votes. Typical winner since 2013: {p.typical_pct ? `${p.typical_pct}%` : "no history"}.
+      </p>
+      <div className="flex flex-wrap gap-2 text-small">
+        <Badge tone={p.reliability === "seat" ? "ok" : "warn"}>{RELIABILITY[p.reliability]}</Badge>
+        <Badge tone="stone">{p.two_candidate ? "Two-candidate seat: never below the majority line" : "Crowded seat"}</Badge>
+        <Badge tone="stone">{formatNumber(p.registered_voters)} registered (2022)</Badge>
+      </div>
+      {p.results.length > 0 && (
+        <Table stack minWidth={360}>
+          <THead><TR><TH>Election</TH><TH align="right">Valid votes</TH><TH align="right">Winner's share</TH></TR></THead>
+          <TBody>{p.results.map((r) => (
+            <TR key={r.year}><TD>{r.year}{r.year === 2017 ? " (withdrawn data)" : ""}</TD><TD numeric>{formatNumber(r.valid_votes)}</TD><TD numeric>{r.winner_share_pct ? `${r.winner_share_pct}%` : "–"}</TD></TR>
+          ))}</TBody>
+        </Table>
+      )}
+      <Table stack minWidth={460}>
+        <THead><TR><TH>Turnout</TH><TH align="right">Votes expected</TH><TH align="right">Majority line</TH><TH align="right">Seat target</TH></TR></THead>
+        <TBody>{p.scenarios.map((s) => (
+          <TR key={s.scenario}>
+            <TD className={s.scenario === "expected" ? "font-bold" : ""}>{SCENARIO[s.scenario]} · {s.turnout_pct}%</TD>
+            <TD numeric>{formatNumber(s.projected)}</TD><TD numeric>{formatNumber(s.majority)}</TD>
+            <TD numeric className={s.scenario === "expected" ? "font-bold" : ""}>{formatNumber(s.target)}</TD>
+          </TR>
+        ))}</TBody>
+      </Table>
+      <Table stack minWidth={360}>
+        <THead><TR><TH>{campaign.seat === "mca" ? "Centre" : "Ward"}</TH><TH align="right">Share</TH><TH align="right">Target</TH></TR></THead>
+        <TBody>{p.units.slice(0, SHOWN).map((u) => (
+          <TR key={u.name}><TD>{u.name}</TD><TD numeric>{u.weight_pct}%</TD><TD numeric>{formatNumber(u.target)}</TD></TR>
+        ))}</TBody>
+      </Table>
+      {p.units.length > SHOWN && <p className="text-small text-muted-foreground">And {formatNumber(p.units.length - SHOWN)} more, adding up to {formatNumber(expected.target)}.</p>}
+      {p.note && <p className="text-small text-muted-foreground">{p.note}</p>}
+      <p className="text-small text-muted-foreground">Finish saves exactly these targets, at the expected turnout. The candidate or manager can change the scenario later.</p>
     </div>
   );
 }
@@ -249,6 +307,7 @@ export default function Setup() {
           </div>
         )}
         {step === 3 && <SeatStep token={token.trim()} form={form} change={change} />}
+        {step === 4 && <TargetStep token={token.trim()} campaign={form.campaign} />}
         {step === LAST && (
           <dl className="grid gap-x-6 gap-y-2 text-ui sm:grid-cols-[max-content_1fr]">
             <dt className="text-muted-foreground">Name</dt><dd className="font-semibold">{form.site.name}</dd>
