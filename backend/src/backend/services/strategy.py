@@ -20,6 +20,7 @@ from backend.models import (
     unit_key,
 )
 from backend.schemas.strategy import GroupRead, NoteRead, StrategyRead, UnitRead
+from backend.services import committed as live_votes
 from backend.services.permissions import Area
 
 WELL_WORKED = 4
@@ -64,21 +65,7 @@ async def read_strategy(
             .group_by(Event.ward_id, Event.registration_centre_id)
         )
     }
-    by_ward: dict[uuid.UUID, int] = {}
-    by_centre: dict[uuid.UUID, int] = {}
-    supporter_rows = (
-        await session.execute(
-            select(Supporter.ward_id, Supporter.registration_centre_id, func.count())
-            .where(
-                Supporter.campaign_id.in_(seen), Supporter.support_level == SupportLevel.SUPPORTER
-            )
-            .group_by(Supporter.ward_id, Supporter.registration_centre_id)
-        )
-    ).all()
-    for ward, centre, count in supporter_rows:
-        by_ward[ward] = by_ward.get(ward, 0) + count
-        if centre is not None:
-            by_centre[centre] = count
+    live = await live_votes.counts(session, seen)
     staffed = {
         unit_key(ward, centre)
         for ward, centre in await session.execute(
@@ -112,9 +99,7 @@ async def read_strategy(
     committed = total_registered = total_cast = 0
     for target in targets:
         needed = target.votes_needed or 0
-        # A ward target counts its whole ward; a centre target only that centre's supporters.
-        centre_id = target.registration_centre_id
-        has = by_ward.get(target.ward_id, 0) if centre_id is None else by_centre.get(centre_id, 0)
+        has = live.of(target.ward_id, target.registration_centre_id)
         committed += has
         registered = target.registered_voters or 0
         total_registered += registered
@@ -171,6 +156,7 @@ async def read_strategy(
         total_cast=total_cast,
         unit_count=len(units),
         short_count=sum(1 for u in units if u.gap > 0),
+        gap=sum(u.gap for u in units),
         staffed_count=sum(1 for u in units if u.has_mobilizer),
         quiet_count=sum(1 for u in units if u.events == 0),
         units=[] if whole else asked,

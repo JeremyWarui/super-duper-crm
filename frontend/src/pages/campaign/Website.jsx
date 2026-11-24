@@ -26,7 +26,7 @@ const section = (kind, rest) => ({ ...WORKSPACE_SECTIONS[kind], ...rest });
 
 const SECTIONS = {
   News: [
-    section("posts", { noun: "post", title: "News and events", fields: POST_FIELDS, name: (r) => r.title, meta: (r) => `${r.kind === "event" ? "Event" : "News"} · ${formatDate(r.kind === "event" ? r.event_date : r.published_on) || "not yet published"}` }),
+    section("posts", { noun: "post", title: "News", fields: POST_FIELDS, name: (r) => r.title, meta: (r) => `News · ${formatDate(r.published_on) || "not yet published"}` }),
   ],
   Homepage: [
     section("slides", { noun: "slide", title: "Carousel slides", hint: "Up to 5, rotating every 6 seconds.", fields: SLIDE_FIELDS, name: (r) => r.headline, meta: (r) => `Order ${r.sort_order}`, max: 5 }),

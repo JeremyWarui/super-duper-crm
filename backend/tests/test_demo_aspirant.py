@@ -6,6 +6,8 @@ import httpx
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.api.deps import get_today
+from backend.main import app
 from backend.seed.demo_aspirant import build_aspirant
 from backend.seed.reference import import_geography
 from backend.services.errors import Refused
@@ -41,12 +43,28 @@ async def test_the_aspirant_demo_signs_everyone_in_with_a_published_page(
     site = (await client.get("/api/site/")).json()
     assert site["slogan"] and site["description"] and site["mpesa_paybill"]
     news = (await client.get("/api/website/posts/", params={"kind": "news"})).json()
-    events = (await client.get("/api/website/posts/", params={"kind": "event"})).json()
+    app.dependency_overrides[get_today] = lambda: date(2026, 11, 1)
+    try:
+        events = (await client.get("/api/website/events/")).json()
+    finally:
+        app.dependency_overrides.pop(get_today, None)
     documents = (await client.get("/api/website/documents/")).json()
     videos = (await client.get("/api/website/videos/")).json()
     assert (len(news), len(events), len(documents), len(videos)) == (6, 4, 4, 3)
     assert {p["label"] for p in news} == {"news", "statement", "opinion"}
     assert all(p["image_url"].startswith("https://") for p in news + events)
+    campaign_id = (await client.get("/api/campaigns/", headers=auth(tokens["manager"]))).json()[0][
+        "id"
+    ]
+    mobilizers = (
+        await client.get(
+            f"/api/mobilizers/?campaign={campaign_id}", headers=auth(tokens["manager"])
+        )
+    ).json()
+    login = (await client.get("/api/auth/me/", headers=auth(tokens["mobilizer"]))).json()
+    names = {m["full_name"] for m in mobilizers}
+    assert login["full_name"] in names
+    assert all(m["phone"] and not m["full_name"].startswith("Organiser") for m in mobilizers)
     for who in ("candidate", "manager", "mobilizer"):
         campaigns = await client.get("/api/campaigns/", headers=auth(tokens[who]))
         assert [c["title"] for c in campaigns.json()] == ["David Otieno for Kasarani"]

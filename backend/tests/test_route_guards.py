@@ -44,6 +44,8 @@ PUBLIC_ROUTES = {
     ("GET", "/api/website/videos/"),
     ("GET", "/api/website/posts/"),
     ("GET", "/api/website/posts/{post_id}/"),
+    ("GET", "/api/website/events/"),
+    ("GET", "/api/website/events/{event_id}/"),
     ("POST", "/api/website/subscribe/"),
     ("POST", "/api/website/unsubscribe/{code}/"),
     ("POST", "/api/website/volunteer/withdraw/{code}/"),

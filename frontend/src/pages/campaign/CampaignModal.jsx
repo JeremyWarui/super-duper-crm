@@ -9,6 +9,7 @@ import ScheduleEventForm from "./ScheduleEventForm";
 import RecordForm from "./RecordForm";
 import InviteForm from "./InviteForm";
 import QrModal from "./QrModal";
+import WebsiteEventForm from "./WebsiteEventForm";
 import CampaignLinkModal from "./CampaignLinkModal";
 import SchedulePaymentForm from "./SchedulePaymentForm";
 import MarkPaidForm from "./MarkPaidForm";
@@ -35,6 +36,7 @@ export default function CampaignModal({ modal, campaign, role, onClose }) {
       {modal?.type === "assign" && <AssignMobilizerForm unit={modal.unit} holder={modal.holder} mobilizers={mobilizers.data || []} onClose={onClose} />}
       {modal?.type === "event" && <ScheduleEventForm campaignId={campaignId} wardOptions={wardOptions} perCounty={perCounty} byCentre={byCentre} onClose={onClose} />}
       {modal?.type === "record" && <RecordForm event={modal.event} onClose={onClose} />}
+      {modal?.type === "event-website" && <WebsiteEventForm event={modal.event} onClose={onClose} />}
       {modal?.type === "invite" && <InviteForm event={modal.event} onClose={onClose} />}
       {modal?.type === "payment-schedule" && <SchedulePaymentForm campaignId={campaignId} role={role} onClose={onClose} />}
       {modal?.type === "payment-paid" && <MarkPaidForm payment={modal.payment} onClose={onClose} />}

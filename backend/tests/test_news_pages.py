@@ -1,28 +1,8 @@
-"""Post text, event counties, and the published documents and videos."""
+"""Post text, and the published documents and videos."""
 
 import httpx
 
 from tests.conftest import World
-
-EVENT = {"kind": "event", "event_date": "2099-01-10", "published": True}
-
-
-async def test_the_county_filter_narrows_events(client: httpx.AsyncClient, world: World) -> None:
-    editor = world.headers("manager")
-    county = str(world.county.id)
-    for title, county_id in (("Nairobi town hall", county), ("National rally", None)):
-        body = {**EVENT, "title": title, "county_id": county_id}
-        assert (
-            await client.post("/api/workspace/site/posts/", headers=editor, json=body)
-        ).status_code == 201
-
-    every = (await client.get("/api/website/posts/?kind=event")).json()
-    local = (await client.get(f"/api/website/posts/?kind=event&county={county}")).json()
-
-    assert {e["title"] for e in every} == {"Nairobi town hall", "National rally"}
-    assert [(e["title"], e["county"]["name"]) for e in local] == [
-        ("Nairobi town hall", "Nairobi City")
-    ]
 
 
 async def test_only_published_documents_and_videos_are_listed(

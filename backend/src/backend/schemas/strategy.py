@@ -49,6 +49,8 @@ class StrategyRead(BaseModel):
     # Counts over every unit, whatever `units` is narrowed to.
     unit_count: int = 0
     short_count: int = 0
+    # Votes still needed in the units short of target; a unit past its target offsets nothing.
+    gap: int = 0
     staffed_count: int = 0
     quiet_count: int = 0
     # The units in the county or constituency asked for; none for a national seat asked for

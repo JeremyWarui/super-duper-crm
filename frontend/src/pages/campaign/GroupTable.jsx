@@ -16,7 +16,7 @@ export default function GroupTable({ level, groups, onPick }) {
       <CardTitle id="groups-h">{Nouns}</CardTitle>
       <Table stack minWidth={620}>
         <THead><TR>
-          <TH>{Noun}</TH><TH align="right">Wards</TH><TH align="right">Target</TH><TH align="right">Committed</TH><TH align="right">No mobilizer</TH><TH>Status</TH>
+          <TH>{Noun}</TH><TH align="right">Wards</TH><TH align="right">Target</TH><TH align="right">Supporters</TH><TH align="right">No mobilizer</TH><TH>Status</TH>
         </TR></THead>
         <TBody>{groups.map((g) => {
           const st = statusOf(g.progress);

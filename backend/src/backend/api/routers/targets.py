@@ -23,8 +23,8 @@ from backend.schemas.campaign import (
     TargetCreate,
     TargetRead,
     TargetRefresh,
-    TargetUpdate,
 )
+from backend.services import committed
 from backend.services.errors import Refused
 from backend.services.geography import within
 from backend.services.targets import generate_targets, refresh_targets
@@ -53,9 +53,10 @@ async def list_targets(
         session, user, select(Target).options(*LOADED), Target, campaign, "targets.read"
     )
     statement = within(statement, Target.ward_id, county=county, constituency=constituency)
-    return await all_rows(
+    rows = await all_rows(
         session, statement.join(Ward, Target.ward_id == Ward.id).order_by(Ward.name)
     )
+    return await committed.fill(session, rows)
 
 
 @router.post("/refresh/", response_model=SetupSummary)
@@ -103,21 +104,7 @@ async def create_target(payload: TargetCreate, session: SessionDep, user: Writer
     await session.flush()
     await generate_targets(session, campaign)
     await session.commit()
-    return await load(session, Target, target.id, LOADED)
-
-
-@router.patch("/{target_id}/", response_model=TargetRead)
-async def update_target(
-    target_id: uuid.UUID, payload: TargetUpdate, session: SessionDep, user: Writer
-) -> Target:
-    """Change the votes committed; the target stays as calculated."""
-    target = await require_visible(
-        session, user, Target, target_id, "target", "targets.write", LOADED
-    )
-    for field, value in payload.model_dump(exclude_unset=True).items():
-        setattr(target, field, value)
-    await session.commit()
-    return await load(session, Target, target.id, LOADED)
+    return (await committed.fill(session, [await load(session, Target, target.id, LOADED)]))[0]
 
 
 @router.delete("/{target_id}/", status_code=status.HTTP_204_NO_CONTENT)

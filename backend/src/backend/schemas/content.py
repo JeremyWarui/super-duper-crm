@@ -135,7 +135,8 @@ class PostAdminRead(_Post):
 
 
 class PostCreate(WriteModel):
-    kind: PostKind
+    # Events are the campaign's own events, put on the website from the workspace.
+    kind: PostKind = PostKind.NEWS
     title: Line
     body: RichBody = ""
     image_url: Image = ""
@@ -152,8 +153,8 @@ class PostCreate(WriteModel):
 
     @model_validator(mode="after")
     def _event_fields(self) -> "PostCreate":
-        if self.kind is PostKind.EVENT and self.event_date is None:
-            raise ValueError("An event needs a date.")
+        if self.kind is PostKind.EVENT:
+            raise ValueError("Schedule events in Events and put them on the website from there.")
         if self.kind is PostKind.NEWS and (self.event_date is not None or self.venue):
             raise ValueError("A news post has no date or venue.")
         return self

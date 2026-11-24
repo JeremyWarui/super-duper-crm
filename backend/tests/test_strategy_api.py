@@ -1,9 +1,10 @@
 """The computed strategy read: the totals, the per-unit rows, and the flags."""
 
 import httpx
+from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Event
+from backend.models import Event, Supporter, SupportLevel
 from backend.services.strategy import name_list
 from tests.conftest import World
 
@@ -25,6 +26,30 @@ async def test_the_win_number_is_the_sum_across_every_unit(
     assert body["win_number"] == 19_981
     assert body["total_registered"] == 66_600
     assert len(body["units"]) == 2
+
+
+async def test_a_ward_past_its_target_does_not_shrink_the_gap_elsewhere(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
+) -> None:
+    """Zimmerman (target 9,211) has 9,300 supporters; Githurai still needs all 10,770."""
+    await session.execute(
+        insert(Supporter),
+        [
+            {
+                "campaign_id": world.campaign.id,
+                "ward_id": world.ward.id,
+                "full_name": f"S{n}",
+                "support_level": SupportLevel.SUPPORTER,
+            }
+            for n in range(9_300)
+        ],
+    )
+    await session.commit()
+
+    body = await _strategy(client, world)
+
+    assert body["committed"] == 9_300
+    assert (body["gap"], body["short_count"]) == (10_770, 1)
 
 
 async def test_a_unit_counts_its_events_and_whether_anyone_is_working_it(

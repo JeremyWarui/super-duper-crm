@@ -19,8 +19,8 @@ function Hero({ s, noun }) {
   const { unit_count: units, short_count: short, staffed_count: staffed, quiet_count: quiet } = s;
   const tiles = [
     ["Seat target", fmt(s.win_number), "The share the last winner took, applied to the votes expected", "text-accent"],
-    ["Votes committed", fmt(s.committed), `${s.progress_pct}% of the seat target`],
-    ["Gap to close", fmt(Math.max(s.win_number - s.committed, 0)), `Across ${short} of ${units} ${noun}s`],
+    ["Supporters", fmt(s.committed), `${s.progress_pct}% of the seat target`],
+    ["Gap to close", fmt(s.gap), `Across ${short} of ${units} ${noun}s`],
     ["Mobilizers", `${staffed} / ${units}`, `${plural(quiet, noun)} with no event yet`],
   ];
   return (
@@ -36,7 +36,7 @@ function Targets({ units, mobilizers, noun }) {
       <CardTitle id="targets-h">{title}</CardTitle>
       <Table stack minWidth={620}>
         <THead><TR>
-          <TH>{noun === "centre" ? "Centre" : "Ward"}</TH><TH align="right">Target</TH><TH align="right">Committed</TH>
+          <TH>{noun === "centre" ? "Centre" : "Ward"}</TH><TH align="right">Target</TH><TH align="right">Supporters</TH>
           <TH align="right">Events</TH><TH>Mobilizer</TH><TH>Status</TH>
         </TR></THead>
         <TBody>{rows.map((u) => {

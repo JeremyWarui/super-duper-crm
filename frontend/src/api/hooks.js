@@ -195,6 +195,9 @@ export const useSetCampaignSignups = () =>
     "campaignSignups",
   );
 
+export const useSetEventWebsite = () =>
+  useWrite(({ id, ...body }) => api(`/events/${id}/website/`, { method: "POST", body }), "events", "public-events");
+
 export const useSetSignups = () =>
   useWrite(
     ({ id, open }) =>
@@ -623,6 +626,13 @@ export const usePublicPost = (id) =>
 // The homepage's carousel slides and agenda issues: published ones, or all of them for the editor.
 export const usePublicSlides = () =>
   useQuery({ queryKey: ["public-slides"], queryFn: () => api("/website/slides/", { anonymous: true }) });
+
+// The campaign's events put on the website, from today on.
+export const usePublicEvents = () =>
+  useQuery({ queryKey: ["public-events"], queryFn: () => api("/website/events/") });
+
+export const usePublicEvent = (id) =>
+  useQuery({ queryKey: ["public-event", id], queryFn: () => api(`/website/events/${id}/`), enabled: !!id, retry: false });
 
 export const usePublicIssues = () =>
   useQuery({ queryKey: ["public-issues"], queryFn: () => api("/website/issues/", { anonymous: true }) });

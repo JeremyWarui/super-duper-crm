@@ -1,7 +1,11 @@
 """Reading and editing vote targets through the API."""
 
 import httpx
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.models import Supporter, SupportLevel, Target
+from backend.services import admin
 from tests.conftest import World
 
 
@@ -13,54 +17,49 @@ async def _targets(client: httpx.AsyncClient, world: World, role: str = "manager
     return response.json()
 
 
-async def test_a_candidate_may_read_targets_and_record_votes_committed(
-    client: httpx.AsyncClient, world: World
+async def test_every_screen_counts_the_same_supporters(
+    client: httpx.AsyncClient, session: AsyncSession, world: World
 ) -> None:
-    rows = await _targets(client, world, role="candidate")
-
-    response = await client.patch(
-        f"/api/targets/{rows[0]['id']}/",
-        headers=world.headers("candidate"),
-        json={"votes_committed": 70},
+    """Overview, Targets, the turnout preview and the console read one live count."""
+    zimmerman = world.ward
+    session.add_all(
+        [
+            Supporter(
+                campaign_id=world.campaign.id,
+                ward_id=zimmerman.id,
+                full_name=f"S{n}",
+                support_level=SupportLevel.SUPPORTER,
+            )
+            for n in range(3)
+        ]
+        + [
+            Supporter(
+                campaign_id=world.campaign.id,
+                ward_id=zimmerman.id,
+                full_name="Opposed",
+                support_level=SupportLevel.OPPOSED,
+            )
+        ]
     )
+    stale = await session.scalar(select(Target).where(Target.ward_id == zimmerman.id))
+    stale.votes_committed = 999
+    await session.commit()
 
-    assert response.status_code == 200
-    assert response.json()["votes_needed"] == rows[0]["votes_needed"]
+    targets = await _targets(client, world)
+    overview = (
+        await client.get(
+            f"/api/strategy/?campaign={world.campaign.id}", headers=world.headers("manager")
+        )
+    ).json()
+    preview = (
+        await client.get(
+            f"/api/campaigns/{world.campaign.id}/targets/preview/", headers=world.headers("manager")
+        )
+    ).json()
+    console = (await admin.campaigns(session, world.campaign.id))[0]
 
-
-async def test_a_ward_s_turnout_cannot_be_typed_in(client: httpx.AsyncClient, world: World) -> None:
-    zimmerman = next(r for r in await _targets(client, world) if r["ward_name"] == "Zimmerman")
-
-    response = await client.patch(
-        f"/api/targets/{zimmerman['id']}/",
-        headers=world.headers("manager"),
-        json={"projected_turnout_pct": 70},
-    )
-
-    assert response.status_code == 400
-
-
-async def test_the_client_cannot_set_the_win_number_itself(
-    client: httpx.AsyncClient, world: World
-) -> None:
-    zimmerman = next(r for r in await _targets(client, world) if r["ward_name"] == "Zimmerman")
-
-    response = await client.patch(
-        f"/api/targets/{zimmerman['id']}/",
-        headers=world.headers("manager"),
-        json={"votes_needed": 1},
-    )
-
-    assert response.status_code == 400
-
-
-async def test_a_mobilizer_may_not_change_a_target(client: httpx.AsyncClient, world: World) -> None:
-    zimmerman = next(r for r in await _targets(client, world) if r["ward_name"] == "Zimmerman")
-
-    response = await client.patch(
-        f"/api/targets/{zimmerman['id']}/",
-        headers=world.headers("mobilizer"),
-        json={"votes_committed": 100},
-    )
-
-    assert response.status_code == 403
+    on_targets = next(r["votes_committed"] for r in targets if r["ward"] == str(zimmerman.id))
+    on_overview = next(u["committed"] for u in overview["units"] if u["ward"] == str(zimmerman.id))
+    on_preview = next(u["supporters"] for u in preview["units"] if u["ward"] == str(zimmerman.id))
+    assert on_targets == on_overview == on_preview == 3
+    assert overview["committed"] == preview["supporters"] == console.votes_committed == 3

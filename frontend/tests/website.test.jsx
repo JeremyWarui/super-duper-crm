@@ -103,7 +103,6 @@ describe("the website editor", () => {
     await user.click(screen.getByRole("button", { name: "Add post" }));
     await waitFor(() =>
       expect(sent(calls, "POST", "/workspace/site/posts/")?.body).toEqual({
-        kind: "news",
         label: "news",
         title: "Rally next week",
         place: "",
@@ -156,24 +155,13 @@ describe("the website editor", () => {
     );
   });
 
-  it("saves an event only once it has a date", async () => {
+  it("offers news only: events are put on the website from Events", async () => {
     const user = userEvent.setup();
-    const calls = await openWebsite();
+    await openWebsite();
 
     await user.click(screen.getByRole("button", { name: "New post" }));
-    await user.selectOptions(screen.getByLabelText("Kind"), "event");
-    await user.type(screen.getByLabelText("Title"), "Nakuru rally");
-    const add = screen.getByRole("button", { name: "Add post" });
-    const offWithoutDate = add.disabled;
-    await user.type(screen.getByLabelText("Date"), "2026-11-20");
-    await user.click(add);
 
-    expect(offWithoutDate).toBe(true);
-    await waitFor(() =>
-      expect(sent(calls, "POST", "/workspace/site/posts/")?.body).toMatchObject({
-        kind: "event",
-        event_date: "2026-11-20",
-      }),
-    );
+    expect(screen.queryByLabelText("Kind")).toBeNull();
+    expect(screen.queryByLabelText("Date")).toBeNull();
   });
 });

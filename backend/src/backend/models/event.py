@@ -4,7 +4,17 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Uuid
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    Uuid,
+    false,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base, UUIDPrimaryKeyMixin, campaign_ref, choice_type
@@ -52,6 +62,10 @@ class Event(UUIDPrimaryKeyMixin, Base):
     # People invited, and people who showed up.
     number_reached: Mapped[int] = mapped_column(Integer, default=0)
     number_attended: Mapped[int] = mapped_column(Integer, default=0)
+    # Shown on the public website's events while upcoming; the description and photo are for it.
+    published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    description: Mapped[str] = mapped_column(Text, default="", server_default="")
+    image_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
 
     campaign: Mapped["Campaign"] = relationship(back_populates="events")
     ward: Mapped["Ward"] = relationship(back_populates="events")

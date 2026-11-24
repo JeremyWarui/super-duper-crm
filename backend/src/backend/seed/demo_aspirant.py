@@ -251,7 +251,7 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
                 published=True,
             )
         )
-    await fill_site(session, today)
+    await fill_site(session, campaign, today)
 
 
 async def build_aspirant(session: AsyncSession, *, password: str, today: date) -> list[SignIn]:

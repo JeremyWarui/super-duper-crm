@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models import (
     Campaign,
     Document,
+    Event,
     Notice,
     Post,
     PostKind,
@@ -143,12 +144,33 @@ NEWS = [
     },
 ]
 
+# The campaign's events put on the website: title, ward, days ahead, venue, photo.
 EVENTS = [
-    ("Town hall at Mwiki grounds", 9, "Mwiki grounds", PICTURE.format("6KRBT8MYES")),
-    ("Njiru bursary clinic", 4, "Njiru social hall", UNSPLASH.format("1632215861513-130b66fe97f4")),
-    ("Ruai health day", 16, "Ruai health centre", UNSPLASH.format("1783408355447-b01a88767e6a")),
-    ("Clay City youth forum", 23, "Clay City community centre", PICTURE.format("HBADKDBJYU")),
+    ("Town hall at Mwiki grounds", "Mwiki", 9, "Mwiki grounds", PICTURE.format("6KRBT8MYES")),
+    (
+        "Njiru bursary clinic",
+        "Njiru",
+        4,
+        "Njiru social hall",
+        UNSPLASH.format("1632215861513-130b66fe97f4"),
+    ),
+    (
+        "Ruai health day",
+        "Ruai",
+        16,
+        "Ruai health centre",
+        UNSPLASH.format("1783408355447-b01a88767e6a"),
+    ),
+    (
+        "Clay City youth forum",
+        "Clay City",
+        23,
+        "Clay City community centre",
+        PICTURE.format("HBADKDBJYU"),
+    ),
 ]
+# Events start at 10am Nairobi time.
+EVENT_HOUR_UTC = 7
 EVENT_BODY = (
     "Come and meet David Otieno, ask your questions and hear the plan for your ward. Entry is "
     "free and everyone is welcome. Volunteers will be at the gate to register new supporters."
@@ -179,8 +201,16 @@ VIDEOS = [
 ]
 
 
-async def fill_site(session: AsyncSession, today: date) -> None:
-    """Fill the site settings and publish the news, events, documents and videos."""
+async def fill_site(session: AsyncSession, campaign: Campaign, today: date) -> None:
+    """Fill the site settings, publish the news, documents and videos, and put the campaign's
+    public events on the website."""
+    wards = dict(
+        (
+            await session.execute(
+                select(Ward.name, Ward.id).where(Ward.constituency_id == campaign.constituency_id)
+            )
+        ).all()
+    )
     site = await session.scalar(select(SiteSettings))
     for field, value in SITE.items():
         setattr(site, field, value)
@@ -200,17 +230,18 @@ async def fill_site(session: AsyncSession, today: date) -> None:
                 published=True,
             )
         )
-    for title, days_ahead, venue, picture in EVENTS:
+    for title, ward_name, days_ahead, venue, picture in EVENTS:
+        day = today + timedelta(days=days_ahead)
         session.add(
-            Post(
-                kind=PostKind.EVENT,
+            Event(
+                campaign_id=campaign.id,
+                ward_id=wards[ward_name],
                 title=title,
-                body=from_plain(EVENT_BODY),
-                image_url=picture,
-                event_date=today + timedelta(days=days_ahead),
                 venue=venue,
-                published_on=today,
+                scheduled_date=datetime(day.year, day.month, day.day, EVENT_HOUR_UTC, tzinfo=UTC),
                 published=True,
+                description=EVENT_BODY,
+                image_url=picture,
             )
         )
     for n, (title, url) in enumerate(DOCUMENTS):

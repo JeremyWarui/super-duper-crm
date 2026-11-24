@@ -27,24 +27,11 @@ async def test_drafts_never_reach_the_public(client: httpx.AsyncClient, world: W
     await client.post(
         POSTS, headers=editor, json={"kind": "news", "title": "Out", "published": True}
     )
-    for title, published in (("Draft rally", False), ("Rally", True)):
-        await client.post(
-            POSTS,
-            headers=editor,
-            json={
-                "kind": "event",
-                "title": title,
-                "event_date": "2026-11-20",
-                "published": published,
-            },
-        )
 
     news = (await client.get("/api/website/posts/", params={"kind": "news"})).json()
-    events = (await client.get("/api/website/posts/", params={"kind": "event"})).json()
     by_id = await client.get(f"/api/website/posts/{draft['id']}/")
 
     assert [post["title"] for post in news] == ["Out"]
-    assert [post["title"] for post in events] == ["Rally"]
     assert by_id.status_code == 404
 
 
@@ -75,19 +62,15 @@ async def test_the_first_publish_dates_a_post_and_the_audit_holds_no_text(
     assert "Secret" not in str(details)
 
 
-async def test_the_public_events_list_starts_today(client: httpx.AsyncClient, world: World) -> None:
-    editor = world.headers("manager")
-    for day in (TEST_TODAY - timedelta(days=1), TEST_TODAY, TEST_TODAY + timedelta(days=3)):
-        await client.post(
-            POSTS, headers=editor, json=_event(day, title=day.isoformat(), published=True)
-        )
+async def test_an_event_is_not_a_post(client: httpx.AsyncClient, world: World) -> None:
+    """Events are the campaign's own, put on the website from Events; the editor makes news."""
+    refused = await client.post(
+        POSTS, headers=world.headers("manager"), json=_event(TEST_TODAY, published=True)
+    )
+    listed = (await client.get("/api/website/posts/", params={"kind": "event"})).json()
 
-    events = (await client.get("/api/website/posts/", params={"kind": "event"})).json()
-
-    assert [event["event_date"] for event in events] == [
-        TEST_TODAY.isoformat(),
-        (TEST_TODAY + timedelta(days=3)).isoformat(),
-    ]
+    assert refused.status_code == 400
+    assert listed == []
 
 
 @pytest.mark.parametrize("url", ["http://example.com/a.jpg", "javascript:alert(1)"])

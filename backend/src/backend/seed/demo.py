@@ -159,6 +159,14 @@ async def seed_demo(session: AsyncSession, *, password: str | None = None) -> De
     )
 
 
+# Mobilizers on the ground who have no login of their own: name and phone.
+FIELD_TEAM = [
+    ("Grace Wanjiru", "+254722000004"),
+    ("Brian Kiptoo", "+254722000005"),
+    ("Faith Achieng", "+254722000006"),
+]
+
+
 async def seed_ground_game(
     session: AsyncSession,
     campaign: Campaign,
@@ -169,13 +177,15 @@ async def seed_ground_game(
     staffed = wards[: max(len(wards) // 2, 1)]
     mobilizers = []
     for index, ward in enumerate(staffed):
+        # The first ward's mobilizer is the demo's mobilizer login, under its own name and phone.
+        name, phone = ("", "") if index == 0 else FIELD_TEAM[(index - 1) % len(FIELD_TEAM)]
         mobilizer = await add_mobilizer(
             session,
             campaign,
             ward.id,
             mobilizer_user if index == 0 else None,
-            full_name=f"Organiser - {ward.name}",
-            phone=f"+2547{index:08d}",
+            full_name=name,
+            phone=phone,
         )
         mobilizers.append(mobilizer)
 

@@ -7,6 +7,8 @@ import { AppRoutes } from "../src/Gate";
 import { useAuth } from "../src/store/auth";
 import {
   CAMPAIGN,
+  EVENTS,
+  STRATEGY,
   dashboardRoutes,
   renderApp,
   signIn,
@@ -249,6 +251,35 @@ describe("an MCA race's supporters", () => {
         "/supporters/s1/",
         { registration_centre: "rc1" },
       ]);
+    });
+  });
+});
+
+describe("the overview's figures", () => {
+  it("shows the gap still to close in the wards that are short, not net of a ward past target", async () => {
+    const over = { ...STRATEGY.units[0], committed: 9300, progress: 1.01 };
+    await open("manager", { "GET /strategy/": { ...STRATEGY, committed: 9300, gap: 10770, units: [over, STRATEGY.units[1]] } });
+
+    const band = screen.getByRole("region", { name: "Seat target" });
+    expect(within(band).getByText("10,770")).toBeInTheDocument();
+    expect(within(band).queryByText("10,681")).toBeNull();
+  });
+});
+
+describe("events on the website", () => {
+  it("puts a campaign event on the website with its description", async () => {
+    const user = userEvent.setup();
+    const { calls } = await open("manager", { "POST /events/e1/website/": { ...EVENTS[0], published: true } });
+
+    await user.click(screen.getByRole("link", { name: "Events" }));
+    await user.click(await screen.findByRole("button", { name: "Website: Zimmerman town hall" }));
+    await user.click(screen.getByRole("checkbox", { name: /Show on the website/ }));
+    await user.type(screen.getByLabelText("Description (optional)"), "Bring a friend.");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      const sent = calls.find((c) => c.method === "POST" && c.path === "/events/e1/website/");
+      expect(sent.body).toEqual({ published: true, description: "Bring a friend.", image_url: "" });
     });
   });
 });

@@ -47,19 +47,14 @@ export const ISSUE_FIELDS = [
   ORDER,
 ];
 
-const isEvent = (form) => form.kind === "event";
-const isNews = (form) => form.kind !== "event";
-const isStatement = (form) => isNews(form) && form.label === "statement";
+// Events are not posts: they are scheduled in Events and put on the website from there.
+const isStatement = (form) => form.label === "statement";
 export const POST_FIELDS = [
-  { key: "kind", label: "Kind", kind: "select", options: [["news", "News"], ["event", "Event"]], newOnly: true },
-  { key: "label", label: "Label", kind: "select", options: [["news", "News"], ["statement", "Statement"], ["opinion", "Opinion"]], show: isNews },
+  { key: "label", label: "Label", kind: "select", options: [["news", "News"], ["statement", "Statement"], ["opinion", "Opinion"]] },
   { key: "title", label: "Title", max: 150, required: true },
-  { key: "event_date", label: "Date", kind: "date", required: true, show: isEvent },
-  { key: "venue", label: "Venue (optional)", max: 150, show: isEvent },
-  { key: "county_id", label: "County (optional)", kind: "county", show: isEvent },
-  { key: "place", label: "Place (optional)", max: 80, show: isNews, hint: "Shown beside the label, such as National or Nakuru." },
-  { key: "author", label: "Author (optional)", max: 150, show: isNews, hint: "For a statement, who issued it, such as Grace Chebet, Secretary General." },
-  { key: "author_photo_url", label: "Author photo (optional)", max: 500, kind: "image", area: "site", show: isNews },
+  { key: "place", label: "Place (optional)", max: 80, hint: "Shown beside the label, such as a ward." },
+  { key: "author", label: "Author (optional)", max: 150, hint: "For a statement, who issued it." },
+  { key: "author_photo_url", label: "Author photo (optional)", max: 500, kind: "image", area: "site" },
   { key: "reference", label: "Reference (optional)", max: 40, show: isStatement },
   { key: "pdf_url", label: "Signed PDF (optional)", kind: "pdf", area: "documents", show: isStatement, hint: "A PDF up to 10 MB, or an https:// address. Readers see it on the statement page." },
   { key: "body", label: "Text", kind: "rich", area: "site" },

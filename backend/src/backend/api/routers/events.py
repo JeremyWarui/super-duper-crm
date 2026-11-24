@@ -27,6 +27,7 @@ from backend.schemas.campaign import (
     EventRead,
     EventRecord,
     EventSignups,
+    EventWebsite,
     InviteRecipient,
 )
 from backend.services import messages, sms_queue, texting
@@ -39,6 +40,9 @@ router = APIRouter(prefix="/events", tags=["events"])
 LOADED = (selectinload(Event.ward),)
 Reader = Annotated[User, Depends(require("events.read"))]
 Writer = Annotated[User, Depends(require("events.write"))]
+# Putting an event on the public website is editing the website.
+Publisher = Annotated[User, Depends(require("site.write"))]
+PUBLISHERS = "Only the candidate, the manager or comms puts an event on the website."
 
 
 @router.get("/", response_model=list[EventRead])
@@ -83,6 +87,19 @@ async def set_signups(
     return await load(session, Event, event.id, LOADED)
 
 
+@router.post("/{event_id}/website/", response_model=EventRead)
+async def set_website(
+    event_id: uuid.UUID, payload: EventWebsite, session: SessionDep, user: Publisher
+) -> Event:
+    """Show or hide the event on the public website, with its description and photo."""
+    event = await require_visible(session, user, Event, event_id, "event", "events.read", LOADED)
+    event.published = payload.published
+    event.description = payload.description.strip()
+    event.image_url = payload.image_url
+    await session.commit()
+    return await load(session, Event, event.id, LOADED)
+
+
 @router.post("/", response_model=EventRead, status_code=status.HTTP_201_CREATED)
 async def create_event(payload: EventCreate, session: SessionDep, user: Writer) -> Event:
     """Schedule an event; a mobilizer's own is credited to them."""
@@ -92,6 +109,9 @@ async def create_event(payload: EventCreate, session: SessionDep, user: Writer) 
     await require_campaign_mobilizer(session, payload.campaign, payload.mobilizer)
     await require_mobilizer_in_area(session, user, "events.write", payload.mobilizer)
 
+    shown = payload.published or payload.description or payload.image_url
+    if shown and reach(user, "site.write") is None:
+        raise Forbidden(PUBLISHERS)
     own = own_ground_row(user, payload.campaign)
     event = Event(
         campaign_id=payload.campaign,
@@ -102,6 +122,9 @@ async def create_event(payload: EventCreate, session: SessionDep, user: Writer) 
         venue=payload.venue,
         scheduled_date=payload.scheduled_date,
         status=payload.status,
+        published=payload.published,
+        description=payload.description.strip(),
+        image_url=payload.image_url,
     )
     session.add(event)
     await session.commit()

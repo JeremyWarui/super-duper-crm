@@ -11,6 +11,7 @@ from backend.models import (
     Constituency,
     County,
     Document,
+    Event,
     HeroSlide,
     PostKind,
     PostLabel,
@@ -18,6 +19,7 @@ from backend.models import (
     Video,
     Ward,
 )
+from backend.schemas.campaign import PublicEventRead
 from backend.schemas.common import Named
 from backend.schemas.content import DocumentRead, IssueRead, PostRead, SlideRead, VideoRead
 from backend.schemas.site import EMAIL, EMAIL_EXAMPLE
@@ -54,11 +56,28 @@ async def posts(
     label: PostLabel | None = None,
     county: uuid.UUID | None = None,
 ):
-    """Published news, newest first and paged, optionally one label; or published events from
-    today on, soonest first, optionally in one county."""
+    """Published news, newest first and paged, optionally one label. Events are the campaign's
+    own and come from /website/events/; asking for event posts finds none."""
     if kind is PostKind.EVENT:
-        return await content.upcoming_events(session, today, county)
+        return []
     return await content.published_news(session, offset, label)
+
+
+@router.get("/events/", response_model=list[PublicEventRead])
+async def events(session: SessionDep, today: Today, ward: uuid.UUID | None = None) -> list:
+    """Published events from today on, soonest first, optionally in one ward."""
+    return [_public(e) for e in await content.published_events(session, today, ward)]
+
+
+@router.get("/events/{event_id}/", response_model=PublicEventRead)
+async def event(event_id: uuid.UUID, session: SessionDep) -> PublicEventRead:
+    return _public(await content.published_event(session, event_id))
+
+
+def _public(event: Event) -> PublicEventRead:
+    shown = PublicEventRead.model_validate(event)
+    shown.signup_code = event.signup_code if event.signups_open else None
+    return shown
 
 
 @router.get("/posts/{post_id}/", response_model=PostRead)

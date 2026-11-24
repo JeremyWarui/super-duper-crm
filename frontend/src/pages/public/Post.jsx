@@ -1,4 +1,4 @@
-// /news/:id: one published story or event in full; a statement carries its official record.
+// /news/:id: one published story in full; a statement carries its official record.
 import { Link } from "react-router-dom";
 import { usePublicPost, usePublicPosts } from "@/api/hooks";
 import { PdfViewer } from "@/components/PdfViewer";
@@ -61,35 +61,24 @@ export default function Post({ id }) {
   const state = pageState(post);
   if (state) return state;
   const p = post.data;
-  const event = p.kind === "event";
-  const section = event ? { label: "Events", to: "/events" } : { label: "News", to: "/news" };
   return (
     <div className="site-container flex flex-col gap-14 pt-10 pb-12 sm:pb-[72px]">
       <div className="flex flex-wrap items-start gap-12">
         <article className="flex min-w-0 max-w-[760px] flex-[999_1_560px] flex-col gap-[22px]">
-          <Crumbs items={[{ label: "Home", to: "/" }, section, { label: event ? p.title : LABELS[p.label] || "News" }]} />
-          {event ? null : <StoryKicker post={p} />}
+          <Crumbs items={[{ label: "Home", to: "/" }, { label: "News", to: "/news" }, { label: LABELS[p.label] || "News" }]} />
+          <StoryKicker post={p} />
           <h1 className="font-display text-[clamp(34px,4.5vw,52px)] leading-[1.05] font-extrabold tracking-[-0.02em]">{p.title}</h1>
           <div className="flex items-center gap-2.5 border-y border-line-2 py-3.5">
-            {event ? (
-              <span className="flex flex-col">
-                <strong className="text-[15px]">{formatDay(p.event_date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</strong>
-                <span className="text-small text-muted-foreground">{[p.venue, p.county?.name].filter(Boolean).join(" · ")}</span>
-              </span>
-            ) : (
-              <>
-                {p.author ? <Initials name={p.author} url={p.author_photo_url} className="size-10 flex-none" /> : null}
-                <span className="flex flex-col">
-                  {p.author ? <strong className="text-[15px]">{p.author}</strong> : null}
-                  <span className="text-small text-muted-foreground">Published {formatDay(p.published_on)} · {p.read_minutes} min read</span>
-                </span>
-              </>
-            )}
+            {p.author ? <Initials name={p.author} url={p.author_photo_url} className="size-10 flex-none" /> : null}
+            <span className="flex flex-col">
+              {p.author ? <strong className="text-[15px]">{p.author}</strong> : null}
+              <span className="text-small text-muted-foreground">Published {formatDay(p.published_on)} · {p.read_minutes} min read</span>
+            </span>
           </div>
           {p.image_url ? <img src={p.image_url} alt="" className="aspect-video w-full rounded-photo object-cover" /> : null}
           {p.body ? <RichText html={p.body} className="text-[18px] leading-[1.75]" /> : null}
-          {p.label === "statement" && !event ? <Record post={p} /> : null}
-          {p.label === "statement" && !event && p.pdf_url ? <PdfViewer url={p.pdf_url} title="The signed statement" /> : null}
+          {p.label === "statement" ? <Record post={p} /> : null}
+          {p.label === "statement" && p.pdf_url ? <PdfViewer url={p.pdf_url} title="The signed statement" /> : null}
         </article>
         <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-[18px]">
           <LatestStatements id={p.id} />

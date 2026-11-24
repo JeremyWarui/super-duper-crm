@@ -57,8 +57,8 @@ const ROUTES = {
   "GET /site/candidate/": PAGE,
   "GET /website/places/": [],
   "GET /website/posts/?kind=news&offset=0": [post("n1", "news", "Campaign launch opens")],
-  "GET /website/posts/?kind=event&offset=0": [
-    post("e1", "event", "Nakuru rally", { event_date: "2026-11-20", venue: "Afraha" }),
+  "GET /website/events/": [
+    { id: "e1", title: "Nakuru rally", description: "", image_url: "", venue: "Afraha", scheduled_date: "2026-11-20T07:00:00Z", ward: "w1", ward_name: "Biashara", signup_code: "abc123" },
   ],
   "GET /website/slides/": ["Jobs for all", "Fair prices"].map((headline, i) => ({
     id: `s${i}`, headline, kicker: "", line: "", image_url: "", button_label: "", button_url: "",
@@ -72,7 +72,7 @@ describe("the public site", () => {
 
     expect((await screen.findAllByText("Campaign launch opens")).length).toBeGreaterThan(0);
     expect(await screen.findByText("Nakuru rally")).toBeInTheDocument();
-    expect(screen.getByText("Afraha")).toBeInTheDocument();
+    expect(screen.getByText("Biashara · Afraha")).toBeInTheDocument();
   });
 
   it("turns the carousel every six seconds until paused, and opens any slide", async () => {

@@ -13,6 +13,8 @@ import DateTile from "@/components/DateTile";
 
 const ASSIGNERS = ["candidate", "manager", "coordinator"];
 const RECORDERS = ["candidate", "manager", "coordinator", "mobilizer"];
+// Those who edit the website put an event on it.
+const PUBLISHERS = ["candidate", "manager", "comms"];
 const WHEN = { Upcoming: (e) => e.status !== "done", Past: (e) => e.status === "done" };
 const dayOf = (e) => (e.scheduled_date ? new Date(e.scheduled_date) : null);
 
@@ -25,7 +27,7 @@ function Figure({ label, value }) {
   );
 }
 
-function EventCard({ event: e, onRecord, onInvite, onQr, onAssign }) {
+function EventCard({ event: e, onRecord, onInvite, onQr, onAssign, onWebsite }) {
   const done = e.status === "done";
   const day = dayOf(e);
   const rate = e.number_attended > 0 ? ` (${Math.round((e.signups / e.number_attended) * 100)}%)` : "";
@@ -47,13 +49,15 @@ function EventCard({ event: e, onRecord, onInvite, onQr, onAssign }) {
         ) : null}
         <Figure label="Signed up" value={`${fmt(e.signups)}${rate}`} />
         <Badge tone={done ? "ok" : "warn"}>{done ? "Done" : "Planned"}</Badge>
+        {e.published ? <Badge tone="ok">On website</Badge> : null}
       </div>
-      {(onRecord || onInvite || onQr || onAssign) && (
+      {(onRecord || onInvite || onQr || onAssign || onWebsite) && (
         <div className="flex w-full flex-wrap gap-2 border-t border-line-soft pt-3">
           {!done && onRecord && <Button size="sm" onClick={() => onRecord(e)}>Record</Button>}
           {onInvite && <Button size="sm" variant="quiet" onClick={() => onInvite(e)}>Invite</Button>}
           {onQr && e.signup_code && <Button size="sm" variant="quiet" onClick={() => onQr(e)}>{e.signups_open ? "Sign-up QR" : "Closed"}</Button>}
           {onAssign && e.status !== "cancelled" && <Button size="sm" variant="quiet" onClick={() => onAssign(e)} aria-label={`Assign ${e.title}`}>Assign</Button>}
+          {onWebsite && !done && <Button size="sm" variant="quiet" onClick={() => onWebsite(e)} aria-label={`Website: ${e.title}`}>Website</Button>}
         </div>
       )}
     </article>
@@ -123,7 +127,8 @@ export default function Events({ campaign, role, onModal, mine }) {
               onRecord={acts ? (ev) => onModal({ type: "record", event: ev }) : undefined}
               onInvite={acts ? (ev) => onModal({ type: "invite", event: ev }) : undefined}
               onQr={acts ? (ev) => onModal({ type: "qr", event: ev }) : undefined}
-              onAssign={ASSIGNERS.includes(role) && !mine ? (ev) => onModal({ type: "assign-work", event: ev }) : undefined} />
+              onAssign={ASSIGNERS.includes(role) && !mine ? (ev) => onModal({ type: "assign-work", event: ev }) : undefined}
+              onWebsite={PUBLISHERS.includes(role) && !mine ? (ev) => onModal({ type: "event-website", event: ev }) : undefined} />
           ))}
           {rows.length === 0 && <p className="text-muted-foreground">{when === "Upcoming" ? "Nothing planned yet." : "No past events yet."}</p>}
         </section>

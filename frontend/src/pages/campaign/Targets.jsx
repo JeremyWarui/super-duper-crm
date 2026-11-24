@@ -92,7 +92,7 @@ export default function Targets({ campaign, role }) {
           </Card>
           <FigureBand label="Targets" figures={[
             ["Votes to win", fmt(p.seat_target), `${p.share_pct}% of ${fmt(p.scenarios.find((s) => s.scenario === p.scenario).projected)} expected`, "text-accent"],
-            ["Supporters so far", fmt(p.supporters)],
+            ["Supporters", fmt(p.supporters)],
             ["Typical winner", p.typical_pct ? `${p.typical_pct}%` : "–", "2013 to 2022"],
             ["Majority line", fmt(p.majority), p.two_candidate ? "The target never goes below it" : "For reference"],
           ]} />

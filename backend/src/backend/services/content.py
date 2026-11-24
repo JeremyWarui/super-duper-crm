@@ -1,16 +1,17 @@
 """The website's posts: published ones for the public, all of them for the editors."""
 
 import uuid
-from datetime import date
+from datetime import date, datetime, time
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.db.session import get_or_refuse
-from backend.models import County, Post, PostKind, PostLabel, User
+from backend.models import County, Event, EventStatus, Post, PostKind, PostLabel, User
 from backend.schemas.content import PostCreate, PostUpdate
 from backend.services.audit import record
+from backend.services.clock import NAIROBI
 from backend.services.errors import NotFound, Refused
 
 NEWS_PAGE = 20
@@ -39,17 +40,44 @@ async def published_news(
     )
 
 
-async def upcoming_events(
-    session: AsyncSession, on: date, county_id: uuid.UUID | None = None
-) -> list[Post]:
-    query = public_posts().where(Post.kind == PostKind.EVENT, Post.event_date >= on)
-    if county_id is not None:
-        query = query.where(Post.county_id == county_id)
-    return list(await session.scalars(query.order_by(Post.event_date, Post.title)))
+async def published_events(
+    session: AsyncSession, on: date, ward_id: uuid.UUID | None = None
+) -> list[Event]:
+    """Campaign events put on the website, from `on` (a Nairobi date) on, soonest first."""
+    start = datetime.combine(on, time(), tzinfo=NAIROBI)
+    query = (
+        select(Event)
+        .options(selectinload(Event.ward))
+        .where(
+            Event.published.is_(True),
+            Event.status != EventStatus.CANCELLED,
+            Event.scheduled_date >= start,
+        )
+    )
+    if ward_id is not None:
+        query = query.where(Event.ward_id == ward_id)
+    return list(await session.scalars(query.order_by(Event.scheduled_date, Event.title)))
+
+
+async def published_event(session: AsyncSession, event_id: uuid.UUID) -> Event:
+    event = await session.scalar(
+        select(Event)
+        .options(selectinload(Event.ward))
+        .where(
+            Event.id == event_id,
+            Event.published.is_(True),
+            Event.status != EventStatus.CANCELLED,
+        )
+    )
+    if event is None:
+        raise NotFound("No such event.")
+    return event
 
 
 async def published_post(session: AsyncSession, post_id: uuid.UUID) -> Post:
-    post = await session.scalar(public_posts().where(Post.id == post_id))
+    post = await session.scalar(
+        public_posts().where(Post.id == post_id, Post.kind == PostKind.NEWS)
+    )
     if post is None:
         raise NotFound("No such post.")
     return post

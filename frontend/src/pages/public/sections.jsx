@@ -1,7 +1,7 @@
 // The homepage's sections: carousel, ticker, agenda, news and videos, events and ways to take part.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { usePublicIssues, usePublicPosts, usePublicSlides, usePublicVideos, useSite } from "@/api/hooks";
+import { usePublicEvents, usePublicIssues, usePublicSlides, usePublicVideos, useSite } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SectionHead } from "@/components/ui/typography";
@@ -190,7 +190,7 @@ export function News({ news }) {
 }
 
 export function Events() {
-  const events = usePublicPosts("event").data || [];
+  const events = usePublicEvents().data || [];
   if (!events.length) return null;
   return (
     <section id="events" className="bg-ink text-on-dark">
@@ -198,10 +198,10 @@ export function Events() {
         <SectionHead kicker="Coming up" title="Upcoming events" action={{ label: "Full calendar", to: "/events" }} onDark />
         <div className="reveal-stagger grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
           {events.slice(0, 3).map((e) => (
-            <Link key={e.id} to={`/news/${e.id}`} className="flex flex-col gap-3.5 rounded-photo border border-ink-2 p-[22px] text-on-dark no-underline hover:text-white">
-              <DateTile date={e.event_date} tone="accent" />
+            <Link key={e.id} to={`/events/${e.id}`} className="flex flex-col gap-3.5 rounded-photo border border-ink-2 p-[22px] text-on-dark no-underline hover:text-white">
+              <DateTile date={e.scheduled_date} tone="accent" />
               <span className="text-[19px] leading-[1.3] font-bold">{e.title}</span>
-              {e.venue ? <span className="text-ui text-on-dark-muted">{e.venue}</span> : null}
+              <span className="text-ui text-on-dark-muted">{[e.ward_name, e.venue].filter(Boolean).join(" · ")}</span>
             </Link>
           ))}
         </div>

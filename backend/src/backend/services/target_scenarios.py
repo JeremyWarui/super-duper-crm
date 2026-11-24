@@ -24,7 +24,7 @@ from backend.models import (
     UserRole,
     Ward,
 )
-from backend.services import push
+from backend.services import committed, push
 from backend.services.audit import record
 from backend.services.errors import Refused
 from backend.services.targets import generate_targets, plan_targets
@@ -45,7 +45,8 @@ async def _saved(session: AsyncSession, campaign_id: uuid.UUID) -> dict[tuple, T
         .where(Target.campaign_id == campaign_id)
         .options(selectinload(Target.ward), selectinload(Target.registration_centre))
     )
-    return {(t.ward_id, t.registration_centre_id): t for t in rows}
+    filled = await committed.fill(session, list(rows))
+    return {(t.ward_id, t.registration_centre_id): t for t in filled}
 
 
 async def preview(

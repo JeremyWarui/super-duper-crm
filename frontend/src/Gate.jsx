@@ -15,6 +15,7 @@ import VolunteerWithdraw from "./pages/public/VolunteerWithdraw";
 import { useInstall } from "./app/site";
 import News from "./pages/public/News";
 import Post from "./pages/public/Post";
+import EventPage from "./pages/public/EventPage";
 import ForgotPassword from "./pages/public/ForgotPassword";
 import SetPassword from "./pages/public/SetPassword";
 import TeamSignup from "./pages/public/TeamSignup";
@@ -101,6 +102,7 @@ const ROUTES = [
   ["/news", () => page(<News />)],
   ["/news/:id", () => page(<PostPage />)],
   ["/events", () => page(<Events />)],
+  ["/events/:id", () => page(<EventPage />)],
   ["/contribute", () => page(<Contribute />)],
   ["/privacy", () => page(<Privacy />)],
   ["/unsubscribe/:code", () => page(<Unsubscribe />)],

@@ -16,6 +16,7 @@ from backend.models.enums import (
     TurnoutScenario,
 )
 from backend.schemas.common import Erasable, ORMModel, WriteModel, consent
+from backend.schemas.content import Image
 from backend.schemas.messages import BODY_MAX
 
 
@@ -87,12 +88,6 @@ class TargetCreate(WriteModel):
     votes_committed: int = Field(default=0, ge=0)
 
 
-class TargetUpdate(WriteModel):
-    """Only the votes committed; the target itself is calculated."""
-
-    votes_committed: int | None = Field(default=None, ge=0)
-
-
 class MobilizerRead(ORMModel):
     id: uuid.UUID
     campaign: uuid.UUID = Field(validation_alias="campaign_id")
@@ -145,6 +140,9 @@ class EventRead(ORMModel):
     signup_code: str | None = None
     signups_open: bool
     signups: int = 0
+    published: bool = False
+    description: str = ""
+    image_url: str = ""
 
 
 class EventSignups(WriteModel):
@@ -167,6 +165,33 @@ class EventCreate(WriteModel):
     venue: str = Field(default="", max_length=150)
     scheduled_date: datetime | None = None
     status: EventStatus = EventStatus.PLANNED
+    # On the public website; only those who edit the website may set these.
+    published: bool = False
+    description: str = Field(default="", max_length=2000)
+    image_url: Image = ""
+
+
+class EventWebsite(WriteModel):
+    """Show or hide an event on the public website, with what it shows there."""
+
+    published: bool
+    description: str = Field(default="", max_length=2000)
+    image_url: Image = ""
+
+
+class PublicEventRead(ORMModel):
+    """An event as the public website shows it: no counts, no team."""
+
+    id: uuid.UUID
+    title: str
+    description: str
+    image_url: str
+    venue: str
+    scheduled_date: datetime | None
+    ward: uuid.UUID = Field(validation_alias="ward_id")
+    ward_name: str = Field(validation_alias=AliasPath("ward", "name"))
+    # The public sign-up link's code while sign-ups are open.
+    signup_code: str | None = None
 
 
 class EventRecord(WriteModel):
