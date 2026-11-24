@@ -178,19 +178,19 @@
   --text-ui: 14px;        --text-ui--line-height: 1.5;
   --text-body: 15px;      --text-body--line-height: 1.55;
   --text-base: 16px;      --text-base--line-height: 1.6;
-  --text-lead: 18px;      --text-lead--line-height: 1.6;
-  --text-card-title: 20px; --text-card-title--line-height: 1.25;
-  --text-h3: 24px;        --text-h3--line-height: 1.2;
-  --text-h2-app: 28px;    --text-h2-app--line-height: 1.1;  /* CRM page titles */
-  --text-section: clamp(32px, 4vw, 48px); --text-section--line-height: 1.05;
-  --text-page: clamp(40px, 5vw, 64px);    --text-page--line-height: 1;
-  --text-hero: clamp(44px, 6vw, 84px);    --text-hero--line-height: 0.95;
+  --text-lead: clamp(16px, 4.2vw, 18px);      --text-lead--line-height: 1.6;
+  --text-card-title: clamp(18px, 4.7vw, 20px); --text-card-title--line-height: 1.25;
+  --text-h3: clamp(20px, 5.4vw, 24px);        --text-h3--line-height: 1.2;
+  --text-h2-app: clamp(22px, 5.7vw, 28px);    --text-h2-app--line-height: 1.1;  /* CRM page titles */
+  --text-section: clamp(26px, 4vw, 48px); --text-section--line-height: 1.05;
+  --text-page: clamp(30px, 5vw, 64px);    --text-page--line-height: 1;
+  --text-hero: clamp(34px, 6vw, 84px);    --text-hero--line-height: 0.95;
 
   /* Layout */
   --container-site: 1240px;  /* website content width */
   --container-form: 1100px;  /* single-task flows */
-  --spacing-gutter: 24px;    /* website side padding */
-  --spacing-app: 32px;       /* CRM content padding */
+  --spacing-gutter: clamp(16px, 3.75vw, 24px);    /* website side padding: 16px on a phone */
+  --spacing-app: clamp(16px, 4.17vw, 32px);       /* CRM content padding: 16px on a phone */
   --spacing-sidebar: 248px;  /* CRM / workspace sidebar width */
   --spacing-touch: 44px;     /* minimum control height */
 }

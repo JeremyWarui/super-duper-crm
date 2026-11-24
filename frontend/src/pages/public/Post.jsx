@@ -64,7 +64,7 @@ export default function Post({ id }) {
   const event = p.kind === "event";
   const section = event ? { label: "Events", to: "/events" } : { label: "News", to: "/news" };
   return (
-    <div className="site-container flex flex-col gap-14 pt-10 pb-[72px]">
+    <div className="site-container flex flex-col gap-14 pt-10 pb-12 sm:pb-[72px]">
       <div className="flex flex-wrap items-start gap-12">
         <article className="flex min-w-0 max-w-[760px] flex-[999_1_560px] flex-col gap-[22px]">
           <Crumbs items={[{ label: "Home", to: "/" }, section, { label: event ? p.title : LABELS[p.label] || "News" }]} />

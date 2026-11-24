@@ -6,9 +6,9 @@ import { usePanel } from '@/lib/usePanel'
 /** Opens the public website in a new tab, so the team stays signed in. */
 export function WebsiteLink() {
   return (
-    <a href="/" target="_blank" rel="noopener" aria-label="View website (opens in a new tab)" className="flex min-h-11 items-center gap-2 rounded-full border border-line px-3.5 text-ui font-bold text-ink no-underline hover:bg-stone hover:text-ink">
+    <a href="/" target="_blank" rel="noopener" aria-label="View website (opens in a new tab)" className="max-sm:hidden flex min-h-11 items-center gap-2 rounded-full border border-line px-3.5 text-ui font-bold text-ink no-underline hover:bg-stone hover:text-ink">
       <Globe className="size-[18px]" aria-hidden />
-      <span className="hidden lg:inline">View website</span>
+      <span className="hidden 2xl:inline">View website</span>
     </a>
   )
 }
@@ -44,11 +44,11 @@ export function CrmTopBar({ crumbs, user, onSignOut, onMenu, search, tools }: {
 }) {
   return (
     <div className="border-b border-black/[0.06] bg-white">
-      <div className="box-border flex min-h-16 flex-wrap items-center gap-x-5 gap-y-2.5 px-4 py-2.5 md:px-app">
+      <div className="box-border flex min-h-16 flex-wrap items-center gap-x-5 gap-y-2 px-3 py-2 sm:px-4 sm:py-2.5 md:px-app max-sm:gap-x-1.5">
         <button type="button" onClick={onMenu} aria-label="Open menu" className="flex size-11 cursor-pointer items-center justify-center rounded-full hover:bg-stone md:hidden">
           <Menu className="size-5" />
         </button>
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-ui font-semibold text-muted-foreground">
+        <nav aria-label="Breadcrumb" className="max-sm:hidden flex items-center gap-2 text-ui font-semibold text-muted-foreground">
           {crumbs.map((c, i) => (
             <React.Fragment key={i}>
               {i > 0 ? <span aria-hidden>/</span> : null}
@@ -57,7 +57,7 @@ export function CrmTopBar({ crumbs, user, onSignOut, onMenu, search, tools }: {
           ))}
         </nav>
         {search ? <div className="order-last min-w-0 basis-full md:order-none md:max-w-[520px] md:flex-[1_1_280px] md:basis-auto">{search}</div> : null}
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1 sm:gap-1.5">
           <WebsiteLink />
           {tools}
           <UserMenu user={user} onSignOut={onSignOut} />

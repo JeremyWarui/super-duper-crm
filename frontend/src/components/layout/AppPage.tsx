@@ -12,7 +12,7 @@ export function PageHeader({ context, title, sub, actions }: {
   actions?: React.ReactNode
 }) {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-black/[0.06] bg-ground/90 px-app py-[18px] backdrop-blur-md">
+    <header className="flex flex-wrap items-center justify-between gap-3 sm:gap-4 border-b border-black/[0.06] bg-ground/90 px-app py-3 sm:py-[18px] backdrop-blur-md">
       <div className="flex flex-col gap-1">
         {context ? <div className="text-ui font-semibold text-muted-foreground">{context}</div> : null}
         <h1 className="font-display text-h2-app font-extrabold tracking-[-0.02em]">{title}</h1>

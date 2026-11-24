@@ -47,12 +47,12 @@ export function Carousel({ fallback, actions, aside }) {
   const go = (i) => setIndex(((i % count) + count) % count);
   const round = "flex size-11 cursor-pointer items-center justify-center rounded-full border-[1.5px] border-white/70 bg-black/20 text-lg text-white";
   return (
-    <section aria-roledescription="carousel" aria-label="Highlights" data-playing={playing && count > 1} style={{ "--rotate": `${ROTATE_MS}ms` }} className="relative flex min-h-[640px] items-center overflow-hidden bg-ink text-white">
+    <section aria-roledescription="carousel" aria-label="Highlights" data-playing={playing && count > 1} style={{ "--rotate": `${ROTATE_MS}ms` }} className="relative flex min-h-[540px] sm:min-h-[640px] items-center overflow-hidden bg-ink text-white">
       {slides.map((s, i) => (s.image_url ? (
         <img key={s.id} src={s.image_url} alt="" data-active={i === index % count} className="hero-photo absolute inset-0 size-full object-cover" />
       ) : null))}
       <div aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,18,13,0.82)_0%,rgba(8,18,13,0.55)_50%,rgba(8,18,13,0.2)_100%)]" />
-      <div className="site-container relative flex flex-wrap items-center justify-between gap-10 pt-16 pb-28">
+      <div className="site-container relative flex flex-wrap items-center justify-between gap-8 sm:gap-10 pt-10 sm:pt-16 pb-28">
         <div aria-live={playing ? "off" : "polite"} aria-roledescription="slide" aria-label={`${(index % count) + 1} of ${count}`} key={index} className="hero-words flex min-w-0 flex-[0_1_680px] flex-col gap-[22px]">
           {current.kicker ? <p className="text-ui font-bold uppercase tracking-[0.12em] text-accent">{current.kicker}</p> : null}
           <h1 className="font-display text-hero font-extrabold tracking-[-0.03em]">{current.headline}</h1>
@@ -124,7 +124,7 @@ export function Agenda({ limit }) {
   if (!issues.length) return null;
   return (
     <section id="issues" className="scroll-mt-24 bg-white">
-      <div className="site-container flex flex-col gap-8 py-20">
+      <div className="site-container flex flex-col gap-8 py-12 sm:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex max-w-[640px] flex-col gap-2.5">
             <p className="kicker">Our agenda</p>
@@ -164,7 +164,7 @@ export function News({ news }) {
   const [lead, ...rest] = news;
   return (
     <section id="news" className="bg-stone">
-      <div className="site-container flex flex-col gap-7 py-20">
+      <div className="site-container flex flex-col gap-7 py-12 sm:py-20">
         <SectionHead kicker="From the campaign" title="News & statements" action={{ label: "All news", to: "/news" }} />
         <div className="flex flex-wrap gap-7">
           <Link to={`/news/${lead.id}`} className="flex min-w-0 flex-[3_1_460px] flex-col gap-3.5 text-ink no-underline hover:text-ink">
@@ -194,7 +194,7 @@ export function Events() {
   if (!events.length) return null;
   return (
     <section id="events" className="bg-ink text-on-dark">
-      <div className="site-container flex flex-col gap-7 py-[72px]">
+      <div className="site-container flex flex-col gap-7 py-12 sm:py-[72px]">
         <SectionHead kicker="Coming up" title="Upcoming events" action={{ label: "Full calendar", to: "/events" }} onDark />
         <div className="reveal-stagger grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
           {events.slice(0, 3).map((e) => (
@@ -238,7 +238,7 @@ function TakePanel({ tone, title, text, action }) {
 export function TakePart({ panels }) {
   return (
     <section id="take-part" className="bg-white">
-      <div className="site-container flex flex-col gap-7 py-20">
+      <div className="site-container flex flex-col gap-7 py-12 sm:py-20">
         <SectionHead kicker="Get involved" title="Three ways to take part" />
         <div className="reveal-stagger grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
           {panels.map((panel) => <TakePanel key={panel.title} {...panel} />)}

@@ -39,7 +39,7 @@ export default function Issue() {
         </div>
       ) : null}
       <PageHero crumbs={[{ label: "Agenda & issues", to: copy.agendaHome }, { label: i.title }]} kicker={<>Our position{num ? ` · issue ${num}` : ""}</>} title={i.title} lead={i.summary} />
-      <div className="site-container flex flex-col gap-12 pt-14 pb-[72px]">
+      <div className="site-container flex flex-col gap-12 pt-8 sm:pt-14 pb-12 sm:pb-[72px]">
         {steps.length || i.image_url ? (
           <section aria-labelledby="w-h" className="grid items-start gap-8 md:grid-cols-2 md:gap-14">
             {i.image_url ? <Photo url={i.image_url} className="aspect-[4/3] w-full rounded-card md:sticky md:top-28" /> : null}

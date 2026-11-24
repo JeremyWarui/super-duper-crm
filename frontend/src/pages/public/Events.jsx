@@ -50,7 +50,7 @@ export default function Events() {
           <FilterSelect label="County" blank="All counties" value={county} onChange={pick} options={counties} className="w-full flex-none border-0 bg-white text-ink" />
         </label>
       </PageHero>
-      <div className="site-container flex flex-wrap items-start gap-10 pt-12 pb-20">
+      <div className="site-container flex flex-wrap items-start gap-10 pt-8 sm:pt-12 pb-12 sm:pb-20">
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-3.5">
           {events.isLoading ? <LoadingText /> : null}
           {events.error ? <ErrorText error={events.error} /> : null}

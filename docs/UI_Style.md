@@ -21,9 +21,13 @@ these parts.
    - use `rounded-lg` for fields and `rounded-[18px]` + `shadow-pop` for floating panels
    - check the result in the running app
    - **Never** let the CLI overwrite `button`, `card`, `input`, `badge`, `tabs` or `table`. Answer "no" if it asks.
-6. **Touch targets are at least 44px** (`h-11`) for buttons, inputs and nav items. Inputs use 16px text so phones don't zoom in.
-7. **Placeholders stay in `[brackets]`** until real data is wired up. Never invent numbers.
-8. **Accessibility:**
+6. **On a phone (under 640px) space shrinks, not text or targets.** Heading sizes are `clamp()`
+   tokens that reach their desktop size by about 800px: hero 34px, page title 30px, section 26px,
+   CRM page title 22px. Padding and section gaps roughly halve (`py-12 sm:py-20`). Body text
+   stays 15-16px.
+7. **Touch targets are at least 44px** (`h-11`) for buttons, inputs and nav items. Inputs use 16px text so phones don't zoom in.
+8. **Placeholders stay in `[brackets]`** until real data is wired up. Never invent numbers.
+9. **Accessibility:**
    - Every input sits in a `<Field label>`.
    - Icon-only buttons have an `aria-label`.
    - Focus rings are never removed.
@@ -49,12 +53,12 @@ Use these exactly. Tailwind classes are given where a token exists.
 ### Page frame
 | Thing | Value | Class |
 |---|---|---|
-| Website content width | 1240px max, 24px side padding | `site-container` |
+| Website content width | 1240px max, 24px side padding (16px on a phone) | `site-container` |
 | Single-task flows | 1100–1200px max | `max-w-form` / `max-w-[1200px]` |
 | CRM sidebar | 248px (desktop); 280px drawer on phones | `md:w-sidebar` |
-| CRM content padding | 32px sides, 28px top, 40px bottom | `px-app pt-7 pb-10` |
+| CRM content padding | 32px sides (16px on a phone), 28px top, 40px bottom | `px-app pt-7 pb-10` |
 | CRM top bar | 64px min height | in `CrmTopBar` |
-| CRM page header | 18px vertical padding, 28px title | in `AppPage` |
+| CRM page header | 18px vertical padding, 28px title (12px and 22px on a phone) | in `AppPage` |
 | Website band padding | 80px top/bottom (72px on dark/green bands) | `py-20` / `py-[72px]` |
 | Gap between band header and content | 28–32px | `gap-7` / `gap-8` |
 
@@ -83,9 +87,9 @@ Use these exactly. Tailwind classes are given where a token exists.
 ### Cards and media
 | Thing | Corners | Padding | Notes |
 |---|---|---|---|
-| Website card (`elevated`) | 20px | 24px | hairline + `shadow-card`; `lift` on hover |
-| Join / CTA panel (`panel`) | 24px | 32px | gold, green or white |
-| CRM card (`outline`) | 16px | 24px | 1px #E9E9E5 |
+| Website card (`elevated`) | 20px | 24px (16px on a phone) | hairline + `shadow-card`; `lift` on hover |
+| Join / CTA panel (`panel`) | 24px | 32px (20px on a phone) | gold, green or white |
+| CRM card (`outline`) | 16px | 24px (16px on a phone) | 1px #E9E9E5 |
 | KPI tile (`tile`) | 16px | 20px | label 14px, number 28px Bricolage |
 | Inner panel (`tinted`) | 12px | 16px | #F7F7F5 |
 | Hero branch card | 22px | 24px | 360px wide, `shadow-hero-card` |

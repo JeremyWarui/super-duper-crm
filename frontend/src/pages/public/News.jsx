@@ -135,7 +135,7 @@ export default function News() {
   const top = offset === 0 ? posts.slice(0, 4) : [];
   const rest = offset === 0 ? posts.slice(4) : posts;
   return (
-    <div className="site-container flex flex-col gap-12 pt-10 pb-[72px]">
+    <div className="site-container flex flex-col gap-12 pt-10 pb-12 sm:pb-[72px]">
       <h1 className="sr-only">News</h1>
       {news.isLoading ? <LoadingText /> : null}
       {news.error ? <ErrorText error={news.error} /> : null}

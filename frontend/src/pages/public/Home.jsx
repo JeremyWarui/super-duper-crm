@@ -47,7 +47,7 @@ function Candidate({ c }) {
   const [lead] = paragraphs(c.bio);
   return (
     <section id="about" className="bg-primary text-white">
-      <div className="site-container flex flex-col gap-7 py-[72px]">
+      <div className="site-container flex flex-col gap-7 py-12 sm:py-[72px]">
         <SectionHead kicker="Who is standing" title={`Why ${first}?`} action={{ label: `More about ${first}`, to: "/about" }} onDark />
         <div className="reveal-stagger flex flex-wrap items-center gap-8">
           {c.photo_url ? <img src={c.photo_url} alt="" className="size-[120px] flex-none rounded-full border-2 border-accent object-cover" /> : <span className="size-[120px] flex-none rounded-full border-2 border-accent bg-white/20" />}
@@ -147,7 +147,7 @@ function IssueRow({ issue, n }) {
 export function AgendaPage() {
   const issues = usePublicIssues();
   return (
-    <div className="site-container flex flex-col gap-16 pt-12 pb-24 md:gap-24">
+    <div className="site-container flex flex-col gap-10 sm:gap-16 pt-8 sm:pt-12 pb-14 sm:pb-24 md:gap-24">
       <PageHead title="Agenda" lead="Where the campaign stands, issue by issue." />
       {issues.isSuccess && !issues.data.length ? <p className="text-muted-foreground">The agenda is not published yet.</p> : null}
       {(issues.data || []).map((issue, n) => <Reveal key={issue.id}><IssueRow issue={issue} n={n} /></Reveal>)}
@@ -160,7 +160,7 @@ export function Media() {
   const videos = usePublicVideos().data || [];
   const documents = usePublicDocuments().data || [];
   return (
-    <div className="site-container flex flex-col gap-12 pt-12 pb-20">
+    <div className="site-container flex flex-col gap-12 pt-8 sm:pt-12 pb-12 sm:pb-20">
       <PageHead title="Videos & documents" lead="Speeches, interviews and the campaign's own papers." />
       {videos.length ? (
         <Reveal><section aria-labelledby="videos-h" className="flex flex-col gap-4">

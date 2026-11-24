@@ -139,11 +139,11 @@ export function AreaPicker() {
   if (!wards.length) return null;
   return (
     <label className="flex items-center gap-1.5 text-meta font-semibold text-muted-foreground">
-      Area
+      <span className="max-sm:sr-only">Area</span>
       <select
         value={area ?? ""}
         onChange={(e) => setArea(e.target.value || null)}
-        className="h-10 max-sm:h-11 max-w-[180px] rounded-full border border-line-control bg-white px-2.5 text-ui font-bold text-ink"
+        className="h-10 max-sm:h-11 max-w-[180px] max-sm:max-w-[120px] rounded-full border border-line-control bg-white px-2.5 text-ui font-bold text-ink"
       >
         <option value="">{wards.length === 1 ? wards[0].name : "All wards"}</option>
         {wards.length > 1 ? wards.map((w) => <option key={w.id} value={w.id}>{w.name}</option>) : null}

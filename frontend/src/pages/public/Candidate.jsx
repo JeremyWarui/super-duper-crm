@@ -140,7 +140,7 @@ export function CandidateView({ c, send, withdrawPath, crumbs }) {
           {TABS.map((t) => <TabsTrigger key={t} value={t}>{t}</TabsTrigger>)}
         </TabsList>
       </div>
-      <div className="site-container flex flex-wrap items-start gap-10 pt-12 pb-20">
+      <div className="site-container flex flex-wrap items-start gap-10 pt-8 sm:pt-12 pb-12 sm:pb-20">
         <TabsContent value={tab} className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
           {tab === "About" ? (
             <>

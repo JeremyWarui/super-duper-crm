@@ -15,12 +15,12 @@ import { cn } from '@/lib/utils'
 const cardVariants = cva('flex flex-col text-card-foreground', {
   variants: {
     variant: {
-      elevated: 'bg-card border border-black/5 shadow-card rounded-card p-6 gap-3',
-      outline: 'bg-card border border-line rounded-xl p-6 gap-4',
-      tile: 'bg-card border border-line rounded-xl p-5 gap-1.5',
+      elevated: 'bg-card border border-black/5 shadow-card rounded-card p-4 sm:p-6 gap-3',
+      outline: 'bg-card border border-line rounded-xl p-4 sm:p-6 gap-3 sm:gap-4',
+      tile: 'bg-card border border-line rounded-xl p-4 sm:p-5 gap-1.5',
       tinted: 'bg-ground-app rounded-lg p-4 gap-1',
-      ink: 'bg-ink text-on-dark rounded-card p-6 gap-3',
-      panel: 'rounded-panel p-8 gap-3.5',
+      ink: 'bg-ink text-on-dark rounded-card p-4 sm:p-6 gap-3',
+      panel: 'rounded-panel p-5 sm:p-8 gap-3.5',
     },
     interactive: { true: 'no-underline text-inherit hover:text-inherit', false: '' },
   },

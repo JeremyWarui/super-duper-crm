@@ -29,11 +29,11 @@ type Figure = [label: string, value: React.ReactNode, note?: React.ReactNode, to
 /** The dark band of headline figures: label, figure in `tone` (e.g. "text-accent") and an optional note. */
 export function FigureBand({ figures, label }: { figures: Figure[]; label: string }) {
   return (
-    <section aria-label={label} className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6 rounded-card bg-ink p-7 text-on-dark">
+    <section aria-label={label} className="grid grid-cols-2 gap-x-4 gap-y-5 rounded-card bg-ink p-4 text-on-dark sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] sm:gap-6 sm:p-7">
       {figures.map(([name, value, note, tone]) => (
         <div key={name} className="flex flex-col gap-1.5">
           <span className="text-ui font-semibold text-on-dark-muted">{name}</span>
-          <span className={cn('font-display text-[36px] leading-none font-extrabold tabular-nums', tone)}>{value}</span>
+          <span className={cn('font-display text-[28px] sm:text-[36px] leading-none font-extrabold tabular-nums', tone)}>{value}</span>
           {note ? <span className="text-small text-on-dark-muted">{note}</span> : null}
         </div>
       ))}

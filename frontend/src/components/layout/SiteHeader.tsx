@@ -48,7 +48,7 @@ export function SiteHeader() {
   const link = ({ isActive }: { isActive: boolean }) => cn('rounded-full px-3.5 py-[9px] no-underline', isActive ? 'bg-primary-tint text-primary hover:text-primary' : 'text-ink hover:bg-stone hover:text-ink')
   return (
     <header className="border-b border-black/[0.06] bg-white/80 backdrop-blur-[14px] backdrop-saturate-[1.8]">
-      <div className="site-container flex items-center justify-between gap-3.5 py-3.5">
+      <div className="site-container flex items-center justify-between gap-3.5 py-2.5 sm:py-3.5">
         <Logo size="lg" withSlogan />
         <nav aria-label="Main" className="hidden flex-wrap gap-x-1 gap-y-0.5 text-body font-semibold xl:flex">
           {copy.nav.map((n) => <NavLink key={n.to} to={n.to} className={link}>{n.label}</NavLink>)}
@@ -57,8 +57,8 @@ export function SiteHeader() {
           <Button asChild variant="outline"><Link to="/contribute">Contribute</Link></Button>
           <Button asChild variant="accent"><Link to={copy.join.to}>{copy.join.label}</Link></Button>
         </div>
-        <Button variant="quiet" className="xl:hidden" aria-expanded={open} aria-controls="site-menu" onClick={() => setOpen(!open)}>
-          {open ? <X className="size-4" /> : <Menu className="size-4" />}Menu
+        <Button variant="quiet" className="flex-none xl:hidden max-sm:w-11 max-sm:px-0" aria-label="Menu" aria-expanded={open} aria-controls="site-menu" onClick={() => setOpen(!open)}>
+          {open ? <X className="size-4" aria-hidden /> : <Menu className="size-4" aria-hidden />}<span className="max-sm:sr-only">Menu</span>
         </Button>
       </div>
       {open ? (
