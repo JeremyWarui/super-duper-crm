@@ -1,6 +1,7 @@
 """Every model, imported here so `Base.metadata` holds the full schema."""
 
 from backend.db.base import Base
+from backend.models.announcement import Announcement
 from backend.models.assignment import Assignment
 from backend.models.audit import AuditEvent
 from backend.models.auth_token import AuthToken
@@ -83,6 +84,7 @@ __all__ = [
     "SmsLog",
     "Meeting",
     "Notice",
+    "Announcement",
     "PushSubscription",
     "MeetingAttendance",
     "SmsOutbox",

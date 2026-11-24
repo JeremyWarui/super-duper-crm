@@ -869,6 +869,7 @@
     "GET /api/campaigns/{campaign_id}/meetings/": [
       "meeting",
       "host",
+      "unit",
       "minutes",
       "attendance"
     ],
@@ -930,6 +931,21 @@
       "id",
       "text",
       "url"
+    ],
+    "GET /api/campaigns/{campaign_id}/announcements/": [
+      "id",
+      "title",
+      "body",
+      "unit",
+      "author",
+      "created_at",
+      "recipients",
+      "read",
+      "read_by_me"
+    ],
+    "POST /api/campaigns/{campaign_id}/announcements/": [
+      "announcement",
+      "alerted"
     ]
   },
   "nested_reads": {
@@ -1110,6 +1126,10 @@
       "committed",
       "progress",
       "unstaffed"
+    ],
+    "POST /api/campaigns/{campaign_id}/announcements/.announcement": [
+      "recipients",
+      "unit"
     ]
   },
   "writes": {
@@ -1545,7 +1565,8 @@
     "POST /api/campaigns/{campaign_id}/meetings/": [
       "title",
       "mode",
-      "ward"
+      "ward",
+      "centre"
     ],
     "POST /api/meetings/{meeting_id}/end/": [],
     "POST /api/push/subscribe/": [
@@ -1562,7 +1583,14 @@
     "POST /api/campaigns/{campaign_id}/targets/scenario/": [
       "scenario"
     ],
-    "POST /api/notices/{notice_id}/read/": []
+    "POST /api/notices/{notice_id}/read/": [],
+    "POST /api/campaigns/{campaign_id}/announcements/": [
+      "title",
+      "body",
+      "ward",
+      "centre"
+    ],
+    "POST /api/campaigns/{campaign_id}/announcements/read/": []
   },
   "enums": {
     "user.role": [

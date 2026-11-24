@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document ID | `CD-R6` |
-| Version | 0.5, 24 November 2026 |
+| Version | 0.6, 25 November 2026 |
 | Status | **Draft, awaiting approval** |
 | Mockups | [`design/R6_Mockups.html`](design/R6_Mockups.html): `M1` Console meeting, `M2` Field app |
 | Demo slice | [`Comms_Demo_Plan.md`](Comms_Demo_Plan.md) (`DM-R6`): SMS queue, online meetings, PWA and push |
@@ -468,7 +468,7 @@ screen asks every 30 seconds for retries that are due.
 | Ticket | Work | Implements | Done when |
 |---|---|---|---|
 | R6-0 Platform fixes | Cron routes replace `lifespan` loops; storage interface with Blob; SYSTEM.md updated to Vercel; `fly.toml` removed | D6; 2.5, 4.2, 4.3 | Reconciliation runs from cron on Vercel; uploads persist across deployments |
-| R6-1 Spaces and rooms | Models, migrations, permissions, derived membership, topics, posts, announcements with approval | D3; 5.1, 5.2, 6, 7 | A mobilizer sees only their ward room; tests cover every reach |
+| R6-1 Unit announcements | One-way announcements from the leads to the whole campaign, a ward or (MCA) a centre; a notice per recipient and a push alert; read receipts for those who may announce there; calls aimed at a centre too. Chat rooms, topics and posts are not built (A6) | D3; 5.2, 6 | A mobilizer sees only what was sent to their unit; a coordinator announces only inside their area |
 | R6-2 Console and Field app shells | Two layouts, Comms and Feedback in the sidebar, PWA install, push subscriptions, inbox | D2; 8; `M1` sidebar, `M2` tabs | A mobilizer installs the app and receives a push for a new announcement |
 | R6-3 App meetings and calls | LiveKit tokens from FastAPI, meetings (audio first, video optional), host controls, one-to-one app calls, Start meeting on event cards | D6; 5.4; `M1`, `M2` Meeting | Two browsers hold a meeting; the host can mute, remove and bring someone on stage |
 | R6-4 Phone bridge | `TelephonyProvider` (console, LiveKit SIP); dial-out, keypad hand-raise, Call my phone, LiveKit webhooks, call legs and costs, automatic retry, Ring again | D4, D8; 5.4, 6, 10; `M1` | In practice mode each dial is logged. On the pilot trunk a basic phone joins and raises a hand. An unanswered phone is rung twice more, 2 minutes apart, then shows No answer. Ring again places one immediate call and is refused after 3 re-dials. Every attempt is its own call leg with its cost |
@@ -514,7 +514,7 @@ native iOS or Android apps.
 | Ticket | Status | Branch or PR | Mockup checked | Contract updated | Tests pass |
 |---|---|---|---|---|---|
 | R6-0 | Not started | | n/a | [ ] | [ ] |
-| R6-1 | Not started | | n/a | [ ] | [ ] |
+| R6-1 | Done (A6 scope) | `demo-comms` | n/a | [x] | [x] |
 | R6-2 | In progress (demo slice: PWA and push, `DM-R6` DM-5) | `demo-comms` | [ ] `M1`, `M2` | [x] | [x] |
 | R6-3 | In progress (demo slice: LiveKit meetings for logins, `DM-R6` DM-4) | `demo-comms` | [ ] `M1`, `M2` | [x] | [x] |
 | R6-4 | Not started | | [ ] `M1` | [ ] | [ ] |
@@ -536,3 +536,4 @@ Status values: Not started, In progress, In review, Done.
 | A3 | 23 November 2026 | Bulk SMS through an outsourced licensed provider and the platform's compliance queue; D5 replaced by D9; D10 one queue service for calls and SMS; adds 5.5, two tables, rule 11, settings, R6-9, Q8 to Q10 | 1, 4, 5.5, 6, 9, 10, 11, 12, 13, 14, 15 |
 | A4 | 23 November 2026 | Providers chosen: Sozuri (SMS), LiveKit (meetings; Cloud for pilot, Angani for production), SautiKit (basic phones, SIP or stream bridge); WhatsApp out; adds D11, Q11, resolves Q8; demo slice `DM-R6` defined | Header, 1, 13 |
 | A5 | 24 November 2026 | No gamification: kudos, team challenges, ward boards, the weekly spotlight and the recognition rule removed; R6-6 is feedback only | 4.4, 6, 7, 8, 9, 11, 12 |
+| A6 | 25 November 2026 | Rooms narrowed to unit announcements: a unit is the whole campaign, a ward, or in an MCA race a registration centre; calls take the same units. Team chat stays on the tools teams already use | 4.4, 6, 7, 12 |

@@ -1,13 +1,15 @@
-// Online calls: start one for the whole campaign or a ward, share its link, and see who came.
-import { useMemo, useState } from "react";
+// Online calls: start one for the whole campaign, a ward or (in an MCA race) a centre, share its
+// link, and see who came.
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useCalls, useStartCall, useTargets } from "@/api/hooks";
+import { useCalls, useStartCall } from "@/api/hooks";
 import { SlottedHeader } from "@/components/layout/AppPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { ErrorText } from "@/components/ui/error-text";
 import { Field, Input, NativeSelect } from "@/components/ui/input";
+import { placeOf, UnitSelect, useUnitOptions } from "./UnitSelect";
 import { LoadingText } from "@/components/ui/loading-text";
 import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/format";
@@ -26,19 +28,14 @@ export default function Calls({ campaign, role }) {
 }
 
 function StartCall({ campaign, wardOnly }) {
-  const targets = useTargets(campaign.id);
-  const wards = useMemo(() => {
-    const seen = new Map();
-    for (const t of targets.data || []) seen.set(t.ward, t.ward_name);
-    return [...seen].sort((a, b) => a[1].localeCompare(b[1]));
-  }, [targets.data]);
-  const [form, setForm] = useState({ title: "", mode: "video", ward: "" });
+  const options = useUnitOptions(campaign);
+  const [form, setForm] = useState({ title: "", mode: "video", unit: "" });
   const start = useStartCall(campaign.id);
   const started = start.data;
   const link = started ? `${window.location.origin}${started.join_path}` : "";
   const submit = (e) => {
     e.preventDefault();
-    start.mutate({ title: form.title.trim(), mode: form.mode, ward: form.ward || null });
+    start.mutate({ title: form.title.trim(), mode: form.mode, ...placeOf(options, form.unit) });
   };
   return (
     <Card variant="outline" className="min-w-0 content-start gap-4" role="region" aria-labelledby="start-call-h">
@@ -52,13 +49,9 @@ function StartCall({ campaign, wardOnly }) {
           </NativeSelect>
         </Field>
         <Field label="Invite">
-          <NativeSelect value={form.ward} onChange={(e) => setForm({ ...form, ward: e.target.value })}>
-            {!wardOnly && <option value="">The whole campaign</option>}
-            {wardOnly && <option value="">Pick a ward</option>}
-            {wards.map(([id, name]) => <option key={id} value={id}>{name} ward</option>)}
-          </NativeSelect>
+          <UnitSelect campaign={campaign} options={options} value={form.unit} onChange={(unit) => setForm({ ...form, unit })} wholeCampaign={!wardOnly} />
         </Field>
-        <Button type="submit" className="self-start" loading={start.isPending} disabled={start.isPending || !form.title.trim() || (wardOnly && !form.ward)}>Start call</Button>
+        <Button type="submit" className="self-start" loading={start.isPending} disabled={start.isPending || !form.title.trim() || (wardOnly && !form.unit)}>Start call</Button>
       </form>
       <ErrorText error={start.error} />
       {started && (
@@ -86,13 +79,13 @@ function CallList({ campaign }) {
         <Table stack minWidth={520}>
           <THead><TR><TH>Call</TH><TH>Started</TH><TH align="right">Minutes</TH><TH>Who came</TH></TR></THead>
           <TBody>
-            {calls.data.map(({ meeting, host, minutes, attendance }) => (
+            {calls.data.map(({ meeting, host, unit, minutes, attendance }) => (
               <TR key={meeting.id}>
                 <TD>
                   <div className="font-semibold">{meeting.title}</div>
                   <div className="flex flex-wrap items-center gap-2 text-small text-muted-foreground">
                     <Badge tone={meeting.status === "live" ? "ok" : "stone"}>{meeting.status === "live" ? "Live" : "Ended"}</Badge>
-                    {meeting.mode === "audio" ? "Audio" : "Video"} · {host}
+                    {meeting.mode === "audio" ? "Audio" : "Video"} · {unit} · {host}
                   </div>
                   {meeting.status === "live" && <Link className="text-small font-bold" to={`/meet/${meeting.id}`}>Join</Link>}
                 </TD>

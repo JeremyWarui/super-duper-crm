@@ -9,25 +9,19 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import get_settings
-from backend.models import (
-    CampaignMember,
-    CampaignMemberArea,
-    Meeting,
-    MeetingAttendance,
-    Mobilizer,
-    User,
-    UserRole,
-)
+from backend.models import Meeting, MeetingAttendance, User, UserRole
+from backend.services import units
 from backend.services.audit import record
 from backend.services.errors import Forbidden, Refused
 
 NOT_CONFIGURED = (
     "Meetings are not configured: add LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET."
 )
+# Besides the host, these end a call for everyone.
+ENDERS = (UserRole.CANDIDATE, UserRole.MANAGER)
 TOKEN_TTL = timedelta(minutes=15)
 # A room nobody joins closes itself after this long.
 EMPTY_TIMEOUT_SECONDS = 10 * 60
-LEADS = (UserRole.CANDIDATE, UserRole.MANAGER, UserRole.COMMS)
 
 
 def server_url(url: str) -> str:
@@ -63,35 +57,13 @@ def require_configured() -> None:
         raise Refused(NOT_CONFIGURED)
 
 
-async def invitees(
-    session: AsyncSession, campaign_id: uuid.UUID, ward_id: uuid.UUID | None
-) -> list[uuid.UUID]:
-    """The logins a call rings: the whole campaign, or for a ward its leads, the coordinators
-    whose area holds it and its mobilizers."""
-    members = select(CampaignMember.user_id).where(CampaignMember.campaign_id == campaign_id)
-    if ward_id is None:
-        return list(await session.scalars(members))
-    coordinators = (
-        select(CampaignMember.user_id)
-        .join(CampaignMemberArea, CampaignMemberArea.campaign_member_id == CampaignMember.id)
-        .where(CampaignMember.campaign_id == campaign_id, CampaignMemberArea.ward_id == ward_id)
-    )
-    mobilizers = select(Mobilizer.user_id).where(
-        Mobilizer.campaign_id == campaign_id,
-        Mobilizer.ward_id == ward_id,
-        Mobilizer.user_id.is_not(None),
-    )
-    leads = members.where(CampaignMember.role.in_(LEADS))
-    found = await session.scalars(leads.union(coordinators, mobilizers))
-    return list(dict.fromkeys(found))
-
-
 async def start(
     session: AsyncSession,
     campaign_id: uuid.UUID,
     title: str,
     mode: str,
     ward_id: uuid.UUID | None,
+    centre_id: uuid.UUID | None = None,
     *,
     actor: User,
 ) -> tuple[Meeting, list[uuid.UUID]]:
@@ -103,6 +75,7 @@ async def start(
         mode=mode,
         host_id=actor.id,
         ward_id=ward_id,
+        registration_centre_id=centre_id,
         livekit_room=f"m-{uuid.uuid4().hex}",
         started_at=datetime.now(UTC),
     )
@@ -116,10 +89,14 @@ async def start(
         subject_type="meeting",
         subject_id=meeting.id,
         campaign_id=campaign_id,
-        detail={"mode": mode, "ward": str(ward_id) if ward_id else None},
+        detail={
+            "mode": mode,
+            "ward": str(ward_id) if ward_id else None,
+            "centre": str(centre_id) if centre_id else None,
+        },
     )
     await session.commit()
-    return meeting, await invitees(session, campaign_id, ward_id)
+    return meeting, await units.logins(session, campaign_id, ward_id, centre_id)
 
 
 def join_token(meeting: Meeting, user: User) -> str:
@@ -150,7 +127,7 @@ def join_token(meeting: Meeting, user: User) -> str:
 
 async def end(session: AsyncSession, meeting: Meeting, *, actor: User) -> Meeting:
     """The host, or a lead of the campaign, ends the call for everyone. Commits."""
-    if meeting.host_id != actor.id and actor.role not in (UserRole.CANDIDATE, UserRole.MANAGER):
+    if meeting.host_id != actor.id and actor.role not in ENDERS:
         raise Forbidden("Only the host, the candidate or the manager ends a call for everyone.")
     if meeting.status == "live":
         await rooms.close(meeting.livekit_room)
@@ -220,6 +197,11 @@ async def apply_event(session: AsyncSession, event: api.WebhookEvent) -> bool:
     return True
 
 
+def _aware(at: datetime) -> datetime:
+    """A stored time as UTC; SQLite hands times back without their zone."""
+    return at if at.tzinfo else at.replace(tzinfo=UTC)
+
+
 async def calls(session: AsyncSession, campaign_id: uuid.UUID) -> list[dict]:
     """The campaign's meetings, newest first, each with who came and for how long."""
     meetings = list(
@@ -252,6 +234,7 @@ async def calls(session: AsyncSession, campaign_id: uuid.UUID) -> list[dict]:
         if any(m.host_id for m in meetings)
         else {}
     )
+    places = await units.labels(session, [(m.ward_id, m.registration_centre_id) for m in meetings])
     out = []
     for m in meetings:
         people = [
@@ -263,12 +246,14 @@ async def calls(session: AsyncSession, campaign_id: uuid.UUID) -> list[dict]:
             for stay, person in stays
             if stay.meeting_id == m.id
         ]
-        end_at = m.ended_at or datetime.now(UTC)
+        end_at = _aware(m.ended_at or datetime.now(UTC))
+        started = _aware(m.started_at)
         out.append(
             {
                 "meeting": m,
                 "host": hosts.get(m.host_id, ""),
-                "minutes": max(int((end_at - m.started_at).total_seconds() // 60), 0),
+                "unit": places[(m.ward_id, m.registration_centre_id)],
+                "minutes": max(int((end_at - started).total_seconds() // 60), 0),
                 "attendance": people,
             }
         )

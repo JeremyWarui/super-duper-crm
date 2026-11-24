@@ -28,7 +28,7 @@ export const holderOf = (mobilizers, unit) =>
 
 
 const ALL_FIELD = { label: "Field", items: [["events", "Events"], ["mobilizers", "Mobilizers"], ["agents", "Agents"], ["assignments", "Assignments"], ["supporters", "Contacts"], ["volunteers", "Volunteers"]] };
-const REACH_OUT = { label: "Reach out", items: [["messages", "Messages"], ["calls", "Calls"]] };
+const REACH_OUT = { label: "Reach out", items: [["announcements", "Announcements"], ["messages", "Messages"], ["calls", "Calls"]] };
 const LEAD = [
   { label: "Plan", items: [["overview", "Overview"], ["strategy", "Strategy"], ["targets", "Targets"], ["units", "Wards"]] },
   ALL_FIELD,
@@ -50,8 +50,8 @@ export const NAV = {
     { label: "Money", items: [["payments", "Payments"]] },
   ],
   comms: [{ label: "Plan", items: [["targets", "Targets"]] }, { label: "Field", items: [["events", "Events"]] }, REACH_OUT],
-  mobilizer: OWN_WORK([["myevents", "My events"], ["register", "Add contact"], ["mysupporters", "My contacts"], ["mypayments", "My payments"]]),
-  agent: OWN_WORK([["mycentre", "My centre"], ["myevents", "My events"], ["mypayments", "My payments"]]),
+  mobilizer: OWN_WORK([["myevents", "My events"], ["register", "Add contact"], ["mysupporters", "My contacts"], ["mypayments", "My payments"], ["announcements", "Announcements"]]),
+  agent: OWN_WORK([["mycentre", "My centre"], ["myevents", "My events"], ["mypayments", "My payments"], ["announcements", "Announcements"]]),
 };
 
 const SITE_WRITERS = ["candidate", "manager", "comms"];

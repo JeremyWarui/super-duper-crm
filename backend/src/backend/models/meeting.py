@@ -19,9 +19,12 @@ class Meeting(UUIDPrimaryKeyMixin, Base):
     # "audio" or "video"; an audio meeting lets nobody publish a camera.
     mode: Mapped[str] = mapped_column(String(10))
     host_id: Mapped[uuid.UUID | None] = user_ref()
-    # Invited the whole campaign when None.
+    # Invited the whole campaign when None; a centre comes with its ward.
     ward_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("wards.id", ondelete="SET NULL"), default=None
+    )
+    registration_centre_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("registration_centres.id", ondelete="SET NULL"), default=None
     )
     event_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("events.id", ondelete="SET NULL"), default=None

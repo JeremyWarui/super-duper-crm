@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 
 from backend.api.deps import CurrentUser, SessionDep, require
-from backend.api.scope import area_of, require_visible_campaign
+from backend.api.scope import area_of, require_visible_campaign, require_ward_in_campaign
 from backend.config import get_settings
 from backend.models import Meeting, User
 from backend.schemas.meetings import (
@@ -20,14 +20,14 @@ from backend.schemas.meetings import (
     PushSubscribe,
     PushUnsubscribe,
 )
-from backend.services import meetings, push
+from backend.services import meetings, push, units
 from backend.services.errors import NotFound, Refused
 
 router = APIRouter(tags=["meetings"])
 
 Starter = Annotated[User, Depends(require("meetings.start"))]
 Joiner = Annotated[User, Depends(require("meetings.join"))]
-WARD_REQUIRED = "Pick one of your wards to call."
+WARD_REQUIRED = "Pick a ward or centre in your area to call."
 
 
 async def _meeting(session, user: User, meeting_id: uuid.UUID) -> Meeting:
@@ -47,12 +47,14 @@ async def start(
     campaign_id: uuid.UUID, payload: MeetingStart, session: SessionDep, user: Starter
 ) -> MeetingStarted:
     """Open a call and ring its invitees' devices."""
-    await require_visible_campaign(session, user, campaign_id)
+    campaign = await require_visible_campaign(session, user, campaign_id)
+    ward, centre = await units.resolve(session, payload.ward, payload.centre)
+    await require_ward_in_campaign(session, campaign, ward, centre)
     area = await area_of(session, user, "meetings.start")
-    if area is not None and (payload.ward is None or not area.holds(payload.ward)):
+    if area is not None and (ward is None or not area.holds(ward, centre)):
         raise Refused(WARD_REQUIRED)
     meeting, invited = await meetings.start(
-        session, campaign_id, payload.title, payload.mode, payload.ward, actor=user
+        session, campaign_id, payload.title, payload.mode, ward, centre, actor=user
     )
     path = f"/meet/{meeting.id}"
     others = [i for i in invited if i != user.id]
@@ -77,7 +79,7 @@ async def token(meeting_id: uuid.UUID, session: SessionDep, user: Joiner) -> Mee
         meeting=MeetingRead.model_validate(meeting),
         token=meetings.join_token(meeting, user),
         url=get_settings().livekit_url,
-        can_end=meeting.host_id == user.id or user.role in meetings.LEADS[:2],
+        can_end=meeting.host_id == user.id or user.role in meetings.ENDERS,
     )
 
 

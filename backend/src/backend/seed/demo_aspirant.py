@@ -20,7 +20,7 @@ from backend.models import (
 from backend.schemas.setup import InvitedLogin, SetupRequest, SetupSeat, SetupSite, SetupSuperuser
 from backend.security import hash_password
 from backend.seed.demo import demo_email, seed_ground_game
-from backend.seed.demo_content import PICTURE, PORTRAIT, SITE, UNSPLASH, fill_site
+from backend.seed.demo_content import PICTURE, PORTRAIT, SITE, UNSPLASH, announce, fill_site
 from backend.seed.sign_ins import SignIn
 from backend.services import setup
 from backend.services.accounts import add_member, new_login
@@ -271,6 +271,8 @@ async def build_aspirant(session: AsyncSession, *, password: str, today: date) -
     await seed_ground_game(session, campaign, wards, mobilizer)
     await _site(session, campaign, today)
     await session.commit()
+    manager = await session.scalar(select(User).where(User.username == "manager"))
+    await announce(session, campaign, manager, wards[0])
 
     return [
         SignIn(demo_email("admin"), "Site admin", "Console: logins, settings, data export"),

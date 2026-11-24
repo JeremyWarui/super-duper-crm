@@ -92,6 +92,8 @@ MAP: dict[str, dict[UserRole, Reach]] = {
     "meetings.start": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COMMS: ALL, R.COORDINATOR: AREA},
     # Joining one: every login of the campaign.
     "meetings.join": {role: ALL for role in R},
+    # Announcing to the whole campaign, a ward or a centre; a Coordinator's reaches their area.
+    "announcements.send": {R.CANDIDATE: ALL, R.MANAGER: ALL, R.COMMS: ALL, R.COORDINATOR: AREA},
 }
 
 REFUSALS = {
@@ -109,6 +111,7 @@ REFUSALS = {
     "targets.set_scenario": "Only the candidate or the manager sets the team's turnout scenario.",
     "meetings.start": "Only the candidate, the manager, comms or a coordinator starts a call.",
     "meetings.join": "Only the campaign's own logins join its calls.",
+    "announcements.send": "Only the candidate, the manager, comms or a coordinator announces.",
 }
 
 

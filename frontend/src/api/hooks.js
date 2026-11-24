@@ -318,6 +318,16 @@ export const useCalls = (campaignId) =>
 export const useStartCall = (campaignId) =>
   useWrite((body) => api(`/campaigns/${campaignId}/meetings/`, { method: "POST", body }), "calls");
 
+export const useAnnouncements = (campaignId) =>
+  useQuery({ queryKey: ["announcements", campaignId], queryFn: () => api(`/campaigns/${campaignId}/announcements/`), enabled: !!campaignId });
+
+export const useSendAnnouncement = (campaignId) =>
+  useWrite((body) => api(`/campaigns/${campaignId}/announcements/`, { method: "POST", body }), "announcements");
+
+// Opening the page reads every announcement, so their notices leave the bell too.
+export const useReadAnnouncements = (campaignId) =>
+  useWrite(() => api(`/campaigns/${campaignId}/announcements/read/`, { method: "POST" }), "announcements", "notices");
+
 // A fresh token each time the page opens; it is good for fifteen minutes.
 export const useJoinCall = (meetingId) =>
   useQuery({

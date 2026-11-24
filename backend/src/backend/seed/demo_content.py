@@ -1,11 +1,23 @@
 """The aspirant demo's website content: news, events, documents, videos and the site settings."""
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Document, Post, PostKind, PostLabel, SiteSettings, Video
+from backend.models import (
+    Campaign,
+    Document,
+    Notice,
+    Post,
+    PostKind,
+    PostLabel,
+    SiteSettings,
+    User,
+    Video,
+    Ward,
+)
+from backend.services import announcements
 from backend.services.rich_text import from_plain
 
 # Free (CC0) StockSnap scenes, named by their StockSnap id.
@@ -212,3 +224,40 @@ async def fill_site(session: AsyncSession, today: date) -> None:
                 published=True,
             )
         )
+
+
+# The manager's announcements: title, message, to one ward (else the whole campaign), days ago.
+ANNOUNCEMENTS = [
+    (
+        "Voter registration drive this Saturday",
+        "Every ward team meets at its campaign point at 8am. Bring the register and the "
+        "registration flyers; IEBC clerks will be at Mwiki grounds and Ruai market.",
+        False,
+        2,
+    ),
+    (
+        "Clay City door-to-door push",
+        "We are ahead of target in Clay City. This week, visit the estates behind the "
+        "community centre and record every contact the same day.",
+        True,
+        0,
+    ),
+]
+
+
+async def announce(session: AsyncSession, campaign: Campaign, manager: User, ward: Ward) -> None:
+    """Send the demo announcements; the candidate has read the oldest one."""
+    candidate = await session.scalar(select(User).where(User.username == "candidate"))
+    now = datetime.now(UTC)
+    for title, body, to_ward, days_ago in ANNOUNCEMENTS:
+        sent, _ = await announcements.send(
+            session, campaign.id, title, body, ward.id if to_ward else None, None, actor=manager
+        )
+        sent.created_at = now - timedelta(days=days_ago, hours=3)
+        if days_ago:
+            await session.execute(
+                update(Notice)
+                .where(Notice.announcement_id == sent.id, Notice.user_id == candidate.id)
+                .values(read_at=sent.created_at + timedelta(hours=1))
+            )
+    await session.commit()

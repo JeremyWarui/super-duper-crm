@@ -19,6 +19,7 @@ import { AreaContext, ICONS, useReadNoticesOn, useShellData } from "./pages/camp
 import YourWard from "./pages/campaign/YourWard";
 import CampaignModal from "./pages/campaign/CampaignModal";
 import Overview from "./pages/campaign/Overview";
+import Announcements from "./pages/campaign/Announcements";
 import Calls from "./pages/campaign/Calls";
 import CallAlerts from "./components/CallAlerts";
 import Units from "./pages/campaign/Units";
@@ -57,6 +58,7 @@ export const PAGES = {
   units: Units,
   strategy: Strategy,
   targets: Targets,
+  announcements: Announcements,
   calls: Calls,
   team: Team,
   mobilizers: Mobilizers,

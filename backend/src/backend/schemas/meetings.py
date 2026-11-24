@@ -35,8 +35,9 @@ def push_endpoint(value: str) -> str:
 class MeetingStart(WriteModel):
     title: str = Field(min_length=1, max_length=150)
     mode: Literal["audio", "video"] = "video"
-    # Blank rings the whole campaign.
+    # Both blank rings the whole campaign; a centre rings that centre's team.
     ward: uuid.UUID | None = None
+    centre: uuid.UUID | None = None
 
 
 class MeetingRead(ORMModel):
@@ -45,6 +46,7 @@ class MeetingRead(ORMModel):
     mode: str
     status: str
     ward: uuid.UUID | None = Field(default=None, validation_alias="ward_id")
+    centre: uuid.UUID | None = Field(default=None, validation_alias="registration_centre_id")
     started_at: datetime
     ended_at: datetime | None
 
@@ -72,6 +74,8 @@ class Stay(ORMModel):
 class CallRead(ORMModel):
     meeting: MeetingRead
     host: str
+    # Who the call was for: "Whole campaign", "Mwiki ward" or "Mwiki Primary centre".
+    unit: str
     minutes: int
     attendance: list[Stay]
 

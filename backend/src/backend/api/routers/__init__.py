@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from backend.api.routers import (
     admin,
     agents,
+    announcements,
     aspirant_site,
     assignments,
     auth,
@@ -60,6 +61,7 @@ for module in (
     payments_in,
     supporters,
     meetings,
+    announcements,
     messages,
     sms_callbacks,
     sms_console,

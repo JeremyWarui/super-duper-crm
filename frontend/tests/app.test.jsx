@@ -39,7 +39,7 @@ const groups = () =>
 const LEAD = {
   Plan: ["Overview", "Strategy", "Targets", "Wards"],
   Field: ["Events", "Mobilizers", "Agents", "Assignments", "Contacts", "Volunteers"],
-  "Reach out": ["Messages", "Calls"],
+  "Reach out": ["Announcements", "Messages", "Calls"],
   People: ["Team", "Sign-ups", "Personal data"],
   Money: ["Payments", "Contributions"],
   Website: ["Website", "Settings"],
@@ -52,11 +52,11 @@ describe("what each role is shown", () => {
     [
       "coordinator",
       "Coordinator",
-      { Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, "Reach out": ["Messages", "Calls"], People: ["Sign-ups"], Money: ["Payments"] },
+      { Plan: ["Overview", "Strategy", "Wards"], Field: LEAD.Field, "Reach out": ["Announcements", "Messages", "Calls"], People: ["Sign-ups"], Money: ["Payments"] },
     ],
-    ["comms", "Comms officer", { Plan: ["Targets"], Field: ["Events"], "Reach out": ["Messages", "Calls"], Website: ["Website", "Settings"] }],
-    ["mobilizer", "Mobilizer", { "My work": ["My events", "Add contact", "My contacts", "My payments"] }],
-    ["agent", "Agent", { "My work": ["My centre", "My events", "My payments"] }],
+    ["comms", "Comms officer", { Plan: ["Targets"], Field: ["Events"], "Reach out": ["Announcements", "Messages", "Calls"], Website: ["Website", "Settings"] }],
+    ["mobilizer", "Mobilizer", { "My work": ["My events", "Add contact", "My contacts", "My payments", "Announcements"] }],
+    ["agent", "Agent", { "My work": ["My centre", "My events", "My payments", "Announcements"] }],
   ])("gives a %s exactly their groups", async (role, label, expected) => {
     await open(role);
 
@@ -247,6 +247,33 @@ describe("an MCA race's supporters", () => {
         { registration_centre: "rc1" },
       ]);
     });
+  });
+});
+
+describe("an MCA race's announcements", () => {
+  it("sends one to a single registration centre's team", async () => {
+    const user = userEvent.setup();
+    const { calls } = await open("manager", {
+      "GET /campaigns/": [{ ...CAMPAIGN, operational_grain: "centre", ward: "w1" }],
+      "GET /targets/": [
+        { id: "t1", ward: "w1", ward_name: "Zimmerman", registration_centre: "rc1", centre_name: "Zimmerman Primary" },
+        { id: "t2", ward: "w1", ward_name: "Zimmerman", registration_centre: "rc2", centre_name: "Kamiti Road" },
+      ],
+      "GET /campaigns/c1/announcements/": [],
+      "POST /campaigns/c1/announcements/": { announcement: { recipients: 3, unit: "Kamiti Road centre" }, alerted: 0 },
+    });
+
+    await user.click(screen.getByRole("link", { name: "Announcements" }));
+    await user.selectOptions(await screen.findByRole("combobox", { name: "To" }), "Kamiti Road centre");
+    await user.type(screen.getByLabelText("Title"), "Briefing at 6pm");
+    await user.type(screen.getByLabelText("Message"), "Bring the register.");
+    await user.click(screen.getByRole("button", { name: "Send announcement" }));
+
+    await waitFor(() => {
+      const sent = calls.find((c) => c.method === "POST" && c.path === "/campaigns/c1/announcements/");
+      expect(sent.body).toEqual({ title: "Briefing at 6pm", body: "Bring the register.", ward: "w1", centre: "rc2" });
+    });
+    expect(await screen.findByRole("status")).toHaveTextContent("Sent to 3 people in Kamiti Road centre.");
   });
 });
 
