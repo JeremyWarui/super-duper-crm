@@ -8,10 +8,7 @@ repeat them.
 
 1. [`docs/SYSTEM.md`](../SYSTEM.md): what the code does today, its rules, roles and
    architecture.
-2. The design documents: [`docs/Targets_Design.md`](../Targets_Design.md) (vote targets),
-   [`docs/Communications_Design.md`](../Communications_Design.md) and
-   [`docs/Comms_Demo_Plan.md`](../Comms_Demo_Plan.md) (texts, calls and alerts).
-3. [`backend/README.md`](../../backend/README.md): the API, the rules route by route, every
+2. [`backend/README.md`](../../backend/README.md): the API, the rules route by route, every
    outside service and its settings, and the known gaps.
 
 ## Layout

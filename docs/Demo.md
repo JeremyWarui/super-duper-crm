@@ -9,7 +9,7 @@ goes in them.
 | Aspirant demo | https://kasarani-demo.vercel.app | `kasarani-demo` | `demo_aspirant` | David Otieno for Kasarani: candidate page and campaign |
 | Blank | https://setup-demo.vercel.app | `setup-demo` | `demo_blank` | Empty, for trying `/setup` from scratch |
 
-The databases are in Neon project `mzigo_crm` (`patient-flower-76867840`), branch `production`.
+The databases are in Neon project `mzigo_crm_fra` (`cold-firefly-78479992`, Frankfurt), branch `production`.
 Their connection strings are in `backend/.env` as `NEON_ASPIRANT` and `NEON_BLANK`.
 
 ## Demo choices and what production uses instead

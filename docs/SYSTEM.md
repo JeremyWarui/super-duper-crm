@@ -199,8 +199,7 @@ target 2,908). `backend/tests/test_win_model.py` checks every figure here.
 
 The campaign holds the scenario the team works to (`Campaign.turnout_scenario`, Expected by
 default, with who set it and when), and every saved target uses it. Trying a scenario and setting
-one are separate steps (`services/target_scenarios.py`, `api/routers/target_scenarios.py`;
-`docs/Targets_Design.md` section 6.1):
+one are separate steps (`services/target_scenarios.py`, `api/routers/target_scenarios.py`):
 
 | | Trying (preview) | Setting |
 |---|---|---|
