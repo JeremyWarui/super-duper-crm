@@ -175,10 +175,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     _post_indexes("posts", "posts", "party_posts")
-    _rename_tables(
-        {new: old for old, new in RENAMED.items()},
-        [(table, new, old) for table, old, new in RENAMED_CONSTRAINTS],
-    )
+    back = {new: old for old, new in RENAMED.items()}
+    _rename_tables(back, [(back[table], new, old) for table, old, new in RENAMED_CONSTRAINTS])
     with op.batch_alter_table("stored_files") as batch:
         batch.drop_constraint(_enum_check("stored_files", "file_area"), type_="check")
         batch.create_check_constraint(

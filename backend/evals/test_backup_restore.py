@@ -47,7 +47,7 @@ async def test_a_restore_brings_back_the_database_and_the_uploaded_image(
         "/api/files/",
         headers=admin_headers,
         files={"file": ("photo.png", _png(), "image/png")},
-        data={"area": "leaders", "public": "true"},
+        data={"area": "candidates", "public": "true"},
     )
     assert uploaded.status_code == 201, uploaded.text
     url = uploaded.json()["url"]
