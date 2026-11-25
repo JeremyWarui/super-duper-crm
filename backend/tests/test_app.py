@@ -8,6 +8,7 @@ import pytest
 
 from backend.api.deps import get_set_up
 from backend.config import get_settings
+from backend.db.session import get_engine
 from backend.main import app, create_app
 
 
@@ -27,6 +28,7 @@ async def _client_with_static(directory: Path) -> AsyncIterator[httpx.AsyncClien
     finally:
         os.environ.pop("STATIC_DIR", None)
         get_settings.cache_clear()
+        await get_engine().dispose()
 
 
 @pytest.fixture

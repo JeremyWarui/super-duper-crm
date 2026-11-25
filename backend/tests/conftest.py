@@ -2,12 +2,14 @@
 
 import os
 import secrets
+import weakref
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
+import aiosqlite
 import httpx
 import pytest
 from sqlalchemy import event
@@ -33,6 +35,38 @@ if TYPE_CHECKING:
         User,
         Ward,
     )
+
+
+_sqlite_connections: "weakref.WeakKeyDictionary[aiosqlite.Connection, str]" = (
+    weakref.WeakKeyDictionary()
+)
+_opening_test = [""]
+_open_connection = aiosqlite.Connection.__init__
+
+
+def _tracked_init(self: aiosqlite.Connection, *args: object, **kwargs: object) -> None:
+    _open_connection(self, *args, **kwargs)
+    _sqlite_connections[self] = _opening_test[0]
+
+
+aiosqlite.Connection.__init__ = _tracked_init
+
+
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    _opening_test[0] = item.nodeid
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_teardown(item: pytest.Item, nextitem: pytest.Item | None) -> Iterator[None]:
+    """Fails a test that leaves a SQLite connection open after its fixtures are torn down."""
+    result = yield
+    left_open = [
+        c
+        for c, test in list(_sqlite_connections.items())
+        if test == item.nodeid and c._connection is not None
+    ]
+    assert not left_open, f"{item.nodeid} left {len(left_open)} SQLite connection(s) open"
+    return result
 
 
 @pytest.fixture(autouse=True)
