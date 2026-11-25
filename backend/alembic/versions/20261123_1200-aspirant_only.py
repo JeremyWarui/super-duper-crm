@@ -110,7 +110,6 @@ def upgrade() -> None:
     op.execute("DELETE FROM payments_in WHERE purpose = 'nomination_fee' OR campaign_id IS NULL")
     op.execute("DELETE FROM campaigns WHERE seat IS NULL")
     op.execute("DELETE FROM users WHERE role IS NULL AND NOT is_superuser")
-    op.execute(f"DELETE FROM stored_files WHERE NOT {_in('area', FILE_AREAS)}")
 
     with op.batch_alter_table("candidate_profiles") as batch:
         batch.drop_constraint("uq_candidate_profiles_aspirant_id", type_="unique")
@@ -128,6 +127,8 @@ def upgrade() -> None:
         batch.drop_column("party_message_id")
     for table in PARTY_TABLES:
         op.drop_table(table)
+    # After the drops: aspirant_documents restricts deleting the files it points at.
+    op.execute(f"DELETE FROM stored_files WHERE NOT {_in('area', FILE_AREAS)}")
 
     op.drop_index("uq_volunteer_profiles_party_phone", table_name="volunteer_profiles")
     with op.batch_alter_table("volunteer_profiles") as batch:

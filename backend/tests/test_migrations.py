@@ -1,7 +1,10 @@
 """The migrations build the schema the models describe, on SQLite and as Postgres SQL."""
 
+import contextlib
 import functools
 import secrets
+import uuid
+from collections.abc import AsyncIterator
 from urllib.parse import quote
 
 import pytest
@@ -9,6 +12,7 @@ import sqlalchemy as sa
 from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.config import alembic_url, get_settings
 from backend.models import Base
@@ -83,27 +87,73 @@ def _down_and_up(connection) -> None:
             module.upgrade()
 
 
-@pytest.mark.skipif(not POSTGRES, reason="needs TEST_POSTGRES=1")
-async def test_every_revision_downgrades_and_upgrades_again_on_postgres() -> None:
+@contextlib.asynccontextmanager
+async def _scratch_postgres(suffix: str) -> AsyncIterator[AsyncEngine]:
+    """An empty database on the local Postgres, dropped afterwards."""
     from sqlalchemy.engine import make_url
     from sqlalchemy.ext.asyncio import create_async_engine
 
-    name = f"{make_url(postgres_url()).database}_downgrade"
+    name = f"{make_url(postgres_url()).database}_{suffix}"
     admin = create_async_engine(postgres_url("postgres"), isolation_level="AUTOCOMMIT")
     async with admin.connect() as connection:
         await connection.execute(sa.text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
         await connection.execute(sa.text(f'CREATE DATABASE "{name}"'))
     scratch = create_async_engine(postgres_url(name))
     try:
-        async with scratch.begin() as connection:
-            await connection.run_sync(upgrade_head)
-        async with scratch.begin() as connection:
-            await connection.run_sync(_down_and_up)
+        yield scratch
     finally:
         await scratch.dispose()
         async with admin.connect() as connection:
             await connection.execute(sa.text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
         await admin.dispose()
+
+
+@pytest.mark.skipif(not POSTGRES, reason="needs TEST_POSTGRES=1")
+async def test_every_revision_downgrades_and_upgrades_again_on_postgres() -> None:
+    async with _scratch_postgres("downgrade") as scratch:
+        async with scratch.begin() as connection:
+            await connection.run_sync(upgrade_head)
+        async with scratch.begin() as connection:
+            await connection.run_sync(_down_and_up)
+
+
+def _upgrade_with_a_nomination_document(connection) -> int:
+    """Upgrade to head with a nomination document on file before aspirant_only runs, and count
+    the party files left after."""
+    modules = revision_modules()
+    at = next(i for i, m in enumerate(modules) if m.revision == "aspirant_only")
+    file_id, document_id, aspirant_id = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    with Operations.context(MigrationContext.configure(connection)):
+        for module in modules[:at]:
+            module.upgrade()
+        connection.execute(sa.text("SET session_replication_role = replica"))
+        connection.execute(
+            sa.text(
+                "INSERT INTO stored_files "
+                "(id, area, public, original_name, content_type, size, sha256, widths) "
+                "VALUES (:id, 'nominations', false, 'form.pdf', 'application/pdf', 1, :sha, '[]')"
+            ),
+            {"id": file_id, "sha": "0" * 64},
+        )
+        connection.execute(
+            sa.text(
+                "INSERT INTO aspirant_documents (id, aspirant_id, label, file_id) "
+                "VALUES (:id, :aspirant, 'Nomination form', :file)"
+            ),
+            {"id": document_id, "aspirant": aspirant_id, "file": file_id},
+        )
+        connection.execute(sa.text("SET session_replication_role = origin"))
+        for module in modules[at:]:
+            module.upgrade()
+    return connection.scalar(sa.text("SELECT count(*) FROM stored_files"))
+
+
+@pytest.mark.skipif(not POSTGRES, reason="needs TEST_POSTGRES=1")
+async def test_aspirant_only_removes_party_files_a_party_table_still_points_at() -> None:
+    async with _scratch_postgres("party_files") as scratch, scratch.begin() as connection:
+        left = await connection.run_sync(_upgrade_with_a_nomination_document)
+
+    assert left == 0
 
 
 @functools.cache
