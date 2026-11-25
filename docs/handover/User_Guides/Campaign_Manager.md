@@ -156,8 +156,8 @@ What you type in **New SMS** stays on this device until it is sent.
 1. **Website** has tabs **Candidate page**, **News**, **Homepage** and **Media**. Use **New
    post** (or slide, issue, video, document), **Edit**, **Publish** or **Unpublish**, and
    **Delete**. The candidate page saves with **Save profile**.
-2. **Settings** holds the site name, colours, contacts, **How to give (shown on the Contribute
-   page)** and the **Privacy notice**. Press **Save settings**.
+2. **Settings** holds the site name, colours, contacts, **Other ways to give (shown on the
+   Contribute page, below M-Pesa)** and the **Privacy notice**. Press **Save settings**.
 
 ## Who to ask for help
 

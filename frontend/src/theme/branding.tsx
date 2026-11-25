@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useSite } from '@/api/hooks'
+import { setSiteName } from '@/lib/title'
 
 /**
  * Site branding, from the site settings (GET /api/site/).
@@ -86,7 +87,7 @@ export const useBranding = () => React.useContext(Ctx)
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const site = useSite().data
   const b = React.useMemo(() => (site ? fromSettings(site) : defaultBranding), [site])
-  React.useEffect(() => applyBranding(b), [b])
-  React.useEffect(() => { if (site?.name) document.title = site.name }, [site?.name])
+  React.useEffect(() => { if (site) applyBranding(b) }, [site, b])
+  React.useEffect(() => setSiteName(site?.name), [site?.name])
   return <Ctx.Provider value={b}>{children}</Ctx.Provider>
 }

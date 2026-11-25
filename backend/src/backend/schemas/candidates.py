@@ -5,7 +5,7 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, Field
+from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, model_validator
 
 from backend.models import ContactMethod, Profession, Seat, VolunteerStatus
 from backend.schemas.common import (
@@ -85,15 +85,25 @@ class CandidateDetail(CandidateCard):
     consent_wording: str
 
 
+def _blank_is_none(value: object) -> object:
+    return None if isinstance(value, str) and not value.strip() else value
+
+
 class CandidateVolunteerCreate(VolunteerPart):
     """The volunteer form: how they would like to help, plus who and where."""
 
     first_name: PlainName
     last_name: PlainName
-    email: Email = Field(min_length=3)
+    email: Annotated[Email | None, BeforeValidator(_blank_is_none)] = None
     phone: str = Field(min_length=9, max_length=20)
     ward: uuid.UUID
-    registration_centre: uuid.UUID
+    registration_centre: Annotated[uuid.UUID | None, BeforeValidator(_blank_is_none)] = None
+
+    @model_validator(mode="after")
+    def _email_to_write_to(self) -> "CandidateVolunteerCreate":
+        if self.preferred_contact is ContactMethod.EMAIL and not self.email:
+            raise ValueError("Give an email address, or pick another way to contact you.")
+        return self
 
 
 class CampaignVolunteerRead(Erasable, ORMModel):

@@ -98,7 +98,7 @@ export default function TeamSignup() {
                   </NativeSelect>
                 </Field>
               )}
-              <Check className="gap-2.5 text-ui" checked={form.consent_given} onChange={set("consent_given")}>
+              <Check name="consent_given" value="yes" className="gap-2.5 text-ui" checked={form.consent_given} onChange={set("consent_given")}>
                 <span>{data.consent_wording}</span>
               </Check>
               <ErrorText error={submit.error} className="text-ui" />

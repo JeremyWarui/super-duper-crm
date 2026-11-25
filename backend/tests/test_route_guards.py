@@ -39,7 +39,7 @@ PUBLIC_ROUTES = {
     ("GET", "/api/website/documents/"),
     ("GET", "/api/website/videos/"),
     ("GET", "/api/website/posts/"),
-    ("GET", "/api/website/posts/{post_id}/"),
+    ("GET", "/api/website/posts/{post_ref}/"),
     ("GET", "/api/website/events/"),
     ("GET", "/api/website/events/{event_id}/"),
     ("POST", "/api/website/subscribe/"),

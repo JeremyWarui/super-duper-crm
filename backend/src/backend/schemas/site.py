@@ -6,9 +6,13 @@ from typing import Annotated
 
 from pydantic import AfterValidator, Field, model_validator
 
+from backend.config import get_settings
 from backend.schemas.common import ORMModel, WriteModel, plain_text
 from backend.services.branding import INK, MIN_CONTRAST, WHITE, contrast
 from backend.services.consent import SUBSCRIBE_WORDING
+
+# Safaricom's test Paybill: fine for practice, never a place for real money.
+SANDBOX_PAYBILL = "174379"
 
 COLOUR = re.compile(r"^#[0-9a-fA-F]{6}$")
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -121,6 +125,10 @@ class SiteSettingsUpdate(SiteIdentity):
             plain_text(getattr(self, name))
         if self.mpesa_paybill and self.mpesa_till:
             raise ValueError("Give a Paybill or a Till, not both.")
+        if self.mpesa_paybill == SANDBOX_PAYBILL and get_settings().payin_provider != "practice":
+            raise ValueError(
+                f"{SANDBOX_PAYBILL} is Safaricom's test Paybill. Give the campaign's own Paybill."
+            )
         refuse_low_contrast(self.primary_colour, self.secondary_colour)
         for name in (
             "address",

@@ -51,6 +51,8 @@ class Post(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     kind: Mapped[PostKind] = mapped_column(choice_type(PostKind, "post_kind"))
     title: Mapped[str] = mapped_column(String(150))
+    # The post's address on the site, /news/<slug>; made from the first title and then kept.
+    slug: Mapped[str | None] = mapped_column(String(90), unique=True, default=None)
     body: Mapped[str] = mapped_column(Text, default="")
     image_url: Mapped[str] = mapped_column(String(500), default="")
     event_date: Mapped[date | None] = mapped_column(Date, default=None)

@@ -1,7 +1,9 @@
 // An inner page's breadcrumbs and title, as every public page below the home page shows them.
 import { Crumbs } from "@/components/ui/typography";
+import { usePageTitle } from "@/lib/title";
 
 export default function PageHead({ title, lead }) {
+  usePageTitle(title);
   return (
     <div className="flex flex-col gap-3 pb-8">
       <Crumbs items={[{ label: "Home", to: "/" }, { label: title }]} />
@@ -17,6 +19,7 @@ export default function PageHead({ title, lead }) {
  */
 export function PageHero({ tone = "primary", crumbs, kicker, title, lead, children }) {
   const ink = tone === "ink";
+  usePageTitle(title);
   return (
     <section className={ink ? "bg-ink text-on-dark" : "bg-primary text-white"}>
       <div className="site-container flex flex-col gap-5 py-14">

@@ -21,6 +21,7 @@ function PaybillSteps({ options, amount }) {
     : [["Till", options.till], ["Amount", formatKES(amount)]];
   return (
     <div className="flex flex-col gap-3 rounded-card bg-stone p-4">
+      {options.practice ? <p role="note" className="text-small font-semibold text-bad-foreground">Practice mode: these are test numbers. Do not send money to them.</p> : null}
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
         {rows.map(([k, v]) => (
           <div key={k} className="contents"><dt className="text-muted-foreground">{k}</dt><dd className="font-display text-[18px] font-extrabold tabular-nums">{v}</dd></div>

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import { CrmTopBar } from './CrmTopBar'
 import { useAppShell } from './AppLayout'
+import { usePageTitle } from '@/lib/title'
 
 /** The frosted page header: context line, title, and the page's actions on the right. */
 export function PageHeader({ context, title, sub, actions }: {
@@ -61,6 +62,7 @@ export function AppPage({ crumb, context, title, actions, children, gap = 24, cl
 }) {
   const app = useAppShell()
   const [slot, setSlot] = React.useState<HTMLDivElement | null>(null)
+  usePageTitle(typeof crumb === 'string' ? crumb : crumb[crumb.length - 1]?.label)
   const crumbs = [{ label: app.rootLabel, to: app.rootPath }, ...(typeof crumb === 'string' ? [{ label: crumb }] : crumb)]
   const slotted = app.slotHeaders && !title
   return (

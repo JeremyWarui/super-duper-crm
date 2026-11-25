@@ -71,12 +71,20 @@ export function FilterSelect({ label, value, onChange, options, blank, disabled,
   return labelled ? <Field label={label} className="min-w-0">{select}</Field> : select
 }
 
-/** Label stacked above its control, 13px semibold, 4–6px gap — as in every mockup form */
+const CONTROLS: unknown[] = [Input, Textarea, NativeSelect, 'input', 'select', 'textarea']
+
+/**
+ * Label stacked above its control, 13px semibold, 4–6px gap — as in every mockup form.
+ * A lone input, select or textarea also gets an id the label names with `for`.
+ */
 export function Field({ label, hint, className, children }: { label: React.ReactNode; hint?: React.ReactNode; className?: string; children: React.ReactNode }) {
+  const made = React.useId()
+  const control = React.isValidElement<{ id?: string }>(children) && CONTROLS.includes(children.type) ? children : null
+  const id = control ? control.props.id || made : undefined
   return (
-    <label className={cn('flex flex-col gap-1.5 text-small font-semibold', className)}>
+    <label htmlFor={id} className={cn('flex flex-col gap-1.5 text-small font-semibold', className)}>
       <span>{label}</span>
-      {children}
+      {control && !control.props.id ? React.cloneElement(control, { id }) : children}
       {hint ? <span className="text-small font-normal text-muted-foreground">{hint}</span> : null}
     </label>
   )

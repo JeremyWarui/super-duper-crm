@@ -19,6 +19,7 @@ from backend.models import (
     Ward,
 )
 from backend.services import announcements
+from backend.services.content import slug_of
 from backend.services.rich_text import from_plain
 
 # Free (CC0) StockSnap scenes, named by their StockSnap id.
@@ -49,9 +50,9 @@ SITE = {
         "shilling spent will be published on this website."
     ),
     "payment_instructions": (
-        "Give by M-Pesa: Lipa na M-Pesa, Paybill 174379, account OTIENO. You get an M-Pesa "
-        "message straight away and a campaign receipt by SMS the same day. Contributions pay "
-        "for the ground game only: volunteers' transport, printing and ward forums."
+        "Bring a contribution to the campaign office on Mwiki Road, Kasarani, Monday to "
+        "Saturday, 8am to 6pm, and take a receipt. Every gift pays for the ground game only: "
+        "volunteers' transport, printing and ward forums."
     ),
     "mpesa_paybill": "174379",
     "mpesa_account": "OTIENO",
@@ -219,6 +220,7 @@ async def fill_site(session: AsyncSession, campaign: Campaign, today: date) -> N
             Post(
                 kind=PostKind.NEWS,
                 title=item["title"],
+                slug=slug_of(item["title"]),
                 body=from_plain(item["body"]),
                 image_url=item["image"],
                 label=item["label"],

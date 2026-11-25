@@ -80,9 +80,10 @@ def _public(event: Event) -> PublicEventRead:
     return shown
 
 
-@router.get("/posts/{post_id}/", response_model=PostRead)
-async def post(post_id: uuid.UUID, session: SessionDep):
-    return await content.published_post(session, post_id)
+@router.get("/posts/{post_ref}/", response_model=PostRead)
+async def post(post_ref: str, session: SessionDep):
+    """A published news post by its slug or its id."""
+    return await content.published_post(session, post_ref)
 
 
 @router.get("/places/", response_model=list[Named])

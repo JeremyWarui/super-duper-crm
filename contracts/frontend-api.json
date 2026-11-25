@@ -338,6 +338,7 @@
     ],
     "GET /api/website/posts/": [
       "id",
+      "slug",
       "kind",
       "title",
       "body",
@@ -355,8 +356,9 @@
       "excerpt",
       "county"
     ],
-    "GET /api/website/posts/{post_id}/": [
+    "GET /api/website/posts/{post_ref}/": [
       "id",
+      "slug",
       "kind",
       "title",
       "body",

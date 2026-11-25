@@ -42,7 +42,7 @@ export default function Issue() {
       <div className="site-container flex flex-col gap-12 pt-8 sm:pt-14 pb-12 sm:pb-[72px]">
         {steps.length || i.image_url ? (
           <section aria-labelledby="w-h" className="grid items-start gap-8 md:grid-cols-2 md:gap-14">
-            {i.image_url ? <Photo url={i.image_url} className="aspect-[4/3] w-full rounded-card md:sticky md:top-28" /> : null}
+            {i.image_url ? <Photo url={i.image_url} alt={i.title} className="aspect-[4/3] w-full rounded-card md:sticky md:top-28" /> : null}
             <div className="reveal-stagger flex min-w-0 flex-col gap-4">
               <h2 id="w-h" className="rule-top font-display text-[36px] font-extrabold">What we will do</h2>
               {steps.map((step, n) => (

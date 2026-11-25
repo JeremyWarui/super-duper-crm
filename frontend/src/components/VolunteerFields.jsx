@@ -41,11 +41,11 @@ export default function VolunteerFields({ value, onChange, pills = false }) {
         <div className={pills ? "flex flex-wrap gap-2" : "grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-x-4 gap-y-1"}>
           {AREAS.map(([v, l]) => (pills ? (
             <label key={v} className={CHECK_PILL}>
-              <input type="checkbox" className="size-[18px] accent-primary" checked={value.areas.includes(v)} onChange={() => toggle(v)} />
+              <input type="checkbox" name="areas" value={v} className="size-[18px] accent-primary" checked={value.areas.includes(v)} onChange={() => toggle(v)} />
               {l}
             </label>
           ) : (
-            <Check key={v} className="items-center gap-2.5 text-body" checked={value.areas.includes(v)} onChange={() => toggle(v)}>{l}</Check>
+            <Check key={v} name="areas" value={v} className="items-center gap-2.5 text-body" checked={value.areas.includes(v)} onChange={() => toggle(v)}>{l}</Check>
           )))}
         </div>
       </fieldset>

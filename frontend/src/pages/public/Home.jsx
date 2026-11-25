@@ -14,6 +14,7 @@ import PageHead from "@/components/PageHead";
 import { Photo, QuickLinks, VideoCard } from "./story";
 import { pageState } from "@/components/PageState";
 import { firstName, linesOf } from "@/lib/format";
+import { usePageTitle } from "@/lib/title";
 
 const WITHDRAW = "/volunteer/withdraw/";
 
@@ -28,16 +29,16 @@ function ComingSoon() {
 /** Beside the carousel: who is standing, and quick links. */
 function CandidateCard({ c }) {
   return (
-    <aside aria-labelledby="who-h" className="hero-card flex flex-[0_1_360px] flex-col gap-3.5 rounded-[13px] bg-white p-6 text-ink shadow-hero-card">
+    <div className="hero-card flex flex-[0_1_360px] flex-col gap-3.5 rounded-[13px] bg-white p-6 text-ink shadow-hero-card">
       <div className="flex items-center gap-3.5">
-        <Photo url={c.photo_url} className="size-[72px] flex-none rounded-full bg-primary-tint" />
+        <Photo url={c.photo_url} alt={c.name} className="size-[72px] flex-none rounded-full bg-primary-tint" />
         <span className="flex flex-col gap-0.5">
-          <h2 id="who-h" className="font-display text-[22px] leading-tight font-extrabold">{c.name}</h2>
+          <h2 className="font-display text-[22px] leading-tight font-extrabold">{c.name}</h2>
           <span className="text-ui text-muted-foreground">{vying(c.seat)} · {c.area}</span>
         </span>
       </div>
       <QuickLinks links={[["About " + firstName(c.name), "/about"], ["The agenda", "/agenda"], ["Events near me", "/events"], ["Contribute", "/contribute"]]} />
-    </aside>
+    </div>
   );
 }
 
@@ -50,7 +51,7 @@ function Candidate({ c }) {
       <div className="site-container flex flex-col gap-7 py-12 sm:py-[72px]">
         <SectionHead kicker="Who is standing" title={`Why ${first}?`} action={{ label: `More about ${first}`, to: "/about" }} onDark />
         <div className="reveal-stagger flex flex-wrap items-center gap-8">
-          {c.photo_url ? <img src={c.photo_url} alt="" className="size-[120px] flex-none rounded-full border-2 border-accent object-cover" /> : <span className="size-[120px] flex-none rounded-full border-2 border-accent bg-white/20" />}
+          {c.photo_url ? <img src={c.photo_url} alt={c.name} className="size-[120px] flex-none rounded-full border-2 border-accent object-cover" /> : <span className="size-[120px] flex-none rounded-full border-2 border-accent bg-white/20" />}
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-3">
             {lead ? <p className="max-w-[68ch] text-[18px] leading-[1.7] text-on-primary-muted">{lead}</p> : null}
             {c.priorities.length ? (
@@ -90,6 +91,7 @@ export default function Home() {
   ];
   return (
     <>
+      <h1 className="sr-only">{c.name}: {vying(c.seat)}, {c.area}</h1>
       <Carousel fallback={{ id: "candidate", kicker: c.name, headline: c.slogan || c.name, line: "", image_url: "" }} actions={volunteer} aside={<CandidateCard c={c} />} />
       <Ticker news={news} />
       <Reveal><Agenda limit={6} /></Reveal>
@@ -106,6 +108,7 @@ export default function Home() {
 export function About() {
   const page = useSiteCandidate();
   const send = useSiteVolunteer();
+  usePageTitle(page.data ? `About ${page.data.name}` : "About");
   if (page.isLoading) return pageState(page);
   if (page.error) return <ComingSoon />;
   return <CandidateView c={page.data} send={send} withdrawPath={WITHDRAW} crumbs={[{ label: "Home", to: "/" }, { label: "About" }]} />;

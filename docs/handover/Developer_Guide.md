@@ -247,6 +247,25 @@ columns, indexes, foreign keys), when the revisions do not form one chain, or, o
 when a revision does not downgrade and upgrade again. A revision that moves data gets its own
 test there.
 
+## Link previews and page titles
+
+WhatsApp, Facebook, X and Telegram read a shared page's HTML without running its script. So
+`api/routers/site_pages.py` serves the public pages (`/`, `/about`, `/agenda`, `/media`,
+`/volunteer`, `/news`, `/events`, `/contribute`, `/privacy`, and `/news/<slug>`,
+`/events/<id>`, `/issues/<id>`) with the page's own title, description, preview image and
+canonical address in the head (`services/page_head.py`), plus `/favicon.svg`, the site's logo
+or its initials tile.
+
+- Self-hosted, the app serves these pages to everyone, filling in the built `index.html`.
+  `index.html` is read once per process, so restart the app after a new frontend build.
+- On Vercel, `vercel.json` sends only link-preview bots (matched by user agent) to
+  the API for these pages; people and search engines get the static `index.html` from the
+  web service. The preview bots get a bare page with the head filled in.
+- In the browser, `usePageTitle` (`frontend/src/lib/title.js`) sets the tab title as
+  `<page> | <site name>`; `PageHead`, `PageHero` and `AppPage` call it.
+- News posts have a `slug` made from the first title (`services/content.py`, `free_slug`) and
+  kept when the title changes. `/news/<slug>` and the old `/news/<id>` both open the post.
+
 ## Outside services
 
 Every outside service sits behind a small adapter in `backend/src/backend/services/`, picked

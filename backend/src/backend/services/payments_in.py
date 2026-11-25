@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import get_settings
+from backend.schemas.site import SANDBOX_PAYBILL
 from backend.models import (
     Campaign,
     PayInMethod,
@@ -111,12 +112,18 @@ def get_payin_provider() -> PayInProvider:
     return PracticePayIns()
 
 
+def paybill(site: SiteSettings) -> str:
+    """The site's Paybill; blank when it is the test Paybill and payments are real."""
+    live = get_settings().payin_provider != "practice"
+    return "" if live and site.mpesa_paybill == SANDBOX_PAYBILL else site.mpesa_paybill
+
+
 def options(site: SiteSettings) -> dict:
     """What the payment dialog offers."""
     return {
         "prompt": True,
         "practice": get_settings().payin_provider == "practice",
-        "paybill": site.mpesa_paybill,
+        "paybill": paybill(site),
         "account": site.mpesa_account,
         "till": site.mpesa_till,
         "instructions": site.payment_instructions,
@@ -171,7 +178,7 @@ async def start(
         provider="manual",
     )
     if method is PayInMethod.MANUAL:
-        if not (site.mpesa_paybill or site.mpesa_till):
+        if not (paybill(site) or site.mpesa_till):
             raise Refused("No Paybill or Till is set up, so there is nowhere to pay by code.")
         row.mpesa_code = _code(mpesa_code)
         taken = await session.scalar(

@@ -21,6 +21,22 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": { "service": "api" } },
     { "source": "/health", "destination": { "service": "api" } },
+    { "source": "/favicon.svg", "destination": { "service": "api" } },
+    {
+      "source": "/",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(WhatsApp|facebookexternalhit|Facebot|Twitterbot|TelegramBot|LinkedInBot|Slackbot|Discordbot|SkypeUriPreview|Pinterest).*" }],
+      "destination": { "service": "api" }
+    },
+    {
+      "source": "/:page(about|agenda|media|volunteer|news|events|contribute|privacy)",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(WhatsApp|facebookexternalhit|Facebot|Twitterbot|TelegramBot|LinkedInBot|Slackbot|Discordbot|SkypeUriPreview|Pinterest).*" }],
+      "destination": { "service": "api" }
+    },
+    {
+      "source": "/:section(news|events|issues)/:ref",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(WhatsApp|facebookexternalhit|Facebot|Twitterbot|TelegramBot|LinkedInBot|Slackbot|Discordbot|SkypeUriPreview|Pinterest).*" }],
+      "destination": { "service": "api" }
+    },
     { "source": "/(.*)", "destination": { "service": "web" } }
   ]
 }

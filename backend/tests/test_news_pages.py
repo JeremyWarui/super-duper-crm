@@ -50,3 +50,19 @@ async def test_post_text_is_kept_as_cleaned_html_with_a_plain_excerpt(
         '<a rel="noopener noreferrer">bad</a><a rel="noopener noreferrer">far</a>'
     )
     assert public["excerpt"] == "Agreed Fees fall & rise. badfar"
+
+
+async def test_a_post_opens_at_a_readable_address_made_from_its_title_and_still_by_its_id(
+    client: httpx.AsyncClient, world: World
+) -> None:
+    editor = world.headers("manager")
+    body = {"kind": "news", "title": "Ruai Health Day: 400 seen!", "published": True}
+    first = (await client.post("/api/workspace/site/posts/", headers=editor, json=body)).json()
+    second = (await client.post("/api/workspace/site/posts/", headers=editor, json=body)).json()
+
+    by_slug = await client.get("/api/website/posts/ruai-health-day-400-seen/")
+    by_id = await client.get(f"/api/website/posts/{second['id']}/")
+
+    assert (first["slug"], second["slug"]) == ("ruai-health-day-400-seen", "ruai-health-day-400-seen-2")
+    assert by_slug.json()["id"] == first["id"]
+    assert by_id.json()["slug"] == "ruai-health-day-400-seen-2"

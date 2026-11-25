@@ -19,7 +19,7 @@ export function SiteUtilityBar() {
   const user = useAuth((s: any) => s.user)
   const logout = useAuth((s: any) => s.logout)
   return (
-    <div className="bg-ink text-small text-on-dark-muted">
+    <div role="region" aria-label="Campaign contacts" className="bg-ink text-small text-on-dark-muted">
       <div className="site-container flex flex-wrap items-center justify-between gap-2 py-2">
         <span className="hidden sm:inline">{[copy.tagline, b.hotline && `Hotline ${b.hotline}`].filter(Boolean).join(' · ')}</span>
         <span className="sm:hidden">{b.hotline ? `Hotline ${b.hotline}` : null}</span>

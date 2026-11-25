@@ -30,13 +30,13 @@ export const volunteerTitle = (c, sent) => (sent ? "Thank you" : `Volunteer for 
 export function SupportForm({ c, send, withdrawPath }) {
   const [f, setF, set] = useForm({ first_name: "", last_name: "", email: "", phone: "", ward: "", registration_centre: "", ...NO_VOLUNTEER, consent_given: false });
   const centres = usePlaces({ ward: f.ward, enabled: !!f.ward }).data || [];
-  const ok =
-    f.first_name.trim() && f.last_name.trim() && isEmail(f.email) && f.phone.trim() && f.ward && f.registration_centre &&
-    volunteerReady(f) && f.consent_given;
+  const email = f.email.trim();
+  const emailOk = email ? isEmail(email) : f.preferred_contact !== "email";
+  const ok = f.first_name.trim() && f.last_name.trim() && emailOk && f.phone.trim() && f.ward && volunteerReady(f) && f.consent_given;
   const submit = (e) => {
     e.preventDefault();
     if (!ok) return;
-    send.mutate({ ...f, first_name: f.first_name.trim(), last_name: f.last_name.trim(), email: f.email.trim(), phone: f.phone.trim(), ...volunteerBody(f) });
+    send.mutate({ ...f, first_name: f.first_name.trim(), last_name: f.last_name.trim(), email, phone: f.phone.trim(), ...volunteerBody(f) });
   };
   if (send.isSuccess) {
     const link = linkTo(`${withdrawPath}${send.data.withdraw_code}`);
@@ -54,21 +54,21 @@ export function SupportForm({ c, send, withdrawPath }) {
           <Field label="Last name"><Input value={f.last_name} onChange={set("last_name")} autoComplete="family-name" /></Field>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Email"><Input type="email" value={f.email} onChange={set("email")} autoComplete="email" /></Field>
+          <Field label="Email (optional)"><Input type="email" value={f.email} onChange={set("email")} autoComplete="email" /></Field>
           <Field label="Phone"><Input value={f.phone} onChange={set("phone")} inputMode="tel" autoComplete="tel" placeholder="07XX XXX XXX" /></Field>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {c.national
             ? <WardCascade labelled onChange={(ward) => setF((v) => ({ ...v, ward, registration_centre: "" }))} />
             : <FilterSelect labelled label="Ward" blank="Pick your ward" value={f.ward} options={c.wards} onChange={(ward) => setF({ ...f, ward, registration_centre: "" })} />}
-          <FilterSelect labelled label="Polling station" blank="Pick your polling station" value={f.registration_centre} options={centres} disabled={!f.ward} onChange={(registration_centre) => setF({ ...f, registration_centre })} />
+          <FilterSelect labelled label="Polling station (optional)" blank="Not sure" value={f.registration_centre} options={centres} disabled={!f.ward} onChange={(registration_centre) => setF({ ...f, registration_centre })} />
         </div>
         <VolunteerFields pills value={f} onChange={(patch) => setF((v) => ({ ...v, ...patch }))} />
-        <Check className="gap-2.5 text-small leading-[1.5] text-muted-foreground" checked={f.consent_given} onChange={set("consent_given")}>
+        <Check name="consent_given" value="yes" className="gap-2.5 text-small leading-[1.5] text-muted-foreground" checked={f.consent_given} onChange={set("consent_given")}>
           {c.consent_wording}
         </Check>
         <ErrorText error={send.error} className="text-small" />
-        {!ok ? <p className="text-small text-muted-foreground">Fill in every field, tick at least one way to help and agree above to send this.</p> : null}
+        {!ok ? <p className="text-small text-muted-foreground">{f.preferred_contact === "email" && !email ? "Give an email address, or pick another way to contact you." : "Fill in your name, phone and ward, answer the questions below them and agree above to send this."}</p> : null}
         <Button loading={send.isPending} type="submit" disabled={!ok || send.isPending}>{send.isPending ? "Sending…" : "I'll volunteer"}</Button>
       </form>
   );
@@ -82,7 +82,7 @@ export function CandidateHero({ c, crumbs, actions }) {
       <div className="site-container flex flex-col gap-6 pt-10 pb-12">
         {crumbs ? <Crumbs onDark items={crumbs} /> : null}
         <div className="flex flex-wrap items-center gap-9">
-          <Photo url={c.photo_url} className="h-[260px] w-[220px] flex-none rounded-band bg-[#0F7049]" />
+          <Photo url={c.photo_url} alt={c.name} className="h-[260px] w-[220px] flex-none rounded-band bg-[#0F7049]" />
           <div className="flex min-w-0 flex-[1_1_400px] flex-col gap-3.5">
             <span className="self-start rounded-full bg-accent px-3 py-1.5 text-small font-extrabold uppercase tracking-[0.08em] text-ink">{vying(c.seat)}</span>
             <h1 className="font-display text-page font-extrabold tracking-[-0.03em]">{c.name}</h1>

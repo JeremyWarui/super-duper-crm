@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => ({
       }),
   ],
   resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
-  server: { proxy: { "/api": "http://localhost:8000" } },
+  server: { proxy: { "/api": "http://localhost:8000", "/favicon.svg": "http://localhost:8000" } },
   build: {
     outDir: "dist",
     // Tailwind CSS v4 needs Safari 16.4 or later; iOS 15 is not supported.

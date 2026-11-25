@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SectionHead } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";
-import { Photo, PHOTO_GRID, PhotoCard, StoryKicker, StoryRow, VideoCard } from "./story";
+import { Photo, PHOTO_GRID, PhotoCard, StoryKicker, StoryRow, VideoCard, newsPath } from "./story";
 import DateTile from "@/components/DateTile";
 
 const ROTATE_MS = 6000;
@@ -55,7 +55,7 @@ export function Carousel({ fallback, actions, aside }) {
       <div className="site-container relative flex flex-wrap items-center justify-between gap-8 sm:gap-10 pt-10 sm:pt-16 pb-28">
         <div aria-live={playing ? "off" : "polite"} aria-roledescription="slide" aria-label={`${(index % count) + 1} of ${count}`} key={index} className="hero-words flex min-w-0 flex-[0_1_680px] flex-col gap-[22px]">
           {current.kicker ? <p className="text-ui font-bold uppercase tracking-[0.12em] text-accent">{current.kicker}</p> : null}
-          <h1 className="font-display text-hero font-extrabold tracking-[-0.03em]">{current.headline}</h1>
+          <h2 className="font-display text-hero font-extrabold tracking-[-0.03em]">{current.headline}</h2>
           {current.line ? <p className="max-w-[40ch] text-[19px] leading-[1.6] text-[#ECECE7]">{current.line}</p> : null}
           <div className="flex flex-wrap gap-3 pt-1.5">
             {actions}
@@ -104,7 +104,7 @@ export function Ticker({ news }) {
             {[false, true].map((copy) => (
               <div key={String(copy)} aria-hidden={copy || undefined} className="flex flex-none items-center gap-x-10 pr-10">
                 {news.slice(0, 6).map((n) => (
-                  <Link key={n.id} to={`/news/${n.id}`} tabIndex={copy ? -1 : undefined} className="flex-none text-body font-semibold whitespace-nowrap text-ink no-underline hover:text-primary">
+                  <Link key={n.id} to={newsPath(n)} tabIndex={copy ? -1 : undefined} className="flex-none text-body font-semibold whitespace-nowrap text-ink no-underline hover:text-primary">
                     <span aria-hidden className="mr-3 text-accent">●</span>{n.title}
                   </Link>
                 ))}
@@ -167,7 +167,7 @@ export function News({ news }) {
       <div className="site-container flex flex-col gap-7 py-12 sm:py-20">
         <SectionHead kicker="From the campaign" title="News & statements" action={{ label: "All news", to: "/news" }} />
         <div className="flex flex-wrap gap-7">
-          <Link to={`/news/${lead.id}`} className="flex min-w-0 flex-[3_1_460px] flex-col gap-3.5 text-ink no-underline hover:text-ink">
+          <Link to={newsPath(lead)} className="flex min-w-0 flex-[3_1_460px] flex-col gap-3.5 text-ink no-underline hover:text-ink">
             <Photo url={lead.image_url} className="aspect-video w-full rounded-card" />
             <span className="flex flex-wrap items-center gap-2.5">
               <StoryKicker post={lead} />

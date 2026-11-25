@@ -6,9 +6,10 @@ import { RichText } from "@/components/RichTextView";
 import { Card } from "@/components/ui/card";
 import { Crumbs, RailHead } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";
-import { Initials, LABELS, StoryKicker } from "./story";
+import { Initials, LABELS, StoryKicker, newsPath } from "./story";
 import { pageState } from "@/components/PageState";
 import { StoryCard } from "./story";
+import { usePageTitle } from "@/lib/title";
 
 function Record({ post }) {
   return (
@@ -46,7 +47,7 @@ function LatestStatements({ id }) {
       <section aria-labelledby="rel-h">
         <RailHead id="rel-h">Latest statements</RailHead>
         {list.map((r) => (
-          <Link key={r.id} to={`/news/${r.id}`} className="flex flex-col gap-1 border-t border-line-soft pt-2.5 text-ink no-underline hover:text-primary">
+          <Link key={r.id} to={newsPath(r)} className="flex flex-col gap-1 border-t border-line-soft pt-2.5 text-ink no-underline hover:text-primary">
             <span className="text-meta font-bold text-primary">{formatDay(r.published_on)}</span>
             <span className="text-[15px] leading-[1.35] font-bold">{r.title}</span>
           </Link>
@@ -58,6 +59,7 @@ function LatestStatements({ id }) {
 
 export default function Post({ id }) {
   const post = usePublicPost(id);
+  usePageTitle(post.data?.title);
   const state = pageState(post);
   if (state) return state;
   const p = post.data;
@@ -75,7 +77,7 @@ export default function Post({ id }) {
               <span className="text-small text-muted-foreground">Published {formatDay(p.published_on)} · {p.read_minutes} min read</span>
             </span>
           </div>
-          {p.image_url ? <img src={p.image_url} alt="" className="aspect-video w-full rounded-photo object-cover" /> : null}
+          {p.image_url ? <img src={p.image_url} alt={p.title} className="aspect-video w-full rounded-photo object-cover" /> : null}
           {p.body ? <RichText html={p.body} className="text-[18px] leading-[1.75]" /> : null}
           {p.label === "statement" ? <Record post={p} /> : null}
           {p.label === "statement" && p.pdf_url ? <PdfViewer url={p.pdf_url} title="The signed statement" /> : null}

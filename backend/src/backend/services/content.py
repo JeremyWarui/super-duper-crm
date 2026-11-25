@@ -1,5 +1,7 @@
 """The website's posts: published ones for the public, all of them for the editors."""
 
+import re
+import unicodedata
 import uuid
 from datetime import date, datetime, time
 
@@ -74,10 +76,34 @@ async def published_event(session: AsyncSession, event_id: uuid.UUID) -> Event:
     return event
 
 
-async def published_post(session: AsyncSession, post_id: uuid.UUID) -> Post:
-    post = await session.scalar(
-        public_posts().where(Post.id == post_id, Post.kind == PostKind.NEWS)
+def slug_of(title: str) -> str:
+    """The title as lower-case ASCII words joined by hyphens, at most 80 characters."""
+    plain = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", plain).strip("-")[:80].rstrip("-") or "post"
+
+
+async def free_slug(session: AsyncSession, title: str) -> str:
+    """`slug_of(title)`, with -2, -3 and on added when another post has it."""
+    base = slug_of(title)
+    taken = set(
+        await session.scalars(
+            select(Post.slug).where((Post.slug == base) | Post.slug.like(f"{base}-%"))
+        )
     )
+    slug, n = base, 1
+    while slug in taken:
+        n += 1
+        slug = f"{base}-{n}"
+    return slug
+
+
+async def published_post(session: AsyncSession, ref: str) -> Post:
+    """A published news post by its slug, or by its id for links made before slugs."""
+    try:
+        match = Post.id == uuid.UUID(ref)
+    except ValueError:
+        match = Post.slug == ref
+    post = await session.scalar(public_posts().where(match, Post.kind == PostKind.NEWS))
     if post is None:
         raise NotFound("No such post.")
     return post
@@ -106,7 +132,7 @@ async def posts(session: AsyncSession, kind: PostKind | None) -> list[Post]:
 
 async def create_post(session: AsyncSession, payload: PostCreate, *, actor: User, on: date) -> Post:
     await _check_county(session, payload.county_id)
-    post = Post(**payload.model_dump())
+    post = Post(**payload.model_dump(), slug=await free_slug(session, payload.title))
     if post.published:
         post.published_on = on
     session.add(post)

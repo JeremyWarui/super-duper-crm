@@ -79,7 +79,7 @@ describe("the public site", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     stubApi(ROUTES);
     renderApp(<Carousel />);
-    const headline = () => screen.getByRole("heading", { level: 1 }).textContent;
+    const headline = () => screen.getByRole("heading", { level: 2 }).textContent;
     await screen.findByRole("button", { name: "Slide 2" });
 
     expect(headline()).toBe("Jobs for all");

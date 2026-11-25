@@ -33,7 +33,7 @@ export default function EventPage() {
         {e.signup_code ? <div><Button asChild variant="accent" size="lg"><Link to={`/join/${e.signup_code}`}>Register to attend</Link></Button></div> : null}
       </PageHero>
       <div className="site-container grid items-start gap-8 py-10 sm:py-14 md:grid-cols-2 md:gap-14">
-        {e.image_url ? <Photo url={e.image_url} className="aspect-[4/3] w-full rounded-card" /> : null}
+        {e.image_url ? <Photo url={e.image_url} alt={e.title} className="aspect-[4/3] w-full rounded-card" /> : null}
         <div className="flex max-w-[68ch] min-w-0 flex-col gap-4">
           {linesOf(e.description).map((p, n) => <p key={n} className="text-lead text-text-2">{p}</p>)}
           {!e.description ? <p className="text-lead text-text-2">Come and meet the campaign. Everyone is welcome.</p> : null}

@@ -184,3 +184,16 @@ async def test_a_workspace_confirms_or_rejects_the_codes_of_its_contributions(
     assert hidden.status_code == 403
     assert {p["mpesa_code"] for p in waiting.json()} == {"SKL7Q2M9XA", "SKL7Q2M9XB"}
     assert (confirmed.json()["status"], rejected.json()["status"]) == ("paid", "rejected")
+
+
+async def test_real_payments_never_offer_or_take_codes_for_safaricoms_test_paybill(
+    session: AsyncSession, client: httpx.AsyncClient, paystack: tuple[Paystack, str]
+) -> None:
+    session.add(site_settings(mpesa_paybill="174379", mpesa_account="DONATE"))
+    await session.commit()
+
+    offered = (await client.get("/api/pay/options/")).json()
+    coded = await client.post(CONTRIBUTE, json={**GIFT, "method": "manual", "mpesa_code": "skl7q2m9xa"})
+
+    assert offered["paybill"] == ""
+    assert coded.status_code == 400

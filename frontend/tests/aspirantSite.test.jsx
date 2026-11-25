@@ -101,13 +101,13 @@ describe("the campaign website", () => {
     const slide = { id: "s1", kicker: "Roysambu 2027", headline: "Water for every ward", line: "", image_url: "", button_label: "", button_url: "" };
     stubApi({ ...ROUTES, "GET /website/slides/": [slide] });
     const first = renderApp(<AppRoutes />);
-    expect(await screen.findByRole("heading", { name: "Water for every ward", level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Water for every ward", level: 2 })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Volunteer for Jane" }).length).toBeGreaterThan(0);
     first.unmount();
 
     stubApi({ ...ROUTES, "GET /site/": { ...SITE, slogan: "An old site slogan" } });
     renderApp(<AppRoutes />);
-    expect(await screen.findByRole("heading", { name: "Roysambu first", level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Roysambu first", level: 2 })).toBeInTheDocument();
     expect(screen.getAllByText("Vying for MP · Roysambu").length).toBeGreaterThan(0);
   });
 
@@ -123,7 +123,7 @@ describe("the campaign website", () => {
   });
 
   it.each([
-    ["/", "Roysambu first", "A teacher for twenty years."],
+    ["/", /Vying for MP, Roysambu/, "A teacher for twenty years."],
     ["/volunteer", "Volunteer", "Volunteer for Jane"],
     ["/contribute", "Contribute", "M-Pesa paybill 123456"],
     ["/privacy", "Privacy notice", "We keep your data safe."],
@@ -136,7 +136,7 @@ describe("the campaign website", () => {
     expect(text).not.toMatch(/party/i);
   });
 
-  it("signs a volunteer up through the campaign's own form", async () => {
+  it("signs a volunteer up without an email or polling station", async () => {
     const calls = stubApi({
       ...ROUTES,
       "GET /website/places/?ward=w1": [{ id: "c1", name: "Zimmerman Primary" }],
@@ -149,10 +149,8 @@ describe("the campaign website", () => {
 
     await user.type(form.getByLabelText("First name"), "Wanjiru");
     await user.type(form.getByLabelText("Last name"), "Kamau");
-    await user.type(form.getByLabelText("Email"), "wanjiru@example.com");
     await user.type(form.getByLabelText("Phone"), "0712 345678");
     await user.selectOptions(form.getByLabelText("Ward"), "w1");
-    await user.selectOptions(await form.findByLabelText("Polling station"), "c1");
     await user.selectOptions(form.getByLabelText("Profession"), "teacher");
     await user.click(form.getAllByRole("checkbox")[0]);
     await user.selectOptions(form.getByLabelText("Preferred contact"), "sms");
@@ -160,6 +158,7 @@ describe("the campaign website", () => {
     await user.click(form.getByRole("button", { name: "I'll volunteer" }));
 
     await waitFor(() => expect(calls.find((c) => c.method === "POST")?.path).toBe("/site/volunteer/"));
+    expect(calls.find((c) => c.method === "POST").body).toMatchObject({ email: "", registration_centre: "" });
     expect(await screen.findByText(/\/volunteer\/withdraw\/abc/)).toBeInTheDocument();
   });
 });

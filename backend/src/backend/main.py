@@ -16,7 +16,7 @@ from starlette.types import Scope
 from backend import __version__
 from backend.api.errors import register_error_handlers
 from backend.api.install import SetupGate
-from backend.api.routers import api_router
+from backend.api.routers import api_router, site_pages
 from backend.config import get_settings
 from backend.db.session import get_engine, get_sessionmaker
 from backend.models import Base  # noqa: F401
@@ -85,6 +85,7 @@ def create_app() -> FastAPI:
     _show_app_logs()
     register_error_handlers(app)
     app.include_router(api_router)
+    app.include_router(site_pages.router)
 
     @app.get("/health", tags=["meta"])
     async def health() -> dict[str, str]:

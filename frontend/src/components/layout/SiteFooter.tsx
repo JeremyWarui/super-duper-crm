@@ -40,8 +40,8 @@ function Newsletter({ wording }: { wording: string }) {
               <Button type="submit" variant="accent" shape="rounded" disabled={subscribe.isPending} className="h-[50px] self-end px-6 text-base">Subscribe</Button>
             </div>
             <label className="flex items-start gap-2 text-meta text-on-primary-muted">
-              <input type="checkbox" required checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 size-4 accent-accent" />
-              <span>{wording} See the <Link to="/privacy" className="text-white hover:text-white">privacy notice</Link>.</span>
+              <input type="checkbox" name="consent" value="yes" required checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 size-4 accent-accent" />
+              <span>{wording} See the <Link to="/privacy" className="text-white underline hover:text-white">privacy notice</Link>.</span>
             </label>
             {subscribe.error ? <span role="alert" className="text-small font-semibold text-accent">{(subscribe.error as Error).message}</span> : null}
           </form>

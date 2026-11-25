@@ -168,13 +168,14 @@ async def sign_up(
     phone = require_phone(payload.phone)
     if not await ward_in_area(session, campaign, payload.ward):
         raise Refused("Pick a ward inside the seat this candidate is vying for.")
-    centre_ward = await session.scalar(
-        select(RegistrationCentre.ward_id).where(
-            RegistrationCentre.id == payload.registration_centre
+    if payload.registration_centre is not None:
+        centre_ward = await session.scalar(
+            select(RegistrationCentre.ward_id).where(
+                RegistrationCentre.id == payload.registration_centre
+            )
         )
-    )
-    if centre_ward != payload.ward:
-        raise Refused("Pick a polling station in the ward you chose.")
+        if centre_ward != payload.ward:
+            raise Refused("Pick a polling station in the ward you chose.")
     code = new_withdraw_code()
     known = await session.scalar(
         select(VolunteerProfile.id).where(

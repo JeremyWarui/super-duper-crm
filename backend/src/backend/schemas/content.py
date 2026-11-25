@@ -94,6 +94,7 @@ EXCERPT = 300
 
 class _Post(ORMModel):
     id: uuid.UUID
+    slug: str | None
     kind: PostKind
     label: PostLabel
     title: str

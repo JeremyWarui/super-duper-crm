@@ -74,10 +74,10 @@ export default function Join({ code }) {
           <FilterSelect label="Where you vote" blank={p.place === "centre" ? "Not sure" : "Pick your ward"} value={place} onChange={setPlace} options={p.places} className="w-full flex-none" />
         </Field>
       )}
-      <Check className="text-ui leading-[1.5] text-muted-foreground" checked={consent} onChange={(e) => setConsent(e.target.checked)}>
+      <Check name="consent_given" value="yes" className="text-ui leading-[1.5] text-muted-foreground" checked={consent} onChange={(e) => setConsent(e.target.checked)}>
         {p.consent_wording}
       </Check>
-      <Check className="text-ui leading-[1.5] text-muted-foreground" checked={texts} onChange={(e) => setTexts(e.target.checked)}>
+      <Check name="sms_consent" value="yes" className="text-ui leading-[1.5] text-muted-foreground" checked={texts} onChange={(e) => setTexts(e.target.checked)}>
         {p.sms_consent_wording} (optional)
       </Check>
       <ErrorText error={join.error} className="text-small" />

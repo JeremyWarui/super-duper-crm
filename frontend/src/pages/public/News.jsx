@@ -7,10 +7,11 @@ import { Card } from "@/components/ui/card";
 import { Reveal } from "@/components/ui/reveal";
 import { RailHead } from "@/components/ui/typography";
 import { formatDay } from "@/lib/format";
-import { Initials, Photo, StoryKicker } from "./story";
+import { Initials, Photo, StoryKicker, newsPath } from "./story";
 import { LoadingText } from "@/components/ui/loading-text";
 import { ErrorText } from "@/components/ui/error-text";
 import { StoryCard, StoryRow } from "./story";
+import { usePageTitle } from "@/lib/title";
 
 const PAGE = 20;
 const short = (iso) => formatDay(iso, { day: "numeric", month: "short" });
@@ -19,10 +20,10 @@ function Lead({ lead, beside }) {
   return (
     <section aria-label="Top stories" className="flex flex-wrap gap-8">
       <article className="flex min-w-0 flex-[3_1_560px] flex-col gap-3.5">
-        <Link to={`/news/${lead.id}`} aria-hidden tabIndex={-1}><Photo url={lead.image_url} className="aspect-video w-full rounded-card" /></Link>
+        <Link to={newsPath(lead)} aria-hidden tabIndex={-1}><Photo url={lead.image_url} className="aspect-video w-full rounded-card" /></Link>
         <StoryKicker post={lead} />
         <h2 className="font-display text-[clamp(30px,3.6vw,44px)] leading-[1.08] font-extrabold tracking-[-0.02em]">
-          <Link to={`/news/${lead.id}`} className="text-ink no-underline hover:text-primary">{lead.title}</Link>
+          <Link to={newsPath(lead)} className="text-ink no-underline hover:text-primary">{lead.title}</Link>
         </h2>
         {lead.excerpt ? <p className="line-clamp-2 max-w-[60ch] text-[18px] leading-[1.6] text-text-2">{lead.excerpt}</p> : null}
         <span className="text-small text-muted-foreground">
@@ -73,7 +74,7 @@ function Opinion() {
       <div className="reveal-stagger grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         {pieces.map((o) => (
           <Card key={o.id} asChild interactive className="p-5">
-            <Link to={`/news/${o.id}`}>
+            <Link to={newsPath(o)}>
               <span className="flex items-center gap-3">
                 <Initials name={o.author || "Writer"} url={o.author_photo_url} className="size-12 flex-none border-[3px] border-accent" />
                 <span className="font-bold">{o.author || "Guest writer"}</span>
@@ -97,7 +98,7 @@ function Latest({ news }) {
         {news.slice(0, 5).map((l) => (
           <li key={l.id} className="flex gap-3 border-b border-line-soft py-3">
             <span className="w-12 flex-none text-meta font-bold text-primary">{short(l.published_on)}</span>
-            <Link to={`/news/${l.id}`} className="font-semibold leading-[1.4] text-ink no-underline hover:text-primary">{l.title}</Link>
+            <Link to={newsPath(l)} className="font-semibold leading-[1.4] text-ink no-underline hover:text-primary">{l.title}</Link>
           </li>
         ))}
       </ol>
@@ -113,7 +114,7 @@ function Statements() {
       <section aria-labelledby="st-h">
         <RailHead id="st-h">Official statements</RailHead>
         {list.map((d) => (
-          <Link key={d.id} to={`/news/${d.id}`} className="flex items-start justify-between gap-3 border-t border-line-soft pt-3 text-ink no-underline hover:text-primary">
+          <Link key={d.id} to={newsPath(d)} className="flex items-start justify-between gap-3 border-t border-line-soft pt-3 text-ink no-underline hover:text-primary">
             <span className="flex min-w-0 flex-col gap-1">
               <span className="font-bold leading-[1.35]">{d.title}</span>
               <span className="text-meta text-muted-foreground">
@@ -131,6 +132,7 @@ function Statements() {
 export default function News() {
   const [offset, setOffset] = useState(0);
   const news = usePublicPosts("news", offset);
+  usePageTitle("News");
   const posts = news.data || [];
   const top = offset === 0 ? posts.slice(0, 4) : [];
   const rest = offset === 0 ? posts.slice(4) : posts;

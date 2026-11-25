@@ -5,10 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { StoryMeta } from "@/components/ui/typography";
 import { formatDay, initials } from "@/lib/format";
 
+/** A news post's address on the site: its slug, or its id when it has none. */
+export const newsPath = (post) => `/news/${post.slug || post.id}`;
+
 export const LABELS = { statement: "Statement", news: "News", opinion: "Opinion" };
 
-export function Photo({ url, className = "" }) {
-  return url ? <img src={url} alt="" className={`object-cover ${className}`} /> : <div className={`ph ${className}`} />;
+/** A photo; `alt` describes it, and a photo beside its own caption keeps the default "". */
+export function Photo({ url, alt = "", className = "" }) {
+  return url ? <img src={url} alt={alt} className={`object-cover ${className}`} /> : <div className={`ph ${className}`} />;
 }
 
 /** The grid of square photo cards: tight gaps, three columns on a wide screen. */
@@ -54,7 +58,7 @@ export function StoryKicker({ post }) {
 /** A story as a card: photo, label and place, headline, then date and reading time. */
 export function StoryCard({ post }) {
   return (
-    <Link to={`/news/${post.id}`} className="flex flex-col gap-2 text-ink no-underline hover:text-primary">
+    <Link to={newsPath(post)} className="flex flex-col gap-2 text-ink no-underline hover:text-primary">
       <Photo url={post.image_url} className="aspect-[16/10] w-full rounded-photo" />
       <StoryMeta category={LABELS[post.label] || "News"} place={post.place} />
       <span className="text-[18px] leading-[1.3] font-bold">{post.title}</span>
@@ -66,7 +70,7 @@ export function StoryCard({ post }) {
 /** A story as a row beside the lead: a small photo, label, headline and `when`. */
 export function StoryRow({ post, when, photoClass = "size-[104px]" }) {
   return (
-    <Link to={`/news/${post.id}`} className="flex gap-4 border-b border-line-2 py-4 text-ink no-underline first:pt-0 hover:text-primary">
+    <Link to={newsPath(post)} className="flex gap-4 border-b border-line-2 py-4 text-ink no-underline first:pt-0 hover:text-primary">
       <Photo url={post.image_url} className={`${photoClass} flex-none rounded-photo`} />
       <span className="flex min-w-0 flex-col gap-1.5">
         <StoryMeta category={LABELS[post.label] || "News"} place={post.place} />

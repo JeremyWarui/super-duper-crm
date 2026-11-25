@@ -8,10 +8,10 @@ export function SectionHead({ kicker, title, action, onDark, className, rule }: 
   return (
     <div className={cn('flex flex-wrap items-end justify-between gap-4', rule && 'rule-top', className)}>
       <div className="flex flex-col">
-        {kicker ? <Badge kind="kicker" tone={onDark ? 'gold' : 'tint'} className="mb-3 self-start">{kicker}</Badge> : null}
+        {kicker ? <Badge kind="kicker" tone={onDark ? 'ink' : 'tint'} className="mb-3 self-start">{kicker}</Badge> : null}
         <h2 className={cn('font-display font-extrabold tracking-[-0.02em]', rule ? 'text-[26px]' : 'text-section')}>{title}</h2>
       </div>
-      {action ? <Link to={action.to} className={cn('font-bold', onDark && 'text-accent hover:text-accent')}>{action.label} →</Link> : null}
+      {action ? <Link to={action.to} className={cn('font-bold', onDark && 'text-white underline decoration-accent decoration-2 underline-offset-4 hover:text-white')}>{action.label} →</Link> : null}
     </div>
   )
 }
@@ -29,11 +29,11 @@ export function RailHead({ className, accent, ...props }: React.HTMLAttributes<H
 /** Breadcrumb trail above inner-page titles */
 export function Crumbs({ items, onDark }: { items: { label: string; to?: string }[]; onDark?: boolean }) {
   return (
-    <nav aria-label="Breadcrumb" className={cn('text-ui', onDark ? 'text-on-dark-muted' : 'text-muted-foreground')}>
+    <nav aria-label="Breadcrumb" className={cn('text-ui', onDark ? 'text-on-primary-muted' : 'text-muted-foreground')}>
       {items.map((it, i) => (
         <span key={i}>
           {i > 0 ? ' / ' : ''}
-          {it.to ? <Link to={it.to} className={onDark ? 'text-on-dark-muted' : 'text-muted-foreground'}>{it.label}</Link> : <span>{it.label}</span>}
+          {it.to ? <Link to={it.to} className={onDark ? 'text-on-primary-muted' : 'text-muted-foreground'}>{it.label}</Link> : <span>{it.label}</span>}
         </span>
       ))}
     </nav>

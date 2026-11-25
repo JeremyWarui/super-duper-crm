@@ -211,8 +211,8 @@ comms officer (button **Save settings**).
 | **Primary colour** | Buttons and links; white text sits on it |
 | **Secondary colour** | Highlights; dark text sits on it |
 | **About (shown on the About page)** | About text |
-| **How to give (shown on the Contribute page)** | Payment instructions in words |
-| **M-Pesa Paybill number**, **Paybill account number**, **M-Pesa Till number** | What the Contribute page offers to pay by code. Give a Paybill or a Till, not both. |
+| **Other ways to give (shown on the Contribute page, below M-Pesa)** | Other ways to give, in words, under **Other ways to give**. M-Pesa has its own card above it, so leave M-Pesa out of this text. |
+| **M-Pesa Paybill number**, **Paybill account number**, **M-Pesa Till number** | What the Contribute page offers to pay by code. Give a Paybill or a Till, not both. 174379 is Safaricom's test Paybill: it is refused once real payments are on, and a copy that already has it stops offering it. |
 | **Privacy notice** | The full notice on the Privacy page |
 | **Privacy notice version** | Raise it each time you change the notice |
 

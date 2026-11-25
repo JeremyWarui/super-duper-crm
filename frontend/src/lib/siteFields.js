@@ -20,7 +20,7 @@ export const SITE_LINES = [
 export const SITE_TEXTS = [
   ["description", "About (shown on the About page)", undefined, { rows: 6 }],
   ["manifesto_text", "Manifesto text", undefined, { rows: 6 }],
-  ["payment_instructions", "How to give (shown on the Contribute page)", 2000, { rows: 4 }],
+  ["payment_instructions", "Other ways to give (shown on the Contribute page, below M-Pesa)", 2000, { rows: 4 }],
   ["privacy_notice", "Privacy notice", 20000, { rows: 8 }],
 ];
 
