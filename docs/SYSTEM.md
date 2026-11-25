@@ -1,4 +1,4 @@
-# Campaign CRM: system overview
+# Shabaha: system overview
 
 What one installation is, who uses it, what it does, and how it is built. How to run the code
 lives in the READMEs and `DEPLOY.md`; this document says what the code is for.

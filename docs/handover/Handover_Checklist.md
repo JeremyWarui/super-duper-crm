@@ -1,6 +1,6 @@
 # Handover checklist
 
-What the buyer receives with their copy of MZIGO CRM, what they must set up themselves, and
+What the buyer receives with their copy of Shabaha, what they must set up themselves, and
 what is not part of the product. Go through it together at handover. Tick each line, and both
 sides sign at the end.
 

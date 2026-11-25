@@ -1,4 +1,4 @@
-# Campaign CRM - backend
+# Shabaha - backend
 
 FastAPI, SQLAlchemy 2.0 (async) and Pydantic v2, on Postgres (Neon in production). Managed with `uv`.
 
@@ -673,8 +673,7 @@ required and at least 32 characters.
   rows (events, payments) are empty until assignments exist (PD-37). The
   team API refuses an area for anyone but a coordinator; the database does
   not. Coordinators and comms officers are removed by an admin, not from the
-  Team page. Downgrading `campaign_roles` turns a pending login into a plain
-  inactive one.
+  Team page.
 - The map holds only the actions a route serves today; `team.approve`,
   `agents.*`, `team.id_read`, `assignments.write`,
   `site.write` and `export` arrive with their routes. Payment release stays

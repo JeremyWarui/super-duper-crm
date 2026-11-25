@@ -1,4 +1,4 @@
-# Campaign CRM - frontend
+# Shabaha - frontend
 
 React 19 and Vite, talking to the FastAPI backend. Zustand holds who you are;
 React Query holds everything else.

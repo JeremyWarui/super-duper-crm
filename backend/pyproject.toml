@@ -1,7 +1,7 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "Campaign CRM backend - FastAPI + SQLAlchemy 2.0 + Pydantic v2"
+description = "Shabaha backend - FastAPI + SQLAlchemy 2.0 + Pydantic v2"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

@@ -1,4 +1,4 @@
-# Campaign CRM
+# Shabaha
 
 A Kenyan campaign management tool for one candidate contesting one seat: MCA, MP, Women Rep,
 Senator, Governor or President. It is built around the **seat target**: the votes the

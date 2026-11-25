@@ -63,7 +63,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
-        title="Campaign CRM API",
+        title="Shabaha API",
         version=__version__,
         debug=settings.debug,
         lifespan=lifespan,

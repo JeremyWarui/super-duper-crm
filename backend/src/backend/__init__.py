@@ -1,4 +1,4 @@
-"""Campaign CRM backend."""
+"""Shabaha backend."""
 
 __all__ = ["__version__"]
 
