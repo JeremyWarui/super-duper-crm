@@ -22,6 +22,22 @@ os.environ.setdefault("SECRET_KEY", secrets.token_urlsafe(48))
 os.environ["DEFAULT_USER_PASSWORD"] = ""
 # Overrides a developer's .env, so no test can reach a real database.
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
+# Overrides a developer's .env, so no test can text, charge, pay out or open a call for real.
+OFFLINE_SERVICES = {
+    "SMS_PROVIDER": "console",
+    "AT_USERNAME": "",
+    "AT_API_KEY": "",
+    "SOZURI_API_KEY": "",
+    "EMAIL_PROVIDER": "practice",
+    "PAYSTACK_SECRET_KEY": "",
+    "PAYSTACK_WEBHOOK_SECRET": "",
+    "PAYIN_PROVIDER": "practice",
+    "PAYOUT_PROVIDER": "practice",
+    "LIVEKIT_URL": "",
+    "LIVEKIT_API_KEY": "",
+    "LIVEKIT_API_SECRET": "",
+}
+os.environ.update(OFFLINE_SERVICES)
 
 from backend.models import Base  # noqa: E402
 

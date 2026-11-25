@@ -17,9 +17,12 @@ Their connection strings are in `backend/.env` as `NEON_ASPIRANT` and `NEON_BLAN
 | Area | Demo | Production |
 | --- | --- | --- |
 | Hosting | Vercel: the frontend and the API as Vercel Services in one project | A Vercel project on the Pro plan, or a server of your own with the Docker Compose package in `deploy/` |
-| Payments reconciliation | `RECONCILE_HOURS=0` (practice mode has nothing to reconcile) | `RECONCILE_HOURS=24` with Paystack live |
+| Payments reconciliation | `RECONCILE_HOURS=0` (functions run no background loop; payments in settle by webhook or the status check) | `RECONCILE_HOURS=24` with Paystack live |
 | Uploads | Not used: seeded content uses image links, and Vercel keeps no files | `UPLOAD_DIR` on a disk that persists and is backed up |
-| Paystack, SMS, email | Practice mode | Live keys in the environment |
+| SMS | Africa's Talking, live key (`AT_USERNAME=shabaha`, no sender ID): real texts, paid from the AT balance | The client's own Africa's Talking or Sozuri account and sender ID |
+| Meetings | LiveKit Cloud project `shabaha` | The client's own LiveKit project |
+| Payments in | Paystack test key (`PAYIN_PROVIDER=paystack`): real prompts, no money; test number `+254710000000` | Paystack live key |
+| Payouts, email | Practice mode (Paystack refuses third-party payouts to a starter business) | Paystack live key on a registered business; SMTP |
 | Bulk texts after the first batch | Drained by hand (`POST /api/internal/sms/drain/` with `CRON_SECRET`) | `campaign-crm sms-worker`, or a scheduler calling the drain route |
 | Passwords | One easy password per install for every login | Each person's own password, set through their invite link |
 | Rate limits | In memory, per Vercel instance, so looser | In memory on one server |
@@ -126,3 +129,15 @@ show a run waiting for 08:00.
 - An upload on these sites (logo, photo, document) is not kept.
 - No scheduler drains the text queue on the demos; a run larger than one batch, or one approved
   outside 08:00-18:00, waits until the drain route is called.
+
+## Provider webhooks
+
+Each provider dashboard points at the aspirant demo:
+
+| Provider | Setting | URL |
+| --- | --- | --- |
+| Paystack (test mode) | Test mode webhook URL | `https://kasarani-demo.vercel.app/api/payments/paystack/webhook/` |
+| LiveKit Cloud | Project webhook, signed with the project's API key | `https://kasarani-demo.vercel.app/api/livekit/webhook/` |
+| Africa's Talking | SMS delivery reports callback | `https://kasarani-demo.vercel.app/api/sms/<SMS_CALLBACK_SECRET>/delivery/` |
+
+`SMS_CALLBACK_SECRET` is in `backend/.env` and the Vercel project's environment.
