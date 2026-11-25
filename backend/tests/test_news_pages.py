@@ -63,6 +63,9 @@ async def test_a_post_opens_at_a_readable_address_made_from_its_title_and_still_
     by_slug = await client.get("/api/website/posts/ruai-health-day-400-seen/")
     by_id = await client.get(f"/api/website/posts/{second['id']}/")
 
-    assert (first["slug"], second["slug"]) == ("ruai-health-day-400-seen", "ruai-health-day-400-seen-2")
+    assert (first["slug"], second["slug"]) == (
+        "ruai-health-day-400-seen",
+        "ruai-health-day-400-seen-2",
+    )
     assert by_slug.json()["id"] == first["id"]
     assert by_id.json()["slug"] == "ruai-health-day-400-seen-2"

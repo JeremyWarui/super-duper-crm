@@ -159,6 +159,7 @@ def absolute(url: str) -> str:
 def tags(head: Head) -> str:
     """The head's meta tags, each value escaped."""
     e = html.escape
+    card = "summary_large_image" if head.image else "summary"
     lines = [
         f"<title>{e(head.title)}</title>",
         f'<meta name="description" content="{e(head.description)}" />',
@@ -167,7 +168,7 @@ def tags(head: Head) -> str:
         f'<meta property="og:title" content="{e(head.title)}" />',
         f'<meta property="og:description" content="{e(head.description)}" />',
         f'<meta property="og:url" content="{e(absolute(head.path))}" />',
-        f'<meta name="twitter:card" content="{"summary_large_image" if head.image else "summary"}" />',
+        f'<meta name="twitter:card" content="{card}" />',
     ]
     if head.image:
         lines.append(f'<meta property="og:image" content="{e(absolute(head.image))}" />')

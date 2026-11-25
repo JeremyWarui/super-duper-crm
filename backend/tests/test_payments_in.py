@@ -193,7 +193,9 @@ async def test_real_payments_never_offer_or_take_codes_for_safaricoms_test_paybi
     await session.commit()
 
     offered = (await client.get("/api/pay/options/")).json()
-    coded = await client.post(CONTRIBUTE, json={**GIFT, "method": "manual", "mpesa_code": "skl7q2m9xa"})
+    coded = await client.post(
+        CONTRIBUTE, json={**GIFT, "method": "manual", "mpesa_code": "skl7q2m9xa"}
+    )
 
     assert offered["paybill"] == ""
     assert coded.status_code == 400

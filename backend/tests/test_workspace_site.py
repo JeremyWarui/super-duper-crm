@@ -136,12 +136,14 @@ async def test_the_homepage_shows_the_candidate_page_once_published_and_signs_vo
     assert volunteer.campaign_id == world.campaign.id
 
 
-async def test_a_volunteer_may_leave_out_email_and_polling_station_unless_email_is_how_to_reach_them(
+async def test_volunteer_email_and_polling_station_are_optional_unless_email_is_the_contact(
     session: AsyncSession, client: httpx.AsyncClient, world: World, comms: dict
 ) -> None:
     from backend.models import VolunteerProfile
 
-    await client.put(f"{URL}candidate/", headers=comms, json={"slogan": "", "bio": "", "published": True})
+    await client.put(
+        f"{URL}candidate/", headers=comms, json={"slogan": "", "bio": "", "published": True}
+    )
     form = {
         "first_name": "Otieno",
         "last_name": "Ouma",
@@ -153,7 +155,9 @@ async def test_a_volunteer_may_leave_out_email_and_polling_station_unless_email_
         "areas": ["door_to_door"],
         "consent_given": True,
     }
-    by_email = await client.post("/api/site/volunteer/", json={**form, "preferred_contact": "email"})
+    by_email = await client.post(
+        "/api/site/volunteer/", json={**form, "preferred_contact": "email"}
+    )
     by_sms = await client.post("/api/site/volunteer/", json={**form, "preferred_contact": "sms"})
     volunteer = await session.scalar(select(VolunteerProfile))
 
