@@ -163,6 +163,8 @@ class Demo:
     coordinator_constituency: str = ""
     # The wards the ground game works, the mobilizer's first; blank works every ward of the seat.
     field_wards: tuple[str, ...] = ()
+    # Contacts in each worked ward; half the field wards are worked.
+    contacts_per_ward: int = 4
 
 
 KASARANI = Demo(
@@ -355,7 +357,7 @@ async def build_aspirant(
     campaign = await _set_up(session, demo, county, constituency, password)
     mobilizer = await _team(session, campaign, demo, password)
     wards = await _field_wards(session, demo, county, constituency)
-    await seed_ground_game(session, campaign, wards, mobilizer)
+    await seed_ground_game(session, campaign, wards, mobilizer, demo.contacts_per_ward)
     await _site(session, campaign, demo, today)
     await session.commit()
     manager = await session.scalar(select(User).where(User.username == "manager"))

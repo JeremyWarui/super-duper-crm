@@ -172,6 +172,7 @@ async def seed_ground_game(
     campaign: Campaign,
     wards: list[Ward],
     mobilizer_user: User,
+    contacts_per_ward: int = 4,
 ) -> None:
     """Mobilizers, events and supporters, spread unevenly across the wards."""
     staffed = wards[: max(len(wards) // 2, 1)]
@@ -226,7 +227,7 @@ async def seed_ground_game(
         SupportLevel.OPPOSED,
     ]
     for index, (ward, mobilizer) in enumerate(zip(staffed, mobilizers, strict=True)):
-        for n in range(4):
+        for n in range(contacts_per_ward):
             session.add(
                 Supporter(
                     campaign=campaign,
@@ -234,13 +235,15 @@ async def seed_ground_game(
                     mobilizer=mobilizer,
                     full_name=f"{ward.name} supporter {n + 1}",
                     phone=f"+2547{index:04d}{n:04d}",
-                    support_level=levels[n],
+                    support_level=levels[n % len(levels)],
                     consent_given=True,
                     consent_channel=ConsentChannel.MOBILIZER,
                     consent_wording=WORDING[ConsentChannel.MOBILIZER],
                     # Most also agree to texts; the last of each four does not.
-                    sms_consent=n < 3,
-                    sms_consent_wording=SMS_WORDING[ConsentChannel.MOBILIZER] if n < 3 else None,
+                    sms_consent=n % 4 < 3,
+                    sms_consent_wording=SMS_WORDING[ConsentChannel.MOBILIZER]
+                    if n % 4 < 3
+                    else None,
                 )
             )
 

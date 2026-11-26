@@ -4,10 +4,12 @@ from datetime import date
 
 import httpx
 import pytest
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import get_today
 from backend.main import app
+from backend.models import Supporter
 from backend.seed.demo_aspirant import build_aspirant
 from backend.seed.demo_laikipia import LAIKIPIA
 from backend.seed.reference import import_geography
@@ -115,3 +117,4 @@ async def test_the_laikipia_demo_is_a_governor_campaign_with_five_logins(
     assert (campaign["title"], campaign["office_level"]) == ("Aspirant for Laikipia", "county")
     assert [m["ward_name"] for m in mobilizers if m["full_name"] == "Dennis"] == ["Nanyuki"]
     assert sign_ins[-1].sees == "Nanyuki only"
+    assert await session.scalar(select(func.count()).select_from(Supporter)) == 20

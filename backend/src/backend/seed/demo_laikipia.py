@@ -277,7 +277,18 @@ LAIKIPIA = Demo(
     agenda=AGENDA,
     agenda_pictures=AGENDA_PICTURES,
     slides=SLIDES,
-    field_wards=("Nanyuki", "Igwamiti", "Rumuruti Township", "Thingithu", "Marmanet", "Segera"),
+    # Four worked wards of five contacts each: twenty contacts.
+    field_wards=(
+        "Nanyuki",
+        "Igwamiti",
+        "Rumuruti Township",
+        "Ol-Moran",
+        "Thingithu",
+        "Marmanet",
+        "Segera",
+        "Sosian",
+    ),
+    contacts_per_ward=5,
     content=Content(
         site=SITE,
         news=NEWS,

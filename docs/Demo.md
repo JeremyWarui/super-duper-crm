@@ -57,7 +57,7 @@ done
 ## The Laikipia governor demo
 
 `laikipia-demo` runs on its own database, `NEON_LAIKIPIA`. It is a county seat, so its team
-works ward by ward across Laikipia. It has five logins: `admin`, `candidate` (Aspirant),
+works ward by ward across Laikipia, with 20 contacts in four wards. It has five logins: `admin`, `candidate` (Aspirant),
 `manager` (Jeremy), `coordinator` (Mary Wairimu, Laikipia East) and `mobilizer` (Dennis,
 Nanyuki). Build it with the commands above, using `NEON_LAIKIPIA`, `--demo laikipia`, and
 `coordinator` added to the reset-password loop.
