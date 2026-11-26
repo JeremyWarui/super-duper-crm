@@ -324,6 +324,15 @@ export const useCalls = (campaignId) =>
     refetchInterval: (query) => (query.state.data?.some((c) => c.meeting.status === "live") ? 15_000 : false),
   });
 
+// Live calls this login is invited to; checked every 20 seconds.
+export const useLiveCalls = (campaignId) =>
+  useQuery({
+    queryKey: ["calls", campaignId, "live"],
+    queryFn: () => api(`/campaigns/${campaignId}/meetings/live/`),
+    enabled: !!campaignId,
+    refetchInterval: 20_000,
+  });
+
 export const useStartCall = (campaignId) =>
   useWrite((body) => api(`/campaigns/${campaignId}/meetings/`, { method: "POST", body }), "calls");
 

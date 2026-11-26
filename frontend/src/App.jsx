@@ -23,6 +23,7 @@ import Announcements from "./pages/campaign/Announcements";
 import Calls from "./pages/campaign/Calls";
 import Notifications from "./pages/campaign/Notifications";
 import CallAlerts from "./components/CallAlerts";
+import LiveCalls from "./components/LiveCalls";
 import Units from "./pages/campaign/Units";
 import Strategy from "./pages/campaign/Strategy";
 import Targets from "./pages/campaign/Targets";
@@ -128,6 +129,7 @@ function Shell({ campaign, role, where }) {
       >
         <AppPage crumb={current[1]}>
           {campaign.closed_at && <ClosedNote />}
+          <LiveCalls campaign={campaign} />
           <CallAlerts />
           {((role === "mobilizer" && page !== "notifications") || (role === "coordinator" && page === "overview")) && <YourWard campaign={campaign} role={role} />}
           <Page campaign={campaign} role={role} onModal={setModal} />

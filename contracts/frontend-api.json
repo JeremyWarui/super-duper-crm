@@ -883,6 +883,11 @@
       "join_path",
       "alerted"
     ],
+    "GET /api/campaigns/{campaign_id}/meetings/live/": [
+      "id",
+      "title",
+      "mode"
+    ],
     "GET /api/meetings/{meeting_id}/token/": [
       "meeting",
       "token",

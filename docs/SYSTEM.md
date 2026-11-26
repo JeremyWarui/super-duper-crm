@@ -397,6 +397,10 @@ page under Reach out).
 - The candidate, manager, comms, or a coordinator (for a ward of theirs) starts an audio or video
   call for the whole campaign or one ward. A ward call rings the candidate, manager and comms,
   the coordinators whose area holds the ward, and its mobilizers.
+- Everyone a call rings, but its starter, gets a notice under the bell ("Call started: title"),
+  and while the call is live every workspace page shows them a "Live call" bar with a Join
+  button (`GET /api/campaigns/{id}/meetings/live/`, checked every 20 seconds). Neither needs
+  call alerts turned on.
 - Any login of the campaign joins at `/meet/<id>` with a 15-minute token for that room only. An
   audio call allows the microphone alone.
 - The host, the candidate or the manager ends a call for everyone.

@@ -209,6 +209,20 @@ async def apply_event(session: AsyncSession, event: api.WebhookEvent) -> bool:
     return True
 
 
+async def live_for(session: AsyncSession, campaign_id: uuid.UUID, user: User) -> list[Meeting]:
+    """The campaign's live calls this login is invited to, newest first."""
+    live = await session.scalars(
+        select(Meeting)
+        .where(Meeting.campaign_id == campaign_id, Meeting.status == "live")
+        .order_by(Meeting.started_at.desc())
+    )
+    return [
+        m
+        for m in live
+        if user.id in await units.logins(session, campaign_id, m.ward_id, m.registration_centre_id)
+    ]
+
+
 def _aware(at: datetime) -> datetime:
     """A stored time as UTC; SQLite hands times back without their zone."""
     return at if at.tzinfo else at.replace(tzinfo=UTC)

@@ -193,3 +193,26 @@ async def test_a_ward_call_alerts_only_its_invitees_and_a_gone_device_is_dropped
     assert sent == ["https://fcm.googleapis.com/fcm/send/mobilizer"]
     assert removed.status_code == 204
     assert left == ["https://fcm.googleapis.com/fcm/send/manager"]
+
+
+async def test_a_started_call_reaches_its_invitees_in_the_app_without_push(
+    client: httpx.AsyncClient, world: World, livekit: Rooms
+) -> None:
+    await start(client, world, ward=str(world.other_ward.id))
+    whole = await start(client, world)
+    live_path = f"/api/campaigns/{world.campaign.id}/meetings/live/"
+
+    bell = (await client.get("/api/notices/", headers=world.headers("mobilizer"))).json()
+    live = (await client.get(live_path, headers=world.headers("mobilizer"))).json()
+    host_bell = (await client.get("/api/notices/", headers=world.headers("manager"))).json()
+    await client.post(
+        f"/api/meetings/{whole['meeting']['id']}/end/", headers=world.headers("manager")
+    )
+    after = (await client.get(live_path, headers=world.headers("mobilizer"))).json()
+
+    assert [(n["text"], n["url"]) for n in bell] == [
+        ("Call started: Ward check-in", whole["join_path"])
+    ]
+    assert [m["id"] for m in live] == [whole["meeting"]["id"]]
+    assert host_bell == []
+    assert after == []

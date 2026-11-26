@@ -1,5 +1,6 @@
 """Online calls for the campaign's logins (`services/meetings.py`), LiveKit's webhook, and the
-call alerts each device signs up for (`services/push.py`)."""
+call alerts each device signs up for (`services/push.py`). A started call also leaves a notice
+under each invitee's bell (`services/notices.py`)."""
 
 import uuid
 from typing import Annotated
@@ -20,7 +21,7 @@ from backend.schemas.meetings import (
     PushSubscribe,
     PushUnsubscribe,
 )
-from backend.services import meetings, push, units
+from backend.services import meetings, notices, push, units
 from backend.services.errors import NotFound, Refused
 
 router = APIRouter(tags=["meetings"])
@@ -46,7 +47,7 @@ async def _meeting(session, user: User, meeting_id: uuid.UUID) -> Meeting:
 async def start(
     campaign_id: uuid.UUID, payload: MeetingStart, session: SessionDep, user: Starter
 ) -> MeetingStarted:
-    """Open a call and ring its invitees' devices."""
+    """Open a call, leave each invitee a notice and ring their devices."""
     campaign = await require_visible_campaign(session, user, campaign_id)
     ward, centre = await units.resolve(session, payload.ward, payload.centre)
     await require_ward_in_campaign(session, campaign, ward, centre)
@@ -57,8 +58,16 @@ async def start(
         session, campaign_id, payload.title, payload.mode, ward, centre, actor=user
     )
     path = f"/meet/{meeting.id}"
-    others = [i for i in invited if i != user.id]
-    alerted = await push.notify(session, others, f"Joining: {meeting.title}", "Tap to join.", path)
+    alerted = await notices.tell(
+        session,
+        campaign_id,
+        invited,
+        f"Call started: {meeting.title}",
+        path,
+        detail="Tap to join.",
+        sender_id=user.id,
+        title=f"Joining: {meeting.title}",
+    )
     return MeetingStarted(
         meeting=MeetingRead.model_validate(meeting), join_path=path, alerted=alerted
     )
@@ -69,6 +78,13 @@ async def calls(campaign_id: uuid.UUID, session: SessionDep, user: Starter) -> l
     """Past and live calls with who came and for how long."""
     await require_visible_campaign(session, user, campaign_id)
     return await meetings.calls(session, campaign_id)
+
+
+@router.get("/campaigns/{campaign_id}/meetings/live/", response_model=list[MeetingRead])
+async def live(campaign_id: uuid.UUID, session: SessionDep, user: Joiner) -> list[Meeting]:
+    """The live calls the caller is invited to."""
+    await require_visible_campaign(session, user, campaign_id)
+    return await meetings.live_for(session, campaign_id, user)
 
 
 @router.get("/meetings/{meeting_id}/token/", response_model=MeetingJoin)
