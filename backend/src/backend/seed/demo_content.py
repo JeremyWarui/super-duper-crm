@@ -1,5 +1,6 @@
 """The aspirant demo's website content: news, events, documents, videos and the site settings."""
 
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import select, update
@@ -7,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import (
     Campaign,
+    Constituency,
     Document,
     Event,
     Notice,
@@ -202,20 +204,36 @@ VIDEOS = [
 ]
 
 
-async def fill_site(session: AsyncSession, campaign: Campaign, today: date) -> None:
+@dataclass(frozen=True)
+class Content:
+    """One demo's website: site settings, news, events, documents, videos and announcements."""
+
+    site: dict
+    news: list[dict]
+    events: list[tuple]
+    event_body: str
+    documents: list[tuple[str, str]]
+    videos: list[tuple[str, str]]
+    announcements: list[tuple[str, str, bool, int]]
+
+
+async def fill_site(
+    session: AsyncSession, campaign: Campaign, today: date, content: Content
+) -> None:
     """Fill the site settings, publish the news, documents and videos, and put the campaign's
     public events on the website."""
-    wards = dict(
-        (
-            await session.execute(
-                select(Ward.name, Ward.id).where(Ward.constituency_id == campaign.constituency_id)
-            )
-        ).all()
+    in_seat = (
+        Ward.constituency_id == campaign.constituency_id
+        if campaign.constituency_id
+        else Ward.constituency_id.in_(
+            select(Constituency.id).where(Constituency.county_id == campaign.county_id)
+        )
     )
+    wards = dict((await session.execute(select(Ward.name, Ward.id).where(in_seat))).all())
     site = await session.scalar(select(SiteSettings))
-    for field, value in SITE.items():
+    for field, value in content.site.items():
         setattr(site, field, value)
-    for item in NEWS:
+    for item in content.news:
         session.add(
             Post(
                 kind=PostKind.NEWS,
@@ -232,7 +250,7 @@ async def fill_site(session: AsyncSession, campaign: Campaign, today: date) -> N
                 published=True,
             )
         )
-    for title, ward_name, days_ahead, venue, picture in EVENTS:
+    for title, ward_name, days_ahead, venue, picture in content.events:
         day = today + timedelta(days=days_ahead)
         session.add(
             Event(
@@ -242,13 +260,13 @@ async def fill_site(session: AsyncSession, campaign: Campaign, today: date) -> N
                 venue=venue,
                 scheduled_date=datetime(day.year, day.month, day.day, EVENT_HOUR_UTC, tzinfo=UTC),
                 published=True,
-                description=EVENT_BODY,
+                description=content.event_body,
                 image_url=picture,
             )
         )
-    for n, (title, url) in enumerate(DOCUMENTS):
+    for n, (title, url) in enumerate(content.documents):
         session.add(Document(title=title, url=url, sort_order=n, published=True))
-    for n, (title, video_id) in enumerate(VIDEOS):
+    for n, (title, video_id) in enumerate(content.videos):
         session.add(
             Video(
                 title=title,
@@ -278,11 +296,24 @@ ANNOUNCEMENTS = [
 ]
 
 
-async def announce(session: AsyncSession, campaign: Campaign, manager: User, ward: Ward) -> None:
+KASARANI = Content(
+    site=SITE,
+    news=NEWS,
+    events=EVENTS,
+    event_body=EVENT_BODY,
+    documents=DOCUMENTS,
+    videos=VIDEOS,
+    announcements=ANNOUNCEMENTS,
+)
+
+
+async def announce(
+    session: AsyncSession, campaign: Campaign, manager: User, ward: Ward, content: Content
+) -> None:
     """Send the demo announcements; the candidate has read the oldest one."""
     candidate = await session.scalar(select(User).where(User.username == "candidate"))
     now = datetime.now(UTC)
-    for title, body, to_ward, days_ago in ANNOUNCEMENTS:
+    for title, body, to_ward, days_ago in content.announcements:
         sent, _ = await announcements.send(
             session, campaign.id, title, body, ward.id if to_ward else None, None, actor=manager
         )

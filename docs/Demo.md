@@ -54,6 +54,14 @@ for u in admin candidate manager mobilizer; do
 done
 ```
 
+## The Laikipia governor demo
+
+`laikipia-demo` runs on its own database, `NEON_LAIKIPIA`. It is a county seat, so its team
+works ward by ward across Laikipia. It has five logins: `admin`, `candidate` (Aspirant),
+`manager` (Jeremy), `coordinator` (Mary Wairimu, Laikipia East) and `mobilizer` (Dennis,
+Nanyuki). Build it with the commands above, using `NEON_LAIKIPIA`, `--demo laikipia`, and
+`coordinator` added to the reset-password loop.
+
 `demo-install` refuses a database that is already set up. To start again, empty it first:
 `uv run campaign-crm reset-database --yes <database name>`, then the commands above.
 

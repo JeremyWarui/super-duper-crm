@@ -17,6 +17,7 @@ from backend.models import County, UserRole
 from backend.seed import demo_aspirant
 from backend.seed.demo import seed_demo
 from backend.seed.demo_comms import seed_demo_texting
+from backend.seed.demo_laikipia import LAIKIPIA
 from backend.seed.history import RESULTS_CSV, import_results
 from backend.seed.reference import (
     CAW_CSV,
@@ -33,6 +34,9 @@ from backend.services.audit import record
 from backend.services.clock import today
 from backend.services.errors import Refused
 from backend.services.targets import recalculate_all
+
+# The demo campaigns demo-install builds.
+DEMOS = {"kasarani": demo_aspirant.KASARANI, "laikipia": LAIKIPIA}
 
 
 async def _seed(args: argparse.Namespace, session: AsyncSession) -> int:
@@ -150,8 +154,11 @@ async def _demo_install(args: argparse.Namespace, session: AsyncSession) -> int:
     if len(args.password) < 12:
         print("The demo password needs at least 12 characters.", file=sys.stderr)
         return 1
-    sign_ins = await demo_aspirant.build_aspirant(session, password=args.password, today=today())
-    sheet = credentials_sheet(demo_aspirant.TITLE, sign_ins, args.password, args.url)
+    demo = DEMOS[args.demo]
+    sign_ins = await demo_aspirant.build_aspirant(
+        session, password=args.password, today=today(), demo=demo
+    )
+    sheet = credentials_sheet(demo.title, sign_ins, args.password, args.url)
     print(sheet)
     if args.sheet:
         Path(args.sheet).write_text(sheet, encoding="utf-8")
@@ -431,6 +438,9 @@ def build_parser() -> argparse.ArgumentParser:
     install.add_argument("-p", "--password", required=True, help="one password for every login")
     install.add_argument("--url", default="http://localhost:5173", help="where the site opens")
     install.add_argument("--sheet", help="also write the sign-ins to this Markdown file")
+    install.add_argument(
+        "--demo", choices=sorted(DEMOS), default="kasarani", help="which demo campaign to build"
+    )
 
     createuser = command("createuser", _createuser, "add a login")
     needs_user(createuser)

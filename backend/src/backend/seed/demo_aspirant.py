@@ -1,5 +1,6 @@
-"""The demo install: a set-up installation with its candidate page, team and work."""
+"""The demo installs: a set-up installation with its candidate page, team and work."""
 
+from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy import select
@@ -18,14 +19,17 @@ from backend.models import (
     Ward,
 )
 from backend.schemas.setup import InvitedLogin, SetupRequest, SetupSeat, SetupSite, SetupSuperuser
+from backend.schemas.team import AreaWrite
 from backend.security import hash_password
 from backend.seed.demo import demo_email, seed_ground_game
-from backend.seed.demo_content import PICTURE, PORTRAIT, SITE, UNSPLASH, announce, fill_site
+from backend.seed.demo_content import KASARANI as KASARANI_SITE
+from backend.seed.demo_content import PICTURE, PORTRAIT, UNSPLASH, Content, announce, fill_site
 from backend.seed.sign_ins import SignIn
 from backend.services import setup
 from backend.services.accounts import add_member, new_login
 from backend.services.errors import Refused
 from backend.services.rich_text import from_plain
+from backend.services.team import set_areas
 
 SLIDE_PICTURES = ["HBADKDBJYU", "X60YH1SWTF", "5TRB09XUBX"]
 
@@ -132,29 +136,88 @@ SLIDES = [
 ]
 
 
-async def _kasarani(session: AsyncSession) -> Constituency | None:
-    return await session.scalar(
-        select(Constituency)
-        .join(County)
-        .where(County.name == COUNTY, Constituency.name == CONSTITUENCY)
+# A login: first name, last name, phone.
+Person = tuple[str, str, str]
+
+
+@dataclass(frozen=True)
+class Demo:
+    """One demo install: its seat, team, agenda, carousel and website."""
+
+    county: str
+    # Blank for a county seat.
+    constituency: str
+    seat: Seat
+    title: str
+    short_name: str
+    office: str
+    candidate: Person
+    manager: Person
+    mobilizer: Person
+    agenda: list[tuple[str, str, str, str]]
+    agenda_pictures: list[str]
+    slides: list[tuple[str, str, str, str, str]]
+    content: Content
+    # A coordinator and the constituency they cover, when the demo has one.
+    coordinator: Person | None = None
+    coordinator_constituency: str = ""
+    # The wards the ground game works, the mobilizer's first; blank works every ward of the seat.
+    field_wards: tuple[str, ...] = ()
+
+
+KASARANI = Demo(
+    county=COUNTY,
+    constituency=CONSTITUENCY,
+    seat=Seat.MP,
+    title=TITLE,
+    short_name="Otieno",
+    office="Campaign office, Mwiki Road, Kasarani",
+    candidate=("David", "Otieno", "+254722000001"),
+    manager=("Lucy", "Wambui", "+254722000002"),
+    mobilizer=("Kevin", "Ochieng", "+254722000003"),
+    agenda=AGENDA,
+    agenda_pictures=AGENDA_PICTURES,
+    slides=SLIDES,
+    content=KASARANI_SITE,
+)
+
+
+async def _seat_area(
+    session: AsyncSession, demo: Demo
+) -> tuple[County | None, Constituency | None]:
+    county = await session.scalar(select(County).where(County.name == demo.county))
+    if county is None or not demo.constituency:
+        return county, None
+    constituency = await session.scalar(
+        select(Constituency).where(
+            Constituency.county_id == county.id, Constituency.name == demo.constituency
+        )
     )
+    return county, constituency
 
 
-async def _set_up(session: AsyncSession, kasarani: Constituency, password: str) -> Campaign:
+async def _set_up(
+    session: AsyncSession,
+    demo: Demo,
+    county: County,
+    constituency: Constituency | None,
+    password: str,
+) -> Campaign:
     """The first-run setup as /setup runs it: the seat and the candidate login."""
     token = await setup.new_token(session)
+    first, last, phone = demo.candidate
     result = await setup.run(
         session,
         SetupRequest(
             token=token,
             site=SetupSite(
-                name=TITLE,
-                short_name="Otieno",
+                name=demo.title,
+                short_name=demo.short_name,
                 primary_colour="#0b5d3b",
                 secondary_colour="#f2b705",
                 contact_email="office@example.com",
                 contact_phone="0700 111222",
-                address="Campaign office, Mwiki Road, Kasarani",
+                address=demo.office,
             ),
             superuser=SetupSuperuser(
                 username="admin",
@@ -164,16 +227,17 @@ async def _set_up(session: AsyncSession, kasarani: Constituency, password: str) 
                 last_name="Mwangi",
             ),
             campaign=SetupSeat(
-                title=TITLE,
-                seat=Seat.MP,
+                title=demo.title,
+                seat=demo.seat,
                 election_date=date(2027, 8, 10),
-                constituency=kasarani.id,
+                county=None if constituency else county.id,
+                constituency=constituency.id if constituency else None,
                 candidate=InvitedLogin(
                     username="candidate",
                     email=demo_email("candidate"),
-                    first_name="David",
-                    last_name="Otieno",
-                    phone="+254722000001",
+                    first_name=first,
+                    last_name=last,
+                    phone=phone,
                 ),
             ),
         ),
@@ -184,61 +248,74 @@ async def _set_up(session: AsyncSession, kasarani: Constituency, password: str) 
     return campaign
 
 
-async def _team(session: AsyncSession, campaign: Campaign, password: str) -> User:
-    """A manager on the campaign; returns the mobilizer login the ground game places."""
-    manager, _ = await new_login(
+async def _login(
+    session: AsyncSession, username: str, role: UserRole, person: Person, password: str
+) -> User:
+    first, last, phone = person
+    user, _ = await new_login(
         session,
-        username="manager",
-        role=UserRole.MANAGER,
+        username=username,
+        role=role,
         password=password,
-        email=demo_email("manager"),
-        first_name="Lucy",
-        last_name="Wambui",
-        phone="+254722000002",
+        email=demo_email(username),
+        first_name=first,
+        last_name=last,
+        phone=phone,
     )
+    return user
+
+
+async def _team(session: AsyncSession, campaign: Campaign, demo: Demo, password: str) -> User:
+    """The manager and any coordinator on the campaign; returns the mobilizer login the ground
+    game places."""
+    manager = await _login(session, "manager", UserRole.MANAGER, demo.manager, password)
     await add_member(session, campaign.id, manager)
-    mobilizer, _ = await new_login(
-        session,
-        username="mobilizer",
-        role=UserRole.MOBILIZER,
-        password=password,
-        email=demo_email("mobilizer"),
-        first_name="Kevin",
-        last_name="Ochieng",
-        phone="+254722000003",
-    )
-    return mobilizer
+    if demo.coordinator:
+        coordinator = await _login(
+            session, "coordinator", UserRole.COORDINATOR, demo.coordinator, password
+        )
+        await add_member(session, campaign.id, coordinator)
+        area = await session.scalar(
+            select(Constituency.id).where(
+                Constituency.county_id == campaign.county_id,
+                Constituency.name == demo.coordinator_constituency,
+            )
+        )
+        await set_areas(
+            session, campaign, coordinator.id, AreaWrite(constituencies=[area]), actor=manager
+        )
+    return await _login(session, "mobilizer", UserRole.MOBILIZER, demo.mobilizer, password)
 
 
-async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
+async def _site(session: AsyncSession, campaign: Campaign, demo: Demo, today: date) -> None:
     """Publish the candidate page, the agenda, the carousel and the rest of the website."""
     profile = await session.scalar(
         select(CandidateProfile).where(CandidateProfile.campaign_id == campaign.id)
     )
     profile.photo_url = PORTRAIT
-    profile.slogan = SITE["slogan"]
-    profile.bio = from_plain(SITE["description"])
+    profile.slogan = demo.content.site["slogan"]
+    profile.bio = from_plain(demo.content.site["description"])
     profile.priorities = [
         {"title": title, "text": summary, "image_url": picture}
-        for (title, summary, _, _), picture in zip(AGENDA, AGENDA_PICTURES, strict=True)
+        for (title, summary, _, _), picture in zip(demo.agenda, demo.agenda_pictures, strict=True)
     ][:PRIORITIES]
-    profile.office_address = "Campaign office, Mwiki Road, Kasarani"
+    profile.office_address = demo.office
     profile.office_phone = "0700 111222"
     profile.office_email = "office@example.com"
     profile.published = True
-    for n, (title, summary, what, why) in enumerate(AGENDA):
+    for n, (title, summary, what, why) in enumerate(demo.agenda):
         session.add(
             AgendaIssue(
                 title=title,
                 summary=summary,
                 what_we_will_do=what,
                 why_it_matters=why,
-                image_url=AGENDA_PICTURES[n],
+                image_url=demo.agenda_pictures[n],
                 sort_order=n,
                 published=True,
             )
         )
-    for n, (kicker, headline, line, label, url) in enumerate(SLIDES):
+    for n, (kicker, headline, line, label, url) in enumerate(demo.slides):
         session.add(
             HeroSlide(
                 kicker=kicker,
@@ -251,34 +328,53 @@ async def _site(session: AsyncSession, campaign: Campaign, today: date) -> None:
                 published=True,
             )
         )
-    await fill_site(session, campaign, today)
+    await fill_site(session, campaign, today, demo.content)
 
 
-async def build_aspirant(session: AsyncSession, *, password: str, today: date) -> list[SignIn]:
+async def _field_wards(
+    session: AsyncSession, demo: Demo, county: County, constituency: Constituency | None
+) -> list[Ward]:
+    if constituency is not None:
+        found = select(Ward).where(Ward.constituency_id == constituency.id)
+    else:
+        found = select(Ward).join(Constituency).where(Constituency.county_id == county.id)
+    wards = {ward.name: ward for ward in await session.scalars(found)}
+    return [wards[name] for name in demo.field_wards or sorted(wards)]
+
+
+async def build_aspirant(
+    session: AsyncSession, *, password: str, today: date, demo: Demo = KASARANI
+) -> list[SignIn]:
     """Set up an empty database as the demo and return its sign-ins."""
     if await setup.is_set_up(session):
         raise Refused("This database is already set up; the demo needs an empty one.")
-    kasarani = await _kasarani(session)
-    if kasarani is None:
+    county, constituency = await _seat_area(session, demo)
+    if county is None or (demo.constituency and constituency is None):
         raise Refused("Load the reference data first: campaign-crm seed.")
 
-    campaign = await _set_up(session, kasarani, password)
-    mobilizer = await _team(session, campaign, password)
-    wards = sorted(
-        await session.scalars(select(Ward).where(Ward.constituency_id == kasarani.id)),
-        key=lambda ward: ward.name,
-    )
+    campaign = await _set_up(session, demo, county, constituency, password)
+    mobilizer = await _team(session, campaign, demo, password)
+    wards = await _field_wards(session, demo, county, constituency)
     await seed_ground_game(session, campaign, wards, mobilizer)
-    await _site(session, campaign, today)
+    await _site(session, campaign, demo, today)
     await session.commit()
     manager = await session.scalar(select(User).where(User.username == "manager"))
-    await announce(session, campaign, manager, wards[0])
+    await announce(session, campaign, manager, wards[0], demo.content)
 
-    return [
+    sign_ins = [
         SignIn(demo_email("admin"), "Site admin", "Console: logins, settings, data export"),
         SignIn(
             demo_email("candidate"), "Candidate", "the cockpit, website editor, adds mobilizers"
         ),
         SignIn(demo_email("manager"), "Campaign manager", "the full war room and the website"),
-        SignIn(demo_email("mobilizer"), "Mobilizer", f"{wards[0].name} only"),
     ]
+    if demo.coordinator:
+        sign_ins.append(
+            SignIn(
+                demo_email("coordinator"),
+                "Coordinator",
+                f"{demo.coordinator_constituency} only: its wards, mobilizers and calls",
+            )
+        )
+    sign_ins.append(SignIn(demo_email("mobilizer"), "Mobilizer", f"{wards[0].name} only"))
+    return sign_ins
